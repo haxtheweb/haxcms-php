@@ -21,22 +21,6 @@
                 "color": "blue",
                 "icon": "icons:add-circle-outline"
             }
-        },
-        {
-            "id": "52685e52-51ff-413f-93b2-96c2ab5ab198",
-            "indent": 0,
-            "location": "\/haxcms\/things\/index.html",
-            "order": 0,
-            "parent": null,
-            "title": "things",
-            "metadata": {
-                "siteName": "things",
-                "image": "assets\/banner.jpg",
-                "theme": "default",
-                "icon": "icons:announcement",
-                "color": "blue"
-            },
-            "description": "stuff"
         }
     ]
 }
