@@ -123,13 +123,13 @@ class HAXCMS {
    * test the active user login based on session.
    */
   public function testLogin($adminFallback = FALSE) {
-    if ($this->user->name == $_SERVER['PHP_AUTH_USER'] && $this->user->password == $_SERVER['PHP_AUTH_PW']) {
+    if ($this->user->name === $_SERVER['PHP_AUTH_USER'] && $this->user->password === $_SERVER['PHP_AUTH_PW']) {
       return TRUE;
     }
     // if fallback is allowed, meaning the super admin then let them in
     // the default is to strictly test for the login in question
     // the fallback being allowable is useful for managed environments
-    else if ($adminFallback && $this->superUser->name == $_SERVER['PHP_AUTH_USER'] && $this->superUser->password == $_SERVER['PHP_AUTH_PW']) {
+    else if ($adminFallback && $this->superUser->name === $_SERVER['PHP_AUTH_USER'] && $this->superUser->password === $_SERVER['PHP_AUTH_PW']) {
       return TRUE;
     }
     return FALSE;
