@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Welcome to HAXCMS. Decentralize already.
 
 # where am i? Who am i? These, r the critical questions we will ponder in this sh
@@ -12,7 +12,6 @@ txtbld=$(tput bold)             # BELIEVE ME. Bold.
 bldgrn=$(tput setaf 2) #  WOOT. Green.
 bldred=${txtbld}$(tput setaf 1) # Booooo get off the stage. Red.
 txtreset=$(tput sgr0) # uhhh what?
-
 # cave....cave....c a ve... c      a     v         e  ....
 haxecho(){
   echo "${bldgrn}$1${txtreset}"
