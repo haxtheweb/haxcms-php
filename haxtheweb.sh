@@ -12,6 +12,7 @@ txtbld=$(tput bold)             # BELIEVE ME. Bold.
 bldgrn=$(tput setaf 2) #  WOOT. Green.
 bldred=${txtbld}$(tput setaf 1) # Booooo get off the stage. Red.
 txtreset=$(tput sgr0) # uhhh what?
+
 # cave....cave....c a ve... c      a     v         e  ....
 haxecho(){
   echo "${bldgrn}$1${txtreset}"
@@ -52,8 +53,8 @@ read user
 sed -i "s/jeff/${user}/g" _config/config.php
 # a super, scary password prompt approaches. You roll a 31 and deal a critical security hit
 haxecho "Super user password: "
-read -s password
-sed -i "s/jimmerson/${password}/g" _config/config.php
+read pass
+sed -i "s/jimmerson/${pass}/g" _config/config.php
 # only if you actually use apache
 haxecho "www user, what does apache run as? (www-data and apache are common, hit enter to ignore this setting)"
 read wwwuser
@@ -85,7 +86,7 @@ haxecho "║                                                               ║"
 haxecho "╠───────────────────────────────────────────────────────────────╣"
 haxecho "║ Use  the following to get started:                            ║"
 haxecho "║  username: $user                                              ║"
-haxecho "║  password: $password                                          ║"
+haxecho "║  password: $pass                                          ║"
 haxecho "║                                                               ║"
 haxecho "║                        ✻ Ex  Uno Plures ✻                     ║"
 haxecho "║                        ✻ From one, Many ✻                     ║"
