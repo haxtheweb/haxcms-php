@@ -35,7 +35,7 @@ getuuid(){
 # Time to get down to brass tacks
 chmod 777 _sites
 chmod 775 _config
-chmod 775 _config/sites.json
+chmod 777 _config/sites.json
 # whew that was hard work. the end.
 
 
@@ -59,10 +59,10 @@ sed -i "s/jimmerson/${pass}/g" _config/config.php
 haxecho "www user, what does apache run as? (www-data and apache are common, hit enter to ignore this setting)"
 read wwwuser
 
-if [ -z wwwuser ]; then
+if [ -z ${wwwuser} ]; then
   # I've got a bad feeling about this
 else
-  chown wwwuser:wwwuser _sites
+  chown ${wwwuser}:${wwwuser} _sites
 fi
 
 # you get candy if you reference this
