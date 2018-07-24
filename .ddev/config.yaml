@@ -65,4 +65,4 @@ provider: default
 hooks:
   post-start:
     - exec: "npm install bower -g"
-    - exec: "bash haxtheweb.sh admin admin uid_503 gid_20"
+    - exec: "./haxtheweb.sh admin admin uid_503 gid_20"
