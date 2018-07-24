@@ -62,4 +62,7 @@ provider: default
 # See https://ddev.readthedocs.io/en/latest/users/extending-commands/ for more
 # information on the commands that can be extended and the tasks you can define
 # for them. Example:
-#hooks:
+hooks:
+  post-start:
+    - exec: "npm install bower -g"
+    - exec: "bash haxtheweb.sh admin admin uid_503 gid_20"

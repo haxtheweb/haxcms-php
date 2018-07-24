@@ -20,13 +20,9 @@ haxecho(){
 haxwarn(){
   echo "${bldred}$1${txtreset}"
 }
-# Time - The final boss.
-timestamp(){
-  date +"%s"
-}
 # Create a unik, uneek, unqiue id.
 getuuid(){
-  uuidgen -rt
+  echo $(cat /proc/sys/kernel/random/uuid)
 }
 
 # Time to get down to brass tacks
@@ -43,36 +39,51 @@ echo "$(getuuid)" > _config/SALT.txt
 # write private key
 pk="$(getuuid)"
 sed -i "s/HAXTHEWEBPRIVATEKEY/${pk}/g" _config/config.php
+user=$1
+pass=$2
+wwwuser=$3
+wwwgrp=$4
 # enter a super user name, dun dun dun dunnnnnnn!
-read -rp "Super user name:" user
+if [ -z $user ]; then
+  read -rp "Super user name:" user
+fi
 sed -i "s/jeff/${user}/g" _config/config.php
 # a super, scary password prompt approaches. You roll a 31 and deal a critical security hit
-read -rp "Super user password:" pass
+if [ -z $pass ]; then
+  read -rp "Super user password:" pass
+fi
 sed -i "s/jimmerson/${pass}/g" _config/config.php
-# only if you actually use apache
-haxecho "www user, what does apache run as? (www-data and apache are common, hit enter to ignore this setting)"
-read wwwuser
-
+# only if you use apache
+if [ -z $wwwuser ]; then
+  haxecho "www-data or apache is common, hit enter to ignore"
+  read -rp "Web server user:" wwwuser
+fi
+# only if you use apache
+if [ -z $wwwgrp ]; then
+  read -rp "Web server group:" wwwgrp
+fi
+# account for www user messaging, which is not required
 if [ -z ${wwwuser} ]; then
   # I've got a bad feeling about this
   haxwarn "did nothing, make sure your web server user can write to _sites"
 else
-  sudo chown ${wwwuser}:${wwwuser} _sites
+  sudo chown ${wwwuser}:${wwwgrp} _sites
 fi
 
 # you get candy if you reference this
+haxecho ""
 haxecho "╔✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻✻╗"
 haxecho "║                Welcome to the decentralization.               ║"
 haxecho "║                                                               ║"
-haxecho "║                   H  H      AAA    X   X                      ║"
-haxecho "║                   H  H     A   A    X X                       ║"
-haxecho "║                   HHHH     AAAAA     X                        ║"
-haxecho "║                   H  H     A   A    X X                       ║"
-haxecho "║                   H  H     A   A   X   X                      ║"
+haxwarn "║                   H  H      AAA     X   X                     ║"
+haxwarn "║                   H  H     A   A     X X                      ║"
+haxwarn "║                   HHHH     AAAAA      X                       ║"
+haxwarn "║                   H  H     A   A     X X                      ║"
+haxwarn "║                   H  H     A   A    X   X                     ║"
 haxecho "║                                                               ║"
 haxecho "╟───────────────────────────────────────────────────────────────╢"
 haxecho "║ If you have issues, submit them to                            ║"
-haxecho "║   http://github.com/elmsln/haxcms/issues                      ║"
+haxwarn "║   http://github.com/elmsln/haxcms/issues                      ║"
 haxecho "╟───────────────────────────────────────────────────────────────╢"
 haxecho "║ ✻NOTES✻                                                       ║"
 haxecho "║ All changes should be made in the _config/config.php file     ║"
@@ -80,8 +91,9 @@ haxecho "║ which has been setup during this install routine              ║"
 haxecho "║                                                               ║"
 haxecho "╠───────────────────────────────────────────────────────────────╣"
 haxecho "║ Use  the following to get started:                            ║"
-haxecho "║  username: $user                                              ║"
-haxecho "║  password: $pass                                              ║"
+haxecho "║                                                               ║"
+haxwarn "║    user name:    $user"
+haxwarn "║    password:     $pass"
 haxecho "║                                                               ║"
 haxecho "║                        ✻ Ex  Uno Plures ✻                     ║"
 haxecho "║                        ✻ From one, Many ✻                     ║"
