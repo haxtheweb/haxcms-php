@@ -149,13 +149,13 @@ a simple element to check for and fetch JWTs
        */
       ready: function () {
         document.body.addEventListener('outline-player-active-item-changed', this._newActiveItem.bind(this));      
-        document.body.addEventListener('haxcms-body-changed', this._bodyChanged.bind(this));      
       },
       /**
        * Attached life cycle
        */
       attached: function () {
         this.jwt = localStorage.getItem('jwt');
+        document.body.addEventListener('haxcms-body-changed', this._bodyChanged.bind(this));      
       },
       /**
        * Items has changed, these items live in lrnsys-outline
