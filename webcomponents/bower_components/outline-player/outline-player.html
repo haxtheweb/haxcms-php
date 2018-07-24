@@ -262,6 +262,12 @@ A LRN element
           type: String,
           observer: '_activeItemContentChanged',
         },
+        __timeStamp1: {
+          type: String,
+        },
+        __timeStamp2: {
+          type: String,
+        },
         /**
          * Outline processed and ordered outline
          */
@@ -342,8 +348,7 @@ A LRN element
        */
       attached: function () {
         document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
-        this.updateStyles();
-        this.$.activecontent.generateRequest();
+        this.updateStyles();        
       },
       /**
        * Toggle edit mode
