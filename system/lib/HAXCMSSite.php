@@ -90,6 +90,21 @@ class HAXCMSSite {
     return FALSE;
   }
   /**
+   * Update page in the manifest list of items. useful if updating some
+   * data about an existing entry.
+   * @return JSONOutlineSchemaItem or FALSE
+   */
+  public function updatePage($page) {
+    foreach ($this->manifest->items as $key => $item) {
+      if ($item->id === $page->id) {
+        $this->manifest->items[$key] = $page;
+        $this->manifest->save();
+        return $page;
+      }
+    }
+    return FALSE;
+  }
+  /**
    * Change the directory this site is located in
    */
   public function changeName($new) {

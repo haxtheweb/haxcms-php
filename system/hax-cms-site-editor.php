@@ -84,12 +84,12 @@ a simple element to check for and fetch JWTs
      content-type="application/json"
      handle-as="json"
      on-response="_handleOutlineResponse"></iron-ajax>
-    <hax-store app-store='<?php print json_encode($HAXCMS->appStoreConnection());?>'></hax-store>
+    <hax-store app-store='<?php print json_encode($HAXCMS->appStoreConnection());?>'?></hax-store>
     <hax-app-picker></hax-app-picker>
     <hax-body></hax-body>
     <hax-autoloader hidden></hax-autoloader>
     <hax-panel align="left" hide-panel-ops></hax-panel>
-    <hax-manager></hax-manager>
+    <hax-manager append-jwt="jwt" id="haxmanager"></hax-manager>
     <hax-export-dialog></hax-export-dialog>
     <paper-fab id="editbutton" icon="[[__editIcon]]"></paper-fab>
     <paper-tooltip for="editbutton" position="bottom" offset="14">[[__editText]]</paper-tooltip>
@@ -155,7 +155,7 @@ a simple element to check for and fetch JWTs
        */
       attached: function () {
         this.jwt = localStorage.getItem('jwt');
-        document.body.addEventListener('haxcms-body-changed', this._bodyChanged.bind(this));      
+        document.body.addEventListener('haxcms-body-changed', this._bodyChanged.bind(this));
       },
       /**
        * Items has changed, these items live in lrnsys-outline
@@ -167,7 +167,12 @@ a simple element to check for and fetch JWTs
        * update the internal active item
        */
        _newActiveItem: function (e) {
-         this.set('activeItem', e.detail);
+        this.set('activeItem', e.detail);
+        let parts = window.location.pathname.split('/');
+        parts.pop();
+        let site = parts.pop();
+        // set upload manager to point to this location in a more dynamic fashion
+        this.$.haxmanager.appendUploadEndPoint = 'siteName=' + site + '&page=' + e.detail.id;
        },
       /**
        * toggle state on button tap

@@ -12,6 +12,7 @@ class HAXCMS {
   public $appStoreFile;
   public $salt;
   public $privateKey;
+  public $apiKeys;
   public $superUser;
   public $user;
   public $sitesDirectory;
@@ -19,6 +20,8 @@ class HAXCMS {
   public $data;
   public $configDirectory;
   public $sitesJSON;
+  public $domain;
+  public $protocol;
   public $basePath;
   public $safePost;
   public $safeGet;
@@ -33,7 +36,13 @@ class HAXCMS {
     unset($this->safePost['jwt']);
     unset($this->safePost['token']);
     $this->safeGet = filter_var_array($_GET, FILTER_SANITIZE_STRING);
+    // Get HTTP/HTTPS (the possible values for this vary from server to server)
+    $this->protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] && !in_array(strtolower($_SERVER['HTTPS']),array('off','no'))) ? 'https' : 'http';
+    $this->domain = $_SERVER['HTTP_HOST'];
+    // auto generate base path
     $this->basePath = '/';
+    $this->apiKeys = array();
+    // set up user account stuff
     $this->superUser = new stdClass();
     $this->superUser->name = NULL;
     $this->superUser->password = NULL;
@@ -49,7 +58,7 @@ class HAXCMS {
       $this->configDirectory = HAXCMS_ROOT . '/_config';
       // ensure appstore file is there, then make salt size of this file
       if (file_exists(HAXCMS_ROOT . '/_config/appstore.json')) {
-        $this->appStoreFile = '_config/appstore.json';
+        $this->appStoreFile = 'system/generateAppStore.php';
       }
       // ensure appstore file is there, then make salt size of this file
       if (file_exists(HAXCMS_ROOT . '/SALT.txt')) {
@@ -68,12 +77,87 @@ class HAXCMS {
     }
   }
   /**
+   * Generate a valid HAX App store specification schema for connecting to this site via JSON.
+   */
+  public function siteConnectionJSON() {
+    return '{
+      "details": {
+        "title": "Local files",
+        "icon": "perm-media",
+        "color": "light-blue",
+        "author": "HAXCMS",
+        "description": "HAXCMS integration for HAX",
+        "tags": ["media", "hax"]
+      },
+      "connection": {
+        "protocol": "' . $this->protocol . '",
+        "url": "' . $this->domain . $this->basePath . '",
+        "operations": {
+          "browse": {
+            "method": "GET",
+            "endPoint": "system/loadFiles.php",
+            "pagination": {
+              "style": "link",
+              "props": {
+                "first": "page.first",
+                "next": "page.next",
+                "previous": "page.previous",
+                "last": "page.last"
+              }
+            },
+            "search": {
+            },
+            "data": {
+            },
+            "resultMap": {
+              "defaultGizmoType": "image",
+              "items": "list",
+              "preview": {
+                "title": "name",
+                "details": "mime",
+                "image": "url",
+                "id": "uuid"
+              },
+              "gizmo": {
+                "source": "url",
+                "id": "uuid",
+                "title": "name",
+                "type": "type"
+              }
+            }
+          },
+          "add": {
+            "method": "POST",
+            "endPoint": "system/saveFile.php",
+            "acceptsGizmoTypes": [
+              "image",
+              "video",
+              "audio",
+              "pdf",
+              "svg",
+              "document",
+              "csv"
+            ],
+            "resultMap": {
+              "item": "data.file",
+              "defaultGizmoType": "image",
+              "gizmo": {
+                "source": "url",
+                "id": "uuid"
+              }
+            }
+          }
+        }
+      }
+    }';
+  }
+  /**
    * Generate appstore connection information. This has to happen at run time.
    * to get into account _config / environmental overrides
    */
   public function appStoreConnection() {
     $connection = new stdClass();
-    $connection->url = $this->basePath . $this->appStoreFile;
+    $connection->url = $this->basePath . $this->appStoreFile . '?app-store-token=' . $this->getRequestToken('appstore');
     return $connection;
   }
   /**
@@ -153,9 +237,16 @@ class HAXCMS {
    * Validate a JTW during POST
    */
   public function validateJWT($endOnInvalid = TRUE) {
-    if ($_POST['jwt'] != NULL) {
+    if (isset($_POST['jwt']) && $_POST['jwt'] != NULL) {
       $post = JWT::decode($_POST['jwt'], $this->privateKey);
       if ($post->id == $this->getRequestToken('user')) {
+        return TRUE;
+      }
+    }
+    // fallback is GET requests
+    if (isset($_GET['jwt']) && $_GET['jwt'] != NULL) {
+      $get = JWT::decode($_GET['jwt'], $this->privateKey);
+      if ($get->id == $this->getRequestToken('user')) {
         return TRUE;
       }
     }
