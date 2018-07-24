@@ -39,8 +39,8 @@
       }
       else {
         // build a location and copy the associated boilerplate files there for it
-        $page->location = $site->basePath . $site->name . '/' . $page->order . '/index.html';
-        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->name . '/' . $page->order);
+        $page->location = $page->id . '/index.html';
+        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->name . '/' . $page->id);
       }
       $site->manifest->addItem($page);
     }

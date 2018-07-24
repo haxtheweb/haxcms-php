@@ -53,9 +53,6 @@ class HAXCMSSite {
    * @return $page repesented as JSONOutlineSchemaItem
    */
   public function addPage($parent = NULL) {
-    $location = $this->directory . '/' . $this->name . '/' . count($this->manifest->items);
-    // copy the boilerplate page we use for simplicity (or later complexity if we want)
-    $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     // draft an outline schema item
     $page = new JSONOutlineSchemaItem();
     // set a crappy default title
@@ -73,7 +70,10 @@ class HAXCMSSite {
     // set order to the page's count for default add to end ordering
     $page->order = count($this->manifest->items);
     // location is the html file we just copied and renamed
-    $page->location = $this->basePath . $this->name . '/' . count($this->manifest->items) . '/index.html';
+    $page->location = $page->id . '/index.html';
+    $location = $this->directory . '/' . $this->name . '/' . $page->id;
+    // copy the boilerplate page we use for simplicity (or later complexity if we want)
+    $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     $this->manifest->addItem($page);
     $this->manifest->save();
     return $page;
