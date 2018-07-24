@@ -130,12 +130,12 @@ A LRN element
     <iron-ajax
       auto
       id="manifest"
-      url="[[outlineLocation]][[outlineFile]]"
+      url="[[outlineLocation]][[outlineFile]][[__timeStamp1]]"
       handle-as="json"
       last-response="{{manifest}}"></iron-ajax>
     <iron-ajax
       id="activecontent"
-      url="[[outlineLocation]][[activeItem.location]]"
+      url="[[outlineLocation]][[activeItem.location]][[__timeStamp2]]"
       handle-as="text"
       loading="{{__loadingContent}}"
       debounce-duration="250"
@@ -203,7 +203,7 @@ A LRN element
          */
         outlineFile: {
           type: String,
-          value: 'outline.json',
+          value: 'site.json',
         },
         /**
          * show or hide the edit button
@@ -261,10 +261,6 @@ A LRN element
         _activeItemContent: {
           type: String,
           observer: '_activeItemContentChanged',
-        },
-        color: {
-          type: String,
-          reflectToAttribute: true,
         },
         /**
          * Outline processed and ordered outline
@@ -360,8 +356,9 @@ A LRN element
        * from an administrative interface.
        */
       _jwtChanged: function (newValue, oldValue) {
-        if (newValue != null) {
+        if (newValue != null && newValue != '') {
           this.showEditTools = true;
+          this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
           // this implies there's the possibility of an authoring experience
           if (typeof Polymer.haxCmsSiteEditor !== typeof undefined) {
             Polymer.haxCmsSiteEditor.requestAvailability(this.$.contentcontainer, this);
@@ -514,6 +511,10 @@ A LRN element
        */
       _selectedPageChanged: function(newValue, oldValue) {
         if (typeof newValue !== typeof undefined) {
+          // generate a new time stamp to ensure a fresh page for authed
+          if (this.jwt != null && this.jwt != '') {
+            this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
+          }
           const item = this.manifest.items.filter((d,i) => {
             if (newValue === d.id) {
               this.__activeIndex = i;
@@ -528,6 +529,7 @@ A LRN element
        */
       _manifestChanged: function (newValue, oldValue) {
         if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
+          this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
           let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
           let ary = color.split('-');
           if (ary.length == 2) {
