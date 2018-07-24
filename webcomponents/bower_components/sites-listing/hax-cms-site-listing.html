@@ -110,6 +110,15 @@ A LRN element
       url="[[basePath]]system/createNewSite.php"
       handle-as="json"
       on-response="handleCreateResponse"></iron-ajax>
+    <iron-ajax
+      id="downloadrequest"
+      method="POST"
+      body="[[downloadParams]]"
+      headers='{"Authorization": "Bearer [[jwt]]"}'
+      content-type="application/json"
+      url="[[basePath]]system/downloadSite.php"
+      handle-as="json"
+      on-response="handleDownloadResponse"></iron-ajax>
     <sites-listing id="siteslisting" sites="{{__sites}}" data-source="[[dataSource]]"></sites-listing>
     <app-header reveals>
       <app-toolbar>
@@ -161,6 +170,9 @@ A LRN element
         <paper-tooltip for="edit" position="bottom" offset="12" animation-delay="200">change details</paper-tooltip>
         <paper-icon-button id="archivesite" icon="icons:archive" dialog-dismiss style="color:grey"></paper-icon-button>
         <paper-tooltip for="archivesite" position="top" offset="12" animation-delay="200">archive site</paper-tooltip>
+        <paper-icon-button id="download" icon="icons:file-download" style="color:black"></paper-icon-button>
+        <paper-tooltip for="download" position="top" offset="12" animation-delay="200">Download zip</paper-tooltip>
+
       </div>
     </paper-dialog>
     <paper-toast id="toast"></paper-toast>
@@ -170,6 +182,7 @@ A LRN element
       is: 'hax-cms-site-listing',
       listeners: {
         'create.tap': '_createSite',
+        'download.tap': '_downloadSite',
         'add.tap': '_addClicked',
         'mapmenu.selected': '_mapMenuSelection',
         'newsitetheme.change': '_themeChanged',
@@ -211,6 +224,13 @@ A LRN element
          * Request params for creating a new site
          */
         createParams: {
+          type: Object,
+          value: {},
+        },
+        /**
+         * Request params for downloading a new site
+         */
+        downloadParams: {
           type: Object,
           value: {},
         },
@@ -364,12 +384,36 @@ A LRN element
         this.$.createrequest.generateRequest();
       },
       /**
+       * Download a new site button was clicked
+       */
+      _downloadSite: function (e) {
+        // ship off a new call
+        this.set('downloadParams.siteName', this.activeItem.metadata.siteName);
+        // pass along the jwt for user "session" purposes
+        this.set('downloadParams.jwt', this.jwt);
+        this.$.downloadrequest.generateRequest();
+      },
+      /**
        * Create a new site button was clicked
        */
       handleCreateResponse: function (e) {
         // update the listing data
         this.fire('update-sites-listing-data', e.detail.response);
         this.$.toast.show(e.detail.response.title + ' created successfully!');
+      },
+      /**
+       * Download a site
+       */
+      handleDownloadResponse: function (e) {
+        // fire incase anyone cares
+        this.fire('download-site-listing', e.detail.response);
+        var element = document.createElement('a');
+        element.setAttribute('href', e.detail.response.link);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        this.$.toast.show(this.activeItem.name + ' downloaded successfully!');
       },
     });
   </script>
