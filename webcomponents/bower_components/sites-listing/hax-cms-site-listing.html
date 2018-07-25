@@ -256,6 +256,18 @@ A LRN element
       __sitesResponseChanged: function (newValue, oldValue) {
         if (newValue) {
           this.title = newValue.title;
+          setTimeout(() => {
+            if (this.jwt) {
+              this.$.siteslisting.$.list.querySelector('[data-site-id="item-new"]').hidden = false;
+              this.$.mapmenu.$.builder.$$('#item-new').hidden = false;
+              this.$.add.hidden = false;
+            }
+            else {
+              this.$.siteslisting.$.list.querySelector('[data-site-id="item-new"]').hidden = true;
+              this.$.mapmenu.$.builder.$$('#item-new').hidden = true;
+              this.$.add.hidden = true;
+            }
+          }, 100);
         }
       },
       /**
@@ -266,11 +278,17 @@ A LRN element
           this.__loginText = 'Log out';
           this.__loginIcon = 'icons:account-circle';
           this.$.toast.show('Welcome, log in successful!');
+          this.$.add.hidden = false;
+          this.$.siteslisting.$.list.querySelector('[data-site-id="item-new"]').hidden = false;
+          this.$.mapmenu.$.builder.$$('#item-new').hidden = false;
         }
         else {
           this.__loginText = 'Log in';
           this.__loginIcon = 'icons:power-settings-new';
           this.$.toast.show('You logged out');
+          this.$.add.hidden = true;
+          this.$.siteslisting.$.list.querySelector('[data-site-id="item-new"]').hidden = true;
+          this.$.mapmenu.$.builder.$$('#item-new').hidden = true;
         }
       },
       /**
