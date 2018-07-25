@@ -560,6 +560,10 @@ A LRN element
           else if (typeof this.manifest.items[0] !== typeof undefined) {
             this.selected = this.manifest.items[0].id;
           }
+          // support pulling in the title
+          if (typeof newValue.title !== typeof undefined) {
+            this.outlineTitle = newValue.title;
+          }
         }
       },
     });
