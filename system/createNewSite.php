@@ -24,8 +24,20 @@
       // icon to express the concept / visually identify site
       $schema->metadata->icon = $params['icon'];
       // slightly style the site based on css vars and hexcode
-      $schema->metadata->hexCode = $params['hexCode'];
-      $schema->metadata->cssVariable = $params['cssVariable'];
+      if (isset($params['hexCode'])) {
+        $hex = $params['hexCode'];
+      }
+      else {
+        $hex = '#aeff00';
+      }
+      $schema->metadata->hexCode = $hex;
+      if (isset($params['cssVariable'])) {
+        $cssvar = $params['cssVariable'];
+      }
+      else {
+        $cssvar = '--simple-colors-lime-background5';
+      }
+      $schema->metadata->cssVariable = $cssvar;
       // add the item back into the outline schema
       $HAXCMS->outlineSchema->addItem($schema);
       $HAXCMS->outlineSchema->save();
