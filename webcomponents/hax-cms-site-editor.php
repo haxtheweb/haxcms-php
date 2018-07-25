@@ -1,21 +1,21 @@
 <?php
-  include_once 'lib/bootstrapHAX.php';
+  include_once '../system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
 ?>
-<link rel="import" href="../webcomponents/bower_components/polymer/polymer.html">
-<link rel="import" href="../webcomponents/bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-store.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-body.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-autoloader.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-manager.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-app-picker.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-app.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-panel.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-export-dialog.html">
-<link rel="import" href="../webcomponents/bower_components/hax-body/hax-toolbar.html">
-<link rel="import" href="../webcomponents/bower_components/paper-fab/paper-fab.html">
-<link rel="import" href="../webcomponents/bower_components/paper-tooltip/paper-tooltip.html">
-<link rel="import" href="../webcomponents/bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="bower_components/hax-body/hax-store.html">
+<link rel="import" href="bower_components/hax-body/hax-body.html">
+<link rel="import" href="bower_components/hax-body/hax-autoloader.html">
+<link rel="import" href="bower_components/hax-body/hax-manager.html">
+<link rel="import" href="bower_components/hax-body/hax-app-picker.html">
+<link rel="import" href="bower_components/hax-body/hax-app.html">
+<link rel="import" href="bower_components/hax-body/hax-panel.html">
+<link rel="import" href="bower_components/hax-body/hax-export-dialog.html">
+<link rel="import" href="bower_components/hax-body/hax-toolbar.html">
+<link rel="import" href="bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <!--
 `jwt-login`
 a simple element to check for and fetch JWTs
