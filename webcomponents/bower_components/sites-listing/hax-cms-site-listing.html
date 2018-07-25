@@ -119,7 +119,7 @@ A LRN element
       url="[[basePath]]system/downloadSite.php"
       handle-as="json"
       on-response="handleDownloadResponse"></iron-ajax>
-    <sites-listing id="siteslisting" sites="{{__sites}}" data-source="[[dataSource]]"></sites-listing>
+    <sites-listing id="siteslisting" sites-response="{{__sitesResponse}}" sites="{{__sites}}" data-source="[[dataSource]]"></sites-listing>
     <app-header reveals>
       <app-toolbar>
         <paper-icon-button icon="menu" onclick="drawer.toggle()"></paper-icon-button>
@@ -202,6 +202,13 @@ A LRN element
           value: 'Site list'
         },
         /**
+         * Sites response change
+         */
+        __sitesResponse: {
+          type: String,
+          observer: '__sitesResponseChanged',
+        },
+        /**
          * Base path of where this is located.
          */
         basePath: {
@@ -242,6 +249,14 @@ A LRN element
           notify: true,
           observer: '_activeItemChanged',
         },
+      },
+      /**
+       * Site response has changed.
+       */
+      __sitesResponseChanged: function (newValue, oldValue) {
+        if (newValue) {
+          this.title = newValue.title;
+        }
       },
       /**
        * Request a user login if we need one or log out
