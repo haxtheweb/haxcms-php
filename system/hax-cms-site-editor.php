@@ -57,8 +57,8 @@ a simple element to check for and fetch JWTs
         background-color: var(--paper-blue-500) !important;
       }
       hax-body {
-        padding: 1em;
-        max-width: 65em;
+        padding: 48px;
+        max-width: 1040px;
         margin: auto;
         display: none;
       }
