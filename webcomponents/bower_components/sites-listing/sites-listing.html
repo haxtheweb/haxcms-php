@@ -3,6 +3,7 @@
 <link rel="import" href="../iron-list/iron-list.html">
 <link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="../elmsln-loading/elmsln-loading.html">
+<link rel="import" href="../item-overlay-ops/item-overlay-ops.html">
 <link rel="import" href="site-card.html">
 
 <!--
@@ -56,12 +57,12 @@ A LRN element
         visibility: hidden;
       }
       site-card {
-        margin: 16px;
+        margin: 0;
         padding: 0;
         width: 250px;
       }
       paper-button.site-card-wrapper {
-        margin: 0;
+        margin: 16px;
         padding: 0;
         text-transform: none;
       }
@@ -73,15 +74,18 @@ A LRN element
     </div>
     <iron-list id="list" items="[[sites]]" as="site" grid>
       <template>
-        <paper-button tabindex="-1" data-site-id$="[[site.id]]" class="site-card-wrapper" on-tap="_siteClicked">
-          <site-card
-          data-site-id$="[[site.id]]"
-          size="[[size]]"
-          image="[[site.metadata.image]]"
-          icon="[[site.metadata.icon]]"
-          name="[[site.title]]"
-          title="[[site.description]]"></site-card>
-        </paper-button>
+        <item-overlay-ops data-site-id$="[[site.id]]" edit remove duplicate move edit-mode="[[editMode]]">
+          <paper-button tabindex="-1" data-site-id$="[[site.id]]" class="site-card-wrapper" on-tap="_siteClicked">
+            <site-card
+            data-site-id$="[[site.id]]"
+            size="[[size]]"
+            image="[[site.metadata.image]]"
+            icon="[[site.metadata.icon]]"
+            name="[[site.title]]"
+            title="[[site.description]]">
+            </site-card>
+          </paper-button>
+        </item-overlay-ops>
       </template>
     </iron-list>
   </template>
@@ -91,6 +95,13 @@ A LRN element
 
       is: 'sites-listing',
       properties: {
+        /**
+         * Editing state
+         */
+        editMode: {
+          type: Boolean,
+          value: false,
+        },
         /**
          * Array of site objects
          */

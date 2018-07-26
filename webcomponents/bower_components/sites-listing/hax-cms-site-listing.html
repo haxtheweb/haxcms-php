@@ -119,11 +119,12 @@ A LRN element
       url="[[basePath]]system/downloadSite.php"
       handle-as="json"
       on-response="handleDownloadResponse"></iron-ajax>
-    <sites-listing id="siteslisting" sites-response="{{__sitesResponse}}" sites="{{__sites}}" data-source="[[dataSource]]"></sites-listing>
+    <sites-listing id="siteslisting" sites-response="{{__sitesResponse}}" sites="{{__sites}}" data-source="[[dataSource]]" edit-mode="[[editMode]]"></sites-listing>
     <app-header reveals>
       <app-toolbar>
         <paper-icon-button icon="menu" onclick="drawer.toggle()"></paper-icon-button>
         <div main-title>[[title]]</div>
+        <paper-icon-button id="edit" icon="[[__editIcon]]" hidden$="[[!loggedIn]]"></paper-icon-button>
         <paper-icon-button id="login" icon="[[__loginIcon]]"></paper-icon-button>
         <paper-tooltip for="login" position="bottom" offset="12" animation-delay="200">[[__loginText]]</paper-tooltip>
       </app-toolbar>
@@ -166,7 +167,7 @@ A LRN element
       <div class="buttons">
         <iron-icon icon="editor:format-color-fill" style$="color:[[activeItem.metadata.hexCode]]"></iron-icon>[[activeItem.metadata.hexCode]]
         <iron-icon icon="av:web"></iron-icon>Theme: [[activeItem.metadata.theme]]
-        <paper-icon-button id="edit" icon="icons:settings" style="color:black"></paper-icon-button>
+        <paper-icon-button id="editsite" icon="icons:settings" style="color:black"></paper-icon-button>
         <paper-tooltip for="edit" position="bottom" offset="12" animation-delay="200">change details</paper-tooltip>
         <paper-icon-button id="archivesite" icon="icons:archive" dialog-dismiss style="color:grey"></paper-icon-button>
         <paper-tooltip for="archivesite" position="top" offset="12" animation-delay="200">archive site</paper-tooltip>
@@ -183,12 +184,15 @@ A LRN element
       listeners: {
         'create.tap': '_createSite',
         'download.tap': '_downloadSite',
-        'add.tap': '_addClicked',
+        'add.tap': '_addTap',
+        'edit.tap': '_editTap',
         'mapmenu.selected': '_mapMenuSelection',
         'newsitetheme.change': '_themeChanged',
         'newsitecolor.change': '_colorChanged',
         'login.tap': '_loginUserRoutine',
         'jwt.jwt-logged-in': '_loginStateChange',
+        'siteslisting.item-overlay-option-selected': '_itemOptionSelected',
+        'siteslisting.item-overlay-op-changed': '_itemOpChanged',
       },
       behaviors: [
         window.simpleColorsBehaviors,
@@ -249,6 +253,25 @@ A LRN element
           notify: true,
           observer: '_activeItemChanged',
         },
+        /**
+         * Logged in state
+         */
+        loggedIn: {
+          type: Boolean,
+          notify: true,
+          reflectToAttribute: true,
+          observer: '_loginStateChanged',
+        },
+        /**
+         * Edit mode
+         */
+        editMode: {
+          type: Boolean,
+          notify: true,
+          reflectToAttribute: true,
+          value: false,
+          observer: '_editModeChanged',
+        },
       },
       /**
        * Site response has changed.
@@ -275,6 +298,28 @@ A LRN element
        */
       _loginStateChange: function(e) {
         if (e.detail) {
+          this.loggedIn = true;
+        }
+        else {
+          this.loggedIn = false;
+        }
+      },
+      /**
+       * Request a user login if we need one or log out
+       */
+      _editModeChanged: function(newValue, oldValue) {
+        if (newValue) {
+          this.__editIcon = 'icons:check';
+        }
+        else {
+          this.__editIcon = 'icons:create';
+        }
+      },
+      /**
+       * Login state changed
+       */
+      _loginStateChanged: function (newValue, oldValue) {
+        if (newValue) {
           this.__loginText = 'Log out';
           this.__loginIcon = 'icons:account-circle';
           this.$.toast.show('Welcome, log in successful!');
@@ -326,8 +371,14 @@ A LRN element
       /**
        * Add button clicked, trick DOM into clicking the add new site item.
        */
-      _addClicked: function (e) {
+      _addTap: function (e) {
         this.$.siteslisting.$.list.querySelector('[data-site-id="item-new"]').click();
+      },
+      /**
+       * Toggle edit state
+       */
+      _editTap: function (e) {
+        this.editMode = !this.editMode;
       },
       /**
        * User clicked on the flyout menu, set that item to active.
@@ -448,6 +499,56 @@ A LRN element
         document.body.removeChild(element);
         this.$.toast.show(this.activeItem.name + ' downloaded successfully!');
       },
-    });
+      /**
+       * Option selected in an operation in context
+       */
+      _itemOptionSelected: function (e) {
+        var element = e.detail.element;
+        switch (e.detail.operation) {
+          case 'remove':
+            if (e.detail.option === 'option1') {
+              this.$.toast.show('Deleting this');
+              // @todo send call out the door to delete callback
+            }
+          break;
+          case 'duplicate':
+            if (e.detail.option === 'option1') {
+              this.$.toast.show('Duplicating this');
+              // @todo send call out the door to duplicate callback
+            }
+            break;
+          case 'move':
+              if (e.detail.option === 'option1') {
+                this.$.toast.show('Move this item left');
+              }
+              else {
+                this.$.toast.show('Move this item right');
+              }
+              // @todo send call out the door to commit the move callback          
+          break;
+        }
+      },
+      /**
+       * Selected operation changed; we use this for edit mode detection
+       */
+      _itemOpChanged: function (e) {
+        var element = e.detail.element;
+        if (e.detail.operation === 'edit') {
+          let findSite = this.__sites.filter(site => {
+            if (site.id !== element.getAttribute('data-site-id')) {
+              return false;
+            }
+            return true;
+          });
+          // if we found one, make it the top level item
+          if (findSite.length > 0) {
+            this.set('activeItem', {});
+            this.set('activeItem', findSite.pop());
+            // simulate clicking on the edit button that's in this tab
+            this.$.edit.click();
+          }
+        }
+      },
+      });
   </script>
 </dom-module>
