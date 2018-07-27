@@ -47,7 +47,6 @@ a simple element to check for and fetch JWTs
          */
         jwt: {
           type: String,
-          value: false,
           observer: '_jwtChanged',
         },
       },
@@ -66,7 +65,7 @@ a simple element to check for and fetch JWTs
           // which will appear to be injecting into the page
           // but because of this approach it should be non-blocking
           try {
-            this.importHref(this.resolveUrl(`hax-cms-site-editor.php`), (e) => {
+            this.importHref(this.resolveUrl('hax-cms-site-editor.php'), (e) => {
               let haxCmsSiteEditorElement = document.createElement('hax-cms-site-editor');
               haxCmsSiteEditorElement.jwt = newValue;
               Polymer.cmsSiteEditor.instance.appendTarget.appendChild(haxCmsSiteEditorElement);
