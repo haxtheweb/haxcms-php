@@ -404,11 +404,13 @@
                   const limit = Polymer.HaxStore.instance.activeContainerNode;
                   var node = Polymer.dom(Polymer.HaxStore.instance.activeContainerNode).querySelector('hax-split-point');
                   // run a split node function as modified from stackoverflow
-                  try {
-                    this.__splitNode(node, limit);
-                  }
-                  catch (e) {
+                  if (node != null) {
+                    try {
+                      this.__splitNode(node, limit);
+                    }
+                    catch (e) {
 
+                    }
                   }
                 }
                 else {
