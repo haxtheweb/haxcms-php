@@ -162,6 +162,7 @@ class HAXCMS {
    * Load a site off the file system with option to create
    */
   public function loadSite($name, $create = FALSE, $theme = 'default') {
+    $name = urldecode($name);
     // check if this exists, load but fallback for creating on the fly
     if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $name)) {
       $site = new HAXCMSSite();
