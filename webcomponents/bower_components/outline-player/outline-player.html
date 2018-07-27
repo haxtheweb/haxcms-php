@@ -1,5 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../jwt-login/jwt-login.html">
 <link rel="import" href="../schema-behaviors/schema-behaviors.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
 <link rel="import" href="../map-menu/map-menu.html">
@@ -126,7 +125,6 @@ A LRN element
         display: none;
       }
     </style>
-    <jwt-login id="jwt" url="[[jwtLoginLocation]]" url-logout="[[jwtLogoutLocation]]" jwt="{{jwt}}"></jwt-login>
     <iron-ajax
       auto
       id="manifest"
@@ -185,32 +183,11 @@ A LRN element
       ],
       properties: {
         /**
-         * Location of what endpoint to hit for
-         */
-        jwtLoginLocation: {
-          type: String,
-          value: '../../system/login.php',
-        },
-        /**
-         * Location of what endpoint to hit for logging out
-         */
-        jwtLogoutLocation: {
-          type: String,
-          value: '../../system/logout.php',
-        },
-        /**
          * Outline JSON file name
          */
         outlineFile: {
           type: String,
           value: 'site.json',
-        },
-        /**
-         * show or hide the edit button
-         */
-        showEditTools: {
-          type: Boolean,
-          value: false,
         },
         /**
          * editting state for the page
@@ -285,50 +262,6 @@ A LRN element
           observer: '_activeItemChanged',
         },
         /**
-         * Autoloader to ensure other components are there to work with
-         */
-        autoloader: {
-          type: Array,
-          value: [
-            "license-element",
-            "grid-plate",
-            "q-r",
-            "self-check",
-            "tab-list",
-            "multiple-choice",
-            "oer-schema",
-            "hero-banner",
-            "magazine-cover",
-            "task-list",
-            "video-player",
-            "lrn-table",
-            "media-image",
-            "lrndesign-blockquote",
-            "meme-maker",
-            "a11y-gif-player",
-            "paper-audio-player",
-            "wikipedia-query",
-            "wave-player",
-            "pdf-element",
-            "lrn-vocab",
-            "lrn-math",
-            "person-testimonial",
-            "citation-element",
-            "lrn-calendar",
-            "code-editor",
-            "place-holder",
-            "aframe-player"
-          ],
-          observer: '_autoLoadChanged',
-        },
-        /**
-         * JSON Web token
-         */
-        jwt: {
-          type: String,
-          observer: '_jwtChanged',
-        },
-        /**
          * a manifest json file decoded, in JSON Outline Schema format
          */
         manifest: {
@@ -337,38 +270,45 @@ A LRN element
         },
       },
       /**
-       * Required name for HAXCMS integration
-       */
-      haxCMSRefesh: function () {
-        this.__tmpselected = this.selected;
-        this.$.manifest.generateRequest();
-      },
-      /**
        * Attached life cycle
        */
       attached: function () {
         document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
-        this.updateStyles();        
+        this.updateStyles();
+        // this implies there's the possibility of an authoring experience
+        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
+          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer, this.outline, this.refeshData);
+        }
+      },
+      /**
+       * active item content changed.
+       */
+      _activeItemContentChanged: function(newValue, oldValue) {
+        if (typeof newValue !== typeof undefined) {
+          this.wipeSlot(this, '*');
+          if (newValue !== null) {
+            let frag = document.createRange().createContextualFragment(newValue);
+            Polymer.dom(this).appendChild(frag);
+            this.fire('json-outline-schema-active-body-changed', newValue);
+          }
+          // support controlling the meta-data of the page dynamically based on route
+          if (this.controlMetaData && typeof this.activeItem !== typeof undefined) {
+            document.title = this.manifest.title + ' - ' + this.activeItem.title;
+          }
+        }
+      },
+      /**
+       * Callback to refresh the data from source
+       */
+      refeshData: function () {
+        this.__tmpselected = this.selected;
+        this.$.manifest.generateRequest();
       },
       /**
        * Toggle edit mode
        */
       _editModeChanged: function(e) {
         this.editMode = e.detail;
-      },
-      /**
-       * JWT changed, user can't login but if we have one
-       * from an administrative interface.
-       */
-      _jwtChanged: function (newValue, oldValue) {
-        if (newValue != null && newValue != '') {
-          this.showEditTools = true;
-          this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
-          // this implies there's the possibility of an authoring experience
-          if (typeof Polymer.haxCmsSiteEditor !== typeof undefined) {
-            Polymer.haxCmsSiteEditor.requestAvailability(this.$.contentcontainer, this);
-          }
-        }
       },
       /**
        * Link menu button to open and closing the side panel.
@@ -386,35 +326,6 @@ A LRN element
           // forcibly update styles via css variables
           Polymer.updateStyles();
         });
-      },
-      /**
-       * Process only new elements
-       */
-      _autoLoadChanged: function(newValue, oldValue) {
-        if (typeof newValue !== typeof undefined && newValue.constructor === Array) {
-          if (typeof this.__processedList === typeof undefined) {
-            this.__processedList = {};
-          }
-          // when new nodes show up in the slots then fire the needed pieces
-          for (var i in newValue) {
-            let tag = newValue[i].toLowerCase();
-            // see if we added this before
-            if (typeof this.__processedList[tag] === typeof undefined) {
-              // attempt a dynamic import with graceful failure / fallback
-              try {
-                this.__processedList[tag] = tag;
-                this.importHref(this.resolveUrl(`../${tag}/${tag}.html`), (e) => {
-                  //e.target.import
-                }, (e) => {
-                  //import failed
-                });
-              }
-              catch(err) {
-                // error in the event this is a double registration
-              }
-            }
-          }
-        }
       },
       /**
        * Wipe slotted content
@@ -441,24 +352,7 @@ A LRN element
       _activeItemChanged: function (newValue, oldValue) {
         if (newValue && typeof oldValue !== typeof undefined) {
           this.$.activecontent.generateRequest();
-          this.fire('outline-player-active-item-changed', newValue);
-        }
-      },
-      /**
-       * active item content changed.
-       */
-      _activeItemContentChanged: function(newValue, oldValue) {
-        if (typeof newValue !== typeof undefined) {
-          this.wipeSlot(this, '*');
-          if (newValue !== null) {
-            let frag = document.createRange().createContextualFragment(newValue);
-            Polymer.dom(this).appendChild(frag);
-            this.fire('haxcms-body-changed', newValue);
-          }
-          // support controlling the meta-data of the page dynamically based on route
-          if (this.controlMetaData && typeof this.activeItem !== typeof undefined) {
-            document.title = this.manifest.title + ' - ' + this.activeItem.title;
-          }
+          this.fire('json-outline-schema-active-item-changed', newValue);
         }
       },
       /**
@@ -517,9 +411,6 @@ A LRN element
       _selectedPageChanged: function(newValue, oldValue) {
         if (typeof newValue !== typeof undefined) {
           // generate a new time stamp to ensure a fresh page for authed
-          if (this.jwt != null && this.jwt != '') {
-            this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
-          }
           const item = this.manifest.items.filter((d,i) => {
             if (newValue === d.id) {
               this.__activeIndex = i;

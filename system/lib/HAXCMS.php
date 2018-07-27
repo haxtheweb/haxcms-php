@@ -56,10 +56,8 @@ class HAXCMS {
     // set default config directory to look in if there
     if (is_dir(HAXCMS_ROOT . '/_config')) {
       $this->configDirectory = HAXCMS_ROOT . '/_config';
-      // ensure appstore file is there, then make salt size of this file
-      if (file_exists(HAXCMS_ROOT . '/_config/appstore.json')) {
-        $this->appStoreFile = 'system/generateAppStore.php';
-      }
+      // add in the auto-generated app store file
+      $this->appStoreFile = 'system/generateAppStore.php';
       // ensure appstore file is there, then make salt size of this file
       if (file_exists(HAXCMS_ROOT . '/SALT.txt')) {
         $this->salt = file_get_contents(HAXCMS_ROOT . '/SALT.txt');

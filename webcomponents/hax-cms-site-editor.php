@@ -17,13 +17,12 @@
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
 <!--
-`jwt-login`
-a simple element to check for and fetch JWTs
+`hax-cms-site-editor`
+PHP based haxcms editor element
 
 @demo demo/index.html
 
 @microcopy - the mental model for this element
-- jwt - a json web token which is an encrypted security token to talk
 
 -->
 
@@ -39,8 +38,20 @@ a simple element to check for and fetch JWTs
         right: 0;
         margin: 16px;
         padding: 8px;
-        width: 40px;
-        height: 40px;
+        width: 30px;
+        height: 30px;
+        visibility: visible;
+        opacity: 1;
+        transition: all .4s ease;
+      }
+      #outlinebutton {
+        position: fixed;
+        bottom: 0;
+        right: 46px;
+        margin: 16px;
+        padding: 8px;
+        width: 30px;
+        height: 30px;
         visibility: visible;
         opacity: 1;
         transition: all .4s ease;
@@ -92,10 +103,12 @@ a simple element to check for and fetch JWTs
     <hax-manager append-jwt="jwt" id="haxmanager"></hax-manager>
     <hax-export-dialog></hax-export-dialog>
     <paper-fab id="editbutton" icon="[[__editIcon]]"></paper-fab>
-    <paper-tooltip for="editbutton" position="bottom" offset="14">[[__editText]]</paper-tooltip>
-    </template>
+    <paper-tooltip for="editbutton" position="top" offset="14">[[__editText]]</paper-tooltip>
+    <paper-fab id="outlinebutton" icon="[[__outlineIcon]]"></paper-fab>
+    <paper-tooltip for="outlinebutton" position="top" offset="14">[[__outlineText]]</paper-tooltip>
+  </template>
   <script>
-    Polymer.haxCmsSiteEditor = Polymer({
+    Polymer({
       is: 'hax-cms-site-editor',
       listeners: {
         'editbutton.click': '_editButtonTap',
@@ -106,6 +119,8 @@ a simple element to check for and fetch JWTs
          */
         jwt: {
           type: String,
+          value: false,
+          observer: '_jwtChanged',
         },
         /**
          * if the page is in an edit state or not
@@ -137,26 +152,21 @@ a simple element to check for and fetch JWTs
           type: Object,
           value: {},
         },
-        /**
-         * element that's controlling this one effectively and supplying the design
-         */
-        appElement: {
-          type: Object,
-        },
       },
       /**
        * Reaady life cycle
        */
       ready: function () {
-        document.body.addEventListener('outline-player-active-item-changed', this._newActiveItem.bind(this));      
+        document.body.addEventListener('json-outline-schema-active-item-changed', this._newActiveItem.bind(this));      
       },
       /**
-       * Attached life cycle
+       * JWT changed so it's ready to go
        */
-      attached: function () {
-        this.jwt = localStorage.getItem('jwt');
-        document.body.addEventListener('haxcms-body-changed', this._bodyChanged.bind(this));
-      },
+       _jwtChanged: function (newValue, oldValue) {
+        if (newValue) {
+          document.body.addEventListener('json-outline-schema-active-body-changed', this._bodyChanged.bind(this));
+        }
+       },
       /**
        * Items has changed, these items live in lrnsys-outline
        */
@@ -188,7 +198,7 @@ a simple element to check for and fetch JWTs
        },
        _handleOutlineResponse: function (e) {
          // trigger a refresh of the data in page
-         this.appElement.haxCMSRefesh();
+         Polymer.cmsSiteEditor.instance.appRefreshCallback();
        },
       /**
        * Edit state has changed.
@@ -198,11 +208,15 @@ a simple element to check for and fetch JWTs
           // enable it some how
           this.__editIcon = 'icons:save';
           this.__editText = 'Save';
+          this.__outlineIcon = 'icons:save';
+          this.__outlineText = 'Save';
         }
         else {
           // disable it some how
           this.__editIcon = 'editor:mode-edit';
-          this.__editText = 'Edit';
+          this.__editText = 'edit page';
+          this.__outlineIcon = 'icons:list';
+          this.__outlineText = 'edit outline';
         }
         this.fire('edit-mode-changed', newValue);
         Polymer.HaxStore.write('editMode', newValue, this);
@@ -213,13 +227,13 @@ a simple element to check for and fetch JWTs
           let site = parts.pop();
           this.set('updatePageData.siteName', site);
           this.set('updatePageData.body', Polymer.HaxStore.instance.activeHaxBody.haxToContent());
-          this.set('updatePageData.page', this.activeItem.id);
+          this.set('updatePageData.page', Polymer.cmsSiteEditor.instance.activeItem.id);
           this.set('updatePageData.jwt', this.jwt);
           // send the request
           this.$.pageupdateajax.generateRequest();
           // now let's work on the outline
           this.set('updateOutlineData.siteName', site);
-          this.set('updateOutlineData.items', this.appElement.outline);
+          this.set('updateOutlineData.items', Polymer.cmsSiteEditor.instance.appElementOutline);
           this.set('updateOutlineData.jwt', this.jwt);
           this.$.outlineupdateajax.generateRequest();
         }
@@ -231,15 +245,5 @@ a simple element to check for and fetch JWTs
         Polymer.HaxStore.instance.activeHaxBody.importContent(e.detail);
       },
     });
-    // store reference to the instance as a global
-    Polymer.haxCmsSiteEditor.instance = null;
-    // self append if anyone calls us into action
-    Polymer.haxCmsSiteEditor.requestAvailability = function (location = document.body, app = null) {
-      if (!Polymer.haxCmsSiteEditor.instance) {
-        Polymer.haxCmsSiteEditor.instance = document.createElement('hax-cms-site-editor');
-        Polymer.haxCmsSiteEditor.instance.appElement = app;
-      }
-      location.appendChild(Polymer.haxCmsSiteEditor.instance);
-    };
   </script>
 </dom-module>
