@@ -16,6 +16,8 @@
 <link rel="import" href="bower_components/paper-fab/paper-fab.html">
 <link rel="import" href="bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="bower_components/iron-icons/editor-icons.html">
+<link rel="import" href="bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="hax-cms-outline-editor-dialog.html">
 <!--
 `hax-cms-site-editor`
 PHP based haxcms editor element
@@ -104,14 +106,18 @@ PHP based haxcms editor element
     <hax-export-dialog></hax-export-dialog>
     <paper-fab id="editbutton" icon="[[__editIcon]]"></paper-fab>
     <paper-tooltip for="editbutton" position="top" offset="14">[[__editText]]</paper-tooltip>
-    <paper-fab id="outlinebutton" icon="[[__outlineIcon]]"></paper-fab>
-    <paper-tooltip for="outlinebutton" position="top" offset="14">[[__outlineText]]</paper-tooltip>
+    <paper-fab id="outlinebutton" icon="icons:list"></paper-fab>
+    <paper-tooltip for="outlinebutton" position="top" offset="14">edit outline</paper-tooltip>
+    <hax-cms-outline-editor-dialog id="dialog" items="[[manifest.items]]"></hax-cms-outline-editor-dialog>
+    <paper-toast id="toast"></paper-toast>
   </template>
   <script>
     Polymer({
       is: 'hax-cms-site-editor',
       listeners: {
-        'editbutton.click': '_editButtonTap',
+        'editbutton.tap': '_editButtonTap',
+        'outlinebutton.tap': '_outlineButtonTap',
+        'dialog.save-outline': 'saveOutline',
       },
       properties: {
         /**
@@ -119,16 +125,23 @@ PHP based haxcms editor element
          */
         jwt: {
           type: String,
-          value: false,
-          observer: '_jwtChanged',
         },
         /**
          * if the page is in an edit state or not
          */
         editMode: {
-          type: String,
+          type: Boolean,
           reflectToAttribute: true,
           observer: '_editModeChanged',
+          value: false,
+        },
+        /**
+         * Outline editing state
+         */
+        outlineEditMode: {
+          type: Boolean,
+          reflectToAttribute: true,
+          observer: '_outlineEditModeChanged',
           value: false,
         },
         /**
@@ -152,27 +165,41 @@ PHP based haxcms editor element
           type: Object,
           value: {},
         },
+        /**
+         * Outline of items in json outline schema format
+         */
+         manifest: {
+           type: Object,
+         },
+      },
+      /**
+       * Reaady life cycle
+       */
+      created: function () {
+        document.body.addEventListener('json-outline-schema-active-item-changed', this._newActiveItem.bind(this));      
+        document.body.addEventListener('json-outline-schema-changed', this._manifestChanged.bind(this));      
+        document.body.addEventListener('json-outline-schema-active-body-changed', this._bodyChanged.bind(this));
       },
       /**
        * Reaady life cycle
        */
       ready: function () {
-        document.body.addEventListener('json-outline-schema-active-item-changed', this._newActiveItem.bind(this));      
+        document.body.appendChild(this.$.dialog);
+        document.body.appendChild(this.$.toast);
       },
       /**
-       * JWT changed so it's ready to go
+       * attached life cycle
        */
-       _jwtChanged: function (newValue, oldValue) {
-        if (newValue) {
-          document.body.addEventListener('json-outline-schema-active-body-changed', this._bodyChanged.bind(this));
-        }
-       },
+      attached: function () {
+        this.$.toast.show('You are logged in, edit tools shown.');
+      },
       /**
-       * Items has changed, these items live in lrnsys-outline
+       * react to manifest being changed
        */
-       _itemsChanged: function (e) {
-         console.log(e);
-       },
+      _manifestChanged: function (e) {
+        this.set('manifest', []);
+        this.set('manifest', e.detail);
+      },
       /**
        * update the internal active item
        */
@@ -191,14 +218,21 @@ PHP based haxcms editor element
         this.editMode = !this.editMode;
       },
       /**
+       * toggle state on button tap
+       */
+      _outlineButtonTap: function (e) {
+        this.outlineEditMode = !this.outlineEditMode;
+      },
+      /**
        * handle update responses for pages and outlines
        */
        _handlePageResponse: function (e) {
-
+          this.$.toast.show('Page saved!');
        },
        _handleOutlineResponse: function (e) {
          // trigger a refresh of the data in page
-         Polymer.cmsSiteEditor.instance.appRefreshCallback();
+         Polymer.cmsSiteEditor.instance.appElement[Polymer.cmsSiteEditor.instance.appRefreshCallback]();
+          this.$.toast.show('Outline saved!');
        },
       /**
        * Edit state has changed.
@@ -208,15 +242,11 @@ PHP based haxcms editor element
           // enable it some how
           this.__editIcon = 'icons:save';
           this.__editText = 'Save';
-          this.__outlineIcon = 'icons:save';
-          this.__outlineText = 'Save';
         }
         else {
           // disable it some how
           this.__editIcon = 'editor:mode-edit';
           this.__editText = 'edit page';
-          this.__outlineIcon = 'icons:list';
-          this.__outlineText = 'edit outline';
         }
         this.fire('edit-mode-changed', newValue);
         Polymer.HaxStore.write('editMode', newValue, this);
@@ -227,16 +257,36 @@ PHP based haxcms editor element
           let site = parts.pop();
           this.set('updatePageData.siteName', site);
           this.set('updatePageData.body', Polymer.HaxStore.instance.activeHaxBody.haxToContent());
-          this.set('updatePageData.page', Polymer.cmsSiteEditor.instance.activeItem.id);
+          this.set('updatePageData.page', this.activeItem.id);
           this.set('updatePageData.jwt', this.jwt);
           // send the request
           this.$.pageupdateajax.generateRequest();
-          // now let's work on the outline
-          this.set('updateOutlineData.siteName', site);
-          this.set('updateOutlineData.items', Polymer.cmsSiteEditor.instance.appElementOutline);
-          this.set('updateOutlineData.jwt', this.jwt);
-          this.$.outlineupdateajax.generateRequest();
         }
+      },
+      /**
+       * Note changes to the outline / structure of the page's items
+       */
+      _outlineEditModeChanged: function (newValue, oldValue) {
+        if (newValue) {
+          this.$.dialog.opened = true;
+        }
+        else {
+          this.$.dialog.opened = false;
+        }
+        this.fire('outline-edit-mode-changed', newValue);
+      },
+      /**
+       * Save the outline based on an event firing.
+       */
+      saveOutline: function (e) {
+        let parts = window.location.pathname.split('/');
+        parts.pop();
+        let site = parts.pop();
+        // now let's work on the outline
+        this.set('updateOutlineData.siteName', site);
+        this.set('updateOutlineData.items', e.detail);
+        this.set('updateOutlineData.jwt', this.jwt);
+        this.$.outlineupdateajax.generateRequest();
       },
       /**
        * Notice body of content has changed and import into HAX

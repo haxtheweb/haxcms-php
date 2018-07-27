@@ -1,0 +1,71 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/lrnsys-outline/lrnsys-outline.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<!--
+`hax-cms-outline-editor-dialog`
+Dialog for presenting an editable outline
+
+@demo demo/index.html
+
+@microcopy - the mental model for this element
+
+-->
+
+<dom-module id="hax-cms-outline-editor-dialog">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      paper-dialog {
+        width: 60%;
+        min-height: 60%;
+        top: 5%;
+        border-radius: 16px;
+      }
+    </style>
+    <paper-dialog id="outlineeditor" opened="{{opened}}" modal>
+      <paper-dialog-scrollable>
+        <lrnsys-outline items="{{items}}" id="outline"></lrnsys-outline>
+      </paper-dialog-scrollable>
+      <div class="buttons">
+        <paper-button id="save" dialog-confirm>Save</paper-button>
+        <paper-button id="cancel" dialog-dismiss>Cancel</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: 'hax-cms-outline-editor-dialog',
+      listeners: {
+        'save.tap': '_saveTap',
+        'cancel.tap': '_cancelTap',
+      },
+      properties: {
+        /**
+         * opened state of the dialog inside here
+         */
+        opened: {
+          type: Boolean,
+          notify: true,
+        },
+        /**
+         * Outline of items in json outline schema format
+         */
+         items: {
+           type: Array,
+           notify: true,
+           value: [],
+         },
+      },
+      /**
+       * Save hit, send the message to push up the outline changes.
+       */
+      _saveTap: function (e) {
+        this.fire('save-outline', this.items);
+      },
+    });
+  </script>
+</dom-module>

@@ -4,7 +4,6 @@
 ?>
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/jwt-login/jwt-login.html">
-<link rel="import" href="hax-cms-site-editor.php">
 <!--
 `hax-cms-jwt`
 a simple element to check for and fetch JWTs
@@ -51,17 +50,11 @@ a simple element to check for and fetch JWTs
           value: false,
           observer: '_jwtChanged',
         },
-        /**
-         * App element
-         */
-        appElement: {
-          type: Object,
-        },
       },
       /**
        * Attached life cycle
        */
-      attached: function () {
+      ready: function () {
         this.jwt = localStorage.getItem('jwt');
       },
       /**
@@ -69,23 +62,35 @@ a simple element to check for and fetch JWTs
        */
        _jwtChanged: function (newValue, oldValue) {
         if (newValue) {
-          let haxCmsSiteEditorElement = document.createElement('hax-cms-site-editor');
-          haxCmsSiteEditorElement.jwt = newValue;
-          document.body.appendChild(haxCmsSiteEditorElement);
+          // attempt to dynamically import the hax cms site editor
+          // which will appear to be injecting into the page
+          // but because of this approach it should be non-blocking
+          try {
+            this.importHref(this.resolveUrl(`hax-cms-site-editor.php`), (e) => {
+              let haxCmsSiteEditorElement = document.createElement('hax-cms-site-editor');
+              haxCmsSiteEditorElement.jwt = newValue;
+              Polymer.cmsSiteEditor.instance.appendTarget.appendChild(haxCmsSiteEditorElement);
+            }, (e) => {
+              //import failed
+            });
+          }
+          catch(err) {
+            // error in the event this is a double registration
+          }
         }
        },
     });
     // store reference to the instance as a global
     Polymer.cmsSiteEditor.instance = null;
     // self append if anyone calls us into action
-    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body, outline = this.outline, callback = null) {
+    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body, callback = null) {
       if (!Polymer.cmsSiteEditor.instance) {
         Polymer.cmsSiteEditor.instance = document.createElement('hax-cms-jwt');
         Polymer.cmsSiteEditor.instance.appRefreshCallback = callback;
-        Polymer.cmsSiteEditor.instance.appOutline = outline;
         Polymer.cmsSiteEditor.instance.appElement = element;
+        Polymer.cmsSiteEditor.instance.appendTarget = location;
       }
-      location.appendChild(Polymer.cmsSiteEditor.instance);
+      document.body.appendChild(Polymer.cmsSiteEditor.instance);
     };
   </script>
 </dom-module>

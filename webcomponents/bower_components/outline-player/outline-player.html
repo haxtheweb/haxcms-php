@@ -2,7 +2,6 @@
 <link rel="import" href="../schema-behaviors/schema-behaviors.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
 <link rel="import" href="../map-menu/map-menu.html">
-<link rel="import" href="../lrnsys-outline/lrnsys-outline.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../app-layout/app-header/app-header.html">
 <link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
@@ -121,12 +120,14 @@ A LRN element
         max-width: 65em;
         margin: auto;
       }
+      /**
+       * Hide the slotted content during edit mode
+       */
       :host[edit-mode] #slot {
         display: none;
       }
     </style>
     <iron-ajax
-      auto
       id="manifest"
       url="[[outlineLocation]][[outlineFile]][[__timeStamp1]]"
       handle-as="json"
@@ -141,8 +142,7 @@ A LRN element
     <app-drawer-layout>
       <app-drawer id="drawer" swipe-open slot="drawer">
         <h2 class="outline-title">[[outlineTitle]]</h2>
-        <map-menu hidden$="[[editMode]]" id="menu" items="{{outline}}" data="[[manifest.items]]" selected="{{selected}}"></map-menu>
-        <lrnsys-outline hidden$="[[!editMode]]" items="[[outline]]" id="outline"></lrnsys-outline>
+        <map-menu id="menu" items="{{outline}}" data="[[manifest.items]]" selected="{{selected}}"></map-menu>
       </app-drawer>
       <app-header-layout>
         <app-header reveals slot="header">
@@ -275,9 +275,15 @@ A LRN element
       attached: function () {
         document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
         this.updateStyles();
+        this.$.manifest.generateRequest();
+      },
+      /**
+       * Ready life cycle
+       */
+      ready: function () {
         // this implies there's the possibility of an authoring experience
         if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer, this.outline, this.refeshData);
+          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer, 'refeshData');
         }
       },
       /**
@@ -302,6 +308,8 @@ A LRN element
        */
       refeshData: function () {
         this.__tmpselected = this.selected;
+        this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
+        this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
         this.$.manifest.generateRequest();
       },
       /**
@@ -425,7 +433,11 @@ A LRN element
        */
       _manifestChanged: function (newValue, oldValue) {
         if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
+          // json outline schema changed, allow other things to react
+          this.fire('json-outline-schema-changed', newValue);
+          // fake way of forcing an update of these items
           this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
+          this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
           let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
           let ary = color.split('-');
           if (ary.length == 2) {
