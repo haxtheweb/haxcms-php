@@ -24,7 +24,7 @@ An element that can generate a form
 
 <dom-module id="hax-preview">
   <template>
-    <style>
+    <style is="custom-style" include="simple-colors">
       :host {
         display: block;
         background-color: rgba(0, 0, 0, .6);
@@ -203,7 +203,6 @@ An element that can generate a form
   <script>
     Polymer({
       is: 'hax-preview',
-      behaviors: [window.simpleColorsBehaviors],
       observers: [
         '_valueChanged(value.*, formKey)'
       ],
