@@ -12,7 +12,7 @@
 <link rel="import" href="hax-context-item-menu.html">
 <dom-module id="hax-toolbar">
   <template>
-    <style include="materializecss-styles-colors">
+    <style is="custom-style" include="materializecss-styles-colors">
       :host {
         display: flex;
         font-family: "Roboto", sans-serif;
@@ -137,7 +137,6 @@
       listeners: {
         'hax-context-item-selected': '_haxContextOperation',
       },
-      behaviors: [window.simpleColorsBehaviors],
       properties: {
         /**
          * Selected value to match ce direction currently.
@@ -185,12 +184,6 @@
           value: '',
           notify: true,
         },
-      },
-      /**
-       * Ready life cycle.
-       */
-      ready: function() {
-        this.reset();
       },
       /**
        * If hax properties changes, let's see what the initial state

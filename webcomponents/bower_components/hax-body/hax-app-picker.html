@@ -24,7 +24,7 @@
 
 <dom-module id="hax-app-picker">
   <template>
-    <style include="materializecss-styles">
+    <style is="custom-style" include="materializecss-styles">
       :host {
         display: block;
         --hax-app-picker-dialog-background-color: var(--simple-colors-light-green-background1);
@@ -146,7 +146,6 @@
     Polymer({
 
       is: 'hax-app-picker',
-      behaviors: [window.simpleColorsBehaviors],
       listeners: {
         'dialog.iron-overlay-canceled': 'close',
         'dialog.iron-overlay-closed': 'close',
@@ -193,7 +192,6 @@
        * Attached life cycle
        */
       attached: function() {
-        this.reset();
         this.fire('hax-register-app-picker', this);
       },
       /**

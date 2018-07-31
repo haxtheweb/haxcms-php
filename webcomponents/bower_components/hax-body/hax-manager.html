@@ -28,7 +28,7 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
 
 <dom-module id="hax-manager">
   <template>
-    <style include="materializecss-styles">
+    <style is="custom-style" include="materializecss-styles">
       :host {
         display: block;
         --hax-manager-steps-color: #FFFFFF;
@@ -219,7 +219,6 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
     Polymer({
 
       is: 'hax-manager',
-      behaviors: [window.simpleColorsBehaviors],
       listeners: {
         'dialog.iron-overlay-canceled': 'close',
         'dialog.iron-overlay-closed': 'close',
@@ -332,7 +331,6 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
        * Created life cycle.
        */
       ready: function() {
-        this.reset();
         document.body.appendChild(this);
       },
       /**

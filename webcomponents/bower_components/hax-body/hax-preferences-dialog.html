@@ -15,7 +15,7 @@ Export dialog with all export options and settings provided.
 
 <dom-module id="hax-preferences-dialog">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -79,7 +79,6 @@ Export dialog with all export options and settings provided.
       observers: [
         '_preferencesChanged(preferences.*)'
       ],
-      behaviors: [window.simpleColorsBehaviors],
       properties: {
         /**
          * Title when open.
@@ -156,7 +155,6 @@ Export dialog with all export options and settings provided.
         }, 1000);
         this.fire('hax-register-preferences', this);
         // force color values to apply
-        this.reset();
         this.updateStyles();
       },
       /**

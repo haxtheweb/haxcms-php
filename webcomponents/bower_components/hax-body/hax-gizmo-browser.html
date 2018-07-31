@@ -18,7 +18,7 @@ Browse a list of gizmos. This provides a listing of custom elements for people t
 
 <dom-module id="hax-gizmo-browser">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -107,7 +107,6 @@ Browse a list of gizmos. This provides a listing of custom elements for people t
     Polymer({
 
       is: 'hax-gizmo-browser',
-      behaviors: [window.simpleColorsBehaviors],
       properties: {
         /**
          * Search term
@@ -127,7 +126,6 @@ Browse a list of gizmos. This provides a listing of custom elements for people t
        * Attached
        */
       attached: function() {
-        this.reset();
         this.resetBrowser();
         this.$$('#inputfilter').addEventListener('value-changed', (e) => {
           this.$$('#filter').like = e.target.value;
