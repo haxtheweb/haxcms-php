@@ -53,7 +53,7 @@ a simple element to check for and fetch JWTs
       /**
        * Attached life cycle
        */
-      ready: function () {
+      attached: function () {
         this.jwt = localStorage.getItem('jwt');
       },
       /**
