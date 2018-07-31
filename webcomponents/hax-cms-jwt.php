@@ -47,27 +47,55 @@ a simple element to check for and fetch JWTs
          */
         jwt: {
           type: String,
-          observer: '_jwtChanged',
         },
       },
       /**
        * Attached life cycle
        */
-      attached: function () {
-        this.jwt = localStorage.getItem('jwt');
+      created: function () {
+        document.body.addEventListener('jwt-token', this._jwtTokenFired.bind(this));
+        document.body.addEventListener('json-outline-schema-active-item-changed', this.initialItem.bind(this));      
+        document.body.addEventListener('json-outline-schema-changed', this.initialManifest.bind(this));      
+        document.body.addEventListener('json-outline-schema-active-body-changed', this.initialBody.bind(this));
+      },
+      initialItem: function (e) {
+        this.__item = e.detail;
+      },
+      initialManifest: function (e) {
+        this.__manifest = e.detail;
+      },
+      initialBody: function (e) {
+        this.__body = e.detail;
       },
       /**
-       * JWT changed so it's ready to go
+       * JWT token fired, let's capture it
        */
-       _jwtChanged: function (newValue, oldValue) {
-        if (newValue) {
+      _jwtTokenFired: function (e) {
+        this.jwt = e.detail;
+      },
+      /**
+       * Attached life cycle
+       */
+      attached: function () {
+        if (this.jwt != null) {
           // attempt to dynamically import the hax cms site editor
           // which will appear to be injecting into the page
           // but because of this approach it should be non-blocking
           try {
             this.importHref(this.resolveUrl('hax-cms-site-editor.php'), (e) => {
               let haxCmsSiteEditorElement = document.createElement('hax-cms-site-editor');
-              haxCmsSiteEditorElement.jwt = newValue;
+              haxCmsSiteEditorElement.jwt = this.jwt;
+              // pass along the initial state management stuff that may be missed
+              // based on timing on the initial setup
+              if (typeof this.__item !== typeof undefined) {
+                haxCmsSiteEditorElement.activeItem = this.__item;
+              }
+              if (typeof this.__manifest !== typeof undefined) {
+                haxCmsSiteEditorElement.manifest = this.__manifest;
+              }
+              if (typeof this.__body !== typeof undefined) {
+                haxCmsSiteEditorElement.__body = this.__body;
+              }
               Polymer.cmsSiteEditor.instance.appendTarget.appendChild(haxCmsSiteEditorElement);
             }, (e) => {
               //import failed
@@ -77,7 +105,7 @@ a simple element to check for and fetch JWTs
             // error in the event this is a double registration
           }
         }
-       },
+      },
     });
     // store reference to the instance as a global
     Polymer.cmsSiteEditor.instance = null;

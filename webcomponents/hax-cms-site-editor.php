@@ -99,7 +99,7 @@ PHP based haxcms editor element
      on-response="_handleOutlineResponse"></iron-ajax>
     <hax-store app-store='<?php print json_encode($HAXCMS->appStoreConnection());?>'?></hax-store>
     <hax-app-picker></hax-app-picker>
-    <hax-body></hax-body>
+    <hax-body id="body"></hax-body>
     <hax-autoloader hidden></hax-autoloader>
     <hax-panel align="left" hide-panel-ops></hax-panel>
     <hax-manager append-jwt="jwt" id="haxmanager"></hax-manager>
@@ -108,7 +108,7 @@ PHP based haxcms editor element
     <paper-tooltip for="editbutton" position="top" offset="14">[[__editText]]</paper-tooltip>
     <paper-fab id="outlinebutton" icon="icons:list"></paper-fab>
     <paper-tooltip for="outlinebutton" position="top" offset="14">edit outline</paper-tooltip>
-    <hax-cms-outline-editor-dialog id="dialog" items="[[manifest.items]]"></hax-cms-outline-editor-dialog>
+    <hax-cms-outline-editor-dialog id="editordialog" items="[[manifest.items]]"></hax-cms-outline-editor-dialog>
     <paper-toast id="toast"></paper-toast>
   </template>
   <script>
@@ -117,7 +117,7 @@ PHP based haxcms editor element
       listeners: {
         'editbutton.tap': '_editButtonTap',
         'outlinebutton.tap': '_outlineButtonTap',
-        'dialog.save-outline': 'saveOutline',
+        'editordialog.save-outline': 'saveOutline',
       },
       properties: {
         /**
@@ -163,7 +163,7 @@ PHP based haxcms editor element
          */
         activeItem: {
           type: Object,
-          value: {},
+          observer: '_activeItemChanged',
         },
         /**
          * Outline of items in json outline schema format
@@ -184,7 +184,7 @@ PHP based haxcms editor element
        * Reaady life cycle
        */
       ready: function () {
-        document.body.appendChild(this.$.dialog);
+        document.body.appendChild(this.$.editordialog);
         document.body.appendChild(this.$.toast);
       },
       /**
@@ -192,6 +192,10 @@ PHP based haxcms editor element
        */
       attached: function () {
         this.$.toast.show('You are logged in, edit tools shown.');
+        // get around initial setup state management
+        if (typeof this.__body !== typeof undefined) {
+          this.$.body.importContent(this.__body);
+        }
       },
       /**
        * react to manifest being changed
@@ -205,12 +209,19 @@ PHP based haxcms editor element
        */
        _newActiveItem: function (e) {
         this.set('activeItem', e.detail);
-        let parts = window.location.pathname.split('/');
-        parts.pop();
-        let site = parts.pop();
-        // set upload manager to point to this location in a more dynamic fashion
-        this.$.haxmanager.appendUploadEndPoint = 'siteName=' + site + '&page=' + e.detail.id;
        },
+       /**
+        * active item changed
+        */
+        _activeItemChanged: function (newValue, oldValue) {
+          if (newValue) {
+            let parts = window.location.pathname.split('/');
+            parts.pop();
+            let site = parts.pop();
+            // set upload manager to point to this location in a more dynamic fashion
+            this.$.haxmanager.appendUploadEndPoint = 'siteName=' + site + '&page=' + newValue.id;
+          }
+        },
       /**
        * toggle state on button tap
        */
@@ -268,10 +279,10 @@ PHP based haxcms editor element
        */
       _outlineEditModeChanged: function (newValue, oldValue) {
         if (newValue) {
-          this.$.dialog.opened = true;
+          this.$.editordialog.opened = true;
         }
         else {
-          this.$.dialog.opened = false;
+          this.$.editordialog.opened = false;
         }
         this.fire('outline-edit-mode-changed', newValue);
       },

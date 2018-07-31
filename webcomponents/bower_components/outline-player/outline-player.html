@@ -21,7 +21,7 @@ A LRN element
 -->
 <dom-module id="outline-player">
   <template>
-    <style>
+    <style is="custom-style" include="simple-colors">
       :host {
         display: block;
         font-family: sans-serif;
@@ -137,7 +137,6 @@ A LRN element
       url="[[outlineLocation]][[activeItem.location]][[__timeStamp2]]"
       handle-as="text"
       loading="{{__loadingContent}}"
-      debounce-duration="250"
       last-response="{{_activeItemContent}}"></iron-ajax>
     <app-drawer-layout>
       <app-drawer id="drawer" swipe-open slot="drawer">
@@ -179,7 +178,7 @@ A LRN element
       is: 'outline-player',
       behaviors: [
         SchemaBehaviors.Schema,
-        simpleColorsBehaviors,
+        window.simpleColorsBehaviors,
       ],
       properties: {
         /**
@@ -239,9 +238,15 @@ A LRN element
           type: String,
           observer: '_activeItemContentChanged',
         },
+        /**
+         * Timestamp to help force newer JSON outline
+         */
         __timeStamp1: {
           type: String,
         },
+        /**
+         * Timestamp to help force newer content
+         */
         __timeStamp2: {
           type: String,
         },
@@ -447,11 +452,6 @@ A LRN element
           else if (ary.length == 3) {
             color = ary[0] + ' ' + ary[1];
             this.accentColor = color;
-          }
-          // @todo figure out wtf is up here as to why we can't get
-          // a good color for text
-          if (color == 'brown' || color == 'purple') {
-            //this.dark = true;
           }
           // set this directly instead of messing w/ accentColor
           this.customStyle['--outline-player-light'] = this.customStyle[this.manifest.metadata.cssVariable];
