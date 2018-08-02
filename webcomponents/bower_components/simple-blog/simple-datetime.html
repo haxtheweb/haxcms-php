@@ -59,7 +59,7 @@ A simple datetime element that takes in unix timestamp and outputs a date.
         if (this.unix) {
           timestamp = timestamp * 1000;
         }
-        new Date(timestamp).format(format);
+        return new Date(timestamp).format(format);
       },
     });
   </script>
