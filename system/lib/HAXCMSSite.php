@@ -42,6 +42,8 @@ class HAXCMSSite {
     $this->manifest->title = $name;
     $this->manifest->location = $this->basePath . $tmpname . '/index.html';
     $this->manifest->metadata->siteName = $tmpname;
+    $this->manifest->metadata->created = time();
+    $this->manifest->metadata->updated = time();
     // create an initial page to make sense of what's there
     // this will double as saving our location and other updated data
     $this->addPage();
@@ -73,6 +75,8 @@ class HAXCMSSite {
     $page->order = count($this->manifest->items);
     // location is the html file we just copied and renamed
     $page->location = $page->id . '/index.html';
+    $page->metadata->created = time();
+    $page->metadata->updated = time();
     $location = $this->directory . '/' . $this->name . '/' . $page->id;
     // copy the boilerplate page we use for simplicity (or later complexity if we want)
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);

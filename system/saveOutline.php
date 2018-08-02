@@ -42,8 +42,11 @@
         $page->location = $page->id . '/index.html';
         $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->name . '/' . $page->id);
       }
+      $page->metadata->created = time();
+      $page->metadata->updated = time();
       $site->manifest->addItem($page);
     }
+    $site->manifest->metadata->updated = time();
     $site->manifest->save();
     header('Status: 200');
     print json_encode($site->manifest->items);

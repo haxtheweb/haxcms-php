@@ -11,13 +11,18 @@
     // determines to be the correct page
     if ($page = $site->loadPage($HAXCMS->safePost['page'])) {
       // convert web location for loading into file location for writing
-      $page->location = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/' . $page->location;
-      $bytes = $page->writeLocation($body);
+      $bytes = $page->writeLocation($body, HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/');
       if ($bytes === FALSE) {
         header('Status: 500');
         print 'failed to write';
       }
       else {
+        // update the updated timestamp
+        $page->metadata->updated = time();
+        // auto generate a text only description from first 200 chars
+        $page->description = substr(strip_tags($body), 0, 200);
+        // update the item in the metadata to indicate when content was last set
+        $site->manifest->updateItem($page, TRUE);
         header('Status: 200');
         print json_encode($bytes);
       }

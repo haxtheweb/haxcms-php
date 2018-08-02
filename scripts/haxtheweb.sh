@@ -4,6 +4,8 @@
 # where am i? move to where I am. This ensures source is properly sourced
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
+# move back to install root
+cd ../
 
 # Color. The vibrant and dancing melody of the sighted.
 # provide messaging colors for output to console

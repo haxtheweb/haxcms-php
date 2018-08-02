@@ -39,24 +39,26 @@ PHP based haxcms editor element
         bottom: 0;
         right: 0;
         margin: 16px;
-        padding: 8px;
-        width: 30px;
-        height: 30px;
+        padding: 2px;
+        width: 40px;
+        height: 40px;
         visibility: visible;
         opacity: 1;
         transition: all .4s ease;
+        z-index: 1000;
       }
       #outlinebutton {
         position: fixed;
         bottom: 0;
         right: 46px;
         margin: 16px;
-        padding: 8px;
-        width: 30px;
-        height: 30px;
+        padding: 2px;
+        width: 40px;
+        height: 40px;
         visibility: visible;
         opacity: 1;
         transition: all .4s ease;
+        z-index: 1000;
       }
       :host[edit-mode] #editbutton {
         width: 100%;

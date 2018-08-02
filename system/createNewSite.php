@@ -37,6 +37,8 @@
       else {
         $cssvar = '--simple-colors-lime-background5';
       }
+      $schema->metadata->created = time();
+      $schema->metadata->updated = time();
       $schema->metadata->cssVariable = $cssvar;
       // add the item back into the outline schema
       $HAXCMS->outlineSchema->addItem($schema);

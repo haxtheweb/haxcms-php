@@ -64,4 +64,4 @@ provider: default
 # for them. Example:
 hooks:
   post-start:
-    - exec: "bash haxtheweb.sh admin admin"
+    - exec: "bash scripts/haxtheweb.sh admin admin"

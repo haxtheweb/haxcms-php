@@ -2,7 +2,7 @@
 <link rel="import" href="../paper-input/paper-textarea.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../paper-swatch-picker/paper-swatch-picker.html">
+<link rel="import" href="../simple-colors/simple-colors-picker.html">
 <link rel="import" href="../paper-slider/paper-slider.html">
 <link rel="import" href="../paper-tooltip/paper-tooltip.html">
 <link rel="import" href="hax-context-item-menu.html">
@@ -98,7 +98,7 @@ required for populating input.
       </template>
       <template is="dom-if" if="[[__inputcolorpicker]]">
         <span>[[label]]</span>
-        <paper-swatch-picker id="input" color="{{value}}"></paper-swatch-picker>
+        <simple-colors-picker id="input" value="{{value}}"></simple-colors-picker>
       </template>
       </span>
       <paper-tooltip

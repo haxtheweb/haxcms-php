@@ -1,0 +1,243 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="simple-datetime.html">
+
+<!--
+`simple-blog`
+A simple blog and associated elements
+
+@demo demo/index.html
+
+@microcopy - the mental model for this element
+ -
+ -
+
+-->
+
+<dom-module id="simple-blog-post">
+  <template>
+    <style>
+      :host {
+        display: block;
+        min-height: 80vh;
+      }
+      main {
+        transition: opacity 1s linear, visibility .6s linear;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        opacity: 1;
+        visibility: visible;
+      }
+      :host[loading] main {
+        opacity: 0;
+        visibility: hidden;
+      }
+      article {
+        padding: 40px 0;
+      }
+      section {
+        width: 100%;
+        font-family: Linux Libertine;
+        color: #333;
+      }
+      section ::slotted(*) {
+        font-weight: 400;
+        font-style: normal;
+        font-size: 22px;
+        line-height: 30px;
+        margin: 0;
+        padding-bottom: 30px;
+        color: #333;
+        -webkit-hyphens: auto;
+        -moz-hyphens: auto;
+        hyphens: auto;
+      }
+      .article-image {
+        position: absolute;
+        background-color: black;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+      }
+      .post-image-image {
+        background-size: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        text-indent: -9999px;
+        padding-top: 33%;
+        z-index: 1;
+      }
+      .post-meta {
+        position: absolute;
+        bottom: 80px;
+        left: 30%;
+        right: 30%;
+        z-index: 9;
+        font-family: Open Sans,MundoSans,"Helvetica Neue",Arial,Helvetica,sans-serif;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+      }
+      .post-title {
+        font-weight: 700;
+        font-style: normal;
+        letter-spacing: -.04em;
+        font-size: 50px;
+        line-height: 1.1;
+        color: white;
+        margin-bottom: 16px;
+        text-shadow: 0 1px 16px rgba(0,0,0,.5), 0 0 1px rgba(0,0,0,.5);
+      }
+      /**
+       * Hide the slotted content during edit mode
+       */
+      :host[edit-mode] #slot {
+        display: none;
+      }
+    </style>
+    <iron-ajax
+      id="content"
+      url="[[outlineLocation]][[item.location]][[__timeStamp]]"
+      handle-as="text"
+      loading="{{loading}}"
+      last-response="{{_itemContent}}"></iron-ajax>
+    <paper-progress hidden$="[[!loading]]" value="10" indeterminate bottom-item></paper-progress>
+    <main>
+      <article>
+        <template is="dom-if" if="[[hasImage]]">
+        <div class="article-image">
+          <div class="post-image-image" style$="background-image: url(&quot;[[item.metadata.image]]&quot;);">
+          </div>
+          <div class="post-meta">
+            <h1 class="post-title">[[item.title]]</h1>
+          </div>
+        </div>
+        </template>
+        <section id="contentcontainer">
+          <div id="slot">
+            <slot></slot>
+          </div>
+        </section>
+      </article>
+    </main>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'simple-blog-post',
+      properties: {
+        /**
+         * item in JSON Outline Schema Item format
+         */
+        item: {
+          type: Object,
+          observer: '_itemChanged',
+        },
+        /**
+         * Loading status of the page to render.
+         */
+        loading: {
+          type: Boolean,
+          reflectToAttribute: true,
+        },
+        /**
+         * calculate if we have a header image.
+         */
+         hasImage: {
+           type: Boolean,
+           computed: '_computeHasImage(item)',
+         },
+        /**
+         * Active item content
+         */
+        _itemContent: {
+          type: String,
+          observer: '_itemContentChanged',
+        },
+        /**
+         * editting state for the page
+         */
+        editMode: {
+          type: Boolean,
+          reflectToAttribute: true,
+          value: false,
+        },
+      },
+      /**
+       * Toggle edit mode
+       */
+      _editModeChanged: function (e) {
+        this.editMode = e.detail;
+      },
+      /**
+       * Ready life cycle
+       */
+      ready: function () {
+        // this implies there's the possibility of an authoring experience
+        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
+          document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
+          this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));          
+        }
+      },
+      /**
+       * only make a request when we have an item's data.
+       */
+      _itemChanged: function (newValue, oldValue) {
+        if (typeof newValue !== typeof undefined && typeof newValue.location !== typeof undefined) {
+          this.$.content.generateRequest();
+        }
+      },
+      /**
+       * see if there's an image in the metadata blob.
+       */
+      _computeHasImage: function (item) {
+        if (typeof item.metadata !== typeof undefined && typeof item.metadata.image !== typeof undefined) {
+          return true;
+        }
+        return false;
+      },
+      /**
+       * active item content changed.
+       */
+      _itemContentChanged: function(newValue, oldValue) {
+        if (typeof newValue !== typeof undefined) {
+          this.wipeSlot(this, '*');
+          if (newValue !== null) {
+            let frag = document.createRange().createContextualFragment(newValue);
+            Polymer.dom(this).appendChild(frag);
+            this.fire('json-outline-schema-active-body-changed', newValue);
+          }
+        }
+      },
+      /**
+       * Wipe slotted content
+       */
+      wipeSlot: function (element, slot = '*') {
+        // 100% clean slate
+        if (slot === '*') {
+          while (Polymer.dom(element).firstChild !== null) {
+            Polymer.dom(element).removeChild(Polymer.dom(element).firstChild);
+          }
+        }
+        else {
+          for (var i in Polymer.dom(element).childNodes) {
+            // test for element nodes to be safe
+            if (typeof Polymer.dom(element).childNodes[i] !== typeof undefined && Polymer.dom(element).childNodes[i].slot === slot) {
+              Polymer.dom(element).removeChild(Polymer.dom(element).childNodes[i]);
+            }
+          }
+        }
+      },
+    });
+  </script>
+</dom-module>
