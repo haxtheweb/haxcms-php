@@ -1,6 +1,6 @@
 {
     "id": "123-ddc-d321d-d2e-dd2",
-    "title": "Site list",
+    "title": "My site list",
     "author": "btopro",
     "description": "All of my mini sites I know and love.",
     "license": "by-sa",
@@ -16,8 +16,8 @@
             "title": "Add new site",
             "metadata": {
                 "siteName": "",
-                "theme": "default",
-                "image": "assets\/banner.jpg",
+                "theme": "simple-blog",
+                "image": "..\/..\/assets\/banner.jpg",
                 "color": "blue",
                 "icon": "icons:add-circle-outline"
             }
