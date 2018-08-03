@@ -5,7 +5,7 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="bower_components/jwt-login/jwt-login.html">
 <!--
-`hax-cms-jwt`
+`haxcms-jwt`
 a simple element to check for and fetch JWTs
 
 @demo demo/index.html
@@ -15,7 +15,7 @@ a simple element to check for and fetch JWTs
 
 -->
 
-<dom-module id="hax-cms-jwt">
+<dom-module id="haxcms-jwt">
   <template>
     <style>
       :host {
@@ -26,7 +26,7 @@ a simple element to check for and fetch JWTs
   </template>
   <script>
     Polymer.cmsSiteEditor = Polymer({
-      is: 'hax-cms-jwt',
+      is: 'haxcms-jwt',
       properties: {
         /**
          * Location of what endpoint to hit for
@@ -82,26 +82,31 @@ a simple element to check for and fetch JWTs
           // which will appear to be injecting into the page
           // but because of this approach it should be non-blocking
           try {
-            this.importHref(this.resolveUrl('hax-cms-site-editor.php'), (e) => {
-              let haxCmsSiteEditorElement = document.createElement('hax-cms-site-editor');
+            this.importHref(this.resolveUrl('bower_components/haxcms-elements/haxcms-site-editor.html'), (e) => {
+              let haxCmsSiteEditorElement = document.createElement('haxcms-site-editor');
               haxCmsSiteEditorElement.jwt = this.jwt;
+              haxCmsSiteEditorElement.savePagePath = "<?php print $HAXCMS->basePath . 'system/savePage.php';?>";
+              haxCmsSiteEditorElement.saveOutlinePath = "<?php print $HAXCMS->basePath . 'system/saveOutline.php';?>";
+              haxCmsSiteEditorElement.appStore = JSON.parse('<?php print json_encode($HAXCMS->appStoreConnection());?>');
               // pass along the initial state management stuff that may be missed
               // based on timing on the initial setup
               if (typeof this.__item !== typeof undefined) {
                 haxCmsSiteEditorElement.activeItem = this.__item;
               }
               if (typeof this.__manifest !== typeof undefined) {
+                console.log('well it was here');
                 haxCmsSiteEditorElement.manifest = this.__manifest;
               }
               if (typeof this.__body !== typeof undefined) {
                 haxCmsSiteEditorElement.__body = this.__body;
               }
+              Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement = haxCmsSiteEditorElement;
               Polymer.cmsSiteEditor.instance.appendTarget.appendChild(haxCmsSiteEditorElement);
             }, (e) => {
               //import failed
             });
           }
-          catch(err) {
+          catch (err) {
             // error in the event this is a double registration
           }
         }
@@ -110,14 +115,20 @@ a simple element to check for and fetch JWTs
     // store reference to the instance as a global
     Polymer.cmsSiteEditor.instance = null;
     // self append if anyone calls us into action
-    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body, callback = null) {
+    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body) {
       if (!Polymer.cmsSiteEditor.instance) {
-        Polymer.cmsSiteEditor.instance = document.createElement('hax-cms-jwt');
-        Polymer.cmsSiteEditor.instance.appRefreshCallback = callback;
+        Polymer.cmsSiteEditor.instance = document.createElement('haxcms-jwt');
         Polymer.cmsSiteEditor.instance.appElement = element;
         Polymer.cmsSiteEditor.instance.appendTarget = location;
+        // self append the reference to.. well.. us.
+        document.body.appendChild(Polymer.cmsSiteEditor.instance);
       }
-      document.body.appendChild(Polymer.cmsSiteEditor.instance);
+      else {
+        // already exists, just alter some references
+        Polymer.cmsSiteEditor.instance.appElement = element;
+        Polymer.cmsSiteEditor.instance.appendTarget = location;
+        Polymer.cmsSiteEditor.instance.appendTarget.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
+      }
     };
   </script>
 </dom-module>

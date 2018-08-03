@@ -20,7 +20,8 @@
         // update the updated timestamp
         $page->metadata->updated = time();
         // auto generate a text only description from first 200 chars
-        $page->description = substr(strip_tags($body), 0, 200);
+        $clean = strip_tags($body);
+        $page->description = substr($clean, 0, 200);
         // update the item in the metadata to indicate when content was last set
         $site->manifest->updateItem($page, TRUE);
         header('Status: 200');

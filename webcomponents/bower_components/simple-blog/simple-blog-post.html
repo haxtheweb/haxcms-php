@@ -1,5 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="simple-datetime.html">
 
 <!--
@@ -32,9 +31,10 @@ A simple blog and associated elements
         opacity: 1;
         visibility: visible;
       }
-      :host[loading] main {
-        opacity: 0;
-        visibility: hidden;
+      @media only screen and (max-width: 800px) {
+        main {
+          padding: 0 32px;
+        }
       }
       article {
         padding: 40px 0;
@@ -56,7 +56,7 @@ A simple blog and associated elements
         -moz-hyphens: auto;
         hyphens: auto;
       }
-      .article-image {
+      :host[has-image] .article-image {
         position: absolute;
         background-color: black;
         top: 0;
@@ -77,6 +77,10 @@ A simple blog and associated elements
         z-index: 1;
       }
       .post-meta {
+        font-family: Open Sans,MundoSans,"Helvetica Neue",Arial,Helvetica,sans-serif;
+        padding-top: 60px;
+      }
+      :host[has-image] .post-meta {
         position: absolute;
         bottom: 80px;
         left: 30%;
@@ -93,6 +97,9 @@ A simple blog and associated elements
         letter-spacing: -.04em;
         font-size: 50px;
         line-height: 1.1;
+        color: black;
+      }
+      :host[has-image] .post-title {
         color: white;
         margin-bottom: 16px;
         text-shadow: 0 1px 16px rgba(0,0,0,.5), 0 0 1px rgba(0,0,0,.5);
@@ -104,24 +111,16 @@ A simple blog and associated elements
         display: none;
       }
     </style>
-    <iron-ajax
-      id="content"
-      url="[[outlineLocation]][[item.location]][[__timeStamp]]"
-      handle-as="text"
-      loading="{{loading}}"
-      last-response="{{_itemContent}}"></iron-ajax>
-    <paper-progress hidden$="[[!loading]]" value="10" indeterminate bottom-item></paper-progress>
     <main>
       <article>
-        <template is="dom-if" if="[[hasImage]]">
         <div class="article-image">
-          <div class="post-image-image" style$="background-image: url(&quot;[[item.metadata.image]]&quot;);">
-          </div>
+        <template is="dom-if" if="[[hasImage]]">
+          <div id="image" class="post-image-image" style$="background-image: url(&quot;[[activeItem.metadata.image]]&quot;);"></div>
+        </template>
           <div class="post-meta">
-            <h1 class="post-title">[[item.title]]</h1>
+            <h1 class="post-title">[[activeItem.title]]</h1>
           </div>
         </div>
-        </template>
         <section id="contentcontainer">
           <div id="slot">
             <slot></slot>
@@ -139,31 +138,18 @@ A simple blog and associated elements
         /**
          * item in JSON Outline Schema Item format
          */
-        item: {
+        activeItem: {
           type: Object,
-          observer: '_itemChanged',
-        },
-        /**
-         * Loading status of the page to render.
-         */
-        loading: {
-          type: Boolean,
-          reflectToAttribute: true,
         },
         /**
          * calculate if we have a header image.
          */
          hasImage: {
            type: Boolean,
-           computed: '_computeHasImage(item)',
+           computed: '_computeHasImage(activeItem)',
+           observer: '_hasImageChanged',
+           reflectToAttribute: true,
          },
-        /**
-         * Active item content
-         */
-        _itemContent: {
-          type: String,
-          observer: '_itemContentChanged',
-        },
         /**
          * editting state for the page
          */
@@ -174,69 +160,58 @@ A simple blog and associated elements
         },
       },
       /**
+       * Ready life cycle
+       */
+      ready: function () {
+        document.body.addEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
+        window.addEventListener('scroll', this._scrollListener.bind(this));
+      },
+      /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
+        window.removeEventListener('scroll', this._scrollListener.bind(this));
+      },
+      /**
        * Toggle edit mode
        */
       _editModeChanged: function (e) {
         this.editMode = e.detail;
       },
       /**
-       * Ready life cycle
+       * Scroll event listener to do image effects.
        */
-      ready: function () {
-        // this implies there's the possibility of an authoring experience
-        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
-          this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));          
+      _scrollListener: function (e) {
+        if (this.hasImage) {
+          let top = (window.pageYOffset || document.scrollTop) - (document.clientTop || 0);
+          if (top < 0 || top > 1500) { return; }
+          this.$$('#image').style.transform = 'translate3d(0px, ' + top / 3 + 'px, 0px)';
+          this.$$('#image').style.opacity = (1 - Math.max(top / 700, 0));
         }
       },
       /**
-       * only make a request when we have an item's data.
+       * image has changed, ensure we set padding appropriately.
        */
-      _itemChanged: function (newValue, oldValue) {
-        if (typeof newValue !== typeof undefined && typeof newValue.location !== typeof undefined) {
-          this.$.content.generateRequest();
+      _hasImageChanged: function (newValue, oldValue) {
+        if (newValue) {
+          this.async(() => {
+            let rect = this.$$('#image').getBoundingClientRect();
+            this.$.contentcontainer.style.paddingTop = rect.height + 'px';
+          });
+        }
+        else {
+          this.$.contentcontainer.style.paddingTop = null;
         }
       },
       /**
        * see if there's an image in the metadata blob.
        */
-      _computeHasImage: function (item) {
-        if (typeof item.metadata !== typeof undefined && typeof item.metadata.image !== typeof undefined) {
+      _computeHasImage: function (activeItem) {
+        if (typeof activeItem.metadata !== typeof undefined && typeof activeItem.metadata.image !== typeof undefined) {
           return true;
         }
         return false;
-      },
-      /**
-       * active item content changed.
-       */
-      _itemContentChanged: function(newValue, oldValue) {
-        if (typeof newValue !== typeof undefined) {
-          this.wipeSlot(this, '*');
-          if (newValue !== null) {
-            let frag = document.createRange().createContextualFragment(newValue);
-            Polymer.dom(this).appendChild(frag);
-            this.fire('json-outline-schema-active-body-changed', newValue);
-          }
-        }
-      },
-      /**
-       * Wipe slotted content
-       */
-      wipeSlot: function (element, slot = '*') {
-        // 100% clean slate
-        if (slot === '*') {
-          while (Polymer.dom(element).firstChild !== null) {
-            Polymer.dom(element).removeChild(Polymer.dom(element).firstChild);
-          }
-        }
-        else {
-          for (var i in Polymer.dom(element).childNodes) {
-            // test for element nodes to be safe
-            if (typeof Polymer.dom(element).childNodes[i] !== typeof undefined && Polymer.dom(element).childNodes[i].slot === slot) {
-              Polymer.dom(element).removeChild(Polymer.dom(element).childNodes[i]);
-            }
-          }
-        }
       },
     });
   </script>

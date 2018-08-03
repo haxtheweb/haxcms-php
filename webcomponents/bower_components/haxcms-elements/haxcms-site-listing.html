@@ -23,9 +23,9 @@
 <link rel="import" href="../iron-icons/av-icons.html">
 <link rel="import" href="../iron-icons/device-icons.html">
 <link rel="import" href="../iron-icons/image-icons.html">
-<link rel="import" href="sites-listing.html">
+<link rel="import" href="../sites-listing/sites-listing.html">
 <!--
-`sites-listing`
+`haxcms-site-listing`
 A LRN element
 
 @demo demo/index.html
@@ -36,7 +36,7 @@ A LRN element
 
 -->
 
-<dom-module id="hax-cms-site-listing">
+<dom-module id="haxcms-site-listing">
   <template>
     <style>
       app-toolbar {
@@ -145,8 +145,8 @@ A LRN element
         <paper-input id="newsiteimage" label="Image" value="[[activeItem.metadata.image]]"></paper-input>
         <label for="newsitecolor">Select a color:</label>
         <simple-colors-picker id="newsitecolor"></simple-colors-picker>
-        <dropdown-select id="newsitetheme" label="Theme" value="default">
-          <paper-item value="default">Simple blog</paper-item>
+        <dropdown-select id="newsitetheme" label="Theme" value="simple-blog">
+          <paper-item value="simple-blog">Simple blog</paper-item>
           <paper-item value="basic-outline">Basic outline</paper-item>
           <paper-item value="infinite-scroll">Infinite scroll</paper-item>
         </dropdown-select>
@@ -163,7 +163,7 @@ A LRN element
       <magazine-cover
        image="[[activeItem.metadata.image]]"
        header="[[activeItem.title]]" subheader="[[activeItem.description]]"
-      action="Access site" icon="[[activeItem.metadata.icon]]" event-data="[[activeItem]]" event-name="hax-cms-load-site">
+      action="Access site" icon="[[activeItem.metadata.icon]]" event-data="[[activeItem]]" event-name="haxcms-load-site">
       </magazine-cover>
       </paper-dialog-scrollable>
       <div class="buttons">
@@ -182,7 +182,7 @@ A LRN element
   </template>
   <script>
     Polymer({
-      is: 'hax-cms-site-listing',
+      is: 'haxcms-site-listing',
       listeners: {
         'create.tap': '_createSite',
         'download.tap': '_downloadSite',
@@ -427,7 +427,7 @@ A LRN element
       attached: function () {
         // @todo support state routing for loadActiveSite
         document.body.addEventListener('sites-listing-item-selected', this._itemSelected.bind(this));
-        document.body.addEventListener('hax-cms-load-site', this.loadActiveSite.bind(this));
+        document.body.addEventListener('haxcms-load-site', this.loadActiveSite.bind(this));
       },
       /**
        * Ready life cycle

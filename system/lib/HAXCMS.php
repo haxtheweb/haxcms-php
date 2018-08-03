@@ -161,7 +161,7 @@ class HAXCMS {
   /**
    * Load a site off the file system with option to create
    */
-  public function loadSite($name, $create = FALSE, $theme = 'default') {
+  public function loadSite($name, $create = FALSE) {
     $name = urldecode($name);
     // check if this exists, load but fallback for creating on the fly
     if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $name)) {
@@ -171,7 +171,7 @@ class HAXCMS {
     }
     else if ($create) {
       // attempt to create site
-      return $this->createNewSite($name, $theme);
+      return $this->createNewSite($name);
     }
     return FALSE;
   }
@@ -179,10 +179,10 @@ class HAXCMS {
    * Attempt to create a new site on the file system
    * @return boolean true for success, false for failed
    */
-  private function createNewSite($name, $theme = 'default') {
+  private function createNewSite($name) {
     // try and make the folder
     $site = new HAXCMSSite();
-    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name, $theme)) {
+    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name)) {
       return $site;
     }
     return FALSE;

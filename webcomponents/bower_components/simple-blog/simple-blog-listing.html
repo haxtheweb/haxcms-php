@@ -21,37 +21,37 @@ A simple blog and associated elements
         display: block;
       }
       iron-list {
-        height: 100vh;
         width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+      }
+      @media only screen and (max-width: 800px) {
+        iron-list {
+          padding: 0 32px;
+        }
       }
       simple-blog-overview {
         width: 100%;
-        padding: 40px 0;
-        border-bottom: 1px solid #f2f2f0;
-      }
-      paper-button {
-        padding: 0;
-        margin: 0;
-        min-width: unset;
+        border: 1px solid #f2f2f0;
       }
     </style>
     <iron-list items="[[items]]">
       <template>
-        <paper-button tabindex="-1">
-          <simple-blog-overview
-           item-id="[[item.id]]"
-           title="[[item.title]]"
-           description="[[item.description]]"
-           link="[[item.location]]"
-           changed="[[item.metadata.updated]]"
-          ></simple-blog-overview>
-        </paper-button>
+        <simple-blog-overview
+          item-id="[[item.id]]"
+          title="[[item.title]]"
+          description="[[item.description]]"
+          link="[[item.location]]"
+          changed="[[item.metadata.updated]]"
+        ></simple-blog-overview>
       </template>
     </iron-list>
   </template>
   <script>
     Polymer({
-
       is: 'simple-blog-listing',
       properties: {
         /**

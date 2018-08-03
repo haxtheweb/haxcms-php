@@ -21,12 +21,6 @@ A simple blog and associated elements
         position: relative;
         overflow: hidden;
       }
-      .teaserimage {
-        height: 450px;
-        position: relative;
-        overflow: hidden;
-        background-color: #000;
-      }
       .background-closer-image {
         position: absolute;
         top: 0;
@@ -37,6 +31,25 @@ A simple blog and associated elements
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
+        opacity: .4;
+        transition: all .6s linear;
+      }
+      .background-closer-image-wrap {
+        position: absolute;
+        background-color: rgba(0, 0, 0, .9);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        text-indent: -9999px;
+        transition: all .6s linear;
+        opacity: 1;
+      }
+      :host[active] .background-closer-image {
+        opacity: .8;
+      }
+      :host[active] .background-closer-image-wrap {
+        background-color: rgba(0, 0, 0, .2);
       }
       .inner {
         width: 100%;
@@ -89,12 +102,14 @@ A simple blog and associated elements
         padding: 0 18px;
       }
     </style>
-    <div class="background-closer-image" style$="background-image: url([[manifest.metadata.image]])">
+    <div class="background-closer-image-wrap">
+      <div class="background-closer-image" style$="background-image: url([[manifest.metadata.image]])">
+      </div>
     </div>
     <div class="inner">
       <h1 class="blog-title">[[manifest.title]]</h1>
       <h2 class="blog-description">[[manifest.description]]</h2>
-      <paper-button id="backbutton" class="back">Back to main site</paper-button>
+      <paper-button id="backbutton" class="back" raised="[[active]]">Back to main site</paper-button>
     </div>
   </template>
 
@@ -103,6 +118,11 @@ A simple blog and associated elements
       is: 'simple-blog-footer',
       listeners: {
         'backbutton.tap': '_backButtonTap',
+        'mousedown': '_activate',
+        'mouseover': '_activate',
+        'mouseout': '_deactivate',
+        'focusin': '_activate',
+        'focusout': '_deactivate',
       },
       properties: {
         /**
@@ -111,6 +131,14 @@ A simple blog and associated elements
         manifest: {
           type: Object,
         },
+        /**
+         * active state for visual changes
+         */
+        active: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true,
+        },
       },
       /**
        * Fire event to unset the global activeItem.
@@ -118,6 +146,18 @@ A simple blog and associated elements
       _backButtonTap: function (e) {
         // unset which will trigger a reset up above
         this.fire('active-item-reset', null);
+      },
+      /**
+       * trip reflected value
+       */
+      _activate: function (e) {
+        this.active = true;
+      },
+      /**
+       * trip reflected value
+       */
+      _deactivate: function (e) {
+        this.active = false;
       },
     });
   </script>

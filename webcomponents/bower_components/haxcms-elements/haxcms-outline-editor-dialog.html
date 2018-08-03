@@ -1,10 +1,10 @@
-<link rel="import" href="bower_components/polymer/polymer.html">
-<link rel="import" href="bower_components/lrnsys-outline/lrnsys-outline.html">
-<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
-<link rel="import" href="bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
-<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../lrnsys-outline/lrnsys-outline.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../paper-button/paper-button.html">
 <!--
-`hax-cms-outline-editor-dialog`
+`haxcms-outline-editor-dialog`
 Dialog for presenting an editable outline
 
 @demo demo/index.html
@@ -13,7 +13,7 @@ Dialog for presenting an editable outline
 
 -->
 
-<dom-module id="hax-cms-outline-editor-dialog">
+<dom-module id="haxcms-outline-editor-dialog">
   <template>
     <style>
       :host {
@@ -38,7 +38,7 @@ Dialog for presenting an editable outline
   </template>
   <script>
     Polymer({
-      is: 'hax-cms-outline-editor-dialog',
+      is: 'haxcms-outline-editor-dialog',
       listeners: {
         'save.tap': '_saveTap',
         'cancel.tap': '_cancelTap',
@@ -61,10 +61,27 @@ Dialog for presenting an editable outline
          },
       },
       /**
+       * Ready life cycle
+       */
+      ready: function () {
+        document.body.addEventListener('json-outline-schema-changed', this._manifestChanged.bind(this));
+        this.set('items', Polymer.cmsSiteEditor.jsonOutlineSchema.items);
+      },
+      /**
+       * manifest changed, let's get the items only
+       */
+      _manifestChanged: function (e) {
+        console.log(e.detail);
+        if (typeof e.detail.items !== typeof undefined) {
+          this.set('items', []);
+          this.set('items', e.detail.items);
+        }
+      },
+      /**
        * Save hit, send the message to push up the outline changes.
        */
       _saveTap: function (e) {
-        this.fire('save-outline', this.items);
+        this.fire('haxcms-save-outline', this.items);
       },
     });
   </script>

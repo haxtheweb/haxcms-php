@@ -1,4 +1,5 @@
 <?php
+define('HAXCMS_DEFAULT_THEME', 'simple-blog');
 // a site object
 class HAXCMSSite {
   public $name;
@@ -20,20 +21,19 @@ class HAXCMSSite {
    * @var $directory string file system path
    * @var $siteBasePath string web based url / base_path
    * @var $name string name of the site
-   * @var $theme string theme to load / copy as the method of display the JSON
    * 
-   * @return HAXCMSSite object 
+   * @return HAXCMSSite object
    */
-  public function newSite($directory, $siteBasePath, $name, $theme = 'default') {
+  public function newSite($directory, $siteBasePath, $name) {
     // newSite calls must set basePath internally to avoid page association issues
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
     $tmpname = strtolower($name);
     $this->name = $name;
     // attempt to shift it on the file system
-    $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/sites/' . $theme, $directory . '/' . $tmpname);
-    // create symlink to make it easier for theme builders
-    symlink('../../webcomponents', $directory . '/' . $tmpname . '/webcomponents');
+    $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
+    // create symlink to make it easier for themes to resolve correctly
+    symlink(HAXCMS_ROOT . '/webcomponents', $directory . '/' . $tmpname . '/webcomponents');
     // load what we just created
     $this->manifest = new JSONOutlineSchema();
     // where to save it to
@@ -74,11 +74,11 @@ class HAXCMSSite {
     // set order to the page's count for default add to end ordering
     $page->order = count($this->manifest->items);
     // location is the html file we just copied and renamed
-    $page->location = $page->id . '/index.html';
+    $page->location = 'pages/' . $page->id . '/index.html';
     $page->metadata->created = time();
     $page->metadata->updated = time();
-    $location = $this->directory . '/' . $this->name . '/' . $page->id;
-    // copy the boilerplate page we use for simplicity (or later complexity if we want)
+    $location = $this->directory . '/' . $this->name . '/pages/' . $page->id;
+    // copy the page we use for simplicity (or later complexity if we want)
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     $this->manifest->addItem($page);
     $this->manifest->save();

@@ -9,10 +9,11 @@
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="../paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../haxcms-elements/haxcms-theme-behavior.html">
 
 <!--
 `infinite-scroll-site`
-A LRN element
+A LRN element for infinite scrolling in a site
 
 @demo demo/index.html
 
@@ -112,18 +113,13 @@ A LRN element
         max-width: 65em;
         margin: auto;
       }
-
       /**
        * Hide the slotted content during edit mode
        */
-
       :host[edit-mode] #slot {
         display: none;
       }
     </style>
-    <iron-ajax id="manifest" url="[[outlineLocation]][[outlineFile]][[__timeStamp1]]" handle-as="json" last-response="{{manifest}}"></iron-ajax>
-    <iron-ajax id="activecontent" url="[[outlineLocation]][[activeItem.location]][[__timeStamp2]]" handle-as="text" loading="{{__loadingContent}}"
-      debounce-duration="250" last-response="{{_activeItemContent}}"></iron-ajax>
     <app-header-layout>
       <app-header reveals slot="header">
         <app-toolbar>
@@ -155,23 +151,9 @@ A LRN element
       behaviors: [
         SchemaBehaviors.Schema,
         simpleColorsBehaviors,
+        HAXCMSBehaviors.Theme,
       ],
       properties: {
-        /**
-         * Outline JSON file name
-         */
-        outlineFile: {
-          type: String,
-          value: 'site.json',
-        },
-        /**
-         * editting state for the page
-         */
-        editMode: {
-          type: Boolean,
-          reflectToAttribute: true,
-          value: false,
-        },
         /**
          * Outline JSON location
          */
@@ -193,27 +175,6 @@ A LRN element
           observer: '_selectedPageChanged',
         },
         /**
-         * Active item content
-         */
-        _activeItemContent: {
-          type: String,
-          observer: '_activeItemContentChanged',
-        },
-        __timeStamp1: {
-          type: String,
-        },
-        __timeStamp2: {
-          type: String,
-        },
-        /**
-         * Active item which is in JSON Outline Schema
-         */
-        activeItem: {
-          type: Object,
-          notify: true,
-          observer: '_activeItemChanged',
-        },
-        /**
          * a manifest json file decoded, in JSON Outline Schema format
          */
         manifest: {
@@ -225,66 +186,22 @@ A LRN element
        * Attached life cycle
        */
       attached: function () {
-        document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
+        this.setupHAXTheme();
+        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
         this.updateStyles();
-        this.$.manifest.generateRequest();
       },
       /**
-       * Ready life cycle
+       * Detatched life cycle
        */
-      ready: function () {
-        // this implies there's the possibility of an authoring experience
-        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer, 'refeshData');
-        }
-      },
-      /**
-       * active item content changed.
-       */
-      _activeItemContentChanged: function (newValue, oldValue) {
-        if (typeof newValue !== typeof undefined) {
-          console.log(newValue);
-          if (newValue !== null) {
-            let frag = document.createRange().createContextualFragment(newValue);
-            if (this.__insert == 'before') {
-              let beforeNode = Polymer.dom(this).childNodes[0]
-              Polymer.dom(this).insertBefore(frag, beforeNode);
-            }
-            else {
-              Polymer.dom(this).appendChild(frag);
-            }
-            this.$.slot.clearTriggers();
-            this.fire('json-outline-schema-active-body-changed', newValue);
-          }
-          // support controlling the meta-data of the page dynamically based on route
-          if (typeof this.activeItem !== typeof undefined) {
-            document.title = this.manifest.title + ' - ' + this.activeItem.title;
-          }
-        }
+      detached: function () {
+        this.setupHAXTheme(false);
+        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
       },
       /**
        * Callback to refresh the data from source
        */
-      refeshData: function () {
+      _dataRefreshed: function () {
         this.__tmpselected = this.selected;
-        this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
-        this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
-        this.$.manifest.generateRequest();
-      },
-      /**
-       * Toggle edit mode
-       */
-      _editModeChanged: function (e) {
-        this.editMode = e.detail;
-      },
-      /**
-       * Notice that active item has changed.
-       */
-      _activeItemChanged: function (newValue, oldValue) {
-        if (newValue) {
-          this.$.activecontent.generateRequest();
-          this.fire('json-outline-schema-active-item-changed', newValue);
-        }
       },
       /**
        * disablePrevPage
@@ -336,7 +253,6 @@ A LRN element
        */
       _selectedPageChanged: function (newValue, oldValue) {
         if (typeof newValue !== typeof undefined) {
-          // generate a new time stamp to ensure a fresh page for authed
           const item = this.manifest.items.filter((d, i) => {
             if (newValue === d.id) {
               this.__activeIndex = i;
@@ -351,11 +267,7 @@ A LRN element
        */
       _manifestChanged: function (newValue, oldValue) {
         if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
-          // json outline schema changed, allow other things to react
-          this.fire('json-outline-schema-changed', newValue);
           // fake way of forcing an update of these items
-          this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
-          this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
           let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
           let ary = color.split('-');
           if (ary.length == 2) {

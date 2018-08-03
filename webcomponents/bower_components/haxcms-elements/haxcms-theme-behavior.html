@@ -1,0 +1,58 @@
+<script>
+  // ensure HAXCMSBehaviors exists
+  window.HAXCMSBehaviors = window.HAXCMSBehaviors || {};
+  /**
+   * `HAXCMSBehaviors.Theme` streamline hooking themes up to HAXCMS
+   *
+   * @polymerBehavior HAXCMSBehaviors.Schema
+   **/
+  window.HAXCMSBehaviors.Theme = {
+    properties: {
+      /**
+       * editting state for the page
+       */
+      editMode: {
+        type: Boolean,
+        reflectToAttribute: true,
+        value: false,
+      },
+      /**
+       * Active item which is in JSON Outline Schema
+       */
+      activeItem: {
+        type: Object,
+        notify: true,
+        observer: '_activeItemChanged',
+      },
+    },
+    /**
+     * Toggle edit mode
+     */
+    _globalEditChanged: function (e) {
+      this.editMode = e.detail;
+    },
+    /**
+     * Notice that active item has changed.
+     */
+    _activeItemChanged: function (newValue, oldValue) {
+      if (newValue) {
+        this.fire('json-outline-schema-active-item-changed', newValue);
+      }
+    },
+    /**
+     * Setup HAX theme common design needs at a data layer
+     */
+    setupHAXTheme: function (load = true) {
+      if (load) {
+        document.body.addEventListener('haxcms-edit-mode-changed', this._globalEditChanged.bind(this));
+        // this implies there's the possibility of an authoring experience
+        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
+          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer);
+        }
+      }
+      else {
+        document.body.removeEventListener('haxcms-edit-mode-changed', this._globalEditChanged.bind(this));
+      }
+    }
+  };
+</script>

@@ -9,7 +9,6 @@
 <link rel="import" href="../app-layout/app-drawer-layout/app-drawer-layout.html">
 <link rel="import" href="../app-layout/app-header-layout/app-header-layout.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="../paper-tooltip/paper-tooltip.html">
 
 <!--
@@ -90,12 +89,6 @@ A LRN element
       paper-icon-button + [main-title] {
         margin-left: 24px;
       }
-      paper-progress {
-        display: block;
-        width: 100%;
-        --paper-progress-active-color: rgba(255, 255, 255, 0.5);
-        --paper-progress-container-color: transparent;
-      }
       app-header {
         @apply --layout-fixed-top;
         color: var(--outline-player-dark);
@@ -127,17 +120,6 @@ A LRN element
         display: none;
       }
     </style>
-    <iron-ajax
-      id="manifest"
-      url="[[outlineLocation]][[outlineFile]][[__timeStamp1]]"
-      handle-as="json"
-      last-response="{{manifest}}"></iron-ajax>
-    <iron-ajax
-      id="activecontent"
-      url="[[outlineLocation]][[activeItem.location]][[__timeStamp2]]"
-      handle-as="text"
-      loading="{{__loadingContent}}"
-      last-response="{{_activeItemContent}}"></iron-ajax>
     <app-drawer-layout>
       <app-drawer id="drawer" swipe-open slot="drawer">
         <h2 class="outline-title">[[outlineTitle]]</h2>
@@ -162,7 +144,6 @@ A LRN element
               offset="14">
               Next Page
           </paper-tooltip>
-            <paper-progress hidden$="[[!__loadingContent]]" value="10" indeterminate bottom-item></paper-progress>
           </app-toolbar>
         </app-header>
         <div id="contentcontainer">
@@ -208,6 +189,7 @@ A LRN element
         controlMetaData: {
           type: Boolean,
           reflectToAttribute: true,
+          value: true,
         },
         /**
          * Title of the outline.
@@ -230,25 +212,6 @@ A LRN element
           type: Boolean,
           reflectToAttribute: true,
           value: false,
-        },
-        /**
-         * Active item content
-         */
-        _activeItemContent: {
-          type: String,
-          observer: '_activeItemContentChanged',
-        },
-        /**
-         * Timestamp to help force newer JSON outline
-         */
-        __timeStamp1: {
-          type: String,
-        },
-        /**
-         * Timestamp to help force newer content
-         */
-        __timeStamp2: {
-          type: String,
         },
         /**
          * Outline processed and ordered outline
@@ -278,9 +241,16 @@ A LRN element
        * Attached life cycle
        */
       attached: function () {
-        document.body.addEventListener('edit-mode-changed', this._editModeChanged.bind(this));
+        document.body.addEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
+        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
         this.updateStyles();
-        this.$.manifest.generateRequest();
+      },
+      /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
+        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
       },
       /**
        * Ready life cycle
@@ -288,34 +258,14 @@ A LRN element
       ready: function () {
         // this implies there's the possibility of an authoring experience
         if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer, 'refeshData');
-        }
-      },
-      /**
-       * active item content changed.
-       */
-      _activeItemContentChanged: function(newValue, oldValue) {
-        if (typeof newValue !== typeof undefined) {
-          this.wipeSlot(this, '*');
-          if (newValue !== null) {
-            let frag = document.createRange().createContextualFragment(newValue);
-            Polymer.dom(this).appendChild(frag);
-            this.fire('json-outline-schema-active-body-changed', newValue);
-          }
-          // support controlling the meta-data of the page dynamically based on route
-          if (this.controlMetaData && typeof this.activeItem !== typeof undefined) {
-            document.title = this.manifest.title + ' - ' + this.activeItem.title;
-          }
+          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer);
         }
       },
       /**
        * Callback to refresh the data from source
        */
-      refeshData: function () {
+      _dataRefreshed: function () {
         this.__tmpselected = this.selected;
-        this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
-        this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
-        this.$.manifest.generateRequest();
       },
       /**
        * Toggle edit mode
@@ -341,30 +291,10 @@ A LRN element
         });
       },
       /**
-       * Wipe slotted content
-       */
-      wipeSlot: function(element, slot = '*') {
-        // 100% clean slate
-        if (slot === '*') {
-          while (Polymer.dom(element).firstChild !== null) {
-            Polymer.dom(element).removeChild(Polymer.dom(element).firstChild);
-          }
-        }
-        else {
-          for (var i in Polymer.dom(element).childNodes) {
-            // test for element nodes to be safe
-            if (typeof Polymer.dom(element).childNodes[i] !== typeof undefined && Polymer.dom(element).childNodes[i].slot === slot) {
-              Polymer.dom(element).removeChild(Polymer.dom(element).childNodes[i]);
-            }
-          }
-        }
-      },
-      /**
        * Notice that active item has changed.
        */
       _activeItemChanged: function (newValue, oldValue) {
         if (newValue) {
-          this.$.activecontent.generateRequest();
           this.fire('json-outline-schema-active-item-changed', newValue);
         }
       },
@@ -423,7 +353,6 @@ A LRN element
        */
       _selectedPageChanged: function(newValue, oldValue) {
         if (typeof newValue !== typeof undefined) {
-          // generate a new time stamp to ensure a fresh page for authed
           const item = this.manifest.items.filter((d,i) => {
             if (newValue === d.id) {
               this.__activeIndex = i;
@@ -438,11 +367,7 @@ A LRN element
        */
       _manifestChanged: function (newValue, oldValue) {
         if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
-          // json outline schema changed, allow other things to react
-          this.fire('json-outline-schema-changed', newValue);
           // fake way of forcing an update of these items
-          this.__timeStamp1 = '?' + (Math.floor(Date.now() / 1000));
-          this.__timeStamp2 = '?' + (Math.floor(Date.now() / 1000));
           let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
           let ary = color.split('-');
           if (ary.length == 2) {
