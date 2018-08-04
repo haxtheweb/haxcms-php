@@ -33,7 +33,7 @@ class HAXCMSSite {
     // attempt to shift it on the file system
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier for themes to resolve correctly
-    symlink(HAXCMS_ROOT . '/webcomponents', $directory . '/' . $tmpname . '/webcomponents');
+    symlink('../../webcomponents', $directory . '/' . $tmpname . '/webcomponents');
     // load what we just created
     $this->manifest = new JSONOutlineSchema();
     // where to save it to
