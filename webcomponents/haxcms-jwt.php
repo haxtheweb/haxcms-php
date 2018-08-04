@@ -127,7 +127,9 @@ a simple element to check for and fetch JWTs
         // already exists, just alter some references
         Polymer.cmsSiteEditor.instance.appElement = element;
         Polymer.cmsSiteEditor.instance.appendTarget = location;
-        Polymer.cmsSiteEditor.instance.appendTarget.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
+        if (typeof Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement !== typeof undefined) {
+          Polymer.cmsSiteEditor.instance.appendTarget.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
+        }
       }
     };
   </script>

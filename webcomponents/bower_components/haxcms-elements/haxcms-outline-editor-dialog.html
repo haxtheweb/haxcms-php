@@ -71,7 +71,6 @@ Dialog for presenting an editable outline
        * manifest changed, let's get the items only
        */
       _manifestChanged: function (e) {
-        console.log(e.detail);
         if (typeof e.detail.items !== typeof undefined) {
           this.set('items', []);
           this.set('items', e.detail.items);

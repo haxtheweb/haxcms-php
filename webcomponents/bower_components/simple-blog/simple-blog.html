@@ -1,9 +1,9 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../schema-behaviors/schema-behaviors.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../iron-pages/iron-pages.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../haxcms-elements/haxcms-theme-behavior.html">
 <link rel="import" href="simple-blog-listing.html">
 <link rel="import" href="simple-blog-header.html">
 <link rel="import" href="simple-blog-footer.html">
@@ -22,7 +22,7 @@ A simple blog and associated elements
 
 <dom-module id="simple-blog">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
         font-family: 'Roboto', 'Noto', sans-serif;
@@ -61,7 +61,7 @@ A simple blog and associated elements
       #backbutton:hover {
         opacity: 1;
         color: white;
-        background-color: black;
+        background-color: var(--haxcms-color, black);
       }
       iron-pages, iron-pages section {
         width: 100vw;
@@ -81,11 +81,6 @@ A simple blog and associated elements
         opacity: 1;
       }
     </style>
-    <iron-ajax
-      id="manifest"
-      url="[[outlineLocation]][[outlineFile]][[__timeStamp]]"
-      handle-as="json"
-      last-response="{{manifest}}"></iron-ajax>
     <iron-pages selected="[[selectedPage]]">
       <section>
         <simple-blog-header manifest="[[manifest]]"></simple-blog-header>
@@ -100,7 +95,7 @@ A simple blog and associated elements
          animation-delay="100">
         Back to main site
         </paper-tooltip>
-        <simple-blog-post id="post" active-item="[[activeItem]]"><slot></slot></simple-blog-post>
+        <simple-blog-post id="post" active-item="[[activeItem]]" edit-mode="[[editMode]]"><slot></slot></simple-blog-post>
         <simple-blog-footer id="footer" manifest="[[manifest]]"></simple-blog-footer>
       </section>
     </iron-pages>
@@ -112,6 +107,7 @@ A simple blog and associated elements
       behaviors: [
         SchemaBehaviors.Schema,
         window.simpleColorsBehaviors,
+        HAXCMSBehaviors.Theme,
       ],
       listeners: {
         'listing.active-item-selected': '_itemSelected',
@@ -119,40 +115,6 @@ A simple blog and associated elements
         'footer.active-item-reset': '_resetActiveItem',
       },
       properties: {
-        /**
-         * Outline JSON file name
-         */
-        outlineFile: {
-          type: String,
-          value: 'site.json',
-        },
-        /**
-         * Outline JSON location
-         */
-        outlineLocation: {
-          type: String,
-        },
-        /**
-         * Timestamp to help force newer JSON outline
-         */
-        __timeStamp: {
-          type: String,
-        },
-        /**
-         * Manifest
-         */
-        manifest: {
-          type: Object,
-          notify: true,
-          observer: '_manifestChanged',
-        },
-        /**
-         *  activeItem, dictating what blog post we're looking at
-         */
-         activeItem: {
-           type: Object,
-           observer: '_activeItemChanged',
-         },
          /**
           * The "page" to show (overview or blog post itself).
           */
@@ -163,14 +125,20 @@ A simple blog and associated elements
         },
       },
       /**
-       * Attached life cycle
+       * Ready life cycle
        */
-      attached: function (e) {
-        document.body.addEventListener('haxcms-trigger-update', this._resetActiveItem.bind(this));
-        // this implies there's the possibility of an authoring experience
-        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          Polymer.cmsSiteEditor.requestAvailability(this, this.$.post.$.contentcontainer);
-        }
+      ready: function () {
+        this.setupHAXTheme(true, this.$.post.$.contentcontainer);
+        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
+        document.body.addEventListener('json-outline-schema-active-item-changed', this._activeItemEvent.bind(this));
+      },
+      /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        this.setupHAXTheme(false);
+        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
+        document.body.removeEventListener('json-outline-schema-active-item-changed', this._activeItemEvent.bind(this));
       },
       /**
        * An event has indicated the active item needs changed.
@@ -185,52 +153,33 @@ A simple blog and associated elements
         });
         // if we found one, make it the top level item
         if (find.length > 0) {
-          this.set('activeItem', {});
-          this.set('activeItem', find.pop());
+          this.fire('json-outline-schema-active-item-changed', find.pop());
         }
       },
       /**
-       *  notice active item changed state
+       * Notice active item changed state
        */
-      _activeItemChanged: function (newValue, oldValue) {
-        if (typeof newValue !== typeof undefined && typeof newValue.id !== typeof undefined) {
-          this.fire('json-outline-schema-active-item-changed', newValue);
+      _activeItemEvent: function (e) {
+        if (typeof e.detail.id !== typeof undefined) {
           this.selectedPage = 1;
           window.scrollTo(0, 0);
-          document.title = this.manifest.title + ' - ' + this.activeItem.title;
+          this.$.post.set('activeItem', e.detail);
         }
         else {
           this.selectedPage = 0;
-          document.title = this.manifest.title;
         }
       },
       /**
        * Reset the active item to reset state
        */
       _resetActiveItem: function (e) {
-        this.set('activeItem', {});
+        this.fire('json-outline-schema-active-item-changed', {});
       },
       /**
-       * Manifest has changed
+       * refreshed data call
        */
-      _manifestChanged: function (newValue, oldValue) {
-        if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
-          // json outline schema changed, allow other things to react
-          // fake way of forcing an update of these items
-          let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
-          let ary = color.split('-');
-          if (ary.length == 2) {
-            color = ary[0];
-            this.accentColor = color;
-          }
-          else if (ary.length == 3) {
-            color = ary[0] + ' ' + ary[1];
-            this.accentColor = color;
-          }
-          // set this directly instead of messing w/ accentColor
-          this.customStyle['--outline-player-light'] = this.customStyle[this.manifest.metadata.cssVariable];
-          this.updateStyles();
-        }
+      _dataRefreshed: function (e) {
+        this.fire('json-outline-schema-active-item-changed', {});
       },
     });
   </script>

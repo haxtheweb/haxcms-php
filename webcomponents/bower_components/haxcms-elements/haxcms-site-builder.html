@@ -1,5 +1,7 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../app-route/app-location.html">
+<link rel="import" href="../app-route/app-route.html">
 <link rel="import" href="../paper-progress/paper-progress.html">
 
 <!--
@@ -42,6 +44,14 @@ A LRN element
       }
     </style>
     <paper-progress hidden$="[[!loading]]" value="100" indeterminate bottom-item></paper-progress>
+    <app-location route="{{route}}" query-params="{{queryParams}}"></app-location>
+    <app-route
+      route="{{route}}"
+      pattern=":page"
+      data="{{data}}"
+      tail="{{tail}}"
+      query-params="{{queryParams}}">
+    </app-route>
     <iron-ajax
      id="manifest"
      url="[[outlineLocation]][[file]][[__timeStamp]]"
@@ -62,6 +72,13 @@ A LRN element
     Polymer({
       is: 'haxcms-site-builder',
       properties: {
+        /**
+         * queryParams
+         */
+        queryParams: {
+          type: Object,
+          observer: '_queryParamsChanged',
+        },
         /**
          * Loading status of the page to render.
          */
@@ -90,7 +107,7 @@ A LRN element
         themeElementName: {
           type: String,
           reflectToAttribute: true,
-          observer: '_themeChanged',
+          observer: '_themeNameChanged',
         },
         /**
          * Theme, used to boot a design element
@@ -148,17 +165,48 @@ A LRN element
         },
       },
       /**
-       * Attached life cycle
+       * ready life cycle
        */
-      attached : function () {
+      created: function () {
         document.body.addEventListener('haxcms-trigger-update', this._triggerUpdatedData.bind(this));
+        document.body.addEventListener('haxcms-trigger-update-page', this._triggerUpdatedPage.bind(this));
         document.body.addEventListener('json-outline-schema-active-item-changed', this._setActiveItem.bind(this));
+      },
+      /**
+       * Detached life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('haxcms-trigger-update', this._triggerUpdatedData.bind(this));
+        document.body.removeEventListener('haxcms-trigger-update-page', this._triggerUpdatedPage.bind(this));
+        document.body.removeEventListener('json-outline-schema-active-item-changed', this._setActiveItem.bind(this));
+      },
+      /**
+       * Query params changed
+       */
+      _setupActiveFromQuery: function () {
+        if (typeof this.queryParams.page !== typeof undefined && typeof this.manifest.items !== typeof undefined) {
+          let find = this.manifest.items.filter(item => {
+            if (item.id !== this.queryParams.page) {
+              return false;
+            }
+            return true;
+          });
+          // if we found one, make it the active page
+          if (find.length > 0) {
+            let found = find.pop();
+            // @todo figure out why this is required in order for all timing to line up
+            setTimeout(() => { 
+              this.fire('haxcms-active-item-changed', found);
+            }, 250);
+          }
+        }
       },
       /**
        * set global active item
        */
       _setActiveItem: function (e) {
         this.set('activeItem', e.detail);
+        this.set('queryParams.page', e.detail.id);
       },
       /**
        * React to content being loaded from a page.
@@ -167,37 +215,21 @@ A LRN element
         if (newValue) {
           // only append if not empty
           if (newValue !== null) {
-            let frag = document.createRange().createContextualFragment(newValue);
-            Polymer.dom(this.themeElement).appendChild(frag);
+            this.wipeSlot(this.themeElement, '*');
+            this.async(() => {
+              let frag = document.createRange().createContextualFragment(newValue);
+              Polymer.dom(this.themeElement).appendChild(frag);
+            }); 
           }
           this.fire('json-outline-schema-active-body-changed', newValue);
-        }
-      },
-      /**
-       * Wipe slotted content
-       */
-      wipeSlot: function (element, slot = '*') {
-        // 100% clean slate
-        if (slot === '*') {
-          while (Polymer.dom(element).firstChild !== null) {
-            Polymer.dom(element).removeChild(Polymer.dom(element).firstChild);
-          }
-        }
-        else {
-          for (var i in Polymer.dom(element).childNodes) {
-            // test for element nodes to be safe
-            if (typeof Polymer.dom(element).childNodes[i] !== typeof undefined && Polymer.dom(element).childNodes[i].slot === slot) {
-              Polymer.dom(element).removeChild(Polymer.dom(element).childNodes[i]);
-            }
-          }
         }
       },
       /**
        * Active item updated, let's request the content from it
        */
       _activeItemChanged: function (newValue, oldValue) {
-        if (newValue) {
-          this.wipeSlot(this.themeElement, '*');
+        if (typeof newValue.id !== typeof undefined) {
+          this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));
           this.$.activecontent.generateRequest();
         }
       },
@@ -208,6 +240,14 @@ A LRN element
         // append a value so we know we get fresher data
         this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));
         this.$.manifest.generateRequest();
+      },
+      /**
+       * got a message that we need to update our page content
+       */
+      _triggerUpdatedPage: function (e) {
+        // append a value so we know we get fresher data
+        this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));
+        this.$.activecontent.generateRequest();
       },
       /**
        * File changed so let's pull from the location
@@ -230,9 +270,11 @@ A LRN element
       /**
        * notice theme changes and ensure slot is rebuilt.
        */
-      _themeChanged: function (newValue, oldValue) {
+      _themeNameChanged: function (newValue, oldValue) {
         if (newValue && oldValue) {
-          Polymer.cmsSiteEditor.instance.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
+          if (typeof Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement !== typeof undefined) {
+            Polymer.cmsSiteEditor.instance.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
+          }
         }
         if (newValue) {
           this.themeLoaded = false;
@@ -272,6 +314,8 @@ A LRN element
               this.themeLoaded = true;
             }
           }
+          // establish initial routing
+          this._setupActiveFromQuery();
         }
       },
       /**

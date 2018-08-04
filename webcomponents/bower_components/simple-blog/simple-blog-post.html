@@ -1,6 +1,5 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="simple-datetime.html">
-
 <!--
 `simple-blog`
 A simple blog and associated elements
@@ -15,7 +14,7 @@ A simple blog and associated elements
 
 <dom-module id="simple-blog-post">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
         min-height: 80vh;
@@ -58,7 +57,7 @@ A simple blog and associated elements
       }
       :host[has-image] .article-image {
         position: absolute;
-        background-color: black;
+        background-color: var(--haxcms-color, black);
         top: 0;
         left: 0;
         right: 0;
@@ -140,6 +139,7 @@ A simple blog and associated elements
          */
         activeItem: {
           type: Object,
+          notify: true,
         },
         /**
          * calculate if we have a header image.
@@ -163,21 +163,13 @@ A simple blog and associated elements
        * Ready life cycle
        */
       ready: function () {
-        document.body.addEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
         window.addEventListener('scroll', this._scrollListener.bind(this));
       },
       /**
        * Detatched life cycle
        */
       detached: function () {
-        document.body.removeEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
         window.removeEventListener('scroll', this._scrollListener.bind(this));
-      },
-      /**
-       * Toggle edit mode
-       */
-      _editModeChanged: function (e) {
-        this.editMode = e.detail;
       },
       /**
        * Scroll event listener to do image effects.

@@ -13,7 +13,7 @@ A simple blog and associated elements
 
 <dom-module id="simple-blog-header">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -23,7 +23,7 @@ A simple blog and associated elements
         margin: 0;
         position: relative;
         overflow: hidden;
-        background-color: #000;
+        background-color: var(--haxcms-color, black);
       }
       .teaserimage-image {
         transition: all .6s linear;

@@ -1,13 +1,11 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../schema-behaviors/schema-behaviors.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../app-layout/app-header/app-header.html">
 <link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../app-layout/app-header-layout/app-header-layout.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="../paper-tooltip/paper-tooltip.html">
 <link rel="import" href="../haxcms-elements/haxcms-theme-behavior.html">
 
@@ -25,7 +23,7 @@ A LRN element for infinite scrolling in a site
         display: block;
         font-family: sans-serif;
         --infinite-scroll-site-dark: var(--simple-colors-foreground1);
-        --infinite-scroll-site-light: var(--simple-colors-accent-background1);
+        --infinite-scroll-site-light: var(--haxcms-color);
       }
 
       h1 {
@@ -76,26 +74,12 @@ A LRN element for infinite scrolling in a site
         box-shadow: 0 0 6px -1px var(--infinite-scroll-site-dark);
       }
 
-      .outline-title {
-        font-size: 24px;
-        height: 64px;
-        padding: 16px;
-        margin: 0;
-      }
-
       paper-icon-button {
         --paper-icon-button-ink-color: var(--infinite-scroll-site-dark);
       }
 
       paper-icon-button+[main-title] {
         margin-left: 24px;
-      }
-
-      paper-progress {
-        display: block;
-        width: 100%;
-        --paper-progress-active-color: rgba(255, 255, 255, 0.5);
-        --paper-progress-container-color: transparent;
       }
 
       app-header {
@@ -132,7 +116,6 @@ A LRN element for infinite scrolling in a site
           <paper-tooltip for="nextpage" position="bottom" offset="14">
             Next Page
           </paper-tooltip>
-          <paper-progress hidden$="[[!__loadingContent]]" value="10" indeterminate bottom-item></paper-progress>
         </app-toolbar>
       </app-header>
       
@@ -155,40 +138,19 @@ A LRN element for infinite scrolling in a site
       ],
       properties: {
         /**
-         * Outline JSON location
-         */
-        outlineLocation: {
-          type: String,
-        },
-        /**
-         * Title of the outline.
-         */
-        outlineTitle: {
-          type: String,
-          value: 'Outline',
-        },
-        /**
          * acitvely selected item
          */
         selected: {
           type: String,
           observer: '_selectedPageChanged',
         },
-        /**
-         * a manifest json file decoded, in JSON Outline Schema format
-         */
-        manifest: {
-          type: Object,
-          observer: '_manifestChanged',
-        },
       },
       /**
-       * Attached life cycle
+       * Ready life cycle
        */
-      attached: function () {
+      ready: function () {
         this.setupHAXTheme();
         document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
-        this.updateStyles();
       },
       /**
        * Detatched life cycle
@@ -260,43 +222,6 @@ A LRN element for infinite scrolling in a site
             }
           }).pop();
           this.set('activeItem', item);
-        }
-      },
-      /**
-       * Manifest has changed
-       */
-      _manifestChanged: function (newValue, oldValue) {
-        if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
-          // fake way of forcing an update of these items
-          let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
-          let ary = color.split('-');
-          if (ary.length == 2) {
-            color = ary[0];
-            this.accentColor = color;
-          }
-          else if (ary.length == 3) {
-            color = ary[0] + ' ' + ary[1];
-            this.accentColor = color;
-          }
-          // @todo figure out wtf is up here as to why we can't get
-          // a good color for text
-          if (color == 'brown' || color == 'purple') {
-            //this.dark = true;
-          }
-          // set this directly instead of messing w/ accentColor
-          this.customStyle['--outline-player-light'] = this.customStyle[this.manifest.metadata.cssVariable];
-          this.updateStyles();
-          // set initially selected item if available
-          if (this.__tmpselected) {
-            this.selected = this.__tmpselected;
-          }
-          else if (typeof this.manifest.items[0] !== typeof undefined) {
-            this.selected = this.manifest.items[0].id;
-          }
-          // support pulling in the title
-          if (typeof newValue.title !== typeof undefined) {
-            this.outlineTitle = newValue.title;
-          }
         }
       },
     });

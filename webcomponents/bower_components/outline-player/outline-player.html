@@ -2,7 +2,6 @@
 <link rel="import" href="../schema-behaviors/schema-behaviors.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
 <link rel="import" href="../map-menu/map-menu.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../app-layout/app-header/app-header.html">
 <link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../app-layout/app-drawer/app-drawer.html">
@@ -10,6 +9,7 @@
 <link rel="import" href="../app-layout/app-header-layout/app-header-layout.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../haxcms-elements/haxcms-theme-behavior.html">
 
 <!--
 `outline-player`
@@ -26,7 +26,7 @@ A LRN element
         font-family: sans-serif;
         --app-drawer-width: 300px;
         --outline-player-dark: var(--simple-colors-foreground1);
-        --outline-player-light: var(--simple-colors-accent-background1);
+        --outline-player-light: var(--haxcms-color);
       }
       :host[closed] {
         --app-drawer-width: 0px;
@@ -122,7 +122,7 @@ A LRN element
     </style>
     <app-drawer-layout>
       <app-drawer id="drawer" swipe-open slot="drawer">
-        <h2 class="outline-title">[[outlineTitle]]</h2>
+        <h2 class="outline-title">[[manifest.title]]</h2>
         <map-menu id="menu" items="{{outline}}" data="[[manifest.items]]" selected="{{selected}}"></map-menu>
       </app-drawer>
       <app-header-layout>
@@ -160,44 +160,9 @@ A LRN element
       behaviors: [
         SchemaBehaviors.Schema,
         window.simpleColorsBehaviors,
+        HAXCMSBehaviors.Theme,
       ],
       properties: {
-        /**
-         * Outline JSON file name
-         */
-        outlineFile: {
-          type: String,
-          value: 'site.json',
-        },
-        /**
-         * editting state for the page
-         */
-        editMode: {
-          type: Boolean,
-          reflectToAttribute: true,
-          value: false,
-        },
-        /**
-         * Outline JSON location
-         */
-        outlineLocation: {
-          type: String,
-        },
-        /**
-         * Ability to control entire page meta data state info.
-         */
-        controlMetaData: {
-          type: Boolean,
-          reflectToAttribute: true,
-          value: true,
-        },
-        /**
-         * Title of the outline.
-         */
-        outlineTitle: {
-          type: String,
-          value: 'Outline',
-        },
         /**
          * acitvely selected item
          */
@@ -221,57 +186,26 @@ A LRN element
           notify: true,
           observer: '_outlineChanged',
         },
-        /**
-         * Active item which is in JSON Outline Schema
-         */
-        activeItem: {
-          type: Object,
-          notify: true,
-          observer: '_activeItemChanged',
-        },
-        /**
-         * a manifest json file decoded, in JSON Outline Schema format
-         */
-        manifest: {
-          type: Object,
-          observer: '_manifestChanged',
-        },
-      },
-      /**
-       * Attached life cycle
-       */
-      attached: function () {
-        document.body.addEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
-        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
-        this.updateStyles();
-      },
-      /**
-       * Detatched life cycle
-       */
-      detached: function () {
-        document.body.removeEventListener('haxcms-edit-mode-changed', this._editModeChanged.bind(this));
-        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
       },
       /**
        * Ready life cycle
        */
       ready: function () {
-        // this implies there's the possibility of an authoring experience
-        if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
-          Polymer.cmsSiteEditor.requestAvailability(this, this.$.contentcontainer);
-        }
+        this.setupHAXTheme();
+        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
+      },
+      /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        this.setupHAXTheme(false);
+        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
       },
       /**
        * Callback to refresh the data from source
        */
       _dataRefreshed: function () {
         this.__tmpselected = this.selected;
-      },
-      /**
-       * Toggle edit mode
-       */
-      _editModeChanged: function(e) {
-        this.editMode = e.detail;
       },
       /**
        * Link menu button to open and closing the side panel.
@@ -289,14 +223,6 @@ A LRN element
           // forcibly update styles via css variables
           Polymer.updateStyles();
         });
-      },
-      /**
-       * Notice that active item has changed.
-       */
-      _activeItemChanged: function (newValue, oldValue) {
-        if (newValue) {
-          this.fire('json-outline-schema-active-item-changed', newValue);
-        }
       },
       /**
        * When outline changes let's do this.
@@ -360,38 +286,6 @@ A LRN element
             }
           }).pop();
           this.set('activeItem', item);
-        }
-      },
-      /**
-       * Manifest has changed
-       */
-      _manifestChanged: function (newValue, oldValue) {
-        if (typeof newValue.metadata !== typeof undefined && typeof newValue.metadata.cssVariable !== typeof undefined) {
-          // fake way of forcing an update of these items
-          let color = this.manifest.metadata.cssVariable.replace('--simple-colors-', '');
-          let ary = color.split('-');
-          if (ary.length == 2) {
-            color = ary[0];
-            this.accentColor = color;
-          }
-          else if (ary.length == 3) {
-            color = ary[0] + ' ' + ary[1];
-            this.accentColor = color;
-          }
-          // set this directly instead of messing w/ accentColor
-          this.customStyle['--outline-player-light'] = this.customStyle[this.manifest.metadata.cssVariable];
-          this.updateStyles();
-          // set initially selected item if available
-          if (this.__tmpselected) {
-            this.selected = this.__tmpselected;
-          }
-          else if (typeof this.manifest.items[0] !== typeof undefined) {
-            this.selected = this.manifest.items[0].id;
-          }
-          // support pulling in the title
-          if (typeof newValue.title !== typeof undefined) {
-            this.outlineTitle = newValue.title;
-          }
         }
       },
     });
