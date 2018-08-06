@@ -1,4 +1,4 @@
-<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="imports.html">
 <link rel="import" href="map-menu-container.html">
 <link rel="import" href="map-menu-builder.html">
 
@@ -6,11 +6,27 @@
   <template>
     <style>
       :host {
+        --map-menu-active-color: rgba(0,0,0, .1);
         display: block;
+        overflow-y: scroll;
+        position: relative;
       }
+
+      #activeIndicator {
+        background: var(--map-menu-active-color);
+        transition: all .3s ease-in-out;
+        position: absolute
+      }
+
+      /* turn default active color if indicator is on */
+      :host[active-indicator] map-menu-builder {
+        --map-menu-active-color: transparent;
+      }
+
     </style>
     <div id="itemslist">
       <map-menu-container>
+        <div id="activeIndicator"></div>
         <map-menu-builder id="builder" items="[[items]]"></map-menu-builder>
       </map-menu-container>
     </div>
@@ -41,6 +57,20 @@
           type: String,
           notify: true,
           observer: '__selectedChanged'
+        },
+        /**
+         * Auto scroll an active element if not in view
+         */
+        autoScroll: {
+          type: Boolean,
+          value: false
+        },
+        /**
+         * Show active indicator animation
+         */
+         activeIndicator: {
+          type: Boolean,
+          value: false
         }
       },
 
@@ -65,15 +95,29 @@
       refreshActiveChildren: function (activeItem) {
         // find active items and unactivate them
         const oldActiveItem = this.querySelector('[active]');
-        if (oldActiveItem) {
-          oldActiveItem.removeAttribute('active');
-        }
-        
+
         if (activeItem && activeItem !== '') {
           const newActiveItem = this.querySelector(`#${activeItem}`);
           if (newActiveItem) {
+            // set the new active attribute to the item
             newActiveItem.setAttribute('active', true);
+            // move the highlight thingy
+            if (this.activeIndicator) {
+              this.__updateActiveIndicator(newActiveItem)
+            }
+            // if auto scroll enabled then scroll element into view
+            if (this.autoScroll) {
+              // console.log(newActiveItem)
+              const isInView = this.__isInViewport(newActiveItem)
+              if (!isInView) {
+                newActiveItem.scrollIntoView(true)
+              }
+            }
           }
+        }
+
+        if (oldActiveItem) {
+          oldActiveItem.removeAttribute('active');
         }
       },
 
@@ -151,6 +195,51 @@
         if (childId === this.selected) {
           this.refreshActiveChildren(this.selected);
         }
+      },
+
+      /**
+       * Find out if
+       */
+      __isInViewport: function (element) {
+        const scrollParent = this.__getScrollParent(element)
+        if (!scrollParent) return false
+
+        var elementTop = element.offsetTop;
+        var elementBottom = elementTop + element.offsetHeight;
+        var viewportTop = scrollParent.offsetTop;
+        var viewportBottom = viewportTop + scrollParent.offsetHeight;
+        return elementBottom > viewportTop && elementTop < viewportBottom;
+      },
+
+      /**
+       * Get scroll parent
+       */
+      __getScrollParent: function (node) {
+        if (node == null) {
+          return null;
+        }
+
+        if (node.scrollHeight > node.clientHeight) {
+          return node;
+        } else {
+          return this.__getScrollParent(node.parentNode);
+        }
+      },
+
+      /**
+       * Move the highlight widget over active element
+       */
+      __updateActiveIndicator: function (element) {
+        // run it through to set time just to let stuff set up
+        setTimeout(() => {
+          const activeIndicator = this.$.activeIndicator
+          const left = element.offsetLeft
+          const bottom = element.offsetBottom
+          const top = element.offsetTop
+          const width = element.offsetWidth
+          const height = element.offsetHeight
+          activeIndicator.setAttribute('style', `width:${width}px;height:${height}px;top:${top}px;left:${left}px`)
+        }, 100)
       },
 
     });
