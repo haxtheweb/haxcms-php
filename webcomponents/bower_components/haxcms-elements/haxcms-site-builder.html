@@ -258,12 +258,15 @@ A LRN element
         }
       },
       /**
-       * notice theme changes and ensure slot is rebuilt.
+       * notice manifest changes and ensure slot is rebuilt.
        */
       _manifestChanged: function (newValue, oldValue) {
         if (typeof newValue !== typeof undefined && typeof newValue.id !== typeof undefined) {
           this.themeElementName = newValue.metadata.theme;
-          Polymer.cmsSiteEditor.jsonOutlineSchema = newValue;
+          // account for editor not being there
+          if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
+            Polymer.cmsSiteEditor.jsonOutlineSchema = newValue;
+          }
           this.fire('json-outline-schema-changed', newValue);  
         }
       },
