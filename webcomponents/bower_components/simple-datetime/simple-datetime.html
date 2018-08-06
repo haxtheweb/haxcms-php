@@ -7,7 +7,7 @@ A simple datetime element that takes in unix timestamp and outputs a date.
 @demo demo/index.html
 
 @microcopy - the mental model for this element
- - passing in a 
+ - passing in a timestamp from unix and having it be php based date formatting to render is super helpful
  -
 
 -->
@@ -45,21 +45,22 @@ A simple datetime element that takes in unix timestamp and outputs a date.
           */
         date: {
           type: String,
-          computed: 'formatDate(timestamp, format)'
+          computed: 'formatDate(timestamp, format, unix)'
         },
         /**
          * Support for UNIX timestamp conversion on the fly
          */
         unix: {
           type: Boolean,
+          value: false,
         },
       },
       /**
        * Figure out the date
        */
-      formatDate: function(timestamp, format) {
+      formatDate: function(timestamp, format, unix) {
         // unix timestamp is seconds, JS is milliseconds
-        if (this.unix) {
+        if (unix) {
           timestamp = timestamp * 1000;
         }
         return new Date(timestamp).format(format);
