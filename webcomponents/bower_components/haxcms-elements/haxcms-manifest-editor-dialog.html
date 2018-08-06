@@ -1,7 +1,21 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../simple-colors/simple-colors.html">
+<link rel="import" href="../simple-colors/simple-colors-picker.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../magazine-cover/magazine-cover.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
+<link rel="import" href="../dropdown-select/dropdown-select.html">
+<link rel="import" href="../paper-item/paper-item.html">
 <link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-icon-picker/paper-icon-picker.html">
 <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
-<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-icons/editor-icons.html">
+<link rel="import" href="../iron-icons/notification-icons.html">
+<link rel="import" href="../iron-icons/av-icons.html">
+<link rel="import" href="../iron-icons/device-icons.html">
+<link rel="import" href="../iron-icons/image-icons.html">
 <!--
 `haxcms-manifest-editor-dialog`
 Dialog for presenting an editable manifest of core settings
@@ -27,7 +41,18 @@ Dialog for presenting an editable manifest of core settings
     </style>
     <paper-dialog id="editor" opened="{{opened}}" with-backdrop>
       <paper-dialog-scrollable>
-        EDIT MANIFEST DETAILS HERE
+        <paper-input id="sitetitle" label="Title" required autofocus value="[[manifest.title]]"></paper-input>
+        <paper-input id="sitedescription" label="Description" value="[[manifest.description]]"></paper-input>
+        <paper-input id="siteimage" label="Image" value="[[manifest.metadata.image]]"></paper-input>
+        <label for="sitecolor">Select a color:</label>
+        <simple-colors-picker id="sitecolor" hex-code="[[manifest.metadata.hexCode]]"></simple-colors-picker>
+        <dropdown-select id="sitetheme" label="Theme" value="[[manifest.metadata.theme]]">
+          <paper-item value="simple-blog">Simple blog</paper-item>
+          <paper-item value="outline-player">Basic outline</paper-item>
+          <paper-item value="infinite-scroll">Infinite scroll</paper-item>
+        </dropdown-select>
+        <label for="siteicon">Select an icon:</label>
+        <paper-icon-picker id="siteicon" icon="[[manifest.metadata.icon]]"></paper-icon-picker>
       </paper-dialog-scrollable>
       <div class="buttons">
         <paper-button id="save" dialog-confirm>Save</paper-button>
@@ -41,6 +66,8 @@ Dialog for presenting an editable manifest of core settings
       listeners: {
         'save.tap': '_saveTap',
         'cancel.tap': '_cancelTap',
+        'sitetheme.change': '_themeChanged',
+        'sitecolor.change': '_colorChanged',
       },
       properties: {
         /**
@@ -62,22 +89,40 @@ Dialog for presenting an editable manifest of core settings
        * Ready life cycle
        */
       ready: function () {
-        document.body.addEventListener('json-outline-schema-changed', this._manifestChanged.bind(this));
+        document.body.addEventListener('json-outline-schema-changed', this._manifestSet.bind(this));
+        // state issue but it can miss in timing othewise on first event
         this.set('manifest', Polymer.cmsSiteEditor.jsonOutlineSchema);
       },
       /**
-       * manifest changed
+       * manifest changed globally
        */
-      _manifestChanged: function (e) {
+      _manifestSet: function (e) {
         if (typeof e.detail.id !== typeof undefined) {
           this.set('manifest', e.detail);
         }
       },
       /**
+       * Use events for real value in theme.
+       */
+      _themeChanged: function (e) {
+        this.set('manifest.metadata.theme', e.detail.value);
+      },
+      /**
+       * Use events for real value in color area.
+       */
+      _colorChanged: function (e) {
+        this.set('manifest.metadata.cssVariable', e.detail.cssVariable);
+        this.set('manifest.metadata.hexCode', e.detail.hexCode);
+      },
+      /**
        * Save hit, send the message to push up the outline changes.
        */
       _saveTap: function (e) {
-        this.fire('haxcms-save-manifest', this.manifest);
+        this.set('manifest.title', this.$.sitetitle.value);
+        this.set('manifest.description', this.$.sitedescription.value);
+        this.set('manifest.metadata.image', this.$.siteimage.value);
+        this.set('manifest.metadata.icon', this.$.siteicon.icon);
+        this.fire('haxcms-save-site-data', this.manifest);
       },
     });
   </script>

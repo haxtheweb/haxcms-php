@@ -8,6 +8,7 @@
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
     // @todo update the items from the POST in the manifest
     // leave the items array alone
+    $site->manifest->title = $HAXCMS->safePost['manifest']['title'];
     $site->manifest->metadata->updated = time();
     $site->manifest->save();
     header('Status: 200');

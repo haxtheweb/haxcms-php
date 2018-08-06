@@ -16,7 +16,6 @@
 <link rel="import" href="../app-layout/app-header/app-header.html">
 <link rel="import" href="../app-layout/app-toolbar/app-toolbar.html">
 <link rel="import" href="../app-layout/app-drawer/app-drawer.html">
-<link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-icons/iron-icons.html">
 <link rel="import" href="../iron-icons/editor-icons.html">
 <link rel="import" href="../iron-icons/notification-icons.html">
@@ -140,7 +139,7 @@ A LRN element
     <paper-dialog id="newdialog" with-backdrop>
       <h3>Create new site</h3>
       <paper-dialog-scrollable>
-        <paper-input id="newsitename" label="Name" required autofocus></paper-input>
+        <paper-input id="newsitetitle" label="Title" required autofocus></paper-input>
         <paper-input id="newsitedescription" label="Description"></paper-input>
         <paper-input id="newsiteimage" label="Image" value="[[activeItem.metadata.image]]"></paper-input>
         <label for="newsitecolor">Select a color:</label>
@@ -455,7 +454,7 @@ A LRN element
        */
       _createSite: function (e) {
         // ship off a new call
-        this.set('createParams.siteName', this.$.newsitename.value);
+        this.set('createParams.siteName', this.$.newsitetitle.value);
         this.set('createParams.description', this.$.newsitedescription.value);
         // need to pull this from the active item bc of data binding silly
         this.set('createParams.theme', this.activeItem.metadata.theme);
@@ -465,7 +464,7 @@ A LRN element
         this.set('createParams.icon', this.$.newsiteicon.icon);
         // pass along the jwt for user "session" purposes
         this.set('createParams.jwt', this.jwt);
-        this.$.newsitename.value = null;
+        this.$.newsitetitle.value = null;
         this.$.newsitedescription.value = null;
         this.$.createrequest.generateRequest();
       },
@@ -499,7 +498,7 @@ A LRN element
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
-        this.$.toast.show(this.activeItem.name + ' downloaded successfully!');
+        this.$.toast.show(this.activeItem.title + ' downloaded successfully!');
       },
       /**
        * Option selected in an operation in context
