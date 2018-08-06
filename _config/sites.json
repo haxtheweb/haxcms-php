@@ -9,11 +9,11 @@
         {
             "id": "item-new",
             "indent": 0,
-            "description": "Tap to get started!",
             "location": "",
             "order": 10000000000,
             "parent": null,
             "title": "Add new site",
+            "description": "Tap to get started!",
             "metadata": {
                 "siteName": "",
                 "theme": "simple-blog",
