@@ -18,7 +18,7 @@ haxcms editor element buttons that you see
       :host {
         display: block;
       }
-      #editbutton {
+      paper-fab {
         position: fixed;
         bottom: 0;
         right: 0;
@@ -31,18 +31,14 @@ haxcms editor element buttons that you see
         transition: all .4s ease;
         z-index: 1000;
       }
+      #editbutton {
+        right: 92px;
+      }
       #outlinebutton {
-        position: fixed;
-        bottom: 0;
         right: 46px;
-        margin: 16px;
-        padding: 2px;
-        width: 40px;
-        height: 40px;
-        visibility: visible;
-        opacity: 1;
-        transition: all .4s ease;
-        z-index: 1000;
+      }
+      #manifestbutton {
+        right: 0px;
       }
       :host[edit-mode] #editbutton {
         width: 100%;
@@ -56,17 +52,20 @@ haxcms editor element buttons that you see
         background-color: var(--paper-blue-500) !important;
       }
     </style>    
+    <paper-fab id="manifestbutton" icon="icons:settings"></paper-fab>
+    <paper-tooltip for="manifestbutton" position="top" offset="14">site details</paper-tooltip>
     <paper-fab id="editbutton" icon="[[__editIcon]]"></paper-fab>
     <paper-tooltip for="editbutton" position="top" offset="14">[[__editText]]</paper-tooltip>
     <paper-fab id="outlinebutton" icon="icons:list"></paper-fab>
     <paper-tooltip for="outlinebutton" position="top" offset="14">edit outline</paper-tooltip>
-  </template>
+    </template>
   <script>
     Polymer({
       is: 'haxcms-site-editor-ui',
       listeners: {
         'editbutton.tap': '_editButtonTap',
         'outlinebutton.tap': '_outlineButtonTap',
+        'manifestbutton.tap': '_manifestButtonTap',
       },
       properties: {
         /**
@@ -89,6 +88,16 @@ haxcms editor element buttons that you see
           value: false,
           notify: true,
         },
+        /**
+         * Manifest editing state
+         */
+        manifestEditMode: {
+          type: Boolean,
+          reflectToAttribute: true,
+          observer: '_manifestEditModeChanged',
+          value: false,
+          notify: true,
+        },
       },
       /**
        * toggle state on button tap
@@ -101,6 +110,12 @@ haxcms editor element buttons that you see
        */
       _outlineButtonTap: function (e) {
         this.outlineEditMode = !this.outlineEditMode;
+      },
+      /**
+       * toggle state on button tap
+       */
+      _manifestButtonTap: function (e) {
+        this.manifestEditMode = !this.manifestEditMode;
       },
       /**
        * Edit state has changed.
@@ -124,6 +139,12 @@ haxcms editor element buttons that you see
        */
       _outlineEditModeChanged: function (newValue, oldValue) {
         this.fire('haxcms-outline-edit-mode-changed', newValue);
+      },
+      /**
+       * Note changes to the outline / structure of the page's items
+       */
+      _manifestEditModeChanged: function (newValue, oldValue) {
+        this.fire('haxcms-manifest-edit-mode-changed', newValue);
       },
     });
   </script>

@@ -14,6 +14,7 @@
 <link rel="import" href="../iron-icons/editor-icons.html">
 <link rel="import" href="../paper-toast/paper-toast.html">
 <link rel="import" href="haxcms-outline-editor-dialog.html">
+<link rel="import" href="haxcms-manifest-editor-dialog.html">
 <link rel="import" href="haxcms-site-editor-ui.html">
 <!--
 `haxcms-site-editor`
@@ -96,6 +97,15 @@ haxcms editor element
      content-type="application/json"
      handle-as="json"
      on-response="_handleOutlineResponse"></iron-ajax>
+    <iron-ajax
+     headers='{"Authorization": "Bearer [[jwt]]"}'
+     id="manifestupdateajax"
+     url="[[saveManifestPath]]"
+     method="POST"
+     body="[[updateManifestData]]"
+     content-type="application/json"
+     handle-as="json"
+     on-response="_handleManifestResponse"></iron-ajax>
     <hax-store app-store="[[appStore]]"></hax-store>
     <hax-app-picker></hax-app-picker>
     <hax-body id="body"></hax-body>
@@ -103,8 +113,9 @@ haxcms editor element
     <hax-panel align="left" hide-panel-ops></hax-panel>
     <hax-manager append-jwt="jwt" id="haxmanager"></hax-manager>
     <hax-export-dialog></hax-export-dialog>
-    <haxcms-site-editor-ui id="ui" edit-mode="{{editMode}}" outline-edit-mode="{{outlineEditMode}}"></haxcms-site-editor-ui>
+    <haxcms-site-editor-ui id="ui" edit-mode="{{editMode}}" outline-edit-mode="{{outlineEditMode}}" manifest-edit-mode="{{manifestEditMode}}"></haxcms-site-editor-ui>
     <haxcms-outline-editor-dialog id="outlineeditor"></haxcms-outline-editor-dialog>
+    <haxcms-manifest-editor-dialog id="manifesteditor"></haxcms-manifest-editor-dialog>
     <paper-toast id="toast"></paper-toast>
   </template>
   <script>
@@ -112,6 +123,7 @@ haxcms editor element
       is: 'haxcms-site-editor',
       listeners: {
         'outlineeditor.haxcms-save-outline': 'saveOutline',
+        'manifesteditor.haxcms-save-manifest': 'saveManifest',
       },
       properties: {
         /**
@@ -124,6 +136,12 @@ haxcms editor element
          * end point for saving page
          */
         savePagePath: {
+          type: String,
+        },
+        /**
+         * end point for saving manifest
+         */
+        saveManifestPath: {
           type: String,
         },
         /**
@@ -157,6 +175,15 @@ haxcms editor element
           value: false,
         },
         /**
+         * manifest editing state
+         */
+        manifestEditMode: {
+          type: Boolean,
+          reflectToAttribute: true,
+          observer: '_manifestEditModeChanged',
+          value: false,
+        },
+        /**
          * data as part of the POST to the backend
          */
         updatePageData: {
@@ -167,6 +194,13 @@ haxcms editor element
          * data as part of the POST to the backend
          */
         updateOutlineData: {
+          type: Object,
+          value: {},
+        },
+        /**
+         * data as part of the POST to the backend
+         */
+        updateManifestData: {
           type: Object,
           value: {},
         },
@@ -200,6 +234,7 @@ haxcms editor element
         document.body.appendChild(this.$.toast);
         document.body.appendChild(this.$.ui);
         document.body.appendChild(this.$.outlineeditor);
+        document.body.appendChild(this.$.manifesteditor);
       },
       /**
        * attached life cycle
@@ -256,6 +291,11 @@ haxcms editor element
         this.$.toast.show('Outline saved!');
         this.fire('haxcms-trigger-update', true);
       },
+      _handleManifestResponse: function (e) {
+        // trigger a refresh of the data in page
+        this.$.toast.show('Site details saved!');
+        this.fire('haxcms-trigger-update', true);
+      },
       /**
        * Edit state has changed.
        */
@@ -285,6 +325,17 @@ haxcms editor element
         }
       },
       /**
+       * Note changes to the outline / structure of the page's items
+       */
+      _manifestEditModeChanged: function (newValue, oldValue) {
+        if (newValue) {
+          this.$.manifesteditor.opened = true;
+        }
+        else {
+          this.$.manifesteditor.opened = false;
+        }
+      },
+      /**
        * Save the outline based on an event firing.
        */
       saveOutline: function (e) {
@@ -296,6 +347,19 @@ haxcms editor element
         this.set('updateOutlineData.items', e.detail);
         this.set('updateOutlineData.jwt', this.jwt);
         this.$.outlineupdateajax.generateRequest();
+      },
+      /**
+       * Save the outline based on an event firing.
+       */
+      saveManifest: function (e) {
+        let parts = window.location.pathname.split('/');
+        parts.pop();
+        let site = parts.pop();
+        // now let's work on the outline
+        this.set('updateManifestData.siteName', site);
+        this.set('updateManifestData.manifest', e.detail);
+        this.set('updateManifestData.jwt', this.jwt);
+        this.$.manifestupdateajax.generateRequest();
       },
       /**
        * Notice body of content has changed and import into HAX
