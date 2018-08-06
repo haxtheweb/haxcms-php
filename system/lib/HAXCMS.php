@@ -3,10 +3,18 @@
  * HAXCMS - The worlds smallest, most nothing yet most empowering CMS.
  * Simply a tremendous CMS. The greatest.
  */
-
+// service creation / HAX app store service abstraction
+include_once 'HAXService.php';
+// working with sites
 include_once 'HAXCMSSite.php';
+// working with files
+include_once 'HAXCMSFile.php';
+// working with JSON Outline Schema
 include_once 'JSONOutlineSchema.php';
+// working with json web tokens
 include_once 'JWT.php';
+// working with git operators
+include_once 'Git.php';
 
 class HAXCMS {
   public $appStoreFile;
