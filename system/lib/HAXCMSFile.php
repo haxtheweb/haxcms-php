@@ -5,6 +5,7 @@ class HAXCMSFIle {
    * Save file into this site, optionally updating reference inside the page
    */
   public function save($upload, $site, $page = NULL) {
+    global $HAXCMS;
     // check for a file upload
     if (isset($upload['tmp_name']) && is_uploaded_file($upload['tmp_name'])) {
       // get contents of the file if it was uploaded into a variable
