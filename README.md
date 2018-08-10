@@ -1,16 +1,22 @@
 # HAXCMS
 HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be able to build websites with it. Leveraging JSON Outline Schema, HAX is able to author multiple pages, which it then writes onto the file system.
 
-## Play immediately thx to DDEV
-Clone this repo: `git clone https://github.com/elmsln/haxcms.git` then make sure you have [docker](https://store.docker.com/search?type=edition&offering=community) and [install ddev](https://ddev.readthedocs.io/en/latest/#installation) to get going with HAXCMS rapidly! Then type `ddev start` from the project root and you should be all setup with a username/password `admin`/`admin` to get building out static sites locally that you can push up anywhere. Click the icon in the top right and you're off and running!
+## Install and win the future, NOW!
+- Clone this repo: `git clone https://github.com/elmsln/haxcms.git`
+- install [docker](https://store.docker.com/search?type=edition&offering=community)
+- [install ddev](https://ddev.readthedocs.io/en/latest/#installation) or [install docksal](https://docksal.io/installation/)
+- open a terminal window, go to the directory and type `ddev start` (for ddev) or `fin init` (for docksal)
+- username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
+- Click the icon in the top right and you're off and running!
 
 ## Scope
 Generate `.html` files which have only "content" in them. Meaning the contents of the page in question. A simple method of adding new pages and managing the organization of those pages into a simple hierarchy (outline). Support for multiple mini web sites so that you can write a lot about different topics. HAXCMS is only intended to be a micro-site generator and play nicely with the rest of the HAX ecosystem without needing a monster CMS in order to utilize it.
 
 ## Features
-- All the HAX without much of a CMS to power it
-- Incredibly simple, readable file structure of flat HTML files
+- All of HAX without needing a bloated CMS to power it
+- Incredibly simple, readable file structure of flat HTML files and lightning fast, high scale micro-sites
 - No database (simple `.json` files help manage the data)
+- Files you can reach out and touch, fork, and theme with ease!
 - Support for multiple sites
 
 ## Install
