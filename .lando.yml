@@ -1,0 +1,4 @@
+name: haxcms
+recipe: custom
+config:
+  webroot: .
