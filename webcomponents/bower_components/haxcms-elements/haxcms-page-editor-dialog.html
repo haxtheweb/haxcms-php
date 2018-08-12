@@ -90,6 +90,7 @@ Dialog for presenting an editable page of core settings
        * Save hit, send the message to push up the page data changes.
        */
       _saveTap: function (e) {
+        this.activeItem.title = this.$.pagetitle.value;
         this.fire('haxcms-save-page-data', this.activeItem);
       },
     });
