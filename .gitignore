@@ -2,3 +2,4 @@
 .DS_Store
 _sites
 _config
+_config/*
