@@ -5,8 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  # primed ubuntu 16.04 - 64 bit
-  config.vm.box = "elmsln/ubuntu16"
+  config.vm.box = "ncaro/php7-debian8-apache-nginx-mysql"
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :box
   end
@@ -55,9 +54,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     s.inline = "echo 'APT::Periodic::Enable \"0\";' > /etc/apt/apt.conf.d/02periodic"
   end
   # run script as root
-  config.vm.provision "shell",
-    inline: "cd /var/www/html/ && git clone https://github.com/elmsln/haxcms.git && bash scripts/haxtheweb.sh admin admin"
+  config.vm.provision "shell-install-haxcms", type: "shell" do |s|
+    s.privileged = true
+    s.inline = "ln -s /var/www/html ~/haxcms && cd /var/www/ && rm -rf html && git clone https://github.com/elmsln/haxcms.git && mv haxcms html && cd html && bash scripts/haxtheweb.sh admin admin"
+  end
   # all done! tell them how to login
-  config.vm.provision "shell",
-    inline: "echo 'finished! go to http://haxcms.local and login with username admin and password admin.'"
+  config.vm.provision "shell-output-link", type: "shell" do |s|
+    s.privileged = false
+    s.inline = "ln -s /var/www/html ~/haxcms && echo 'finished! go to http://haxcms.local and login with username admin and password admin.'"
+  end
 end
