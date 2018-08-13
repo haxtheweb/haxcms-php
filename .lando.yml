@@ -1,4 +1,9 @@
 name: haxcms
-recipe: custom
+recipe: lemp
 config:
+  php: '7.2'
   webroot: .
+tooling:
+  magic:
+    service: appserver
+    cmd: bash scripts/haxtheweb.sh admin admin
