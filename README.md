@@ -4,8 +4,8 @@ HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be a
 ## Install and win the future, NOW!
 - Clone this repo: `git clone https://github.com/elmsln/haxcms.git`
 - install [docker](https://store.docker.com/search?type=edition&offering=community)
-- [install ddev](https://ddev.readthedocs.io/en/latest/#installation) or [install docksal](https://docksal.io/installation/) or [install lando](https://docs.devwithlando.io/installation/installing.html) (We support all 3!)
-- open a terminal window, go to the directory and type `ddev start` (for ddev) or `fin init` (for docksal) or `lando start` (for lando)
+- [install ddev](https://ddev.readthedocs.io/en/latest/#installation) or [install docksal](https://docksal.io/installation/) or [install lando](https://docs.devwithlando.io/installation/installing.html) or [install vagrant](https://www.vagrantup.com/downloads.html) (We support 'em all!)
+- open a terminal window, go to the directory and type `ddev start` (for ddev) or `fin init` (for docksal) or `lando start` (for lando) or `vagrant up` (for vagrant)
 - go to the link any of them give you in a browser
 - username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
 - Click the icon in the top right and you're off and running!
