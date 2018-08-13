@@ -26,11 +26,17 @@ haxcms editor element buttons that you see
         padding: 2px;
         width: 40px;
         height: 40px;
-        visibility: visible;
-        opacity: 1;
-        transition: all .4s ease;
+        visibility: hidden;
+        opacity: 0;
         z-index: 1000;
         background-color: var(--haxcms-color, #ff4081);
+        transition: all .6s linear;
+      }
+      :host[page-allowed] #editbutton,
+      :host[outline-allowed] #outlinebutton,
+      :host[outline-allowed] #manifestbutton {
+        visibility: visible;
+        opacity: 1;
       }
       #editbutton {
         right: 92px;
@@ -70,6 +76,36 @@ haxcms editor element buttons that you see
       },
       properties: {
         /**
+         * Active item of the page being worked on, JSON outline schema item format
+         */
+        activeItem: {
+          type: Object,
+          value: {},
+          observer: '_activeItemChanged',
+        },
+        /**
+         * Outline of items in json outline schema format
+         */
+         manifest: {
+          type: Object,
+         },
+        /**
+         * page allowed
+         */
+        pageAllowed: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true,
+        },
+        /**
+         * outline allowed
+         */
+        outlineAllowed: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true,
+        },
+        /**
          * if the page is in an edit state or not
          */
         editMode: {
@@ -99,6 +135,19 @@ haxcms editor element buttons that you see
           value: false,
           notify: true,
         },
+      },
+      /**
+       * active item changed
+       */
+      _activeItemChanged: function (newValue, oldValue) {
+        if (newValue.id) {
+          this.pageAllowed = true;
+          this.outlineAllowed = false;
+        }
+        else {
+          this.pageAllowed = false;
+          this.outlineAllowed = true;
+        }
       },
       /**
        * toggle state on button tap

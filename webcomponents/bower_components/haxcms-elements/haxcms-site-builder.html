@@ -56,6 +56,7 @@ A LRN element
      id="manifest"
      url="[[outlineLocation]][[file]][[__timeStamp]]"
      handle-as="json"
+     debounce-duration="250"
      last-response="{{manifest}}"></iron-ajax>
     <iron-ajax
      id="activecontent"
@@ -194,8 +195,11 @@ A LRN element
           // if we found one, make it the active page
           if (find.length > 0) {
             let found = find.pop();
+            if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
+              Polymer.cmsSiteEditor.initialActiveItem = found;
+            }
             // @todo figure out why this is required in order for all timing to line up
-            setTimeout(() => { 
+            setTimeout(() => {
               this.fire('haxcms-active-item-changed', found);
             }, 250);
           }
@@ -267,7 +271,7 @@ A LRN element
           if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
             Polymer.cmsSiteEditor.jsonOutlineSchema = newValue;
           }
-          this.fire('json-outline-schema-changed', newValue);  
+          this.fire('json-outline-schema-changed', newValue);
         }
       },
       /**

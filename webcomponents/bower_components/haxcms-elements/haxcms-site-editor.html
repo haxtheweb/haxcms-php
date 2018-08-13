@@ -28,7 +28,7 @@ haxcms editor element
 
 <dom-module id="haxcms-site-editor">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -77,6 +77,7 @@ haxcms editor element
       }
       :host[edit-mode] hax-body {
         display: block;
+        padding: 0 !important;
       }
     </style>
     <iron-ajax
@@ -113,7 +114,7 @@ haxcms editor element
     <hax-panel align="left" hide-panel-ops></hax-panel>
     <hax-manager append-jwt="jwt" id="haxmanager"></hax-manager>
     <hax-export-dialog></hax-export-dialog>
-    <haxcms-site-editor-ui id="ui" edit-mode="{{editMode}}" outline-edit-mode="{{outlineEditMode}}" manifest-edit-mode="{{manifestEditMode}}"></haxcms-site-editor-ui>
+    <haxcms-site-editor-ui id="ui" active-item="[[activeItem]]" manifest="[[manifest]]" edit-mode="{{editMode}}" outline-edit-mode="{{outlineEditMode}}" manifest-edit-mode="{{manifestEditMode}}"></haxcms-site-editor-ui>
     <haxcms-outline-editor-dialog id="outlineeditor"></haxcms-outline-editor-dialog>
     <haxcms-manifest-editor-dialog id="manifesteditor"></haxcms-manifest-editor-dialog>
     <paper-toast id="toast"></paper-toast>
@@ -209,14 +210,15 @@ haxcms editor element
          */
         activeItem: {
           type: Object,
+          notify: true,
           observer: '_activeItemChanged',
         },
         /**
          * Outline of items in json outline schema format
          */
          manifest: {
-           type: Object,
-           notify: true,
+          type: Object,
+          notify: true,
          },
       },
       /**
@@ -244,6 +246,13 @@ haxcms editor element
         // get around initial setup state management
         if (typeof this.__body !== typeof undefined) {
           this.$.body.importContent(this.__body);
+        }
+        // allow for initial setting since this editor gets injected basically
+        if (typeof Polymer.cmsSiteEditor.jsonOutlineSchema !== typeof undefined) {
+          this.set('manifest', Polymer.cmsSiteEditor.jsonOutlineSchema);
+        }
+        if (typeof Polymer.cmsSiteEditor.initialActiveItem !== typeof undefined) {
+          this.set('activeItem', Polymer.cmsSiteEditor.initialActiveItem);
         }
         this.updateStyles();
       },
