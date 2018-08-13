@@ -112,6 +112,7 @@
         }
         // set this directly instead of messing w/ accentColor
         this.customStyle['--haxcms-color'] = this.customStyle[this.manifest.metadata.cssVariable];
+        document.body.style.setProperty('--haxcms-color', this.customStyle[this.manifest.metadata.cssVariable]);
         this.updateStyles();
       }
     },

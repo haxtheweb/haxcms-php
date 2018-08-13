@@ -36,7 +36,7 @@ A simple blog and associated elements
         bottom: 0;
         z-index: 1;
         text-indent: -9999px;
-        transform: translate3d(0px, 24px, 0px);
+        transform: translate3d(0px, 4px, 0px);
         opacity: 0.8;
         visibility: visible;
       }
@@ -59,6 +59,7 @@ A simple blog and associated elements
         -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.3);
         -moz-box-shadow: 0 1px 1px rgba(0,0,0,.3);
         box-shadow: 0 1px 1px rgba(0,0,0,.3);
+        color: var(--haxcms-color, black);
       }
       .blog-title {
         margin: 0;
@@ -93,9 +94,7 @@ A simple blog and associated elements
     <header class="blog-header">
       <iron-icon class="blog-logo" icon="[[manifest.metadata.icon]]"></iron-icon>
       <h1 class="blog-title">[[manifest.title]]</h1>
-      <h2 class="blog-description">[[manifest.description]]</h2>
-      <div class="custom-links">
-      </div>
+      <div class="blog-description">[[manifest.description]]</div>
     </header>
   </template>
 

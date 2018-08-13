@@ -14,7 +14,7 @@ haxcms editor element buttons that you see
 
 <dom-module id="haxcms-site-editor-ui">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -30,6 +30,7 @@ haxcms editor element buttons that you see
         opacity: 1;
         transition: all .4s ease;
         z-index: 1000;
+        background-color: var(--haxcms-color, #ff4081);
       }
       #editbutton {
         right: 92px;
