@@ -24,7 +24,7 @@ class HAXCMSSite {
    * 
    * @return HAXCMSSite object
    */
-  public function newSite($directory, $siteBasePath, $name) {
+  public function newSite($directory, $siteBasePath, $name, $domain = NULL) {
     // newSite calls must set basePath internally to avoid page association issues
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
@@ -34,6 +34,13 @@ class HAXCMSSite {
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier for themes to resolve correctly
     symlink('../../webcomponents', $directory . '/' . $tmpname . '/webcomponents');
+    symlink('../../assets', $directory . '/' . $tmpname . '/assets');
+    // default support is for surge.sh publishing methods
+    if (is_null($domain)) {
+      $domain = $tmpname . '.surge.sh';
+    }
+    // put domain into CNAME
+    @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
     // load what we just created
     $this->manifest = new JSONOutlineSchema();
     // where to save it to
