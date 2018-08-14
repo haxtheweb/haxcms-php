@@ -39,8 +39,8 @@
       }
       else {
         // build a location and copy the associated boilerplate files there for it
-        $page->location = $page->id . '/index.html';
-        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->name . '/' . $page->id);
+        $page->location = 'pages/' . $page->id . '/index.html';
+        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->manifest->metadata->siteName . '/pages/' . $page->id);
       }
       $page->metadata->created = time();
       $page->metadata->updated = time();

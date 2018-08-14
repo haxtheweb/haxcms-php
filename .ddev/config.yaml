@@ -64,4 +64,6 @@ provider: default
 # for them. Example:
 hooks:
   post-start:
-    - exec: "bash scripts/haxtheweb.sh admin admin"
+  - exec: "sudo npm i npm@latest -g"
+  - exec: "sudo npm install --global surge"
+  - exec: "bash scripts/haxtheweb.sh admin admin admin@admin.admin admin"

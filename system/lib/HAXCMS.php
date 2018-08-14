@@ -169,17 +169,19 @@ class HAXCMS {
   /**
    * Load a site off the file system with option to create
    */
-  public function loadSite($name, $create = FALSE) {
-    $name = urldecode($name);
+  public function loadSite($name, $create = FALSE, $domain = NULL) {
+    $tmpname = urldecode($name);
+    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $tmpname);
+    $tmpname = strtolower($tmpname);
     // check if this exists, load but fallback for creating on the fly
-    if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $name)) {
+    if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $tmpname)) {
       $site = new HAXCMSSite();
-      $site->load(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name);
+      $site->load(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $tmpname);
       return $site;
     }
     else if ($create) {
       // attempt to create site
-      return $this->createNewSite($name);
+      return $this->createNewSite($name, $domain);
     }
     return FALSE;
   }
@@ -187,10 +189,10 @@ class HAXCMS {
    * Attempt to create a new site on the file system
    * @return boolean true for success, false for failed
    */
-  private function createNewSite($name) {
+  private function createNewSite($name, $domain = NULL) {
     // try and make the folder
     $site = new HAXCMSSite();
-    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name)) {
+    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name, $domain)) {
       return $site;
     }
     return FALSE;

@@ -139,7 +139,8 @@ A LRN element
     <paper-dialog id="newdialog" with-backdrop>
       <h3>Create new site</h3>
       <paper-dialog-scrollable>
-        <paper-input id="newsitetitle" label="Title" required autofocus></paper-input>
+        <paper-input id="newsitetitle" label="Title" required autofocus value="{{siteTitle}}"></paper-input>
+        <paper-input id="domain" label="Domain" required value="[[domainName]]"></paper-input>
         <paper-input id="newsitedescription" label="Description"></paper-input>
         <paper-input id="newsiteimage" label="Image" value="[[activeItem.metadata.image]]"></paper-input>
         <label for="newsitecolor">Select a color:</label>
@@ -205,6 +206,19 @@ A LRN element
         title: {
           type: String,
           value: 'Site list'
+        },
+        /**
+         * Site title
+         */
+        siteTitle: {
+          type: String,
+        },
+        /**
+         * Domain name
+         */
+        domainName: {
+          type: String,
+          computed: '_computeDomainName(siteTitle)',
         },
         /**
          * Sites response change
@@ -273,6 +287,12 @@ A LRN element
           value: false,
           observer: '_editModeChanged',
         },
+      },
+      /**
+       * Generate domain from title
+       */
+      _computeDomainName: function (title) {
+        return 'https://' + title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() + '.surge.sh';
       },
       /**
        * Site response has changed.
@@ -454,6 +474,7 @@ A LRN element
        */
       _createSite: function (e) {
         // ship off a new call
+        this.set('createParams.domain', this.$.domain.value);
         this.set('createParams.siteName', this.$.newsitetitle.value);
         this.set('createParams.description', this.$.newsitedescription.value);
         // need to pull this from the active item bc of data binding silly
@@ -464,7 +485,7 @@ A LRN element
         this.set('createParams.icon', this.$.newsiteicon.icon);
         // pass along the jwt for user "session" purposes
         this.set('createParams.jwt', this.jwt);
-        this.$.newsitetitle.value = null;
+        this.$.newsitetitle.value = '';
         this.$.newsitedescription.value = null;
         this.$.createrequest.generateRequest();
       },

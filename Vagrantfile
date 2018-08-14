@@ -12,8 +12,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # private network port maping, host files point to haxcms domain
   config.vm.network "private_network", ip: "10.0.0.54"
   # forward the vm ports for database and apache to local ones
-  config.vm.network "forwarded_port", guest: 80, host: 80
-  config.vm.network "forwarded_port", guest: 3306, host: 3306
+  config.vm.network "forwarded_port", guest: 80, host: 5454
+  config.vm.network "forwarded_port", guest: 3306, host: 5406
   config.vm.hostname = "haxcms.local"
   config.hostsupdater.aliases = ["haxcms.local"]
   config.vm.boot_timeout = 600
@@ -56,7 +56,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # run script as root
   config.vm.provision "shell-install-haxcms", type: "shell" do |s|
     s.privileged = true
-    s.inline = "ln -s /var/www/html ~/haxcms && cd /var/www/ && rm -rf html && git clone https://github.com/elmsln/haxcms.git && mv haxcms html && cd html && bash scripts/haxtheweb.sh admin admin"
+    s.inline = "sudo apt-get update -y && sudo apt-get install node npm -y && sudo npm install --global surge && ln -s /var/www/html ~/haxcms && cd /var/www/ && rm -rf html && git clone https://github.com/elmsln/haxcms.git && mv haxcms html && cd html && bash scripts/haxtheweb.sh admin admin admin@admin.admin admin"
   end
   # all done! tell them how to login
   config.vm.provision "shell-output-link", type: "shell" do |s|

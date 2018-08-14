@@ -19,11 +19,11 @@
     $staxList = $haxService->loadBaseStax();
     $bloxList = $haxService->loadBaseBlox();
     $autoloaderList = json_decode('[
+      "video-player",
       "lrn-aside",
       "grid-plate",
       "tab-list",
       "magazine-cover",
-      "video-player",
       "image-compare-slider",
       "simple-concept-network",
       "license-element",
@@ -43,14 +43,13 @@
       "lrn-math",
       "person-testimonial",
       "citation-element",
-      "lrn-calendar",
       "code-editor",
       "place-holder",
       "stop-note",
-      "q-r",
       "wave-player",
-      "pdf-element",
-      "aframe-player"
+      "lrn-calendar",
+      "q-r",
+      "pdf-element"
     ]');
 
     $return = array(

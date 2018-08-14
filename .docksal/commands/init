@@ -26,14 +26,15 @@ echo-yellow () { echo -e "${yellow}$1${NC}"; }
 # Stack initialization
 echo -e "${green_bg} Step 1 ${NC}${green} Initializing stack...${NC}"
 
-# install HAXCMS by configuring settings for local development
-bash scripts/haxtheweb.sh admin admin
-
 if [[ $DOCKER_RUNNING == "true" ]]; then
 	fin reset -f
 else
 	fin up
 fi
+# install HAXCMS by configuring settings for local development
+fin exec npm i npm@latest -g
+fin exec npm install --global surge
+fin exec bash /var/www/scripts/haxtheweb.sh admin admin admin@admin.admin admin
 
 echo -en "${green_bg} DONE! ${NC} "
 echo -e "Open ${yellow}http://${VIRTUAL_HOST}${NC} in your browser to verify the setup."

@@ -10,6 +10,12 @@
     $site->manifest->title = filter_var($_POST['manifest']->title, FILTER_SANITIZE_STRING);
     $site->manifest->description = filter_var($_POST['manifest']->description, FILTER_SANITIZE_STRING);
     $site->manifest->metadata->icon = filter_var($_POST['manifest']->metadata->icon, FILTER_SANITIZE_STRING);
+    $domain = filter_var($_POST['manifest']->metadata->domain, FILTER_SANITIZE_STRING);
+    // support updating the domain CNAME value
+    if ($site->manifest->metadata->domain != $domain) {
+      $site->manifest->metadata->domain = $domain;
+      @file_put_contents($site->directory . '/' . $site->manifest->metadata->siteName . '/CNAME', $domain);
+    }
     $site->manifest->metadata->theme = filter_var($_POST['manifest']->metadata->theme, FILTER_SANITIZE_STRING);
     $site->manifest->metadata->image = filter_var($_POST['manifest']->metadata->image, FILTER_SANITIZE_STRING);
     $site->manifest->metadata->hexCode = filter_var($_POST['manifest']->metadata->hexCode, FILTER_SANITIZE_STRING);

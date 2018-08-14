@@ -60,6 +60,7 @@ Dialog for presenting an editable manifest of core settings
     <paper-dialog id="editor" opened="{{opened}}" with-backdrop>
       <paper-dialog-scrollable>
         <paper-input id="sitetitle" label="Title" required autofocus value="[[manifest.title]]"></paper-input>
+        <paper-input id="domain" label="Domain" value="[[manifest.metadata.domain]]"></paper-input>
         <paper-input id="sitedescription" label="Description" value="[[manifest.description]]"></paper-input>
         <paper-input id="siteimage" label="Image" value="[[manifest.metadata.image]]"></paper-input>
         <label for="sitecolor">Select a color:</label>
@@ -152,6 +153,7 @@ Dialog for presenting an editable manifest of core settings
         this.set('manifest.title', this.$.sitetitle.value);
         this.set('manifest.description', this.$.sitedescription.value);
         this.set('manifest.metadata.image', this.$.siteimage.value);
+        this.set('manifest.metadata.domain', this.$.domain.value);
         this.set('manifest.metadata.icon', this.$.siteicon.icon);
         this.fire('haxcms-save-site-data', this.manifest);
       },

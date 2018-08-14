@@ -11,10 +11,13 @@ class HAXCMSSite {
    */
   public function load($directory, $siteBasePath, $name) {
     $this->name = $name;
+    $tmpname = urldecode($name);
+    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $name);
+    $tmpname = strtolower($tmpname);
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
     $this->manifest = new JSONOutlineSchema();
-    $this->manifest->load($this->directory . '/' . $this->name . '/site.json');
+    $this->manifest->load($this->directory . '/' . $tmpname . '/site.json');
   }
   /**
    * Initialize a new site with a single page to start the outline
@@ -25,11 +28,14 @@ class HAXCMSSite {
    * @return HAXCMSSite object
    */
   public function newSite($directory, $siteBasePath, $name, $domain = NULL) {
-    // newSite calls must set basePath internally to avoid page association issues
+    // calls must set basePath internally to avoid page association issues
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
-    $tmpname = strtolower($name);
     $this->name = $name;
+    // clean up name so it can be in a URL / published
+    $tmpname = urldecode($name);
+    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $tmpname);
+    $tmpname = strtolower($tmpname);
     // attempt to shift it on the file system
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier for themes to resolve correctly
@@ -85,7 +91,7 @@ class HAXCMSSite {
     $page->location = 'pages/' . $page->id . '/index.html';
     $page->metadata->created = time();
     $page->metadata->updated = time();
-    $location = $this->directory . '/' . $this->name . '/pages/' . $page->id;
+    $location = $this->directory . '/' . $this->manifest->metadata->siteName . '/pages/' . $page->id;
     // copy the page we use for simplicity (or later complexity if we want)
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     $this->manifest->addItem($page);
@@ -123,8 +129,8 @@ class HAXCMSSite {
    */
   public function changeName($new) {
     // attempt to shift it on the file system
-    if ($new != $this->name) {
-      return rename($this->name, $new);
+    if ($new != $this->manifest->metadata->siteName) {
+      return rename($this->manifest->metadata->siteName, $new);
     }
   }
   /**

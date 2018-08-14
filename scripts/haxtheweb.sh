@@ -33,7 +33,6 @@ sudo chmod 775 _config
 sudo chmod 777 _config/sites.json
 # whew that was hard work. the end.
 
-
 # jk
 # echo a uuid to a salt file we can use later on
 touch _config/SALT.txt
@@ -65,6 +64,11 @@ if [ -z $surgepassword ]; then
   read -rp "Surge password:" surgepassword
 fi
 sed -i "s/surgepassword/${surgepassword}/g" _config/config.php
+# seed login info so we have an account primed
+cat <<EOF | surge login
+$email
+$surgepassword
+EOF
 # only if you use apache
 if [ -z $1 ]; then
   haxecho "www-data or apache is common, hit enter to ignore"

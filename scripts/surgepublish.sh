@@ -3,8 +3,17 @@
 # where am i? move to where I am. This ensures source is properly sourced
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
+#email
+email=$1
+#pwd
+password=$2
 # project name
-projectname=$1
+projectname=$3
+# seed login info just to make it work
+cat <<EOF | surge login
+$email
+$password
+EOF
 # move into project to operate on it
 cd "../_sites/${projectname}"
 # move things around so that its the default from rawgit

@@ -3,7 +3,23 @@ recipe: lemp
 config:
   php: '7.2'
   webroot: .
+services:
+  node:
+    type: node:6.10
+    run:
+      - "cd $LANDO_MOUNT && npm install"
+    globals:
+      surge: "latest"
 tooling:
+  npm:
+    service: node
+  node:
+    service: node
+  surge:
+    service: node
   magic:
     service: appserver
-    cmd: bash scripts/haxtheweb.sh admin admin
+    cmd: bash scripts/haxtheweb.sh admin admin admin@admin.admin admin
+events:
+  post-start:
+    - cd $LANDO_WEBROOT && bash scripts/haxtheweb.sh admin admin admin@admin.admin admin
