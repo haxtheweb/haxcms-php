@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Get surge.sh setup
 # where am i? move to where I am. This ensures source is properly sourced
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -6,13 +6,14 @@ cd $DIR
 #email
 email=$1
 #pwd
-password=$2
+surgepassword=$2
 # project name
 projectname=$3
 # seed login info just to make it work
 cat <<EOF | surge login
+
 $email
-$password
+$surgepassword
 EOF
 # move into project to operate on it
 cd "../_sites/${projectname}"

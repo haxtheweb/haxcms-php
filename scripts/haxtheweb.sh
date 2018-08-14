@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Welcome to HAXCMS. Decentralize already.
 
 # where am i? move to where I am. This ensures source is properly sourced
@@ -65,10 +65,13 @@ if [ -z $surgepassword ]; then
 fi
 sed -i "s/surgepassword/${surgepassword}/g" _config/config.php
 # seed login info so we have an account primed
+
 cat <<EOF | surge login
+
 $email
 $surgepassword
 EOF
+
 # only if you use apache
 if [ -z $1 ]; then
   haxecho "www-data or apache is common, hit enter to ignore"

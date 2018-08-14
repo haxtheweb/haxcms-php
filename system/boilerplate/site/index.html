@@ -29,6 +29,15 @@
       dom: 'shady',
       lazyRegister: true
     };
+  </script>
+  <link rel="stylesheet" href="webcomponents/bower_components/haxcms-elements/base.css">
+  <link rel="import" href="webcomponents/bower_components/haxcms-elements/haxcms-site-builder.html">
+  <link rel="import" href="webcomponents/bower_components/haxcms-elements/haxcms-common-elements.html">
+  <link rel="import" href="webcomponents/haxcms-jwt.php">
+</head>
+<body>
+  <haxcms-site-builder file="site.json"></haxcms-site-builder>
+  <script>
     (function () {
       if ('registerElement' in document
         && 'import' in document.createElement('link')
@@ -37,29 +46,17 @@
       } else {
         // polyfill the platform!
         var e = document.createElement('script');
-        var ua = navigator.userAgent.toLowerCase();
-        // safari can use a smaller polyfill
-        if (ua.indexOf('safari') != -1) {
-          e.src = 'webcomponents/bower_components/webcomponentsjs/webcomponents-lite.min.js';         
-        }
-        else {
-          e.src = 'webcomponents/bower_components/webcomponentsjs/webcomponents.min.js';
-        }
+        e.src = 'webcomponents/bower_components/webcomponentsjs/webcomponents.min.js';
         document.body.appendChild(e);
-        // c1 -> c0 ponyfill
-        var e = document.createElement('script');
-        e.src = 'webcomponents/bower_components/document-register-element/build/document-register-element.js';
-        document.body.appendChild(e);
+        // c1 -> c0 ponyfill avoiding conflicts in FF w/ timing
+        setTimeout(() => {
+          var e2 = document.createElement('script');
+          e2.src = 'webcomponents/bower_components/document-register-element/build/document-register-element.js';
+          document.body.appendChild(e2);
+        }, 50);
       }
     })();
   </script>
-  <link rel="import" href="webcomponents/bower_components/haxcms-elements/haxcms-site-builder.html">
-  <link rel="import" href="webcomponents/bower_components/haxcms-elements/haxcms-common-elements.html">
-  <link rel="stylesheet" href="webcomponents/bower_components/haxcms-elements/base.css">
-  <link rel="import" href="webcomponents/haxcms-jwt.php">
-</head>
-<body>
-  <haxcms-site-builder file="site.json"></haxcms-site-builder>
   <noscript>Please enable JavaScript to view this website.</noscript>
 </body>
 </html>
