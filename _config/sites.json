@@ -17,7 +17,7 @@
             "metadata": {
                 "siteName": "",
                 "theme": "simple-blog",
-                "image": "..\/..\/assets\/banner.jpg",
+                "image": "assets\/banner.jpg",
                 "color": "blue",
                 "icon": "icons:add-circle-outline"
             }
