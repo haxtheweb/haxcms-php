@@ -88,6 +88,7 @@ a simple element to check for and fetch JWTs
               haxCmsSiteEditorElement.savePagePath = "<?php print $HAXCMS->basePath . 'system/savePage.php';?>";
               haxCmsSiteEditorElement.saveManifestPath = "<?php print $HAXCMS->basePath . 'system/saveManifest.php';?>";
               haxCmsSiteEditorElement.saveOutlinePath = "<?php print $HAXCMS->basePath . 'system/saveOutline.php';?>";
+              haxCmsSiteEditorElement.publishPath = "<?php print $HAXCMS->basePath . 'system/publishToCloud.php';?>";
               haxCmsSiteEditorElement.appStore = JSON.parse('<?php print json_encode($HAXCMS->appStoreConnection());?>');
               // pass along the initial state management stuff that may be missed
               // based on timing on the initial setup

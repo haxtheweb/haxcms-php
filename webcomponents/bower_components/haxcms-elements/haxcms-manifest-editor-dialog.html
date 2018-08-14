@@ -28,7 +28,7 @@ Dialog for presenting an editable manifest of core settings
 
 <dom-module id="haxcms-manifest-editor-dialog">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
       }
@@ -37,6 +37,24 @@ Dialog for presenting an editable manifest of core settings
         min-height: 60%;
         top: 5%;
         border-radius: 16px;
+      }
+      #publish {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background-color: var(--haxcms-color, #ff4081);
+        color: #FFFFFF;
+        border-bottom-right-radius: 16px;
+        border-bottom-left-radius: 16px;
+      }
+      #save,
+      #cancel {
+        margin-bottom:80px;
+      }
+      iron-icon {
+        margin-right: 8px;
       }
     </style>
     <paper-dialog id="editor" opened="{{opened}}" with-backdrop>
@@ -55,8 +73,15 @@ Dialog for presenting an editable manifest of core settings
         <paper-icon-picker id="siteicon" icon="[[manifest.metadata.icon]]"></paper-icon-picker>
       </paper-dialog-scrollable>
       <div class="buttons">
-        <paper-button id="save" dialog-confirm>Save</paper-button>
-        <paper-button id="cancel" dialog-dismiss>Cancel</paper-button>
+        <paper-button id="save" dialog-confirm raised>
+          <iron-icon icon="icons:save"></iron-icon>Save
+        </paper-button>
+        <paper-button id="cancel" dialog-dismiss raised>
+          <iron-icon icon="icons:cancel"></iron-icon>Cancel
+        </paper-button>
+        <paper-button id="publish" dialog-confirm>
+          <iron-icon icon="icons:cloud-upload"></iron-icon>Publish
+        </paper-button>
       </div>
     </paper-dialog>
   </template>
@@ -65,7 +90,7 @@ Dialog for presenting an editable manifest of core settings
       is: 'haxcms-manifest-editor-dialog',
       listeners: {
         'save.tap': '_saveTap',
-        'cancel.tap': '_cancelTap',
+        'publish.tap': '_publishTap',
         'sitetheme.change': '_themeChanged',
         'sitecolor.change': '_colorChanged',
       },
@@ -113,6 +138,12 @@ Dialog for presenting an editable manifest of core settings
       _colorChanged: function (e) {
         this.set('manifest.metadata.cssVariable', e.detail.cssVariable);
         this.set('manifest.metadata.hexCode', e.detail.hexCode);
+      },
+      /**
+       * Publish tap
+       */
+      _publishTap: function (e) {
+        this.fire('haxcms-publish-site', this.manifest);
       },
       /**
        * Save hit, send the message to push up the outline changes.

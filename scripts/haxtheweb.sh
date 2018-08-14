@@ -43,6 +43,8 @@ pk="$(getuuid)"
 sed -i "s/HAXTHEWEBPRIVATEKEY/${pk}/g" _config/config.php
 user=$1
 pass=$2
+email=$3
+surgepassword=$4
 # enter a super user name, dun dun dun dunnnnnnn!
 if [ -z $user ]; then
   read -rp "Super user name:" user
@@ -53,6 +55,16 @@ if [ -z $pass ]; then
   read -rp "Super user password:" pass
 fi
 sed -i "s/jimmerson/${pass}/g" _config/config.php
+# da email, da email, what what, da email. Dear Strong Bad.
+if [ -z $email ]; then
+  read -rp "Surge email address:" email
+fi
+sed -i "s/emailaddress@surge.sh/${email}/g" _config/config.php
+# SERGE IS BACK
+if [ -z $surgepassword ]; then
+  read -rp "Surge password:" surgepassword
+fi
+sed -i "s/surgepassword/${surgepassword}/g" _config/config.php
 # only if you use apache
 if [ -z $1 ]; then
   haxecho "www-data or apache is common, hit enter to ignore"

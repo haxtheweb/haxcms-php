@@ -107,6 +107,16 @@ haxcms editor element
      content-type="application/json"
      handle-as="json"
      on-response="_handleManifestResponse"></iron-ajax>
+    <iron-ajax
+     headers='{"Authorization": "Bearer [[jwt]]"}'
+     id="publishajax"
+     loading="{{publishing}}"
+     url="[[publishPath]]"
+     method="POST"
+     body="[[publishSiteData]]"
+     content-type="application/json"
+     handle-as="json"
+     on-response="_handlePublishResponse"></iron-ajax>
     <hax-store app-store="[[appStore]]"></hax-store>
     <hax-app-picker></hax-app-picker>
     <hax-body id="body"></hax-body>
@@ -117,7 +127,11 @@ haxcms editor element
     <haxcms-site-editor-ui id="ui" active-item="[[activeItem]]" manifest="[[manifest]]" edit-mode="{{editMode}}" outline-edit-mode="{{outlineEditMode}}" manifest-edit-mode="{{manifestEditMode}}"></haxcms-site-editor-ui>
     <haxcms-outline-editor-dialog id="outlineeditor"></haxcms-outline-editor-dialog>
     <haxcms-manifest-editor-dialog id="manifesteditor"></haxcms-manifest-editor-dialog>
-    <paper-toast id="toast"></paper-toast>
+    <paper-toast id="toast">
+    </paper-toast>
+    <paper-toast id="publishtoast" duration="0">
+      <a href$="[[__publishLink]]" target="_blank"><paper-button raised style="color:yellow;text-transform: none;font-weight: bold;">[[__publishLabel]]</paper-button></a>
+    </paper-toast>
   </template>
   <script>
     Polymer({
@@ -125,6 +139,7 @@ haxcms editor element
       listeners: {
         'outlineeditor.haxcms-save-outline': 'saveOutline',
         'manifesteditor.haxcms-save-site-data': 'saveManifest',
+        'manifesteditor.haxcms-publish-site': 'publishSite',
       },
       properties: {
         /**
@@ -144,6 +159,19 @@ haxcms editor element
          */
         saveManifestPath: {
           type: String,
+        },
+        /**
+         * end point for publishing to surge
+         */
+        publishPath: {
+          type: String,
+        },
+        /**
+         * Publishing end point, this has CDN implications so show message
+         */
+        publishing: {
+          type: Boolean,
+          observer: '_publishingChanged',
         },
         /**
          * end point for saving outline
@@ -192,6 +220,13 @@ haxcms editor element
           value: {},
         },
         /**
+         * published site data
+         */
+        publishSiteData: {
+          type: Object,
+          value: {},
+        },
+        /**
          * data as part of the POST to the backend
          */
         updateOutlineData: {
@@ -234,6 +269,7 @@ haxcms editor element
        */
       ready: function () {
         document.body.appendChild(this.$.toast);
+        document.body.appendChild(this.$.publishtoast);
         document.body.appendChild(this.$.ui);
         document.body.appendChild(this.$.outlineeditor);
         document.body.appendChild(this.$.manifesteditor);
@@ -263,6 +299,18 @@ haxcms editor element
         document.body.removeEventListener('json-outline-schema-active-item-changed', this._newActiveItem.bind(this));
         document.body.removeEventListener('json-outline-schema-changed', this._manifestChanged.bind(this));
         document.body.removeEventListener('json-outline-schema-active-body-changed', this._bodyChanged.bind(this));
+      },
+      /**
+       * notice publishing callback changing state
+       */
+      _publishingChanged: function (newValue, oldValue) {
+        if (newValue) {
+          this.$.toast.duration = 0;
+          this.$.toast.show('Publishing...');
+        }
+        else if (!newValue && oldValue) {
+          this.$.toast.duration = 3000;
+        }
       },
       /**
        * react to manifest being changed
@@ -305,6 +353,14 @@ haxcms editor element
         // trigger a refresh of the data in page
         this.$.toast.show('Site details saved!');
         this.fire('haxcms-trigger-update', true);
+      },
+      _handlePublishResponse: function (e) {
+        console.log(e.detail.response);
+        let data = e.detail.response;
+        // show the published response
+        this.__publishLink = data.url;
+        this.__publishLabel = data.label;
+        this.$.publishtoast.show(data.response);
       },
       /**
        * Edit state has changed.
@@ -370,6 +426,18 @@ haxcms editor element
         this.set('updateManifestData.manifest', e.detail);
         this.set('updateManifestData.jwt', this.jwt);
         this.$.manifestupdateajax.generateRequest();
+      },
+      /**
+       * Save the outline based on an event firing.
+       */
+      publishSite: function (e) {
+        let parts = window.location.pathname.split('/');
+        parts.pop();
+        let site = parts.pop();
+        // now let's work on the outline
+        this.set('publishSiteData.siteName', site);
+        this.set('publishSiteData.jwt', this.jwt);
+        this.$.publishajax.generateRequest();
       },
       /**
        * Notice body of content has changed and import into HAX

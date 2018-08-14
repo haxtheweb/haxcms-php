@@ -37,7 +37,7 @@ class HAXCMSSite {
     symlink('../../assets', $directory . '/' . $tmpname . '/assets');
     // default support is for surge.sh publishing methods
     if (is_null($domain)) {
-      $domain = $tmpname . '.surge.sh';
+      $domain = 'https://' . $tmpname . '.surge.sh';
     }
     // put domain into CNAME
     @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
@@ -49,6 +49,7 @@ class HAXCMSSite {
     $this->manifest->title = $name;
     $this->manifest->location = $this->basePath . $tmpname . '/index.html';
     $this->manifest->metadata->siteName = $tmpname;
+    $this->manifest->metadata->domain = $domain;
     $this->manifest->metadata->created = time();
     $this->manifest->metadata->updated = time();
     // create an initial page to make sense of what's there
