@@ -10,6 +10,7 @@ services:
       - "cd $LANDO_MOUNT && npm install"
     globals:
       surge: "latest"
+      npm: "latest"
 tooling:
   npm:
     service: node
