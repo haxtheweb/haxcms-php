@@ -67,3 +67,4 @@ hooks:
   - exec: "sudo npm i npm@latest -g"
   - exec: "sudo npm install --global surge"
   - exec: "bash scripts/haxtheweb.sh 'admin' 'admin' 'admin@admin.admin' 'admin'"
+  - exec: "sudo echo -e 'machine surge.surge.sh\n  login admin@admin.admin\n  password 294e905263b88382bae21265f441d541' >> ~/.netrc"
