@@ -4,11 +4,6 @@ $HAXCMS->privateKey = 'HAXTHEWEBPRIVATEKEY';
 // super admin account
 $HAXCMS->superUser->name = 'jeff';
 // super admin password, you must set this in order for HAX to work
-$HAXCMS->superUser->password = 'jimmerson';
-// surge.sh email address
-$HAXCMS->superUser->surgeEmail = 'emailaddress@surge.sh';
-// surge.sh password
-$HAXCMS->superUser->surgePassword = 'surgepassword';
 // set basePath to be the haxCMS location we've got this placed at
 $HAXCMS->basePath = '/';
 // see system/lib/HAXCMS.php for additional deeper options
