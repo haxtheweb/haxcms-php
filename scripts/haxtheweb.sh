@@ -58,12 +58,10 @@ sed -i "s/jimmerson/${pass}/g" _config/config.php
 if [ -z $email ]; then
   read -rp "Surge email address:" email
 fi
-sed -i "s/emailaddress@surge.sh/${email}/g" _config/config.php
 # SERGE IS BACK
 if [ -z $surgepassword ]; then
   read -rp "Surge password:" surgepassword
 fi
-sed -i "s/surgepassword/${surgepassword}/g" _config/config.php
 # seed login info so we have an account primed
 
 cat <<EOF | surge login

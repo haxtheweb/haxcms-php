@@ -7,17 +7,10 @@ cd $DIR
 cd ../
 # run install to ensure we have it
 npm install --global surge
-#email
-email=$1
-#pwd
-password=$2
 # project name
-projectname=$3
-# seed login info just to make it work
-cat <<EOF | surge login
-$email
-$password
-EOF
+projectname=$1
+# seed login info which will force a prompting
+surge login
 # move into project to operate on it
 cd "_sites/${projectname}"
 mv index.html index2.html

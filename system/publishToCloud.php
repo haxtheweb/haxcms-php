@@ -7,11 +7,9 @@
     // ensure we have something we can load and ship back out the door
     if ($site = $HAXCMS->loadSite($HAXCMS->safePost['siteName'])) {
       $path = HAXCMS_ROOT . '/scripts/surgepublish.sh';
-      $email = escapeshellarg($HAXCMS->superUser->surgeEmail);
-      $pass = escapeshellarg($HAXCMS->superUser->surgePassword);
       $name = escapeshellarg($site->manifest->metadata->siteName);
       // attempt to publish
-      $output = shell_exec("bash $path $email $pass $name");
+      $output = shell_exec("bash $path $name");
       // load the site from name
       $site->manifest->metadata->lastPublished = time();
       $site->manifest->save();
@@ -22,7 +20,6 @@
         'label' => 'Click to access ' . $site->manifest->title,
         'response' => 'Site published!',
         'output' => $output,
-        'command' => "bash $path $email $pass $name",
       );
     }
     else {
