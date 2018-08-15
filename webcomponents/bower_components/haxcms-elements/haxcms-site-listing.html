@@ -148,6 +148,7 @@ A LRN element
         <dropdown-select id="newsitetheme" label="Theme" value="simple-blog">
           <paper-item value="simple-blog">Simple blog</paper-item>
           <paper-item value="outline-player">Basic outline</paper-item>
+          <paper-item value="haxcms-dev-theme">DEVELOPER THEME</paper-item>
           <paper-item value="infinite-scroll">Infinite scroll</paper-item>
         </dropdown-select>
         <label for="newsiteicon">Select an icon:</label>
@@ -459,8 +460,20 @@ A LRN element
        * Simple method of loading whatever's been dictated as active.
        */
       loadActiveSite: function (e) {
-        // @todo load the site via routing when we wire that up
-        window.open(e.detail.location);
+        let findSite = this.__sites.filter(site => {
+          if (site.id !== e.detail.id) {
+            return false;
+          }
+          return true;
+        });
+        let item = findSite.pop();
+        // if location isn't there, push out to it
+        if (item.location) {
+          window.open(item.location);
+        }
+        else {
+          window.open('/_sites/' + item.metadata.siteName + '/index.html');
+        }
       },
       /**
        * New button clicked, open modal
