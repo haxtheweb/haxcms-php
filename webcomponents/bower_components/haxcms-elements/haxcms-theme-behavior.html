@@ -73,6 +73,7 @@
         document.body.addEventListener('haxcms-edit-mode-changed', this._globalEditChanged.bind(this));
         document.body.addEventListener('json-outline-schema-changed', this._manifestUpdate.bind(this));
         document.body.addEventListener('haxcms-active-item-changed', this._activeItemUpdate.bind(this));
+        document.body.addEventListener('haxcms-trigger-update', this._triggerUpdate.bind(this));
         // this implies there's the possibility of an authoring experience
         if (typeof Polymer.cmsSiteEditor !== typeof undefined) {
           Polymer.cmsSiteEditor.requestAvailability(this, injector);
@@ -82,7 +83,14 @@
         document.body.removeEventListener('haxcms-active-item-changed', this._activeItemUpdate.bind(this));
         document.body.removeEventListener('json-outline-schema-changed', this._manifestUpdate.bind(this));
         document.body.removeEventListener('haxcms-edit-mode-changed', this._globalEditChanged.bind(this));
+        document.body.removeEventListener('haxcms-trigger-update', this._triggerUpdate.bind(this));
       }
+    },
+    /**
+     * refreshed data call
+     */
+    _triggerUpdate: function (e) {
+      this.fire('json-outline-schema-active-item-changed', {});
     },
     /**
        * react to manifest being changed

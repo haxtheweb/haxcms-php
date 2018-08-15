@@ -130,6 +130,8 @@ A LRN element
           <app-toolbar>
             <paper-icon-button icon="menu" on-click="_toggleMenu"></paper-icon-button>
             <div main-title>[[activeItem.title]]</div>
+            <paper-icon-button id="home" icon="icons:home" on-click="_resetActiveItem"></paper-icon-button>
+            <paper-tooltip for="prevpage" position="bottom" offset="14">Home</paper-tooltip>
             <paper-icon-button id="prevpage" disabled="[[disablePrevPage(__activeIndex)]]" icon="icons:arrow-back" on-click="prevPage"></paper-icon-button>
             <paper-tooltip
               for="prevpage"
@@ -205,7 +207,9 @@ A LRN element
        * Callback to refresh the data from source
        */
       _dataRefreshed: function () {
-        this.__tmpselected = this.selected;
+        this.async(function () {
+          this.selected = this.manifest.items[this.__activeIndex].id;
+        });
       },
       /**
        * Link menu button to open and closing the side panel.
@@ -229,7 +233,7 @@ A LRN element
        */
       _outlineChanged: function(newValue, oldValue) {
         if (typeof newValue !== typeof undefined && typeof oldValue !== typeof undefined && newValue.constructor === Array && typeof newValue[0] !== typeof undefined) {
-          this.set('activeItem', newValue[0]);
+          this.fire('json-outline-schema-active-item-changed', newValue[0]);
           this.__activeIndex = 0;
         }
       },
@@ -285,8 +289,14 @@ A LRN element
               return d;
             }
           }).pop();
-          this.set('activeItem', item);
+          this.fire('json-outline-schema-active-item-changed', item);
         }
+      },
+      /**
+       * Reset the active item to reset state
+       */
+      _resetActiveItem: function (e) {
+        this.fire('json-outline-schema-active-item-changed', {});
       },
     });
   </script>

@@ -129,7 +129,6 @@ A simple blog and associated elements
        */
       ready: function () {
         this.setupHAXTheme(true, this.$.post.$.contentcontainer);
-        document.body.addEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
         document.body.addEventListener('json-outline-schema-active-item-changed', this._activeItemEvent.bind(this));
       },
       /**
@@ -137,7 +136,6 @@ A simple blog and associated elements
        */
       detached: function () {
         this.setupHAXTheme(false);
-        document.body.removeEventListener('haxcms-trigger-update', this._dataRefreshed.bind(this));
         document.body.removeEventListener('json-outline-schema-active-item-changed', this._activeItemEvent.bind(this));
       },
       /**
@@ -173,12 +171,6 @@ A simple blog and associated elements
        * Reset the active item to reset state
        */
       _resetActiveItem: function (e) {
-        this.fire('json-outline-schema-active-item-changed', {});
-      },
-      /**
-       * refreshed data call
-       */
-      _dataRefreshed: function (e) {
         this.fire('json-outline-schema-active-item-changed', {});
       },
     });

@@ -236,6 +236,14 @@ A LRN element
           this.__timeStamp = '?' + (Math.floor(Date.now() / 1000));
           this.$.activecontent.generateRequest();
         }
+        // we had something, now we don't. wipe out the content area of the theme
+        else if (typeof newValue.id === typeof undefined && typeof oldValue.id !== typeof undefined) {
+          this.async(() => {
+            this.wipeSlot(this.themeElement, '*');
+          });
+          // fire event w/ nothing, this is because there is no content
+          this.fire('json-outline-schema-active-body-changed', null);
+        }
       },
       /**
        * got a message that we need to update our json manifest data

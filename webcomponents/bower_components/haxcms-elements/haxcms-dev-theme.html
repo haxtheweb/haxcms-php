@@ -32,6 +32,10 @@ and then IF hax is around it'll show up :)
       }
       paper-card {
         width: 200px;
+        color: black;
+        background-color: white;
+        padding: 8px;
+        font-size: 10px;
       }
       /**
        * Hide the slotted content during edit mode. This must be here to work.
@@ -40,34 +44,38 @@ and then IF hax is around it'll show up :)
         display: none;
       }
       .manifest,.activeitem {
-        width: 50%;
+        width: 48%;
         margin: 0;
-        padding: 16px;
-        display: flex;
+        padding: 0;
+        display:inline-block;
+        vertical-align: text-top;
       }
     </style>
-    <h1>HAXCMS DEVELOPMENT THEME</h1>
+    <h1 style="margin:0;">HAXCMS DEVELOPMENT THEME</h1>
+    <iron-list id="list" items="[[manifest.items]]" grid>
+      <template>
+        <div style="padding:16px;">
+        <paper-card heading="[[item.title]]" image="[[item.metadata.image]]" elevation="1" animated-shadow="false">
+          <div class="card-content">
+            <div>description: [[item.description]]</div>
+            <div>location: [[item.location]]</div>
+            <div>changed: [[item.metadata.updated]]</div>
+          </div>
+          <div class="card-actions">
+            <paper-button data-id$="[[item.id]]">Click to set activeItem</paper-button>
+          </div>
+        </paper-card>
+        </div>
+      </template>
+    </iron-list>
     <div class="manifest">
     <h2>title: [[manifest.title]]</h2>
     <div>description: [[manifest.description]]</div>
     <div>icon: <iron-icon icon="[[manifest.metadata.icon]]"></iron-icon></div>
     <div>image: <img src$="[[manifest.metadata.image]]" height="200px" width="200px" /></div>
-    <iron-list id="list" items="[[manifest.items]]">
-      <template>
-          <paper-card heading="[[item.title]]" image="[[item.metadata.image]]" elevation="1" animated-shadow="false">
-            <div class="card-content">
-              <div>description: [[item.description]]</div>
-              <div>location: [[item.location]]</div>
-              <div>changed: [[item.metadata.updated]]</div>
-            </div>
-            <div class="card-actions">
-              <paper-button data-id$="[[item.id]]">Click to set activeItem</paper-button>
-            </div>
-          </paper-card>
-      </template>
-    </iron-list>
     </div>
     <div class="activeitem">
+    <paper-button id="unset">Unset activeItem</paper-button>
     <h2>ACTIVE ITEM</h2>
     <div>[[activeItem.title]]</div>
     <div id="contentcontainer">
@@ -82,6 +90,7 @@ and then IF hax is around it'll show up :)
       is: 'haxcms-dev-theme',
       listeners: {
         'list.tap': '_itemTapped',
+        'unset.tap': '_unsetTapped',
       },
       behaviors: [
         SchemaBehaviors.Schema,
@@ -121,11 +130,18 @@ and then IF hax is around it'll show up :)
               return d;
             }
           }).pop();
-          this.set('activeItem', item);
+          this.fire('json-outline-schema-active-item-changed', item);
           // console log these so you can debug easily as you build out
           console.log(this.manifest);
-          console.log(this.activeItem);
+          console.log(item);
         }
+      },
+      /**
+       * Settings activeItem to nothing will ensure that state goes back to nothing active
+       * and then other options appear
+       */
+      _unsetTapped: function (e) {
+        this.fire('json-outline-schema-active-item-changed', {});
       },
     });
   </script>
