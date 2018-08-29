@@ -363,6 +363,48 @@
           }
         },
         /**
+         * Detached life cycle
+         */
+        detached: function () {
+          // notice hax property definitions coming from anywhere
+          document.body.removeEventListener('hax-register-properties', this._haxStoreRegisterProperties.bind(this));
+          // app registration can come in automatically from app-stores
+          // or through direct definition in the DOM
+          document.body.removeEventListener('hax-register-app', this._haxStoreRegisterApp.bind(this));
+          // register stax which are groupings of haxElements
+          document.body.removeEventListener('hax-register-stax', this._haxStoreRegisterStax.bind(this));
+          // register blox which are grid plate configurations
+          // with lots of sane visual defaults
+          document.body.removeEventListener('hax-register-blox', this._haxStoreRegisterBlox.bind(this));
+          // register the pieces of the body of what we call HAX
+          // think of this like the core of the system required
+          // to do anything like have buttons or state management
+
+          // write data to the store
+          document.body.removeEventListener('hax-store-write', this._writeHaxStore.bind(this));
+          // register the manager panel / modal
+          document.body.removeEventListener('hax-register-manager', this._haxStoreRegisterManager.bind(this));
+          // register the autoloader area for elements
+          document.body.removeEventListener('hax-register-autoloader', this._haxStoreRegisterAutoloader.bind(this));
+          // register a body, kind of a big deal
+          document.body.removeEventListener('hax-register-body', this._haxStoreRegisterBody.bind(this));
+          // register the interaction panel / menu
+          document.body.removeEventListener('hax-register-panel', this._haxStoreRegisterPanel.bind(this));
+          // register the app picker for contextual setting / option
+          document.body.removeEventListener('hax-register-app-picker', this._haxStoreRegisterAppPicker.bind(this));
+          // stax modal
+          document.body.removeEventListener('hax-register-stax-picker', this._haxStoreRegisterStaxPicker.bind(this));
+          // blox modal
+          document.body.removeEventListener('hax-register-blox-picker', this._haxStoreRegisterBloxPicker.bind(this));
+          // preferences modal
+          document.body.removeEventListener('hax-register-preferences', this._haxStoreRegisterPreferences.bind(this));
+          // export modal
+          document.body.removeEventListener('hax-register-export', this._haxStoreRegisterExport.bind(this));
+
+          // notice content insert and help it along to the body
+          document.body.removeEventListener('hax-insert-content', this._haxStoreInsertContent.bind(this));
+        },
+        /**
          * attached.
          */
         attached: function () {

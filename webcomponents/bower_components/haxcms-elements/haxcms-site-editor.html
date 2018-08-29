@@ -376,7 +376,9 @@ haxcms editor element
           this.set('updatePageData.page', this.activeItem.id);
           this.set('updatePageData.jwt', this.jwt);
           // send the request
-          this.$.pageupdateajax.generateRequest();
+          if (this.savePagePath) {
+            this.$.pageupdateajax.generateRequest();
+          }
           this.fire('haxcms-save-page', this.activeItem);
         }
       },
@@ -413,7 +415,9 @@ haxcms editor element
         this.set('updateOutlineData.siteName', site);
         this.set('updateOutlineData.items', e.detail);
         this.set('updateOutlineData.jwt', this.jwt);
-        this.$.outlineupdateajax.generateRequest();
+        if (this.saveOutlinePath) {
+          this.$.outlineupdateajax.generateRequest();
+        }
       },
       /**
        * Save the outline based on an event firing.
@@ -426,7 +430,9 @@ haxcms editor element
         this.set('updateManifestData.siteName', site);
         this.set('updateManifestData.manifest', e.detail);
         this.set('updateManifestData.jwt', this.jwt);
-        this.$.manifestupdateajax.generateRequest();
+        if (this.saveManifestPath) {
+          this.$.manifestupdateajax.generateRequest();
+        }
       },
       /**
        * Save the outline based on an event firing.
@@ -435,10 +441,11 @@ haxcms editor element
         let parts = window.location.pathname.split('/');
         parts.pop();
         let site = parts.pop();
-        // now let's work on the outline
         this.set('publishSiteData.siteName', site);
         this.set('publishSiteData.jwt', this.jwt);
-        this.$.publishajax.generateRequest();
+        if (this.publishPath) {
+          this.$.publishajax.generateRequest();
+        }
       },
       /**
        * Notice body of content has changed and import into HAX

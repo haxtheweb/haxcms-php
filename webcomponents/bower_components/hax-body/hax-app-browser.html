@@ -161,6 +161,13 @@ Browse a list of apps. This provides a listing of our gizmos that we've integrat
         document.body.addEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
       },
       /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-app-selected', this._appSelected.bind(this));
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+      },
+      /**
        * App has been selected.
        */
       _appSelected: function(e) {

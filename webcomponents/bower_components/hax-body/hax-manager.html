@@ -346,6 +346,14 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
         document.body.addEventListener('place-holder-file-drop', this._placeHolderFileDrop.bind(this));
       },
       /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+        document.body.removeEventListener('hax-app-picker-selection', this._haxAppPickerSelection.bind(this));
+        document.body.removeEventListener('place-holder-file-drop', this._placeHolderFileDrop.bind(this));
+      },
+      /**
        * Toggle panel size
        */
       togglePanelSize: function(e) {

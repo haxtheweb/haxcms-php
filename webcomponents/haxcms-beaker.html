@@ -44,7 +44,6 @@ a simple element to check for and fetch JWTs
       created: function () {
         document.body.addEventListener('jwt-token', this._jwtTokenFired.bind(this));
         document.body.addEventListener('json-outline-schema-active-item-changed', this.initialItem.bind(this));
-        document.body.addEventListener('json-outline-schema-changed', this.initialManifest.bind(this));
         document.body.addEventListener('json-outline-schema-active-body-changed', this.initialBody.bind(this));
         // HAX CMS events to intercept
         document.body.addEventListener('haxcms-save-site-data', this.saveManifest.bind(this));
@@ -65,22 +64,22 @@ a simple element to check for and fetch JWTs
       /**
        * Save page data
        */
-      savePage: function (e) {
+      savePage: async function (e) {
         this.activeItem = e.detail;
         // make sure this location exists
-        this.$.beaker.write(this.activeItem.location, Polymer.HaxStore.instance.activeHaxBody.haxToContent());
+        await this.$.beaker.write(this.activeItem.location, Polymer.HaxStore.instance.activeHaxBody.haxToContent());
         Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.$.toast.show('Page updated!');
-        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.fire('haxcms-trigger-update', true);
+        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.fire('haxcms-trigger-update-page', true);
       },
       /**
        * Outline save event.
        */
-      saveOutline: function (e) {
+      saveOutline: async function (e) {
         // snag global to be sure we have it set first
         this.manifest = Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.manifest;
         // set items specifically since it's just an outline update
         this.manifest.items = e.detail;
-        // @todo need to simulate the data our backend does
+        // loop through and match the data our backend generates
         this.manifest.items.forEach((element, index) => {
           // test for things that are not set and build the whole thing out
           if (typeof element.location === typeof undefined) {
@@ -100,11 +99,28 @@ a simple element to check for and fetch JWTs
             this.manifest.items[index] = element;
           }
         });
-        console.log(this.manifest);
         this.$.beaker.write('site.json', JSON.stringify(this.manifest, null, 2));
         // simulate save events since they wont fire
         Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.$.toast.show('Outline saved!');
         Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.fire('haxcms-trigger-update', true);
+        this.fire('json-outline-schema-changed', this.manifest);
+      },
+      /**
+       * Manifest save event.
+       */
+      saveManifest: async function (e) {
+        this.manifest = e.detail;
+        await this.$.beaker.write('site.json', JSON.stringify(this.manifest, null, 2));
+        // simulate save events since they wont fire
+        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.$.toast.show('Site details saved!');
+        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.fire('haxcms-trigger-update', true);
+        this.fire('json-outline-schema-changed', this.manifest);
+      },
+      /**
+       * JWT token fired, let's capture it
+       */
+      _jwtTokenFired: function (e) {
+        this.jwt = e.detail;
       },
       /**
        * Generate a uinque ID
@@ -117,22 +133,6 @@ a simple element to check for and fetch JWTs
         }
         return base + idPart() + idPart() + '-' + idPart() + '-' + idPart() + '-' +
           idPart() + '-' + idPart() + idPart() + idPart();
-      },
-      /**
-       * Manifest save event.
-       */
-      saveManifest: function (e) {
-        this.manifest = e.detail;
-        this.$.beaker.write('site.json', JSON.stringify(this.manifest, null, 2));
-        // simulate save events since they wont fire
-        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.$.toast.show('Site details saved!');
-        Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement.fire('haxcms-trigger-update', true);
-      },
-      /**
-       * JWT token fired, let's capture it
-       */
-      _jwtTokenFired: function (e) {
-        this.jwt = e.detail;
       },
       /**
        * Attached life cycle

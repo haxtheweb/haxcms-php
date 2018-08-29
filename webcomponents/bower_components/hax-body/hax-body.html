@@ -288,6 +288,12 @@ A LRN element that will change the world.
         document.body.addEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
       },
       /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+      },
+      /**
        * Replace place holder after an event has called for it in the element itself
        */
       replacePlaceholder: function(e) {

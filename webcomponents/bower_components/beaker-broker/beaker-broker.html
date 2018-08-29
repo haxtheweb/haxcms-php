@@ -52,9 +52,9 @@ This allows for data binding and figuring out if we're in an environment that we
        * Write to file
        * @usage - this.write('hello.txt', 'things and stuff');
        */
-      write: function (path, data) {
+      write: async function (path, data) {
         // well that was easy
-        this.archive.writeFile(path, data);
+        await this.archive.writeFile(path, data);
       },
       /**
        * Read to file

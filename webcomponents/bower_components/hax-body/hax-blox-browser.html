@@ -71,6 +71,12 @@ List of layout blox to select from
         this.resetBrowser();
       },
       /**
+       * detached
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+      },
+      /**
        * Store updated, sync.
        */
       _haxStorePropertyUpdated: function(e) {

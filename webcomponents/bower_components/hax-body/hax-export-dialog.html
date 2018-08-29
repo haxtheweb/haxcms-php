@@ -137,6 +137,12 @@ Export dialog with all export options and settings provided.
         this.fire('hax-register-export', this);
       },
       /**
+       * Detatched life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+      },
+      /**
        * Store updated, sync.
        */
       _haxStorePropertyUpdated: function(e) {

@@ -288,7 +288,13 @@
       attached: function() {
         document.body.addEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
         document.body.addEventListener('hax-app-search-values-changed', this._searchValuesEvent.bind(this));
-
+      },
+      /**
+       * Detached life cycle.
+       */
+      detached: function () {
+        document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
+        document.body.removeEventListener('hax-app-search-values-changed', this._searchValuesEvent.bind(this));
       },
       /**
        * Store updated, sync.
