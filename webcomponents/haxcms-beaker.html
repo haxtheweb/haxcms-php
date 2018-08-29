@@ -140,7 +140,9 @@ a simple element to check for and fetch JWTs
       attached: async function () {
         let beaker = this.$.beaker;
         this.jwt = beaker.archive.url;
-        if (this.jwt != null) {
+        var info = await beaker.archive.getInfo();
+        // test that we have a url (we'll call it jwt for now) and that we own the site
+        if (this.jwt != null && info.isOwner) {
           var appstore = JSON.parse(await beaker.read('appstore.json'));
           // attempt to dynamically import the hax cms site editor
           // which will appear to be injecting into the page
