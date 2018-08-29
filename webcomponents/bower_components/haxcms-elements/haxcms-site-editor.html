@@ -377,6 +377,7 @@ haxcms editor element
           this.set('updatePageData.jwt', this.jwt);
           // send the request
           this.$.pageupdateajax.generateRequest();
+          this.fire('haxcms-save-page', this.activeItem);
         }
       },
       /**
