@@ -272,7 +272,7 @@ as the events being bubbled up include HTML nodes to inject into something
         document.body.addEventListener('hax-panel-operation', this._processItemEvent.bind(this));
       },
       /**
-       * Detatched life cycle
+       * Detached life cycle
        */
       detached: function () {
         document.body.removeEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
