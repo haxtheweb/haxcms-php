@@ -1,0 +1,260 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-image/iron-image.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../polymer/polymer.html">
+
+
+<!--
+
+Example:
+
+    <paper-tile></paper-tile>
+
+@group Seed Elements
+@element paper-tile
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="paper-tile">
+
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+        @apply(--paper-font-common-base);
+        cursor: pointer;
+        width: 180px;
+        height: 180px;
+        position: relative;
+      }
+      iron-image {
+        @apply(--layout-fit);
+        @apply(--paper-tile-image);
+      }
+      #content {
+        color: var(--paper-tile-color, white);
+        background: var(--paper-tile-background, rgba(0,0,0,0.5));
+        @apply(--layout-fit);
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+      }
+      :host[footer-content] #content {
+        bottom: 0;
+        top: initial;
+      }
+      #text {
+        @apply(--layout-flex);
+        padding: 16px 0 16px 16px ;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      :host[alternative-font-size] #firstLine, :host[alternative-font-size] #secondLine {
+        font-size: 14px;
+      }
+      #firstLine {
+        font-weight: 500;
+        padding-bottom: 4px;
+        font-size: 16px;
+        @apply(--paper-font-common-nowrap);
+      }
+      #secondLine {
+        font-size: 12px;
+        @apply(--paper-font-common-nowrap);
+      }
+      paper-icon-button {
+        padding: 12px;
+        width: 48px;
+        height: 48px;
+      }
+    </style>
+    
+    <iron-image src="[[img]]" sizing="[[sizing]]" on-tap="_primaryActionTaped"
+      preload="[[preload]]" fade="[[fade]]" alt="[[alt]]"
+      prevent-load="[[preventLoad]]" position="[[position]]"
+      loaded="{{loaded}}" loading="{{loading}}" error="{{error}}"
+      placeholder="[[placeholder]]">
+    </iron-image>
+    <div id="content">
+      <div id="text">
+        <div id="firstLine" title="[[firstLine]]">[[firstLine]]</div>
+        <div id="secondLine">[[secondLine]]</div>
+      </div>
+      <template is="dom-if" if="[[icon]]">
+        <paper-icon-button icon="[[icon]]" on-tap="_secondaryActionTaped">
+        </paper-icon-button>
+      </template>
+    </div>
+
+  </template>
+
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'paper-tile',
+
+    properties: {
+      firstLine:  {
+        type: String,
+        value: ''
+      },
+
+      footerContent: {
+        type: Boolean,
+        value: false,
+        reflectToAttribute: true
+      },
+
+      /**
+       * If set, provide a secondary action button 
+       * and bind this to <paper-icon-button>'s icon property.
+       */
+      icon: {
+        type: String,
+        value: ''
+      },
+
+      sizing: {
+        type: String
+      },
+
+      /**
+       * Bind this to the <iron-image>'s src property.
+       */
+      img: String,
+
+      secondLine: {
+        type: String,
+        value: ''
+      },
+
+      secondActionOnLeft: {
+        type: Boolean,
+        value: false
+      },
+
+      secondActionIcon: String,
+
+      alternativeFontSize: {
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Bind this to the <iron-image>'s placeholder property.
+       */
+      placeholder: {
+        type: String,
+        value: null,
+      },
+
+      /**
+       * Bind this to the <iron-image>'s preload property.
+       */
+      preload: {
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Bind this to the <iron-image>'s fade property.
+       */
+      fade: {
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Bind this to the <iron-image>'s alt property.
+       */
+      alt: {
+        type: String,
+        value: null
+      },
+
+      /**
+       * Bind this to the <iron-image>'s preventLoad property.
+       */
+      preventLoad: {
+        type: Boolean,
+        value: false,
+      },
+
+      /**
+       * Bind this to the <iron-image>'s position property.
+       */
+      position: {
+        type: String,
+        value: 'center'
+      },
+
+      /**
+       * Bind this to the <iron-image>'s loaded property,
+       * assumes this value is readyOnly.
+       */
+      loaded: {
+        notify: true,
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Bind this to the <iron-image>'s loading property,
+       * assumes this value is readyOnly.
+       */
+      loading: {
+        notify: true,
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Bind this to the <iron-image>'s error property,
+       * assumes this value is readyOnly.
+       */
+      error: {
+        notify: true,
+        type: Boolean,
+        value: false
+      }
+    },
+
+    observers: [
+      '_updateContentHeight(firstLine, secondLine, icon)'
+    ],
+
+    ready: function() {
+      this._updateContentHeight(this.firstLine, this.secondLine);
+    },
+
+    _primaryActionTaped: function() {
+      this.fire('primary-action');
+    },
+
+    _secondaryActionTaped: function(e) {
+      e.stopPropagation();
+      this.fire('secondary-action');
+    },
+
+    _updateContentHeight: function(firstLine, secondLine, icon) {
+      this.$.content.style.height = firstLine ? ( secondLine ? '68px' : '48px') : ( icon ? '0' : '48px' );
+    },
+
+  });
+
+</script>

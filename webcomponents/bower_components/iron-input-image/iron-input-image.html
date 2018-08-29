@@ -1,0 +1,90 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+This element extends the native &lt;input type="file" accept="image/*"&gt; element 
+and bind the title, size, and src of the selected image as attributes.
+
+Example:
+
+    <input is="iron-input-image">
+
+@group Iron Elements
+@element iron-input-image
+@demo demo/index.html
+@hero hero.svg
+-->
+
+<script>
+
+  Polymer({
+
+    is: 'iron-input-image',
+
+    extends: 'input',
+
+    hostAttributes: {
+      'type': 'file',
+      'accept': 'image/*',
+      'hidden': true
+    },
+
+    properties: {
+      /**
+       * The selected image title.
+       */
+      title: {
+        type: String,
+        value: '',
+        notify: true
+      },
+      /**
+       * The selected image size.
+       */
+      size: {
+        type: Number,
+        value: 0,
+        notify: true
+      },
+      /**
+       * The selected image src.
+       */
+      src: {
+        type: String,
+        value: '',
+        notify: true
+      }
+    },
+
+    listeners: {
+      'change': '_handleImage'
+    },
+    /**
+     * Choose a new image.
+     */
+    choose: function() {
+      this.click();
+    },
+    /**
+     * Reset the image's file and informations.
+     */
+    clear: function() {
+      objectURL = window.URL.revokeObjectURL(this.src);
+      this.value = null;
+      this.title = this.src = '';
+      this.size = 0;
+    },
+
+    _handleImage: function() {
+      var file = this.files[0];
+      this.title = file.name;
+      this.size = this._toKo(file.size);
+      this.src = window.URL.createObjectURL(file);
+    },
+
+    _toKo(size) {
+      return Math.round(size/1024);
+    }
+
+  });
+
+</script>

@@ -1,0 +1,41 @@
+{
+  "name": "iron-input-image",
+  "version": "1.1.0",
+  "authors": [
+    "Zecat <jullienfelix@gmail.com>"
+  ],
+  "description": "A convenient element to bind the informations of a selected image.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Zecat/iron-input-image.git"
+  },
+  "keywords": [
+    "web-components",
+    "polymer",
+    "input",
+    "image"
+  ],
+  "main": "iron-input-image.html",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "homepage": "https://github.com/Zecat/iron-input-image/",
+  "ignore": [],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.2.0"
+  },
+  "devDependencies": {
+    "paper-button": "PolymerElements/paper-button#~1.0.8",
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "web-component-tester": "^4.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0",
+    "test-fixture": "PolymerElements/test-fixture#^1.0.0"
+  },
+  "_release": "1.1.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v1.1.0",
+    "commit": "cfc9c676208209af7013c8dcd67b26ceeab0db73"
+  },
+  "_source": "https://github.com/Zecat/iron-input-image.git",
+  "_target": "^1.0.0",
+  "_originalSource": "Zecat/iron-input-image"
+}

@@ -1,0 +1,121 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-input-image/iron-input-image.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-form-element-behavior/iron-form-element-behavior.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-tile/paper-tile.html">
+
+<!--
+
+Example:
+
+    <paper-input-image></paper-input-image>
+
+@group Paper Elements
+@element paper-input-image
+@demo demo/index.html
+@hero hero.svg
+-->
+<dom-module id="paper-input-image">
+
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+      }
+      paper-tile {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    <input
+      id="inputImage"
+      is="iron-input-image"
+      src="{{src}}"
+      title="{{title}}"
+      size="{{size}}"
+      files="{{value::change}}">
+    <paper-tile
+      img="[[src]]"
+      first-line="[[title]]"
+      second-line="[[size]] ko"
+      icon="[[_computeIcon(src)]]"
+      footer-content
+      on-primary-action="choose"
+      on-secondary-action="clear">
+    </paper-tile>
+
+  </template>
+
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'paper-input-image',
+
+    behaviors: [
+      Polymer.IronFormElementBehavior
+    ],
+
+    properties: {
+      /**
+       * The text displayed when no image is selected.
+       */
+      noImageText: {
+        type: String,
+        value: 'No image selected',
+        notify: true
+      },
+      /**
+       * The image src.
+       */
+      src: {
+        type: String,
+        value: '',
+        notify: true
+      },
+      /**
+       * The size of the selected image (ko).
+       */
+      size: {
+        type: Number,
+        value: 0,
+        notify: true
+      },
+      /**
+       * The text displayed. Equales to noImageText if no image is selected and 
+       * updates from the image file's title when a new one is selected.
+       */
+      title: {
+        type: String
+      }
+    },
+
+    attached: function() {
+      this.title = this.noImageText;
+    },
+    /**
+     * Choose a new image from the user disk.
+     */
+    choose: function() {
+      this.$.inputImage.choose();
+    },
+    /**
+     * Remove the selected image.
+     */
+    clear: function() {
+      this.$.inputImage.clear();
+      this.title = this.noImageText;
+    },
+
+    _computeIcon: function(src) {
+      return src ? 'icons:clear' : '';
+    }
+
+  });
+
+</script>

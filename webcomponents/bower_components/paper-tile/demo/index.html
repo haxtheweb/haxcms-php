@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>paper-tile Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../paper-tile.html">
+    <link rel="import" href="../../iron-icons/iron-icons.html">
+    <link rel="import" href="../../iron-flex-layout/classes/iron-flex-layout.html">
+  </head>
+  <body unresolved>
+
+    <template is="dom-bind" id="scope">
+
+      <style>
+        paper-tile {
+          margin: 2px;
+        }
+      </style>
+      
+      <div class="layout horizontal">
+        
+        <paper-tile
+          first-line="Title"
+          second-line="Another line"
+          footer-content
+          icon="icons:star-border"
+          img="https://c1.staticflickr.com/5/4003/4521514936_d6dc074074_b.jpg"
+          on-secondary-action="secondaryAction"
+          on-primary-action="primaryAction">
+          </paper-tile>
+
+        <paper-tile
+          first-line="Title"
+          footer-content
+          icon="icons:star-border"
+          img="https://c1.staticflickr.com/5/4003/4521514936_d6dc074074_b.jpg"
+          on-secondary-action="secondaryAction"
+          on-primary-action="primaryAction">
+          </paper-tile>
+
+        <paper-tile
+          footer-content
+          icon="icons:star-border"
+          img="https://c1.staticflickr.com/5/4003/4521514936_d6dc074074_b.jpg"
+          on-secondary-action="secondaryAction"
+          on-primary-action="primaryAction">
+          </paper-tile>
+      </div>
+
+    </template>
+
+    <script>
+      var scope = document.querySelector('#scope');
+      scope.primaryAction = function() {
+        alert('primary action !');
+      };
+      scope.secondaryAction = function() {
+        alert('secondary action !');
+      };
+    </script>
+
+  </body>
+</html>
