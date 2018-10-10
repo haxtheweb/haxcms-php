@@ -19,7 +19,7 @@ Figure out what our context is and setup based on that
       /**
        * created life cycle
        */
-      created: function() {
+      ready: function() {
         this.getContext();
       },
       /**
@@ -27,6 +27,7 @@ Figure out what our context is and setup based on that
        */
       getContext: function () {
         let context = '';
+        Polymer.cmsSiteEditor.tag = 'haxcms-jwt';
         // figure out if we need to load the PHP or beaker
         if (typeof DatArchive !== typeof undefined) {
           context = this.importHref(this.resolveUrl('haxcms-beaker.html'), (e) => {
