@@ -51,6 +51,11 @@ A context menu that provides common text based authoring options.
         event-name="insert-inline-gizmo"></hax-context-item>
       <hax-context-item
         slot="primary"
+        icon="editor:insert-link"
+        label="Link"
+        event-name="text-link"></hax-context-item>
+      <hax-context-item
+        slot="primary"
         icon="editor:format-bold"
         label="Bold"
         event-name="text-bold"></hax-context-item>
@@ -247,7 +252,7 @@ A context menu that provides common text based authoring options.
             // see if we got anything
             if (haxElements.length > 0) {
               // hand off to hax-app-picker to deal with the rest of this
-              Polymer.HaxStore.instance.haxAppPicker.presentOptions(haxElements, type, 'Pick how to present this inline gizmo', 'gizmo');
+              Polymer.HaxStore.instance.haxAppPicker.presentOptions(haxElements, type, 'Transform selected text to..', 'gizmo');
             }
           break;
           // wow these are way too easy

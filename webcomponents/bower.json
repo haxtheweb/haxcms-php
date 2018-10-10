@@ -44,7 +44,7 @@
     "paper-dialog-scrollable": "PolymerElements/paper-dialog-scrollable#^2.1.0",
     "aframe-player": "LRNWebComponents/aframe-player#^0.0.1",
     "cms-hax": "LRNWebComponents/cms-hax",
-    "hax-body": "LRNWebComponents/hax-body#^0.20.9",
+    "hax-body": "LRNWebComponents/hax-body#^0.23.0",
     "beaker-broker": "LRNWebComponents/beaker-broker#^0.0.1"
   },
   "devDependencies": {
@@ -85,6 +85,7 @@
     "iron-menu-behavior": "^2.1.1",
     "iron-dropdown": "1 - 2",
     "paper-icon-button": "^2.2.0",
-    "simple-colors": "^1.0.2"
+    "simple-colors": "^1.0.2",
+    "hax-body": "^0.23.0"
   }
 }

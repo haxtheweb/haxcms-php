@@ -1,4 +1,5 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../eco-json-schema-form/eco-json-schema-wizard.html">
 <link rel="import" href="../app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
@@ -22,6 +23,15 @@ Export dialog with all export options and settings provided.
       #dialog {
         z-index: 1000;
         margin-top: 64px;
+      }
+      paper-icon-button#closedialog {
+        float: right;
+        top: 135px;
+        right: 0;
+        position: absolute;
+        padding: 4px;
+        margin: 0;
+        color: var(--simple-colors-light-green-background1);
       }
       .title {
         margin-top: 32px;
@@ -71,6 +81,7 @@ Export dialog with all export options and settings provided.
       <div style="height: 100%; overflow: auto;" class="pref-container">
         <eco-json-schema-object schema="[[schema]]" value="{{preferences}}"></eco-json-schema-object>
       </div>
+      <paper-icon-button id="closedialog" on-tap="close" icon="icons:cancel" title="Close dialog"></paper-icon-button>
     </app-drawer>
   </template>
   <script>
@@ -78,6 +89,9 @@ Export dialog with all export options and settings provided.
       is: 'hax-preferences-dialog',
       observers: [
         '_preferencesChanged(preferences.*)'
+      ],
+      behaviors: [
+        simpleColorsBehaviors,
       ],
       properties: {
         /**

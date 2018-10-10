@@ -2,6 +2,7 @@
 <link rel="import" href="../app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../iron-pages/iron-pages.html">
 <link rel="import" href="../iron-icons/iron-icons.html">
 <link rel="import" href="../simple-colors/simple-colors.html">
@@ -39,11 +40,21 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
       #dialog {
         color: #FFFFFF;
         z-index: 10000;
+        padding: 56px 0;
         margin-top: 64px;
         --app-drawer-width: 400px;
         --app-drawer-content-container: {
           background-color: rgba(0, 0, 0, 0.7);
         };
+      }
+      paper-icon-button#closedialog {
+        float: right;
+        top: 135px;
+        right: 0;
+        position: absolute;
+        padding: 4px;
+        margin: 0;
+        color: var(--simple-colors-light-green-background1);
       }
       :host[active-page="0"] #dialog {
         --app-drawer-width: 400px;
@@ -69,7 +80,7 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
         font-weight: bold;
         font-family: sans-serif;
         text-transform: uppercase;
-        color: #a0ff52;
+        color: var(--simple-colors-light-green-background1);
       }
       #activepage {
       }
@@ -148,7 +159,7 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
         width: 100%;
         margin: 0;
         padding: 16px;
-        background-color: #a0ff52;
+        background-color: var(--simple-colors-light-green-background1);
         color: #000000;
       }
       paper-input {
@@ -211,6 +222,7 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
             <hax-preview id="preview" element="{{activeHaxElement}}"></hax-preview>
           </div>
         </iron-pages>
+        <paper-icon-button id="closedialog" icon="icons:cancel" title="Close dialog"></paper-icon-button>
       </div>
     </app-drawer>
   </template>
@@ -222,10 +234,14 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
       listeners: {
         'dialog.iron-overlay-canceled': 'close',
         'dialog.iron-overlay-closed': 'close',
+        'closedialog.tap': 'close',
         'newassetconfigure.tap': 'newAssetConfigure',
         'fileupload.upload-before': '_fileAboutToUpload',
         'fileupload.upload-response': '_fileUploadResponse',
       },
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       properties: {
         /**
          * Track visibility status.
@@ -330,13 +346,17 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
       /**
        * Created life cycle.
        */
-      ready: function() {
-        document.body.appendChild(this);
+      created: function() {
+        this.__attached = false;
       },
       /**
        * Attached to the DOM, now fire that we exist.
        */
       attached: function() {
+        if (!this.__attached) {
+          this.__attached = true;
+          document.body.appendChild(this);
+        }
         // fire an event that this is the manager
         this.fire('hax-register-manager', this);
         document.body.addEventListener('hax-store-property-updated', this._haxStorePropertyUpdated.bind(this));
@@ -598,7 +618,7 @@ A LRN element for brokering the UI for api endpoints both in querying and upload
       close: function(e) {
         var normalizedEvent = Polymer.dom(e);
         var local = normalizedEvent.localTarget;
-        if (typeof e === typeof undefined || local === this.$.dialog) {
+        if (typeof e === typeof undefined || local === this.$.dialog || local === this.$.closedialog) {
           // reset the active element which will force this to reset the manager
           Polymer.HaxStore.write('activeHaxElement', {}, this);
           this.opened = false;

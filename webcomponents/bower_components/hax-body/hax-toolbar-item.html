@@ -22,9 +22,8 @@
         -ms-flex-direction: row;
         -webkit-flex-direction: row;
         flex-direction: row;
-        -ms-flex-align: center;
-        -webkit-align-items: center;
-        align-items: center;
+        -webkit-justify-content: flex-start;
+        justify-content: flex-start;
         font-family: 'Roboto', 'Noto', sans-serif;
         -webkit-font-smoothing: antialiased;
         font-size: 16px;
@@ -32,6 +31,10 @@
         line-height: 24px;
         --hax-item-color: #2e2e2e;
         --hax-item-background: #FFFFFF;
+      }
+      :host[menu] paper-button {
+        -webkit-justify-content: flex-start;
+        justify-content: flex-start;
       }
       #label {
         padding-left: 5px;
@@ -103,10 +106,11 @@
       <slot></slot>
     </paper-button>
     <paper-tooltip
+      id="tooltip"
       for$="[[this]]"
       offset="14"
       position="[[tooltipDirection]]"
-      animation-delay="200">
+      animation-delay="100">
       [[tooltip]]
     </paper-tooltip>
   </template>
@@ -166,6 +170,7 @@
         tooltip: {
           type: String,
           value: '',
+          observer: '_tooltipChanged',
         },
         /**
          * Direction that the tooltip should flow
@@ -187,6 +192,17 @@
           value: "",
           reflectToAttribute: true,
         },
+      },
+      /**
+       * Keep accessibility inline with tooltip
+       */
+      _tooltipChanged: function (newValue, oldValue) {
+        if (newValue == '' || newValue == null) {
+          this.$.tooltip.setAttribute("aria-hidden", "true");
+        }
+        else {
+          this.$.tooltip.setAttribute("aria-hidden", "false");
+        }
       }
     });
   </script>

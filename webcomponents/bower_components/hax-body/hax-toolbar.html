@@ -115,7 +115,7 @@
       hidden$="[[inline]]"
       icon="delete"
       icon-class="red-text text-darken-1"
-      label="Delete"
+      label="Remove"
       event-name="grid-plate-delete"></hax-context-item>
     <hax-context-item-menu
       hidden$="[[hideMore]]"
@@ -125,7 +125,7 @@
       event-name="grid-plate-op"
       reset-on-select>
       <paper-item value="" hidden></paper-item>
-      <paper-item value="grid-plate-convert" hidden$="[[inline]]"><iron-icon icon="image:transform" class="orange-text"></iron-icon>Convert gizmo</paper-item>
+      <paper-item value="grid-plate-convert" hidden$="[[inline]]"><iron-icon icon="image:transform" class="orange-text"></iron-icon>Transform to..</paper-item>
       <paper-item value="grid-plate-duplicate" class="duplicate-button" hidden$="[[inline]]"><iron-icon icon="icons:content-copy" class="green-text"></iron-icon>Duplicate</paper-item>
       <slot name="more"></slot>
     </hax-context-item-menu>
@@ -137,6 +137,9 @@
       listeners: {
         'hax-context-item-selected': '_haxContextOperation',
       },
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       properties: {
         /**
          * Selected value to match ce direction currently.

@@ -220,6 +220,7 @@ A LRN element
           // only append if not empty
           if (newValue !== null) {
             this.wipeSlot(this.themeElement, '*');
+            newValue = this.encapScript(newValue);
             this.async(() => {
               let frag = document.createRange().createContextualFragment(newValue);
               Polymer.dom(this.themeElement).appendChild(frag);
@@ -227,6 +228,24 @@ A LRN element
           }
           this.fire('json-outline-schema-active-body-changed', newValue);
         }
+      },
+      /**
+       * Encapsulate script and style tags correctly
+       */
+      encapScript: function (html) {
+        html = html.replace(/<script[\s\S]*?>/gi, "&lt;script&gt;");
+        html = html.replace(/<\/script>/gi, "&lt;/script&gt;");
+        html = html.replace(/<style[\s\S]*?>/gi, "&lt;style&gt;");
+        html = html.replace(/<\/style>/gi, "&lt;/style&gt;");
+        // special case, it's inside a template tag
+        html = html.replace(/<template[\s\S]*?>[\s\S]*?&lt;script[\s\S]*?&gt;[\s\S]*?&lt;\/script&gt;/gi, function (match, contents, offset, input_string) {
+          match = match.replace("&lt;script&gt;", "<script>");
+          match = match.replace("&lt;/script&gt;", "<\/script>");
+          match = match.replace("&lt;style&gt;", "<style>");
+          match = match.replace("&lt;/style&gt;", "<\/style>");
+          return match;
+        });
+        return html;
       },
       /**
        * Active item updated, let's request the content from it

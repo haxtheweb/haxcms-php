@@ -203,6 +203,9 @@ An element that can generate a form
   <script>
     Polymer({
       is: 'hax-preview',
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       observers: [
         '_valueChanged(value.*, formKey)'
       ],

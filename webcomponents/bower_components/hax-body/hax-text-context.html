@@ -26,9 +26,20 @@ A context menu that provides common text based authoring options.
         display: block;
         pointer-events: none;
       }
+      paper-item {
+        -webkit-justify-content: flex-start;
+        justify-content: flex-start;
+      }
       paper-item:hover {
         background-color: #d3d3d3;
         cursor: pointer;
+      }
+      iron-icon {
+        padding: 8px;
+      }
+      paper-item strong {
+        padding: 8px;
+        font-size: 12px;
       }
     </style>
     <hax-toolbar>
@@ -39,13 +50,13 @@ A context menu that provides common text based authoring options.
         icon="text-format"
         label="Format"
         event-name="text-tag">
-        <paper-item value="p">Normal text</paper-item>
-        <paper-item value="h2">Title</paper-item>
-        <paper-item value="h3">Content heading</paper-item>
-        <paper-item value="h4">Subheading</paper-item>
-        <paper-item value="h5">Deeper subheading</paper-item>
-        <paper-item value="blockquote">Quote</paper-item>
-        <paper-item value="code">Code</paper-item>
+        <paper-item value="p"><iron-icon icon="editor:format-textdirection-l-to-r"></iron-icon>Normal text <strong>&lt;P&gt;</strong></paper-item>
+        <paper-item value="h2"><iron-icon icon="editor:title"></iron-icon>Title <strong>&lt;H2&gt;</strong></paper-item>
+        <paper-item value="h3"><iron-icon icon="editor:title"></iron-icon>Content heading <strong>&lt;H3&gt;</strong></paper-item>
+        <paper-item value="h4"><iron-icon icon="editor:text-fields"></iron-icon>Subheading <strong>&lt;H4&gt;</strong></paper-item>
+        <paper-item value="h5"><iron-icon icon="editor:text-fields"></iron-icon>Deeper subheading <strong>&lt;H5&gt;</strong></paper-item>
+        <paper-item value="blockquote"><iron-icon icon="editor:format-quote"></iron-icon>Quote<strong>&lt;blockquote&gt;</strong></paper-item>
+        <paper-item value="code"><iron-icon icon="icons:code"></iron-icon>Code block<strong>&lt;code&gt;</strong></paper-item>
       </hax-context-item-menu>
       <hax-context-item-menu
         slot="primary"

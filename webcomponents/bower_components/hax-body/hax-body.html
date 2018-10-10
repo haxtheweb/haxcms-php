@@ -29,7 +29,7 @@ A LRN element that will change the world.
         display: block;
         min-height: 32px;
         min-width: 32px;
-        font-family: sans-serif;
+        /*font-family: sans-serif;*/
       }
       :host #bodycontainer ::slotted(.hax-context-menu) {
         padding: 0;
@@ -199,6 +199,9 @@ A LRN element that will change the world.
         'hax-input-mixer-update': '_haxInputMixerOperation',
         'place-holder-replace': 'replacePlaceholder',
       },
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       properties: {
         /**
          * State of if we are editing or not.
@@ -364,10 +367,15 @@ A LRN element that will change the world.
         // see if we got anything
         if (haxElements.length > 0) {
           // hand off to hax-app-picker to deal with the rest of this
-          Polymer.HaxStore.instance.haxAppPicker.presentOptions(haxElements, '__convert', 'What do you want to convert this gizmo to', 'gizmo');
+          let tag = this.activeNode.tagName.toLowerCase();
+          let humanName = tag.replace('-', ' ');          
+          if (typeof Polymer.HaxStore.instance.elementList[tag] !== typeof undefined && Polymer.HaxStore.instance.elementList[tag].gizmo !== false) {
+            humanName = Polymer.HaxStore.instance.elementList[tag].gizmo.title;
+          }
+          Polymer.HaxStore.instance.haxAppPicker.presentOptions(haxElements, '__convert', `Transform ${humanName} to..`, 'gizmo');
         }
         else {
-          Polymer.HaxStore.toast('Sorry, this can\'t be converted to anything automatically!', 5000);
+          Polymer.HaxStore.toast('Sorry, this can not be transformed!', 5000);
         }
       },
       /**
@@ -571,6 +579,8 @@ A LRN element that will change the world.
         // set active again
         Polymer.HaxStore.write('activeNode', __active, this);
         Polymer.HaxStore.write('activeContainerNode', __active, this);
+        // oh one last thing. escape all script/style tags
+        content = Polymer.HaxStore.encapScript(content);
         if (this.globalPreferences.haxDeveloperMode) {
           console.log(content);
         }
@@ -630,7 +640,7 @@ A LRN element that will change the world.
         // get width from window size and do very minor responsive inline support
         let w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
         let offsetmenu = -44;
-        let offsetplate = -36;
+        let offsetplate = -34;
         // if we go below 800 break point, change menu positioning
         if ( w < 800) {
           offsetmenu = 0;
@@ -795,9 +805,10 @@ A LRN element that will change the world.
         }
         // pause quickly to ensure wipe goes through successfully
         setTimeout( () => {
+          html = Polymer.HaxStore.encapScript(html);
           const validTags = Polymer.HaxStore.instance.validTagList;
           let fragment = document.createElement('div');
-          fragment.insertAdjacentHTML( 'beforeend', html );
+          fragment.insertAdjacentHTML( 'beforeend', html );          
           while (fragment.firstChild !== null) {
             if (typeof fragment.firstChild.tagName !== typeof undefined && validTags.includes(fragment.firstChild.tagName.toLowerCase())) {
               // ensure import doesn't import non-sandbox safe things!
@@ -871,18 +882,23 @@ A LRN element that will change the world.
           break;
           case 'grid-plate-delete':
             let options = [
-            {
-              'icon': 'thumb-up',
-              'color': 'green',
-              'title': 'Yes',
-            },
-            {
-              'icon': 'thumb-down',
-              'color': 'red',
-              'title': 'No',
-            }
+              {
+                'icon': 'thumb-up',
+                'color': 'green',
+                'title': 'Yes',
+              },
+              {
+                'icon': 'thumb-down',
+                'color': 'red',
+                'title': 'No',
+              }
             ];
-            Polymer.HaxStore.instance.haxAppPicker.presentOptions(options, '', 'Are you sure you want to delete this element?', 'delete');
+            let tag = this.activeNode.tagName.toLowerCase();
+            let humanName = tag.replace('-', ' ');
+            if (typeof Polymer.HaxStore.instance.elementList[tag] !== typeof undefined && Polymer.HaxStore.instance.elementList[tag].gizmo !== false) {
+              humanName = Polymer.HaxStore.instance.elementList[tag].gizmo.title;
+            }
+            Polymer.HaxStore.instance.haxAppPicker.presentOptions(options, '', `Remove this \`${humanName}\`?`, 'delete');
           break;
           case 'grid-plate-first':
             this.haxMoveGridPlate('first', this.activeNode, this.activeContainerNode);

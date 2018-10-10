@@ -37,7 +37,7 @@ Browse a list of gizmos. This provides a listing of custom elements for people t
         margin: 0 64px 0 0;
         font-size: 32px;
         font-weight: bold;
-        color:var(--simple-colors-light-green-background1);
+        color: var(--simple-colors-light-green-background1);
         font-family: sans-serif;
         text-transform: uppercase;
         display: inline-flex;
@@ -107,6 +107,9 @@ Browse a list of gizmos. This provides a listing of custom elements for people t
     Polymer({
 
       is: 'hax-gizmo-browser',
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       properties: {
         /**
          * Search term

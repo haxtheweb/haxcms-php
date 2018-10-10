@@ -113,6 +113,9 @@ Browse a list of apps. This provides a listing of our gizmos that we've integrat
     Polymer({
 
       is: 'hax-app-browser',
+      behaviors: [
+        simpleColorsBehaviors,
+      ],
       properties: {
         /**
          * Search term

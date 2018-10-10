@@ -414,6 +414,30 @@
               return 'Are you sure you want to leave? Your work will not be saved!';
             }
           }
+          window.addEventListener("paste", (e) => {
+            // only perform this on a text element that is active
+            if (this.isTextElement(Polymer.HaxStore.instance.activeNode) && !this.haxManager.opened) {
+              e.preventDefault();
+              let text = '';
+              // intercept paste event
+              if (e.clipboardData || e.originalEvent.clipboardData) {
+                text = (e.originalEvent || e).clipboardData.getData('text/plain');
+              } else if (window.clipboardData) {
+                text = window.clipboardData.getData('Text');
+              }
+              let sel, range, html;
+              if (window.getSelection) {
+                sel = window.getSelection();
+                if (sel.getRangeAt && sel.rangeCount) {
+                  range = sel.getRangeAt(0);
+                  range.deleteContents();
+                  range.insertNode(document.createTextNode(text));
+                }
+              } else if (document.selection && document.selection.createRange) {
+                document.selection.createRange().text = text;
+              }
+            }
+          });
           // capture events and intercept them globally
           window.addEventListener('keypress', (event) => {
             const keyName = event.key;
@@ -1671,6 +1695,24 @@
             }
           }
         }
+      };
+      /**
+       * HTML encapsulation of a string on script and style tags
+       */
+      Polymer.HaxStore.encapScript = (html) => {
+        html = html.replace(/<script[\s\S]*?>/gi, "&lt;script&gt;");
+        html = html.replace(/<\/script>/gi, "&lt;/script&gt;");
+        html = html.replace(/<style[\s\S]*?>/gi, "&lt;style&gt;");
+        html = html.replace(/<\/style>/gi, "&lt;/style&gt;");
+        // special case, it's inside a template tag
+        html = html.replace(/<template[\s\S]*?>[\s\S]*?&lt;script[\s\S]*?&gt;[\s\S]*?&lt;\/script&gt;/gi, function (match, contents, offset, input_string) {
+          match = match.replace("&lt;script&gt;", "<script>");
+          match = match.replace("&lt;/script&gt;", "<\/script>");
+          match = match.replace("&lt;style&gt;", "<style>");
+          match = match.replace("&lt;/style&gt;", "<\/style>");
+          return match;
+        });
+        return html;
       };
       /**
        * Global toast

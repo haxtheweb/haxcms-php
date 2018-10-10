@@ -11,7 +11,6 @@
 <link rel="import" href="../iron-icons/places-icons.html">
 <link rel="import" href="../iron-icons/maps-icons.html">
 <link rel="import" href="../iron-image/iron-image.html">
-<link rel="import" href="../paper-tooltip/paper-tooltip.html">
 <link rel="import" href="../materializecss-styles/colors.html">
 
 <!--
@@ -79,12 +78,6 @@ A button on the hax-app-browser display
         </div>
       </paper-button>
     </paper-card>
-    <paper-tooltip
-      for="button"
-      position="bottom"
-      offset="14">
-      [[teaser]]
-    </paper-tooltip>
   </template>
 
   <script>
@@ -135,12 +128,6 @@ A button on the hax-app-browser display
          * Author related to this app
          */
         author: {
-          type: String
-        },
-        /**
-         * Teaser / headline.
-         */
-        teaser: {
           type: String
         },
         /**
