@@ -1,5 +1,5 @@
-<link rel="import" href="bower_components/polymer/polymer.html">
-<link rel="import" href="bower_components/beaker-broker/beaker-broker.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../beaker-broker/beaker-broker.html">
 <!--
 `haxcms-beaker`
 a simple element to check for and fetch JWTs
@@ -16,7 +16,7 @@ a simple element to check for and fetch JWTs
     <beaker-broker id="beaker"></beaker-broker>
   </template>
   <script>
-    Polymer.cmsSiteEditor = Polymer({
+    Polymer({
       is: 'haxcms-beaker',
       properties: {
         /**
@@ -148,7 +148,7 @@ a simple element to check for and fetch JWTs
           // which will appear to be injecting into the page
           // but because of this approach it should be non-blocking
           try {
-            this.importHref(this.resolveUrl('bower_components/haxcms-elements/haxcms-site-editor.html'), (e) => {
+            this.importHref(this.resolveUrl('haxcms-site-editor.html'), (e) => {
               let haxCmsSiteEditorElement = document.createElement('haxcms-site-editor');
               haxCmsSiteEditorElement.jwt = this.jwt;
               //haxCmsSiteEditorElement.savePagePath = "<?php print $HAXCMS->basePath . 'system/savePage.php';?>";
@@ -179,25 +179,5 @@ a simple element to check for and fetch JWTs
         }
       },
     });
-    // store reference to the instance as a global
-    Polymer.cmsSiteEditor.instance = null;
-    // self append if anyone calls us into action
-    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body) {
-      if (!Polymer.cmsSiteEditor.instance) {
-        Polymer.cmsSiteEditor.instance = document.createElement('haxcms-beaker');
-        Polymer.cmsSiteEditor.instance.appElement = element;
-        Polymer.cmsSiteEditor.instance.appendTarget = location;
-        // self append the reference to.. well.. us.
-        document.body.appendChild(Polymer.cmsSiteEditor.instance);
-      }
-      else {
-        // already exists, just alter some references
-        Polymer.cmsSiteEditor.instance.appElement = element;
-        Polymer.cmsSiteEditor.instance.appendTarget = location;
-        if (typeof Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement !== typeof undefined) {
-          Polymer.cmsSiteEditor.instance.appendTarget.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
-        }
-      }
-    };
   </script>
 </dom-module>

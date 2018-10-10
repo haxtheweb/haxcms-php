@@ -1,9 +1,10 @@
 <?php
-  include_once '../system/lib/bootstrapHAX.php';
+  include_once '../../../system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
+  $appSettings = $HAXCMS->appJWTConnectionSettings();
 ?>
-<link rel="import" href="bower_components/polymer/polymer.html">
-<link rel="import" href="bower_components/jwt-login/jwt-login.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../jwt-login/jwt-login.html">
 <!--
 `haxcms-jwt`
 a simple element to check for and fetch JWTs
@@ -25,7 +26,8 @@ a simple element to check for and fetch JWTs
     <jwt-login id="jwt" url="[[jwtLoginLocation]]" url-logout="[[jwtLogoutLocation]]" jwt="{{jwt}}"></jwt-login>
   </template>
   <script>
-    Polymer.cmsSiteEditor = Polymer({
+    window.appSettings = <?php print json_encode($appSettings); ?>;
+    Polymer({
       is: 'haxcms-jwt',
       properties: {
         /**
@@ -33,14 +35,14 @@ a simple element to check for and fetch JWTs
          */
         jwtLoginLocation: {
           type: String,
-          value: '<?php print $HAXCMS->basePath;?>system/login.php',
+          value: window.appSettings.login,
         },
         /**
          * Location of what endpoint to hit for logging out
          */
         jwtLogoutLocation: {
           type: String,
-          value: '<?php print $HAXCMS->basePath;?>system/logout.php',
+          value: window.appSettings.logout,
         },
         /**
          * JSON Web token, it'll come from a global call if it's available
@@ -82,14 +84,14 @@ a simple element to check for and fetch JWTs
           // which will appear to be injecting into the page
           // but because of this approach it should be non-blocking
           try {
-            this.importHref(this.resolveUrl('bower_components/haxcms-elements/haxcms-site-editor.html'), (e) => {
+            this.importHref(this.resolveUrl('haxcms-site-editor.html'), (e) => {
               let haxCmsSiteEditorElement = document.createElement('haxcms-site-editor');
               haxCmsSiteEditorElement.jwt = this.jwt;
-              haxCmsSiteEditorElement.savePagePath = "<?php print $HAXCMS->basePath . 'system/savePage.php';?>";
-              haxCmsSiteEditorElement.saveManifestPath = "<?php print $HAXCMS->basePath . 'system/saveManifest.php';?>";
-              haxCmsSiteEditorElement.saveOutlinePath = "<?php print $HAXCMS->basePath . 'system/saveOutline.php';?>";
-              haxCmsSiteEditorElement.publishPath = "<?php print $HAXCMS->basePath . 'system/publishToCloud.php';?>";
-              haxCmsSiteEditorElement.appStore = JSON.parse('<?php print json_encode($HAXCMS->appStoreConnection());?>');
+              haxCmsSiteEditorElement.savePagePath = window.appSettings.savePagePath;
+              haxCmsSiteEditorElement.saveManifestPath = window.appSettings.saveManifestPath;
+              haxCmsSiteEditorElement.saveOutlinePath = window.appSettings.saveOutlinePath;
+              haxCmsSiteEditorElement.publishPath = window.appSettings.publishPath;
+              haxCmsSiteEditorElement.appStore = window.appSettings.appStore;
               // pass along the initial state management stuff that may be missed
               // based on timing on the initial setup
               if (typeof this.__item !== typeof undefined) {
@@ -114,25 +116,5 @@ a simple element to check for and fetch JWTs
         }
       },
     });
-    // store reference to the instance as a global
-    Polymer.cmsSiteEditor.instance = null;
-    // self append if anyone calls us into action
-    Polymer.cmsSiteEditor.requestAvailability = function (element = this, location = document.body) {
-      if (!Polymer.cmsSiteEditor.instance) {
-        Polymer.cmsSiteEditor.instance = document.createElement('haxcms-jwt');
-        Polymer.cmsSiteEditor.instance.appElement = element;
-        Polymer.cmsSiteEditor.instance.appendTarget = location;
-        // self append the reference to.. well.. us.
-        document.body.appendChild(Polymer.cmsSiteEditor.instance);
-      }
-      else {
-        // already exists, just alter some references
-        Polymer.cmsSiteEditor.instance.appElement = element;
-        Polymer.cmsSiteEditor.instance.appendTarget = location;
-        if (typeof Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement !== typeof undefined) {
-          Polymer.cmsSiteEditor.instance.appendTarget.appendChild(Polymer.cmsSiteEditor.instance.haxCmsSiteEditorElement);
-        }
-      }
-    };
   </script>
 </dom-module>

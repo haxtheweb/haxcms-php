@@ -3,6 +3,7 @@
 <link rel="import" href="../app-route/app-location.html">
 <link rel="import" href="../app-route/app-route.html">
 <link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="haxcms-editor-builder.html">
 
 <!--
 `haxcms-site-builder`
@@ -43,6 +44,7 @@ A LRN element
         --paper-progress-container-color: transparent;
       }
     </style>
+    <haxcms-editor-builder></haxcms-editor-builder>
     <paper-progress hidden$="[[!loading]]" value="100" indeterminate bottom-item></paper-progress>
     <app-location route="{{route}}" query-params="{{queryParams}}"></app-location>
     <app-route

@@ -243,6 +243,20 @@ class HAXCMS {
     return JWT::encode($token, $this->privateKey . $this->salt);
   }
   /**
+   * Get Front end JWT based connection settings
+   */
+  public function appJWTConnectionSettings() {
+    $settings = new stdClass();
+    $settings->login = $this->basePath . 'system/login.php';
+    $settings->logout = $this->basePath . 'system/logout.php';
+    $settings->savePagePath = $this->basePath . 'system/savePage.php';
+    $settings->saveManifestPath = $this->basePath . 'system/saveManifest.php';
+    $settings->saveOutlinePath = $this->basePath . 'system/saveOutline.php';
+    $settings->publishPath = $this->basePath . 'system/publishToCloud.php';
+    $settings->appStore = $this->appStoreConnection();
+    return $settings;
+  }
+  /**
    * Validate a JTW during POST
    */
   public function validateJWT($endOnInvalid = TRUE) {
