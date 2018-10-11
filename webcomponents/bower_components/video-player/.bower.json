@@ -1,0 +1,31 @@
+{
+  "name": "video-player",
+  "description": "A simple element for playing video from multiple sources",
+  "main": "video-player.html",
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.10.1",
+    "hax-body-behaviors": "LRNWebComponents/hax-body-behaviors#^1.12.0",
+    "materializecss-styles": "LRNWebComponents/materializecss-styles#^1.2.1",
+    "schema-behaviors": "LRNWebComponents/schema-behaviors#^0.2.0",
+    "a11y-behaviors": "LRNWebComponents/a11y-behaviors#^1.0.2",
+    "media-behaviors": "LRNWebComponents/media-behaviors#^1.1.4",
+    "a11y-media-player": "LRNWebComponents/a11y-media-player#^1.0.12"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0",
+    "web-component-tester": "^4.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+  },
+  "homepage": "https://github.com/LRNWebComponents/video-player",
+  "version": "1.11.6",
+  "_release": "1.11.6",
+  "_resolution": {
+    "type": "version",
+    "tag": "1.11.6",
+    "commit": "694a25e44a55e695f06320b946b6b69c7e6ef9dc"
+  },
+  "_source": "https://github.com/LRNWebComponents/video-player.git",
+  "_target": "^1.11.6",
+  "_originalSource": "LRNWebComponents/video-player"
+}
