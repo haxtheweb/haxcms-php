@@ -49,6 +49,36 @@ a simple element to check for and fetch JWTs
         document.body.addEventListener('haxcms-save-site-data', this.saveManifest.bind(this));
         document.body.addEventListener('haxcms-save-outline', this.saveOutline.bind(this));
         document.body.addEventListener('haxcms-save-page', this.savePage.bind(this));
+        // listen for app being selected
+        document.body.addEventListener('hax-app-picker-selection', this._appPicked.bind(this));
+      },
+      /**
+       * detached life cycle
+       */
+      detached: function () {
+        document.body.removeEventListener('jwt-token', this._jwtTokenFired.bind(this));
+        document.body.removeEventListener('json-outline-schema-active-item-changed', this.initialItem.bind(this));
+        document.body.removeEventListener('json-outline-schema-active-body-changed', this.initialBody.bind(this));
+        // HAX CMS events to intercept
+        document.body.removeEventListener('haxcms-save-site-data', this.saveManifest.bind(this));
+        document.body.removeEventListener('haxcms-save-outline', this.saveOutline.bind(this));
+        document.body.removeEventListener('haxcms-save-page', this.savePage.bind(this));
+        // listen for app being selected
+        document.body.addEventListener('hax-app-picker-selection', this._appPicked.bind(this));
+      },
+      _appPicked: function (e) {
+        if (e.detail.connection.protocol === 'dat') {
+          e.preventDefault();
+          e.stopPropagation();
+          let reader = new FileReader();
+          reader.onload = (event) => {
+            let fileLocation = 'files/' + Polymer.HaxStore.instance.haxManager.$.fileupload.files[0].name;
+            this.$.beaker.write(fileLocation, event.target.result);
+            Polymer.HaxStore.instance.haxManager.$.url.value = fileLocation;
+            Polymer.HaxStore.instance.haxManager.newAssetConfigure();
+          };
+          reader.readAsArrayBuffer(Polymer.HaxStore.instance.haxManager.$.fileupload.files[0])
+        }
       },
       initialItem: function (e) {
         this.activeItem = e.detail;
