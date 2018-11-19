@@ -4,3 +4,5 @@ node_modules
 _sites
 _config
 _config/*
+
+yarn.lock
