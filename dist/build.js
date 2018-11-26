@@ -1,2 +1,12 @@
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-beaker.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-manifest-editor-dialog.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-outline-editor-dialog.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-editor-ui.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-editor.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-listing.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js";
