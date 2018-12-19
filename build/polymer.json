@@ -9,6 +9,8 @@
     "manifest.json",
     "node_modules/@lrnwebcomponents/*/*.js",
     "node_modules/@lrnwebcomponents/*/lib/*",
+    "node_modules/@polymer/app-layout/*/*.js",
+    "node_modules/@lrnwebcomponents/elmsln-apps/lib/*/*.js",
     "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/mode-html.js",
     "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/theme-monokai.js",
     "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/worker-html.js",

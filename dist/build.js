@@ -41,3 +41,6 @@ import "@lrnwebcomponents/task-list/task-list.js";
 import "@lrnwebcomponents/video-player/video-player.js";
 import "@lrnwebcomponents/wave-player/wave-player.js";
 import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";
+import "@lrnwebcomponents/elmsln-apps/lib/lrnapp-book/lrnapp-book.js";
+import "@lrnwebcomponents/outline-player/outline-player.js";
+import "@lrnwebcomponents/simple-blog/simple-blog.js";
