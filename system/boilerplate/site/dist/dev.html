@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>My site</title>
+  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
+  <meta name="generator" content="HAXCMS">
+  <meta name="description" content="My HAXCMS site description">
+  <meta name="theme-color" content="#3f51b5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="My site">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My App">
+  <meta name="msapplication-TileImage" content="../assets/icon-144x144.png">
+  <meta name="msapplication-TileColor" content="#3f51b5">
+  <meta name="msapplication-tap-highlight" content="no">
+  <link rel="icon" href="../assets/favicon.ico">
+  <link rel="apple-touch-icon" href="../assets/icon-48x48.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="../assets/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="96x96" href="../assets/icon-96x96.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="../assets/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="../assets/icon-192x192.png">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css">
+  <script defer="defer" src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script defer="defer" src="../node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script type="module" defer="defer" src="build.js"></script>
+  <script>
+  // this is in order to fake a connection for development purposes
+  window.__haxCMSContextDemo = true;
+  // @todo generate fake end point responses as json files
+  window.appSettings = {
+    "login": "\/system\/login.php",
+    "logout": "\/system\/logout.php",
+    "savePagePath": "\/system\/savePage.php",
+    "saveManifestPath": "\/system\/saveManifest.php",
+    "saveOutlinePath": "\/system\/saveOutline.php",
+    "publishPath": "\/system\/publishToCloud.php",
+    "appStore": { "url": "\/system\/generateAppStore.php?app-store-token=X0A0TKaOAFLQezTYyoAXzJcxop1MHbp2jwbOR4TT258"
+    }
+  };
+  </script>
+</head>
+<body>
+  <haxcms-site-builder file="../site.json"></haxcms-site-builder>
+  <noscript>Please enable JavaScript to view this website.</noscript>
+</body>
+</html>

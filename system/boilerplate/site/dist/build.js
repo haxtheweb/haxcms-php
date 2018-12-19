@@ -1,5 +1,6 @@
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/haxcms-beaker.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-manifest-editor-dialog.js";
@@ -29,6 +30,7 @@ import "@lrnwebcomponents/media-image/media-image.js";
 import "@lrnwebcomponents/meme-maker/meme-maker.js";
 import "@lrnwebcomponents/multiple-choice/multiple-choice.js";
 import "@lrnwebcomponents/paper-audio-player/paper-audio-player.js";
+import "@lrnwebcomponents/pdf-element/pdf-element.js";
 import "@lrnwebcomponents/person-testimonial/person-testimonial.js";
 import "@lrnwebcomponents/place-holder/place-holder.js";
 import "@lrnwebcomponents/q-r/q-r.js";

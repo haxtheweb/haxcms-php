@@ -1,0 +1,56 @@
+{
+  "entrypoint": "dist/dev.html",
+  "extraDependencies": [
+    "manifest.json",
+    "node_modules/@lrnwebcomponents/*/*.js",
+    "node_modules/@lrnwebcomponents/*/lib/*",
+    "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/mode-html.js",
+    "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/theme-monokai.js",
+    "node_modules/@lrnwebcomponents/code-editor/lib/ace-builds/src-min-noconflict/worker-html.js",
+    "node_modules/@lrnwebcomponents/lrn-calendar/lib/ical.js/build/ical.js",
+    "node_modules/@lrnwebcomponents/wave-player/lib/wavesurfer.js/dist/wavesurfer.js",
+    "!node_modules/@lrnwebcomponents/*/*.story.js",
+    "node_modules/@webcomponents/webcomponentsjs/*.js",
+    "!node_modules/@webcomponents/webcomponentsjs/gulpfile.js",
+    "node_modules/@webcomponents/webcomponentsjs/bundles/*.js"
+  ],
+  "sources": [],
+  "builds": [
+    {
+      "name": "es6",
+      "browserCapabilities": ["es2015", "modules"],
+      "js": {
+        "minify": true
+      },
+      "css": {
+        "minify": true
+      },
+      "html": {
+        "minify": true
+      },
+      "bundle": false,
+      "addServiceWorker": false
+    },
+    {
+      "name": "es5-amd",
+      "js": {
+        "minify": true,
+        "compile": true,
+        "transformModulesToAmd": true
+      },
+      "css": {
+        "minify": true
+      },
+      "html": {
+        "minify": true
+      },
+      "bundle": false,
+      "addServiceWorker": false
+    }
+  ],
+  "moduleResolution": "node",
+  "npm": true,
+  "lint": {
+    "rules": ["polymer-3"]
+  }
+}
