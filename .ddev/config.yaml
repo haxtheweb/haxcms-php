@@ -10,7 +10,7 @@ xdebug_enabled: false
 additional_hostnames: []
 additional_fqdns: []
 mariadb_version: "10.2"
-webcache_enabled: true
+webcache_enabled: false
 provider: default
 hooks:
   post-start:

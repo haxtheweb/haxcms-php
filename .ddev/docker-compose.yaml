@@ -40,12 +40,9 @@ services:
     cap_add:
       - SYS_PTRACE
     volumes:
-      - type: volume
-        source: webcachevol
+      - type: bind
+        source: ../
         target: /var/www/html
-        
-        volume:
-          nocopy: true
         
       - ".:/mnt/ddev_config:ro"
       - ddev-composer-cache:/mnt/composer_cache
@@ -95,34 +92,6 @@ services:
       retries: 6
       start_period: 10s
 
-  bgsync:
-    container_name: ddev-${DDEV_SITENAME}-bgsync
-    image: $DDEV_BGSYNCIMAGE
-    restart: "on-failure"
-    user: "$DDEV_UID:$DDEV_GID"
-    volumes:
-      - ..:/hostmount
-      - webcachevol:/fastdockermount
-      - unisoncatalogvol:/root/.unison
-
-    environment:
-    - SYNC_DESTINATION=/fastdockermount
-    - SYNC_SOURCE=/hostmount
-    - SYNC_MAX_INOTIFY_WATCHES=100000
-    - SYNC_VERBOSE=1
-    privileged: true
-    labels:
-      com.ddev.site-name: ${DDEV_SITENAME}
-      com.ddev.platform: ddev
-      com.ddev.app-type: drupal8
-      com.ddev.approot: $DDEV_APPROOT
-      com.ddev.app-url: $DDEV_URL
-    healthcheck:
-      interval: 10s
-      retries: 5
-      start_period: 180s
-
-
 
 
   dba:
@@ -164,7 +133,4 @@ volumes:
   
   ddev-composer-cache:
     name: ddev-composer-cache
-  
-  webcachevol:
-  unisoncatalogvol:
   
