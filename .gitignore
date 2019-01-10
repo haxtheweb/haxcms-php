@@ -1,5 +1,10 @@
 .vagrant
 .DS_Store
+node_modules
 _sites
 _config
 _config/*
+!webcomponents/es5-amd/node_modules
+!webcomponents/es6/node_modules
+yarn.lock
+build

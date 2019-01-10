@@ -7,6 +7,7 @@
     // load the site from name
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
     // wipe the manifest items and rebuild them
+    $original = $site->manifest->items;
     $site->manifest->items = array();
     $items = $_POST['items'];
     $itemMap = array();
@@ -15,6 +16,7 @@
       // get a fake item
       $page = $HAXCMS->outlineSchema->newItem();
       $itemMap[$item->id] = $page->id;
+      $page->id = $item->id;
       // set a crappy default title
       $page->title = $item->title;
       if ($item->parent == NULL) {
@@ -38,11 +40,35 @@
         $page->location = $item->location;
       }
       else {
-        // build a location and copy the associated boilerplate files there for it
+        // generate a logical page location
         $page->location = 'pages/' . $page->id . '/index.html';
-        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->manifest->metadata->siteName . '/pages/' . $page->id);
       }
-      $page->metadata->created = time();
+      // verify this exists, front end could have set what they wanted
+      // or it could have just been renamed
+      $siteDirectory = $site->directory . '/' . $site->manifest->metadata->siteName;
+      if (!file_exists($siteDirectory . '/' . $page->location)) {
+        $moved = false;
+        foreach ($original as $key => $tmpItem) {
+          // see if this is something moving as opposed to brand new
+          if ($tmpItem->id == $page->id && file_exists($siteDirectory . '/' . $tmpItem->location)) {
+            $moved = true;
+            rename(str_replace('/index.html', '', $siteDirectory . '/' . $tmpItem->location), 
+            str_replace('/index.html', '', $siteDirectory . '/' . $page->location));
+          }
+        }
+        if (!$moved) {
+          $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $page->id);
+          // if we got here ensure that location data matches
+          // this accounts for pages that got deleted at one time physically off the file system
+          $page->location = 'pages/' . $page->id . '/index.html';
+        }
+      }
+      if (isset($item->metadata->created)) {
+        $page->metadata->created = $item->metadata->created;
+      }
+      else {
+        $page->metadata->created = time();
+      }
       $page->metadata->updated = time();
       $site->manifest->addItem($page);
     }

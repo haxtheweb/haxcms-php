@@ -48,8 +48,7 @@
       "stop-note",
       "wave-player",
       "lrn-calendar",
-      "q-r",
-      "pdf-element"
+      "q-r"
     ]');
 
     $return = array(

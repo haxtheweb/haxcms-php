@@ -7,11 +7,11 @@ cd $DIR
 projectname=$1
 # move into project to operate on it
 cd "../_sites/${projectname}"
-# move things around so that its the default from rawgit
+# move things around so that its the default from unpkg
 mv index.html index2.html
-mv rawgit.html index.html
+mv unpkg.html index.html
 # publish it
 surge .
 # set this back since its just for publishing
-mv index.html rawgit.html
+mv index.html unpkg.html
 mv index2.html index.html
