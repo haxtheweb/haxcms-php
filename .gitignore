@@ -7,3 +7,4 @@ _config/*
 !webcomponents/es5-amd/node_modules
 !webcomponents/es6/node_modules
 yarn.lock
+build
