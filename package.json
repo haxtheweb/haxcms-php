@@ -24,7 +24,7 @@
     "@lrnwebcomponents/eco-json-schema-form": "^0.0.37",
     "@lrnwebcomponents/elmsln-loading": "^0.0.37",
     "@lrnwebcomponents/grafitto-filter": "^0.0.37",
-    "@lrnwebcomponents/grid-plate": "^0.0.37",
+    "@lrnwebcomponents/grid-plate": "^0.2.0",
     "@lrnwebcomponents/hax-body": "^0.0.37",
     "@lrnwebcomponents/hax-body-behaviors": "^0.0.37",
     "@lrnwebcomponents/haxcms-elements": "^0.0.37",
