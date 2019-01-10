@@ -28,7 +28,7 @@
     "@lrnwebcomponents/hax-body": "^0.0.37",
     "@lrnwebcomponents/hax-body-behaviors": "^0.0.37",
     "@lrnwebcomponents/haxcms-elements": "^0.0.37",
-    "@lrnwebcomponents/hero-banner": "^0.0.37",
+    "@lrnwebcomponents/hero-banner": "^0.2.0",
     "@lrnwebcomponents/image-compare-slider": "^0.0.37",
     "@lrnwebcomponents/license-element": "^0.0.37",
     "@lrnwebcomponents/lrn-aside": "^0.0.37",
