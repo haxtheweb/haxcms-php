@@ -15,7 +15,7 @@
   "dependencies": {
     "@lrnwebcomponents/a11y-gif-player": "^0.0.37",
     "@lrnwebcomponents/aframe-player": "^0.0.37",
-    "@lrnwebcomponents/app-datepicker": "^0.0.37",
+    "@lrnwebcomponents/app-datepicker": "^0.2.0",
     "@lrnwebcomponents/citation-element": "^0.0.37",
     "@lrnwebcomponents/code-editor": "^0.0.37",
     "@lrnwebcomponents/deduping-fix": "^0.0.37",
