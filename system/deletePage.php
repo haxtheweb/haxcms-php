@@ -8,8 +8,8 @@
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    if ($page = $site->loadPage($HAXCMS->safePost['page'])) {
-       if ($site->deletePage($page) === FALSE) {
+    if ($page = $site->loadPage($HAXCMS->safePost['pageid'])) {
+      if ($site->deletePage($page) === FALSE) {
         header('Status: 500');
         print 'failed to delete';
       }
@@ -18,6 +18,10 @@
         print json_encode($page);
       }
       exit;
+    }
+    else {
+      header('Status: 500');
+      print 'failed to load page';
     }
   }
 ?>

@@ -38,8 +38,8 @@ class HAXCMSSite {
     $tmpname = strtolower($tmpname);
     // attempt to shift it on the file system
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
-    // create symlink to make it easier for themes to resolve correctly
-    @symlink('../../webcomponents', $directory . '/' . $tmpname . '/webcomponents');
+    // create symlink to make it easier to resolve things to single built asset buckets
+    @symlink('../../build', $directory . '/' . $tmpname . '/build');
     @symlink('../../assets', $directory . '/' . $tmpname . '/assets');
     // default support is for surge.sh publishing methods
     if (is_null($domain)) {
