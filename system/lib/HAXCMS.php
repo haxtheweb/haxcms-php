@@ -253,6 +253,8 @@ class HAXCMS {
     $settings->saveManifestPath = $this->basePath . 'system/saveManifest.php';
     $settings->saveOutlinePath = $this->basePath . 'system/saveOutline.php';
     $settings->publishPath = $this->basePath . 'system/publishToCloud.php';
+    $settings->createPagePath = $this->basePath . 'system/createPage.php';
+    $settings->deletePagePath = $this->basePath . 'system/deletePage.php';
     $settings->appStore = $this->appStoreConnection();
     return $settings;
   }

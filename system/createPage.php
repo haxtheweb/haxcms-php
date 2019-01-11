@@ -13,6 +13,21 @@
       $item = $HAXCMS->outlineSchema->newItem();
       // set the title
       $item->title = $params['siteName'];
+      if (isset($params['id'])) {
+        $item->id = $params['id'];
+      }
+      if (isset($params['location'])) {
+        $item->location = $params['location'];
+      }
+      if (isset($params['indent'])) {
+        $item->indent = $params['indent'];
+      }
+      if (isset($params['order'])) {
+        $item->order = $params['order'];
+      }
+      if (isset($params['parent'])) {
+        $item->parent = $params['parent'];
+      }
       $item->metadata->siteName = strtolower($params['siteName']);
       $item->description = $params['description'];
       $item->metadata->image = $params['image'];

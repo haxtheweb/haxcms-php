@@ -125,6 +125,20 @@ class HAXCMSSite {
     return FALSE;
   }
   /**
+   * Delete a page from the manifest
+   * @return JSONOutlineSchemaItem or FALSE
+   */
+  public function deletePage($page) {
+    foreach ($this->manifest->items as $key => $item) {
+      if ($item->id === $page->id) {
+        unset($this->manifest->items[$key]);
+        $this->manifest->save();
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+  /**
    * Change the directory this site is located in
    */
   public function changeName($new) {
