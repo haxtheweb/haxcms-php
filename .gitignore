@@ -7,4 +7,3 @@ _config/*
 !build/es5-amd/node_modules
 !build/es6/node_modules
 yarn.lock
-build
