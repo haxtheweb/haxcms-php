@@ -47,6 +47,7 @@
     $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $site->directory . '/' . $site->manifest->metadata->siteName . '/' . str_replace('/index.html', '', $item->location));
     $site->manifest->addItem($item);
     $site->manifest->save();
+    $site->gitCommit('Page added:' . $item->title . '(' . $page->id . ')');
     print json_encode($item);      
   }
   exit;

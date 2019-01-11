@@ -14,6 +14,7 @@
         print 'failed to delete';
       }
       else {
+        $site->gitCommit('Page deleted: ' . $page->title . '(' . $page->id . ')');
         header('Status: 200');
         print json_encode($page);
       }

@@ -27,6 +27,7 @@
     // remove items list as we only need the item itself not the nesting
     unset($item->items);
     $HAXCMS->outlineSchema->updateItem($item, TRUE);
+    $site->gitCommit('Manifest updated');
     header('Status: 200');
     print json_encode($site->manifest);
     exit;

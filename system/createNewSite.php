@@ -53,7 +53,8 @@
       $site->manifest->metadata = $schema->metadata;
       $site->manifest->description = $schema->description;
       $site->manifest->save();
-      print json_encode($schema);      
+      $site->gitCommit('New idea started: ' . $site->title . '(' . $site->id . ')');
+      print json_encode($schema);
     }
     else {
       header('Status: 403');

@@ -1,7 +1,6 @@
 <?php
 
 class HAXService {
-
   /**
    * returns an array of app store definitions based
    * on passing in the apikeys for the ones we have

@@ -74,6 +74,7 @@
     }
     $site->manifest->metadata->updated = time();
     $site->manifest->save();
+    $site->gitCommit('Outline updated in bulk');
     header('Status: 200');
     print json_encode($site->manifest->items);
     exit;

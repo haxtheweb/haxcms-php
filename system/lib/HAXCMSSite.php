@@ -40,7 +40,9 @@ class HAXCMSSite {
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier to resolve things to single built asset buckets
     @symlink('../../build', $directory . '/' . $tmpname . '/build');
-    @symlink('../../assets', $directory . '/' . $tmpname . '/assets');
+    // links babel files so that unification is easier
+    @symlink('../../../babel/babel-top.js', $directory . '/' . $tmpname . '/assets/babel-top.js');
+    @symlink('../../../babel/babel-bottom.js', $directory . '/' . $tmpname . '/assets/babel-bottom.js');
     // default support is for surge.sh publishing methods
     if (is_null($domain)) {
       $domain = 'https://' . $tmpname . '.surge.sh';
@@ -61,7 +63,20 @@ class HAXCMSSite {
     // create an initial page to make sense of what's there
     // this will double as saving our location and other updated data
     $this->addPage();
+    // put this in version control :) :) :)
+    $git = new GitRepo();
+    $repo = Git::create($directory . '/' . $tmpname);
     return $this;
+  }
+  /**
+   * Basic wrapper to commit current changes to version control of the site
+   */
+  public function gitCommit($msg = 'Committed changes') {
+    $git = new GitRepo();
+    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $repo->add('.');
+    $repo->commit($msg);
+    return true;
   }
   /**
    * Add a page to the site's file system and reflect it in the outine schema.

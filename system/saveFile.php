@@ -13,6 +13,7 @@
       $upload = $_FILES['file-upload'];
       $file = new HAXCMSFile();
       print $file->save($upload, $site, $page);
+      $site->gitCommit('File added: ' . $upload['name']);
       exit;
     }
   }
