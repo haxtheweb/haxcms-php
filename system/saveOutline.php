@@ -63,10 +63,8 @@
           $page->location = 'pages/' . $page->id . '/index.html';
         }
       }
-      if (isset($item->metadata->created)) {
-        $page->metadata->created = $item->metadata->created;
-      }
-      else {
+      $page->metadata = $item->metadata;
+      if (!isset($page->metadata->created)) {
         $page->metadata->created = time();
       }
       $page->metadata->updated = time();
