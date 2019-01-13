@@ -40,6 +40,9 @@ class HAXCMSSite {
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier to resolve things to single built asset buckets
     @symlink('../../build', $directory . '/' . $tmpname . '/build');
+    // symlink to do local development if needed
+    @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
+    @symlink('../../node_modules', $directory . '/' . $tmpname . '/node_modules');
     // links babel files so that unification is easier
     @symlink('../../../babel/babel-top.js', $directory . '/' . $tmpname . '/assets/babel-top.js');
     @symlink('../../../babel/babel-bottom.js', $directory . '/' . $tmpname . '/assets/babel-bottom.js');
