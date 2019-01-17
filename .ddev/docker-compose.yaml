@@ -44,6 +44,8 @@ services:
         source: ../
         target: /var/www/html
         
+        consistency: cached
+        
       - ".:/mnt/ddev_config:ro"
       - ddev-composer-cache:/mnt/composer_cache
       
