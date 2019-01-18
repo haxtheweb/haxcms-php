@@ -264,14 +264,14 @@ class HAXCMS {
    */
   public function validateJWT($endOnInvalid = TRUE) {
     if (isset($_POST['jwt']) && $_POST['jwt'] != NULL) {
-      $post = JWT::decode($_POST['jwt'], $this->privateKey);
+      $post = JWT::decode($_POST['jwt'],  $this->privateKey . $this->salt);
       if ($post->id == $this->getRequestToken('user')) {
         return TRUE;
       }
     }
     // fallback is GET requests
     if (isset($_GET['jwt']) && $_GET['jwt'] != NULL) {
-      $get = JWT::decode($_GET['jwt'], $this->privateKey);
+      $get = JWT::decode($_GET['jwt'],  $this->privateKey . $this->salt);
       if ($get->id == $this->getRequestToken('user')) {
         return TRUE;
       }
