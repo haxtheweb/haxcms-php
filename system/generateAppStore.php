@@ -8,49 +8,62 @@
     $apikeys = array();
     $baseApps = $haxService->baseSupportedApps();
     foreach ($baseApps as $key => $app) {
-      if (isset($HAXCMS->apiKeys[$key]) && $HAXCMS->apiKeys[$key] != '') {
-        $apikeys[$key] = $HAXCMS->apiKeys[$key];
+      if (isset($HAXCMS->config->appStore->apiKeys->{$key}) && $HAXCMS->config->appStore->apiKeys->{$key} != '') {
+        $apikeys[$key] = $HAXCMS->config->appStore->apiKeys->{$key};
       }
     }
     $appStore = $haxService->loadBaseAppStore($apikeys);
     // pull in the core one we supply, though only upload works currently
     $tmp = json_decode($HAXCMS->siteConnectionJSON());
     array_push($appStore, $tmp);
-    $staxList = $haxService->loadBaseStax();
-    $bloxList = $haxService->loadBaseBlox();
-    $autoloaderList = json_decode('[
-      "video-player",
-      "lrn-aside",
-      "grid-plate",
-      "tab-list",
-      "magazine-cover",
-      "image-compare-slider",
-      "simple-concept-network",
-      "license-element",
-      "self-check",
-      "multiple-choice",
-      "oer-schema",
-      "hero-banner",
-      "task-list",
-      "lrn-table",
-      "media-image",
-      "lrndesign-blockquote",
-      "meme-maker",
-      "a11y-gif-player",
-      "paper-audio-player",
-      "wikipedia-query",
-      "lrn-vocab",
-      "lrn-math",
-      "person-testimonial",
-      "citation-element",
-      "code-editor",
-      "place-holder",
-      "stop-note",
-      "wave-player",
-      "lrn-calendar",
-      "q-r"
-    ]');
-
+    if (isset($HAXCMS->config->appStore->stax)) {
+      $staxList = $HAXCMS->config->appStore->stax;
+    }
+    else {
+      $staxList = $haxService->loadBaseStax();
+    }
+    if (isset($HAXCMS->config->appStore->blox)) {
+      $bloxList = $HAXCMS->config->appStore->blox;
+    }
+    else {
+      $bloxList = $haxService->loadBaseBlox();
+    }
+    if (isset($HAXCMS->config->appStore->autoloader)) {
+      $autoloaderList = $HAXCMS->config->appStore->autoloader;
+    }
+    else {
+      $autoloaderList = json_decode('
+      [
+        "video-player",
+        "lrn-aside",
+        "grid-plate",
+        "tab-list",
+        "magazine-cover",
+        "image-compare-slider",
+        "license-element",
+        "self-check",
+        "multiple-choice",
+        "oer-schema",
+        "hero-banner",
+        "task-list",
+        "lrn-table",
+        "media-image",
+        "lrndesign-blockquote",
+        "meme-maker",
+        "a11y-gif-player",
+        "paper-audio-player",
+        "wikipedia-query",
+        "lrn-vocab",
+        "lrn-math",
+        "person-testimonial",
+        "citation-element",
+        "code-editor",
+        "place-holder",
+        "stop-note",
+        "q-r"
+      ]
+      ');
+    }
     $return = array(
       'status' => 200,
       'apps' => $appStore,
