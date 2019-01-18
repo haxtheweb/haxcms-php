@@ -28,9 +28,37 @@ getuuid(){
 }
 
 # Time to get down to brass tacks
+if [ ! -d "_sites" ]; then
+  mkdir _sites
+fi
+if [ ! -d "_config" ]; then
+  mkdir _config
+fi
+if [ ! -d "_config/.ssh" ]; then
+  mkdir _config/.ssh
+fi
+# migrate if legacy
+if [ -f "_config/sites.json" ]; then
+  mv "_config/sites.json" "_sites/sites.json"
+fi
+if [ ! -f "_sites/sites.json" ]; then
+  touch _sites/sites.json
+  echo "{}" >> _sites/sites.json
+fi
+if [ ! -f "_config/config.php" ]; then
+  touch _config/config.php
+  echo '$HAXCMS->privateKey = "HAXTHEWEBPRIVATEKEY";' >> _config/config.php
+  echo '$HAXCMS->superUser->name = "jeff"' >> _config/config.php
+  echo '$HAXCMS->superUser->password = "jimmerson";' >> _config/config.php
+fi
+if [ ! -f _config/.ssh/haxyourweb.pub ]; then
+    ssh-keygen -f _config/.ssh/haxyourweb -t rsa -N ''
+fi
+# may need to revisit these at some point
 sudo chmod 777 _sites
 sudo chmod 775 _config
-sudo chmod 777 _config/sites.json
+sudo chmod 777 _config/config.json
+sudo chmod 777 _sites/sites.json
 # whew that was hard work. the end.
 
 # jk
