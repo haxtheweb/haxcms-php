@@ -1,6 +1,7 @@
 <?php
   include_once 'system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
+  $appSettings = $HAXCMS->appJWTConnectionSettings();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +49,7 @@
   </head>
   <body>
     <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken();?>"}' base-path="<?php print $HAXCMS->basePath;?>" data-source="<?php print $HAXCMS->sitesJSON;?>"></haxcms-site-listing>
+    <script>window.appSettings = <?php print json_encode($appSettings); ?>; </script>
     <noscript>Please enable JavaScript to view this website.</noscript>
   </body>
 </html>
