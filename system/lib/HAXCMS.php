@@ -19,6 +19,7 @@ include_once 'Git.php';
 class HAXCMS {
   public $appStoreFile;
   public $salt;
+  public $outlineSchema;
   public $privateKey;
   public $config;
   public $superUser;
@@ -57,6 +58,7 @@ class HAXCMS {
     $this->user = new stdClass();
     $this->user->name = NULL;
     $this->user->password = NULL;
+    $this->outlineSchema = new JSONOutlineSchema();
     // set default sites directory to look in if there
     if (is_dir(HAXCMS_ROOT . '/_sites')) {
       $this->sitesDirectory = '_sites';
@@ -72,8 +74,7 @@ class HAXCMS {
       }
       if (file_exists($this->sitesDirectory . '/sites.json')) {
         $this->sitesJSON = $this->sitesDirectory . '/sites.json?' . $this->getRequestToken(time());
-        $this->outlineSchema = new JSONOutlineSchema();
-        if (!$this->outlineSchema->load($this->sitesDirectory . '/sites.json')) {
+        if (!$this->outlineSchema->load(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/sites.json')) {
           print $this->sitesDirectory . '/sites.json missing';
         }
       }

@@ -145,13 +145,14 @@ class JSONOutlineSchema {
    */
   public function save() {
     $schema = get_object_vars($this);
+    $file = $schema['file'];
     unset($schema['file']);
     $schema['items'] = array();
     foreach ($this->items as $item) {
       $newItem = get_object_vars($item);
       array_push($schema['items'], $newItem);
     }
-    return @file_put_contents($this->file, json_encode($schema, JSON_PRETTY_PRINT));
+    return @file_put_contents($file, json_encode($schema, JSON_PRETTY_PRINT));
   }
   /**
    * Generate a UUID
