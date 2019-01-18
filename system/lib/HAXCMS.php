@@ -20,7 +20,7 @@ class HAXCMS {
   public $appStoreFile;
   public $salt;
   public $privateKey;
-  public $apiKeys;
+  public $config;
   public $superUser;
   public $user;
   public $sitesDirectory;
@@ -49,7 +49,7 @@ class HAXCMS {
     $this->domain = $_SERVER['HTTP_HOST'];
     // auto generate base path
     $this->basePath = '/';
-    $this->apiKeys = array();
+    $this->config = array();
     // set up user account stuff
     $this->superUser = new stdClass();
     $this->superUser->name = NULL;
@@ -67,18 +67,19 @@ class HAXCMS {
       // add in the auto-generated app store file
       $this->appStoreFile = 'system/generateAppStore.php';
       // ensure appstore file is there, then make salt size of this file
-      if (file_exists(HAXCMS_ROOT . '/SALT.txt')) {
-        $this->salt = file_get_contents(HAXCMS_ROOT . '/SALT.txt');
+      if (file_exists($this->configDirectory . '/SALT.txt')) {
+        $this->salt = file_get_contents($this->configDirectory . '/SALT.txt');
       }
-      if (file_exists($this->configDirectory . '/sites.json')) {
-        $this->sitesJSON = '_config/sites.json?' . $this->getRequestToken(time());
+      if (file_exists($this->sitesDirectory . '/sites.json')) {
+        $this->sitesJSON = $this->sitesDirectory . '/sites.json?' . $this->getRequestToken(time());
         $this->outlineSchema = new JSONOutlineSchema();
-        if ($this->outlineSchema->load($this->configDirectory . '/sites.json')) {
-          // @todo
+        if (!$this->outlineSchema->load($this->sitesDirectory . '/sites.json')) {
+          print $this->sitesDirectory . '/sites.json missing';
         }
-        else {
-          print 'no _config/sites.json';
-        }
+      }
+      // check for a config json file to populate all configurable settings
+      if (!$this->config = json_decode(file_get_contents($this->configDirectory . '/config.json'))) {
+        print $this->configDirectory . '/config.json missing';
       }
     }
   }
