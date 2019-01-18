@@ -42,6 +42,13 @@
       $schema->metadata->created = time();
       $schema->metadata->updated = time();
       $schema->metadata->cssVariable = $cssvar;
+      // check for publishing settings being set globally in HAXCMS
+      // this would allow them to fork off to different locations down stream
+      $schema->metadata->publishing = new stdClass();
+      if (isset($HAXCMS->config->publishing->git->user)) {
+        $schema->metadata->publishing->git = $HAXCMS->config->publishing->git;
+        $schema->metadata->publishing->git
+      }
       // mirror the metadata information into the site's info
       // this means that this info is available to the full site listing
       // as well as this individual site. saves on performance / calls

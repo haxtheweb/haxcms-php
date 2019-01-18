@@ -9,6 +9,11 @@
       $response = new stdClass();
       $response->schema = $HAXCMS->getConfigSchema();
       $response->values = $HAXCMS->config;
+      foreach ($response->values->appStore as $key => $val) {
+        if ($key !== 'apiKeys') {
+          unset($response->values->appStore->{$key});
+        }
+      }
       print json_encode($response);
     }
     else {

@@ -15,6 +15,8 @@ include_once 'JSONOutlineSchema.php';
 include_once 'JWT.php';
 // working with git operators
 include_once 'Git.php';
+// composer...ugh
+include_once dirname(__FILE__) . "/../../vendor/autoload.php";
 
 class HAXCMS {
   public $appStoreFile;
@@ -50,7 +52,7 @@ class HAXCMS {
     $this->domain = $_SERVER['HTTP_HOST'];
     // auto generate base path
     $this->basePath = '/';
-    $this->config = array();
+    $this->config = new stdClass();
     // set up user account stuff
     $this->superUser = new stdClass();
     $this->superUser->name = NULL;
@@ -83,6 +85,163 @@ class HAXCMS {
         print $this->configDirectory . '/config.json missing';
       }
     }
+  }
+  /**
+   * Build valid JSON Schema for the config we have knowledge of
+   */
+  public function getConfigSchema() {
+    $schema = new stdClass();
+    $schema->{'$schema'} = "http://json-schema.org/schema#";
+    $schema->title = "HAXCMS Config";
+    $schema->type = "object";
+    $schema->properties = new stdClass();
+    $schema->properties->publishing = new stdClass();
+    $schema->properties->publishing->title = "Publishing settings";
+    $schema->properties->publishing->type = "object";
+    $schema->properties->publishing->properties =  new stdClass();
+    $schema->properties->apis = new stdClass();
+    $schema->properties->apis->title = "API Connectivity";
+    $schema->properties->apis->type = "object";
+    $schema->properties->apis->properties =  new stdClass();
+    // establish some defaults if nothing set internally
+    $publishing = array(
+      'vendor' => array(
+        'name' => 'Vendor',
+        'description' => 'Name for this provided (github currently supported)',
+        'value' => 'github'
+      ),
+      'branch' => array(
+        'name' => 'Branch',
+        'description' => 'Project code branch (like master or gh-pages)',
+        'value' => 'gh-pages'
+      ),
+      'url' => array(
+        'name' => 'Repo url',
+        'description' => 'Base address / organization that new sites will be saved under',
+        'value' => 'git@github.com:elmsln'
+      ),
+      'user' => array(
+        'name' => 'User name',
+        'description' => 'Your user name',
+        'value' => ''
+      ),
+      'pass' => array(
+        'name' => 'Password',
+        'description' => 'Password for the account THIS IS NOT STORED. See ',
+        'value' => ''
+      ),
+    );
+    // publishing
+    foreach ($publishing as $key => $value) {
+      $props = new stdClass();
+      $props->title = $value['name'];
+      $props->type = 'string';
+      if (isset($this->config->publishing->git->{$key})) {
+        $props->value = $this->config->publishing->git->{$key};
+      }
+      else {
+        $props->value = $value['value'];
+      }
+      $props->component = new stdClass();
+      $props->component->name = "paper-input";
+      $props->component->valueProperty = "value";
+      $props->component->slot = '<div slot="suffix">' . $value['description'] . '</div>';
+      if ($key == 'pass') {
+        $props->component->attributes = new stdClass();
+        $props->component->attributes->type = 'password';
+      }
+      if ($key == 'pass' && isset($this->config->publishing->git->user)) {
+        // keep moving but if we already have a user name we don't need this
+        // we only ask for a password on the very first run through
+        $schema->properties->publishing->properties->user->component->attributes = new stdClass();
+        $schema->properties->publishing->properties->user->component->attributes->disabled = 'disabled';
+      }
+      else {
+        $schema->properties->publishing->properties->{$key} = $props;
+      }    
+    }
+    // API keys
+    $hax = new HAXService();
+    $apiDocs = $hax->baseSupportedApps();
+    foreach ($apiDocs as $key => $value) {
+      $props = new stdClass();
+      $props->title = $key;
+      $props->type = 'string';
+      // if we have this value loaded internally then set it
+      if (isset($this->config->appStore->apiKeys->{$key})) {
+        $props->value = $this->config->appStore->apiKeys->{$key};
+      }
+      $props->component = new stdClass();
+      // look for our documentation object name
+      if (isset($apiDocs[$key])) {
+        $props->title = $apiDocs[$key]['name'];
+        $props->component->slot = '<div slot="suffix"><a href="' . $apiDocs[$key]['docs'] . '" target="_blank">See ' . $props->title . ' developer docs.</a></div>';
+      }
+      $props->component->name = "paper-input";
+      $props->component->valueProperty = "value";
+      $schema->properties->apis->properties->{$key} = $props;
+    }
+    return $schema;
+  }
+  /**
+   * Set and validate config
+   */
+  public function setConfig($values) {
+    if (isset($values->apis)) {
+      foreach ($values->apis as $key => $val) {
+        $this->config->appStore->apiKeys->{$key} = $val;
+      }
+    }
+    if (!isset($this->config->publishing)) {
+        $this->config->publishing = new stdClass();
+    }
+    if (!isset($this->config->publishing->git)) {
+      $this->config->publishing->git = new stdClass();
+    }
+    if ($values->publishing) {
+      foreach ($values->publishing as $key => $val) {
+        $this->config->publishing->git->{$key} = $val;
+      }
+    }
+    // test for a password in order to do the git hook up this one time
+    if (isset($this->config->publishing->git->user) && isset($this->config->publishing->git->pass)) {
+      $user = $this->config->publishing->git->user;
+      $pass = $this->config->publishing->git->pass;
+      unset($this->config->publishing->git->pass);
+    }
+    // save config to the file
+    $this->saveConfigFile();
+    if (!isset($this->config->publishing->git->keySet) && isset($this->config->publishing->git->vendor) && $this->config->publishing->git->vendor == 'github') {
+      $client = new GuzzleHttp\Client();
+      $json = new stdClass();
+      $json->title = 'HAXCMS Publishing key';
+      $json->key = $this->getSSHKey();
+      $body = json_encode($json);
+      $response = $client->request('POST', 'https://api.github.com/user/keys', 
+      [
+          'auth' => [$user, $pass],
+          'body' => $body,
+      ]);
+      // we did it, now store that it worked so we can skip all this setup in the future
+      if ($response->getStatusCode() == 201) {
+        $this->config->publishing->git->keySet = true;
+        $this->saveConfigFile();
+      }
+      return $response->getStatusCode();
+    }
+    return 'saved';
+  }
+  /**
+   * Write configuration to the config file
+   */
+  private function saveConfigFile() {
+    return file_put_contents($this->configDirectory . '/config.json', json_encode($this->config, JSON_PRETTY_PRINT));
+  }
+  /**
+   * get SSH Key that was created during install
+   */
+  private function getSSHKey() {
+    return file_get_contents($this->configDirectory . '/.ssh/haxyourweb.pub');
   }
   /**
    * Generate a valid HAX App store specification schema for connecting to this site via JSON.
@@ -254,9 +413,13 @@ class HAXCMS {
     $settings->savePagePath = $this->basePath . 'system/savePage.php';
     $settings->saveManifestPath = $this->basePath . 'system/saveManifest.php';
     $settings->saveOutlinePath = $this->basePath . 'system/saveOutline.php';
-    $settings->publishPath = $this->basePath . 'system/publishToCloud.php';
+    $settings->publishSitePath = $this->basePath . 'system/publishSite.php';
+    $settings->setConfigPath = $this->basePath . 'system/setConfig.php';
+    $settings->getConfigPath = $this->basePath . 'system/getConfig.php';
     $settings->createPagePath = $this->basePath . 'system/createPage.php';
     $settings->deletePagePath = $this->basePath . 'system/deletePage.php';
+    $settings->createNewSitePath = $this->basePath . 'system/createNewSite.php';
+    $settings->downloadSitePath = $this->basePath . 'system/downloadSite.php';
     $settings->appStore = $this->appStoreConnection();
     return $settings;
   }
