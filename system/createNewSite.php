@@ -42,8 +42,6 @@
       $schema->metadata->created = time();
       $schema->metadata->updated = time();
       $schema->metadata->cssVariable = $cssvar;
-      // add the item back into the outline schema
-      $site->manifest->addItem($schema);
       // mirror the metadata information into the site's info
       // this means that this info is available to the full site listing
       // as well as this individual site. saves on performance / calls
@@ -51,7 +49,11 @@
       // data we need.
       $site->manifest->metadata = $schema->metadata;
       $site->manifest->description = $schema->description;
+      // save the outline into the new site
       $site->manifest->save();
+      // save it back to the system outline so we can review on the big board
+      $HAXCMS->outlineSchema->addItem($schema);
+      $HAXCMS->outlineSchema->save();
       $site->gitCommit('New idea started: ' . $site->manifest->title . ' (' . $site->manifest->id . ')');
       print json_encode($schema);
     }
