@@ -42,19 +42,21 @@ if [ -f "_config/sites.json" ]; then
   mv "_config/sites.json" "_sites/sites.json"
 fi
 if [ ! -f "_sites/sites.json" ]; then
-  touch _sites/sites.json
-  echo "{}" >> _sites/sites.json
+  cp system/boilerplate/systemsetup/sites.json _sites/sites.json
+fi
+if [ ! -f "_config/config.json" ]; then
+  cp system/boilerplate/systemsetup/config.json _config/config.json
 fi
 if [ ! -f "_config/config.php" ]; then
-  touch _config/config.php
-  echo '$HAXCMS->privateKey = "HAXTHEWEBPRIVATEKEY";' >> _config/config.php
-  echo '$HAXCMS->superUser->name = "jeff"' >> _config/config.php
-  echo '$HAXCMS->superUser->password = "jimmerson";' >> _config/config.php
+  cp system/boilerplate/systemsetup/config.php _config/config.php
+fi
+if [ ! -f "_config/.htaccess" ]; then
+  cp system/boilerplate/systemsetup/.htaccess _config/.htaccess
 fi
 if [ ! -f _config/.ssh/haxyourweb.pub ]; then
     ssh-keygen -f _config/.ssh/haxyourweb -t rsa -N ''
 fi
-# may need to revisit these at some point
+# may need to revisit this at some point
 sudo chmod 777 _sites
 sudo chmod 775 _config
 sudo chmod 777 _config/config.json
