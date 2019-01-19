@@ -197,7 +197,7 @@ class HAXCMSSite {
   public function recurseCopy($src, $dst) {
     $dir = opendir($src);
     // see if we can make the directory to start off
-    if (!is_dir($dst) && @mkdir($dst)) {
+    if (!is_dir($dst) && @mkdir($dst, 0777, TRUE)) {
       while (FALSE !== ( $file = readdir($dir)) ) {
         if (($file != '.') && ($file != '..')) {
           if (is_dir($src . '/' . $file)) {
