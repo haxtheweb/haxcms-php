@@ -163,8 +163,12 @@ class HAXCMS {
       if ($key == 'pass' && isset($this->config->publishing->git->user)) {
         // keep moving but if we already have a user name we don't need this
         // we only ask for a password on the very first run through
+        $schema->properties->publishing->properties->user->component->slot = '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
         $schema->properties->publishing->properties->user->component->attributes = new stdClass();
         $schema->properties->publishing->properties->user->component->attributes->disabled = 'disabled';
+        $schema->properties->publishing->properties->email->component->attributes = new stdClass();
+        $schema->properties->publishing->properties->email->component->attributes->disabled = 'disabled';
+        $schema->properties->publishing->properties->email->component->slot = '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
       }
       else {
         $schema->properties->publishing->properties->{$key} = $props;
