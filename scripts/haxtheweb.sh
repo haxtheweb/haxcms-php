@@ -62,7 +62,6 @@ sudo chmod 777 _sites/sites.json
 # place this in VC just so it COULD be tracked by the user
 cd _sites
 git init
-git add -A
 cd ..
 # whew that was hard work. the end.
 
@@ -87,10 +86,9 @@ fi
 sed -i "s/jimmerson/${pass}/g" _config/config.php
 
 # place this in VC just so it COULD be tracked by the user
-cd ../_config
+cd _config
 git init
-git add -A
-
+cd ..
 # only if you use apache
 if [ -z $1 ]; then
   haxecho "www-data or apache is common, hit enter to ignore"
