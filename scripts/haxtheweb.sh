@@ -53,14 +53,17 @@ fi
 if [ ! -f "_config/.htaccess" ]; then
   cp system/boilerplate/systemsetup/.htaccess _config/.htaccess
 fi
-if [ ! -f _config/.ssh/haxyourweb.pub ]; then
-    ssh-keygen -f _config/.ssh/haxyourweb -t rsa -N ''
-fi
 # may need to revisit this at some point
 sudo chmod 777 _sites
 sudo chmod 775 _config
 sudo chmod 777 _config/config.json
 sudo chmod 777 _sites/sites.json
+
+# place this in VC just so it COULD be tracked by the user
+cd _sites
+git init
+git add -A
+cd ..
 # whew that was hard work. the end.
 
 # jk
@@ -72,8 +75,6 @@ pk="$(getuuid)"
 sed -i "s/HAXTHEWEBPRIVATEKEY/${pk}/g" _config/config.php
 user=$1
 pass=$2
-email=$3
-surgepassword=$4
 # enter a super user name, dun dun dun dunnnnnnn!
 if [ -z $user ]; then
   read -rp "Super user name:" user
@@ -84,21 +85,11 @@ if [ -z $pass ]; then
   read -rp "Super user password:" pass
 fi
 sed -i "s/jimmerson/${pass}/g" _config/config.php
-# da email, da email, what what, da email. Dear Strong Bad.
-if [ -z $email ]; then
-  read -rp "Surge email address:" email
-fi
-# SERGE IS BACK
-if [ -z $surgepassword ]; then
-  read -rp "Surge password:" surgepassword
-fi
-# seed login info so we have an account primed
 
-cat <<EOF | surge login
-
-$email
-$surgepassword
-EOF
+# place this in VC just so it COULD be tracked by the user
+cd ../_config
+git init
+git add -A
 
 # only if you use apache
 if [ -z $1 ]; then

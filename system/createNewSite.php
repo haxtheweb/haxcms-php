@@ -8,7 +8,7 @@
       header('Status: 200');
       $params = $HAXCMS->safePost;
       // woohoo we can edit this thing!
-      $site = $HAXCMS->loadSite(strtolower($params['siteName']), TRUE, $params['domain']);
+      $site = $HAXCMS->loadSite(strtolower($params['siteName']), TRUE);
       // now get a new item to reference this into the top level sites listing
       $schema = $HAXCMS->outlineSchema->newItem();
       $schema->id = $site->manifest->id;
@@ -23,8 +23,6 @@
       $schema->metadata->theme = $params['theme'];
       // icon to express the concept / visually identify site
       $schema->metadata->icon = $params['icon'];
-      // domain for publishing
-      $schema->metadata->domain = $params['domain'];
       // slightly style the site based on css vars and hexcode
       if (isset($params['hexCode'])) {
         $hex = $params['hexCode'];
@@ -45,9 +43,11 @@
       // check for publishing settings being set globally in HAXCMS
       // this would allow them to fork off to different locations down stream
       $schema->metadata->publishing = new stdClass();
-      if (isset($HAXCMS->config->publishing->git->user)) {
+      if (isset($HAXCMS->config->publishing->git->vendor)) {
         $schema->metadata->publishing->git = $HAXCMS->config->publishing->git;
-        $schema->metadata->publishing->git
+        unset($schema->metadata->publishing->git->keySet);
+        unset($schema->metadata->publishing->git->email);
+        unset($schema->metadata->publishing->git->user);
       }
       // mirror the metadata information into the site's info
       // this means that this info is available to the full site listing
@@ -58,10 +58,19 @@
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save();
+      // main site schema doesn't care about publishing settings
+      unset($schema->metadata->publishing);
       // save it back to the system outline so we can review on the big board
       $HAXCMS->outlineSchema->addItem($schema);
       $HAXCMS->outlineSchema->save();
-      $site->gitCommit('New idea started: ' . $site->manifest->title . ' (' . $site->manifest->id . ')');
+      $git = new GitRepo();
+      $repo = Git::open($site->directory . '/' . $site->manifest->metadata->siteName);
+      $repo->add('.');
+      $site->gitCommit('A new journey begins: ' . $site->manifest->title . ' (' . $site->manifest->id . ')');
+      // make a branch but dont use it
+      if (isset($site->manifest->metadata->publishing->git->branch)) {
+        $repo->create_branch($site->manifest->metadata->publishing->git->branch);
+      }
       print json_encode($schema);
     }
     else {

@@ -366,6 +366,15 @@ class GitRepo {
 	}
 
 	/**
+	 * runs a `git remote add` call
+	 * 
+	 * Accepts a destination name and url of the remote repo
+	 */
+	public function set_remote($destination, $url) {
+		return $this->run("remote add $destination $url");
+	}
+
+	/**
 	 * Runs a `git rm` call
 	 *
 	 * Accepts a list of files to remove

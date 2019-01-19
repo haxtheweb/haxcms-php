@@ -24,10 +24,12 @@ class HAXCMSSite {
    * @var $directory string file system path
    * @var $siteBasePath string web based url / base_path
    * @var $name string name of the site
+   * @var $gitDetails git details
+   * @var $domain domain information
    * 
    * @return HAXCMSSite object
    */
-  public function newSite($directory, $siteBasePath, $name, $domain = NULL) {
+  public function newSite($directory, $siteBasePath, $name, $gitDetails, $domain = NULL) {
     // calls must set basePath internally to avoid page association issues
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
@@ -46,9 +48,9 @@ class HAXCMSSite {
     // links babel files so that unification is easier
     @symlink('../../../babel/babel-top.js', $directory . '/' . $tmpname . '/assets/babel-top.js');
     @symlink('../../../babel/babel-bottom.js', $directory . '/' . $tmpname . '/assets/babel-bottom.js');
-    // default support is for surge.sh publishing methods
-    if (is_null($domain)) {
-      $domain = 'https://' . $tmpname . '.surge.sh';
+    // default support is for gh-pages
+    if (is_null($domain) && isset($git->user)) {
+      $domain = 'https://' . $git->user . '.github.io/' . $tmpname;
     }
     // put domain into CNAME
     @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
@@ -60,7 +62,6 @@ class HAXCMSSite {
     $this->manifest->title = $name;
     $this->manifest->location = $this->basePath . $tmpname . '/index.html';
     $this->manifest->metadata->siteName = $tmpname;
-    $this->manifest->metadata->domain = $domain;
     $this->manifest->metadata->created = time();
     $this->manifest->metadata->updated = time();
     // create an initial page to make sense of what's there
@@ -69,6 +70,9 @@ class HAXCMSSite {
     // put this in version control :) :) :)
     $git = new GitRepo();
     $repo = Git::create($directory . '/' . $tmpname);
+    if (!isset($this->manifest->metadata->git->url) && isset($gitDetails->url)) {
+      $this->gitSetRemote($gitDetails);
+    }
     return $this;
   }
   /**
@@ -79,6 +83,28 @@ class HAXCMSSite {
     $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
     $repo->add('.');
     $repo->commit($msg);
+    return true;
+  }
+  /**
+   * Basic wrapper to commit current changes to version control of the site
+   */
+  public function gitPush() {
+    $git = new GitRepo();
+    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $repo->add('.');
+    $repo->commit($msg);
+    return true;
+  }
+
+  /**
+   * Basic wrapper to commit current changes to version control of the site
+   * 
+   * @var $git a stdClass containing repo details
+   */
+  public function gitSetRemote($gitDetails) {
+    $git = new GitRepo();
+    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $repo->set_remote("origin", $gitDetails->url);
     return true;
   }
   /**

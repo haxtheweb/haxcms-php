@@ -8,15 +8,98 @@
     if ($site = $HAXCMS->loadSite($HAXCMS->safePost['siteName'])) {
       // see if the site wants to publish to git
       if (isset($site->manifest->metadata->publishing->git)) {
+        $git = new GitRepo();
+        $repo = Git::open($site->directory . '/' . $site->manifest->metadata->siteName);
+        // ensure we're on master and everything is added
+        $repo->checkout('master');
+        // set last published time to now
         $site->manifest->metadata->lastPublished = time();
         $site->manifest->save();
+        $repo->add('.');
+        $repo->commit('Clean up pre-publishing..');
+        $repo->push('origin', 'master');
+        // now check out the publishing branch
+        if ($site->manifest->metadata->publishing->git->branch != 'master') {
+          // try to check it out, if not then we need to create it
+          try {
+            $repo->checkout($site->manifest->metadata->publishing->git->branch);
+          }
+          catch(Exception $e) {
+            $repo->create_branch($site->manifest->metadata->publishing->git->branch);
+            $repo->checkout($site->manifest->metadata->publishing->git->branch);
+          }
+          // werid looking I know but if we have a CDN then we need to "rewrite" this file
+          if ($site->manifest->metadata->publishing->git->cdn && file_exists(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html')) {
+            // move the index.html
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/index.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/_index.html');
+            copy(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
+            try {
+              $repo->add('.');
+              $repo->commit('Published using CDN: ' . $site->manifest->metadata->publishing->git->cdn);
+            }
+            catch(Exception $e) {
+            // do nothing, maybe there was nothing to commit
+            }
+            $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
+            $repo->push('origin', $site->manifest->metadata->publishing->git->branch);
+            $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
+            // put it back like it was after our version goes up
+            symlink('../../build', $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            symlink('../../babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
+            symlink('../../babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
+            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/_index.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
+            try {
+              $repo->add('.');
+              $repo->commit('Reset for next time');
+            }
+            catch(Exception $e) {
+            // do nothing, maybe there was nothing to commit
+            }
+          }
+          else {
+            // even more trickery; swap out the symlinks w/ the real assets, publish, switch back
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
+            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            copy(HAXCMS_ROOT . '/babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
+            copy(HAXCMS_ROOT . '/babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            rename(HAXCMS_ROOT . '/build', $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            try {
+              $repo->add('.');
+              $repo->commit('Published using: local assets');
+            }
+            catch(Exception $e) {
+            // do nothing, maybe there was nothing to commit
+            }
+            $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
+            $repo->push('origin', $site->manifest->metadata->publishing->git->branch);
+            $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
+            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/build', HAXCMS_ROOT . '/build');
+            symlink ("../../build", $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            symlink('../../babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
+            symlink('../../babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            try {
+              $repo->add('.');
+              $repo->commit('Reset for next time');
+            }
+            catch(Exception $e) {
+            // do nothing, maybe there was nothing to commit
+            }
+          }
+          // now put it back plz... and master shouldn't notice any source changes
+          $repo->checkout('master');
+        }
         header('Status: 200');
         $return = array(
           'status' => 200,
           'url' => $site->manifest->metadata->domain,
           'label' => 'Click to access ' . $site->manifest->title,
           'response' => 'Site published!',
-          'output' => $output,
+          'output' => 'Site published successfully if no errors!',
         );
       }
       // see if this was surge being asked for

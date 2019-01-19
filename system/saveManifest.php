@@ -28,6 +28,11 @@
     unset($item->items);
     $HAXCMS->outlineSchema->updateItem($item, TRUE);
     $site->gitCommit('Manifest updated');
+    // check git remote
+    if ((filter_var($_POST['manifest']->metadata->git->url, FILTER_SANITIZE_STRING)) &&
+    (!isset($site->manifest->metadata->git->url) || $site->manifest->metadata->git->url != filter_var($_POST['manifest']->metadata->git->url, FILTER_SANITIZE_STRING))) {
+      $site->gitSetRemote($site->manifest->metadata->git->url);
+    }
     header('Status: 200');
     print json_encode($site->manifest);
     exit;

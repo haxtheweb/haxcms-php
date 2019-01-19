@@ -121,14 +121,24 @@ class HAXCMS {
         'value' => 'git@github.com:elmsln'
       ),
       'user' => array(
-        'name' => 'User name',
-        'description' => 'Your user name',
+        'name' => 'User / Org',
+        'description' => 'User name or organization to publish to',
+        'value' => ''
+      ),
+      'email' => array(
+        'name' => 'Email',
+        'description' => 'Email address of your github account',
         'value' => ''
       ),
       'pass' => array(
         'name' => 'Password',
         'description' => 'Password for the account THIS IS NOT STORED. See ',
         'value' => ''
+      ),
+      'cdn' => array(
+        'name' => 'CDN',
+        'description' => 'A CDN address that supports HAXCMS',
+        'value' => 'webcomponents.psu.edu'
       ),
     );
     // publishing
@@ -204,28 +214,34 @@ class HAXCMS {
       }
     }
     // test for a password in order to do the git hook up this one time
-    if (isset($this->config->publishing->git->user) && isset($this->config->publishing->git->pass)) {
-      $user = $this->config->publishing->git->user;
+    if (isset($this->config->publishing->git->email) && isset($this->config->publishing->git->pass)) {
+      $email = $this->config->publishing->git->email;
       $pass = $this->config->publishing->git->pass;
+      // ensure we never save the password, this is just a 1 time pass through
       unset($this->config->publishing->git->pass);
     }
     // save config to the file
     $this->saveConfigFile();
+    $json = new stdClass();
+    $json->title = 'HAXCMS Publishing key';
+    $json->key = $this->getSSHKey();
+    // see if we need to set a github key for publishing
+    // this is a one time thing that helps with the workflow
     if (!isset($this->config->publishing->git->keySet) && isset($this->config->publishing->git->vendor) && $this->config->publishing->git->vendor == 'github') {
       $client = new GuzzleHttp\Client();
-      $json = new stdClass();
-      $json->title = 'HAXCMS Publishing key';
-      $json->key = $this->getSSHKey();
       $body = json_encode($json);
       $response = $client->request('POST', 'https://api.github.com/user/keys', 
       [
-          'auth' => [$user, $pass],
+          'auth' => [$email, $pass],
           'body' => $body,
       ]);
       // we did it, now store that it worked so we can skip all this setup in the future
       if ($response->getStatusCode() == 201) {
         $this->config->publishing->git->keySet = true;
         $this->saveConfigFile();
+        $gitRepo = new GitRepo();
+        $gitRepo->run('config --global user.name "' . $this->config->publishing->git->user . '"');
+        $gitRepo->run('config --global user.email "' . $this->config->publishing->git->email . '"');
       }
       return $response->getStatusCode();
     }
@@ -241,7 +257,21 @@ class HAXCMS {
    * get SSH Key that was created during install
    */
   private function getSSHKey() {
-    return file_get_contents($this->configDirectory . '/.ssh/haxyourweb.pub');
+    if (file_exists($this->configDirectory . '/.ssh/haxyourweb.pub')) {
+      return @file_get_contents($this->configDirectory . '/.ssh/haxyourweb.pub');
+    }
+    else {
+      // try to build it dynamically
+      shell_exec('ssh-keygen -f ' . $this->configDirectory . '/.ssh/haxyourweb -t rsa -N "" -C "' . $this->config->publishing->git->email . '"');
+      // check if it exists now
+      if (file_exists($this->configDirectory . '/.ssh/haxyourweb.pub')) {
+        $git = new GitRepo();
+        // establish this new key location as the one to use for all git calls
+        $git->run("config core.sshCommand " . $this->configDirectory . "/.ssh/haxyourweb");
+        return @file_get_contents($this->configDirectory . '/.ssh/haxyourweb.pub');
+      } 
+    }
+    return FALSE;
   }
   /**
    * Generate a valid HAX App store specification schema for connecting to this site via JSON.
@@ -348,12 +378,23 @@ class HAXCMS {
   }
   /**
    * Attempt to create a new site on the file system
+   * 
+   * @var $name name of the new site to create
+   * @var $domain optional domain name to utilize during setup
+   * @var $git git object details
+   * 
    * @return boolean true for success, false for failed
    */
-  private function createNewSite($name, $domain = NULL) {
+  private function createNewSite($name, $domain = NULL, $git = NULL) {
     // try and make the folder
     $site = new HAXCMSSite();
-    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name, $domain)) {
+    // see if we can get a remote setup on the fly
+    if (!isset($git->url) && isset($this->config->publishing->git)) {
+      $git = $this->config->publishing->git;
+      $git->url .= '/' . $name . '.git';
+    }
+
+    if ($site->newSite(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $name, $git, $domain)) {
       return $site;
     }
     return FALSE;
