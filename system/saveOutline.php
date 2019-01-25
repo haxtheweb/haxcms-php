@@ -15,7 +15,6 @@
     foreach ($items as $key => $item) {
       // get a fake item
       $page = $HAXCMS->outlineSchema->newItem();
-      $itemMap[$item->id] = $page->id;
       $page->id = $item->id;
       // set a crappy default title
       $page->title = $item->title;
@@ -25,7 +24,7 @@
       }
       else {
         // set to the parent id
-        $page->parent = $itemMap[$item->parent];
+        $page->parent = $item->parent;
         // move it one indentation below the parent; this can be changed later if desired
         $page->indent = $item->indent;
       }
@@ -35,13 +34,14 @@
       else {
         $page->order = $key;
       }
+      $cleanTitle = strtolower(str_replace(' ', '-', $page->title));
       // keep location if we get one already
-      if (isset($item->location)) {
+      if (isset($item->location) && $item->location != '') {
         $page->location = $item->location;
       }
       else {
         // generate a logical page location
-        $page->location = 'pages/' . $page->id . '/index.html';
+        $page->location = 'pages/' . $cleanTitle . '/index.html';
       }
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
@@ -50,17 +50,17 @@
         $moved = false;
         foreach ($original as $key => $tmpItem) {
           // see if this is something moving as opposed to brand new
-          if ($tmpItem->id == $page->id && file_exists($siteDirectory . '/' . $tmpItem->location)) {
+          if ($tmpItem->id == $page->id && file_exists($siteDirectory . '/' . $tmpItem->location) && $tmpItem->location != '') {
             $moved = true;
             rename(str_replace('/index.html', '', $siteDirectory . '/' . $tmpItem->location), 
             str_replace('/index.html', '', $siteDirectory . '/' . $page->location));
           }
         }
         if (!$moved) {
-          $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $page->id);
+          $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $cleanTitle);
           // if we got here ensure that location data matches
           // this accounts for pages that got deleted at one time physically off the file system
-          $page->location = 'pages/' . $page->id . '/index.html';
+          $page->location = 'pages/' . $cleanTitle . '/index.html';
         }
       }
       $page->metadata = $item->metadata;
