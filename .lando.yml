@@ -20,7 +20,7 @@ tooling:
     service: node
   magic:
     service: appserver
-    cmd: bash scripts/haxtheweb.sh admin admin admin@admin.admin admin
+    cmd: bash scripts/haxtheweb.sh admin admin admin@admin.admin admin && bash scripts/github-publishing-ssh.sh && sudo chmod 755 /home/.config
 events:
   post-start:
     - cd $LANDO_WEBROOT && bash scripts/haxtheweb.sh admin admin admin@admin.admin admin
