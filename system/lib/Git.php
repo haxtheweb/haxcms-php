@@ -10,6 +10,7 @@
  * @author     James Brumond
  * @copyright  Copyright 2013 James Brumond
  * @repo       http://github.com/kbjr/Git.php
+ * @fork       ELMS:LN team
  */
 
 if (__FILE__ == $_SERVER['SCRIPT_FILENAME']) die('Bad load order');
@@ -575,6 +576,25 @@ class GitRepo {
 		return $this->run("merge $branch --no-ff");
 	}
 
+	/**
+	 * Runs a `git reset` call
+	 *
+	 * Accepts a name and remote for the branch to be reset to.
+	 *
+	 * @access  public
+	 * @param   string $branch
+	 * @param   string $remote
+	 * @param   boolean $hard
+	 * @return  string
+	 */
+	public function reset($branch = 'master', $remote = 'origin', $hard = true) {
+		$flag = '';
+		if ($hard) {
+			$flag = '--hard';
+		}
+		return $this->run("reset $flag $remote/$branch");
+	}
+
 
 	/**
 	 * Runs a git fetch on the current branch
@@ -632,8 +652,8 @@ class GitRepo {
 	 * @param string $branch
 	 * @return string
 	 */
-	public function push($remote, $branch) {
-		return $this->run("push --tags $remote $branch");
+	public function push($remote, $branch, $flags = '--tags') {
+		return $this->run("push $remote $branch $flags");
 	}
 
 	/**
