@@ -18,7 +18,7 @@
     "@lrnwebcomponents/app-datepicker": "^2.0.1",
     "@lrnwebcomponents/citation-element": "^2.0.1",
     "@lrnwebcomponents/code-editor": "^2.0.1",
-    "@lrnwebcomponents/deduping-fix": "^2.0.1",
+    "@lrnwebcomponents/deduping-fix": "^0.2.0",
     "@lrnwebcomponents/dl-behavior": "^2.0.1",
     "@lrnwebcomponents/dropdown-select": "^2.0.1",
     "@lrnwebcomponents/eco-json-schema-form": "^2.0.1",
