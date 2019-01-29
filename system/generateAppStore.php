@@ -35,6 +35,7 @@
       $autoloaderList = json_decode('
       [
         "video-player",
+        "meme-maker",
         "lrn-aside",
         "grid-plate",
         "tab-list",
@@ -49,17 +50,16 @@
         "lrn-table",
         "media-image",
         "lrndesign-blockquote",
-        "meme-maker",
         "a11y-gif-player",
         "paper-audio-player",
         "wikipedia-query",
         "lrn-vocab",
-        "lrn-math",
+        "full-width-image",
         "person-testimonial",
         "citation-element",
-        "code-editor",
-        "place-holder",
         "stop-note",
+        "place-holder",
+        "lrn-math",
         "q-r"
       ]
       ');

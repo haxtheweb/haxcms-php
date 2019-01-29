@@ -28,6 +28,7 @@ import "@lrnwebcomponents/paper-audio-player/paper-audio-player.js";
 import "@lrnwebcomponents/person-testimonial/person-testimonial.js";
 import "@lrnwebcomponents/place-holder/place-holder.js";
 import "@lrnwebcomponents/q-r/q-r.js";
+import "@lrnwebcomponents/full-width-image/full-width-image.js";
 import "@lrnwebcomponents/self-check/self-check.js";
 import "@lrnwebcomponents/simple-colors/simple-colors.js";
 import "@lrnwebcomponents/simple-concept-network/simple-concept-network.js";
