@@ -35,6 +35,8 @@
         $page->order = $key;
       }
       $cleanTitle = strtolower(str_replace(' ', '-', $page->title));
+      $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+      $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
       // keep location if we get one already
       if (isset($item->location) && $item->location != '') {
         $page->location = $item->location;
