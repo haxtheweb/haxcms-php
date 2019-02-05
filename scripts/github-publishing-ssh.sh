@@ -1,7 +1,9 @@
 #!/bin/bash
-
+if [ -d "~/.config" ]; then
+  sudo chmod 755 ~/.config
+fi
 # set some defaults for publishing on the box
-cat >/home/.ssh/config <<EOL
+cat >> ~/.ssh/config <<EOL
 
 host github.com
   HostName github.com

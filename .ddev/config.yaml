@@ -15,11 +15,9 @@ provider: default
 hooks:
   post-start:
   - exec: bash scripts/haxtheweb.sh 'admin' 'admin' 'admin@admin.admin' 'admin'
-  - exec: sudo chmod 755 /home/.config
   - exec: bash scripts/github-publishing-ssh.sh
   - exec: echo 'go to http://haxcms.ddev.local - click the top right power button
       and enter admin / admin to get started!'
-
 # This config.yaml was created with ddev version v1.5.2 
 # webimage: drud/ddev-webserver:v1.5.2
 # dbimage: drud/ddev-dbserver:v1.5.2-10.2
