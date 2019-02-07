@@ -11,6 +11,7 @@
     "node_modules/@lrnwebcomponents/*/lib/*",
     "node_modules/@lrnwebcomponents/*/lib/*/*",
     "node_modules/@polymer/app-layout/*/*.js",
+    "node_modules/@lrnwebcomponents/img-pan-zoom/lib/openseadragon/build/openseadragon/openseadragon.js",
     "node_modules/@lrnwebcomponents/elmsln-apps/lib/*/*.js",
     "node_modules/@lrnwebcomponents/lrn-calendar/lib/ical.js/build/ical.js",
     "node_modules/@lrnwebcomponents/wave-player/lib/wavesurfer.js/dist/wavesurfer.js",
@@ -37,7 +38,7 @@
         "minify": true
       },
       "bundle": false,
-      "addServiceWorker": false
+      "addServiceWorker": true
     },
     {
       "name": "es5-amd",
@@ -53,7 +54,7 @@
         "minify": true
       },
       "bundle": false,
-      "addServiceWorker": false
+      "addServiceWorker": true
     }
   ],
   "lint": {
