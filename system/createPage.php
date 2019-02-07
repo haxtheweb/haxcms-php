@@ -16,10 +16,16 @@
       $item->id = $params['id'];
     }
     if (isset($params['location']) && $params['location'] != '') {
-      $item->location = 'pages/' . $params['location'] . '/index.html';
+      $cleanTitle = strtolower(str_replace(' ', '-', $params['location']));
+      $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+      $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+      $item->location = 'pages/' . $cleanTitle . '/index.html';
     }
     else {
-      $item->location = 'pages/' . $item->id . '/index.html';
+      $cleanTitle = strtolower(str_replace(' ', '-', $item->title));
+      $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+      $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+      $item->location = 'pages/' . $cleanTitle . '/index.html';
     }
     if (isset($params['indent']) && $params['indent'] != '') {
       $item->indent = $params['indent'];
