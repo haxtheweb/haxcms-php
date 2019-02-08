@@ -15,14 +15,19 @@
       $schema->title = $params['siteName'];
       $schema->location = $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->manifest->metadata->siteName . '/index.html';
       $schema->metadata->siteName = $site->manifest->metadata->siteName;
-      // description for an overview if desired
-      $schema->description = $params['description'];
-      // background image / banner
-      $schema->metadata->image = $params['image'];
-      // theme to make it easier to swap out later on
       $schema->metadata->theme = $params['theme'];
+      // description for an overview if desired
+      if (isset($params['description'])) {
+        $schema->description = $params['description'];
+      }
+      // background image / banner
+      if (isset($params['image'])) {
+        $schema->metadata->image = $params['image'];
+      }
       // icon to express the concept / visually identify site
-      $schema->metadata->icon = $params['icon'];
+      if (isset($params['icon'])) {
+        $schema->metadata->icon = $params['icon'];
+      }
       // slightly style the site based on css vars and hexcode
       if (isset($params['hexCode'])) {
         $hex = $params['hexCode'];
@@ -35,7 +40,7 @@
         $cssvar = $params['cssVariable'];
       }
       else {
-        $cssvar = '--simple-colors-lime-background5';
+        $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->created = time();
       $schema->metadata->updated = time();

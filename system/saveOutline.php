@@ -6,16 +6,18 @@
     header('Content-Type: application/json');
     // load the site from name
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
-    // wipe the manifest items and rebuild them
     $original = $site->manifest->items;
-    $site->manifest->items = array();
     $items = $_POST['items'];
     $itemMap = array();
     // items from the POST
     foreach ($items as $key => $item) {
       // get a fake item
-      $page = $HAXCMS->outlineSchema->newItem();
-      $page->id = $item->id;
+      if (!$page = $site->loadPage($item->id)) {
+        $page = $HAXCMS->outlineSchema->newItem();
+      }
+      else {
+        $page->id = $item->id;
+      }
       // set a crappy default title
       $page->title = $item->title;
       if ($item->parent == NULL) {
@@ -36,14 +38,16 @@
       }
       // keep location if we get one already
       if (isset($item->location) && $item->location != '') {
-        $cleanTitle = strtolower(str_replace(' ', '-', $item->location));
-        $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+        // force location to be in the right place
+        $cleanTitle = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
+        $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
+        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
         $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
-        $page->location = $cleanTitle;
+        $page->location = 'pages/' . $cleanTitle . '/index.html';
       }
       else {
         $cleanTitle = strtolower(str_replace(' ', '-', $page->title));
-        $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
         $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
         // generate a logical page location
         $page->location = 'pages/' . $cleanTitle . '/index.html';
@@ -68,12 +72,31 @@
           $page->location = 'pages/' . $cleanTitle . '/index.html';
         }
       }
-      $page->metadata = $item->metadata;
+      // if it doesn't exist currently make sure the name is unique
+      else if (!$site->loadPage($page->id)) {
+        // ensure this location doesn't exist already
+        $loop = 0;
+        while (file_exists($siteDirectory . '/' . $page->location)) {
+          $loop++;
+          $page->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
+        }
+      }
+      // check for any metadata keys that did come over
+      foreach ($item->metadata as $key => $value) {
+        $page->metadata->{$key} = $value;
+      }
+      // safety check for new things
       if (!isset($page->metadata->created)) {
         $page->metadata->created = time();
       }
+      // always update at this time
       $page->metadata->updated = time();
-      $site->manifest->addItem($page);
+      if ($site->loadPage($page->id)) {
+        $site->updatePage($page);
+      }
+      else {
+        $site->manifest->addItem($page);
+      }
     }
     $site->manifest->metadata->updated = time();
     $site->manifest->save();

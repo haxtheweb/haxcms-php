@@ -14,14 +14,14 @@
       $bytes = $page->writeLocation($body, HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/');
       if ($bytes === FALSE) {
         header('Status: 500');
-        print 'failed to write';
+        print json_encode('failed to write');
       }
       else {
         // update the updated timestamp
         $page->metadata->updated = time();
         // auto generate a text only description from first 200 chars
         $clean = strip_tags($body);
-        $page->description = substr($clean, 0, 200);
+        $page->description = str_replace("\n", '', substr($clean, 0, 200));
         // update the item in the metadata to indicate when content was last set
         $site->manifest->updateItem($page, TRUE);
         $site->gitCommit('Page updated: ' . $page->title . ' (' . $page->id . ')');

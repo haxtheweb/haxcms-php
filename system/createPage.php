@@ -11,22 +11,30 @@
     // get a new item prototype
     $item = $HAXCMS->outlineSchema->newItem();
     // set the title
-    $item->title = $params['title'];
+    $item->title = str_replace("\n", '', $params['title']);
     if (isset($params['id']) && $params['id'] != '') {
       $item->id = $params['id'];
     }
     if (isset($params['location']) && $params['location'] != '') {
       $cleanTitle = strtolower(str_replace(' ', '-', $params['location']));
-      $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+      $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
       $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
       $item->location = 'pages/' . $cleanTitle . '/index.html';
     }
     else {
       $cleanTitle = strtolower(str_replace(' ', '-', $item->title));
-      $cleanTitle = preg_replace('/[^\w\-]+/u', '-', $cleanTitle);
+      $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
       $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
       $item->location = 'pages/' . $cleanTitle . '/index.html';
     }
+    // ensure this location doesn't exist already
+    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->siteName;
+    $loop = 0;
+    while (file_exists($siteDirectory . '/' . $item->location)) {
+      $loop++;
+      $item->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
+    }
+
     if (isset($params['indent']) && $params['indent'] != '') {
       $item->indent = $params['indent'];
     }
@@ -39,11 +47,13 @@
     else {
       $item->parent = null;
     }
+    if (isset($params['description']) && $params['description'] != '') {
+      $item->description = str_replace("\n", '', $params['description']);
+    }
     if (isset($params['order']) && $params['metadata'] != '') {
       $item->metadata = $params['metadata'];
     }
     $item->metadata->siteName = strtolower($params['siteName']);
-    $item->description = $params['description'];
     $item->metadata->created = time();
     $item->metadata->updated = time();
     // add the item back into the outline schema
