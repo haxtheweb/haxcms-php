@@ -66,20 +66,28 @@
           }
         }
         if (!$moved) {
-          $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $cleanTitle);
-          // if we got here ensure that location data matches
-          // this accounts for pages that got deleted at one time physically off the file system
-          $page->location = 'pages/' . $cleanTitle . '/index.html';
+          // ensure this location doesn't exist already
+          $loop = 0;
+          $tmpTitle = $cleanTitle;
+          while (file_exists($siteDirectory . '/' . $page->location)) {
+            $loop++;
+            $page->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
+            $tmpTitle = $cleanTitle . '-' . $loop;
+          }
+          $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $tmpTitle);
         }
       }
       // if it doesn't exist currently make sure the name is unique
       else if (!$site->loadPage($page->id)) {
         // ensure this location doesn't exist already
         $loop = 0;
+        $tmpTitle = $cleanTitle;
         while (file_exists($siteDirectory . '/' . $page->location)) {
           $loop++;
           $page->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
+          $tmpTitle = $cleanTitle . '-' . $loop;
         }
+        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $tmpTitle);
       }
       // check for any metadata keys that did come over
       foreach ($item->metadata as $key => $value) {
