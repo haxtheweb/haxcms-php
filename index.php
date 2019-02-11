@@ -41,11 +41,11 @@
     // anything not supporting modules needs to use es5 and amd
     // anything supporting modules at this point also supports ES2015 spec!
     if (window.nomodule || !supportsImports()) {
-      define(["build/es5-amd/dist/build.js"], function () { "use strict" });
+      define(["build/es5-amd/dist/build-full.js"], function () { "use strict" });
       document.write("<!--")
     }
   </script>
-  <script type="module" defer="defer" src="build/es6/dist/build.js"></script>
+  <script type="module" defer="defer" src="build/es6/dist/build-full.js"></script>
   </head>
   <body>
     <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken();?>"}' base-path="<?php print $HAXCMS->basePath;?>" data-source="<?php print $HAXCMS->sitesJSON;?>"></haxcms-site-listing>
