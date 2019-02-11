@@ -38,7 +38,9 @@
         "minify": true
       },
       "bundle": false,
-      "addServiceWorker": true
+      "addServiceWorker": true,
+      "addPushManifest": true,
+      "insertPrefetchLinks": true
     },
     {
       "name": "es5-amd",
@@ -54,7 +56,9 @@
         "minify": true
       },
       "bundle": false,
-      "addServiceWorker": true
+      "addServiceWorker": true,
+      "addPushManifest": true,
+      "insertPrefetchLinks": true
     }
   ],
   "lint": {

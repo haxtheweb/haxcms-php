@@ -44,8 +44,12 @@ fi
 if [ ! -f "_sites/sites.json" ]; then
   cp system/boilerplate/systemsetup/sites.json _sites/sites.json
 fi
+# work on config boilerplate
 if [ ! -f "_config/config.json" ]; then
   cp system/boilerplate/systemsetup/config.json _config/config.json
+fi
+if [ ! -f "_config/my-custom-elements.js" ]; then
+  cp system/boilerplate/systemsetup/my-custom-elements.js _config/my-custom-elements.js
 fi
 if [ ! -f "_config/config.php" ]; then
   cp system/boilerplate/systemsetup/config.php _config/config.php

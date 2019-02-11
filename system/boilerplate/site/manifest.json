@@ -1,7 +1,7 @@
 {
-    "name": "My blog",
-    "short_name": "myblog",
-    "description": "A blog about all my awesomeness",
+    "name": "My site",
+    "short_name": "site",
+    "description": "A site that is awesome",
     "icons": [
         {
             "src": "assets\/android-icon-36x36.png",
@@ -36,6 +36,12 @@
         {
             "src": "assets\/android-icon-192x192.png",
             "sizes": "192x192",
+            "type": "image\/png",
+            "density": "4.0"
+        },
+        {
+            "src": "assets\/pwa-icon.png",
+            "sizes": "512x512",
             "type": "image\/png",
             "density": "4.0"
         }

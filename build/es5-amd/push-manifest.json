@@ -1,0 +1,20 @@
+{
+  "dist/build.html": {
+    "node_modules/%40webcomponents/webcomponentsjs/custom-elements-es5-adapter.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40webcomponents/webcomponentsjs/webcomponents-loader.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/web-animations-js/web-animations-next-lite.min.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/base.css": {
+      "type": "style",
+      "weight": 1
+    }
+  }
+}
