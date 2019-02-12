@@ -60,6 +60,38 @@
       // later on if we only need to hit 1 file each time to get all the
       // data we need.
       $site->manifest->metadata = $schema->metadata;
+      // @todo support injecting this with out things via PHP
+      $site->manifest->metadata->dynamicElementLoader =  json_decode('{
+        "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
+        "citation-element": "@lrnwebcomponents/citation-element/citation-element.js",
+        "hero-banner": "@lrnwebcomponents/hero-banner/hero-banner.js",
+        "image-compare-slider": "@lrnwebcomponents/image-compare-slider/image-compare-slider.js",
+        "license-element": "@lrnwebcomponents/license-element/license-element.js",
+        "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",
+        "lrn-calendar": "@lrnwebcomponents/lrn-calendar/lrn-calendar.js",
+        "lrn-math": "@lrnwebcomponents/lrn-math/lrn-math.js",
+        "lrn-table": "@lrnwebcomponents/lrn-table/lrn-table.js",
+        "lrn-vocab": "@lrnwebcomponents/lrn-vocab/lrn-vocab.js",
+        "lrndesign-blockquote": "@lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js",
+        "magazine-cover": "@lrnwebcomponents/magazine-cover/magazine-cover.js",
+        "media-behaviors": "@lrnwebcomponents/media-behaviors/media-behaviors.js",
+        "media-image": "@lrnwebcomponents/media-image/media-image.js",
+        "meme-maker": "@lrnwebcomponents/meme-maker/meme-maker.js",
+        "multiple-choice": "@lrnwebcomponents/multiple-choice/multiple-choice.js",
+        "paper-audio-player": "@lrnwebcomponents/paper-audio-player/paper-audio-player.js",
+        "person-testimonial": "@lrnwebcomponents/person-testimonial/person-testimonial.js",
+        "place-holder": "@lrnwebcomponents/place-holder/place-holder.js",
+        "q-r": "@lrnwebcomponents/q-r/q-r.js",
+        "full-width-image": "@lrnwebcomponents/full-width-image/full-width-image.js",
+        "self-check": "@lrnwebcomponents/self-check/self-check.js",
+        "simple-concept-network": "@lrnwebcomponents/simple-concept-network/simple-concept-network.js",
+        "stop-note": "@lrnwebcomponents/stop-note/stop-note.js",
+        "tab-list": "@lrnwebcomponents/tab-list/tab-list.js",
+        "task-list": "@lrnwebcomponents/task-list/task-list.js",
+        "video-player": "@lrnwebcomponents/video-player/video-player.js",
+        "wave-player": "@lrnwebcomponents/wave-player/wave-player.js",
+        "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js"
+      }');
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save();

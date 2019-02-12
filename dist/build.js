@@ -3,7 +3,7 @@ import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js";
 
 // these should all be dynamically imported as well
-import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
+/*import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
 import "@lrnwebcomponents/citation-element/citation-element.js";
 import "@lrnwebcomponents/hero-banner/hero-banner.js";
 import "@lrnwebcomponents/image-compare-slider/image-compare-slider.js";
@@ -31,4 +31,4 @@ import "@lrnwebcomponents/tab-list/tab-list.js";
 import "@lrnwebcomponents/task-list/task-list.js";
 import "@lrnwebcomponents/video-player/video-player.js";
 import "@lrnwebcomponents/wave-player/wave-player.js";
-import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";
+import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";*/
