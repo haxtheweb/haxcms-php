@@ -1,1 +1,1 @@
-import"../node_modules/@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";import"../node_modules/@lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js";
+import"../_config/my-custom-elements.js";import"../node_modules/@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";

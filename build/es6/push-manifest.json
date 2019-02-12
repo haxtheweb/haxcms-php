@@ -16,6 +16,10 @@
       "type": "script",
       "weight": 1
     },
+    "_config/my-custom-elements.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js": {
       "type": "script",
       "weight": 1
@@ -724,15 +728,7 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-colors/simple-colors.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "_config/my-custom-elements.js": {
+    "dist/build-home.js": {
       "type": "script",
       "weight": 1
     },
@@ -824,6 +820,10 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/simple-colors/simple-colors.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/simple-colors/lib/simple-colors-picker.js": {
       "type": "script",
       "weight": 1
@@ -865,6 +865,10 @@
       "weight": 1
     },
     "node_modules/%40polymer/paper-card/paper-card.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js": {
       "type": "script",
       "weight": 1
     },

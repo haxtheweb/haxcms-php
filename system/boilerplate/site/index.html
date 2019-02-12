@@ -23,24 +23,22 @@
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css">
+  <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script src="assets/babel-top.js"></script>
+  <script src="assets/babel-bottom.js"></script>
   <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
   <script nomodule>window.nomodule = true;</script>
   <script>if (!window.customElements) { document.write("<!--") }</script>
-  <script defer="defer" type="text/javascript" src="build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+  <script type="text/javascript" src="build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
   <!--! do not remove -->
-  <script defer="defer" src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-  <script defer="defer" src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-  <script src="assets/babel-top.js"></script>
-  <script src="assets/babel-bottom.js"></script>
   <script>
-    // anything not supporting modules needs to use es5 and amd
-    // anything supporting modules at this point also supports ES2015 spec!
     if (window.nomodule || !supportsImports()) {
       define(["build/es5-amd/dist/build.js"], function () { "use strict" });
       document.write("<!--")
     }
   </script>
-  <script type="module" defer="defer" src="build/es6/dist/build.js"></script>
+  <script type="module" src="build/es6/dist/build.js"></script>
   <!--! do not remove -->
 </head>
 <body>
