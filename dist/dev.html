@@ -24,12 +24,12 @@
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css">
-  <script defer="defer" src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-  <script defer="defer" src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-  <script type="module" defer="defer" src="dist/build.js"></script>
+  <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script type="module" src="dist/build.js"></script>
   <script>
   // this is in order to fake a connection for development purposes
-  /*window.__haxCMSContextDemo = true;
+  window.__haxCMSContextDemo = true;
   // @todo generate fake end point responses as json files
   window.appSettings = {
     "login": "dist\/dev\//login.json",
@@ -42,7 +42,7 @@
     "publishSitePath": "dist\/dev\/savePage.json",
     "appStore": { "url": "dist\/dev\/appstore.json"
     }
-  };*/
+  };
   </script>
 </head>
 <body>
