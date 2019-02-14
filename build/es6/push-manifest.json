@@ -16,10 +16,6 @@
       "type": "script",
       "weight": 1
     },
-    "_config/my-custom-elements.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js": {
       "type": "script",
       "weight": 1
@@ -865,6 +861,10 @@
       "weight": 1
     },
     "node_modules/%40polymer/paper-card/paper-card.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "_config/my-custom-elements.js": {
       "type": "script",
       "weight": 1
     },
