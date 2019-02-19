@@ -15,10 +15,9 @@
     $zip = new ZipArchive();
     $zip->open($zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
     // Create recursive directory iterator
-    $files = new RecursiveIteratorIterator(
-      new RecursiveDirectoryIterator($rootPath),
-      RecursiveIteratorIterator::LEAVES_ONLY
-    );
+    $directory = new RecursiveDirectoryIterator($rootPath);
+    $filtered = new DirFilter($directory, array('.git', 'node_modules')); 
+    $files = new RecursiveIteratorIterator($filtered);
     foreach ($files as $name => $file) {
       // Skip directories (they would be added automatically)
       if (!$file->isDir()) {
@@ -26,7 +25,9 @@
         $filePath = $file->getRealPath();
         $relativePath = substr($filePath, strlen($rootPath) + 1);
         // Add current file to archive
-        $zip->addFile($filePath, $relativePath);
+        if ($filePath != '' && $relativePath != '') {
+          $zip->addFile($filePath, $relativePath);
+        }
       }
     }
     // Zip archive will be created only after closing object
