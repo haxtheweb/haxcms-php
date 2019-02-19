@@ -366,10 +366,11 @@ class HAXCMS {
    */
   public function loadSite($name, $create = FALSE, $domain = NULL) {
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $tmpname);
-    $tmpname = strtolower($tmpname);
+    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
+    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
+    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
     // check if this exists, load but fallback for creating on the fly
-    if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $tmpname)) {
+    if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $tmpname) && !$create) {
       $site = new HAXCMSSite();
       $site->load(HAXCMS_ROOT . '/' . $this->sitesDirectory, $this->basePath . $this->sitesDirectory . '/', $tmpname);
       return $site;

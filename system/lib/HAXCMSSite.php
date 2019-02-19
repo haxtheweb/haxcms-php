@@ -12,8 +12,9 @@ class HAXCMSSite {
   public function load($directory, $siteBasePath, $name) {
     $this->name = $name;
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $name);
-    $tmpname = strtolower($tmpname);
+    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
+    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
+    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
     $this->manifest = new JSONOutlineSchema();
@@ -36,8 +37,14 @@ class HAXCMSSite {
     $this->name = $name;
     // clean up name so it can be in a URL / published
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^A-Za-z0-9]/', '', $tmpname);
-    $tmpname = strtolower($tmpname);
+    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
+    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
+    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
+    $loop = 0;
+    while (file_exists($directory . '/' . $tmpname)) {
+      $loop++;
+      $tmpname = $tmpname . '-' . $loop;
+    }
     // attempt to shift it on the file system
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier to resolve things to single built asset buckets
