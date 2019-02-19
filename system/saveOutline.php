@@ -14,6 +14,7 @@
       // get a fake item
       if (!$page = $site->loadPage($item->id)) {
         $page = $HAXCMS->outlineSchema->newItem();
+        $itemMap[$item->id] = $page->id;
       }
       else {
         $page->id = $item->id;
@@ -25,8 +26,14 @@
         $page->indent = 0;
       }
       else {
-        // set to the parent id
-        $page->parent = $item->parent;
+        // check the item map as backend dictates unique ID
+        if ($itemMap[$item->parent]) {
+          $page->parent = $itemMap[$item->parent];
+        }
+        else {
+          // set to the parent id
+          $page->parent = $item->parent;
+        }
         // move it one indentation below the parent; this can be changed later if desired
         $page->indent = $item->indent;
       }
