@@ -1,7 +1,7 @@
 {
-    "name": "My site",
-    "short_name": "site",
-    "description": "A site that is awesome",
+    "name": "{{ title }}",
+    "short_name": "{{ short }}",
+    "description": "{{ description }}",
     "icons": [
         {
             "src": "assets\/android-icon-36x36.png",
@@ -46,8 +46,9 @@
             "density": "4.0"
         }
     ],
+    "scope": "{{ basePath }}",
     "start_url": "/",
     "display": "standalone",
-    "theme_color": "#3f51b5",
-    "background_color": "#3f51b5"
+    "theme_color": "{{ hexCode }}",
+    "background_color": "{{ hexCode }}"
 }

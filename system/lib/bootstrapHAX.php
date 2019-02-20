@@ -10,4 +10,4 @@
   // the whole CMS as one object
   include_once 'HAXCMS.php';
   // invoke the CMS
-  $HAXCMS = new HAXCMS();  
+  $HAXCMS = new HAXCMS();

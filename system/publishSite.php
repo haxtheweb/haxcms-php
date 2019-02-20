@@ -9,7 +9,8 @@
       // see if the site wants to publish to git
       if (isset($site->manifest->metadata->publishing->git)) {
         $git = new GitRepo();
-        $repo = Git::open($site->directory . '/' . $site->manifest->metadata->siteName);
+        $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->siteName;
+        $repo = Git::open($siteDirectoryPath);
         // ensure we're on master and everything is added
         $repo->checkout('master');
         // set last published time to now
@@ -43,13 +44,90 @@
           // werid looking I know but if we have a CDN then we need to "rewrite" this file
           if ($site->manifest->metadata->publishing->git->cdn && file_exists(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html')) {
             // move the index.html and unlink the symlinks otherwise we'll get build failures
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/build');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/dist');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/node_modules');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
-            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/index.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/_index.html');
-            copy(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
+            @unlink($siteDirectoryPath . '/build');
+            @unlink($siteDirectoryPath . '/dist');
+            @unlink($siteDirectoryPath . '/node_modules');
+            @unlink($siteDirectoryPath . '/assets/babel-top.js');
+            @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+            // additional files to move to ensure we don't screw things up
+            $templates = array(
+              'sw' => 'service-worker.js',
+              'index' => 'index.html',
+              'manifest' => 'manifest.json',
+              '404' => '404.html',
+              'msbc' =>'browserconfig.xml'
+            );
+            foreach ($templates as $path) {
+              rename($siteDirectoryPath . '/' . $path, $siteDirectoryPath . '/_' . $path);
+              // special support for index as that comes from a CDN defining what to do
+              if ($path === 'index.html') {
+                $boilerPath = HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html';
+              }
+              else {
+                $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/' . $path;
+              }
+              copy($boilerPath, $siteDirectoryPath . '/' . $path);            
+            }
+            // process twig variables and templates for static publishing
+            $templateVars = array(
+              'hexCode' => '#3f51b5',
+              'basePath' => '/' . $site->manifest->metadata->siteName . '/',
+              'title' => $site->manifest->title,
+              'short' => $site->manifest->metadata->siteName,
+              'description' => $site->manifest->description,
+              'swhash' => array(),
+              'segmentCount' => 1,
+            );
+            // if we have a custom domain, try and engineer the base path
+            // correctly for the manifest / service worker
+            if (isset($site->manifest->metadata->domain)) {
+              $ary = explode('://', $site->manifest->metadata->domain);
+              if (count($ary) === 2) {
+                $base = explode('/', $ary[1]);
+                if (count($base) === 1) {
+                  $basePath = '/';
+                  $templateVars['segmentCount'] = 0;
+                }
+                else {
+                  array_pop($base);
+                  $basePath = '/' . implode('/', $base) . '/';
+                  $basePath = str_replace('//', '/', $basePath);
+                }
+                $templateVars['basePath'] = $basePath;
+              }
+            }
+            if (isset($site->manifest->metadata->hexCode)) {
+              $templateVars['hexCode'] = $site->manifest->metadata->hexCode;
+            }
+            $swItems = $site->manifest->items;
+            // the core files you need in every SW manifest
+            // @todo may need to includ the CDN copies of things... we'll see
+            $coreFiles = array('index.html', 'manifest.json', 'site.json', 'browserconfig.xml', '404.html');
+            foreach ($coreFiles as $itemLocation) {
+              $coreItem = new stdClass();
+              $coreItem->location = $itemLocation;
+              $swItems[] = $coreItem;
+            }
+            // generate a legit hash value that's the same for each file name + file size
+            foreach ($swItems as $item) {
+              $templateVars['swhash'][] = array(
+                $templateVars['basePath'] . $item->location, 
+                strtr(
+                  base64_encode(
+                    hash_hmac('md5', (string) $item->location . filesize($siteDirectoryPath . '/' . $item->location), (string) 'haxcmsswhash', TRUE)
+                  ),
+                  array('+' => '','/' => '','=' => '','-' => '')
+                )
+              );
+            }
+            // put the twig written output into the file
+            $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
+            $twig = new \Twig\Environment($loader, [
+              'cache' => HAXCMS_ROOT . '/_config/tmp',
+            ]);
+            foreach ($templates as $location) {
+              @file_put_contents($siteDirectoryPath . '/' . $location, $twig->render($location, $templateVars));
+            }
             try {
               $repo->add('.');
               $repo->commit('Published using CDN: ' . $site->manifest->metadata->publishing->git->cdn);
@@ -61,13 +139,15 @@
             $repo->push('origin', $site->manifest->metadata->publishing->git->branch, "--force");
             $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
             // put it back like it was after our version goes up
-            symlink('../../build', $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
-            symlink('../../dist', $site->directory . '/' . $site->manifest->metadata->siteName . '/dist');
-            symlink('../../node_modules', $site->directory . '/' . $site->manifest->metadata->siteName . '/node_modules');
-            symlink('../../babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
-            symlink('../../babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
-            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/_index.html', $site->directory . '/' . $site->manifest->metadata->siteName . '/index.html');
+            symlink('../../build', $siteDirectoryPath . '/build');
+            symlink('../../dist', $siteDirectoryPath . '/dist');
+            symlink('../../node_modules', $siteDirectoryPath . '/node_modules');
+            symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
+            symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
+            foreach ($templates as $path) {
+              @unlink($siteDirectoryPath . '/' . $path);
+              rename($siteDirectoryPath . '/_' . $path, $siteDirectoryPath . '/' . $path);
+            }
             try {
               $repo->add('.');
               $repo->commit('Reset for next time');
@@ -78,12 +158,12 @@
           }
           else {
             // even more trickery; swap out the symlinks w/ the real assets, publish, switch back
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/build');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
-            unlink($site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
-            copy(HAXCMS_ROOT . '/babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
-            copy(HAXCMS_ROOT . '/babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
-            rename(HAXCMS_ROOT . '/build', $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
+            @unlink($siteDirectoryPath . '/build');
+            @unlink($siteDirectoryPath . '/assets/babel-top.js');
+            @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+            copy(HAXCMS_ROOT . '/babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
+            copy(HAXCMS_ROOT . '/babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
+            rename(HAXCMS_ROOT . '/build', $siteDirectoryPath . '/build');
             try {
               $repo->add('.');
               $repo->commit('Published using: local assets');
@@ -94,10 +174,10 @@
             $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
             $repo->push('origin', $site->manifest->metadata->publishing->git->branch);
             $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
-            rename($site->directory . '/' . $site->manifest->metadata->siteName . '/build', HAXCMS_ROOT . '/build');
-            symlink ("../../build", $site->directory . '/' . $site->manifest->metadata->siteName . '/build');
-            symlink('../../babel/babel-top.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-top.js');
-            symlink('../../babel/babel-bottom.js', $site->directory . '/' . $site->manifest->metadata->siteName . '/assets/babel-bottom.js');
+            rename($siteDirectoryPath . '/build', HAXCMS_ROOT . '/build');
+            symlink ("../../build", $siteDirectoryPath . '/build');
+            symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
+            symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
             try {
               $repo->add('.');
               $repo->commit('Reset for next time');
@@ -109,10 +189,21 @@
           // now put it back plz... and master shouldn't notice any source changes
           $repo->checkout('master');
         }
+        $domain = $site->manifest->metadata->publishing->git->url;
+        if (isset($site->manifest->metadata->domain)) {
+          $domain = $site->manifest->metadata->domain;
+        }
+        else {
+          // support blowing up github addresses correctly
+          $parts = explode('/', str_replace('git@github.com:', '', str_replace('.git', '', $domain)));
+          if (count($parts) === 2) {
+            $domain = 'https://' . $parts[0] . '.github.io/' . $parts[1];
+          }
+        }
         header('Status: 200');
         $return = array(
           'status' => 200,
-          'url' => $site->manifest->metadata->domain,
+          'url' => $domain,
           'label' => 'Click to access ' . $site->manifest->title,
           'response' => 'Site published!',
           'output' => 'Site published successfully if no errors!',
