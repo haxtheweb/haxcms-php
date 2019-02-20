@@ -1,5 +1,17 @@
 # HAXCMS
-HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be able to build websites with it. Leveraging JSON Outline Schema, HAX is able to author multiple pages, which it then writes onto the file system.
+HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be able to build websites with it. Leveraging JSON Outline Schema, HAX is able to author multiple pages, which it then writes onto the file system. This way a slim server layer is just for basic authentication, knowing how to save files, and placing them in version control.
+
+## Features
+- All of HAX without a bloated CMS
+- Incredibly simple, readable file structure of flat HTML files and lightning fast, high scale micro-sites
+- cdn friendly configuration
+- automatic PWA generation (future)
+- clean, simple theme layer abstracted from content
+- No database (simple `.json` files help manage the data)
+- Files you can reach out and touch, fork, and theme with ease!
+- Support for multiple sites
+- automatic git repo creation and management (never touch commandline again, but dive in if you really needed)
+- Built in gh-pages publishing
 
 ## Install and win the future, NOW!
 - Clone this repo: `git clone https://github.com/elmsln/haxcms.git`
@@ -10,19 +22,8 @@ HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be a
 - username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
 - Click the icon in the top right and you're off and running!
 
-## Setup surge
-If using ddev (the others need some clean up) you can automate the publishing of HAXCMS sites to surge.sh. The install routine for docker / local development tries to automate this but its difficult (and generic). So, if you want to use surge.sh for actually publishing your sites, go to the project directory and login `ddev ssh` (or equivalent though ddev is the only one working right now). Then type `surge login` and create / enter your username / password. Now you'll be able to publish the micro-sites direct to domains you define in the ui!
-
 ## Scope
 Generate `.html` files which have only "content" in them. Meaning the contents of the page in question. A simple method of adding new pages and managing the organization of those pages into a simple hierarchy (outline). Support for multiple mini web sites so that you can write a lot about different topics. HAXCMS is only intended to be a micro-site generator and play nicely with the rest of the HAX ecosystem without needing a monster CMS in order to utilize it.
-
-## Features
-- All of HAX without needing a bloated CMS to power it
-- Incredibly simple, readable file structure of flat HTML files and lightning fast, high scale micro-sites
-- No database (simple `.json` files help manage the data)
-- Files you can reach out and touch, fork, and theme with ease!
-- Support for multiple sites
-- BUILT IN surge.sh PUBLISHING!!!!!
 
 ## Install
 Download, checkout and get this package on a server (this is a PHP based implementation so your server should have PHP and Apache or Nginx at minimum). Go to the project root and type `bash haxtheweb.sh` which will step you through configuration.
