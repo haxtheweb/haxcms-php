@@ -101,8 +101,7 @@
             }
             $swItems = $site->manifest->items;
             // the core files you need in every SW manifest
-            // @todo may need to includ the CDN copies of things... we'll see
-            $coreFiles = array('index.html', 'manifest.json', 'site.json', 'browserconfig.xml', '404.html');
+            $coreFiles = array('', 'index.html', 'manifest.json', 'site.json', 'browserconfig.xml', '404.html');
             foreach ($coreFiles as $itemLocation) {
               $coreItem = new stdClass();
               $coreItem->location = $itemLocation;
@@ -111,7 +110,7 @@
             // generate a legit hash value that's the same for each file name + file size
             foreach ($swItems as $item) {
               $templateVars['swhash'][] = array(
-                $templateVars['basePath'] . $item->location, 
+                './' . $item->location, 
                 strtr(
                   base64_encode(
                     hash_hmac('md5', (string) $item->location . filesize($siteDirectoryPath . '/' . $item->location), (string) 'haxcmsswhash', TRUE)

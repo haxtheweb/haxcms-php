@@ -23,6 +23,7 @@
   <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
   <link rel="manifest" href="manifest.json">
+  <link rel="prefetch" href="site.json">
   <!-- Start Single Page Apps for GitHub Pages -->
   <script type="text/javascript">
     // Single Page Apps for GitHub Pages
@@ -57,7 +58,7 @@
     window.MyAppGlobals = { rootPath: '{{ basePath }}' };
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('{{ basePath }}service-worker.js', {
+        navigator.serviceWorker.register('service-worker.js', {
           scope: MyAppGlobals.rootPath
         });
       });
