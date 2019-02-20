@@ -28,6 +28,18 @@ Generate `.html` files which have only "content" in them. Meaning the contents o
 ## Install
 Download, checkout and get this package on a server (this is a PHP based implementation so your server should have PHP and Apache or Nginx at minimum). Go to the project root and type `bash haxtheweb.sh` which will step you through configuration.
 
+## Local development
+node_modules directories are daisy chained back to the root repo in the event you want to build or work on your own theme / elements.
+A `_config/my-custom-elements.js` allows you to reference your own elements and do custom build routines. While HAXcms is intended to be used without needing to understand any of this, it's positioned to allow JS devs take it and run.
+
+The easiest workflow for working on custom things in HAXcms:
+- add new dependendices to package.json, yarn install
+- reference modifications in `_config/my-custom-elements.js`
+- `cd _sites/mysite` and then run `polymer serve --npm --open --entrypoint dist/dev.html`
+- change address to `http://127.0.0.1:8081/` or whatever ip it assigned
+- changes will be reflected on reload when you change your assets
+
+
 ## Usage
 Go to `{{yoursite.com}}` and login with the username and password you entered in the `config.php` by clicking on the login icon
 
