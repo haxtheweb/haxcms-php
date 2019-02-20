@@ -1,7 +1,7 @@
 {
-    "name": "My blog",
-    "short_name": "myblog",
-    "description": "A blog about all my awesomeness",
+    "name": "HAXcms",
+    "short_name": "haxcms",
+    "description": "Microsite manager for your universe!",
     "icons": [
         {
             "src": "assets\/android-icon-36x36.png",

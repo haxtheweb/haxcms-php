@@ -13,6 +13,7 @@
   <meta name="description" content="My HAXCMS site listing">
   <link rel="icon" href="assets/favicon.ico">
   <link rel="manifest" href="manifest.json">
+  <link rel="prefetch" href="site.json">
   <meta name="theme-color" content="#3f51b5">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="My site">
