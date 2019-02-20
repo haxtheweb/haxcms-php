@@ -9,7 +9,6 @@ import "../_config/my-custom-elements.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-listing.js";
 // core
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-theme-behavior.js";
 // core editing capabilities
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-editor.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
