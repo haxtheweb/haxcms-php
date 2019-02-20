@@ -37,6 +37,9 @@ fi
 if [ ! -d "_config/.ssh" ]; then
   mkdir _config/.ssh
 fi
+if [ ! -d "_config/tmp" ]; then
+  mkdir _config/tmp
+fi
 # migrate if legacy
 if [ -f "_config/sites.json" ]; then
   mv "_config/sites.json" "_sites/sites.json"
@@ -60,6 +63,7 @@ fi
 # may need to revisit this at some point
 sudo chmod 777 _sites
 sudo chmod 775 _config
+sudo chmod 777 _config/tmp
 sudo chmod 777 _config/config.json
 sudo chmod 777 _sites/sites.json
 
