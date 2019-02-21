@@ -77,6 +77,7 @@ include_once '../system/lib/bootstrapHAX.php';
               'description' => $site->manifest->description,
               'swhash' => array(),
               'segmentCount' => 1,
+              'cdnRegex' => '^https:\/\/' .$site->manifest->metadata->publishing->git->cdn . '\/',
             );
             // if we have a custom domain, try and engineer the base path
             // correctly for the manifest / service worker
@@ -95,7 +96,14 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             $swItems = $site->manifest->items;
             // the core files you need in every SW manifest
-            $coreFiles = array('', $templateVars['basePath'], 'index.html', 'manifest.json', 'site.json', '404.html');
+            $coreFiles = array(
+              '',
+              $templateVars['basePath'],
+              'index.html',
+              'manifest.json',
+              'site.json',
+              '404.html',
+            );
             foreach ($coreFiles as $itemLocation) {
               $coreItem = new stdClass();
               $coreItem->location = $itemLocation;

@@ -33,7 +33,8 @@
       "bundle": false,
       "addServiceWorker": true,
       "addPushManifest": true,
-      "insertPrefetchLinks": true
+      "insertPrefetchLinks": true,
+      "swPrecacheConfig": "sw-precache-config.js"
     },
     {
       "name": "es5-amd",
