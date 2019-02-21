@@ -7,8 +7,12 @@
     if ($HAXCMS->validateRequestToken()) {
       header('Status: 200');
       $params = $HAXCMS->safePost;
+      $domain = NULL;
       // woohoo we can edit this thing!
-      $site = $HAXCMS->loadSite(strtolower($params['siteName']), TRUE);
+      if (isset($params['domain'])) {
+        $domain = $params['domain'];
+      }
+      $site = $HAXCMS->loadSite(strtolower($params['siteName']), TRUE, $domain);
       // now get a new item to reference this into the top level sites listing
       $schema = $HAXCMS->outlineSchema->newItem();
       $schema->id = $site->manifest->id;
@@ -59,7 +63,9 @@
       // as well as this individual site. saves on performance / calls
       // later on if we only need to hit 1 file each time to get all the
       // data we need.
-      $site->manifest->metadata = $schema->metadata;
+      foreach ($schema->metadata as $key => $value) {
+        $site->manifest->metadata->{$key} = $value;
+      }  
       // @todo support injecting this with out things via PHP
       $site->manifest->metadata->dynamicElementLoader =  json_decode('{
         "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",

@@ -41,10 +41,12 @@ class HAXCMSSite {
     $tmpname = strtolower(str_replace(' ', '-', $tmpname));
     $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
     $loop = 0;
-    while (file_exists($directory . '/' . $tmpname)) {
+    $newName = $tmpname;
+    while (file_exists($directory . '/' . $newName)) {
       $loop++;
-      $tmpname = $tmpname . '-' . $loop;
+      $newName = $tmpname . '-' . $loop;
     }
+    $tmpname = $newName;
     // attempt to shift it on the file system
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/site', $directory . '/' . $tmpname);
     // create symlink to make it easier to resolve things to single built asset buckets
@@ -56,8 +58,8 @@ class HAXCMSSite {
     @symlink('../../../babel/babel-top.js', $directory . '/' . $tmpname . '/assets/babel-top.js');
     @symlink('../../../babel/babel-bottom.js', $directory . '/' . $tmpname . '/assets/babel-bottom.js');
     // default support is for gh-pages
-    if (is_null($domain) && isset($git->user)) {
-      $domain = 'https://' . $git->user . '.github.io/' . $tmpname;
+    if (is_null($domain) && isset($gitDetails->user)) {
+      $domain = 'https://' . $gitDetails->user . '.github.io/' . $tmpname;
     }
     // put domain into CNAME
     @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
@@ -69,6 +71,7 @@ class HAXCMSSite {
     $this->manifest->title = $name;
     $this->manifest->location = $this->basePath . $tmpname . '/index.html';
     $this->manifest->metadata->siteName = $tmpname;
+    $this->manifest->metadata->domain = $domain;
     $this->manifest->metadata->created = time();
     $this->manifest->metadata->updated = time();
     // create an initial page to make sense of what's there
