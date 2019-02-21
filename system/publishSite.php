@@ -1,5 +1,5 @@
 <?php
-  include_once '../system/lib/bootstrapHAX.php';
+include_once '../system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   // test if this is a valid user login
   if ($HAXCMS->validateJWT()) {
@@ -81,19 +81,13 @@
             // if we have a custom domain, try and engineer the base path
             // correctly for the manifest / service worker
             if (isset($site->manifest->metadata->domain)) {
-              $ary = explode('://', $site->manifest->metadata->domain);
-              if (count($ary) === 2) {
-                $base = explode('/', $ary[1]);
-                if (count($base) === 1) {
-                  $basePath = '/';
-                  $templateVars['segmentCount'] = 0;
-                }
-                else {
-                  array_pop($base);
-                  $basePath = '/' . implode('/', $base) . '/';
-                  $basePath = str_replace('//', '/', $basePath);
-                }
-                $templateVars['basePath'] = $basePath;
+              $parts = parse_url($site->manifest->metadata->domain);
+              $templateVars['basePath'] = '/';
+              if (isset($parts['base'])) {
+                $templateVars['basePath'] = $parts['base'];
+              }
+              if ($templateVars['basePath'] == '/') {
+                $templateVars['segmentCount'] = 0;
               }
             }
             if (isset($site->manifest->metadata->hexCode)) {
