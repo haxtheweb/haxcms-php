@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <title>{{ title }}</title>
   <base href="{{ basePath }}" />
+  <link rel="preconnect" crossorigin href="https://cdn.waxam.io">
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
   <meta name="generator" content="HAXCMS">
   <meta name="description" content="{{ description }}">
@@ -65,9 +70,16 @@
     }
   </script>
   <!-- End Single Page Apps for GitHub Pages -->
-  <link rel="stylesheet" href="https://cdn.waxam.io/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css">
+  <script type="text/javascript" defer>
+    let link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.waxam.io/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
+    link.type = 'text/css';
+    let def = document.getElementsByTagName('link')[0];
+    def.parentNode.insertBefore(link, def);
+  </script>
+  <script async src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-  <script src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script src="https://cdn.waxam.io/assets/babel-top.js"></script>
   <script src="https://cdn.waxam.io/assets/babel-bottom.js"></script>
   <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>

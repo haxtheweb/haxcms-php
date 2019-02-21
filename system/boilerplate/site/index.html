@@ -6,6 +6,10 @@
   <script type="text/javascript">
   document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
   </script>
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
   <meta name="generator" content="HAXCMS">
   <meta name="description" content="My HAXCMS site description">
@@ -26,9 +30,16 @@
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
   <link rel="manifest" href="manifest.json">
   <link rel="prefetch" href="site.json">
-  <link rel="stylesheet" href="build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css">
+  <script type="text/javascript" defer>
+    let link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
+    link.type = 'text/css';
+    let def = document.getElementsByTagName('link')[0];
+    def.parentNode.insertBefore(link, def);
+  </script>
+  <script async src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-  <script src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script src="assets/babel-top.js"></script>
   <script src="assets/babel-bottom.js"></script>
   <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
