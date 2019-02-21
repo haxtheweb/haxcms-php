@@ -48,10 +48,7 @@
       "html": {
         "minify": true
       },
-      "bundle": false,
-      "addServiceWorker": true,
-      "addPushManifest": true,
-      "insertPrefetchLinks": true
+      "bundle": false
     }
   ],
   "moduleResolution": "node",
