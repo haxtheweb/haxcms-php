@@ -95,7 +95,7 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             $swItems = $site->manifest->items;
             // the core files you need in every SW manifest
-            $coreFiles = array('', 'index.html', 'manifest.json', 'site.json', 'browserconfig.xml', '404.html');
+            $coreFiles = array('', $templateVars['basePath'], 'index.html', 'manifest.json', 'site.json', '404.html');
             foreach ($coreFiles as $itemLocation) {
               $coreItem = new stdClass();
               $coreItem->location = $itemLocation;
@@ -104,7 +104,7 @@ include_once '../system/lib/bootstrapHAX.php';
             // generate a legit hash value that's the same for each file name + file size
             foreach ($swItems as $item) {
               $templateVars['swhash'][] = array(
-                './' . $item->location, 
+                $item->location,
                 strtr(
                   base64_encode(
                     hash_hmac('md5', (string) $item->location . filesize($siteDirectoryPath . '/' . $item->location), (string) 'haxcmsswhash', TRUE)
@@ -115,9 +115,7 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             // put the twig written output into the file
             $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
-            $twig = new \Twig\Environment($loader, [
-              'cache' => HAXCMS_ROOT . '/_config/tmp',
-            ]);
+            $twig = new \Twig\Environment($loader);
             foreach ($templates as $location) {
               @file_put_contents($siteDirectoryPath . '/' . $location, $twig->render($location, $templateVars));
             }
