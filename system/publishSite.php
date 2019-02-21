@@ -77,8 +77,14 @@ include_once '../system/lib/bootstrapHAX.php';
               'description' => $site->manifest->description,
               'swhash' => array(),
               'segmentCount' => 1,
-              'cdnRegex' => '^https:\/\/' .$site->manifest->metadata->publishing->git->cdn . '\/',
+              'cdn' => $site->manifest->metadata->publishing->git->cdn,
+              'cdnRegex' => "(https?:\/\/" .str_replace('.', '\.', $site->manifest->metadata->publishing->git->cdn) . "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)",
             );
+            // special fallback for HAXtheWeb since it cheats in order to demo the product
+            if ($site->manifest->metadata->publishing->git->cdn === 'haxtheweb.org') {
+              $templateVars['cdn'] = 'cdn.waxam.io';
+              $templateVars['cdnRegex'] = "(https?:\/\/" .str_replace('.', '\.', 'cdn.waxam.io') . "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+            }
             // if we have a custom domain, try and engineer the base path
             // correctly for the manifest / service worker
             if (isset($site->manifest->metadata->domain)) {
@@ -102,8 +108,18 @@ include_once '../system/lib/bootstrapHAX.php';
               'index.html',
               'manifest.json',
               'site.json',
+              'assets/favicon.ico',
               '404.html',
             );
+            // loop through files directory so we can cache those things too
+            if ($handle = opendir($siteDirectoryPath . '/files')) {
+              while (false !== ($file = readdir($handle))) {
+                if ($file != "." && $file != ".." && $file != '.gitkeep' && $file != '.DS_Store') {
+                  $coreFiles[] = 'files/' . $file;
+                }
+              }
+              closedir($handle);
+            }
             foreach ($coreFiles as $itemLocation) {
               $coreItem = new stdClass();
               $coreItem->location = $itemLocation;
@@ -111,11 +127,17 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             // generate a legit hash value that's the same for each file name + file size
             foreach ($swItems as $item) {
+              if ($item->location === '' || $item->location === $templateVars['basePath']) {
+                $filesize = filesize($siteDirectoryPath . '/index.html');
+              }
+              else {
+                $filesize = filesize($siteDirectoryPath . '/' . $item->location);
+              }
               $templateVars['swhash'][] = array(
                 $item->location,
                 strtr(
                   base64_encode(
-                    hash_hmac('md5', (string) $item->location . filesize($siteDirectoryPath . '/' . $item->location), (string) 'haxcmsswhash', TRUE)
+                    hash_hmac('md5', (string) $item->location . $filesize, (string) 'haxcmsswhash', TRUE)
                   ),
                   array('+' => '','/' => '','=' => '','-' => '')
                 )
