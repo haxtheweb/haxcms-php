@@ -285,7 +285,7 @@ self.addEventListener('fetch', function (event) {
 
 // Runtime cache configuration, using the sw-toolbox library.
 
-toolbox.router.get(/'^https:\/\/cdn.waxam.io\/'/, toolbox.cacheFirst, {});
+toolbox.router.get(/'^https:\/\/cdn.waxam.io\/'/, toolbox.networkFirst, {});
 
 
 
