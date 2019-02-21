@@ -47,7 +47,7 @@
         }
     ],
     "scope": "{{ basePath }}",
-    "start_url": "/",
+    "start_url": "{{ basePath }}",
     "display": "standalone",
     "theme_color": "{{ hexCode }}",
     "background_color": "{{ hexCode }}"
