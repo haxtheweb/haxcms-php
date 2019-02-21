@@ -286,4 +286,4 @@ self.addEventListener('fetch', function (event) {
 
 // Runtime cache configuration, using the sw-toolbox library.
 
-toolbox.router.get(/'{{ cdnRegex }}'/, toolbox.networkFirst, {});
+toolbox.router.get(/{{ cdnRegex|raw }}/, toolbox.fastest, {});
