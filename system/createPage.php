@@ -7,7 +7,7 @@
     header('Status: 200');
     $params = $HAXCMS->safePost;
     // woohoo we can edit this thing!
-    $site = $HAXCMS->loadSite(strtolower($params['siteName']), TRUE);
+    $site = $HAXCMS->loadSite(strtolower($params['siteName']));
     // get a new item prototype
     $item = $HAXCMS->outlineSchema->newItem();
     // set the title
