@@ -82,7 +82,7 @@
           registration.onupdatefound = function () {
             // The updatefound event implies that registration.installing is set; see
             // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-container-updatefound-event
-            const installingWorker = registration.installing;
+            var installingWorker = registration.installing;
             installingWorker.onstatechange = function () {
               switch (installingWorker.state) {
                 case 'installed':
@@ -111,10 +111,10 @@
         if (navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.onstatechange = function (event) {
             if (event.target.state === 'redundant') {
-              let b = document.createElement('paper-button');
+              var b = document.createElement('paper-button');
               b.appendChild(document.createTextNode('Reload'));
               b.raised = true;
-              b.addEventListener('click', (e) => { window.location.reload(true); });
+              b.addEventListener('click', function(e) { window.location.reload(true); });
               window.dispatchEvent(new CustomEvent("simple-toast-show", {
                 bubbles: true,
                 cancelable: false,
@@ -165,15 +165,15 @@
 <body>
   <haxcms-site-builder file="site.json"><div>{{ title }}</div><div>loading<div></haxcms-site-builder>
   <noscript>Please enable JavaScript to view this website.</noscript>
-  <script async src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-  <script async src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="https://cdn.waxam.io/assets/babel-top.js"></script>
-  <script src="https://cdn.waxam.io/assets/babel-bottom.js"></script>
-  <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
-  <script nomodule>window.nomodule = true;</script>
   <script>if (!window.customElements) { document.write("<!--") }</script>
   <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
   <!--! do not remove -->
+  <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script async src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script src="https://cdn.waxam.io/assets/babel-bottom.js"></script>
+  <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
+  <script nomodule>window.nomodule = true;</script>
   <script>
     // anything not supporting modules needs to use es5 and amd
     // anything supporting modules at this point also supports ES2015 spec!
@@ -185,14 +185,14 @@
   <script type="module" src="https://cdn.waxam.io/build/es6/dist/build.js"></script>
   <!--! do not remove -->
   <script>
-    // indicate to HAXcms this is a demo
+    // indicate to HAXcms this is a DEMO
     window.__haxCMSContextDemo = true;
     // append global base styles
-    let link = document.createElement('link');
+    var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://cdn.waxam.io/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
     link.type = 'text/css';
-    let def = document.getElementsByTagName('link')[0];
+    var def = document.getElementsByTagName('link')[0];
     def.parentNode.insertBefore(link, def);
     // this is in order to fake a connection for development purposes
     window.appSettings = {

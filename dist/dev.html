@@ -79,8 +79,8 @@
 <body>
   <haxcms-site-builder file="site.json"><div>HAXcms</div><div>loading<div></haxcms-site-builder>
   <noscript>Please enable JavaScript to view this website.</noscript>
+  <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-  <script async src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script type="module" src="dist/build.js"></script>
   <script>
     // set this in order to simulate the published form of the site
@@ -102,11 +102,11 @@
       }
     };
     // append global base styles
-    let link = document.createElement('link');
+    var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
     link.type = 'text/css';
-    let def = document.getElementsByTagName('link')[0];
+    var def = document.getElementsByTagName('link')[0];
     def.parentNode.insertBefore(link, def);
   </script>
 </body>
