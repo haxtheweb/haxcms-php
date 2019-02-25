@@ -2,35 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{{ title }}</title>
-  <base href="{{ basePath }}" />
-  <link rel="preconnect" crossorigin href="https://cdn.waxam.io">
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
-  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
   <meta name="generator" content="HAXCMS">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <title>{{ title }}</title>
   <meta name="description" content="{{ description }}">
+  <base href="{{ basePath }}" />
+  
+  <link rel="icon" href="assets/favicon.ico">
+  
+  <link rel="manifest" href="manifest.json">
+  
   <meta name="theme-color" content="{{ hexCode }}">
+  
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="{{ title }}">
+  
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="{{ title }}">
-  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
-  <meta name="msapplication-TileColor" content="{{ hexCode }}">
-  <meta name="msapplication-tap-highlight" content="no">
-  <link rel="icon" href="assets/favicon.ico">
+  
   <link rel="apple-touch-icon" href="assets/icon-48x48.png">
   <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
   <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
   <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
-  <link rel="manifest" href="manifest.json">
-  <link rel="prefetch" href="site.json">
+  
+  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
+  <meta name="msapplication-TileColor" content="{{ hexCode }}">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <meta name="twitter:card" content="{{ description }}">
+  <meta name="twitter:site" content="{{ twitter }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ title }}">
+  <meta property="og:image" content="assets/icon-144x144.png" />
+  
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
+  <link rel="prefetch" href="site.json">  
   <!-- Start Single Page Apps for GitHub Pages -->
-  <script type="text/javascript">
+  <script>
     // Single Page Apps for GitHub Pages
     // https://github.com/rafrex/spa-github-pages
     // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
@@ -59,6 +72,7 @@
       }
     }(window.location))
   </script>
+  <!-- End Single Page Apps for GitHub Pages -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
@@ -117,23 +131,48 @@
       });
     }
   </script>
-  <!-- End Single Page Apps for GitHub Pages -->
-  <script type="text/javascript" defer>
-    let link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdn.waxam.io/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
-    link.type = 'text/css';
-    let def = document.getElementsByTagName('link')[0];
-    def.parentNode.insertBefore(link, def);
-  </script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+    haxcms-site-builder {
+      transition: all 1s linear;
+    }
+    haxcms-site-builder:not(:defined) {
+      width: 100vw;
+      display: block;
+      position: fixed;
+      height: 100vh;
+      background: {{ hexCode }};
+    }
+    haxcms-site-builder:not(:defined) div {
+      font-size: 6vw;
+      line-height: 1;
+      margin: 0 auto;
+      top: calc(50vh - 8vw);
+      width: 100%;
+      justify-content: center;
+      display: grid;
+      text-align: center;
+      padding: 0;
+      position: relative;
+      font-family: "Courier New", Courier, monospace;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <haxcms-site-builder file="site.json"><div>{{ title }}</div><div>loading<div></haxcms-site-builder>
+  <noscript>Please enable JavaScript to view this website.</noscript>
   <script async src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-  <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script async src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="https://cdn.waxam.io/assets/babel-top.js"></script>
   <script src="https://cdn.waxam.io/assets/babel-bottom.js"></script>
   <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
   <script nomodule>window.nomodule = true;</script>
   <script>if (!window.customElements) { document.write("<!--") }</script>
-  <script type="text/javascript" src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+  <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
   <!--! do not remove -->
   <script>
     // anything not supporting modules needs to use es5 and amd
@@ -145,10 +184,16 @@
   </script>
   <script type="module" src="https://cdn.waxam.io/build/es6/dist/build.js"></script>
   <!--! do not remove -->
-  <script>window.__haxCMSContextPublished = true;</script>
-</head>
-<body>
-  <haxcms-site-builder file="site.json"></haxcms-site-builder>
-  <noscript>Please enable JavaScript to view this website.</noscript>
+  <script>
+    // indicate to HAXcms this is PUBLISHED
+    window.__haxCMSContextPublished = true;
+    // append global base styles
+    let link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.waxam.io/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
+    link.type = 'text/css';
+    let def = document.getElementsByTagName('link')[0];
+    def.parentNode.insertBefore(link, def);
+  </script>
 </body>
 </html>

@@ -71,6 +71,8 @@ include_once '../system/lib/bootstrapHAX.php';
             // process twig variables and templates for static publishing
             $templateVars = array(
               'hexCode' => '#3f51b5',
+              // @todo support user setting a twitter account for themselves / site if desired
+              'twitter' => '',
               'basePath' => '/' . $site->manifest->metadata->siteName . '/',
               'title' => $site->manifest->title,
               'short' => $site->manifest->metadata->siteName,
