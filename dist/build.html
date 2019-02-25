@@ -6,6 +6,10 @@
   <script src="../node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script type="module" src="./build-full.js"></script>
   <link rel="stylesheet" href="../node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" />
+  <script>
+    // helps with mobx compiling
+    window.process = { env: { NODE_ENV: 'production' } };
+  </script>
 </head>
 <body></body>
 </html>
