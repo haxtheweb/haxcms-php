@@ -1,4 +1,4 @@
-APIVersion: v1.5.2
+APIVersion: v1.6.0
 name: haxcms
 type: php
 docroot: ""
@@ -11,6 +11,7 @@ additional_hostnames: []
 additional_fqdns: []
 mariadb_version: "10.2"
 webcache_enabled: false
+nfs_mount_enabled: false
 provider: default
 hooks:
   post-start:
@@ -18,11 +19,13 @@ hooks:
   - exec: bash scripts/github-publishing-ssh.sh
   - exec: echo 'go to http://haxcms.ddev.local - click the top right power button
       and enter admin / admin to get started!'
-# This config.yaml was created with ddev version v1.5.2 
-# webimage: drud/ddev-webserver:v1.5.2
-# dbimage: drud/ddev-dbserver:v1.5.2-10.2
-# dbaimage: drud/phpmyadmin:v1.5.2
-# bgsyncimage: drud/ddev-bgsync:v1.5.2
+
+
+# This config.yaml was created with ddev version v1.6.0 
+# webimage: drud/ddev-webserver:v1.6.0
+# dbimage: drud/ddev-dbserver:v1.6.0-10.2
+# dbaimage: drud/phpmyadmin:v1.6.0
+# bgsyncimage: drud/ddev-bgsync:v1.6.0
 # However we do not recommend explicitly wiring these images into the
 # config.yaml as they may break future versions of ddev.
 # You can update this config.yaml using 'ddev config'.

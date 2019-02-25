@@ -33,7 +33,8 @@ services:
     command: "$DDEV_MARIADB_LOCAL_COMMAND"
     healthcheck:
       interval: 5s
-      retries: 3
+      retries: 4
+      start_period: 20s
   web:
     container_name: ddev-${DDEV_SITENAME}-web
     image: $DDEV_WEBIMAGE
@@ -86,7 +87,7 @@ services:
       com.ddev.app-type: php
       com.ddev.approot: $DDEV_APPROOT
       com.ddev.app-url: $DDEV_URL
-    extra_hosts: ["unneeded:127.0.0.1"]
+
     external_links:
       - ddev-router:$DDEV_HOSTNAME
     healthcheck:
@@ -135,4 +136,7 @@ volumes:
   
   ddev-composer-cache:
     name: ddev-composer-cache
+  
+  
+
   
