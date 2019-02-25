@@ -36,7 +36,8 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ title }}">
   <meta property="og:image" content="assets/icon-144x144.png" />
-  
+
+  <link rel="preconnect" crossorigin href="https://cdn.waxam.io">  
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
@@ -160,11 +161,39 @@
       font-family: "Courier New", Courier, monospace;
       color: black;
     }
+    #outdated {
+      font-size: 5vw;
+      margin: 0;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      justify-content: center;
+      display: none;
+      text-align: center;
+      padding: 0;
+      position: absolute;
+      font-family: "Courier New", Courier, monospace;
+      color: black;
+      background-color: #FFCCCC;
+      z-index: 10000;
+    }
+    #outdated h6 {
+      padding: 16px;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
-  <haxcms-site-builder file="site.json"><div>{{ title }}</div><div>loading<div></haxcms-site-builder>
+  <haxcms-site-builder file="site.json"><div>{{ title }}</div><div>loading</div></haxcms-site-builder>
   <noscript>Please enable JavaScript to view this website.</noscript>
+  <div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a>
+    </p>
+  </div>
+  <script>if (typeof Symbol == "undefined") { document.getElementById("outdated").style.display = 'block'; }</script>
   <script src="https://cdn.waxam.io/assets/babel-top.js"></script>
   <script>if (!window.customElements) { document.write("<!--") }</script>
   <script src="https://cdn.waxam.io/build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
