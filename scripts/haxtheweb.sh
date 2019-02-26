@@ -40,6 +40,9 @@ fi
 if [ ! -d "_config/tmp" ]; then
   mkdir _config/tmp
 fi
+if [ ! -d "_config/node_modules" ]; then
+  mkdir _config/node_modules
+fi
 # migrate if legacy
 if [ -f "_config/sites.json" ]; then
   mv "_config/sites.json" "_sites/sites.json"
