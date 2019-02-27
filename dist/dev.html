@@ -77,7 +77,7 @@
 </head>
 
 <body>
-  <haxcms-site-builder file="site.json"><div>HAXcms</div><div>loading<div></haxcms-site-builder>
+  <haxcms-site-builder file="site.json"><div>HAXcms</div><div>loading</div></haxcms-site-builder>
   <noscript>Please enable JavaScript to view this website.</noscript>
   <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
@@ -99,6 +99,15 @@
       "publishSitePath": "dist\/dev\/savePage.json",
       "appStore": {
         "url": "dist\/dev\/appstore.json"
+      },
+      // add your custom theme here if testing locally and wanting to emulate the theme selector
+      // this isn't really nessecary though
+      "themes": { 
+        "haxcms-dev-theme": { 
+          "element": "haxcms-dev-theme", 
+          "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js", 
+          "name": "Developer theme"
+        }
       }
     };
     // append global base styles
