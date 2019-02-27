@@ -472,6 +472,7 @@ class HAXCMS {
     $settings = new stdClass();
     $settings->login = $this->basePath . 'system/login.php';
     $settings->logout = $this->basePath . 'system/logout.php';
+    $settings->themes = $this->getThemes();
     $settings->savePagePath = $this->basePath . 'system/savePage.php';
     $settings->saveManifestPath = $this->basePath . 'system/saveManifest.php';
     $settings->saveOutlinePath = $this->basePath . 'system/saveOutline.php';
