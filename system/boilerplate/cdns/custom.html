@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="HAXCMS">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  <base href="{{ basePath }}" />
+  
+  <link rel="icon" href="assets/favicon.ico">
+  
+  <link rel="manifest" href="manifest.json">
+  
+  <meta name="theme-color" content="{{ hexCode }}">
+  
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="{{ title }}">
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ title }}">
+  
+  <link rel="apple-touch-icon" href="assets/icon-48x48.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
+  
+  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
+  <meta name="msapplication-TileColor" content="{{ hexCode }}">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <meta name="twitter:card" content="{{ description }}">
+  <meta name="twitter:site" content="{{ twitter }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ title }}">
+  <meta property="og:image" content="assets/icon-144x144.png" />
+  
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
+  <link rel="prefetch" href="site.json">
+  <!-- Start Single Page Apps for GitHub Pages -->
+  <script>
+    // Single Page Apps for GitHub Pages
+    // https://github.com/rafrex/spa-github-pages
+    // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
+    // ----------------------------------------------------------------------
+    // This script checks to see if a redirect is present in the query string
+    // and converts it back into the correct url and adds it to the
+    // browser's history using window.history.replaceState(...),
+    // which won't cause the browser to attempt to load the new url.
+    // When the single page app is loaded further down in this file,
+    // the correct url will be waiting in the browser's history for
+    // the single page app to route accordingly.
+    (function (l) {
+      if (l.search) {
+        var q = {};
+        l.search.slice(1).split('&').forEach(function (v) {
+          var a = v.split('=');
+          q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
+        });
+        if (q.p !== undefined) {
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + (q.p || '') +
+            (q.q ? ('?' + q.q) : '') +
+            l.hash
+          );
+        }
+      }
+    }(window.location))
+  </script>
+  <!-- End Single Page Apps for GitHub Pages -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js', {
+          scope: '{{ basePath }}'
+        }).then(function (registration) {
+          registration.onupdatefound = function () {
+            // The updatefound event implies that registration.installing is set; see
+            // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-container-updatefound-event
+            var installingWorker = registration.installing;
+            installingWorker.onstatechange = function () {
+              switch (installingWorker.state) {
+                case 'installed':
+                  if (!navigator.serviceWorker.controller) {
+                    window.dispatchEvent(new CustomEvent("simple-toast-show", {
+                      bubbles: true,
+                      cancelable: false,
+                      detail: {
+                        text: 'Pages you view are cached for offline use.',
+                        duration: 8000
+                      }
+                    }));
+                  }
+                break;
+                case 'redundant':
+                  throw Error('The installing service worker became redundant.');
+                break;
+              }
+            };
+          };
+        }).catch(function (e) {
+          console.warn('Service worker registration failed:', e);
+        });
+        // Check to see if the service worker controlling the page at initial load
+        // has become redundant, since this implies there's a new service worker with fresh content.
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.onstatechange = function(event) {
+            if (event.target.state === 'redundant') {
+              var b = document.createElement('paper-button');
+              b.appendChild(document.createTextNode('Reload'));
+              b.raised = true;
+              b.addEventListener('click', function(e){ window.location.reload(true); });
+              window.dispatchEvent(new CustomEvent("simple-toast-show", {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                  text: 'A site update is available. Reload for latest content.',
+                  duration: 12000,
+                  slot: b,
+                  clone: false
+                }
+              }));
+            }
+          };
+        }
+      });
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+    haxcms-site-builder {
+      transition: all 1s linear;
+    }
+    haxcms-site-builder:not(:defined) {
+      width: 100vw;
+      display: block;
+      position: fixed;
+      height: 100vh;
+      background: {{ hexCode }};
+    }
+    haxcms-site-builder:not(:defined) div {
+      font-size: 6vw;
+      line-height: 1;
+      margin: 0 auto;
+      top: calc(50vh - 8vw);
+      width: 100%;
+      justify-content: center;
+      display: grid;
+      text-align: center;
+      padding: 0;
+      position: relative;
+      font-family: "Courier New", Courier, monospace;
+      color: black;
+    }
+    #outdated {
+      font-size: 5vw;
+      margin: 0;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      justify-content: center;
+      display: none;
+      text-align: center;
+      padding: 0;
+      position: absolute;
+      font-family: "Courier New", Courier, monospace;
+      color: black;
+      background-color: #FFCCCC;
+      z-index: 10000;
+    }
+    #outdated h6 {
+      padding: 16px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <haxcms-site-builder file="site.json"><div>{{ title }}</div><div>loading</div></haxcms-site-builder>
+  <noscript>Please enable JavaScript to view this website.</noscript>
+  <div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a>
+    </p>
+  </div>
+  <script>if (typeof Symbol == "undefined") { document.getElementById("outdated").style.display = 'block'; }</script>
+  <script src="assets/babel-top.js"></script>
+  <script>if (!window.customElements) { document.write("<!--") }</script>
+  <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+  <!--! do not remove -->
+  <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+  <script async src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script src="assets/babel-bottom.js"></script>
+  <script>function supportsImports() { try { new Function('import("")'); return true; } catch (err) { return false; } }</script>
+  <script nomodule>window.nomodule = true;</script>
+  <script>
+    // anything not supporting modules needs to use es5 and amd
+    // anything supporting modules at this point also supports ES2015 spec!
+    if (window.nomodule || !supportsImports()) {
+      define(["build/es5-amd/dist/build.js"], function () { "use strict" });
+      document.write("<!--")
+    }
+  </script>
+  <script type="module" src="build/es6/dist/build.js"></script>
+  <!--! do not remove -->
+  <script>
+    // indicate to HAXcms this is PUBLISHED
+    window.__haxCMSContextPublished = true;
+    // append global base styles
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
+    link.type = 'text/css';
+    var def = document.getElementsByTagName('link')[0];
+    def.parentNode.insertBefore(link, def);
+  </script>
+</body>
+</html>
