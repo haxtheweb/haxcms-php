@@ -84,7 +84,23 @@ class HAXCMS {
       if (!$this->config = json_decode(file_get_contents($this->configDirectory . '/config.json'))) {
         print $this->configDirectory . '/config.json missing';
       }
+      else {
+        if (!isset($this->config->themes)) {
+          $this->config->themes = new stdClass();
+        }
+        // load in core theme data
+        $themeData = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/themes.json'));
+        foreach ($themeData as $name => $data) {
+          $this->config->themes->{$name} = $data;
+        }
+      }
     }
+  }
+  /**
+   * Load theme location data as mix of config and system
+   */
+  public function getThemes() {
+    return $this->config->themes;
   }
   /**
    * Build valid JSON Schema for the config we have knowledge of
