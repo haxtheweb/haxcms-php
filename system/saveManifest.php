@@ -16,7 +16,12 @@
       $site->manifest->metadata->domain = $domain;
       @file_put_contents($site->directory . '/' . $site->manifest->metadata->siteName . '/CNAME', $domain);
     }
-    $site->manifest->metadata->theme = filter_var($_POST['manifest']->metadata->theme, FILTER_SANITIZE_STRING);
+    // look for a match so we can set the correct data
+    foreach ($HAXCMS->getThemes() as $key => $theme) {
+      if (filter_var($_POST['manifest']->metadata->theme, FILTER_SANITIZE_STRING) == $key) {
+        $site->manifest->metadata->theme = $theme;
+      }
+    }
     $site->manifest->metadata->image = filter_var($_POST['manifest']->metadata->image, FILTER_SANITIZE_STRING);
     $site->manifest->metadata->hexCode = filter_var($_POST['manifest']->metadata->hexCode, FILTER_SANITIZE_STRING);
     $site->manifest->metadata->cssVariable = filter_var($_POST['manifest']->metadata->cssVariable, FILTER_SANITIZE_STRING);
