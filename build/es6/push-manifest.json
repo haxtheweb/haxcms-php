@@ -840,10 +840,6 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/dropdown-select/dropdown-select.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40lrnwebcomponents/sites-listing/sites-listing.js": {
       "type": "script",
       "weight": 1
@@ -1172,6 +1168,10 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/dropdown-select/dropdown-select.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-app-browser-item.js": {
       "type": "script",
       "weight": 1
@@ -1397,10 +1397,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/HAXCMSThemeWiring.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/outline-player/lib/outline-player-arrow.js": {
       "type": "script",
       "weight": 1
     },
