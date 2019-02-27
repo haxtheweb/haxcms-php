@@ -19,7 +19,12 @@
       $schema->title = $params['siteName'];
       $schema->location = $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->manifest->metadata->siteName . '/index.html';
       $schema->metadata->siteName = $site->manifest->metadata->siteName;
-      $schema->metadata->theme = $params['theme'];
+      // look for a match so we can set the correct data
+      foreach ($HAXCMS->getThemes() as $key => $theme) {
+        if ($params['theme'] == $key) {
+          $schema->metadata->theme = $theme;
+        }
+      }
       // description for an overview if desired
       if (isset($params['description'])) {
         $schema->description = $params['description'];
