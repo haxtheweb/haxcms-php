@@ -574,6 +574,7 @@
       ],
       "autoloader": [
           "lrn-aside",
+          "md-block",
           "grid-plate",
           "tab-list",
           "magazine-cover",
