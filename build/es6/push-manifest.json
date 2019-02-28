@@ -1552,6 +1552,22 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/md-block/md-block.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/marked-element.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/marked-import.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/node_modules/marked/lib/marked.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js": {
       "type": "script",
       "weight": 1
