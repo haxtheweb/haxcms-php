@@ -5,5 +5,6 @@
   include_once 'system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   $appSettings = $HAXCMS->appJWTConnectionSettings();
+  header('Content-Type: application/javascript');
 ?>
 window.appSettings = <?php print json_encode($appSettings); ?>;
