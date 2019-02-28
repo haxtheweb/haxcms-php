@@ -27,7 +27,7 @@
       }
       else {
         // check the item map as backend dictates unique ID
-        if ($itemMap[$item->parent]) {
+        if (isset($itemMap[$item->parent])) {
           $page->parent = $itemMap[$item->parent];
         }
         else {
@@ -46,55 +46,42 @@
       // keep location if we get one already
       if (isset($item->location) && $item->location != '') {
         // force location to be in the right place
-        $cleanTitle = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
-        $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
-        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
-        $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+        $cleanTitle = $HAXCMS->cleanTitle($item->location);
         $page->location = 'pages/' . $cleanTitle . '/index.html';
       }
       else {
-        $cleanTitle = strtolower(str_replace(' ', '-', $page->title));
-        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
-        $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+        $cleanTitle = $HAXCMS->cleanTitle($page->title);
         // generate a logical page location
         $page->location = 'pages/' . $cleanTitle . '/index.html';
       }
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->siteName;
-      if (!file_exists($siteDirectory . '/' . $page->location)) {
+      // if it doesn't exist currently make sure the name is unique
+      if (!$site->loadPage($page->id)) {
+        // ensure this location doesn't exist already
+        $tmpTitle = $site->getUniqueLocationName($cleanTitle);
+        $page->location = 'pages/' . $tmpTitle . '/index.html';
+        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $tmpTitle);
+      }
+      // this would imply existing item, lets see if it moved or needs moved
+      else {
         $moved = false;
         foreach ($original as $key => $tmpItem) {
           // see if this is something moving as opposed to brand new
-          if ($tmpItem->id == $page->id && file_exists($siteDirectory . '/' . $tmpItem->location) && $tmpItem->location != '') {
+          if ($tmpItem->id == $page->id && $tmpItem->location != $page->location && file_exists($siteDirectory . '/' . $tmpItem->location) && $tmpItem->location != '') {
             $moved = true;
-            rename(str_replace('/index.html', '', $siteDirectory . '/' . $tmpItem->location), 
-            str_replace('/index.html', '', $siteDirectory . '/' . $page->location));
+            $site->renamePageLocation($tmpItem->location, $page->location);
           }
         }
-        if (!$moved) {
+        // it wasn't moved and it doesn't exist... let's fix that
+        // this is beyond an edge case
+        if (!$moved && !file_exists($siteDirectory . '/' . $page->location)) {
           // ensure this location doesn't exist already
-          $loop = 0;
-          $tmpTitle = $cleanTitle;
-          while (file_exists($siteDirectory . '/' . $page->location)) {
-            $loop++;
-            $page->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
-            $tmpTitle = $cleanTitle . '-' . $loop;
-          }
+          $tmpTitle = $site->getUniqueLocationName($cleanTitle);
+          $page->location = 'pages/' . $tmpTitle . '/index.html';
           $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $tmpTitle);
         }
-      }
-      // if it doesn't exist currently make sure the name is unique
-      else if (!$site->loadPage($page->id)) {
-        // ensure this location doesn't exist already
-        $loop = 0;
-        $tmpTitle = $cleanTitle;
-        while (file_exists($siteDirectory . '/' . $page->location)) {
-          $loop++;
-          $page->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
-          $tmpTitle = $cleanTitle . '-' . $loop;
-        }
-        $site->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $siteDirectory . '/pages/' . $tmpTitle);
       }
       // check for any metadata keys that did come over
       foreach ($item->metadata as $key => $value) {

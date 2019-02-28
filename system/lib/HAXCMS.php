@@ -382,9 +382,7 @@ class HAXCMS {
    */
   public function loadSite($name, $create = FALSE, $domain = NULL) {
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
-    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
-    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
+    $tmpname = $this->cleanTitle($tmpname, false);
     // check if this exists, load but fallback for creating on the fly
     if (is_dir(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $tmpname) && !$create) {
       $site = new HAXCMSSite();
@@ -434,6 +432,20 @@ class HAXCMS {
       }
     }
     return FALSE;
+  }
+  /**
+   * Clean up a title / sanitize the input string for file system usage
+   */
+  public function cleanTitle($value, $stripPage = true) {
+    $cleanTitle = $value;
+    // strips off the identifies for a page on the file system
+    if ($stripPage) {
+      $cleanTitle = str_replace('pages/', '', str_replace('/index.html', '', $cleanTitle));
+    }
+    $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
+    $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
+    $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+    return $cleanTitle;
   }
   /**
    * test the active user login based on session.

@@ -16,24 +16,13 @@
       $item->id = $params['id'];
     }
     if (isset($params['location']) && $params['location'] != '') {
-      $cleanTitle = strtolower(str_replace(' ', '-', $params['location']));
-      $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
-      $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
-      $item->location = 'pages/' . $cleanTitle . '/index.html';
+      $cleanTitle = $HAXCMS->cleanTitle($params['location']);
     }
     else {
-      $cleanTitle = strtolower(str_replace(' ', '-', $item->title));
-      $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
-      $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
-      $item->location = 'pages/' . $cleanTitle . '/index.html';
+      $cleanTitle = $HAXCMS->cleanTitle($item->title);
     }
     // ensure this location doesn't exist already
-    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->siteName;
-    $loop = 0;
-    while (file_exists($siteDirectory . '/' . $item->location)) {
-      $loop++;
-      $item->location = 'pages/' . $cleanTitle . '-' . $loop . '/index.html';
-    }
+    $item->location = 'pages/' . $site->getUniqueLocationName($cleanTitle) . '/index.html';
 
     if (isset($params['indent']) && $params['indent'] != '') {
       $item->indent = $params['indent'];
@@ -53,7 +42,6 @@
     if (isset($params['order']) && $params['metadata'] != '') {
       $item->metadata = $params['metadata'];
     }
-    $item->metadata->siteName = strtolower($params['siteName']);
     $item->metadata->created = time();
     $item->metadata->updated = time();
     // add the item back into the outline schema

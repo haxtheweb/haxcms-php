@@ -82,8 +82,8 @@ class JSONOutlineSchema {
     }
     return FALSE;
   }
-    /**
-   * Remove an item from the outline if it exists
+  /**
+   * Update an item in the outline
    * @var $id an id that's in the array of items
    * @return JSONOutlineSchemaItem or FALSE if not found
    */

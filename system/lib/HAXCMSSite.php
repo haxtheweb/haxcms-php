@@ -12,9 +12,7 @@ class HAXCMSSite {
   public function load($directory, $siteBasePath, $name) {
     $this->name = $name;
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
-    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
-    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
+    $tmpname = $GLOBALS['HAXCMS']->cleanTitle($tmpname, false);
     $this->basePath = $siteBasePath;
     $this->directory = $directory;
     $this->manifest = new JSONOutlineSchema();
@@ -37,9 +35,7 @@ class HAXCMSSite {
     $this->name = $name;
     // clean up name so it can be in a URL / published
     $tmpname = urldecode($name);
-    $tmpname = preg_replace('/[^\w\-\/]+/u', '-', $tmpname);
-    $tmpname = strtolower(str_replace(' ', '-', $tmpname));
-    $tmpname = mb_strtolower(preg_replace('/--+/u', '-', $tmpname), 'UTF-8');
+    $tmpname = $GLOBALS['HAXCMS']->cleanTitle($tmpname, false);
     $loop = 0;
     $newName = $tmpname;
     while (file_exists($directory . '/' . $newName)) {
@@ -84,6 +80,24 @@ class HAXCMSSite {
       $this->gitSetRemote($gitDetails);
     }
     return $this;
+  }
+  /**
+   * Rename a page from one location to another
+   * This ensures that folders are moved but not the final index.html involved
+   * It also helps secure the sites by ensuring movement is only within
+   * their folder tree
+   */
+  public function renamePageLocation($old, $new) {
+    $siteDirectory = $this->directory . '/' . $this->manifest->metadata->siteName;
+    $old = str_replace('./', '', str_replace('../', '', $old));
+    $new = str_replace('./', '', str_replace('../', '', $new));
+    @rename(str_replace(
+        '/index.html', '', $siteDirectory . '/' . $old
+      ),
+      str_replace(
+        '/index.html', '', $siteDirectory . '/' . $new
+      )
+    );
   }
   /**
    * Basic wrapper to commit current changes to version control of the site
@@ -196,10 +210,24 @@ class HAXCMSSite {
    * Change the directory this site is located in
    */
   public function changeName($new) {
+    $new = str_replace('./', '', str_replace('../', '', $new));
     // attempt to shift it on the file system
     if ($new != $this->manifest->metadata->siteName) {
-      return rename($this->manifest->metadata->siteName, $new);
+      return @rename($this->manifest->metadata->siteName, $new);
     }
+  }
+  /**
+   * Test and ensure the name being returned is a location currently unused
+   */
+  public function getUniqueLocationName($location) {
+    $siteDirectory = $this->directory . '/' . $this->manifest->metadata->siteName;
+    $loop = 0;
+    $original = $location;
+    while (file_exists($siteDirectory . '/pages/' . $location . '/index.html')) {
+      $loop++;
+      $location = $original . '-' . $loop;
+    }
+    return $location;
   }
   /**
    * Recursive copy to rename high level but copy all files
