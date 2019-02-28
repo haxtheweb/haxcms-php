@@ -44,9 +44,15 @@ include_once '../system/lib/bootstrapHAX.php';
           // werid looking I know but if we have a CDN then we need to "rewrite" this file
           if ($site->manifest->metadata->publishing->git->cdn && file_exists(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html')) {
             // move the index.html and unlink the symlinks otherwise we'll get build failures
-            @unlink($siteDirectoryPath . '/build');
-            @unlink($siteDirectoryPath . '/dist');
-            @unlink($siteDirectoryPath . '/node_modules');
+            if (is_link($siteDirectoryPath . '/build')) {
+              @unlink($siteDirectoryPath . '/build');
+            }
+            if (is_link($siteDirectoryPath . '/dist')) {
+              @unlink($siteDirectoryPath . '/dist');
+            }
+            if (is_link($siteDirectoryPath . '/node_modules')) {
+              @unlink($siteDirectoryPath . '/node_modules');
+            }
             @unlink($siteDirectoryPath . '/assets/babel-top.js');
             @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
             // additional files to move to ensure we don't screw things up
@@ -162,9 +168,15 @@ include_once '../system/lib/bootstrapHAX.php';
             $repo->push('origin', $site->manifest->metadata->publishing->git->branch, "--force");
             $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
             // put it back like it was after our version goes up
-            symlink('../../build', $siteDirectoryPath . '/build');
-            symlink('../../dist', $siteDirectoryPath . '/dist');
-            symlink('../../node_modules', $siteDirectoryPath . '/node_modules');
+            if (!is_dir($siteDirectoryPath . '/build')) {
+              symlink('../../build', $siteDirectoryPath . '/build');
+            }
+            if (!is_dir($siteDirectoryPath . '/dist')) {
+              symlink('../../dist', $siteDirectoryPath . '/dist');
+            }
+            if (!is_dir($siteDirectoryPath . '/node_modules')) {
+              symlink('../../node_modules', $siteDirectoryPath . '/node_modules');
+            }
             symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
             symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
             foreach ($templates as $path) {
