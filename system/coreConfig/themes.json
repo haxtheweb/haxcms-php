@@ -13,5 +13,10 @@
     "element": "simple-blog",
     "path": "@lrnwebcomponents/simple-blog/simple-blog.js",
     "name": "Simple blog"
+  },
+  "haxcms-slide-theme": {
+    "element": "haxcms-slide-theme",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js",
+    "name": "Slide player"
   }
 }

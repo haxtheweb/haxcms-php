@@ -1436,6 +1436,10 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/a11y-gif-player/a11y-gif-player.js": {
       "type": "script",
       "weight": 1
