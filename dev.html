@@ -74,12 +74,7 @@
     </style>
   </head>
   <body>
-    <haxcms-site-listing create-params='{"token":"0Q3VHQU0aBv6Ak-cONONcWGDEGmVnezuB7Ly0A3Zcsg"}' base-path="/" data-source="_sites/sites.json?PimminOeLwcwVdbErAzynqeCUJhlWJxa5X5PtoIxY0I"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
-    <noscript>Please enable JavaScript to view this website.</noscript>
-    <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-    <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
-    <script type="module" src="dist/build-home.js"></script>
-    <script>
+        <script>
       // set this in order to simulate the published form of the site
       // window.__haxCMSContextPublished = true;
       // set the below to simulate running a demo / end points to load data
@@ -89,6 +84,7 @@
         "login": "dist\/dev\/login.json",
         "logout": "dist\/dev\/logout.json",
         "savePagePath": "dist\/dev\/savePage.json",
+        "getConfigPath": "dist\/dev\/getConfigPath.json",
         "saveManifestPath": "dist\/dev\/savePage.json",
         "createPagePath": "dist\/dev\/savePage.json",
         "deletePagePath": "dist\/dev\/savePage.json",
@@ -127,5 +123,10 @@
       var def = document.getElementsByTagName('link')[0];
       def.parentNode.insertBefore(link, def);
     </script>
+    <haxcms-site-listing create-params='{"token":"0Q3VHQU0aBv6Ak-cONONcWGDEGmVnezuB7Ly0A3Zcsg"}' base-path="/" data-source="_sites/sites.json?PimminOeLwcwVdbErAzynqeCUJhlWJxa5X5PtoIxY0I"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
+    <noscript>Please enable JavaScript to view this website.</noscript>
+    <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+    <script type="module" src="dist/build-home.js"></script>
   </body>
 </html>
