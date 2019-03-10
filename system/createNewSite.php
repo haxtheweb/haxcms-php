@@ -88,6 +88,8 @@
         "media-behaviors": "@lrnwebcomponents/media-behaviors/media-behaviors.js",
         "media-image": "@lrnwebcomponents/media-image/media-image.js",
         "meme-maker": "@lrnwebcomponents/meme-maker/meme-maker.js",
+        "grid-plate": "@lrnwebcomponents/grid-plate/grid-plate.js",
+        "md-block": "@lrnwebcomponents/md-block/md-block.js",
         "multiple-choice": "@lrnwebcomponents/multiple-choice/multiple-choice.js",
         "paper-audio-player": "@lrnwebcomponents/paper-audio-player/paper-audio-player.js",
         "person-testimonial": "@lrnwebcomponents/person-testimonial/person-testimonial.js",
