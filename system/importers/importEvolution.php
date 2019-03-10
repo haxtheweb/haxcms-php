@@ -55,6 +55,8 @@
   "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",
   "lrn-calendar": "@lrnwebcomponents/lrn-calendar/lrn-calendar.js",
   "lrn-math": "@lrnwebcomponents/lrn-math/lrn-math.js",
+  "grid-plate": "@lrnwebcomponents/grid-plate/grid-plate.js",
+  "md-block": "@lrnwebcomponents/md-block/md-block.js",
   "lrn-table": "@lrnwebcomponents/lrn-table/lrn-table.js",
   "lrn-vocab": "@lrnwebcomponents/lrn-vocab/lrn-vocab.js",
   "lrndesign-blockquote": "@lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js",
