@@ -31,6 +31,48 @@ class JSONOutlineSchema {
     $this->metadata = new stdClass();
     $this->items = array();
   }
+
+  /**
+   * Get a reasonable license name from the short hand
+   */
+  public function getLicenseDetails() {
+    $list = array(
+      "by" => array(
+        'name' => "Creative Commons: Attribution",
+        'link' => "https://creativecommons.org/licenses/by/4.0/",
+        'image' => "https://i.creativecommons.org/l/by/4.0/88x31.png"
+      ),
+      "by-sa" => array(
+        'name' => "Creative Commons: Attribution Share a like",
+        'link' => "https://creativecommons.org/licenses/by-sa/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
+      ),
+      "by-nd" => array(
+        'name' => "Creative Commons: Attribution No derivatives",
+        'link' => "https://creativecommons.org/licenses/by-nd/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nd/4.0/88x31.png"
+      ),
+      "by-nc" => array(
+        'name' => "Creative Commons: Attribution non-commercial",
+        'link' => "https://creativecommons.org/licenses/by-nc/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
+      ),
+      "by-nc-sa" => array(
+        'name' => "Creative Commons: Attribution non-commercial share a like",
+        'link' => "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"
+      ),
+      "by-nc-nd" => array(
+        'name' => "Creative Commons: Attribution Non-commercial No derivatives",
+        'link' => "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png"
+      ),
+    );
+    if (isset($list[$this->license])) {
+      return $list[$this->license];
+    }
+    return array();
+  }
   /**
    * Get a new item matching schema standards
    * @return new JSONOutlineSchemaItem Object
