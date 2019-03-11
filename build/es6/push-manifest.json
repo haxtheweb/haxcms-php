@@ -1568,7 +1568,7 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/marked/lib/marked.js": {
+    "node_modules/%40polymer/marked-element/node_modules/marked/lib/marked.js": {
       "type": "script",
       "weight": 1
     },
