@@ -1,0 +1,12 @@
+{
+  "github": {
+    "name": "Github",
+    "script": "system/publishing/github/publishGithub.php",
+    "image": "system/publishing/github/github.png"
+  },
+  "surge": {
+    "name": "Surge.sh",
+    "script": "system/publishing/surge/publishSurge.php",
+    "image": "system/publishing/surge/surge.png"
+  }
+}

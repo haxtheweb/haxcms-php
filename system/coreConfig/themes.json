@@ -18,5 +18,10 @@
     "element": "haxcms-slide-theme",
     "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js",
     "name": "Slide player"
+  },
+  "learn-two-theme": {
+    "element": "learn-two-theme",
+    "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
+    "name": "Learn2"
   }
 }

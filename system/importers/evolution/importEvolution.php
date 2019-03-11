@@ -1,6 +1,6 @@
 <?php
 
-  include_once '../lib/bootstrapHAX.php';
+  include_once '../../lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
 
   // now let's work against the XML structure
