@@ -6,6 +6,7 @@ class HAXCMSSite {
   public $manifest;
   public $directory;
   public $basePath = '/';
+  public $language = 'en-us';
   /**
    * Load a site based on directory and name
    */
