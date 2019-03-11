@@ -13,6 +13,7 @@
   "license": "Apache-2.0",
   "flat": true,
   "dependencies": {
+    "lunr": "^2.3.6",
     "@lrnwebcomponents/a11y-gif-player": "^2.0.1",
     "@lrnwebcomponents/aframe-player": "^2.0.1",
     "@lrnwebcomponents/app-datepicker": "^2.0.1",
