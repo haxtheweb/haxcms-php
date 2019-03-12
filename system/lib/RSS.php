@@ -9,11 +9,12 @@ class FeedMe {
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
   <channel>
     <title>' . $site->manifest->title . '</title>
-    <link>' . $site->manifest->metadata->domain . '/feed.rss</link>
+    <link>' . $site->manifest->metadata->domain . '/rss.xml</link>
     <description>' . $site->manifest->description . '</description>
     <copyright>Copyright (C) ' . date('Y') . ' ' . $site->manifest->metadata->domain . '</copyright>
     <language>' . $site->language . '</language>
-    <atom:link href="' . $site->manifest->metadata->domain . '/feed.rss" rel="self" type="application/rss+xml"/>'
+    <lastBuildDate>' . date('r', $site->manifest->metadata->updated) . '</lastBuildDate>
+    <atom:link href="' . $site->manifest->metadata->domain . '/rss.xml" rel="self" type="application/rss+xml"/>'
     . $this->rssItems($site) . '
   </channel>
 </rss>';
@@ -31,13 +32,13 @@ class FeedMe {
       $output .= '
     <item>
       <title>' . $item->title . '</title>
-      <link>' . $site->manifest->metadata->domain . '/' . $item->location . '</link>
+      <link>' . $site->manifest->metadata->domain . '/' . str_replace('pages/', '', str_replace('/index.html', '', $item->location)) . '</link>
       <description>
           <![CDATA[ ' . $item->description . ' ]]>
       </description>
       <category>' . $tags . '</category>
-      <guid>' . $site->manifest->metadata->domain . '/' . $item->location . '</guid>
-      <pubDate>' . date("D, d M Y H:i:s O", strtotime($item->metadata->created)) . '</pubDate>
+      <guid>' . $site->manifest->metadata->domain . '/' . str_replace('pages/', '', str_replace('/index.html', '', $item->location)) . '</guid>
+      <pubDate>' . date("r", strtotime($item->metadata->created)) . '</pubDate>
     </item>';
     }
     return $output;
@@ -45,13 +46,13 @@ class FeedMe {
   /**
    * Generate the atom feed
    */
-  public function getATOMFeed($site) {
+  public function getAtomFeed($site) {
     return '<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>' . $site->manifest->title . '</title>
-  <link href="' . $site->manifest->metadata->domain . '/feed.atom" rel="self" />
+  <link href="' . $site->manifest->metadata->domain . '/atom.xml" rel="self" />
   <subtitle>' . $site->manifest->description . '</subtitle>
-  <updated>' . date(\DateTime::ATOM, $site->manifest->updated) . '</updated>
+  <updated>' . date(\DateTime::ATOM, $site->manifest->metadata->updated) . '</updated>
   <author>
       <name>' . $site->manifest->author . '</name>
   </author>
@@ -74,10 +75,11 @@ class FeedMe {
       $output .= '
   <entry>
     <title>' . $item->title . '</title>
-    <id>' . $site->manifest->metadata->domain . '/' . $item->location . '</id>
+    <id>' . $site->manifest->metadata->domain . '/' . str_replace('pages/', '', str_replace('/index.html', '', $item->location)) . '</id>
     <updated>' . date(\DateTime::ATOM, $item->metadata->updated) . '</updated>
     <published>' . date(\DateTime::ATOM, $item->metadata->created) . '</published>
-    <link href="' . $site->manifest->metadata->domain . '/' . $item->location . '"/>
+    <summary>' . $item->description . '</summary>
+    <link href="' . $site->manifest->metadata->domain . '/' . str_replace('pages/', '', str_replace('/index.html', '', $item->location)) . '"/>
     ' . $tags . '
     <content type="html">
       <![CDATA[ ' . $item->description . ' ]]>
