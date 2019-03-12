@@ -29,7 +29,7 @@
           $clean = strip_tags($body);
           $page->description = str_replace("\n", '', substr($clean, 0, 200));
           // update the item in the metadata to indicate when content was last set
-          $site->manifest->updateItem($page, TRUE);
+          $site->updatePage($page);
           $site->gitCommit('Page updated: ' . $page->title . ' (' . $page->id . ')');
           header('Status: 200');
           print json_encode($bytes);
@@ -59,7 +59,7 @@
             $page->{$key} = $value;
           }
         }
-        $site->manifest->updateItem($page, TRUE);
+        $site->updatePage($page);
         $site->gitCommit('Page details updated: ' . $page->title . ' (' . $page->id . ')');
         header('Status: 200');
         print json_encode($page);
