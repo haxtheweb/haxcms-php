@@ -1,5 +1,7 @@
 <?php
 define('HAXCMS_DEFAULT_THEME', 'simple-blog');
+// working with RSS
+include_once 'RSS.php';
 // a site object
 class HAXCMSSite {
   public $name;
@@ -165,7 +167,18 @@ class HAXCMSSite {
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     $this->manifest->addItem($page);
     $this->manifest->save();
+    $this->updateRSS();
     return $page;
+  }
+  /**
+   * Update RSS / Atom feeds which are physical files
+   */
+  public function updateRSS() {
+    // rip changes to feed urls
+    $rss = new FeedMe();
+    $siteDirectory = $this->directory . '/' . $this->manifest->metadata->siteName;
+    @file_put_contents($siteDirectory . '/rss.xml', $rss->getRSSFeed($this));
+    @file_put_contents($siteDirectory . '/atom.xml', $rss->getAtomFeed($this));
   }
   /**
    * Load page by unique id
@@ -188,6 +201,7 @@ class HAXCMSSite {
       if ($item->id === $page->id) {
         $this->manifest->items[$key] = $page;
         $this->manifest->save();
+        $this->updateRSS();
         return $page;
       }
     }
@@ -202,6 +216,7 @@ class HAXCMSSite {
       if ($item->id === $page->id) {
         unset($this->manifest->items[$key]);
         $this->manifest->save();
+        $this->updateRSS();
         return TRUE;
       }
     }
