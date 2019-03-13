@@ -95,6 +95,7 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             // if we have a custom domain, try and engineer the base path
             // correctly for the manifest / service worker
+            // @todo need to support domains that have subdomains in them
             if (isset($site->manifest->metadata->domain)) {
               $parts = parse_url($site->manifest->metadata->domain);
               $templateVars['basePath'] = '/';
