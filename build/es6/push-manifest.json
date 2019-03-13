@@ -12,6 +12,10 @@
       "type": "script",
       "weight": 1
     },
+    "build.js": {
+      "type": "script",
+      "weight": 1
+    },
     "dist/build.js": {
       "type": "script",
       "weight": 1
@@ -1460,6 +1464,10 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-query.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js": {
       "type": "script",
       "weight": 1
@@ -1685,14 +1693,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-behaviors.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/screenfull-lib.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/screenfull/dist/screenfull.js": {
       "type": "script",
       "weight": 1
     },
