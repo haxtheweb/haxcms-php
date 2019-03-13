@@ -1396,6 +1396,14 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-menu.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-menu-button.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/HAXCMSThemeWiring.js": {
       "type": "script",
       "weight": 1
@@ -1424,6 +1432,10 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-rss-button.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/simple-blog/lib/simple-blog-footer.js": {
       "type": "script",
       "weight": 1
@@ -1433,6 +1445,18 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-active-title.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-title.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-breadcrumb.js": {
       "type": "script",
       "weight": 1
     },

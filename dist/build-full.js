@@ -22,6 +22,7 @@ import "@lrnwebcomponents/outline-player/outline-player.js";
 import "@lrnwebcomponents/simple-blog/simple-blog.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js";
+import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
 
 // these should all be dynamically imported as well
 import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
