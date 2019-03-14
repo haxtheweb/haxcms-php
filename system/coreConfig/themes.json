@@ -1,13 +1,13 @@
 {
-  "haxcms-dev-theme": {
-    "element": "haxcms-dev-theme",
-    "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js",
-    "name": "Developer theme"
+  "learn-two-theme": {
+    "element": "learn-two-theme",
+    "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
+    "name": "Learn"
   },
   "outline-player": {
     "element": "outline-player",
     "path": "@lrnwebcomponents/outline-player/outline-player.js",
-    "name": "Outline player"
+    "name": "Documentation"
   },
   "simple-blog": {
     "element": "simple-blog",
@@ -17,11 +17,16 @@
   "haxcms-slide-theme": {
     "element": "haxcms-slide-theme",
     "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js",
-    "name": "Slide player"
+    "name": "Slide deck"
   },
-  "learn-two-theme": {
-    "element": "learn-two-theme",
-    "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
-    "name": "Learn2"
+  "haxcms-dev-theme": {
+    "element": "haxcms-dev-theme",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js",
+    "name": "DEVELOPER: Test theme"
+  },
+  "haxcms-theme-developer": {
+    "element": "haxcms-theme-developer",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-theme-developer.js",
+    "name": "EXPERIMENTAL: HAX Theme Maker"
   }
 }
