@@ -2,22 +2,41 @@
 import "../build.js";
 import "./build-home.js";
 window.process = { env: { NODE_ENV: 'production' } };
-// site listing
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-listing.js";
-// core
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-builder.js";
-// core editing capabilities
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-editor.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-editor-builder.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-manifest-editor-dialog.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-outline-editor-dialog.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-site-editor-ui.js";
+// supported backends
+import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-beaker.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-demo.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-php.js";
+// core HAXcms
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-editor-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-manifest-editor-dialog.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-outline-editor-dialog.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-editor-ui.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-editor.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-listing.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-router.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js";
+// pieces of UI
+import "@lrnwebcomponents/haxcms-elements/lib/theme/active-pieces/site-active-title.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/blocks/site-children-block.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/HAXCMSThemeWiring.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-breadcrumb.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu-button.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-top-menu.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-render-query.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-query.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-query-menu-slice.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-rss-button.js";
+import "@lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-title.js";
 
 // themes are dynamically imported
+import "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-dev-theme.js";
+import "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-theme-developer.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-slide-theme.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js";
 import "@lrnwebcomponents/outline-player/outline-player.js";
 import "@lrnwebcomponents/simple-blog/simple-blog.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js";
-import "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js";
 import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
 
 // these should all be dynamically imported as well

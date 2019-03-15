@@ -14,14 +14,19 @@
     "path": "@lrnwebcomponents/simple-blog/simple-blog.js",
     "name": "Simple blog"
   },
+  "haxcms-basic-theme": {
+    "element": "haxcms-basic-theme",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js",
+    "name": "Basic site"
+  },
   "haxcms-slide-theme": {
     "element": "haxcms-slide-theme",
-    "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-slide-theme.js",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-slide-theme.js",
     "name": "Slide deck"
   },
   "haxcms-dev-theme": {
     "element": "haxcms-dev-theme",
-    "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-dev-theme.js",
     "name": "DEVELOPER: Test theme"
   },
   "haxcms-theme-developer": {
