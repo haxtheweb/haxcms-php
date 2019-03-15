@@ -11,6 +11,7 @@
     "node_modules/@lrnwebcomponents/*/lib/*",
     "node_modules/@lrnwebcomponents/*/lib/*/*",
     "node_modules/@polymer/app-layout/*/*.js",
+    "node_modules/@polymer/marked-element/node_modules/marked/lib/marked.js",
     "node_modules/@lrnwebcomponents/img-pan-zoom/lib/openseadragon/build/openseadragon/openseadragon.js",
     "node_modules/@lrnwebcomponents/elmsln-apps/lib/*/*.js",
     "node_modules/@lrnwebcomponents/lrn-calendar/lib/ical.js/build/ical.js",

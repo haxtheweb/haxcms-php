@@ -1400,51 +1400,51 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/active-pieces/site-active-title.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/core/HAXCMSThemeWiring.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/blocks/site-children-block.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/active-item/site-active-title.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/query/site-query-menu-slice.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/blocks/site-children-block.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/HAXCMSThemeWiring.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-query-menu-slice.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-breadcrumb.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-breadcrumb.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu-button.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-menu-button.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-menu.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-top-menu.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-top-menu.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/query/site-query.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-query.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/query/site-render-query.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-render-query.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-rss-button.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-rss-button.js": {
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-title.js": {
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-title.js": {
       "type": "script",
       "weight": 1
     },

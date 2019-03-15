@@ -16,19 +16,20 @@ import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-editor.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-listing.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-router.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/HAXCMSThemeWiring.js";
+
 // pieces of UI
-import "@lrnwebcomponents/haxcms-elements/lib/theme/active-pieces/site-active-title.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/blocks/site-children-block.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/HAXCMSThemeWiring.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-breadcrumb.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu-button.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-menu.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/navigation/site-top-menu.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-render-query.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-query.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/query/site-query-menu-slice.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-rss-button.js";
-import "@lrnwebcomponents/haxcms-elements/lib/theme/site-pieces/site-title.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/active-item/site-active-title.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/blocks/site-children-block.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-breadcrumb.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-menu-button.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-menu.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-top-menu.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-render-query.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-query.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-query-menu-slice.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-rss-button.js";
+import "@lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-title.js";
 
 // themes are dynamically imported
 import "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-dev-theme.js";
