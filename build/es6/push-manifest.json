@@ -868,6 +868,498 @@
       "type": "script",
       "weight": 1
     },
+    "dist/elmsln-build-edit.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-page/lrn-page.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/oer-schema/oer-schema.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/schema-behaviors/schema-behaviors.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-content/lrn-content.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-tabs/paper-tabs.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-tabs/paper-tabs-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-tabs/paper-tab.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-menu-behavior/iron-menubar-behavior.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-toggle-button/paper-toggle-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-badge/paper-badge.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-slider/paper-slider.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-spinner/paper-spinner.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-spinner/paper-spinner-styles.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-spinner/paper-spinner-behavior.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-drawer.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-drawer/simple-drawer.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-animated-pages.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-animatable.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-animations.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/cascaded-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/hero-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-shared-element-animation-behavior.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/opaque-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/ripple-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/reverse-ripple-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/scale-down-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-from-left-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-from-right-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-from-top-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-from-bottom-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-left-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-right-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-up-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/slide-down-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/animations/transform-animation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/neon-animation/neon-shared-element-animatable-behavior.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/app-layout/app-layout.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/app-layout/app-drawer-layout/app-drawer-layout.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-media-query/iron-media-query.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/app-layout/app-grid/app-grid-style.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/app-layout/app-header-layout/app-header-layout.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/app-layout/app-box/app-box.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-button-inner.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-collapselist.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-button/lrnsys-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnapp-fab-menu/lrnapp-fab-menu.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/paper-fab-speed-dial/paper-fab-speed-dial.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/paper-fab-speed-dial/lib/paper-fab-speed-dial-overlay.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-icon/lrn-icon.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-icons/communication-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-icons/hardware-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-icons/maps-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-icons/social-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/iron-icons/places-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/dropdown-select/dropdown-select.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "dist/elmsln-build.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrndesign-drawer/lrndesign-drawer.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrndesign-panelcard/lrndesign-panelcard.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrndesign-abbreviation/lrndesign-abbreviation.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrndesign-paperstack/lrndesign-paperstack.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-behaviors/a11y-behaviors.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-gif-player/a11y-gif-player.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/citation-element/citation-element.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/hero-banner/hero-banner.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/image-compare-slider/image-compare-slider.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/license-element/license-element.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-aside/lrn-aside.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-calendar/lrn-calendar.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lrnsys-layout.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-collapselist-item.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog-toolbar-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog-toolbar.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-calendar/lib/lrn-calendar-date.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-math/lrn-math.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-table/lrn-table.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/csv-render/csv-render.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/lrn-vocab/lrn-vocab.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/md-block/md-block.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/marked-element.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/marked-import.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/marked-element/node_modules/marked/lib/marked.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/media-behaviors/media-behaviors.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/media-image/media-image.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/meme-maker/meme-maker.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/multiple-choice/multiple-choice.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/paper-audio-player/paper-audio-player.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/paper-audio-player/lib/paper-audio-icons.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/person-testimonial/person-testimonial.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/person-testimonial/lib/person-testimonial-icon.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/place-holder/place-holder.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/q-r/q-r.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/full-width-image/full-width-image.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/self-check/self-check.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-concept-network/simple-concept-network.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-concept-network/lib/simple-concept-network-node.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/stop-note/stop-note.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/stop-note/lib/stop-icon.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/tab-list/tab-list.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/task-list/task-list.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/video-player/video-player.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/a11y-media-player.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-player-behaviors.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-behaviors.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/responsive-utility/responsive-utility.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-controls.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-html5.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-play-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript-cue.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-search/lib/simple-search-content.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript-controls.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-search/simple-search.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-state-manager.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-youtube.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/wave-player/wave-player.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-material/paper-material.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40polymer/paper-material/paper-material-shared-styles.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/wikipedia-query/wikipedia-query.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-beaker.js": {
       "type": "script",
       "weight": 1
@@ -893,10 +1385,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-store.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/media-behaviors/media-behaviors.js": {
       "type": "script",
       "weight": 1
     },
@@ -969,22 +1457,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-panel.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-icons/hardware-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-icons/communication-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-icons/social-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-icons/maps-icons.js": {
       "type": "script",
       "weight": 1
     },
@@ -1104,26 +1576,6 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40polymer/paper-toggle-button/paper-toggle-button.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-tabs/paper-tabs.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-tabs/paper-tabs-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-tabs/paper-tab.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-menu-behavior/iron-menubar-behavior.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40vaadin/vaadin-split-layout/vaadin-split-layout.js": {
       "type": "script",
       "weight": 1
@@ -1144,10 +1596,6 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/schema-behaviors/schema-behaviors.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40lrnwebcomponents/code-editor/lib/monaco-element/monaco-element.js": {
       "type": "script",
       "weight": 1
@@ -1161,10 +1609,6 @@
       "weight": 1
     },
     "node_modules/%40polymer/iron-selector/iron-selector.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-animated-pages.js": {
       "type": "script",
       "weight": 1
     },
@@ -1185,10 +1629,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/grafitto-filter/grafitto-filter.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/dropdown-select/dropdown-select.js": {
       "type": "script",
       "weight": 1
     },
@@ -1224,10 +1664,6 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40polymer/iron-icons/places-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-autoloader.js": {
       "type": "script",
       "weight": 1
@@ -1240,10 +1676,6 @@
       "type": "script",
       "weight": 1
     },
-    "node_modules/%40lrnwebcomponents/responsive-utility/responsive-utility.js": {
-      "type": "script",
-      "weight": 1
-    },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-text-context.js": {
       "type": "script",
       "weight": 1
@@ -1253,86 +1685,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-context-item-menu.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-animatable.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-animations.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/cascaded-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/hero-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-shared-element-animation-behavior.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/opaque-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/ripple-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/reverse-ripple-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/scale-down-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-from-left-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-from-right-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-from-top-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-from-bottom-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-left-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-right-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-up-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/slide-down-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/animations/transform-animation.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/neon-animation/neon-shared-element-animatable-behavior.js": {
       "type": "script",
       "weight": 1
     },
@@ -1353,10 +1705,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/hax-body/lib/hax-toolbar.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-slider/paper-slider.js": {
       "type": "script",
       "weight": 1
     },
@@ -1460,23 +1808,35 @@
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/navigation/site-dot-indicator.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js": {
       "type": "script",
       "weight": 1
     },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/templates/basic-template.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/scroll-button/scroll-button.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/layout/site-footer.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/haxcms-elements/lib/ui-components/layout/site-modal.js": {
+      "type": "script",
+      "weight": 1
+    },
+    "node_modules/%40lrnwebcomponents/simple-modal/lib/simple-modal-template.js": {
+      "type": "script",
+      "weight": 1
+    },
     "node_modules/%40lrnwebcomponents/outline-player/outline-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/app-layout/app-drawer-layout/app-drawer-layout.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/iron-media-query/iron-media-query.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/app-layout/app-header-layout/app-header-layout.js": {
       "type": "script",
       "weight": 1
     },
@@ -1513,286 +1873,6 @@
       "weight": 1
     },
     "node_modules/%40lrnwebcomponents/learn-two-theme/learn-two-theme.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-gif-player/a11y-gif-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/citation-element/citation-element.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/hero-banner/hero-banner.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-behaviors/a11y-behaviors.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/image-compare-slider/image-compare-slider.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/license-element/license-element.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-aside/lrn-aside.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrndesign-panelcard/lrndesign-panelcard.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-calendar/lrn-calendar.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lrnsys-layout.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-button-inner.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-collapselist-item.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-collapselist.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/app-layout/app-layout.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/app-layout/app-grid/app-grid-style.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/app-layout/app-box/app-box.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog-toolbar-button.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog-toolbar.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrnsys-layout/lib/lrnsys-drawer.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-drawer/simple-drawer.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-calendar/lib/lrn-calendar-date.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-math/lrn-math.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-table/lrn-table.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/csv-render/csv-render.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-spinner/paper-spinner.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-spinner/paper-spinner-styles.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-spinner/paper-spinner-behavior.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrn-vocab/lrn-vocab.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/md-block/md-block.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/marked-element/marked-element.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/marked-element/marked-import.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/marked-element/node_modules/marked/lib/marked.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/media-image/media-image.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/meme-maker/meme-maker.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/multiple-choice/multiple-choice.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/paper-audio-player/paper-audio-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/paper-audio-player/lib/paper-audio-icons.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/person-testimonial/person-testimonial.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/person-testimonial/lib/person-testimonial-icon.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/place-holder/place-holder.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/q-r/q-r.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/full-width-image/full-width-image.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/self-check/self-check.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-concept-network/simple-concept-network.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-concept-network/lib/simple-concept-network-node.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/stop-note/stop-note.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/stop-note/lib/stop-icon.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/tab-list/tab-list.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/task-list/task-list.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/video-player/video-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/a11y-media-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-player-behaviors.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-behaviors.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-controls.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-button.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-html5.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-play-button.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript-cue.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-search/lib/simple-search-content.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-transcript-controls.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/simple-search/simple-search.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-state-manager.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/a11y-media-player/lib/a11y-media-youtube.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/wave-player/wave-player.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-material/paper-material.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40polymer/paper-material/paper-material-shared-styles.js": {
-      "type": "script",
-      "weight": 1
-    },
-    "node_modules/%40lrnwebcomponents/wikipedia-query/wikipedia-query.js": {
       "type": "script",
       "weight": 1
     },
