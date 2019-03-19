@@ -6,8 +6,21 @@ include_once '../system/lib/bootstrapHAX.php';
     header('Content-Type: application/json');
     // ensure we have something we can load and ship back out the door
     if ($site = $HAXCMS->loadSite($HAXCMS->safePost['siteName'])) {
-      // see if the site wants to publish to git
+      // local publishing options, then defer to system, then make some up...
       if (isset($site->manifest->metadata->publishing->git)) {
+        $gitSettings = $site->manifest->metadata->publishing->git;
+      }
+      else if (isset($HAXCMS->config->publishing->git)) {
+        $gitSettings = $HAXCMS->config->publishing->git;
+      }
+      else {
+        $gitSettings = new stdClass();
+        $gitSettings->vendor = 'github';
+        $gitSettings->branch = 'gh-pages';
+        $gitSettings->url = '';
+        $gitSettings->cdn = 'webcomponents.psu.edu';
+      }
+      if (isset($gitSettings)) {
         $git = new GitRepo();
         $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->siteName;
         $repo = Git::open($siteDirectoryPath);
@@ -20,17 +33,17 @@ include_once '../system/lib/bootstrapHAX.php';
         try {
           $repo->add('.');
           $repo->commit('Clean up pre-publishing..');
-          $repo->push('origin', 'master');
+          @$repo->push('origin', 'master');
         }
         catch(Exception $e) {
           // do nothing, we might be offline or something
           // @tood when we get into logging this would be worth logging
         }
         // now check out the publishing branch
-        if ($site->manifest->metadata->publishing->git->branch != 'master') {
+        if ($gitSettings->branch != 'master') {
           // try to check it out, if not then we need to create it
           try {
-            $repo->checkout($site->manifest->metadata->publishing->git->branch);
+            $repo->checkout($gitSettings->branch);
             // on that branch now we need to forcibly get the master branch over top of this
             $repo->reset('master', 'origin');
             // now we can merge safely because we've already got the files over top
@@ -38,11 +51,11 @@ include_once '../system/lib/bootstrapHAX.php';
             $repo->merge('master');
           }
           catch(Exception $e) {
-            $repo->create_branch($site->manifest->metadata->publishing->git->branch);
-            $repo->checkout($site->manifest->metadata->publishing->git->branch);
+            $repo->create_branch($gitSettings->branch);
+            $repo->checkout($gitSettings->branch);
           }
           // werid looking I know but if we have a CDN then we need to "rewrite" this file
-          if ($site->manifest->metadata->publishing->git->cdn && file_exists(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html')) {
+          if ($gitSettings->cdn && file_exists(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $gitSettings->cdn . '.html')) {
             // move the index.html and unlink the symlinks otherwise we'll get build failures
             if (is_link($siteDirectoryPath . '/build')) {
               @unlink($siteDirectoryPath . '/build');
@@ -67,7 +80,7 @@ include_once '../system/lib/bootstrapHAX.php';
               rename($siteDirectoryPath . '/' . $path, $siteDirectoryPath . '/_' . $path);
               // special support for index as that comes from a CDN defining what to do
               if ($path === 'index.html') {
-                $boilerPath = HAXCMS_ROOT . '/system/boilerplate/cdns/' . $site->manifest->metadata->publishing->git->cdn . '.html';
+                $boilerPath = HAXCMS_ROOT . '/system/boilerplate/cdns/' . $gitSettings->cdn . '.html';
               }
               else {
                 $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/' . $path;
@@ -85,11 +98,11 @@ include_once '../system/lib/bootstrapHAX.php';
               'description' => $site->manifest->description,
               'swhash' => array(),
               'segmentCount' => 1,
-              'cdn' => $site->manifest->metadata->publishing->git->cdn,
-              'cdnRegex' => "(https?:\/\/" .str_replace('.', '\.', $site->manifest->metadata->publishing->git->cdn) . "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)",
+              'cdn' => $gitSettings->cdn,
+              'cdnRegex' => "(https?:\/\/" .str_replace('.', '\.', $gitSettings->cdn) . "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)",
             );
             // special fallback for HAXtheWeb since it cheats in order to demo the product
-            if ($site->manifest->metadata->publishing->git->cdn === 'haxtheweb.org') {
+            if ($gitSettings->cdn === 'haxtheweb.org') {
               $templateVars['cdn'] = 'cdn.waxam.io';
               $templateVars['cdnRegex'] = "(https?:\/\/" .str_replace('.', '\.', 'cdn.waxam.io') . "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
             }
@@ -160,46 +173,23 @@ include_once '../system/lib/bootstrapHAX.php';
             }
             try {
               $repo->add('.');
-              $repo->commit('Published using CDN: ' . $site->manifest->metadata->publishing->git->cdn);
+              $repo->commit('Published using CDN: ' . $gitSettings->cdn);
             }
             catch(Exception $e) {
               // do nothing, maybe there was nothing to commit
             }
             $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
-            $repo->push('origin', $site->manifest->metadata->publishing->git->branch, "--force");
-            $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
-            // put it back like it was after our version goes up
-            if (!is_dir($siteDirectoryPath . '/build')) {
-              symlink('../../build', $siteDirectoryPath . '/build');
-            }
-            if (!is_dir($siteDirectoryPath . '/dist')) {
-              symlink('../../dist', $siteDirectoryPath . '/dist');
-            }
-            if (!is_dir($siteDirectoryPath . '/node_modules')) {
-              symlink('../../node_modules', $siteDirectoryPath . '/node_modules');
-            }
-            symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
-            symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
-            foreach ($templates as $path) {
-              @unlink($siteDirectoryPath . '/' . $path);
-              rename($siteDirectoryPath . '/_' . $path, $siteDirectoryPath . '/' . $path);
-            }
-            try {
-              $repo->add('.');
-              $repo->commit('Reset for next time');
-            }
-            catch(Exception $e) {
-            // do nothing, maybe there was nothing to commit
-            }
+            @$repo->push('origin', $gitSettings->branch, "--force");
+            @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
           }
           else {
             // even more trickery; swap out the symlinks w/ the real assets, publish, switch back
             @unlink($siteDirectoryPath . '/build');
             @unlink($siteDirectoryPath . '/assets/babel-top.js');
             @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-            copy(HAXCMS_ROOT . '/babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
-            copy(HAXCMS_ROOT . '/babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
-            rename(HAXCMS_ROOT . '/build', $siteDirectoryPath . '/build');
+            @copy(HAXCMS_ROOT . '/babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
+            @copy(HAXCMS_ROOT . '/babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
+            @rename(HAXCMS_ROOT . '/build', $siteDirectoryPath . '/build');
             try {
               $repo->add('.');
               $repo->commit('Published using: local assets');
@@ -208,12 +198,12 @@ include_once '../system/lib/bootstrapHAX.php';
             // do nothing, maybe there was nothing to commit
             }
             $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
-            $repo->push('origin', $site->manifest->metadata->publishing->git->branch);
-            $repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
-            rename($siteDirectoryPath . '/build', HAXCMS_ROOT . '/build');
-            symlink ("../../build", $siteDirectoryPath . '/build');
-            symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
-            symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
+            @$repo->push('origin', $gitSettings->branch);
+            @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
+            @rename($siteDirectoryPath . '/build', HAXCMS_ROOT . '/build');
+            @symlink ("../../build", $siteDirectoryPath . '/build');
+            @symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
+            @symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
             try {
               $repo->add('.');
               $repo->commit('Reset for next time');
@@ -225,7 +215,7 @@ include_once '../system/lib/bootstrapHAX.php';
           // now put it back plz... and master shouldn't notice any source changes
           $repo->checkout('master');
         }
-        $domain = $site->manifest->metadata->publishing->git->url;
+        $domain = $gitSettings->url;
         if (isset($site->manifest->metadata->domain)) {
           $domain = $site->manifest->metadata->domain;
         }
