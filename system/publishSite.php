@@ -18,7 +18,7 @@ include_once '../system/lib/bootstrapHAX.php';
         $gitSettings->vendor = 'github';
         $gitSettings->branch = 'gh-pages';
         $gitSettings->url = '';
-        $gitSettings->cdn = 'webcomponents.psu.edu';
+        $gitSettings->cdn = false;
       }
       if (isset($gitSettings)) {
         $git = new GitRepo();
@@ -178,9 +178,6 @@ include_once '../system/lib/bootstrapHAX.php';
             catch(Exception $e) {
               // do nothing, maybe there was nothing to commit
             }
-            $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
-            @$repo->push('origin', $gitSettings->branch, "--force");
-            @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
           }
           else {
             // even more trickery; swap out the symlinks w/ the real assets, publish, switch back
@@ -197,21 +194,10 @@ include_once '../system/lib/bootstrapHAX.php';
             catch(Exception $e) {
             // do nothing, maybe there was nothing to commit
             }
-            $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
-            @$repo->push('origin', $gitSettings->branch);
-            @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished);
-            @rename($siteDirectoryPath . '/build', HAXCMS_ROOT . '/build');
-            @symlink ("../../build", $siteDirectoryPath . '/build');
-            @symlink('../../../babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
-            @symlink('../../../babel/babel-bottom.js', $siteDirectoryPath . '/assets/babel-bottom.js');
-            try {
-              $repo->add('.');
-              $repo->commit('Reset for next time');
-            }
-            catch(Exception $e) {
-            // do nothing, maybe there was nothing to commit
-            }
           }
+          $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
+          @$repo->push('origin', $gitSettings->branch, "--force");
+          @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
           // now put it back plz... and master shouldn't notice any source changes
           $repo->checkout('master');
         }
