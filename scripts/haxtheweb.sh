@@ -64,11 +64,11 @@ if [ ! -f "_config/.htaccess" ]; then
   cp system/boilerplate/systemsetup/.htaccess _config/.htaccess
 fi
 # may need to revisit this at some point
-sudo chmod 777 _sites
-sudo chmod 775 _config
-sudo chmod 777 _config/tmp
-sudo chmod 777 _config/config.json
-sudo chmod 777 _sites/sites.json
+chmod 777 _sites
+chmod 775 _config
+chmod 777 _config/tmp
+chmod 777 _config/config.json
+chmod 777 _sites/sites.json
 
 # place this in VC just so it COULD be tracked by the user
 cd _sites
@@ -114,7 +114,7 @@ if [ -z ${wwwuser} ]; then
   # I've got a bad feeling about this
   haxwarn "did nothing, make sure your web server user can write to _sites"
 else
-  sudo chown ${wwwuser}:${wwwgrp} _sites
+  chown ${wwwuser}:${wwwgrp} _sites
 fi
 
 # you get candy if you reference this
