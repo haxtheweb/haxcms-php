@@ -1,3 +1,6 @@
+import "@lrnwebcomponents/h-a-x/h-a-x.js";
+import "@lrnwebcomponents/cms-hax/cms-hax.js";
+import "@lrnwebcomponents/wysiwyg-hax/wysiwyg-hax.js";
 import "@lrnwebcomponents/lrn-page/lrn-page.js";
 import "@lrnwebcomponents/lrn-content/lrn-content.js";
 import "@lrnwebcomponents/elmsln-loading/elmsln-loading.js";

@@ -1,8 +1,10 @@
 // the base line build that's used to setup everything in a production environment
-import "../build.js";
+import "./build.js";
 import "./build-home.js";
-import "./elmsln-build-edit.js";
+// we build elmsln dependency trees from here since there's so much overlap.
 import "./elmsln-build.js";
+import "./elmsln-build-edit.js";
+import "./elmsln-apps.js";
 window.process = { env: { NODE_ENV: 'production' } };
 // supported backends
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-beaker.js";

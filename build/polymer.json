@@ -30,7 +30,11 @@
         "modules"
       ],
       "js": {
-        "minify": true
+        "minify": {
+          "exclude": [
+            "*.min.js"
+          ]
+        }
       },
       "css": {
         "minify": true
@@ -38,16 +42,16 @@
       "html": {
         "minify": true
       },
-      "bundle": false,
-      "addServiceWorker": true,
-      "addPushManifest": true,
-      "insertPrefetchLinks": true,
-      "swPrecacheConfig": "sw-precache-config.js"
+      "bundle": false
     },
     {
       "name": "es5-amd",
       "js": {
-        "minify": true,
+        "minify": {
+          "exclude": [
+            "*.min.js"
+          ]
+        },
         "compile": true,
         "transformModulesToAmd": true
       },
