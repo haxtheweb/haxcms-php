@@ -192,6 +192,97 @@ class HAXCMSSite {
     return FALSE;
   }
   /**
+   * Load field schema for a page
+   */
+  public function loadFieldSchema($page) {
+    $fields = new stdClass();
+    $fields->title = new stdClass();
+    $fields->title->name = 'title';
+    $fields->title->description = 'Title of the page';
+    $fields->title->type = 'string';
+    $fields->location = new stdClass();
+    $fields->location->name = 'location';
+    $fields->location->description = 'Location used in the URL';
+    $fields->location->type = 'string';
+    $fields->description = new stdClass();
+    $fields->description->name = 'description';
+    $fields->description->description = 'Description for the post';
+    $fields->description->type = 'string';
+    $fields->created = new stdClass();
+    $fields->created->name = 'created';
+    $fields->created->description = 'Created timestamp';
+    $fields->created->type = 'number';
+    $fields->updated = new stdClass();
+    $fields->updated->name = 'updated';
+    $fields->updated->description = 'Updated timestamp';
+    $fields->updated->type = 'number';
+    // fields can live globally
+    if (isset($GLOBALS['HAXCMS']->config->fields)) {
+      foreach ($GLOBALS['HAXCMS']->config->fields as $key => $item) {
+        $fields->{$key} = $item;
+      }
+    }
+    // fields can live in the site
+    if (isset($this->manifest->metadata->fields)) {
+      foreach ($this->manifest->metadata->fields as $key => $item) {
+        $fields->{$key} = $item;
+      }
+    }
+    // core values that live outside of the fields area
+    $values = array(
+      'title' => $page->title,
+      'location' => str_replace('pages/', '', str_replace('/index.html', '', $page->location)),
+      'description' => $page->description,
+      'created' => $page->metadata->created,
+      'updated' => $page->metadata->updated,
+    );
+    // now get the field data from the page
+    if (isset($page->manifest->metadata->fields)) {
+      foreach ($page->manifest->metadata->fields as $key => $item) {
+        $values[$key] = $item;
+      }
+    }
+    // core fields
+    $schema = new stdClass();
+    $schema->{'$schema'} = "http://json-schema.org/schema#";
+    $schema->title = $page->title . " fields";
+    $schema->type = "object";
+    $schema->properties = new stdClass();
+    // publishing
+    foreach ($fields as $key => $value) {
+      $props = new stdClass();
+      $props->title = $value->name;
+      $props->type = $value->type;
+      if (isset($values[$value->name])) {
+        $props->value = $values[$value->name];
+      }
+      switch ($value->type) {
+        case 'string':
+          $props->component = new stdClass();
+          $props->component->name = "paper-input";
+          $props->component->valueProperty = "value";
+          if ($value->description) {
+            $props->component->slot = '<div slot="suffix">' . $value->description . '</div>';
+          }
+        break;
+        default:
+          $props->component = new stdClass();
+          $props->component->name = "paper-input";
+          $props->component->valueProperty = "value";
+          if ($value->description) {
+            $props->component->slot = '<div slot="suffix">' . $value->description . '</div>';
+          }
+        break;
+      }
+      $schema->properties->{$key} = $props;
+    }
+    // response as schema + values
+    $response = new stdClass();
+    $response->schema = $schema;
+    $response->values = $values;
+    return $response;
+  }
+  /**
    * Update page in the manifest list of items. useful if updating some
    * data about an existing entry.
    * @return JSONOutlineSchemaItem or FALSE

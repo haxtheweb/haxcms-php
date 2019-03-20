@@ -491,6 +491,8 @@ class HAXCMS {
     $settings->publishSitePath = $this->basePath . 'system/publishSite.php';
     $settings->setConfigPath = $this->basePath . 'system/setConfig.php';
     $settings->getConfigPath = $this->basePath . 'system/getConfig.php';
+    $settings->getFieldsPath = $this->basePath . 'system/getFields.php';
+    $settings->getFieldsToken = $this->getRequestToken('fields');
     $settings->createPagePath = $this->basePath . 'system/createPage.php';
     $settings->deletePagePath = $this->basePath . 'system/deletePage.php';
     $settings->createNewSitePath = $this->basePath . 'system/createNewSite.php';

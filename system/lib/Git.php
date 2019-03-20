@@ -672,7 +672,7 @@ class GitRepo {
 	/**
 	 * List log entries.
 	 *
-	 * @param strgin $format
+	 * @param string $format
 	 * @return string
 	 */
 	public function log($format = null) {
@@ -680,7 +680,21 @@ class GitRepo {
 			return $this->run('log');
 		else
 			return $this->run('log --pretty=format:"' . $format . '"');
-	}
+  }
+
+  /**
+	 * Show commit info.
+	 *
+	 * @param string $commit
+	 * @param string $format
+	 * @return string
+	 */
+	public function show($commit, $format = null) {
+		if ($format === null)
+			return $this->run('show');
+		else
+			return $this->run('show --pretty=format:"' . $format . '" ' . $commit);
+  }
 
 	/**
 	 * Sets the project description.
