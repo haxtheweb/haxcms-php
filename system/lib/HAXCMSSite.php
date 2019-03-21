@@ -195,37 +195,77 @@ class HAXCMSSite {
    * Load field schema for a page
    */
   public function loadFieldSchema($page) {
-    $fields = new stdClass();
-    $fields->title = new stdClass();
-    $fields->title->name = 'title';
-    $fields->title->description = 'Title of the page';
-    $fields->title->type = 'string';
-    $fields->location = new stdClass();
-    $fields->location->name = 'location';
-    $fields->location->description = 'Location used in the URL';
-    $fields->location->type = 'string';
-    $fields->description = new stdClass();
-    $fields->description->name = 'description';
-    $fields->description->description = 'Description for the post';
-    $fields->description->type = 'string';
-    $fields->created = new stdClass();
-    $fields->created->name = 'created';
-    $fields->created->description = 'Created timestamp';
-    $fields->created->type = 'number';
-    $fields->updated = new stdClass();
-    $fields->updated->name = 'updated';
-    $fields->updated->description = 'Updated timestamp';
-    $fields->updated->type = 'number';
+    $themes = array();
+    foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
+      $themes[$key] = $item->name;
+      $themes['key'] = $key;
+    }
+    $fields = array(
+      "configure" => array(
+        array(
+          "property" => "title",
+          "description" => "Title of the page",
+          "inputMethod" => "textfield",
+          "required" => true,
+          "icon" => "editor:title",
+        ),
+        array(
+          "property" => "location",
+          "description" => "Location used in the URL",
+          "inputMethod" => "textfield",
+          "required" => true,
+          "icon" => "device:gps-fixed",
+        ),
+        array(
+          "property" => "description",
+          "description" => "Description for the post",
+          "inputMethod" => "textfield",
+          "required" => false,
+          "icon" => "editor:short-text",
+        ),
+      ),
+      "advanced" => array(
+        array(
+          "property" => "created",
+          "description" => "Created timestamp",
+          "inputMethod" => "textfield",
+          "required" => true,
+          "icon" => "device:access-time",
+        ),
+        array(
+          "property" => "theme",
+          "description" => "Page theme",
+          "inputMethod" => "select",
+          "required" => false,
+          "icon" => "editor:format-paint",
+          "options" => $themes,
+        )
+      ),
+    );
     // fields can live globally
     if (isset($GLOBALS['HAXCMS']->config->fields)) {
-      foreach ($GLOBALS['HAXCMS']->config->fields as $key => $item) {
-        $fields->{$key} = $item;
+      if (isset($GLOBALS['HAXCMS']->config->fields->configure)) {
+        foreach ($GLOBALS['HAXCMS']->config->fields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($GLOBALS['HAXCMS']->config->fields->advanced)) {
+        foreach ($GLOBALS['HAXCMS']->config->fields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
       }
     }
     // fields can live in the site
     if (isset($this->manifest->metadata->fields)) {
-      foreach ($this->manifest->metadata->fields as $key => $item) {
-        $fields->{$key} = $item;
+      if (isset($this->manifest->metadata->fields->configure)) {
+        foreach ($this->manifest->metadata->fields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($this->manifest->metadata->fields->advanced)) {
+        foreach ($this->manifest->metadata->fields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
       }
     }
     // core values that live outside of the fields area
@@ -234,51 +274,21 @@ class HAXCMSSite {
       'location' => str_replace('pages/', '', str_replace('/index.html', '', $page->location)),
       'description' => $page->description,
       'created' => $page->metadata->created,
-      'updated' => $page->metadata->updated,
     );
     // now get the field data from the page
-    if (isset($page->manifest->metadata->fields)) {
-      foreach ($page->manifest->metadata->fields as $key => $item) {
-        $values[$key] = $item;
+    if (isset($page->metadata->fields)) {
+      foreach ($page->metadata->fields as $key => $item) {
+        if ($key == 'theme') {
+          $values[$key] = $item['key'];
+        }
+        else {
+          $values[$key] = $item;
+        }
       }
-    }
-    // core fields
-    $schema = new stdClass();
-    $schema->{'$schema'} = "http://json-schema.org/schema#";
-    $schema->title = $page->title . " fields";
-    $schema->type = "object";
-    $schema->properties = new stdClass();
-    // publishing
-    foreach ($fields as $key => $value) {
-      $props = new stdClass();
-      $props->title = $value->name;
-      $props->type = $value->type;
-      if (isset($values[$value->name])) {
-        $props->value = $values[$value->name];
-      }
-      switch ($value->type) {
-        case 'string':
-          $props->component = new stdClass();
-          $props->component->name = "paper-input";
-          $props->component->valueProperty = "value";
-          if ($value->description) {
-            $props->component->slot = '<div slot="suffix">' . $value->description . '</div>';
-          }
-        break;
-        default:
-          $props->component = new stdClass();
-          $props->component->name = "paper-input";
-          $props->component->valueProperty = "value";
-          if ($value->description) {
-            $props->component->slot = '<div slot="suffix">' . $value->description . '</div>';
-          }
-        break;
-      }
-      $schema->properties->{$key} = $props;
     }
     // response as schema + values
     $response = new stdClass();
-    $response->schema = $schema;
+    $response->haxSchema = $fields;
     $response->values = $values;
     return $response;
   }
