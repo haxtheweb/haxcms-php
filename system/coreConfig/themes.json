@@ -19,6 +19,11 @@
     "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js",
     "name": "Basic site"
   },
+  "haxcms-custom-theme": {
+    "element": "haxcms-custom-theme",
+    "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-custom-theme.js",
+    "name": "Custom theme"
+  },
   "haxcms-minimalist-theme": {
     "element": "haxcms-minimalist-theme",
     "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-minimalist-theme.js",
