@@ -113,8 +113,8 @@
       // save it back to the system outline so we can review on the big board
       $HAXCMS->outlineSchema->addItem($schema);
       $HAXCMS->outlineSchema->save();
-      $git = new GitRepo();
-      $repo = Git::open($site->directory . '/' . $site->manifest->metadata->siteName);
+      $git = new Git();
+      $repo = $git->open($site->directory . '/' . $site->manifest->metadata->siteName);
       $repo->add('.');
       $site->gitCommit('A new journey begins: ' . $site->manifest->title . ' (' . $site->manifest->id . ')');
       // make a branch but dont use it

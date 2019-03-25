@@ -77,8 +77,8 @@ class HAXCMSSite {
     // this will double as saving our location and other updated data
     $this->addPage();
     // put this in version control :) :) :)
-    $git = new GitRepo();
-    $repo = Git::create($directory . '/' . $tmpname);
+    $git = new Git();
+    $repo = $git->create($directory . '/' . $tmpname);
     if (!isset($this->manifest->metadata->git->url) && isset($gitDetails->url)) {
       $this->gitSetRemote($gitDetails);
     }
@@ -106,8 +106,8 @@ class HAXCMSSite {
    * Basic wrapper to commit current changes to version control of the site
    */
   public function gitCommit($msg = 'Committed changes') {
-    $git = new GitRepo();
-    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $git = new Git();
+    $repo = $git->open($this->directory . '/' . $this->manifest->metadata->siteName);
     $repo->add('.');
     $repo->commit($msg);
     return true;
@@ -116,8 +116,8 @@ class HAXCMSSite {
    * Basic wrapper to commit current changes to version control of the site
    */
   public function gitPush() {
-    $git = new GitRepo();
-    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $git = new Git();
+    $repo = $git->open($this->directory . '/' . $this->manifest->metadata->siteName);
     $repo->add('.');
     $repo->commit($msg);
     return true;
@@ -129,8 +129,8 @@ class HAXCMSSite {
    * @var $git a stdClass containing repo details
    */
   public function gitSetRemote($gitDetails) {
-    $git = new GitRepo();
-    $repo = Git::open($this->directory . '/' . $this->manifest->metadata->siteName);
+    $git = new Git();
+    $repo = $git->open($this->directory . '/' . $this->manifest->metadata->siteName);
     $repo->set_remote("origin", $gitDetails->url);
     return true;
   }

@@ -1,4 +1,7 @@
 <?php
+  if (!is_dir('_config') || !is_dir('_sites')) {
+    header("Location: install.php");
+  }
   include_once 'system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   $appSettings = $HAXCMS->appJWTConnectionSettings();

@@ -33,7 +33,19 @@ class Git {
 	 * @var string
 	 */
 	protected static $bin = '/usr/bin/git';
-
+	/**
+	 * Auto detect environment for mac
+	 */
+	protected static function get_env_bin() {
+		$uname = php_uname();
+		// auto detect mac
+		if (strpos($uname, 'Darwin') === 0) {
+			return '/usr/local/bin/git';
+		}
+		else {
+			return '/usr/bin/git';
+		}
+	}
 	/**
 	 * Sets git executable path
 	 *
@@ -112,7 +124,19 @@ class Git {
 	public static function is_repo($var) {
 		return (get_class($var) == 'GitRepo');
 	}
-
+	/**
+	 * Constructor
+	 *
+	 * Accepts a repository path
+	 *
+	 * @access  public
+	 * @param   string  repository path
+	 * @param   bool    create if not exists?
+	 * @return  void
+	 */
+	public function __construct($repo_path = null, $create_new = false, $_init = true) {
+		$this->set_bin($this->get_env_bin());
+	}
 }
 
 // ------------------------------------------------------------------------
