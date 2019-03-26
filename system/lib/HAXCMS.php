@@ -148,7 +148,7 @@ class HAXCMS {
       ),
       'pass' => array(
         'name' => 'Password',
-        'description' => 'Password for the account THIS IS NOT STORED. See ',
+        'description' => 'Only use this if you want to automate SSH key setup. This is not stored',
         'value' => ''
       ),
       'cdn' => array(
@@ -242,12 +242,12 @@ class HAXCMS {
     }
     // save config to the file
     $this->saveConfigFile();
-    $json = new stdClass();
-    $json->title = 'HAXCMS Publishing key';
-    $json->key = $this->getSSHKey();
     // see if we need to set a github key for publishing
     // this is a one time thing that helps with the workflow
-    if (!isset($this->config->publishing->git->keySet) && isset($this->config->publishing->git->vendor) && $this->config->publishing->git->vendor == 'github') {
+    if ($email && $pass && !isset($this->config->publishing->git->keySet) && isset($this->config->publishing->git->vendor) && $this->config->publishing->git->vendor == 'github') {
+      $json = new stdClass();
+      $json->title = 'HAXCMS Publishing key';
+      $json->key = $this->getSSHKey();
       $client = new GuzzleHttp\Client();
       $body = json_encode($json);
       $response = $client->request('POST', 'https://api.github.com/user/keys', 
@@ -259,10 +259,12 @@ class HAXCMS {
       if ($response->getStatusCode() == 201) {
         $this->config->publishing->git->keySet = true;
         $this->saveConfigFile();
+        // set global config for username / email if we can
         $gitRepo = new GitRepo();
         $gitRepo->run('config --global user.name "' . $this->config->publishing->git->user . '"');
         $gitRepo->run('config --global user.email "' . $this->config->publishing->git->email . '"');
       }
+      
       return $response->getStatusCode();
     }
     return 'saved';
