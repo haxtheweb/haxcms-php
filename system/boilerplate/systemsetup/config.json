@@ -616,12 +616,7 @@
   "publishing": {
     "git": {
         "vendor": "github",
-        "branch": "gh-pages",
-        "url": "",
-        "user": "",
-        "email": "",
-        "cdn": "",
-        "keySet": false
+        "branch": "gh-pages"
     }
   }
 }
