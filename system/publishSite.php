@@ -21,9 +21,9 @@ include_once '../system/lib/bootstrapHAX.php';
         $gitSettings->cdn = false;
       }
       if (isset($gitSettings)) {
-        $git = new GitRepo();
+        $git = new Git();
         $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->siteName;
-        $repo = Git::open($siteDirectoryPath);
+        $repo = $git->open($siteDirectoryPath);
         // ensure we're on master and everything is added
         $repo->checkout('master');
         // set last published time to now
@@ -109,7 +109,7 @@ include_once '../system/lib/bootstrapHAX.php';
             // if we have a custom domain, try and engineer the base path
             // correctly for the manifest / service worker
             // @todo need to support domains that have subdomains in them
-            if (isset($site->manifest->metadata->domain)) {
+            if (isset($site->manifest->metadata->domain) && $site->manifest->metadata->domain != '') {
               $parts = parse_url($site->manifest->metadata->domain);
               $templateVars['basePath'] = '/';
               if (isset($parts['base'])) {
@@ -152,8 +152,12 @@ include_once '../system/lib/bootstrapHAX.php';
               if ($item->location === '' || $item->location === $templateVars['basePath']) {
                 $filesize = filesize($siteDirectoryPath . '/index.html');
               }
-              else {
+              else if (file_exists($siteDirectoryPath . '/' . $item->location)) {
                 $filesize = filesize($siteDirectoryPath . '/' . $item->location);
+              }
+              else {
+                // ?? file referenced but doesn't exist
+                $filesize = 0;
               }
               $templateVars['swhash'][] = array(
                 $item->location,
@@ -202,7 +206,7 @@ include_once '../system/lib/bootstrapHAX.php';
           $repo->checkout('master');
         }
         $domain = $gitSettings->url;
-        if (isset($site->manifest->metadata->domain)) {
+        if (isset($site->manifest->metadata->domain) && $site->manifest->metadata->domain != '') {
           $domain = $site->manifest->metadata->domain;
         }
         else {
@@ -233,7 +237,7 @@ include_once '../system/lib/bootstrapHAX.php';
         header('Status: 200');
         $return = array(
           'status' => 200,
-          'url' => $site->manifest->metadata->domain,
+          'url' => $domain,
           'label' => 'Click to access ' . $site->manifest->title,
           'response' => 'Site published!',
           'output' => $output,
