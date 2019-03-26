@@ -447,6 +447,10 @@ class HAXCMS {
     $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
     $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
     $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+    // ensure we don't return an empty title or it could break downstream things
+    if ($cleanTitle == '') {
+      $cleanTitle = 'blank';
+    }
     return $cleanTitle;
   }
   /**
