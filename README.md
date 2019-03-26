@@ -1,6 +1,6 @@
 # HAXcms
 Get all the details you want on [HAXTheWeb.org](https://haxtheweb.org/haxcms-1)!
-HAX CMS seeks to be the smallest possible back-end CMS to make HAX work and be able to build websites with it. Leveraging JSON Outline Schema, HAX is able to author multiple pages, which it then writes onto the file system. This way a slim server layer is just for basic authentication, knowing how to save files, and placing them in version control.
+HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be able to build websites with it. Leveraging JSON Outline Schema, HAX is able to author multiple pages, which it then writes onto the file system. This way a slim server layer is just for basic authentication, knowing how to save files, and placing them in version control.
 
 ## Features
 - All of HAX without a bloated CMS
