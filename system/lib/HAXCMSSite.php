@@ -193,56 +193,42 @@ class HAXCMSSite {
   }
   /**
    * Load field schema for a page
+   * Field cascade always follows Core -> Deploy -> Theme -> Site
+   * Anything downstream can always override upstream but no one can remove fields
    */
   public function loadFieldSchema($page) {
-    $themes = array();
-    foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
-      $themes[$key] = $item->name;
-      $themes['key'] = $key;
-    }
     $fields = array(
-      "configure" => array(
-        array(
-          "property" => "title",
-          "description" => "Title of the page",
-          "inputMethod" => "textfield",
-          "required" => true,
-          "icon" => "editor:title",
-        ),
-        array(
-          "property" => "location",
-          "description" => "Location used in the URL",
-          "inputMethod" => "textfield",
-          "required" => true,
-          "icon" => "device:gps-fixed",
-        ),
-        array(
-          "property" => "description",
-          "description" => "Description for the post",
-          "inputMethod" => "textfield",
-          "required" => false,
-          "icon" => "editor:short-text",
-        ),
-      ),
-      "advanced" => array(
-        array(
-          "property" => "created",
-          "description" => "Created timestamp",
-          "inputMethod" => "textfield",
-          "required" => true,
-          "icon" => "device:access-time",
-        ),
-        array(
-          "property" => "theme",
-          "description" => "Page theme",
-          "inputMethod" => "select",
-          "required" => false,
-          "icon" => "editor:format-paint",
-          "options" => $themes,
-        )
-      ),
+      'configure' => array(),
+      'advanced' => array()
     );
-    // fields can live globally
+    // load core fields
+    // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
+    if (file_exists(HAXCMS_ROOT . '/system/coreConfig/fields.json')) {
+      $coreFields = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/fields.json'));
+      $themes = array();
+      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
+        $themes[$key] = $item->name;
+        $themes['key'] = $key;
+      }
+      // this needs to be set dynamically
+      foreach ($coreFields->advanced as $key => $item) {
+        if ($item->property === 'theme') {
+          $coreFields->advanced[$key]->options = $themes;
+        }
+      }
+      // CORE fields
+      if (isset($coreFields->configure)) {
+        foreach ($coreFields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($coreFields->advanced)) {
+        foreach ($coreFields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // fields can live globally in config
     if (isset($GLOBALS['HAXCMS']->config->fields)) {
       if (isset($GLOBALS['HAXCMS']->config->fields->configure)) {
         foreach ($GLOBALS['HAXCMS']->config->fields->configure as $item) {
@@ -255,7 +241,23 @@ class HAXCMSSite {
         }
       }
     }
-    // fields can live in the site
+    // fields can live in the theme
+    if (isset($this->manifest->metadata->theme->fields) && file_exists(HAXCMS_ROOT . '/build/es6/node_modules/'. $this->manifest->metadata->theme->fields)) {
+      // @todo thik of how to make this less brittle
+      // not a fan of pegging loading this definition to our file system's publishing structure
+      $themeFields = json_decode(file_get_contents(HAXCMS_ROOT . '/build/es6/node_modules/'. $this->manifest->metadata->theme->fields));
+      if (isset($themeFields->configure)) {
+        foreach ($themeFields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($themeFields->advanced)) {
+        foreach ($themeFields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // fields can live in the site itself
     if (isset($this->manifest->metadata->fields)) {
       if (isset($this->manifest->metadata->fields->configure)) {
         foreach ($this->manifest->metadata->fields->configure as $item) {
