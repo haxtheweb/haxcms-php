@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -d "~/.config" ]; then
-  sudo chmod 755 ~/.config
+  chmod 755 ~/.config
 fi
 # set some defaults for publishing on the box
 cat >> ~/.ssh/config <<EOL
