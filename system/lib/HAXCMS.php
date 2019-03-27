@@ -75,7 +75,7 @@ class HAXCMS {
         $this->salt = file_get_contents($this->configDirectory . '/SALT.txt');
       }
       if (file_exists(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/sites.json')) {
-        $this->sitesJSON = $this->sitesDirectory . '/sites.json?' . $this->getRequestToken(time());
+        $this->sitesJSON = $this->sitesDirectory . '/sites.json';
         if (!$this->outlineSchema->load(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/sites.json')) {
           print $this->sitesDirectory . '/sites.json missing';
         }
