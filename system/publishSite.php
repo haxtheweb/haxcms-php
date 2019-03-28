@@ -186,6 +186,12 @@ include_once '../system/lib/bootstrapHAX.php';
           else {
             // even more trickery; swap out the symlinks w/ the real assets, publish, switch back
             @unlink($siteDirectoryPath . '/build');
+            if (is_link($siteDirectoryPath . '/dist')) {
+              @unlink($siteDirectoryPath . '/dist');
+            }
+            if (is_link($siteDirectoryPath . '/node_modules')) {
+              @unlink($siteDirectoryPath . '/node_modules');
+            }
             @unlink($siteDirectoryPath . '/assets/babel-top.js');
             @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
             @copy(HAXCMS_ROOT . '/babel/babel-top.js', $siteDirectoryPath . '/assets/babel-top.js');
@@ -204,6 +210,13 @@ include_once '../system/lib/bootstrapHAX.php';
           @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
           // now put it back plz... and master shouldn't notice any source changes
           $repo->checkout('master');
+          // restore these silly things if we need to
+          if (!is_link($siteDirectoryPath . '/dist')) {
+            @symlink($siteDirectoryPath . '/dist');
+          }
+          if (!is_link($siteDirectoryPath . '/node_modules')) {
+            @symlink($siteDirectoryPath . '/node_modules');
+          }
         }
         $domain = $gitSettings->url;
         if (isset($site->manifest->metadata->domain) && $site->manifest->metadata->domain != '') {
