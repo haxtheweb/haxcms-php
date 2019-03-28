@@ -60,8 +60,10 @@ class HAXCMSSite {
     if (is_null($domain) && isset($gitDetails->user)) {
       $domain = 'https://' . $gitDetails->user . '.github.io/' . $tmpname;
     }
-    // put domain into CNAME
-    @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
+    else {
+      // put domain into CNAME not the github.io address if that exists
+      @file_put_contents($directory . '/' . $tmpname . '/CNAME', $domain);
+    }
     // load what we just created
     $this->manifest = new JSONOutlineSchema();
     // where to save it to
@@ -167,18 +169,84 @@ class HAXCMSSite {
     $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
     $this->manifest->addItem($page);
     $this->manifest->save();
-    $this->updateRSS();
+    $this->updateStaticVersions();
     return $page;
   }
   /**
    * Update RSS / Atom feeds which are physical files
    */
-  public function updateRSS() {
+  public function updateStaticVersions() {
     // rip changes to feed urls
     $rss = new FeedMe();
-    $siteDirectory = $this->directory . '/' . $this->manifest->metadata->siteName;
-    @file_put_contents($siteDirectory . '/rss.xml', $rss->getRSSFeed($this));
-    @file_put_contents($siteDirectory . '/atom.xml', $rss->getAtomFeed($this));
+    $siteDirectory = $this->directory . '/' . $this->manifest->metadata->siteName . '/';
+    @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+    @file_put_contents($siteDirectory . 'atom.xml', $rss->getAtomFeed($this));
+    // build a sitemap if we have a domain, kinda required...
+    if (isset($this->manifest->metadata->domain)) {
+      $domain = $this->manifest->metadata->domain;
+      $generator = new \Icamys\SitemapGenerator\SitemapGenerator($domain, $siteDirectory);
+      // will create also compressed (gzipped) sitemap
+      $generator->createGZipFile = true;
+      // determine how many urls should be put into one file
+      // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+      $generator->maxURLsPerSitemap = 50000;
+      // sitemap file name
+      $generator->sitemapFileName = "sitemap.xml";
+      // sitemap index file name
+      $generator->sitemapIndexFileName = "sitemap-index.xml";
+      // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+      foreach ($this->manifest->items as $key => $item) {
+        if ($item->parent == null) {
+          $priority = '1.0';
+        }
+        else if ($item->indent == 2) {
+          $priority = '0.7';
+        }
+        else {
+          $priority = '0.5';
+        }
+        $generator->addUrl(
+          $domain . '/' . str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
+          date(\DateTime::ATOM, $item->metadata->updated),          
+          'daily',
+          $priority
+        );
+      }
+      // generating internally a sitemap
+      $generator->createSitemap();
+      // writing early generated sitemap to file
+      $generator->writeSitemap();
+    }
+    // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
+    @file_put_contents($siteDirectory . 'legacy-outline.html', '<!DOCTYPE html><html lang="en"><head></head><body>' . $this->treeToNodes($this->manifest->items) . '</body></html>');
+  }
+  /**
+   * Build a JOS into a tree of links recursively
+   */
+  private function treeToNodes($current, &$rendered = array(), $html = '') {
+    $loc = '';
+    foreach ($current as $item) {
+      if (!array_search($item->id, $rendered)) {
+        $loc .= '<li><a href="' . $item->location . '" target="content">' . $item->title . '</a>';
+        array_push($rendered, $item->id);
+        $children = array();
+        foreach ($this->manifest->items as $child) {
+          if ($child->parent == $item->id) {
+            array_push($children, $child);
+          }
+        }
+        // only walk deeper if there were children for this page
+        if (count($children) > 0) {
+          $loc .= $this->treeToNodes($children, $rendered);
+        }
+        $loc .= '</li>';
+      }
+    }
+    // make sure we aren't empty here before wrapping
+    if ($loc != '') {
+      $loc = '<ul>' . $loc . '</ul>';
+    }
+    return $html . $loc;
   }
   /**
    * Load page by unique id
@@ -288,7 +356,7 @@ class HAXCMSSite {
         }
       }
     }
-    // response as schema + values
+    // response as schema and values
     $response = new stdClass();
     $response->haxSchema = $fields;
     $response->values = $values;
@@ -304,7 +372,7 @@ class HAXCMSSite {
       if ($item->id === $page->id) {
         $this->manifest->items[$key] = $page;
         $this->manifest->save();
-        $this->updateRSS();
+        $this->updateStaticVersions();
         return $page;
       }
     }
@@ -319,7 +387,7 @@ class HAXCMSSite {
       if ($item->id === $page->id) {
         unset($this->manifest->items[$key]);
         $this->manifest->save();
-        $this->updateRSS();
+        $this->updateStaticVersions();
         return TRUE;
       }
     }

@@ -29,6 +29,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         array (
             'Psr\\Http\\Message\\' => 17,
         ),
+        'I' => 
+        array (
+            'Icamys\\SitemapGenerator\\' => 24,
+        ),
         'G' => 
         array (
             'GuzzleHttp\\Psr7\\' => 16,
@@ -53,6 +57,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         'Psr\\Http\\Message\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-message/src',
+        ),
+        'Icamys\\SitemapGenerator\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/icamys/php-sitemap-generator/src',
         ),
         'GuzzleHttp\\Psr7\\' => 
         array (
