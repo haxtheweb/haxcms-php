@@ -72,29 +72,28 @@
       font-family: "Courier New", Courier, monospace;
       color: black;
     }
-    #haxcmsoutdatedfallback {
-      top: 0;
-      position: absolute;
-      background: white;
+    body[no-js] haxcms-site-builder{
+      display: none !important;
     }
   </style>
 </head>
 
 <body>
+  <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>Site</div><div>loading</div></div></haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
     <haxcms-legacy-player file="site.json"></haxcms-legacy-player>
-    <div id="haxcmsoutdatedfallbacksuperold">
-      <iframe style="width:18%;float:left;height:600px;padding:0;margin:0;" name="outline" id="frame1"
+    <div id="haxcmsoutdatedfallbacksuperold"> 
+      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
         src="legacy-outline.html"></iframe>
-      <iframe style="width:80%;float:left;height:600px;padding:0;margin:0;" name="content" id="frame2"></iframe>
+      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src=""></iframe>
       <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <haxcms-site-builder file="site.json"><div>HAXcms</div><div>loading</div></haxcms-site-builder>
-  <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
+  <script>document.body.removeAttribute('no-js');</script>
   <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script type="module" src="dist/build.js"></script>
+  <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <!-- use this to test the legacy build
     <script type="module" src="dist/build-legacy.js"></script>
   -->
