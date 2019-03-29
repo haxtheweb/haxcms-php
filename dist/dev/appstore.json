@@ -938,6 +938,77 @@
           }
         }
       }
+    },
+    {
+      "details": {
+        "title": "Local files",
+        "icon": "perm-media",
+        "color": "light-blue",
+        "author": "HAXCMS",
+        "description": "HAXCMS integration for HAX",
+        "tags": [
+          "media",
+          "hax"
+        ]
+      },
+      "connection": {
+        "protocol": "http",
+        "url": "haxcms.ddev.local/",
+        "operations": {
+          "browse": {
+            "method": "GET",
+            "endPoint": "system/loadFiles.php",
+            "pagination": {
+              "style": "link",
+              "props": {
+                "first": "page.first",
+                "next": "page.next",
+                "previous": "page.previous",
+                "last": "page.last"
+              }
+            },
+            "search": {},
+            "data": {},
+            "resultMap": {
+              "defaultGizmoType": "image",
+              "items": "list",
+              "preview": {
+                "title": "name",
+                "details": "mime",
+                "image": "url",
+                "id": "uuid"
+              },
+              "gizmo": {
+                "source": "url",
+                "id": "uuid",
+                "title": "name",
+                "type": "type"
+              }
+            }
+          },
+          "add": {
+            "method": "POST",
+            "endPoint": "system/saveFile.php",
+            "acceptsGizmoTypes": [
+              "image",
+              "video",
+              "audio",
+              "pdf",
+              "svg",
+              "document",
+              "csv"
+            ],
+            "resultMap": {
+              "item": "data.file",
+              "defaultGizmoType": "image",
+              "gizmo": {
+                "source": "url",
+                "id": "uuid"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "stax": [

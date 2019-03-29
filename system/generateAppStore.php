@@ -60,7 +60,9 @@
         "stop-note",
         "place-holder",
         "lrn-math",
-        "q-r"
+        "q-r",
+        "lrndesign-gallery",
+        "lrndesign-timeline"
       ]
       ');
     }

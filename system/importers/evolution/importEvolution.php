@@ -77,7 +77,9 @@
   "task-list": "@lrnwebcomponents/task-list/task-list.js",
   "video-player": "@lrnwebcomponents/video-player/video-player.js",
   "wave-player": "@lrnwebcomponents/wave-player/wave-player.js",
-  "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js"
+  "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js",
+  "lrndesign-gallery": "@lrnwebcomponents\/lrndesign-gallery\/lrndesign-gallery.js",
+  "lrndesign-timeline": "@lrnwebcomponents\/lrndesign-timeline\/lrndesign-timeline.js"
   }');
   // save the outline into the new site
   $site->manifest->save();
