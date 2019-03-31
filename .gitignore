@@ -2,6 +2,7 @@
 .DS_Store
 node_modules
 _sites
+_published
 /_config
 !build/es5-amd/node_modules
 !build/es6/node_modules

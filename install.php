@@ -64,6 +64,15 @@
       $git = new Git();
       $git->create('_sites');
     }
+    if (!is_dir('_published')) {
+      // make published directory so you can have a copy of these files
+      mkdir('_published');
+      chmod("_published", 0775);
+      // attempt to set the user / group on sites
+      // these probaly won't work
+      @chown('_published', get_current_user());
+      @chgrp('_published', get_current_user());
+    }
   }
 ?>
 <html>

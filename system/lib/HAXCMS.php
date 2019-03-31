@@ -17,6 +17,10 @@ include_once 'JWT.php';
 include_once 'Git.php';
 // composer...ugh
 include_once dirname(__FILE__) . "/../../vendor/autoload.php";
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
+global $fileSystem;
+$fileSystem = new Filesystem();
 
 class HAXCMS {
   public $appStoreFile;
@@ -85,6 +89,7 @@ class HAXCMS {
         print $this->configDirectory . '/config.json missing';
       }
       else {
+        // theme data
         if (!isset($this->config->themes)) {
           $this->config->themes = new stdClass();
         }
@@ -92,6 +97,24 @@ class HAXCMS {
         $themeData = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/themes.json'));
         foreach ($themeData as $name => $data) {
           $this->config->themes->{$name} = $data;
+        }
+        // publishing endpoints
+        if (!isset($this->config->publishing)) {
+          $this->config->publishing = new stdClass();
+        }
+        // load in core publishing data
+        $publishingData = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/publishing.json'));
+        foreach ($publishingData as $name => $data) {
+          $this->config->publishing->{$name} = $data;
+        }
+        // importer formats to ingest
+        if (!isset($this->config->importers)) {
+          $this->config->importers = new stdClass();
+        }
+        // load in core importers data
+        $importersData = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/importers.json'));
+        foreach ($importersData as $name => $data) {
+          $this->config->importers->{$name} = $data;
         }
       }
     }
@@ -504,6 +527,15 @@ class HAXCMS {
     $settings->createNewSitePath = $this->basePath . 'system/createNewSite.php';
     $settings->downloadSitePath = $this->basePath . 'system/downloadSite.php';
     $settings->appStore = $this->appStoreConnection();
+    // allow for overrides in config.php
+    if (isset($GLOBALS['config']['connection'])) {
+      foreach ($settings as $key => $value) {
+        if (isset($GLOBALS['config']['connection'][$key])) {
+          // defer to the config.php setting
+          $settings->{$key} = $GLOBALS['config']['connection'][$key];
+        }
+      }
+    }
     return $settings;
   }
   /**

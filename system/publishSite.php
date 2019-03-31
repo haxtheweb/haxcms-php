@@ -1,5 +1,5 @@
 <?php
-include_once '../system/lib/bootstrapHAX.php';
+  include_once '../system/lib/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   // test if this is a valid user login
   if ($HAXCMS->validateJWT()) {
@@ -205,17 +205,35 @@ include_once '../system/lib/bootstrapHAX.php';
             // do nothing, maybe there was nothing to commit
             }
           }
+          // mirror over to the publishing directory
+          // @todo need to make a way of doing this in a variable fashion
+          // this way we could publish to multiple locations or intentionally to a location
+          // which will be important when allowing for open, closed, or other server level configurations
+          // that happen automatically as opposed to when the user hits publish
+          // also for delivery of the "click to access site" link
+          $GLOBALS['fileSystem']->mirror($siteDirectoryPath, '../_published/' . $site->manifest->metadata->siteName);
+          // remove the .git version control from this, it's not needed
+          $GLOBALS['fileSystem']->remove(['../_published/' . $site->manifest->metadata->siteName . '/.git']);
+          // rewrite the base path to ensure it is accurate based on a local build publish vs web
+          $index = file_get_contents('../_published/' . $site->manifest->metadata->siteName . '/index.html');
+          // replace if it was publishing with the name in it
+          $index = str_replace('<base href="/' . $site->manifest->metadata->siteName . '/"', '<base href="/published/' . $site->manifest->metadata->siteName . '/"', $index);
+          // replace if it has a vanity domain
+          $index = str_replace('<base href="/"', '<base href="/published/' . $site->manifest->metadata->siteName . '/"', $index);
+          // rewrite the file
+          @file_put_contents('../_published/' . $site->manifest->metadata->siteName . '/index.html', $index);   
+          // tag, attempt to push, and set things up for next time
           $repo->add_tag('version-' . $site->manifest->metadata->lastPublished);
           @$repo->push('origin', $gitSettings->branch, "--force");
-          @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");
+          @$repo->push('origin', 'version-' . $site->manifest->metadata->lastPublished, "--force");       
           // now put it back plz... and master shouldn't notice any source changes
           $repo->checkout('master');
           // restore these silly things if we need to
           if (!is_link($siteDirectoryPath . '/dist')) {
-            @symlink($siteDirectoryPath . '/dist');
+            @symlink('../../dist', $siteDirectoryPath . '/dist');
           }
           if (!is_link($siteDirectoryPath . '/node_modules')) {
-            @symlink($siteDirectoryPath . '/node_modules');
+            @symlink('../../node_modules', $siteDirectoryPath . '/node_modules');
           }
         }
         $domain = $gitSettings->url;

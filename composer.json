@@ -2,6 +2,7 @@
     "require": {
         "guzzlehttp/guzzle": "^6.3",
         "twig/twig": "^2.0",
-        "icamys/php-sitemap-generator": "^1.0"
+        "icamys/php-sitemap-generator": "^1.0",
+        "symfony/filesystem": "^4.2"
     }
 }

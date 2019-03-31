@@ -4,6 +4,9 @@
   register_shutdown_function('hax500Debug');
   // register our global CMS variable for the whole damn thing
   global $HAXCMS;
+  global $config;
+  // support for config.php to override core capabilities
+  $config['connection'] = array();
   // calculate where we are in the file system, accurately
   $here = __FILE__;
   define('HAXCMS_ROOT', str_replace('/system/lib/bootstrapHAX.php', '', $here));

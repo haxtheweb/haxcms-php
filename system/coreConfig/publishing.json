@@ -1,4 +1,9 @@
 {
+  "local": {
+    "name": "Local",
+    "script": "system/publishing/local/publishLocal.php",
+    "image": "system/publishing/local/github.png"
+  },
   "github": {
     "name": "Github",
     "script": "system/publishing/github/publishGithub.php",
