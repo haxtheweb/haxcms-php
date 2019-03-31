@@ -1,9 +1,8 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: I've got a Bug!
+about: Please describe he Browser and OS you used to cause an issue
 title: ''
 labels: 'bug'
 assignees: ''
 
 ---
-Please describe what you were doing when the bug happened and browser / OS you were using.
