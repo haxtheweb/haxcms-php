@@ -137,7 +137,13 @@
             if ($handle = opendir($siteDirectoryPath . '/files')) {
               while (false !== ($file = readdir($handle))) {
                 if ($file != "." && $file != ".." && $file != '.gitkeep' && $file != '.DS_Store') {
-                  $coreFiles[] = 'files/' . $file;
+                  // ensure this is a file
+                  if (is_file($siteDirectoryPath . '/files/' . $file)) {
+                    $coreFiles[] = 'files/' . $file;
+                  }
+                  else {
+                    // @todo maybe step into directories?
+                  }
                 }
               }
               closedir($handle);
@@ -159,15 +165,17 @@
                 // ?? file referenced but doesn't exist
                 $filesize = 0;
               }
-              $templateVars['swhash'][] = array(
-                $item->location,
-                strtr(
-                  base64_encode(
-                    hash_hmac('md5', (string) $item->location . $filesize, (string) 'haxcmsswhash', TRUE)
-                  ),
-                  array('+' => '','/' => '','=' => '','-' => '')
-                )
-              );
+              if ($filesize !== 0) {
+                $templateVars['swhash'][] = array(
+                  $item->location,
+                  strtr(
+                    base64_encode(
+                      hash_hmac('md5', (string) $item->location . $filesize, (string) 'haxcmsswhash', TRUE)
+                    ),
+                    array('+' => '','/' => '','=' => '','-' => '')
+                  )
+                );
+              }
             }
             // put the twig written output into the file
             $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
