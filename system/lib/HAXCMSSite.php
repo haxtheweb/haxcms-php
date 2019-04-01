@@ -251,7 +251,7 @@ class HAXCMSSite {
   /**
    * Load page by unique id
    */
-  public function loadPage($uuid) {
+  public function loadNode($uuid) {
     foreach ($this->manifest->items as $item) {
       if ($item->id == $uuid) {
         return $item;
@@ -264,15 +264,15 @@ class HAXCMSSite {
    * Field cascade always follows Core -> Deploy -> Theme -> Site
    * Anything downstream can always override upstream but no one can remove fields
    */
-  public function loadFieldSchema($page) {
+  public function loadNodeFieldSchema($page) {
     $fields = array(
       'configure' => array(),
       'advanced' => array()
     );
     // load core fields
     // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-    if (file_exists(HAXCMS_ROOT . '/system/coreConfig/fields.json')) {
-      $coreFields = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/fields.json'));
+    if (file_exists(HAXCMS_ROOT . '/system/coreConfig/itemFields.json')) {
+      $coreFields = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/itemFields.json'));
       $themes = array();
       foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
         $themes[$key] = $item->name;
@@ -367,7 +367,7 @@ class HAXCMSSite {
    * data about an existing entry.
    * @return JSONOutlineSchemaItem or FALSE
    */
-  public function updatePage($page) {
+  public function updateNode($page) {
     foreach ($this->manifest->items as $key => $item) {
       if ($item->id === $page->id) {
         $this->manifest->items[$key] = $page;
@@ -382,7 +382,7 @@ class HAXCMSSite {
    * Delete a page from the manifest
    * @return JSONOutlineSchemaItem or FALSE
    */
-  public function deletePage($page) {
+  public function deleteNode($page) {
     foreach ($this->manifest->items as $key => $item) {
       if ($item->id === $page->id) {
         unset($this->manifest->items[$key]);

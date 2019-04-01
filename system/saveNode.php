@@ -14,7 +14,7 @@
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    if ($page = $site->loadPage($HAXCMS->safePost['page'])) {
+    if ($page = $site->loadNode($HAXCMS->safePost['nodeId'])) {
       // convert web location for loading into file location for writing
       if (isset($body)) {
         $bytes = $page->writeLocation($body, HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/');
@@ -29,7 +29,7 @@
           $clean = strip_tags($body);
           $page->description = str_replace("\n", '', substr($clean, 0, 200));
           // update the item in the metadata to indicate when content was last set
-          $site->updatePage($page);
+          $site->updateNode($page);
           $site->gitCommit('Page updated: ' . $page->title . ' (' . $page->id . ')');
           header('Status: 200');
           print json_encode($bytes);
@@ -107,7 +107,7 @@
             break;
           }
         }
-        $site->updatePage($page);
+        $site->updateNode($page);
         $site->gitCommit('Page details updated: ' . $page->title . ' (' . $page->id . ')');
         header('Status: 200');
         print json_encode($page);

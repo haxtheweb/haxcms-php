@@ -49,7 +49,7 @@ class HAXCMSFIle {
             $page->metadata->files = array();
           }
           $page->metadata->files[] = $return['file'];
-          $site->updatePage($page);
+          $site->updateNode($page);
         }
         $status = 200;
       }

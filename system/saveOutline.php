@@ -12,7 +12,7 @@
     // items from the POST
     foreach ($items as $key => $item) {
       // get a fake item
-      if (!$page = $site->loadPage($item->id)) {
+      if (!$page = $site->loadNode($item->id)) {
         $page = $HAXCMS->outlineSchema->newItem();
         $itemMap[$item->id] = $page->id;
       }
@@ -58,7 +58,7 @@
       // or it could have just been renamed
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->siteName;
       // if it doesn't exist currently make sure the name is unique
-      if (!$site->loadPage($page->id)) {
+      if (!$site->loadNode($page->id)) {
         // ensure this location doesn't exist already
         $tmpTitle = $site->getUniqueLocationName($cleanTitle);
         $page->location = 'pages/' . $tmpTitle . '/index.html';
@@ -93,8 +93,8 @@
       }
       // always update at this time
       $page->metadata->updated = time();
-      if ($site->loadPage($page->id)) {
-        $site->updatePage($page);
+      if ($site->loadNode($page->id)) {
+        $site->updateNode($page);
       }
       else {
         $site->manifest->addItem($page);

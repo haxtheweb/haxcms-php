@@ -8,8 +8,8 @@
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    if ($page = $site->loadPage($HAXCMS->safePost['pageid'])) {
-      if ($site->deletePage($page) === FALSE) {
+    if ($page = $site->loadNode($HAXCMS->safePost['nodeId'])) {
+      if ($site->deleteNode($page) === FALSE) {
         header('Status: 500');
         print 'failed to delete';
       }
