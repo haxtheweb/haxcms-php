@@ -34,11 +34,7 @@
         "modules"
       ],
       "js": {
-        "minify": {
-          "exclude": [
-            "*.min.js"
-          ]
-        }
+        "minify": true
       },
       "css": {
         "minify": true
@@ -51,11 +47,7 @@
     {
       "name": "es5-amd",
       "js": {
-        "minify": {
-          "exclude": [
-            "*.min.js"
-          ]
-        },
+        "minify": true,
         "compile": true,
         "transformModulesToAmd": true
       },
