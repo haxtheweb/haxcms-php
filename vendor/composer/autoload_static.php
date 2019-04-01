@@ -39,6 +39,7 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
             'GuzzleHttp\\Psr7\\' => 16,
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
+            'Gumlet\\' => 7,
         ),
     );
 
@@ -78,6 +79,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         'GuzzleHttp\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
+        ),
+        'Gumlet\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/gumlet/php-image-resize/lib',
         ),
     );
 

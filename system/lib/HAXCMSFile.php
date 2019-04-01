@@ -1,4 +1,7 @@
 <?php
+  include_once dirname(__FILE__) . "/../../vendor/autoload.php";
+  use \Gumlet\ImageResize;
+
 // a site object
 class HAXCMSFIle {
   /**
@@ -6,19 +9,35 @@ class HAXCMSFIle {
    */
   public function save($upload, $site, $page = NULL) {
     global $HAXCMS;
+    global $fileSystem;
     // check for a file upload
     if (isset($upload['tmp_name']) && is_uploaded_file($upload['tmp_name'])) {
       // get contents of the file if it was uploaded into a variable
       $filedata = file_get_contents($upload['tmp_name']);
       // attempt to save the file
-      $fullpath = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/' . $upload['name'];
+      $path = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/';
+      $fullpath = $path . $upload['name'];
       if ($size = file_put_contents($fullpath, $filedata)) {
+        // ensure folders exist
+        try {
+            $fileSystem->mkdir($path . 'scale-50');
+            $fileSystem->mkdir($path . 'crop-sm');
+        } catch (IOExceptionInterface $exception) {
+            echo "An error occurred while creating your directory at ".$exception->getPath();
+        }
+        //@todo make a way of defining these as returns as well as number to take
+        $image = new ImageResize($fullpath);
+        $image
+          ->scale(50)
+          ->save($path . 'scale-50/' . $upload['name'])
+          ->crop(100, 100)
+          ->save($path . 'crop-sm/' . $upload['name']);
         // @todo fake the file object creation stuff from CMS land
         $return = array(
           'file' => array(
-            'path' => $fullpath,
-            'fullUrl' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/' . $upload['name'],
-            'url' => 'files/' . $upload['name'],
+            'path' => $path . 'scale-50/' . $upload['name'],
+            'fullUrl' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/scale-50/' . $upload['name'],
+            'url' => 'files/scale-50/' . $upload['name'],
             'type' => mime_content_type($fullpath),
             'name' => $upload['name'],
             'size' => $size,
