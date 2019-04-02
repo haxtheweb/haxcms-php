@@ -8,13 +8,11 @@
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    if ($page = $site->loadNode($HAXCMS->safeGet['nodeId'])) {
-      $status = 403;
-      $upload = $_FILES['file-upload'];
-      $file = new HAXCMSFile();
-      print $file->save($upload, $site, $page);
-      $site->gitCommit('File added: ' . $upload['name']);
-      exit;
-    }
+    $page = $site->loadNode($HAXCMS->safeGet['nodeId']);
+    $upload = $_FILES['file-upload'];
+    $file = new HAXCMSFile();
+    print $file->save($upload, $site, $page);
+    $site->gitCommit('File added: ' . $upload['name']);
+    exit;
   }
 ?>

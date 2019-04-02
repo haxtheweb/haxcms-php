@@ -2,6 +2,7 @@
   "configure": [
     {
       "property": "title",
+      "title": "Title",
       "description": "Title of the site",
       "inputMethod": "textfield",
       "required": true,
@@ -9,6 +10,7 @@
     },
     {
       "property": "domain",
+      "title": "Domain",
       "description": "Domain of this website",
       "inputMethod": "textfield",
       "required": false,
@@ -16,6 +18,7 @@
     },
     {
       "property": "description",
+      "title": "Description",
       "description": "Simple description of the site",
       "inputMethod": "textfield",
       "required": false,
@@ -23,13 +26,15 @@
     },
     {
       "property": "image",
-      "description": "Banner / image for the site",
+      "title": "Banner",
+      "description": "Image for the site",
       "inputMethod": "haxupload",
       "required": false,
       "icon": "image:image"
     },
     {
-      "property": "color",
+      "property": "cssVariable",
+      "title": "Color",
       "description": "A base accent color for the site",
       "inputMethod": "colorpicker",
       "required": true,
@@ -37,6 +42,7 @@
     },
     {
       "property": "theme",
+      "title": "Theme",
       "description": "Page theme",
       "inputMethod": "select",
       "required": false,
@@ -45,14 +51,93 @@
     },
     {
       "property": "icon",
+      "title": "Icon",
       "description": "Icon to represent the site",
       "inputMethod": "iconpicker",
       "required": false,
-      "icon": "icons:send",
-      "options": {}
+      "icon": "icons:send"
     }
   ],
   "advanced": [
+    {
+      "property": "fields",
+      "title": "Custom Fields",
+      "description": "Store relational data about fields",
+      "required": false,
+      "icon": "icons:group-work",
+      "inputMethod": "array",
+      "properties": [
+        {
+          "property": "formgroup",
+          "title": "Form group",
+          "description": "Which tab will users input values",
+          "inputMethod": "select",
+          "required": true,
+          "options": {
+            "configure": "Configure",
+            "advanced": "Advanced"
+          },
+          "icon": "link"
+        },
+        {
+          "property": "inputMethod",
+          "title": "Input method",
+          "description": "How users can enter data for this field",
+          "inputMethod": "select",
+          "options": {
+            "textfield": "Textfield",
+            "number": "Number",
+            "boolean": "Checkbox",
+            "haxupload": "File upload",
+            "colorpicker": "Color picker",
+            "iconpicker": "Icon picker",
+            "code-editor": "Code editor",
+            "alt": "Alt text",
+            "datepicker": "Date picker",
+            "textarea": "Text area",
+            "flipboolean": "Checkbox (inverted)",
+            "select": "Select list",
+            "array": "Array"
+          },
+          "icon": "link"
+        },
+        {
+          "property": "property",
+          "title": "Machine name",
+          "description": "Field machine name for storage",
+          "inputMethod": "textfield",
+          "required": true
+        },
+        {
+          "property": "title",
+          "title": "Name",
+          "description": "Readable name of the field",
+          "inputMethod": "textfield",
+          "required": true
+        },
+        {
+          "property": "description",
+          "title": "Description",
+          "description": "additional details about the field data",
+          "inputMethod": "textfield",
+          "required": false
+        },
+        {
+          "property": "required",
+          "title": "Required",
+          "description": "Is this field required",
+          "inputMethod": "boolean",
+          "required": false
+        },
+        {
+          "property": "icon",
+          "title": "Icon",
+          "description": "Optional icon to represent this field",
+          "inputMethod": "iconpicker",
+          "required": false
+        }
+      ]
+    },
     {
       "property": "license",
       "title": "License",

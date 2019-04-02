@@ -18,31 +18,47 @@ class HAXCMSFIle {
       $path = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/';
       $fullpath = $path . $upload['name'];
       if ($size = file_put_contents($fullpath, $filedata)) {
-        // ensure folders exist
-        try {
+        //@todo make a way of defining these as returns as well as number to take
+        // specialized support for images to do scale and crop stuff automatically
+        if (in_array(mime_content_type($fullpath), array('image/png', 'image/jpeg', 'image/gif'))) {
+          // ensure folders exist
+          try {
             $fileSystem->mkdir($path . 'scale-50');
             $fileSystem->mkdir($path . 'crop-sm');
-        } catch (IOExceptionInterface $exception) {
-            echo "An error occurred while creating your directory at ".$exception->getPath();
+          } catch (IOExceptionInterface $exception) {
+              echo "An error occurred while creating your directory at ". $exception->getPath();
+          }
+          $image = new ImageResize($fullpath);
+          $image
+            ->scale(50)
+            ->save($path . 'scale-50/' . $upload['name'])
+            ->crop(100, 100)
+            ->save($path . 'crop-sm/' . $upload['name']);
+          // fake the file object creation stuff from CMS land
+          $return = array(
+            'file' => array(
+              'path' => $path . 'scale-50/' . $upload['name'],
+              'fullUrl' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/scale-50/' . $upload['name'],
+              'url' => 'files/scale-50/' . $upload['name'],
+              'type' => mime_content_type($fullpath),
+              'name' => $upload['name'],
+              'size' => $size,
+            )
+          );
         }
-        //@todo make a way of defining these as returns as well as number to take
-        $image = new ImageResize($fullpath);
-        $image
-          ->scale(50)
-          ->save($path . 'scale-50/' . $upload['name'])
-          ->crop(100, 100)
-          ->save($path . 'crop-sm/' . $upload['name']);
-        // @todo fake the file object creation stuff from CMS land
-        $return = array(
-          'file' => array(
-            'path' => $path . 'scale-50/' . $upload['name'],
-            'fullUrl' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/scale-50/' . $upload['name'],
-            'url' => 'files/scale-50/' . $upload['name'],
-            'type' => mime_content_type($fullpath),
-            'name' => $upload['name'],
-            'size' => $size,
-          )
-        );
+        else {
+           // fake the file object creation stuff from CMS land
+          $return = array(
+            'file' => array(
+              'path' => $path . $upload['name'],
+              'fullUrl' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . $site->name . '/files/' . $upload['name'],
+              'url' => 'files/' . $upload['name'],
+              'type' => mime_content_type($fullpath),
+              'name' => $upload['name'],
+              'size' => $size,
+            )
+          );
+        }
         if ($page != NULL) {
           // now update the page's metadata to suggest it uses this file. FTW!
           if (!isset($page->metadata->files)) {

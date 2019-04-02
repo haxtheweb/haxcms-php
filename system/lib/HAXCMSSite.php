@@ -376,6 +376,8 @@ class HAXCMSSite {
       'configure' => array(),
       'advanced' => array()
     );
+    $nodeFields = array(
+    );
     // load core fields
     // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
     if (file_exists(HAXCMS_ROOT . '/system/coreConfig/siteFields.json')) {
@@ -442,14 +444,20 @@ class HAXCMSSite {
     if (isset($this->manifest->metadata->fields)) {
       if (isset($this->manifest->metadata->fields->configure)) {
         foreach ($this->manifest->metadata->fields->configure as $item) {
-          $fields['configure'][] = $item;
+          $item->formgroup = 'configure';
+          $nodeFields[] = $item;
         }
       }
       if (isset($this->manifest->metadata->fields->advanced)) {
         foreach ($this->manifest->metadata->fields->advanced as $item) {
-          $fields['advanced'][] = $item;
+          $item->formgroup = 'advanced';
+          $nodeFields[] = $item;
         }
       }
+    }
+    // icon wasn't required at one point
+    if (!isset($this->manifest->metadata->icon)) {
+      $this->manifest->metadata->icon = '';
     }
     // core values that live outside of the fields area
     $values = array(
@@ -462,6 +470,7 @@ class HAXCMSSite {
       'domain' => $this->manifest->metadata->domain,
       'image' => $this->manifest->metadata->image,
       'cssVariable' => $this->manifest->metadata->cssVariable,
+      'fields' => $nodeFields,
     );
     // now get the field data from the page
     if (isset($this->manifest->metadata->fields)) {
@@ -519,7 +528,7 @@ class HAXCMSSite {
     $data = array();
     if ($type == 'select') {
       foreach ($list as $key => $item) {
-        $data[$key] = $name;
+        $data[$key] = $item['name'];
       }
     }
     return $data;
