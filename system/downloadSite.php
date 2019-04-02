@@ -6,9 +6,9 @@
     // load site
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
-    $dir = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name;
+    $dir = HAXCMS_ROOT . '/' . $HAXCMS->publishedDirectory . '/' . $site->name;
     // form a basic name
-    $zip_file = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name . '-' . time() . '.zip';
+    $zip_file = HAXCMS_ROOT . '/' . $HAXCMS->publishedDirectory . '/' . $site->name . '-' . time() . '.zip';
     // Get real path for our folder
     $rootPath = realpath($dir);
     // Initialize archive object
@@ -35,7 +35,7 @@
     header('Content-Type: application/json');
     header('Status: 200');
     $return = array(
-      'link' => $HAXCMS->basePath . $HAXCMS->sitesDirectory . '/' . basename($zip_file),
+      'link' => $HAXCMS->basePath . $HAXCMS->publishedDirectory . '/' . basename($zip_file),
       'name' => basename($zip_file),
     );
     print json_encode($return);
