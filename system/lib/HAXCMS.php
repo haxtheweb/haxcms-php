@@ -31,6 +31,7 @@ class HAXCMS {
   public $superUser;
   public $user;
   public $sitesDirectory;
+  public $publishedDirectory;
   public $sites;
   public $data;
   public $configDirectory;
@@ -68,6 +69,9 @@ class HAXCMS {
     // set default sites directory to look in if there
     if (is_dir(HAXCMS_ROOT . '/_sites')) {
       $this->sitesDirectory = '_sites';
+    }
+    if (is_dir(HAXCMS_ROOT . '/_published')) {
+      $this->publishedDirectory = '_published';
     }
     // set default config directory to look in if there
     if (is_dir(HAXCMS_ROOT . '/_config')) {
