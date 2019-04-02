@@ -235,6 +235,10 @@ class HAXCMSSite {
             array_push($children, $child);
           }
         }
+        // sort the kids
+        usort($children, function($a, $b) {
+          return $a->order > $b->order;
+        });
         // only walk deeper if there were children for this page
         if (count($children) > 0) {
           $loc .= $this->treeToNodes($children, $rendered);
@@ -400,6 +404,7 @@ class HAXCMSSite {
     $new = str_replace('./', '', str_replace('../', '', $new));
     // attempt to shift it on the file system
     if ($new != $this->manifest->metadata->siteName) {
+      $this->manifest->metadata->siteName = $new;
       return @rename($this->manifest->metadata->siteName, $new);
     }
   }
