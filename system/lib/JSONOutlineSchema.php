@@ -186,6 +186,8 @@ class JSONOutlineSchema {
    * Save data back to the file system location
    */
   public function save() {
+    // on every save we ensure it's sorted in the right order
+    $this->items = $this->orderTree($this->items);
     $schema = get_object_vars($this);
     $file = $schema['file'];
     unset($schema['file']);
@@ -195,6 +197,48 @@ class JSONOutlineSchema {
       array_push($schema['items'], $newItem);
     }
     return @file_put_contents($file, json_encode($schema, JSON_PRETTY_PRINT));
+  }
+  /**
+   * Organize the items based on tree order. This makes front end navigation line up correctly
+   */
+  public function orderTree($items) {
+    $sorted = array();
+    // do an initial by order
+    usort($items, function($a, $b) {
+      return $a->order > $b->order;
+    });
+    $this->orderRecurse($items, $sorted);
+    // sanity check, should always be equal
+    if (count($sorted) == count($items)) {
+      return $sorted;
+    }
+    // if it bombed just pass it through... again, sanity
+    return $items;
+  }
+  /**
+   * Sort a JOS
+   */
+  private function orderRecurse($currentItems, &$sorted = array(), &$idList = array()) {
+    foreach ($currentItems as $item) {
+      if (!array_search($item->id, $idList)) {
+        array_push($idList, $item->id);
+        array_push($sorted, $item);
+        $children = array();
+        foreach ($this->items as $child) {
+          if ($child->parent == $item->id) {
+            array_push($children, $child);
+          }
+        }
+        // sort the kids
+        usort($children, function($a, $b) {
+          return $a->order > $b->order;
+        });
+        // only walk deeper if there were children for this page
+        if (count($children) > 0) {
+          $this->orderRecurse($children, $sorted, $idList);
+        }
+      }
+    }
   }
   /**
    * Generate a UUID
