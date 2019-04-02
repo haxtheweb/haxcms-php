@@ -525,6 +525,7 @@ class HAXCMS {
     $settings->setConfigPath = $this->basePath . 'system/setConfig.php';
     $settings->getConfigPath = $this->basePath . 'system/getConfig.php';
     $settings->getNodeFieldsPath = $this->basePath . 'system/getNodeFields.php';
+    $settings->getSiteFieldsPath = $this->basePath . 'system/getSiteFields.php';
     $settings->getFieldsToken = $this->getRequestToken('fields');
     $settings->createNodePath = $this->basePath . 'system/createNode.php';
     $settings->deleteNodePath = $this->basePath . 'system/deleteNode.php';

@@ -367,6 +367,164 @@ class HAXCMSSite {
     return $response;
   }
   /**
+   * Load field schema for a page
+   * Field cascade always follows Core -> Deploy -> Theme -> Site
+   * Anything downstream can always override upstream but no one can remove fields
+   */
+  public function loadSiteFieldSchema() {
+    $fields = array(
+      'configure' => array(),
+      'advanced' => array()
+    );
+    // load core fields
+    // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
+    if (file_exists(HAXCMS_ROOT . '/system/coreConfig/siteFields.json')) {
+      $coreFields = json_decode(file_get_contents(HAXCMS_ROOT . '/system/coreConfig/siteFields.json'));
+      $themes = array();
+      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
+        $themes[$key] = $item->name;
+        $themes['key'] = $key;
+      }
+      // this needs to be set dynamically
+      foreach ($coreFields->configure as $key => $item) {
+        if ($item->property === 'theme') {
+          $coreFields->configure[$key]->options = $themes;
+        }
+      }
+      foreach ($coreFields->advanced as $key => $item) {
+        if ($item->property === 'license') {
+          $coreFields->advanced[$key]->options = $this->getLicenseData();
+        }
+      }
+      // CORE fields
+      if (isset($coreFields->configure)) {
+        foreach ($coreFields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($coreFields->advanced)) {
+        foreach ($coreFields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // fields can live globally in config
+    if (isset($GLOBALS['HAXCMS']->config->siteFields)) {
+      if (isset($GLOBALS['HAXCMS']->config->siteFields->configure)) {
+        foreach ($GLOBALS['HAXCMS']->config->siteFields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($GLOBALS['HAXCMS']->config->siteFields->advanced)) {
+        foreach ($GLOBALS['HAXCMS']->config->siteFields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // fields can live in the theme
+    if (isset($this->manifest->metadata->theme->siteFields) && file_exists(HAXCMS_ROOT . '/build/es6/node_modules/'. $this->manifest->metadata->theme->siteFields)) {
+      // @todo thik of how to make this less brittle
+      // not a fan of pegging loading this definition to our file system's publishing structure
+      $themeFields = json_decode(file_get_contents(HAXCMS_ROOT . '/build/es6/node_modules/'. $this->manifest->metadata->theme->siteFields));
+      if (isset($themeFields->configure)) {
+        foreach ($themeFields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($themeFields->advanced)) {
+        foreach ($themeFields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // fields can live in the site itself
+    // @todo this needs to give you data differently
+    if (isset($this->manifest->metadata->fields)) {
+      if (isset($this->manifest->metadata->fields->configure)) {
+        foreach ($this->manifest->metadata->fields->configure as $item) {
+          $fields['configure'][] = $item;
+        }
+      }
+      if (isset($this->manifest->metadata->fields->advanced)) {
+        foreach ($this->manifest->metadata->fields->advanced as $item) {
+          $fields['advanced'][] = $item;
+        }
+      }
+    }
+    // core values that live outside of the fields area
+    $values = array(
+      'title' => $this->manifest->title,
+      'author' => $this->manifest->author,
+      'license' => $this->manifest->license,
+      'description' => $this->manifest->description,
+      'icon' => $this->manifest->metadata->icon,
+      'theme' => $this->manifest->metadata->theme,
+      'domain' => $this->manifest->metadata->domain,
+      'image' => $this->manifest->metadata->image,
+      'cssVariable' => $this->manifest->metadata->cssVariable,
+    );
+    // now get the field data from the page
+    if (isset($this->manifest->metadata->fields)) {
+      foreach ($this->manifest->metadata->fields as $key => $item) {
+        if ($key == 'theme') {
+          $values[$key] = $item['key'];
+        }
+        else {
+          $values[$key] = $item;
+        }
+      }
+    }
+    // response as schema and values
+    $response = new stdClass();
+    $response->haxSchema = $fields;
+    $response->values = $values;
+    return $response;
+  }
+    /**
+   * License data for common open license
+   */
+  public function getLicenseData($type = 'select') {
+    $list = array(
+      "by" => array(
+        'name' => "Creative Commons: Attribution",
+        'link' => "https://creativecommons.org/licenses/by/4.0/",
+        'image' => "https://i.creativecommons.org/l/by/4.0/88x31.png"
+      ),
+      "by-sa" => array(
+        'name' => "Creative Commons: Attribution Share a like",
+        'link' => "https://creativecommons.org/licenses/by-sa/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
+      ),
+      "by-nd" => array(
+        'name' => "Creative Commons: Attribution No derivatives",
+        'link' => "https://creativecommons.org/licenses/by-nd/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nd/4.0/88x31.png"
+      ),
+      "by-nc" => array(
+        'name' => "Creative Commons: Attribution non-commercial",
+        'link' => "https://creativecommons.org/licenses/by-nc/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
+      ),
+      "by-nc-sa" => array(
+        'name' => "Creative Commons: Attribution non-commercial share a like",
+        'link' => "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"
+      ),
+      "by-nc-nd" => array(
+        'name' => "Creative Commons: Attribution Non-commercial No derivatives",
+        'link' => "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        'image' => "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png"
+      ),
+    );
+    $data = array();
+    if ($type == 'select') {
+      foreach ($list as $key => $item) {
+        $data[$key] = $name;
+      }
+    }
+    return $data;
+  }
+  /**
    * Update page in the manifest list of items. useful if updating some
    * data about an existing entry.
    * @return JSONOutlineSchemaItem or FALSE

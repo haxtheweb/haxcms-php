@@ -2,33 +2,38 @@
   "configure": [
     {
       "property": "title",
-      "description": "Title of the page",
+      "description": "Title of the site",
       "inputMethod": "textfield",
       "required": true,
       "icon": "editor:title"
     },
     {
-      "property": "location",
-      "description": "Location used in the URL",
+      "property": "domain",
+      "description": "Domain of this website",
       "inputMethod": "textfield",
-      "required": true,
-      "icon": "device:gps-fixed"
+      "required": false,
+      "icon": "icons:open-in-browser"
     },
     {
       "property": "description",
-      "description": "Description for the post",
+      "description": "Simple description of the site",
       "inputMethod": "textfield",
       "required": false,
       "icon": "editor:short-text"
-    }
-  ],
-  "advanced": [
+    },
     {
-      "property": "created",
-      "description": "Created timestamp",
-      "inputMethod": "textfield",
+      "property": "image",
+      "description": "Banner / image for the site",
+      "inputMethod": "haxupload",
+      "required": false,
+      "icon": "image:image"
+    },
+    {
+      "property": "color",
+      "description": "A base accent color for the site",
+      "inputMethod": "colorpicker",
       "required": true,
-      "icon": "device:access-time"
+      "icon": "editor:format-color-fill"
     },
     {
       "property": "theme",
@@ -37,6 +42,31 @@
       "required": false,
       "icon": "editor:format-paint",
       "options": {}
+    },
+    {
+      "property": "icon",
+      "description": "Icon to represent the site",
+      "inputMethod": "iconpicker",
+      "required": false,
+      "icon": "icons:send",
+      "options": {}
+    }
+  ],
+  "advanced": [
+    {
+      "property": "license",
+      "title": "License",
+      "description": "The source url for the element this is citing.",
+      "inputMethod": "select",
+      "options": {},
+      "icon": "link"
+    },
+    {
+      "property": "author",
+      "title": "Author",
+      "description": "who made this",
+      "inputMethod": "textfield",
+      "icon": "social:person"
     }
   ]
 }
