@@ -75,9 +75,18 @@
   <!-- End Single Page Apps for GitHub Pages -->
   <script>
     if ('serviceWorker' in navigator) {
+      // service worker scope. If you change the folder name this lives in you need to update this to match
+      // if you deploy this at a domain where it's the top level (so /) then make it / to match
+      // you'll have to manually update this value
+      var sitePath = '{{ basePath }}';
+      // discover this path downstream of the root of the domain
+      var swScope = window.location.pathname.substring(0, window.location.pathname.indexOf(sitePath)) + sitePath;
+      if (swScope != document.head.getElementsByTagName('base')[0].href) {
+        document.head.getElementsByTagName('base')[0].href = swScope;
+      }
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('service-worker.js', {
-          scope: '{{ basePath }}'
+          scope: swScope
         }).then(function (registration) {
           registration.onupdatefound = function () {
             // The updatefound event implies that registration.installing is set; see

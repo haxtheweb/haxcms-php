@@ -185,9 +185,11 @@ class JSONOutlineSchema {
   /**
    * Save data back to the file system location
    */
-  public function save() {
+  public function save($reorder = TRUE) {
     // on every save we ensure it's sorted in the right order
-    $this->items = $this->orderTree($this->items);
+    if ($reorder) {
+      $this->items = $this->orderTree($this->items);
+    }
     $schema = get_object_vars($this);
     $file = $schema['file'];
     unset($schema['file']);

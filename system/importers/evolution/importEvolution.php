@@ -82,7 +82,7 @@
   "lrndesign-timeline": "@lrnwebcomponents\/lrndesign-timeline\/lrndesign-timeline.js"
   }');
   // save the outline into the new site
-  $site->manifest->save();
+  $site->manifest->save(FALSE);
   // main site schema doesn't care about publishing settings
   unset($schema->metadata->publishing);
   // save it back to the system outline so we can review on the big board

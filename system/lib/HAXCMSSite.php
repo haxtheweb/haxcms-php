@@ -542,7 +542,7 @@ class HAXCMSSite {
     foreach ($this->manifest->items as $key => $item) {
       if ($item->id === $page->id) {
         $this->manifest->items[$key] = $page;
-        $this->manifest->save();
+        $this->manifest->save(FALSE);
         $this->updateStaticVersions();
         return $page;
       }
@@ -557,7 +557,7 @@ class HAXCMSSite {
     foreach ($this->manifest->items as $key => $item) {
       if ($item->id === $page->id) {
         unset($this->manifest->items[$key]);
-        $this->manifest->save();
+        $this->manifest->save(FALSE);
         $this->updateStaticVersions();
         return TRUE;
       }

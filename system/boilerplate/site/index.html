@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>My site</title>
   <script type="text/javascript">
-  document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
+    document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', 8)) + "/' />");
   </script>
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">

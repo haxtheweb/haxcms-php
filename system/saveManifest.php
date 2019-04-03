@@ -68,7 +68,7 @@
       }
     }
     $site->manifest->metadata->updated = time();
-    $site->manifest->save();
+    $site->manifest->save(FALSE);
     // now work on HAXCMS layer to match the saved / sanitized data
     $item = $site->manifest;
     // remove items list as we only need the item itself not the nesting
