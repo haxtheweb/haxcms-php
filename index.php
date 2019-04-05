@@ -1,10 +1,10 @@
 <?php
-  if (!is_dir('_config') || !is_dir('_sites')) {
+if (!is_dir('_config') || !is_dir('_sites')) {
     header("Location: install.php");
-  }
-  include_once 'system/lib/bootstrapHAX.php';
-  include_once $HAXCMS->configDirectory . '/config.php';
-  $appSettings = $HAXCMS->appJWTConnectionSettings();
+}
+include_once 'system/lib/bootstrapHAX.php';
+include_once $HAXCMS->configDirectory . '/config.php';
+$appSettings = $HAXCMS->appJWTConnectionSettings();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -83,8 +83,10 @@
     </style>
   </head>
   <body>
-    <script>window.appSettings = <?php print json_encode($appSettings); ?>; </script>
-    <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken();?>"}' base-path="<?php print $HAXCMS->basePath;?>" data-source="<?php print $HAXCMS->sitesJSON;?>"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
+    <script>window.appSettings = <?php print json_encode(
+        $appSettings
+    ); ?>; </script>
+    <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
     <noscript>Please enable JavaScript to view this website.</noscript>
     <script src="babel/babel-top.js"></script>
     <script>if (!window.customElements) { document.write("<!--") }</script>

@@ -1,7 +1,7 @@
 name: haxcms
 recipe: lemp
 config:
-  php: '7.2'
+  php: "7.2"
   webroot: .
 services:
   node:

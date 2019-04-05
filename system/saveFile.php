@@ -1,8 +1,8 @@
 <?php
-  include_once '../system/lib/bootstrapHAX.php';
-  include_once $HAXCMS->configDirectory . '/config.php';
-  // test if this is a valid user login
-  if ($HAXCMS->validateJWT() && isset($_FILES['file-upload'])) {
+include_once '../system/lib/bootstrapHAX.php';
+include_once $HAXCMS->configDirectory . '/config.php';
+// test if this is a valid user login
+if ($HAXCMS->validateJWT() && isset($_FILES['file-upload'])) {
     header('Content-Type: application/json');
     $site = $HAXCMS->loadSite($HAXCMS->safeGet['siteName']);
     // update the page's content, using manifest to find it
@@ -13,6 +13,6 @@
     $file = new HAXCMSFile();
     print $file->save($upload, $site, $page);
     $site->gitCommit('File added: ' . $upload['name']);
-    exit;
-  }
+    exit();
+}
 ?>
