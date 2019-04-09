@@ -1,1 +1,1 @@
-import"./dist/build-full.js";
+import"./dist/build-cms.js";
