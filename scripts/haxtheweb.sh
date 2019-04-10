@@ -46,13 +46,6 @@ fi
 if [ ! -d "_config/node_modules" ]; then
   mkdir _config/node_modules
 fi
-# migrate if legacy
-if [ -f "_config/sites.json" ]; then
-  mv "_config/sites.json" "_sites/sites.json"
-fi
-if [ ! -f "_sites/sites.json" ]; then
-  cp system/boilerplate/systemsetup/sites.json _sites/sites.json
-fi
 # work on config boilerplate
 if [ ! -f "_config/config.json" ]; then
   cp system/boilerplate/systemsetup/config.json _config/config.json
@@ -71,7 +64,6 @@ chmod 775 _config
 chmod 777 _config/tmp
 chmod 777 _config/config.json
 chmod 777 _sites
-chmod 777 _sites/sites.json
 chmod 775 _published
 
 # place this in VC just so it COULD be tracked by the user

@@ -66,10 +66,7 @@ if (is_dir('_sites') && is_dir('_config')) {
     if (!is_dir('_sites')) {
         // make sites directory
         mkdir('_sites');
-        // make a sites.json boilerplate
-        copy('system/boilerplate/systemsetup/sites.json', '_sites/sites.json');
         chmod("_sites", 0777);
-        chmod("_sites/sites.json", 0777);
         // attempt to set the user / group on sites
         // these probaly won't work
         @chown('_sites', get_current_user());

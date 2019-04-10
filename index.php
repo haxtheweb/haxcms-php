@@ -50,7 +50,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
 
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-    <link rel="prefetch" href="_sites/sites.json">
     <style>
       body {
         margin: 0;

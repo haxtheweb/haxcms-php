@@ -121,9 +121,6 @@ if ($HAXCMS->validateJWT()) {
         $site->manifest->save(false);
         // main site schema doesn't care about publishing settings
         unset($schema->metadata->publishing);
-        // save it back to the system outline so we can review on the big board
-        $HAXCMS->outlineSchema->addItem($schema);
-        $HAXCMS->outlineSchema->save();
         $git = new Git();
         $repo = $git->open(
             $site->directory . '/' . $site->manifest->metadata->siteName

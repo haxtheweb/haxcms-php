@@ -77,6 +77,8 @@ class HAXCMS
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
         }
+        // end point to get the sites data
+        $this->sitesJSON = '/system/listSites.php';
         if (is_dir(HAXCMS_ROOT . '/_published')) {
             $this->publishedDirectory = '_published';
         }
@@ -90,23 +92,6 @@ class HAXCMS
                 $this->salt = file_get_contents(
                     $this->configDirectory . '/SALT.txt'
                 );
-            }
-            if (
-                file_exists(
-                    HAXCMS_ROOT . '/' . $this->sitesDirectory . '/sites.json'
-                )
-            ) {
-                $this->sitesJSON = $this->sitesDirectory . '/sites.json';
-                if (
-                    !$this->outlineSchema->load(
-                        HAXCMS_ROOT .
-                            '/' .
-                            $this->sitesDirectory .
-                            '/sites.json'
-                    )
-                ) {
-                    print $this->sitesDirectory . '/sites.json missing';
-                }
             }
             // check for a config json file to populate all configurable settings
             if (
