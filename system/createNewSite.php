@@ -82,6 +82,7 @@ if ($HAXCMS->validateJWT()) {
         // @todo support injecting this with out things via PHP
         $site->manifest->metadata->dynamicElementLoader = json_decode('{
         "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
+        "code-sample": "@lrnwebcomponents/code-sample/code-sample.js",
         "citation-element": "@lrnwebcomponents/citation-element/citation-element.js",
         "hero-banner": "@lrnwebcomponents/hero-banner/hero-banner.js",
         "image-compare-slider": "@lrnwebcomponents/image-compare-slider/image-compare-slider.js",
