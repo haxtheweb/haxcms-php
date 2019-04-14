@@ -361,7 +361,7 @@ if ($HAXCMS->validateJWT()) {
             }
             if (!is_link($siteDirectoryPath . '/node_modules')) {
                 @symlink(
-                    HAXCMS_ROOT . '/node_modules',
+                    '../../node_modules',
                     $siteDirectoryPath . '/node_modules'
                 );
             }
