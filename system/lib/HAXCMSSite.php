@@ -120,10 +120,13 @@ class HAXCMSSite
             $this->directory . '/' . $this->manifest->metadata->siteName;
         $old = str_replace('./', '', str_replace('../', '', $old));
         $new = str_replace('./', '', str_replace('../', '', $new));
-        @rename(
+        global $fileSystem;
+        // ensure the path to the new folder is valid
+        $fileSystem->mirror(
             str_replace('/index.html', '', $siteDirectory . '/' . $old),
             str_replace('/index.html', '', $siteDirectory . '/' . $new)
         );
+        $fileSystem->remove($siteDirectory . '/' . $old);
     }
     /**
      * Basic wrapper to commit current changes to version control of the site
