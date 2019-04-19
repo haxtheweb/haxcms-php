@@ -88,9 +88,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
     <noscript>Please enable JavaScript to view this website.</noscript>
     <script src="babel/babel-top.js"></script>
-    <script>if (!window.customElements) { document.write("<!--") }</script>
-    <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js"></script>
-    <!--! do not remove -->
     <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
     <script async src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
     <script src="babel/babel-bottom.js"></script>
@@ -98,7 +95,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <script nomodule>window.nomodule = true;</script>
     <script>
       if (window.nomodule || !supportsImports()) {
-        define(["build/es5-amd/dist/build-home.js"], function () { "use strict" });
+        define(["build/es6-amd/dist/build-home.js"], function () { "use strict" });
         document.write("<!--")
       }
     </script>
