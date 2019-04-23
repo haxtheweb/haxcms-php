@@ -6,6 +6,8 @@ _published
 /_config
 !build/es5-amd/node_modules
 !build/es5-amd/node_modules/**
+!build/es6-amd/node_modules
+!build/es6-amd/node_modules/**
 !build/es6/node_modules
 !build/es6/node_modules/**
 yarn.lock
