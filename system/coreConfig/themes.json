@@ -4,6 +4,11 @@
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
     "name": "Learn"
   },
+  "haxor-slevin": {
+    "element": "haxor-slevin",
+    "path": "@lrnwebcomponents/haxor-slevin/haxor-slevin.js",
+    "name": "Coder blog"
+  },
   "outline-player": {
     "element": "outline-player",
     "path": "@lrnwebcomponents/outline-player/outline-player.js",
