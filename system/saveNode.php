@@ -39,6 +39,12 @@ if ($HAXCMS->validateJWT()) {
                     '',
                     substr($clean, 0, 200)
                 );
+                $readtime = round(str_word_count($clean) / 200);
+                // account for uber small posts
+                if ($readtime == 0) {
+                  $readtime = 1;
+                }
+                $page->metadata->readtime = $readtime;
                 // update the item in the metadata to indicate when content was last set
                 $site->updateNode($page);
                 $site->gitCommit(
