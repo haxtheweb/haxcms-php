@@ -4,7 +4,13 @@
   <meta charset="utf-8">
   <title>My site</title>
   <script type="text/javascript">
-    document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', 8)) + "/' />");
+    // attempt to correctly set the base without knowing where we're installed fully...
+    if (document.location.pathname.indexOf('/_sites/') != -1) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/_sites/') + 8)) + "/' />");
+    }
+    else if (document.location.pathname.indexOf('/sites/') != -1) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
+    }
   </script>
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
