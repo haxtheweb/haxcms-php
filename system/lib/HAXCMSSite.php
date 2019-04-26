@@ -291,6 +291,7 @@ class HAXCMSSite
           "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
           "title" => $item->title,
           "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
+          "description" => $item->description,
           "text" => $this->cleanSearchData(file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
         );
       }
