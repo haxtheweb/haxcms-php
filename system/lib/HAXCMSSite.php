@@ -274,6 +274,44 @@ class HAXCMSSite
                 $this->treeToNodes($this->manifest->items) .
                 '</body></html>'
         );
+        // now generate the search index
+        @file_put_contents(
+            $siteDirectory . 'lunrSearchIndex.json',
+                json_encode($this->lunrSearchIndex($this->manifest->items))
+        );
+    }
+    /**
+     * Create Lunr.js style search index
+     */
+    private function lunrSearchIndex($items) {
+      $data = array();
+      foreach ($items as $item) {
+        // may seem silly but IDs in lunr have a size limit
+        $data[] = array(
+          "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
+          "title" => $item->title,
+          "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
+          "text" => $this->cleanSearchData(file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
+        );
+      }
+      return $data;
+    }
+    /**
+     * Clean up data from a file and make it easy for us to index on the front end
+     */
+    private function cleanSearchData($text) {
+      // clean up initial, small, trim, replace end lines, utf8 no tags
+      $text = trim(strtolower(str_replace("\n", ' ', utf8_encode(strip_tags($text)))));
+      // all weird chars
+      $text = preg_replace('/[^a-z0-9\']/', ' ', $text);
+      $text = str_replace("'", '', $text);
+      // all words 1 to 4 letters long
+      $text = preg_replace('~\b[a-z]{1,4}\b\s*~', '', $text);
+      // all excess white space
+      $text = preg_replace('/\s+/', ' ', $text);
+      // crush string to array and back to make an unique index
+      $text = implode(' ', array_unique(explode(' ', $text)));
+      return $text;
     }
     /**
      * Build a JOS into a tree of links recursively
