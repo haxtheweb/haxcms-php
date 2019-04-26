@@ -59,6 +59,11 @@ if (is_dir('_sites') && is_dir('_config')) {
         }
         $pass = implode($pass);
         $configFile = str_replace('jimmerson', $pass, $configFile);
+        // work on base path relative to where this was just launched from
+        // super sneaky and locks it to where it's currently installed but required
+        // or we don't know where to look for anything
+        $basePath = str_replace('install.php', '', $_SERVER['SCRIPT_NAME']); 
+        $configFile = str_replace("->basePath = '/'", "->basePath = '$basePath'", $configFile);
         file_put_contents('_config/config.php', $configFile);
         $git = new Git();
         $git->create('_config');
