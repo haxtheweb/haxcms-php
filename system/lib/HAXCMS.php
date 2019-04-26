@@ -533,7 +533,10 @@ class HAXCMS
         // see if we can get a remote setup on the fly
         if (!isset($git->url) && isset($this->config->publishing->git)) {
             $git = $this->config->publishing->git;
-            $git->url .= '/' . $name . '.git';
+            // getting really into fallback mode here
+            if (isset($git->url)) {
+                $git->url .= '/' . $name . '.git';
+            }
         }
 
         if (
