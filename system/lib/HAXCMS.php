@@ -78,7 +78,7 @@ class HAXCMS
             $this->sitesDirectory = '_sites';
         }
         // end point to get the sites data
-        $this->sitesJSON = '/system/listSites.php';
+        $this->sitesJSON = 'system/listSites.php';
         if (is_dir(HAXCMS_ROOT . '/_published')) {
             $this->publishedDirectory = '_published';
         }
