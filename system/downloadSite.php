@@ -6,7 +6,12 @@ if ($HAXCMS->validateJWT()) {
     // load site
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
-    $dir = HAXCMS_ROOT . '/' . $HAXCMS->publishedDirectory . '/' . $site->name;
+    if (is_dir(HAXCMS_ROOT . '/' . $HAXCMS->publishedDirectory . '/' . $site->name)) {
+      $dir = HAXCMS_ROOT . '/' . $HAXCMS->publishedDirectory . '/' . $site->name;
+    }
+    else {
+      $dir = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory . '/' . $site->name;
+    }
     // form a basic name
     $zip_file =
         HAXCMS_ROOT .
@@ -43,12 +48,12 @@ if ($HAXCMS->validateJWT()) {
     header('Content-Type: application/json');
     header('Status: 200');
     $return = array(
-        'link' =>
-            $HAXCMS->basePath .
-            $HAXCMS->publishedDirectory .
-            '/' .
-            basename($zip_file),
-        'name' => basename($zip_file)
+      'link' =>
+        $HAXCMS->basePath .
+        $HAXCMS->publishedDirectory .
+        '/' .
+        basename($zip_file),
+      'name' => basename($zip_file)
     );
     print json_encode($return);
     exit();
