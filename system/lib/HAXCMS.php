@@ -32,6 +32,7 @@ class HAXCMS
     public $superUser;
     public $user;
     public $sitesDirectory;
+    public $archivedDirectory;
     public $publishedDirectory;
     public $sites;
     public $data;
@@ -42,6 +43,9 @@ class HAXCMS
     public $basePath;
     public $safePost;
     public $safeGet;
+    public $safeInputStream;
+    public $sessionJwt;
+    public $sessionToken;
     /**
      * Establish defaults for HAXCMS
      */
@@ -51,7 +55,13 @@ class HAXCMS
         $_POST = (array) json_decode(file_get_contents('php://input'));
         // handle sanitization on request data, drop security things
         $this->safePost = filter_var_array($_POST, FILTER_SANITIZE_STRING);
+        if (isset($this->safePost['jwt'])) {
+          $this->sessionJwt = $this->safePost['jwt'];
+        }
         unset($this->safePost['jwt']);
+        if (isset($this->safePost['token'])) {
+          $this->sessionToken = $this->safePost['token'];
+        }
         unset($this->safePost['token']);
         $this->safeGet = filter_var_array($_GET, FILTER_SANITIZE_STRING);
         // Get HTTP/HTTPS (the possible values for this vary from server to server)
@@ -73,12 +83,16 @@ class HAXCMS
         $this->user->name = null;
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
+        // end point to get the sites data
+        $this->sitesJSON = 'system/listSites.php';
         // set default sites directory to look in if there
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
         }
-        // end point to get the sites data
-        $this->sitesJSON = 'system/listSites.php';
+        // set default archived directory to look in if there
+        if (is_dir(HAXCMS_ROOT . '/_archived')) {
+            $this->archivedDirectory = '_archived';
+        }
         if (is_dir(HAXCMS_ROOT . '/_published')) {
             $this->publishedDirectory = '_published';
         }
@@ -559,12 +573,12 @@ class HAXCMS
     {
         // default token is POST
         if ($token == null && isset($_POST['token'])) {
-            $token = $_POST['token'];
+          $token = $_POST['token'];
         }
         if ($token != null) {
-            if ($token == $this->getRequestToken($value)) {
-                return true;
-            }
+          if ($token == $this->getRequestToken($value)) {
+            return true;
+          }
         }
         return false;
     }
@@ -597,11 +611,11 @@ class HAXCMS
     /**
      * test the active user login based on session.
      */
-    public function testLogin($adminFallback = false)
+    public function testLogin($u, $p, $adminFallback = false)
     {
         if (
-            $this->user->name === $_SERVER['PHP_AUTH_USER'] &&
-            $this->user->password === $_SERVER['PHP_AUTH_PW']
+            $this->user->name === $u &&
+            $this->user->password === $p
         ) {
             return true;
         }
@@ -610,8 +624,8 @@ class HAXCMS
         // the fallback being allowable is useful for managed environments
         elseif (
             $adminFallback &&
-            $this->superUser->name === $_SERVER['PHP_AUTH_USER'] &&
-            $this->superUser->password === $_SERVER['PHP_AUTH_PW']
+            $this->superUser->name === $u &&
+            $this->superUser->password === $p
         ) {
             return true;
         }
@@ -631,8 +645,20 @@ class HAXCMS
     {
         $token = array();
         $token['id'] = $this->getRequestToken('user');
-        $token['user'] = $_SERVER['PHP_AUTH_USER'];
+        $token['user'] = $this->safePost['u'];
         return JWT::encode($token, $this->privateKey . $this->salt);
+    }
+    /**
+     * Decode the JWT to ensure accuracy, return false if an error happens
+     */
+    private function decodeJWT($key) {
+      // if it can decode, it'll be an object, otherwise it's false
+      try {
+        return JWT::decode($key, $this->privateKey . $this->salt);
+      }
+      catch (Exception $e) {
+        return FALSE;
+      }
     }
     /**
      * Get Front end JWT based connection settings
@@ -657,10 +683,11 @@ class HAXCMS
         $settings->getFieldsToken = $this->getRequestToken('fields');
         $settings->createNodePath = $this->basePath . 'system/createNode.php';
         $settings->deleteNodePath = $this->basePath . 'system/deleteNode.php';
-        $settings->createNewSitePath =
-            $this->basePath . 'system/createNewSite.php';
-        $settings->downloadSitePath =
-            $this->basePath . 'system/downloadSite.php';
+        $settings->createNewSitePath = $this->basePath . 'system/createNewSite.php';
+        $settings->downloadSitePath = $this->basePath . 'system/downloadSite.php';
+        $settings->archiveSitePath = $this->basePath . 'system/archiveSite.php';
+        $settings->cloneSitePath = $this->basePath . 'system/cloneSite.php';
+        $settings->deleteSitePath = $this->basePath . 'system/deleteSite.php';
         $settings->appStore = $this->appStoreConnection();
         // allow for overrides in config.php
         if (isset($GLOBALS['config']['connection'])) {
@@ -674,30 +701,44 @@ class HAXCMS
         return $settings;
     }
     /**
+     * Test and ensure the name being returned is a location currently unused
+     */
+    public function getUniqueName($siteName)
+    {
+        $location = $siteName;
+        $loop = 0;
+        $original = $location;
+        while (
+            file_exists(HAXCMS_ROOT . '/' . $this->sitesDirectory . '/' . $location)
+        ) {
+            $loop++;
+            $location = $original . '-' . $loop;
+        }
+        return $location;
+    }
+    /**
      * Validate a JTW during POST
      */
-    public function validateJWT($endOnInvalid = true)
+    public function validateJWT($endOnInvalid = TRUE)
     {
-        if (isset($_POST['jwt']) && $_POST['jwt'] != null) {
-            $post = JWT::decode($_POST['jwt'], $this->privateKey . $this->salt);
-            if ($post->id == $this->getRequestToken('user')) {
-                return true;
-            }
-        }
-        // fallback is GET requests
-        if (isset($_GET['jwt']) && $_GET['jwt'] != null) {
-            $get = JWT::decode($_GET['jwt'], $this->privateKey . $this->salt);
-            if ($get->id == $this->getRequestToken('user')) {
-                return true;
-            }
-        }
-        // kick back the end if its invalid
-        if ($endOnInvalid) {
-            print 'Invalid token';
-            header('Status: 403');
-            exit();
-        }
-        return false;
+      $post = FALSE;
+      if (isset($this->sessionJwt) && $this->sessionJwt != null && $post = $this->decodeJWT($this->sessionJwt)) {
+      }
+      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $post = $this->decodeJWT($_POST['jwt'])) {
+      }
+      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $post = $this->decodeJWT($_GET['jwt'])) {
+      }
+      // if we were able to find a valid JWT in that mess, try and validate it
+      if ($post != FALSE && isset($post->id) && $post->id == $this->getRequestToken('user')) {
+        return TRUE;
+      }
+      // kick back the end if its invalid
+      if ($endOnInvalid) {
+        print 'Invalid token';
+        header('Status: 403');
+        exit();
+      }
+      return FALSE;
     }
 
     /**
@@ -715,5 +756,22 @@ class HAXCMS
             '/' => '_',
             '=' => ''
         ));
+    }
+}
+class DirFilter extends RecursiveFilterIterator
+{
+    protected $exclude;
+    public function __construct($iterator, array $exclude)
+    {
+        parent::__construct($iterator);
+        $this->exclude = $exclude;
+    }
+    public function accept()
+    {
+        return !($this->isDir() && in_array($this->getFilename(), $this->exclude));
+    }
+    public function getChildren()
+    {
+        return new DirFilter($this->getInnerIterator()->getChildren(), $this->exclude);
     }
 }
