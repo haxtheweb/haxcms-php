@@ -3,6 +3,7 @@
 node_modules
 _sites
 _published
+_archived
 /_config
 !build/es5-amd/node_modules
 !build/es5-amd/node_modules/**
