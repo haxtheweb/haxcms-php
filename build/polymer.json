@@ -33,7 +33,11 @@
     "node_modules/monaco-editor/min-maps/**",
     "node_modules/lunr/lunr.js",
     "!node_modules/@vaadin/*/test/*",
+    "node_modules/pdfjs-dist/build/pdf.js",
+    "node_modules/pdfjs-dist/build/pdf.worker.js",
     "!node_modules/@lrnwebcomponents/*/*.story.js",
+    "node_modules/msr/MediaStreamRecorder.min.js",
+    "node_modules/@lrnwebcomponents/chartist-render/lib/chartist/dist/chartist.min.js",
     "!node_modules/@webcomponents/webcomponentsjs/gulpfile.js"
   ],
   "builds": [
