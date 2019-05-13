@@ -1,6 +1,6 @@
 <?php
 // check for core directories existing, redirect if we do
-if (is_dir('_sites') && is_dir('_config')) {
+if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_archived')) {
     header("Location: index.php");
     exit();
 } else {
@@ -87,6 +87,15 @@ if (is_dir('_sites') && is_dir('_config')) {
         // these probaly won't work
         @chown('_published', get_current_user());
         @chgrp('_published', get_current_user());
+    }
+    if (!is_dir('_archived')) {
+        // make published directory so you can have a copy of these files
+        mkdir('_archived');
+        chmod("_archived", 0775);
+        // attempt to set the user / group on sites
+        // these probaly won't work
+        @chown('_archived', get_current_user());
+        @chgrp('_archived', get_current_user());
     }
 } ?>
 <html>

@@ -37,6 +37,9 @@ fi
 if [ ! -d "_published" ]; then
   mkdir _published
 fi
+if [ ! -d "_archived" ]; then
+  mkdir _archived
+fi
 if [ ! -d "_config/.ssh" ]; then
   mkdir _config/.ssh
 fi
@@ -65,6 +68,7 @@ chmod 777 _config/tmp
 chmod 777 _config/config.json
 chmod 777 _sites
 chmod 775 _published
+chmod 775 _archived
 
 # place this in VC just so it COULD be tracked by the user
 cd _sites
@@ -108,10 +112,11 @@ fi
 # account for www user messaging, which is not required
 if [ -z ${wwwuser} ]; then
   # I've got a bad feeling about this
-  haxwarn "did nothing, make sure your web server user can write to _sites and _published"
+  haxwarn "did nothing, make sure your web server user can write to _sites, _published, _archived"
 else
   chown ${wwwuser}:${wwwgrp} _sites
   chown ${wwwuser}:${wwwgrp} _published
+  chown ${wwwuser}:${wwwgrp} _archived
 fi
 
 # you get candy if you reference this
