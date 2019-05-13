@@ -211,6 +211,12 @@ class HAXCMSSite
         return $page;
     }
     /**
+     * Save the site, though this basically is just a mapping to the manifest site.json saving
+     */
+    public function save() {
+      $this->manifest->save();
+    }
+    /**
      * Update RSS / Atom feeds which are physical files
      */
     public function updateStaticVersions()
