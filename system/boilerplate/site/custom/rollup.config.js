@@ -2,7 +2,7 @@
 const { terser } = require('rollup-plugin-terser');
 const path = require('path');
 const autoExternal = require('rollup-plugin-auto-external');
-const rewriteImports = require('rollup-rewrite-imports');
+const rewriteImports = require('rollup-plugin-rewrite-imports');
 const production = true;
 module.exports = function() {
   return {
