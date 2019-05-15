@@ -113,14 +113,16 @@
         if (window.customElements) { // certain FF / Safari versions
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js");
           defs.push(cdn + "build/es6-amd/dist/build.js");
+          defs.push("./custom/build/custom.es6-amd.js");
         }
-        else {
+        else { // Edge prior to evergreen
           document.getElementById('haxcmsoutdatedfallbacksuperold').style.display = 'none';
           document.getElementById('site').style.display = 'none';
           defs.push(cdn + "build/es6-amd/node_modules/promise-polyfill/dist/polyfill.min.js");
           defs.push(cdn + "build/es6-amd/node_modules/fetch-ie8/fetch.js");
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js");
           defs.push(cdn + "build/es6-amd/dist/build-legacy.js");
+          defs.push("./custom/build/custom.es6-amd.js");
         }
         define(defs, function () { "use strict" });
       }
@@ -134,7 +136,10 @@
     def.parentNode.insertBefore(link, def);
   </script>
   <script>if(old)document.write('<!--');</script>
-  <script type="module" src="build/es6/dist/build.js"></script>
+  <script type="module">
+    import "./build/es6/dist/build.js";
+    import("./custom/build/custom.es6.js");
+  </script>
   <script async src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
   //<!--! do not remove -->
   </script>
