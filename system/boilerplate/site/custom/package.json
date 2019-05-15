@@ -13,7 +13,6 @@
     "watch": "rollup --watch -c rollup.config.js"
   },
   "dependencies": {
-    "@lrnwebcomponents/haxcms-elements": "^2.0.10"
   },
   "devDependencies": {
     "@babel/plugin-transform-modules-amd": "^7.2.0",
