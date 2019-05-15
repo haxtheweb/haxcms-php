@@ -42,6 +42,7 @@ import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-slide-theme.js"
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-minimalist-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-custom-theme.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-user-theme.js";
 import "@lrnwebcomponents/outline-player/outline-player.js";
 import "@lrnwebcomponents/simple-blog/simple-blog.js";
 import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
