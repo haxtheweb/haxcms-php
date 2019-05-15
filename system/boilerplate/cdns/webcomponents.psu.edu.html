@@ -215,6 +215,7 @@
         if (window.customElements) { // certain FF / Safari versions
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js");
           defs.push(cdn + "build/es6-amd/dist/build.js");
+          defs.push("./custom/build/custom.es6-amd.js");
         }
         else {
           document.getElementById('haxcmsoutdatedfallbacksuperold').style.display = 'none';
@@ -223,6 +224,7 @@
           defs.push(cdn + "build/es6-amd/node_modules/fetch-ie8/fetch.js");
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js");
           defs.push(cdn + "build/es6-amd/dist/build-legacy.js");
+          defs.push("./custom/build/custom.es6-amd.js");
         }
         define(defs, function () { "use strict" });
       }
@@ -234,9 +236,17 @@
     link.type = 'text/css';
     var def = document.getElementsByTagName('link')[0];
     def.parentNode.insertBefore(link, def);
+    var link2 = document.createElement('link');
+    link2.rel = 'stylesheet';
+    link2.href = './theme/theme.css';
+    link2.type = 'text/css';
+    def.parentNode.insertBefore(link2, def);
   </script>
   <script>if(old)document.write('<!--');</script>
-  <script type="module" src="https://webcomponents.psu.edu/cdn/build/es6/dist/build.js"></script>
+  <script type="module">
+    import "https://webcomponents.psu.edu/cdn/build/es6/dist/build.js";
+    import("./custom/build/custom.es6.js");
+  </script>
   <script async src="https://webcomponents.psu.edu/cdn/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
   //<!--! do not remove -->
   </script>
