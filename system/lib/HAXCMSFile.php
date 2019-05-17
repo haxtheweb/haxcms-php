@@ -1,6 +1,6 @@
 <?php
 include_once dirname(__FILE__) . "/../../vendor/autoload.php";
-use Gumlet\ImageResize;
+use \Gumlet\ImageResize;
 
 // a site object
 class HAXCMSFIle
