@@ -46,7 +46,8 @@ class HAXCMS
     public $safeInputStream;
     public $sessionJwt;
     public $sessionToken;
-    private static $events;
+    public $siteListingAttr;
+    private $events;
     /**
      * Establish defaults for HAXCMS
      */
@@ -73,6 +74,9 @@ class HAXCMS
                 ? 'https'
                 : 'http';
         $this->domain = $_SERVER['HTTP_HOST'];
+        $this->siteListing = new stdClass();
+        $this->siteListing->attr = '';
+        $this->siteListing->slot = '';
         // auto generate base path
         $this->basePath = '/';
         $this->config = new stdClass();
@@ -86,16 +90,27 @@ class HAXCMS
         $this->outlineSchema = new JSONOutlineSchema();
         // end point to get the sites data
         $this->sitesJSON = 'system/listSites.php';
-        // set default sites directory to look in if there
+        // sites directory
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
         }
-        // set default archived directory to look in if there
+        // archived directory
         if (is_dir(HAXCMS_ROOT . '/_archived')) {
             $this->archivedDirectory = '_archived';
         }
+        // published directory
         if (is_dir(HAXCMS_ROOT . '/_published')) {
             $this->publishedDirectory = '_published';
+        }
+        /// support the nicer looking symlink paths if they exist
+        if (is_link(HAXCMS_ROOT . '/sites')) {
+            $this->sitesDirectory = 'sites';
+        }
+        if (is_link(HAXCMS_ROOT . '/archived')) {
+            $this->archivedDirectory = 'archived';
+        }
+        if (is_link(HAXCMS_ROOT . '/published')) {
+            $this->publishedDirectory = 'published';
         }
         // set default config directory to look in if there
         if (is_dir(HAXCMS_ROOT . '/_config')) {
@@ -159,6 +174,7 @@ class HAXCMS
                     $this->config->importers->{$name} = $data;
                 }
             }
+            $this->dispatchEvent('haxcms-init', $this);
         }
     }
     /**
@@ -591,7 +607,7 @@ class HAXCMS
      */
     public function cleanTitle($value, $stripPage = true)
     {
-        $cleanTitle = $value;
+        $cleanTitle = trim($value);
         // strips off the identifies for a page on the file system
         if ($stripPage) {
             $cleanTitle = str_replace(
@@ -684,7 +700,9 @@ class HAXCMS
     {
         $token = array();
         $token['id'] = $this->getRequestToken('user');
-        $token['user'] = $this->safePost['u'];
+        if (is_array($this->safePost) && isset($this->safePost['u'])) {
+            $token['user'] = $this->safePost['u'];
+        }
         $this->dispatchEvent('haxcms-jwt-get', $token);
         return JWT::encode($token, $this->privateKey . $this->salt);
     }
@@ -731,10 +749,10 @@ class HAXCMS
         $settings->appStore = $this->appStoreConnection();
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
-            foreach ($settings as $key => $value) {
+            foreach ($this->config->appJWTConnectionSettings as $key => $value) {
                 if (isset($this->config->appJWTConnectionSettings->{$key})) {
                     // defer to the config.php setting
-                    $settings->{$key} = $this->config->appJWTConnectionSettings->{$key};
+                    $settings->{$key} = $value;
                 }
             }
         }
@@ -826,7 +844,7 @@ class HAXCMS
         {
             foreach($this->events[$event] as $function)
             {
-                $value = call_user_func($function, $value);
+                call_user_func_array($function, array(&$value));
             }
             return $value;
         }
