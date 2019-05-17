@@ -85,7 +85,10 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <script>window.appSettings = <?php print json_encode(
         $appSettings
     ); ?>; </script>
-    <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>"><div>HAXcms</div><div>loading</div></haxcms-site-listing>
+    <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
+      <div>HAXcms</div><div>loading</div>
+      <?php print $HAXCMS->siteListing->slot; ?>
+    </haxcms-site-listing>
     <noscript>Please enable JavaScript to view this website.</noscript>
     <script src="babel/babel-top.js"></script>
     <script src="build/es6/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
