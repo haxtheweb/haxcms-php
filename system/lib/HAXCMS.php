@@ -46,6 +46,7 @@ class HAXCMS
     public $safeInputStream;
     public $sessionJwt;
     public $sessionToken;
+    private static $events;
     /**
      * Establish defaults for HAXCMS
      */
@@ -614,11 +615,11 @@ class HAXCMS
     /**
      * test the active user login based on session.
      */
-    public function testLogin($u, $p, $adminFallback = false)
+    public function testLogin($name, $pass, $adminFallback = false)
     {
         if (
-            $this->user->name === $u &&
-            $this->user->password === $p
+            $this->user->name === $name &&
+            $this->user->password === $pass
         ) {
             return true;
         }
@@ -627,10 +628,45 @@ class HAXCMS
         // the fallback being allowable is useful for managed environments
         elseif (
             $adminFallback &&
-            $this->superUser->name === $u &&
-            $this->superUser->password === $p
+            $this->superUser->name === $name &&
+            $this->superUser->password === $pass
         ) {
             return true;
+        }
+        else {
+            $usr = new stdClass();
+            $usr->name = $name;
+            $usr->password = $pass;
+            $usr->adminFallback = $adminFallback;
+            $usr->grantAccess = false;
+            // fire custom event for things to respond to as needed
+            $this->dispatchEvent('haxcms-login-test', $usr);
+            return $usr->grantAccess;
+        }
+        return false;
+    }
+    /**
+     * Validate that a user name that came across in a JWT decode is legit
+     */
+    private function validateUser($name)
+    {
+        if (
+            $this->user->name === $name
+        ) {
+            return true;
+        }
+        elseif (
+            $this->superUser->name === $name
+        ) {
+            return true;
+        }
+        else {
+            $usr = new stdClass();
+            $usr->name = $name;
+            $usr->grantAccess = false;
+            // fire custom event for things to respond to as needed
+            $this->dispatchEvent('haxcms-validate-user', $usr);
+            return $usr->grantAccess;
         }
         return false;
     }
@@ -649,6 +685,7 @@ class HAXCMS
         $token = array();
         $token['id'] = $this->getRequestToken('user');
         $token['user'] = $this->safePost['u'];
+        $this->dispatchEvent('haxcms-jwt-get', $token);
         return JWT::encode($token, $this->privateKey . $this->salt);
     }
     /**
@@ -732,7 +769,11 @@ class HAXCMS
       else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $post = $this->decodeJWT($_GET['jwt'])) {
       }
       // if we were able to find a valid JWT in that mess, try and validate it
-      if ($post != FALSE && isset($post->id) && $post->id == $this->getRequestToken('user')) {
+      if (
+          $post != FALSE &&
+          isset($post->id) &&
+          $post->id == $this->getRequestToken('user') &&
+          $this->validateUser($post->user)) {
         return TRUE;
       }
       // kick back the end if its invalid
@@ -759,6 +800,35 @@ class HAXCMS
             '/' => '_',
             '=' => ''
         ));
+    }
+    /**
+     * Add an event listener
+     */
+    public function addEventListener($event, $callback = NULL) {
+        // Adding or removing a callback?
+        if ($callback !== NULL) {
+            if ($callback) {
+                $this->events[$event][] = $callback;
+            }
+            else {
+                unset($this->events[$event]);
+            }
+        }
+    }
+    /**
+     * Tell an event to fire so that things can respond to it.
+     * This will pass value around by reference and each event invoking
+     * has a chance to modify the value in place
+     */
+    public function dispatchEvent($event, &$value = NULL) {
+        if (isset($this->events[$event])) // Fire a callback
+        {
+            foreach($this->events[$event] as $function)
+            {
+                $value = call_user_func($function, $value);
+            }
+            return $value;
+        }
     }
 }
 class DirFilter extends RecursiveFilterIterator
