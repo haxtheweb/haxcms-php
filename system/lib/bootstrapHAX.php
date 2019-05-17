@@ -28,7 +28,7 @@ $HAXCMS = new HAXCMS();
 // support IAM config
 if (file_exists($here . '/IAM')) {
     $HAXCMS->config->iam = true;
-    if (file_exists($here . '/../../_iamConfig/config.php')) {
-        include_once $here . '/../../_iamConfig/config.php';
+    if (file_exists($here . '/../../_iamConfig/HAXcmsConfig.php')) {
+        include_once $here . '/../../_iamConfig/HAXcmsConfig.php';
     }
 }
