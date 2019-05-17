@@ -306,15 +306,15 @@ if ($HAXCMS->validateJWT()) {
             // also for delivery of the "click to access site" link
             $GLOBALS['fileSystem']->mirror(
                 $siteDirectoryPath,
-                '../_published/' . $site->manifest->metadata->siteName
+                $HAXCMS->configDirectory . '/../_published/' . $site->manifest->metadata->siteName
             );
             // remove the .git version control from this, it's not needed
             $GLOBALS['fileSystem']->remove([
-                '../_published/' . $site->manifest->metadata->siteName . '/.git'
+                $HAXCMS->configDirectory . '/../_published/' . $site->manifest->metadata->siteName . '/.git'
             ]);
             // rewrite the base path to ensure it is accurate based on a local build publish vs web
             $index = file_get_contents(
-                '../_published/' .
+                $HAXCMS->configDirectory . '/../_published/' .
                     $site->manifest->metadata->siteName .
                     '/index.html'
             );
@@ -336,7 +336,7 @@ if ($HAXCMS->validateJWT()) {
             );
             // rewrite the file
             @file_put_contents(
-                '../_published/' .
+                $HAXCMS->configDirectory . '/../_published/' .
                     $site->manifest->metadata->siteName .
                     '/index.html',
                 $index
@@ -367,7 +367,13 @@ if ($HAXCMS->validateJWT()) {
             }
             @unlink($siteDirectoryPath . '/assets/babel-top.js');
             @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-            @unlink($siteDirectoryPath . '/build');
+            if (is_link($siteDirectoryPath . '/build')) {
+                @unlink($siteDirectoryPath . '/build');
+            }
+            else {
+                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
+            }
+
             @symlink(
                 '../../../babel/babel-top.js',
                 $siteDirectoryPath . '/assets/babel-top.js'
@@ -377,6 +383,11 @@ if ($HAXCMS->validateJWT()) {
                 $siteDirectoryPath . '/assets/babel-bottom.js'
             );
             @symlink('../../build', $siteDirectoryPath . '/build');
+            // reset the templated files to their boilerplate equivalent
+            foreach ($templates as $path) {
+                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/_' . $path, $siteDirectoryPath . '/' . $path]);
+                copy(HAXCMS_ROOT . '/system/boilerplate/site/' . $path, $siteDirectoryPath . '/' . $path);
+            }
             header('Status: 200');
             $return = array(
                 'status' => 200,
