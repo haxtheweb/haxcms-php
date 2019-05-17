@@ -738,6 +738,7 @@ class HAXCMS
                 }
             }
         }
+        $this->dispatchEvent('haxcms-connection-settings', $settings);
         return $settings;
     }
     /**
