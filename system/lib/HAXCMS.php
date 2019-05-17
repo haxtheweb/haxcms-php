@@ -119,6 +119,9 @@ class HAXCMS
                 if (!isset($this->config->themes)) {
                     $this->config->themes = new stdClass();
                 }
+                if (!isset($this->config->appJWTConnectionSettings)) {
+                    $this->config->appJWTConnectionSettings = new stdClass();
+                }
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(
@@ -690,11 +693,11 @@ class HAXCMS
         $settings->deleteSitePath = $this->basePath . 'system/deleteSite.php';
         $settings->appStore = $this->appStoreConnection();
         // allow for overrides in config.php
-        if (isset($GLOBALS['config']['connection'])) {
+        if (isset($this->config->appJWTConnectionSettings)) {
             foreach ($settings as $key => $value) {
-                if (isset($GLOBALS['config']['connection'][$key])) {
+                if (isset($this->config->appJWTConnectionSettings->{$key})) {
                     // defer to the config.php setting
-                    $settings->{$key} = $GLOBALS['config']['connection'][$key];
+                    $settings->{$key} = $this->config->appJWTConnectionSettings->{$key};
                 }
             }
         }
