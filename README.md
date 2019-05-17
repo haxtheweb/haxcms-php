@@ -40,5 +40,13 @@ Generate `.html` files which have only "content" in them. Meaning the contents o
 ## Usage
 Go to `yoursite.com` and login with the username and password you entered in the `_config/config.php` by clicking on the login icon
 
+## HAXiam deployment
+[HAXiam](https://github.com/elmsln/HAXiam) (HAX, I am) is a SaaS configuration for HAXcms.
+It allows for the replication of HAXcms per user account for enterprise deployments. It's 
+able to better interface with enterprise login systems while maintaining a clean copy of HAXcms.
+
+HAXcms does not require HAXiam to operate but it is an alternate configuration that we support. 
+Therefore if you see anything in the docs or under the hood referencing how to change settings 
+when in that type of environment, you know why.
 ## License
 [Apache 2.0](LICENSE.md)
