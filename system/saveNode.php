@@ -7,6 +7,10 @@ if ($HAXCMS->validateJWT()) {
     $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
     if (isset($_POST['body'])) {
         $body = $_POST['body'];
+        // we ship the schema with the body post
+        if (isset($_POST['schema'])) {
+            $schema = $_POST['schema'];
+        }
     }
     if (isset($_POST['details'])) {
         $details = $_POST['details'];
@@ -45,7 +49,6 @@ if ($HAXCMS->validateJWT()) {
                   $readtime = 1;
                 }
                 $page->metadata->readtime = $readtime;
-                // update the item in the metadata to indicate when content was last set
                 $site->updateNode($page);
                 $site->gitCommit(
                     'Page updated: ' . $page->title . ' (' . $page->id . ')'
