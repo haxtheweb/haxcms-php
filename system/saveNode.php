@@ -49,6 +49,59 @@ if ($HAXCMS->validateJWT()) {
                   $readtime = 1;
                 }
                 $page->metadata->readtime = $readtime;
+                // assemble other relevent content detail by skimming it off
+                $contentDetails = new stdClass();
+                $contentDetails->headings = 0;
+                $contentDetails->paragraphs = 0;
+                $contentDetails->schema = array();
+                $contentDetails->tags = array();
+                $contentDetails->elements = count($schema);
+                // pull schema apart and store the relevent pieces
+                foreach ($schema as $element) {
+                    switch($element->tag) {
+                        case 'h1':
+                        case 'h2':
+                        case 'h3':
+                        case 'h4':
+                        case 'h5':
+                        case 'h6':
+                            $contentDetails->headings++;
+                        break;
+                        case 'p':
+                            $contentDetails->paragraphs++;
+                        break;
+                    }
+                    if (!isset($contentDetails->tags[$element->tag])) {
+                        $contentDetails->tags[$element->tag] = 0;
+                    }
+                    $contentDetails->tags[$element->tag]++;
+                    $newItem = new stdClass();
+                    $hasSchema = false;
+                    if (isset($element->properties->property)) {
+                        $hasSchema = true;
+                        $newItem->property = $element->properties->property;
+                    }
+                    if (isset($element->properties->typeof)) {
+                        $hasSchema = true;
+                        $newItem->typeof = $element->properties->typeof;
+                    }
+                    if (isset($element->properties->resource)) {
+                        $hasSchema = true;
+                        $newItem->resource = $element->properties->resource;
+                    }
+                    if (isset($element->properties->prefix)) {
+                        $hasSchema = true;
+                        $newItem->prefix = $element->properties->prefix;
+                    }
+                    if (isset($element->properties->vocab)) {
+                        $hasSchema = true;
+                        $newItem->vocab = $element->properties->vocab;
+                    }
+                    if ($hasSchema) {
+                        $contentDetails->schema[] = $newItem;
+                    }
+                }
+                $page->metadata->contentDetails = $contentDetails;
                 $site->updateNode($page);
                 $site->gitCommit(
                     'Page updated: ' . $page->title . ' (' . $page->id . ')'
