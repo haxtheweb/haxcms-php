@@ -70,6 +70,13 @@
         "inputMethod": "iconpicker",
         "required": false,
         "icon": "icons:send"
+      },
+      {
+        "property": "custom-theme-tag",
+        "title": "Custom theme tag",
+        "description": "The name of the primary element for your HAXcms custom theme",
+        "inputMethod": "textfield",
+        "required": false
       }
     ],
     "advanced": [
