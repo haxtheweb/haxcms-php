@@ -133,6 +133,7 @@
     "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
     "build": "polymer build && yarn run terser",
-    "terser": "gulp"
+    "terser": "gulp",
+    "dev": "polymer serve --open --entrypoint dev.html"
   }
 }
