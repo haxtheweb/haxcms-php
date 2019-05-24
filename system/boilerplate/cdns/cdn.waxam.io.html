@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <link rel="preconnect" crossorigin href="https://{{ cdn }}">  
+  <link rel="preload" href="https://{{ cdn }}/build/es6/dist/build.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous">
+  <link rel="preload"
+    href="https://{{ cdn }}/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js"
+    as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://{{ cdn }}/build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://{{ cdn }}/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css"
+    as="style">
+  <link rel="preload" href="./theme/theme.css" as="style">
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <meta name="generator" content="HAXCMS">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
   <title>{{ title }}</title>
@@ -36,13 +50,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ title }}">
   <meta property="og:image" content="assets/icon-144x144.png" />
-  
-  <link rel="preconnect" crossorigin href="https://{{ cdn }}">
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="dns-prefetch" crossorigin href="https://cdnjs.cloudflare.com/">
-  <link rel="dns-prefetch" crossorigin href="https://i.creativecommons.org/">
-  <link rel="dns-prefetch" crossorigin href="https://licensebuttons.net/">
-  <link rel="prefetch" href="site.json">
+
   <!-- Start Single Page Apps for GitHub Pages -->
   <script>
     // Single Page Apps for GitHub Pages
@@ -185,7 +193,7 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js');var cdn="https://cdn.waxam.io/";var old=false;window.__haxCMSContextPublished=true;
+  <script>document.body.removeAttribute('no-js');var cdn="https://{{ cdn }}/";var old=false;window.__haxCMSContextPublished=true;
     try { new Function('import("")'); } catch (err) {
       if (typeof Symbol == "undefined") { // IE 11, at least try to serve the components
         if (!(window.ActiveXObject) && "ActiveXObject" in window) {
@@ -244,10 +252,10 @@
   </script>
   <script>if(old)document.write('<!--');</script>
   <script type="module">
-    import "https://cdn.waxam.io/build/es6/dist/build.js";
+    import "https://{{ cdn }}/build/es6/dist/build.js";
     import("./custom/build/custom.es6.js");
   </script>
-  <script async src="https://cdn.waxam.io/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
+  <script async src="https://{{ cdn }}/build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
   //<!--! do not remove -->
   </script>
 </body>
