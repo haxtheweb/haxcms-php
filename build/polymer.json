@@ -65,7 +65,7 @@
         "modules"
       ],
       "js": {
-        "minify": false,
+        "minify": true,
         "transformModulesToAmd": true
       },
       "css": {
