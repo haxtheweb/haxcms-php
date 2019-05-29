@@ -54,6 +54,14 @@ class FeedMe
         }
         foreach ($site->manifest->items as $key => $item) {
             $tags = '';
+            // beyond edge but don't want this to erorr on write
+            if (!isset($item->metadata)) {
+              $item->metadata = new stdClass();
+            }
+            if (!isset($item->metadata->created)) {
+              $item->metadata->created = time();
+              $item->metadata->updated = time();
+            }
             if (isset($item->metadata->tags)) {
                 $tags = implode(',', $item->metadata->tags);
             }
@@ -143,6 +151,14 @@ class FeedMe
         }
         foreach ($site->manifest->items as $key => $item) {
             $tags = '';
+            // beyond edge but don't want this to erorr on write
+            if (!isset($item->metadata)) {
+              $item->metadata = new stdClass();
+            }
+            if (!isset($item->metadata->created)) {
+              $item->metadata->created = time();
+              $item->metadata->updated = time();
+            }
             if (isset($item->metadata->tags)) {
                 foreach ($item->metadata->tags as $tag) {
                     $tags .=

@@ -292,11 +292,15 @@ class HAXCMSSite
     private function lunrSearchIndex($items) {
       $data = array();
       foreach ($items as $item) {
+        $created = time();
+        if (isset($item->metadata) && isset($item->metadata->created)) {
+          $created = $item->metadata->created;
+        }
         // may seem silly but IDs in lunr have a size limit for some reason in our context..
         $data[] = array(
           "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
           "title" => $item->title,
-          "created" => $item->metadata->created,
+          "created" => $created,
           "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
           "description" => $item->description,
           "text" => $this->cleanSearchData(file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
