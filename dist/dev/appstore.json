@@ -1612,7 +1612,8 @@
     "q-r": "@lrnwebcomponents/q-r/q-r.js",
     "full-width-image": "@lrnwebcomponents/full-width-image/full-width-image.js",
     "lrndesign-gallery": "@lrnwebcomponents/lrndesign-gallery/lrndesign-gallery.js",
+    "lrndesign-timeline": "@lrnwebcomponents/lrndesign-timeline/lrndesign-timeline.js",
     "html-block": "@lrnwebcomponents/html-block/html-block.js",
-    "lrndesign-timeline": "@lrnwebcomponents/lrndesign-timeline/lrndesign-timeline.js"
+    "user-action": "@lrnwebcomponents/user-action/user-action.js"
   }
 }

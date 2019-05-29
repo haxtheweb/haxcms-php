@@ -82,3 +82,4 @@ import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";
 import "@lrnwebcomponents/lrndesign-timeline/lrndesign-timeline.js";
 import "@lrnwebcomponents/lrndesign-gallery/lrndesign-gallery.js";
 import "@lrnwebcomponents/html-block/html-block.js";
+import "@lrnwebcomponents/user-action/user-action.js";
