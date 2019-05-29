@@ -212,10 +212,10 @@ class JSONOutlineSchema
             $newItem = get_object_vars($item);
             array_push($schema['items'], $newItem);
         }
-        return @file_put_contents(
-            $file,
-            json_encode($schema, JSON_PRETTY_PRINT)
-        );
+        // ensure we have valid json object
+        if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
+          return @file_put_contents($file,$output);
+        }
     }
     /**
      * Organize the items based on tree order. This makes front end navigation line up correctly
