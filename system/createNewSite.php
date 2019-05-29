@@ -114,7 +114,9 @@ if ($HAXCMS->validateJWT()) {
         "wave-player": "@lrnwebcomponents/wave-player/wave-player.js",
         "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js",
         "lrndesign-gallery": "@lrnwebcomponents\/lrndesign-gallery\/lrndesign-gallery.js",
-        "lrndesign-timeline": "@lrnwebcomponents\/lrndesign-timeline\/lrndesign-timeline.js"
+        "lrndesign-timeline": "@lrnwebcomponents\/lrndesign-timeline\/lrndesign-timeline.js",
+        "html-block": "@lrnwebcomponents\/html-block\/html-block.js",
+        "user-action": "@lrnwebcomponents\/user-action\/user-action.js"
       }');
         $site->manifest->description = $schema->description;
         // save the outline into the new site
