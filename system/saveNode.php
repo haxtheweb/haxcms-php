@@ -120,8 +120,15 @@ if ($HAXCMS->validateJWT()) {
                         // check on name
                         $value = filter_var($value, FILTER_SANITIZE_STRING);
                         $cleanTitle = $HAXCMS->cleanTitle($value);
-                        // ensure this isn't just saying to keep the same name
-                        if (
+                        if (isset($site->manifest->metadata->pathauto) && $site->manifest->metadata->pathauto) {
+                            $new = 'pages/' . $site->getUniqueLocationName($HAXCMS->cleanTitle(filter_var($details->title, FILTER_SANITIZE_STRING)), $page) . '/index.html';
+                            $site->renamePageLocation(
+                                $page->location,
+                                $new
+                            );
+                            $page->location = $new;
+                        }
+                        else if (
                             $cleanTitle !=
                             str_replace(
                                 'pages/',

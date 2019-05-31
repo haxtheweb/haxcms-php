@@ -73,7 +73,7 @@ if ($HAXCMS->validateJWT()) {
                     $tmpItem->location != ''
                 ) {
                     // core support for automatically managing paths to make them nice
-                    if ($site->manifest->metadata->pathauto) {
+                    if (isset($site->manifest->metadata->pathauto) && $site->manifest->metadata->pathauto) {
                         $moved = true;
                         $new = 'pages/' . $site->getUniqueLocationName($HAXCMS->cleanTitle($page->title), $page) . '/index.html';
                         $site->renamePageLocation(

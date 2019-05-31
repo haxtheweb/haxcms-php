@@ -638,7 +638,7 @@ class HAXCMSSite
             'icon' => $this->manifest->metadata->icon,
             'theme' => $this->manifest->metadata->theme,
             'domain' => (isset($this->manifest->metadata->domain) ? $this->manifest->metadata->domain : ''),
-            'pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : true),
+            'pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : false),
             'image' => $this->manifest->metadata->image,
             'cssVariable' => $this->manifest->metadata->cssVariable,
             'fields' => $nodeFields

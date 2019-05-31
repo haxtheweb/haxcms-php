@@ -7,6 +7,7 @@ if ($HAXCMS->validateJWT()) {
     if ($HAXCMS->validateRequestToken($_POST['token'], 'fields')) {
         $site = $HAXCMS->loadSite($HAXCMS->safePost['siteName']);
         if ($page = $site->loadNode($HAXCMS->safePost['nodeId'])) {
+            // @todo disable location if pathauto is enabled
             $schema = $site->loadNodeFieldSchema($page);
             header('Status: 200');
             print json_encode($schema);
