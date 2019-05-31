@@ -196,6 +196,17 @@ class JSONOutlineSchema
         return false;
     }
     /**
+     * Get an item by ID
+     */
+    public function getItemById($id) {
+        foreach ($this->items as $item) {
+            if ($item->id === $id) {
+                return $item;
+            }
+        }
+        return false;
+    }
+    /**
      * Save data back to the file system location
      */
     public function save($reorder = true)

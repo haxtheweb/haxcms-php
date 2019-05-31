@@ -56,7 +56,7 @@ if ($HAXCMS->validateJWT()) {
         // if it doesn't exist currently make sure the name is unique
         if (!$site->loadNode($page->id)) {
             // ensure this location doesn't exist already
-            $tmpTitle = $site->getUniqueLocationName($cleanTitle);
+            $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
             $page->location = 'pages/' . $tmpTitle . '/index.html';
             $site->recurseCopy(
                 HAXCMS_ROOT . '/system/boilerplate/page',
@@ -70,15 +70,26 @@ if ($HAXCMS->validateJWT()) {
                 // see if this is something moving as opposed to brand new
                 if (
                     $tmpItem->id == $page->id &&
-                    $tmpItem->location != $page->location &&
-                    file_exists($siteDirectory . '/' . $tmpItem->location) &&
                     $tmpItem->location != ''
                 ) {
-                    $moved = true;
-                    $site->renamePageLocation(
-                        $tmpItem->location,
-                        $page->location
-                    );
+                    // core support for automatically managing paths to make them nice
+                    if ($site->manifest->metadata->pathauto) {
+                        $moved = true;
+                        $new = 'pages/' . $site->getUniqueLocationName($HAXCMS->cleanTitle($page->title), $page) . '/index.html';
+                        $site->renamePageLocation(
+                            $page->location,
+                            $new
+                        );
+                        $page->location = $new;
+                    }
+                    else if ($tmpItem->location != $page->location) {
+                        $moved = true;
+                        // @todo might want something to rebuild the path based on new parents
+                        $site->renamePageLocation(
+                            $tmpItem->location,
+                            $page->location
+                        );
+                    }
                 }
             }
             // it wasn't moved and it doesn't exist... let's fix that
@@ -88,7 +99,7 @@ if ($HAXCMS->validateJWT()) {
                 !file_exists($siteDirectory . '/' . $page->location)
             ) {
                 // ensure this location doesn't exist already
-                $tmpTitle = $site->getUniqueLocationName($cleanTitle);
+                $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
                 $page->location = 'pages/' . $tmpTitle . '/index.html';
                 $site->recurseCopy(
                     HAXCMS_ROOT . '/system/boilerplate/page',

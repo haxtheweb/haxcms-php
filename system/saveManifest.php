@@ -26,10 +26,12 @@ if ($HAXCMS->validateJWT()) {
                 FILTER_SANITIZE_STRING
             );
         }
-        $site->manifest->metadata->cssVariable = filter_var(
+        if (isset($_POST['manifest']->cssVariable)) {
+            $site->manifest->metadata->cssVariable = filter_var(
             $_POST['manifest']->cssVariable,
             FILTER_SANITIZE_STRING
-        );
+            );
+        }
         // update these parts of the manifest to match POST
         if (isset($_POST['manifest']->icon)) {
             $site->manifest->metadata->icon = filter_var(
@@ -73,6 +75,12 @@ if ($HAXCMS->validateJWT()) {
         $site->manifest->author = filter_var(
             $_POST['manifest']->author,
             FILTER_SANITIZE_STRING
+        );
+    }
+    if (isset($_POST['manifest']->pathauto)) {
+        $site->manifest->metadata->pathauto = filter_var(
+        $_POST['manifest']->pathauto,
+        FILTER_VALIDATE_BOOLEAN
         );
     }
     // more importantly, this is where the field UI stuff is...

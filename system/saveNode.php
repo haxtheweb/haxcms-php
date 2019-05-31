@@ -130,7 +130,7 @@ if ($HAXCMS->validateJWT()) {
                             )
                         ) {
                             $tmpTitle = $site->getUniqueLocationName(
-                                $cleanTitle
+                                $cleanTitle, $page
                             );
                             $location = 'pages/' . $tmpTitle . '/index.html';
                             // move the folder

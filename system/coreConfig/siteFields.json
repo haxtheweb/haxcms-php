@@ -60,6 +60,13 @@
   ],
   "advanced": [
     {
+      "property": "pathauto",
+      "title": "Pathauto",
+      "description": "Automatically maintain element paths",
+      "inputMethod": "boolean",
+      "icon": "icons:link"
+    },
+    {
       "property": "fields",
       "title": "Custom Fields",
       "description": "Store relational data about fields",

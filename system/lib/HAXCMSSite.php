@@ -303,7 +303,7 @@ class HAXCMSSite
           "created" => $created,
           "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
           "description" => $item->description,
-          "text" => $this->cleanSearchData(file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
+          "text" => $this->cleanSearchData(@file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
         );
       }
       return $data;
@@ -637,7 +637,8 @@ class HAXCMSSite
             'description' => $this->manifest->description,
             'icon' => $this->manifest->metadata->icon,
             'theme' => $this->manifest->metadata->theme,
-            'domain' => $this->manifest->metadata->domain,
+            'domain' => (isset($this->manifest->metadata->domain) ? $this->manifest->metadata->domain : ''),
+            'pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : true),
             'image' => $this->manifest->metadata->image,
             'cssVariable' => $this->manifest->metadata->cssVariable,
             'fields' => $nodeFields
@@ -755,12 +756,24 @@ class HAXCMSSite
     /**
      * Test and ensure the name being returned is a location currently unused
      */
-    public function getUniqueLocationName($location)
+    public function getUniqueLocationName($location, $page = null)
     {
         $siteDirectory =
             $this->directory . '/' . $this->manifest->metadata->siteName;
         $loop = 0;
         $original = $location;
+        if ($page != null && $page->parent != null && $page->parent != '') {
+            $item = $page;
+            $pieces = array($original);
+            while ($item = $this->manifest->getItemById($item->parent)) {
+                $tmp = explode('/', $item->location);
+                // drop index.html
+                array_pop($tmp);
+                array_unshift($pieces, array_pop($tmp));
+            }
+            $original = implode('/', $pieces);
+            $location = $original;
+        }
         while (
             file_exists($siteDirectory . '/pages/' . $location . '/index.html')
         ) {
