@@ -408,6 +408,12 @@ class HAXCMSSite
             // CORE fields
             if (isset($coreFields->configure)) {
                 foreach ($coreFields->configure as $item) {
+                    // edge case for pathauto
+                    if ($item->property == 'location' && isset($this->manifest->metadata->pathauto) && $this->manifest->metadata->pathauto) {
+                        // skip this core field if we have pathauto on
+                        $item->required = false;
+                        $item->disabled = true;
+                    }
                     $fields['configure'][] = $item;
                 }
             }
@@ -490,7 +496,7 @@ class HAXCMSSite
                 str_replace('/index.html', '', $page->location)
             ),
             'description' => $page->description,
-            'created' => $page->metadata->created
+            'created' => (isset($page->metadata->created) ? $page->metadata->created : 54)
         );
         // now get the field data from the page
         if (isset($page->metadata->fields)) {
