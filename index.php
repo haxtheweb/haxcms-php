@@ -106,8 +106,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js");
         }
         else { // Edge prior to evergreen
-          document.getElementById('haxcmsoutdatedfallbacksuperold').style.display = 'none';
-          document.getElementById('site').style.display = 'none';
           defs.push(cdn + "build/es6-amd/node_modules/promise-polyfill/dist/polyfill.min.js");
           defs.push(cdn + "build/es6-amd/node_modules/fetch-ie8/fetch.js");
           defs.push(cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js");
