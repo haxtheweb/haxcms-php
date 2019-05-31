@@ -28,7 +28,7 @@ class HAXCMSFIle
                 $site->name .
                 '/files/';
             $fullpath = $path . $upload['name'];
-            if ($size = file_put_contents($fullpath, $filedata)) {
+            if ($size = @file_put_contents($fullpath, $filedata)) {
                 //@todo make a way of defining these as returns as well as number to take
                 // specialized support for images to do scale and crop stuff automatically
                 if (

@@ -42,8 +42,12 @@ class JSONOutlineSchemaItem
      */
     public function writeLocation($body, $basePath = '')
     {
+        // ensure we have a blank set
+        if ($body == '') {
+            $body = '<p></p>';
+        }
         if (file_exists($basePath . $this->location)) {
-            return file_put_contents($basePath . $this->location, $body);
+            return @file_put_contents($basePath . $this->location, $body);
         }
         return false;
     }

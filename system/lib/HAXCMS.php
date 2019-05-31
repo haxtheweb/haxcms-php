@@ -390,7 +390,7 @@ class HAXCMS
      */
     private function saveConfigFile()
     {
-        return file_put_contents(
+        return @file_put_contents(
             $this->configDirectory . '/config.json',
             json_encode($this->config, JSON_PRETTY_PRINT)
         );
