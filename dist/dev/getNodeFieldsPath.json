@@ -13,6 +13,7 @@
         "description": "Location used in the URL",
         "inputMethod": "textfield",
         "required": true,
+        "disabled": true,
         "icon": "device:gps-fixed"
       },
       {
