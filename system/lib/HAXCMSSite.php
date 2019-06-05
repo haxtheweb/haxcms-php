@@ -142,6 +142,18 @@ class HAXCMSSite
         return true;
     }
     /**
+     * Basic wrapper to revert top commit of the site
+     */
+    public function gitRevert($count = 1)
+    {
+        $git = new Git();
+        $repo = $git->open(
+            $this->directory . '/' . $this->manifest->metadata->siteName
+        );
+        $repo->revert($count);
+        return true;
+    }
+    /**
      * Basic wrapper to commit current changes to version control of the site
      */
     public function gitPush()

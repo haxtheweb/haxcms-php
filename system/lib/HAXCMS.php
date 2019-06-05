@@ -738,6 +738,8 @@ class HAXCMS
             $this->basePath . 'system/getNodeFields.php';
         $settings->getSiteFieldsPath =
             $this->basePath . 'system/getSiteFields.php';
+            $settings->revertSitePath =
+            $this->basePath . 'system/revertCommit.php';
         $settings->getFieldsToken = $this->getRequestToken('fields');
         $settings->createNodePath = $this->basePath . 'system/createNode.php';
         $settings->deleteNodePath = $this->basePath . 'system/deleteNode.php';

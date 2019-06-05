@@ -692,6 +692,30 @@ class GitRepo
     }
 
     /**
+     * Runs a `git reset --soft HEAD~1` call
+     *
+     * Revert the last commit for each commit we were told to revert
+     * @todo expand to support hash values for specific ones
+     *
+     * @access  public
+     * @param   number $count
+     * @return  string
+     */
+    public function revert($count = 1)
+    {
+        $counter = 0;
+        // sanity check
+        if ($count < 1) {
+            $count = 1;
+        }
+        while ($counter != $count) {
+            $this->run("reset --soft HEAD~1");
+            $counter++;
+        }
+        return TRUE;
+    }
+
+    /**
      * Runs a git fetch on the current branch
      *
      * @access  public
