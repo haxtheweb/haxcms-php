@@ -557,7 +557,7 @@ class Filesystem
             }
         }
 
-        $copyOnWindows = $options['copy_on_windows'] ?? false;
+        $copyOnWindows = $options['copy_on_windows'] ? $options['copy_on_windows'] : false;
 
         if (null === $iterator) {
             $flags = $copyOnWindows ? \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS : \FilesystemIterator::SKIP_DOTS;
@@ -725,7 +725,7 @@ class Filesystem
         }
     }
 
-    private function toIterable($files): iterable
+    private function toIterable(iterable $files)
     {
         return \is_array($files) || $files instanceof \Traversable ? $files : [$files];
     }
@@ -733,7 +733,7 @@ class Filesystem
     /**
      * Gets a 2-tuple of scheme (may be null) and hierarchical part of a filename (e.g. file:///tmp -> [file, tmp]).
      */
-    private function getSchemeAndHierarchy(string $filename): array
+    private function getSchemeAndHierarchy(string $filename)
     {
         $components = explode('://', $filename, 2);
 
