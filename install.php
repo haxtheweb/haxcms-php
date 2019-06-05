@@ -47,7 +47,12 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
             $configFile
         );
         // user
-        $configFile = str_replace('jeff', 'admin', $configFile);
+        if(isset($_POST['user'])){
+          $configFile = str_replace('jeff', $_POST['user'], $configFile);
+        }
+        else{
+          $configFile = str_replace('jeff', 'admin', $configFile);
+        }
         // pass
         $alphabet =
             'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
@@ -58,6 +63,9 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
             $pass[] = $alphabet[$n];
         }
         $pass = implode($pass);
+        if(isset($_POST['pass'])){
+          $pass = $_POST['pass'];
+        }
         $configFile = str_replace('jimmerson', $pass, $configFile);
         // work on base path relative to where this was just launched from
         // super sneaky and locks it to where it's currently installed but required
