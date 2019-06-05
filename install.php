@@ -53,18 +53,24 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         else{
           $configFile = str_replace('jeff', 'admin', $configFile);
         }
-        // pass
-        $alphabet =
-            'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
-        $pass = array(); //remember to declare $pass as an array
-        $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
-        for ($i = 0; $i < 12; $i++) {
-            $n = rand(0, $alphaLength);
-            $pass[] = $alphabet[$n];
-        }
-        $pass = implode($pass);
+        // support POST for password in this setup phase
+        // this is typial of hosting environments that need
+        // to see the login details ahead of time in order
+        // to set things up correctly
         if(isset($_POST['pass'])){
           $pass = $_POST['pass'];
+        }
+        else {
+          // pass
+          $alphabet =
+              'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+          $pass = array(); //remember to declare $pass as an array
+          $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
+          for ($i = 0; $i < 12; $i++) {
+              $n = rand(0, $alphaLength);
+              $pass[] = $alphabet[$n];
+          }
+          $pass = implode($pass);
         }
         $configFile = str_replace('jimmerson', $pass, $configFile);
         // work on base path relative to where this was just launched from
