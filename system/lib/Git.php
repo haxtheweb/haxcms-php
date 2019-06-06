@@ -709,7 +709,7 @@ class GitRepo
             $count = 1;
         }
         while ($counter != $count) {
-            $this->run("reset --soft HEAD~1");
+            $this->run("reset --hard HEAD~1");
             $counter++;
         }
         return TRUE;
