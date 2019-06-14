@@ -124,11 +124,11 @@
     "@lrnwebcomponents/hax-body-behaviors": "2.0.9"
   },
   "devDependencies": {
-    "@prettier/plugin-php": "^0.10.2",
+    "@prettier/plugin-php": "^0.11.0",
     "prettier": "^1.16.4",
     "gulp": "^4.0.2",
     "gulp-terser": "^1.2.0",
-    "polymer-cli": "1.9.9",
+    "polymer-cli": "1.9.10",
     "polymer-build": "3.1.4"
   },
   "scripts": {
