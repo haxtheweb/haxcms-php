@@ -120,7 +120,7 @@
     "@polymer/app-layout": "3.0.2"
   },
   "devDependencies": {
-    "@prettier/plugin-php": "^0.10.2",
+    "@prettier/plugin-php": "^0.11.0",
     "prettier": "^1.16.4",
     "gulp": "^4.0.2",
     "gulp-terser": "^1.2.0"
