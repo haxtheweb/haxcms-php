@@ -799,8 +799,8 @@ class HAXCMS
       }
       // kick back the end if its invalid
       if ($endOnInvalid) {
-        print 'Invalid token';
         header('Status: 403');
+        print 'Invalid token';
         exit();
       }
       return FALSE;

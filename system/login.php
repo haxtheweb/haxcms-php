@@ -12,8 +12,8 @@ if (isset($post->u) && isset($post->p)) {
   // _ paranoia ripping up my brain
   // test if this is a valid user login
   if (!$HAXCMS->testLogin($u, $p, true)) {
-      print 'Access denied';
       header('Status: 403');
+      print 'Access denied';
       exit;
   } else {
       header('Content-Type: application/json');
