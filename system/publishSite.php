@@ -114,8 +114,12 @@ if ($HAXCMS->validateJWT()) {
                 if (is_link($siteDirectoryPath . '/node_modules')) {
                     @unlink($siteDirectoryPath . '/node_modules');
                 }
-                @unlink($siteDirectoryPath . '/assets/babel-top.js');
-                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+                if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
+                    @unlink($siteDirectoryPath . '/assets/babel-top.js');
+                }
+                if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
+                    @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+                }
                 // copy these things because we have a local routine
                 if ($cdn == 'custom') {
                     @copy(
@@ -321,7 +325,7 @@ if ($HAXCMS->validateJWT()) {
             // replace if it was publishing with the name in it
             $index = str_replace(
                 '<base href="/' . $site->manifest->metadata->siteName . '/"',
-                '<base href="/_published/' .
+                '<base href="' . $HAXCMS->basePath . '_published/' .
                     $site->manifest->metadata->siteName .
                     '/"',
                 $index
@@ -329,7 +333,7 @@ if ($HAXCMS->validateJWT()) {
             // replace if it has a vanity domain
             $index = str_replace(
                 '<base href="/"',
-                '<base href="/_published/' .
+                '<base href="' . $HAXCMS->basePath . '_published/' .
                     $site->manifest->metadata->siteName .
                     '/"',
                 $index
@@ -365,8 +369,12 @@ if ($HAXCMS->validateJWT()) {
                     $siteDirectoryPath . '/node_modules'
                 );
             }
-            @unlink($siteDirectoryPath . '/assets/babel-top.js');
-            @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+            if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
+                @unlink($siteDirectoryPath . '/assets/babel-top.js');
+            }
+            if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
+                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+            }
             if (is_link($siteDirectoryPath . '/build')) {
                 @unlink($siteDirectoryPath . '/build');
             }
