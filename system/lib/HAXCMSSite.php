@@ -62,11 +62,16 @@ class HAXCMSSite
         // create symlink to make it easier to resolve things to single built asset buckets
         @symlink('../../build', $directory . '/' . $tmpname . '/build');
         // symlink to do local development if needed
-        @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
-        @symlink(
+        if (is_dir('../../dist')) {
+            @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
+        }
+        // symlink to do project development if needed
+        if (is_dir('../../node_modules')) {
+            @symlink(
             '../../node_modules',
             $directory . '/' . $tmpname . '/node_modules'
-        );
+            );
+        }
         // links babel files so that unification is easier
         @symlink(
             '../../../babel/babel-top.js',
