@@ -272,6 +272,9 @@ class HAXCMSSite
                 } else {
                     $priority = '0.5';
                 }
+                $updatedTime = new DateTime();
+                $updatedTime->setTimestamp($item->metadata->updated);
+                $updatedTime->format(DateTime::ATOM);
                 $generator->addUrl(
                     $domain .
                         '/' .
@@ -280,7 +283,7 @@ class HAXCMSSite
                             '',
                             str_replace('/index.html', '', $item->location)
                         ),
-                    date(\DateTime::ATOM, $item->metadata->updated),
+                    $updatedTime,
                     'daily',
                     $priority
                 );
