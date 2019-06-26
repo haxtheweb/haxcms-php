@@ -1,5 +1,9 @@
 import "@lrnwebcomponents/h-a-x/h-a-x.js";
 import "@lrnwebcomponents/cms-hax/cms-hax.js";
+import "@lrnwebcomponents/cms-hax/lib/cms-views.js";
+import "@lrnwebcomponents/cms-hax/lib/cms-token.js";
+import "@lrnwebcomponents/cms-hax/lib/cms-entity.js";
+import "@lrnwebcomponents/cms-hax/lib/cms-block.js";
 import "@lrnwebcomponents/wysiwyg-hax/wysiwyg-hax.js";
 import "@lrnwebcomponents/lrn-page/lrn-page.js";
 import "@lrnwebcomponents/lrn-content/lrn-content.js";
