@@ -345,6 +345,53 @@ class HAXCMSSite
       $text = implode(' ', array_unique(explode(' ', $text)));
       return $text;
     }
+    private function compareItemKeys($a, $b) {
+      $key = $this->__compareItemKey;
+      $dir = $this->__compareItemDir;
+      if (isset($a->metadata->{$key})) {
+        if ($dir == 'DESC') {
+          return $a->metadata->{$key} > $b->metadata->{$key};
+        }
+        else {
+          return $a->metadata->{$key} < $b->metadata->{$key};
+        }
+      }
+    }
+    /**
+     * Sort items by a certain key value. Must be in the included list for safety of the sort
+     * @var string $key - the key name to sort on, only some supported
+     * @var string $dir - direction to sort, ASC default or DESC to reverse
+     * @return array $items - sorted items based on the key used
+     */
+    public function sortItems($key, $dir = 'ASC') {
+        $items = $this->manifest->items;
+        switch ($key) {
+            case 'created':
+            case 'updated':
+            case 'readtime':
+              $this->__compareItemKey = $key;
+              $this->__compareItemDir = $dir;
+              usort($items, array($this,'compareItemKeys'));
+            break;
+            case 'id':
+            case 'title':
+            case 'indent':
+            case 'location':
+            case 'order':
+            case 'parent':
+            case 'description':
+                usort($items, function ($a, $b) {
+                  if ($dir == 'ASC') {
+                    return $a->{$key} > $b->{$key};
+                  }
+                  else {
+                    return $a->{$key} < $b->{$key};
+                  }
+                });
+            break;
+        }
+        return $items;
+    }
     /**
      * Build a JOS into a tree of links recursively
      */
