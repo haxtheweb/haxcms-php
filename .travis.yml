@@ -22,6 +22,5 @@ before_install:
   - sudo apt-get update > /dev/null
   # install base requirements
   - sudo bash scripts/ubuntu18.04.sh
-install:
+script:
   - bash scripts/haxtheweb.sh admin admin
-script: false
