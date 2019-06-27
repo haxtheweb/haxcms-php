@@ -27,7 +27,7 @@ getuuid(){
   echo $(cat /proc/sys/kernel/random/uuid)
 }
 # install php and other important things
-sudo apt-get install -y php7.2-fpm php7.2-zip php7.2-gd php-dom git
+sudo apt-get install -y php7.2-fpm php7.2-zip php7.2-gd php7.2-xml git apache2
 # optional for development
 # sudo apt-get install -y composer nodejs
 sudo a2enmod proxy_fcgi
