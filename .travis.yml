@@ -13,30 +13,12 @@ matrix:
       - ES_WAIT_ON_MAPPING_CHANGE=true
 
 before_install:
-  - phpenv config-rm xdebug.ini
-  - ~/.phpenv/versions/$(phpenv version-name)/bin/composer self-update
   - export UPDATE TRAVIS_BUILD_DIR
   - BUILD_TOP=`dirname $TRAVIS_BUILD_DIR`
   - EXIT_VALUE=0
 
   - sudo apt-get update > /dev/null
-  - sudo apt-get install -y --force-yes uuid uuid-runtime
-  # mail requirements
-  - sudo apt-get update -qq
-  - sudo apt-get install -y -qq postfix
-  - sudo apt-get install -y php7.2-fpm php7.2-zip php7.2-gd php-dom git
-  # optional for development
-  # sudo apt-get install -y composer nodejs
-  - sudo a2enmod proxy_fcgi
-  - sudo a2enconf php7.2-fpm
-  - sudo a2dismod php7.2
-  - sudo a2dismod mpm_prefork
-  - sudo a2enmod mpm_event
-  - sudo a2enmod http2
-  # enable protocol support
-  - echo "Protocols h2 http/1.1" > /etc/apache2/conf-available/http2.conf
-  - sudo a2enconf http2
-  # get this party started
-  - sudo service apache2 restart
+  # install base requirements
+  - sudo bash scripts/ubuntu18.04.sh
 install:
-  - bash /var/www/haxcms/scripts/haxtheweb.sh admin admin
+  - bash scripts/haxtheweb.sh admin admin
