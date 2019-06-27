@@ -24,3 +24,4 @@ before_install:
   - sudo bash scripts/ubuntu18.04.sh
 install:
   - bash scripts/haxtheweb.sh admin admin
+script: false
