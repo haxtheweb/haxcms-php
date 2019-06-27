@@ -2,7 +2,9 @@ language: php
 
 php:
   - 7.2
-
+dist: bionic
+os:
+  - linux
 matrix:
   env:
     global:
