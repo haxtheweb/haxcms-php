@@ -77,3 +77,4 @@ import "@lrnwebcomponents/task-list/task-list.js";
 import "@lrnwebcomponents/video-player/video-player.js";
 import "@lrnwebcomponents/wave-player/wave-player.js";
 import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";
+import "@lrnwebcomponents/game-show-quiz/game-show-quiz.js";
