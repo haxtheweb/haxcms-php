@@ -13,6 +13,7 @@ import "@polymer/paper-toast/paper-toast.js";
 import "@polymer/paper-tabs/paper-tabs.js";
 import "@polymer/paper-dialog-scrollable/paper-dialog-scrollable.js";
 import "@polymer/paper-input/paper-textarea.js";
+import "@polymer/paper-card/paper-card.js";
 import "@polymer/paper-checkbox/paper-checkbox.js";
 import "@polymer/paper-button/paper-button.js";
 import "@polymer/paper-toggle-button/paper-toggle-button.js";
