@@ -139,8 +139,9 @@ class HAXCMSSite
     public function gitCommit($msg = 'Committed changes')
     {
         $git = new Git();
+        // commit, true flag will attempt to make this a git repo if it currently isn't
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName
+            $this->directory . '/' . $this->manifest->metadata->siteName, true
         );
         $repo->add('.');
         $repo->commit($msg);
@@ -153,7 +154,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName
+            $this->directory . '/' . $this->manifest->metadata->siteName, true
         );
         $repo->revert($count);
         return true;
@@ -165,7 +166,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName
+            $this->directory . '/' . $this->manifest->metadata->siteName, true
         );
         $repo->add('.');
         $repo->commit($msg);
@@ -181,7 +182,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName
+            $this->directory . '/' . $this->manifest->metadata->siteName, true
         );
         $repo->set_remote("origin", $gitDetails->url);
         return true;
