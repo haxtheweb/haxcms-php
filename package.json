@@ -13,7 +13,6 @@
   "license": "Apache-2.0",
   "flat": true,
   "dependencies": {
-    "lunr": "^2.3.6",
     "@lrnwebcomponents/a11y-gif-player": "^2.0.1",
     "@lrnwebcomponents/aframe-player": "^2.0.1",
     "@lrnwebcomponents/app-datepicker": "^2.0.1",
@@ -98,7 +97,8 @@
     "@polymer/polymer": "^3.1.0",
     "@vaadin/vaadin-split-layout": "^4.1.0",
     "@vaadin/vaadin-upload": "^4.2.1",
-    "@webcomponents/webcomponentsjs": "2.2.4",
+    "@webcomponents/webcomponentsjs": "2.2.10",
+    "lunr": "^2.3.6",
     "paper-collapse-item": "^4.0.4",
     "web-animations-js": "^2.3.1"
   },
@@ -119,6 +119,23 @@
     "ajv": "6.5.5",
     "fast-deep-equal": "2.0.1",
     "json-schema-traverse": "0.4.1",
-    "@polymer/app-layout": "3.0.2"
+    "@polymer/app-layout": "3.0.2",
+    "schema-utils": "1.0.0",
+    "@lrnwebcomponents/hax-body-behaviors": "2.0.9"
+  },
+  "devDependencies": {
+    "@prettier/plugin-php": "^0.11.0",
+    "prettier": "^1.16.4",
+    "gulp": "^4.0.2",
+    "gulp-terser": "^1.2.0",
+    "polymer-cli": "1.9.10",
+    "polymer-build": "3.1.4"
+  },
+  "scripts": {
+    "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
+    "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
+    "build": "polymer build && yarn run terser",
+    "terser": "gulp",
+    "dev": "polymer serve --open --entrypoint dev.html"
   }
 }

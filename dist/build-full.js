@@ -13,12 +13,11 @@ import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-demo.
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-php.js";
 // core HAXcms
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-editor-builder.js";
-import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-manifest-editor-dialog.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-outline-editor-dialog.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-editor-ui.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-editor.js";
-import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-listing.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-router.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/HAXCMSThemeWiring.js";
@@ -43,9 +42,11 @@ import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-slide-theme.js"
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-minimalist-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-custom-theme.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-user-theme.js";
 import "@lrnwebcomponents/outline-player/outline-player.js";
 import "@lrnwebcomponents/simple-blog/simple-blog.js";
 import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
+import "@lrnwebcomponents/haxor-slevin/haxor-slevin.js";
 
 // these should all be dynamically imported as well
 import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
@@ -80,3 +81,6 @@ import "@lrnwebcomponents/wave-player/wave-player.js";
 import "@lrnwebcomponents/wikipedia-query/wikipedia-query.js";
 import "@lrnwebcomponents/lrndesign-timeline/lrndesign-timeline.js";
 import "@lrnwebcomponents/lrndesign-gallery/lrndesign-gallery.js";
+import "@lrnwebcomponents/html-block/html-block.js";
+import "@lrnwebcomponents/user-action/user-action.js";
+import "@lrnwebcomponents/rss-items/rss-items.js";

@@ -1,1 +1,1 @@
-import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-listing.js";
+import "@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js";

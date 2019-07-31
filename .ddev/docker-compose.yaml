@@ -3,7 +3,9 @@ version: '3.6'
 services:
   db:
     container_name: ddev-${DDEV_SITENAME}-db
-    image: $DDEV_DBIMAGE
+    
+    image: "$DDEV_DBIMAGE"
+    
     stop_grace_period: 60s
     volumes:
       - type: "volume"
@@ -12,15 +14,12 @@ services:
         volume:
           nocopy: true
       - type: "bind"
-        source: "${DDEV_IMPORTDIR}"
-        target: "/db"
-      - type: "bind"
         source: "."
         target: "/mnt/ddev_config"
     restart: "no"
     user: "$DDEV_UID:$DDEV_GID"
     ports:
-      - "3306"
+      - "127.0.0.1:$DDEV_HOST_DB_PORT:3306"
     labels:
       com.ddev.site-name: ${DDEV_SITENAME}
       com.ddev.platform: ddev
@@ -33,10 +32,17 @@ services:
     command: "$DDEV_MARIADB_LOCAL_COMMAND"
     healthcheck:
       interval: 5s
+<<<<<<< HEAD
       retries: 3
+=======
+      retries: 12
+      start_period: 60s
+>>>>>>> 4c8a8362a895dfe3abc82c9d687bb873381c603f
   web:
     container_name: ddev-${DDEV_SITENAME}-web
+    
     image: $DDEV_WEBIMAGE
+    
     cap_add:
       - SYS_PTRACE
     volumes:
@@ -47,7 +53,7 @@ services:
         consistency: cached
         
       - ".:/mnt/ddev_config:ro"
-      - ddev-composer-cache:/mnt/composer_cache
+      - ddev-global-cache:/mnt/ddev-global-cache
       
       - ddev-ssh-agent_socket_dir:/home/.ssh-agent
       
@@ -58,7 +64,8 @@ services:
       - db:db
     # ports is list of exposed *container* ports
     ports:
-      - "80"
+      - "127.0.0.1:$DDEV_HOST_WEBSERVER_PORT:80"
+      - "127.0.0.1:$DDEV_HOST_HTTPS_PORT:443"
       - "8025"
     environment:
       - DDEV_URL=$DDEV_URL
@@ -69,6 +76,8 @@ services:
       - DDEV_ROUTER_HTTP_PORT=$DDEV_ROUTER_HTTP_PORT
       - DDEV_ROUTER_HTTPS_PORT=$DDEV_ROUTER_HTTPS_PORT
       - DDEV_XDEBUG_ENABLED=$DDEV_XDEBUG_ENABLED
+      - DOCKER_IP=127.0.0.1
+      - HOST_DOCKER_INTERNAL_IP=
       - DEPLOY_NAME=local
       - VIRTUAL_HOST=$DDEV_HOSTNAME
       - COLUMNS=$COLUMNS
@@ -88,7 +97,8 @@ services:
       com.ddev.app-url: $DDEV_URL
     extra_hosts: ["unneeded:127.0.0.1"]
     external_links:
-      - ddev-router:$DDEV_HOSTNAME
+    - "ddev-router:haxcms.ddev.local" 
+    
     healthcheck:
       interval: 4s
       retries: 6
@@ -133,6 +143,6 @@ volumes:
   ddev-ssh-agent_socket_dir:
     external: true
   
-  ddev-composer-cache:
-    name: ddev-composer-cache
+  ddev-global-cache:
+    name: ddev-global-cache
   

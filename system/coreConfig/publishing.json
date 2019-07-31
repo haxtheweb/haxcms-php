@@ -1,17 +1,14 @@
 {
   "local": {
-    "name": "Local",
-    "script": "system/publishing/local/publishLocal.php",
-    "image": "system/publishing/local/github.png"
+    "name": "Locally",
+    "machine": "local",
+    "type": "public",
+    "image": "system/publishing/local/local.png"
   },
   "github": {
     "name": "Github",
-    "script": "system/publishing/github/publishGithub.php",
+    "machine": "github",
+    "type": "public",
     "image": "system/publishing/github/github.png"
-  },
-  "surge": {
-    "name": "Surge.sh",
-    "script": "system/publishing/surge/publishSurge.php",
-    "image": "system/publishing/surge/surge.png"
   }
 }

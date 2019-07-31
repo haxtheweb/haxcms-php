@@ -14,6 +14,9 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 - automatic git repo creation and management (never touch commandline again, but dive in if you really needed)
 - Built in gh-pages publishing
 
+# Requirements (PHP)
+- PHP 7.1
+- Apache 2.4
 ## Install and win the future, NOW!
 ### MAMP
 - Download [MAMP](https://www.mamp.info/)
@@ -33,12 +36,21 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 - Go to the link any of them give you in a browser.
 - Username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
 - Click the icon in the top-right and you're off and running!
-
+## Requirements (nodejs)
+coming soon
 ## Scope
 Generate `.html` files which have only "content" in them. Meaning the contents of the page in question. A simple method of adding new pages and managing the organization of those pages into a simple hierarchy (outline). Support for multiple mini web sites so that you can write a lot about different topics. HAXcms is only intended to be a micro-site generator and play nicely with the rest of the HAX ecosystem without needing a monster CMS in order to utilize it.
 
 ## Usage
 Go to `yoursite.com` and login with the username and password you entered in the `_config/config.php` by clicking on the login icon
 
+## HAXiam deployment
+[HAXiam](https://github.com/elmsln/HAXiam) (HAX, I am) is a SaaS configuration for HAXcms.
+It allows for the replication of HAXcms per user account for enterprise deployments. It's 
+able to better interface with enterprise login systems while maintaining a clean copy of HAXcms.
+
+HAXcms does not require HAXiam to operate but it is an alternate configuration that we support. 
+Therefore if you see anything in the docs or under the hood referencing how to change settings 
+when in that type of environment, you know why.
 ## License
 [Apache 2.0](LICENSE.md)

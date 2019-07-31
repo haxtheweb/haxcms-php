@@ -1,11 +1,9 @@
 <?php
-  // clear login data
-  if(isset($_SERVER['PHP_AUTH_USER']))
-    unset($_SERVER['PHP_AUTH_USER']);       
-  if (isset($_SERVER['PHP_AUTH_PW']))
-    unset($_SERVER['PHP_AUTH_PW']);
-  header('Content-Type: application/json');
-  header('Status: 200');
-  print json_encode('loggedout');
-  exit;
+// @todo need to run some kind of shut down routine for logging out
+include_once '../system/lib/bootstrapHAX.php';
+include_once $HAXCMS->configDirectory . '/config.php';
+header('Content-Type: application/json');
+header('Status: 200');
+print json_encode('loggedout');
+exit();
 ?>

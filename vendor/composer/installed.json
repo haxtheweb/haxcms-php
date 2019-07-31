@@ -283,297 +283,6 @@
         "description": "A polyfill for getallheaders."
     },
     {
-        "name": "symfony/polyfill-ctype",
-        "version": "v1.10.0",
-        "version_normalized": "1.10.0.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/symfony/polyfill-ctype.git",
-            "reference": "e3d826245268269cd66f8326bd8bc066687b4a19"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/symfony/polyfill-ctype/zipball/e3d826245268269cd66f8326bd8bc066687b4a19",
-            "reference": "e3d826245268269cd66f8326bd8bc066687b4a19",
-            "shasum": ""
-        },
-        "require": {
-            "php": ">=5.3.3"
-        },
-        "suggest": {
-            "ext-ctype": "For best performance"
-        },
-        "time": "2018-08-06 14:22:27",
-        "type": "library",
-        "extra": {
-            "branch-alias": {
-                "dev-master": "1.9-dev"
-            }
-        },
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Symfony\\Polyfill\\Ctype\\": ""
-            },
-            "files": [
-                "bootstrap.php"
-            ]
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Symfony Community",
-                "homepage": "https://symfony.com/contributors"
-            },
-            {
-                "name": "Gert de Pagter",
-                "email": "BackEndTea@gmail.com"
-            }
-        ],
-        "description": "Symfony polyfill for ctype functions",
-        "homepage": "https://symfony.com",
-        "keywords": [
-            "compatibility",
-            "ctype",
-            "polyfill",
-            "portable"
-        ]
-    },
-    {
-        "name": "symfony/polyfill-mbstring",
-        "version": "v1.10.0",
-        "version_normalized": "1.10.0.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/symfony/polyfill-mbstring.git",
-            "reference": "c79c051f5b3a46be09205c73b80b346e4153e494"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/c79c051f5b3a46be09205c73b80b346e4153e494",
-            "reference": "c79c051f5b3a46be09205c73b80b346e4153e494",
-            "shasum": ""
-        },
-        "require": {
-            "php": ">=5.3.3"
-        },
-        "suggest": {
-            "ext-mbstring": "For best performance"
-        },
-        "time": "2018-09-21 13:07:52",
-        "type": "library",
-        "extra": {
-            "branch-alias": {
-                "dev-master": "1.9-dev"
-            }
-        },
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Symfony\\Polyfill\\Mbstring\\": ""
-            },
-            "files": [
-                "bootstrap.php"
-            ]
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Nicolas Grekas",
-                "email": "p@tchwork.com"
-            },
-            {
-                "name": "Symfony Community",
-                "homepage": "https://symfony.com/contributors"
-            }
-        ],
-        "description": "Symfony polyfill for the Mbstring extension",
-        "homepage": "https://symfony.com",
-        "keywords": [
-            "compatibility",
-            "mbstring",
-            "polyfill",
-            "portable",
-            "shim"
-        ]
-    },
-    {
-        "name": "twig/twig",
-        "version": "v2.6.2",
-        "version_normalized": "2.6.2.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/twigphp/Twig.git",
-            "reference": "7d7342c8a4059fefb9b8d07db0cc14007021f9b7"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/twigphp/Twig/zipball/7d7342c8a4059fefb9b8d07db0cc14007021f9b7",
-            "reference": "7d7342c8a4059fefb9b8d07db0cc14007021f9b7",
-            "shasum": ""
-        },
-        "require": {
-            "php": "^7.0",
-            "symfony/polyfill-ctype": "^1.8",
-            "symfony/polyfill-mbstring": "^1.3"
-        },
-        "require-dev": {
-            "psr/container": "^1.0",
-            "symfony/debug": "^2.7",
-            "symfony/phpunit-bridge": "^3.4.19|^4.1.8"
-        },
-        "time": "2019-01-14 15:00:48",
-        "type": "library",
-        "extra": {
-            "branch-alias": {
-                "dev-master": "2.6-dev"
-            }
-        },
-        "installation-source": "dist",
-        "autoload": {
-            "psr-0": {
-                "Twig_": "lib/"
-            },
-            "psr-4": {
-                "Twig\\": "src/"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "BSD-3-Clause"
-        ],
-        "authors": [
-            {
-                "name": "Fabien Potencier",
-                "email": "fabien@symfony.com",
-                "homepage": "http://fabien.potencier.org",
-                "role": "Lead Developer"
-            },
-            {
-                "name": "Armin Ronacher",
-                "email": "armin.ronacher@active-4.com",
-                "role": "Project Founder"
-            },
-            {
-                "name": "Twig Team",
-                "homepage": "https://twig.symfony.com/contributors",
-                "role": "Contributors"
-            }
-        ],
-        "description": "Twig, the flexible, fast, and secure template language for PHP",
-        "homepage": "https://twig.symfony.com",
-        "keywords": [
-            "templating"
-        ]
-    },
-    {
-        "name": "icamys/php-sitemap-generator",
-        "version": "1.0.1",
-        "version_normalized": "1.0.1.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/icamys/php-sitemap-generator.git",
-            "reference": "33f619262080ccd35333ed960f6bceb33fb62f46"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/icamys/php-sitemap-generator/zipball/33f619262080ccd35333ed960f6bceb33fb62f46",
-            "reference": "33f619262080ccd35333ed960f6bceb33fb62f46",
-            "shasum": ""
-        },
-        "require": {
-            "ext-spl": "*",
-            "php": ">=5.5.0"
-        },
-        "time": "2016-06-23 14:22:46",
-        "type": "library",
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Icamys\\SitemapGenerator\\": "src/"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Prisacari Dmitrii",
-                "email": "prisacari.dmitrii@gmail.com",
-                "homepage": "http://github.com/icamys/"
-            }
-        ],
-        "description": "Simple PHP sitemap generator.",
-        "homepage": "https://github.com/icamys/php-sitemap-generator",
-        "keywords": [
-            "PSR-1",
-            "PSR-2",
-            "PSR-4",
-            "Sitemap",
-            "generator",
-            "php"
-        ]
-    },
-    {
-        "name": "symfony/filesystem",
-        "version": "v4.2.4",
-        "version_normalized": "4.2.4.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/symfony/filesystem.git",
-            "reference": "e16b9e471703b2c60b95f14d31c1239f68f11601"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/symfony/filesystem/zipball/e16b9e471703b2c60b95f14d31c1239f68f11601",
-            "reference": "e16b9e471703b2c60b95f14d31c1239f68f11601",
-            "shasum": ""
-        },
-        "require": {
-            "php": "^7.1.3",
-            "symfony/polyfill-ctype": "~1.8"
-        },
-        "time": "2019-02-07 11:40:08",
-        "type": "library",
-        "extra": {
-            "branch-alias": {
-                "dev-master": "4.2-dev"
-            }
-        },
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Symfony\\Component\\Filesystem\\": ""
-            },
-            "exclude-from-classmap": [
-                "/Tests/"
-            ]
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Fabien Potencier",
-                "email": "fabien@symfony.com"
-            },
-            {
-                "name": "Symfony Community",
-                "homepage": "https://symfony.com/contributors"
-            }
-        ],
-        "description": "Symfony Filesystem Component",
-        "homepage": "https://symfony.com"
-    },
-    {
         "name": "gumlet/php-image-resize",
         "version": "1.9.2",
         "version_normalized": "1.9.2.0",
@@ -629,5 +338,301 @@
             "resize",
             "scale"
         ]
+    },
+    {
+        "name": "symfony/polyfill-ctype",
+        "version": "v1.11.0",
+        "version_normalized": "1.11.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/symfony/polyfill-ctype.git",
+            "reference": "82ebae02209c21113908c229e9883c419720738a"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/symfony/polyfill-ctype/zipball/82ebae02209c21113908c229e9883c419720738a",
+            "reference": "82ebae02209c21113908c229e9883c419720738a",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.3.3"
+        },
+        "suggest": {
+            "ext-ctype": "For best performance"
+        },
+        "time": "2019-02-06 07:57:58",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "1.11-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Symfony\\Polyfill\\Ctype\\": ""
+            },
+            "files": [
+                "bootstrap.php"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Symfony Community",
+                "homepage": "https://symfony.com/contributors"
+            },
+            {
+                "name": "Gert de Pagter",
+                "email": "BackEndTea@gmail.com"
+            }
+        ],
+        "description": "Symfony polyfill for ctype functions",
+        "homepage": "https://symfony.com",
+        "keywords": [
+            "compatibility",
+            "ctype",
+            "polyfill",
+            "portable"
+        ]
+    },
+    {
+        "name": "symfony/polyfill-mbstring",
+        "version": "v1.11.0",
+        "version_normalized": "1.11.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/symfony/polyfill-mbstring.git",
+            "reference": "fe5e94c604826c35a32fa832f35bd036b6799609"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/fe5e94c604826c35a32fa832f35bd036b6799609",
+            "reference": "fe5e94c604826c35a32fa832f35bd036b6799609",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.3.3"
+        },
+        "suggest": {
+            "ext-mbstring": "For best performance"
+        },
+        "time": "2019-02-06 07:57:58",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "1.11-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Symfony\\Polyfill\\Mbstring\\": ""
+            },
+            "files": [
+                "bootstrap.php"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Nicolas Grekas",
+                "email": "p@tchwork.com"
+            },
+            {
+                "name": "Symfony Community",
+                "homepage": "https://symfony.com/contributors"
+            }
+        ],
+        "description": "Symfony polyfill for the Mbstring extension",
+        "homepage": "https://symfony.com",
+        "keywords": [
+            "compatibility",
+            "mbstring",
+            "polyfill",
+            "portable",
+            "shim"
+        ]
+    },
+    {
+        "name": "twig/twig",
+        "version": "v2.11.2",
+        "version_normalized": "2.11.2.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/twigphp/Twig.git",
+            "reference": "84a463403da1c81afbcedda8f0e788c78bd25a79"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/twigphp/Twig/zipball/84a463403da1c81afbcedda8f0e788c78bd25a79",
+            "reference": "84a463403da1c81afbcedda8f0e788c78bd25a79",
+            "shasum": ""
+        },
+        "require": {
+            "php": "^7.0",
+            "symfony/polyfill-ctype": "^1.8",
+            "symfony/polyfill-mbstring": "^1.3"
+        },
+        "require-dev": {
+            "psr/container": "^1.0",
+            "symfony/debug": "^2.7",
+            "symfony/phpunit-bridge": "^3.4.19|^4.1.8|^5.0"
+        },
+        "time": "2019-06-05 11:17:07",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "2.11-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-0": {
+                "Twig_": "lib/"
+            },
+            "psr-4": {
+                "Twig\\": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "BSD-3-Clause"
+        ],
+        "authors": [
+            {
+                "name": "Fabien Potencier",
+                "email": "fabien@symfony.com",
+                "homepage": "http://fabien.potencier.org",
+                "role": "Lead Developer"
+            },
+            {
+                "name": "Armin Ronacher",
+                "email": "armin.ronacher@active-4.com",
+                "role": "Project Founder"
+            },
+            {
+                "name": "Twig Team",
+                "homepage": "https://twig.symfony.com/contributors",
+                "role": "Contributors"
+            }
+        ],
+        "description": "Twig, the flexible, fast, and secure template language for PHP",
+        "homepage": "https://twig.symfony.com",
+        "keywords": [
+            "templating"
+        ]
+    },
+    {
+        "name": "icamys/php-sitemap-generator",
+        "version": "1.1.0",
+        "version_normalized": "1.1.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/icamys/php-sitemap-generator.git",
+            "reference": "6916c240a307489e5e0a0ef7a5db8fd4c86d750f"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/icamys/php-sitemap-generator/zipball/6916c240a307489e5e0a0ef7a5db8fd4c86d750f",
+            "reference": "6916c240a307489e5e0a0ef7a5db8fd4c86d750f",
+            "shasum": ""
+        },
+        "require": {
+            "ext-curl": "*",
+            "ext-dom": "*",
+            "ext-mbstring": "*",
+            "ext-simplexml": "*",
+            "ext-spl": "*",
+            "ext-zlib": "*",
+            "php": ">=5.5.0"
+        },
+        "time": "2019-06-02 16:39:54",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Icamys\\SitemapGenerator\\": "src/"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Prisacari Dmitrii",
+                "email": "prisacari.dmitrii@gmail.com",
+                "homepage": "http://github.com/icamys/"
+            }
+        ],
+        "description": "Simple PHP sitemap generator.",
+        "homepage": "https://github.com/icamys/php-sitemap-generator",
+        "keywords": [
+            "PSR-1",
+            "PSR-2",
+            "PSR-4",
+            "Sitemap",
+            "generator",
+            "php"
+        ]
+    },
+    {
+        "name": "symfony/filesystem",
+        "version": "v4.3.1",
+        "version_normalized": "4.3.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/symfony/filesystem.git",
+            "reference": "bf2af40d738dec5e433faea7b00daa4431d0a4cf"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/symfony/filesystem/zipball/bf2af40d738dec5e433faea7b00daa4431d0a4cf",
+            "reference": "bf2af40d738dec5e433faea7b00daa4431d0a4cf",
+            "shasum": ""
+        },
+        "require": {
+            "php": "^7.1.3",
+            "symfony/polyfill-ctype": "~1.8"
+        },
+        "time": "2019-06-03 20:27:40",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "4.3-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Symfony\\Component\\Filesystem\\": ""
+            },
+            "exclude-from-classmap": [
+                "/Tests/"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Fabien Potencier",
+                "email": "fabien@symfony.com"
+            },
+            {
+                "name": "Symfony Community",
+                "homepage": "https://symfony.com/contributors"
+            }
+        ],
+        "description": "Symfony Filesystem Component",
+        "homepage": "https://symfony.com"
     }
 ]
