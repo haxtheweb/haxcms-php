@@ -1,1 +1,0 @@
-define(["./dist/build-full.js"],function(){"use strict"});
