@@ -6,6 +6,8 @@ import "./build-legacy.js";
 import "./elmsln-build.js";
 import "./elmsln-build-edit.js";
 import "./elmsln-apps.js";
+// important in smaller builds
+import "@lrnwebcomponents/baseline-build-hax/baseline-build-hax.js";
 window.process = { env: { NODE_ENV: 'production' } };
 // supported backends
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-beaker.js";
