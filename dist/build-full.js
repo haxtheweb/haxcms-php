@@ -84,3 +84,4 @@ import "@lrnwebcomponents/lrndesign-gallery/lrndesign-gallery.js";
 import "@lrnwebcomponents/html-block/html-block.js";
 import "@lrnwebcomponents/user-action/user-action.js";
 import "@lrnwebcomponents/rss-items/rss-items.js";
+import "@lrnwebcomponents/grid-plate/grid-plate.js";
