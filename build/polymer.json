@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 {
   "entrypoint": "dist/build.html",
   "fragments": [],
@@ -102,4 +100,3 @@
   "componentDir": "node_modules/",
   "moduleResolution": "node"
 }
->>>>>>> 4c8a8362a895dfe3abc82c9d687bb873381c603f
