@@ -370,13 +370,17 @@
   <!-- use this to test the legacy build
     <script type="module" src="dist/build-legacy.js"></script>
   -->
-  <script>
+  <script async defer>
+    window.addEventListener('haxcms-editor-builder-ready', (e) => {
+    // force HAX to act like a demo after we know the builder is ready
+      window.HAXme();
+    });
     // set this in order to simulate the published form of the site
-    // window.__haxCMSContextPublished = true;
+    //window.__haxCMSContextPublished = true;
     // set the below to simulate running a demo / end points to load data
     // this will let you simulate more operations without having a backend
-    window.__haxCMSContextDemo = true;
-    window.appSettings = {
+    //window.__haxCMSContextDemo = true;
+    /*window.appSettings = {
       "login": "dist\/dev\/login.json",
       "logout": "dist\/dev\/logout.json",
       "saveNodePath": "dist\/dev\/saveNode.json",
@@ -401,7 +405,7 @@
           "name": "Developer theme"
         }
       }
-    };
+    };*/
     // append global base styles
     var link = document.createElement('link');
     link.rel = 'stylesheet';
