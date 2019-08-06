@@ -12,15 +12,17 @@ if ($HAXCMS->validateJWT()) {
         if (isset($params['domain'])) {
             $domain = $params['domain'];
         }
+        // sanitize siteName
+        $siteName = $HAXCMS->generateMachineName($params['siteName']);
         $site = $HAXCMS->loadSite(
-            strtolower($params['siteName']),
+            strtolower($siteName),
             true,
             $domain
         );
         // now get a new item to reference this into the top level sites listing
         $schema = $HAXCMS->outlineSchema->newItem();
         $schema->id = $site->manifest->id;
-        $schema->title = $params['siteName'];
+        $schema->title = $siteName;
         $schema->location =
             $HAXCMS->basePath .
             $HAXCMS->sitesDirectory .

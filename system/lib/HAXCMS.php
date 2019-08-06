@@ -616,6 +616,17 @@ class HAXCMS
         return false;
     }
     /**
+     * Generate machine name
+     */
+    public function generateMachineName($name) {
+        return strtolower(preg_replace(array(
+        '/[^a-zA-Z0-9]+/',
+        '/-+/',
+        '/^-+/',
+        '/-+$/',
+        ), array('-', '-', '', ''), $name));
+    }
+    /**
      * Clean up a title / sanitize the input string for file system usage
      */
     public function cleanTitle($value, $stripPage = true)
