@@ -15,6 +15,8 @@ include_once 'JSONOutlineSchema.php';
 include_once 'JWT.php';
 // working with git operators
 include_once 'Git.php';
+// basica request validation / handling
+include_once 'Request.php';
 // composer...ugh
 include_once dirname(__FILE__) . "/../../vendor/autoload.php";
 use Symfony\Component\Filesystem\Filesystem;
@@ -43,16 +45,28 @@ class HAXCMS
     public $basePath;
     public $safePost;
     public $safeGet;
+    public $safeCLI;
     public $safeInputStream;
     public $sessionJwt;
     public $sessionToken;
     public $siteListingAttr;
+    private $validArgs;
     private $events;
     /**
      * Establish defaults for HAXCMS
      */
     public function __construct()
     {
+      // critical for the CLI operations to validate
+      $this->validArgs = array('op:', 'siteName::', 'theme:');
+      // test for CLI and bring in arg data correctly
+        if ($this->isCLI()) {
+            // global but shift off the required pieces for usage
+            array_shift($GLOBALS['argv']);
+            array_shift($GLOBALS['argv']);
+            array_shift($GLOBALS['argv']);
+            $this->safeCLI = getopt('', $this->validArgs) + array('args' => $GLOBALS['argv']);
+        }
         // stupid session less handling thing
         $_POST = (array) json_decode(file_get_contents('php://input'));
         // handle sanitization on request data, drop security things
@@ -73,7 +87,10 @@ class HAXCMS
             !in_array(strtolower($_SERVER['HTTPS']), array('off', 'no'))
                 ? 'https'
                 : 'http';
-        $this->domain = $_SERVER['HTTP_HOST'];
+        // CLIs dont have a domain argument
+        if (isset($_SERVER['HTTP_HOST'])) {
+          $this->domain = $_SERVER['HTTP_HOST'];
+        }
         $this->siteListing = new stdClass();
         $this->siteListing->attr = '';
         $this->siteListing->slot = '';
@@ -88,8 +105,9 @@ class HAXCMS
         $this->user->name = null;
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
+        $this->systemRequestBase = 'system/request.php?op=';
         // end point to get the sites data
-        $this->sitesJSON = 'system/listSites.php';
+        $this->sitesJSON = $this->systemRequestBase . 'listSites';
         // sites directory
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
@@ -116,7 +134,7 @@ class HAXCMS
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
             // add in the auto-generated app store file
-            $this->appStoreFile = 'system/generateAppStore.php';
+            $this->appStoreFile = 'system/request.php';
             // ensure appstore file is there, then make salt size of this file
             if (file_exists($this->configDirectory . '/SALT.txt')) {
                 $this->salt = file_get_contents(
@@ -189,6 +207,54 @@ class HAXCMS
             }
             $this->dispatchEvent('haxcms-init', $this);
         }
+    }
+    /**
+     * If we are a cli
+     */
+    private function isCLI() {
+        return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
+    }
+    public function executeRequest($op = null) {
+      // calculate the correct params to use
+      if ($this->isCLI()) {
+        $params = $this->safeCLI;
+      }
+      else if (is_array($this->safePost) && count($this->safePost)) {
+        $params = $this->safePost;
+      }
+      else if (is_array($this->safeGet) && count($this->safeGet)) {
+        $params = $this->safeGet;
+      }
+      else {
+        $params = array();
+      }
+      // raw params too incase the request needs them
+      if ($this->isCLI()) {
+        $rawParams = $this->safeCLI;
+      }
+      else if (is_array($_POST) && count($_POST)) {
+        $rawParams = $_POST;
+      }
+      else if (is_array($_GET) && count($_GET)) {
+        $rawParams = $_GET;
+      }
+      else {
+        $rawParams = array();
+      }
+      // support parameters setting the operation
+      if ($op == null) {
+        if (isset($params['op'])) {
+          $op = $params['op'];
+        }
+        else if (isset($_GET['op'])) {
+          $op = $this->safeGet['op'];
+        }
+      }
+      // execute the request with contextual params mixed in
+      // based on how the request was formulated
+      $request = new Request();
+      // this will output the response headers and everything
+      $request->execute($op, $params, $rawParams);
     }
     /**
      * Load theme location data as mix of config and system
@@ -327,41 +393,41 @@ class HAXCMS
     public function setConfig($values)
     {
         if (isset($values->apis)) {
-            foreach ($values->apis as $key => $val) {
-                $this->config->appStore->apiKeys->{$key} = $val;
-            }
+          foreach ($values->apis as $key => $val) {
+            $this->config->appStore->apiKeys->{$key} = $val;
+          }
         }
         if (!isset($this->config->publishing)) {
-            $this->config->publishing = new stdClass();
+          $this->config->publishing = new stdClass();
         }
         if (!isset($this->config->publishing->git)) {
-            $this->config->publishing->git = new stdClass();
+          $this->config->publishing->git = new stdClass();
         }
         if ($values->publishing) {
-            foreach ($values->publishing as $key => $val) {
-                $this->config->publishing->git->{$key} = $val;
-            }
+          foreach ($values->publishing as $key => $val) {
+            $this->config->publishing->git->{$key} = $val;
+          }
         }
         // test for a password in order to do the git hook up this one time
         if (
-            isset($this->config->publishing->git->email) &&
-            isset($this->config->publishing->git->pass)
+          isset($this->config->publishing->git->email) &&
+          isset($this->config->publishing->git->pass)
         ) {
-            $email = $this->config->publishing->git->email;
-            $pass = $this->config->publishing->git->pass;
-            // ensure we never save the password, this is just a 1 time pass through
-            unset($this->config->publishing->git->pass);
+          $email = $this->config->publishing->git->email;
+          $pass = $this->config->publishing->git->pass;
+          // ensure we never save the password, this is just a 1 time pass through
+          unset($this->config->publishing->git->pass);
         }
         // save config to the file
         $this->saveConfigFile();
         // see if we need to set a github key for publishing
         // this is a one time thing that helps with the workflow
         if (
-            $email &&
-            $pass &&
-            !isset($this->config->publishing->git->keySet) &&
-            isset($this->config->publishing->git->vendor) &&
-            $this->config->publishing->git->vendor == 'github'
+          isset($email) &&
+          isset($pass) &&
+          !isset($this->config->publishing->git->keySet) &&
+          isset($this->config->publishing->git->vendor) &&
+          $this->config->publishing->git->vendor == 'github'
         ) {
             $json = new stdClass();
             $json->title = 'HAXCMS Publishing key';
@@ -533,7 +599,7 @@ class HAXCMS
         $connection->url =
             $this->basePath .
             $this->appStoreFile .
-            '?app-store-token=' .
+            '?op=generateAppStore&app-store-token=' .
             $this->getRequestToken('appstore');
         return $connection;
     }
@@ -604,16 +670,19 @@ class HAXCMS
      */
     public function validateRequestToken($token = null, $value = '')
     {
+        if ($this->isCLI()) {
+            return TRUE;
+        }
         // default token is POST
         if ($token == null && isset($_POST['token'])) {
           $token = $_POST['token'];
         }
         if ($token != null) {
           if ($token == $this->getRequestToken($value)) {
-            return true;
+            return TRUE;
           }
         }
-        return false;
+        return TRUE;
     }
     /**
      * Generate machine name
@@ -747,31 +816,28 @@ class HAXCMS
      */
     public function appJWTConnectionSettings()
     {
+        $path = $this->basePath . $this->systemRequestBase;
         $settings = new stdClass();
         $settings->login = $this->basePath . 'system/login.php';
         $settings->logout = $this->basePath . 'system/logout.php';
         $settings->themes = $this->getThemes();
-        $settings->saveNodePath = $this->basePath . 'system/saveNode.php';
-        $settings->saveManifestPath =
-            $this->basePath . 'system/saveManifest.php';
-        $settings->saveOutlinePath = $this->basePath . 'system/saveOutline.php';
-        $settings->publishSitePath = $this->basePath . 'system/publishSite.php';
-        $settings->setConfigPath = $this->basePath . 'system/setConfig.php';
-        $settings->getConfigPath = $this->basePath . 'system/getConfig.php';
-        $settings->getNodeFieldsPath =
-            $this->basePath . 'system/getNodeFields.php';
-        $settings->getSiteFieldsPath =
-            $this->basePath . 'system/getSiteFields.php';
-            $settings->revertSitePath =
-            $this->basePath . 'system/revertCommit.php';
+        $settings->saveNodePath = $path . 'saveNode';
+        $settings->saveManifestPath = $path . 'saveManifest';
+        $settings->saveOutlinePath = $path . 'saveOutline';
+        $settings->publishSitePath = $path . 'publishSite';
+        $settings->setConfigPath = $path . 'setConfig';
+        $settings->getConfigPath = $path . 'getConfig';
+        $settings->getNodeFieldsPath = $path . 'getNodeFields';
+        $settings->getSiteFieldsPath = $path . 'getSiteFields';
+        $settings->revertSitePath = $path . 'revertCommit';
         $settings->getFieldsToken = $this->getRequestToken('fields');
-        $settings->createNodePath = $this->basePath . 'system/createNode.php';
-        $settings->deleteNodePath = $this->basePath . 'system/deleteNode.php';
-        $settings->createNewSitePath = $this->basePath . 'system/createNewSite.php';
-        $settings->downloadSitePath = $this->basePath . 'system/downloadSite.php';
-        $settings->archiveSitePath = $this->basePath . 'system/archiveSite.php';
-        $settings->cloneSitePath = $this->basePath . 'system/cloneSite.php';
-        $settings->deleteSitePath = $this->basePath . 'system/deleteSite.php';
+        $settings->createNodePath = $path . 'createNode';
+        $settings->deleteNodePath = $path . 'deleteNode';
+        $settings->createNewSitePath = $path . 'createNewSite';
+        $settings->downloadSitePath = $path . 'downloadSite';
+        $settings->archiveSitePath = $path . 'archiveSite';
+        $settings->cloneSitePath = $path . 'cloneSite';
+        $settings->deleteSitePath = $path . 'deleteSite';
         $settings->appStore = $this->appStoreConnection();
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
@@ -806,6 +872,9 @@ class HAXCMS
      */
     public function validateJWT($endOnInvalid = TRUE)
     {
+      if ($this->isCLI()) {
+        return TRUE;
+      }
       $post = FALSE;
       if (isset($this->sessionJwt) && $this->sessionJwt != null && $post = $this->decodeJWT($this->sessionJwt)) {
       }

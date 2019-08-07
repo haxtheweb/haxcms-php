@@ -106,10 +106,9 @@ class HAXCMSFIle
             $status = 500;
             $return = 'failed to write';
         }
-        header('Status: ' . $status);
-        return json_encode(array(
+        return array(
             'status' => $status,
             'data' => $return
-        ));
+        );
     }
 }

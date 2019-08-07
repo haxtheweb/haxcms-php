@@ -114,6 +114,17 @@ class HAXCMSSite
         return $this;
     }
     /**
+     * Refresh a site's base files without removing anything existing
+     * @todo needs actual testing and debug
+     */
+    public function refreshSiteFiles() {
+        $this->recurseCopy(
+            HAXCMS_ROOT . '/system/boilerplate/site',
+            HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->siteName,
+            array('pages', 'files', 'custom')
+        );
+    }
+    /**
      * Rename a page from one location to another
      * This ensures that folders are moved but not the final index.html involved
      * It also helps secure the sites by ensuring movement is only within
@@ -706,15 +717,15 @@ class HAXCMSSite
         // core values that live outside of the fields area
         $values = array(
             'title' => $this->manifest->title,
-            'author' => $this->manifest->author,
-            'license' => $this->manifest->license,
-            'description' => $this->manifest->description,
-            'icon' => $this->manifest->metadata->icon,
-            'theme' => $this->manifest->metadata->theme,
+            'author' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author : ''),
+            'license' => (isset($this->manifest->metadata->license) ? $this->manifest->metadata->license : ''),
+            'description' => (isset($this->manifest->metadata->description) ? $this->manifest->metadata->description : ''),
+            'icon' => (isset($this->manifest->metadata->icon) ? $this->manifest->metadata->icon : ''),
+            'theme' => (isset($this->manifest->metadata->theme) ? $this->manifest->metadata->theme : ''),
             'domain' => (isset($this->manifest->metadata->domain) ? $this->manifest->metadata->domain : ''),
             'pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : false),
-            'image' => $this->manifest->metadata->image,
-            'cssVariable' => $this->manifest->metadata->cssVariable,
+            'image' => (isset($this->manifest->metadata->image) ? $this->manifest->metadata->image : ''),
+            'cssVariable' => (isset($this->manifest->metadata->cssVariable) ? $this->manifest->metadata->cssVariable : ''),
             'fields' => $nodeFields
         );
         // now get the field data from the page
@@ -859,14 +870,14 @@ class HAXCMSSite
     /**
      * Recursive copy to rename high level but copy all files
      */
-    public function recurseCopy($src, $dst)
+    public function recurseCopy($src, $dst, $skip = array())
     {
         $dir = opendir($src);
         // see if we can make the directory to start off
-        if (!is_dir($dst) && @mkdir($dst, 0777, true)) {
+        if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0777, true)) {
             while (false !== ($file = readdir($dir))) {
                 if ($file != '.' && $file != '..') {
-                    if (is_dir($src . '/' . $file)) {
+                    if (is_dir($src . '/' . $file) && array_search($file, $skip) === FALSE) {
                         $this->recurseCopy(
                             $src . '/' . $file,
                             $dst . '/' . $file
