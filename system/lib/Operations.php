@@ -3,6 +3,12 @@ class Operations {
   public $params;
   public $rawParams;
   /**
+   * META: options request
+   */
+  public function options() {
+    return get_class_methods($this);
+  }
+  /**
    * HAXCMS SITE OPERATIONS
    */
   /**
@@ -809,9 +815,9 @@ class Operations {
     return $return;
   }
   /**
-   * Create a new site
+   * Create site
    */
-  public function createNewSite() {
+  public function createSite() {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
       $domain = null;
       // woohoo we can edit this thing!
@@ -836,10 +842,16 @@ class Operations {
           $site->manifest->metadata->siteName .
           '/index.html';
       $schema->metadata->siteName = $site->manifest->metadata->siteName;
+      if (isset($this->params['theme'])) {
+        $theme = $this->params['theme'];
+      }
+      else {
+        $theme = HAXCMS_DEFAULT_THEME;
+      }
       // look for a match so we can set the correct data
-      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
-          if ($this->params['theme'] == $key) {
-              $schema->metadata->theme = $theme;
+      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $themeObj) {
+          if ($theme == $key) {
+              $schema->metadata->theme = $themeObj;
           }
       }
       // description for an overview if desired

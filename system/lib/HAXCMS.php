@@ -3,6 +3,8 @@
  * HAXCMS - The worlds smallest, most nothing yet most empowering CMS.
  * Simply a tremendous CMS. The greatest.
  */
+// system constants
+include_once 'Variables.php';
 // service creation / HAX app store service abstraction
 include_once 'HAXService.php';
 // working with sites
@@ -626,7 +628,7 @@ class HAXCMS
             return $site;
         } elseif ($create) {
             // attempt to create site
-            return $this->createNewSite($name, $domain);
+            return $this->createSite($name, $domain);
         }
         return false;
     }
@@ -639,7 +641,7 @@ class HAXCMS
      *
      * @return boolean true for success, false for failed
      */
-    private function createNewSite($name, $domain = null, $git = null)
+    private function createSite($name, $domain = null, $git = null)
     {
         // try and make the folder
         $site = new HAXCMSSite();
@@ -833,7 +835,7 @@ class HAXCMS
         $settings->getFieldsToken = $this->getRequestToken('fields');
         $settings->createNodePath = $path . 'createNode';
         $settings->deleteNodePath = $path . 'deleteNode';
-        $settings->createNewSitePath = $path . 'createNewSite';
+        $settings->createNewSitePath = $path . 'createSite';
         $settings->downloadSitePath = $path . 'downloadSite';
         $settings->archiveSitePath = $path . 'archiveSite';
         $settings->cloneSitePath = $path . 'cloneSite';

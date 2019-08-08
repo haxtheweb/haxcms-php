@@ -1,5 +1,4 @@
 <?php
-define('HAXCMS_DEFAULT_THEME', 'simple-blog');
 // working with RSS
 include_once 'RSS.php';
 // a site object
