@@ -741,7 +741,7 @@ class HAXCMSSite
             foreach ($this->manifest->metadata->fields as $key => $item) {
                 if ($key == 'theme') {
                     $values[$key] = $item['key'];
-                } else {
+                } else if ($key != 'configure' && $key != 'advanced')  {
                     $values[$key] = $item;
                 }
             }
