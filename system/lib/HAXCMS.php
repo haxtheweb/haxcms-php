@@ -18,7 +18,7 @@ include_once 'JWT.php';
 // working with git operators
 include_once 'Git.php';
 // basica request validation / handling
-include_once 'Request.php';
+include_once dirname(__FILE__) . '/Request.php';
 // composer...ugh
 include_once dirname(__FILE__) . "/../../vendor/autoload.php";
 use Symfony\Component\Filesystem\Filesystem;
@@ -52,6 +52,7 @@ class HAXCMS
     public $sessionJwt;
     public $sessionToken;
     public $siteListingAttr;
+    public $systemRequestBase;
     private $validArgs;
     private $events;
     /**
@@ -136,7 +137,7 @@ class HAXCMS
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
             // add in the auto-generated app store file
-            $this->appStoreFile = 'system/request.php';
+            $this->appStoreFile = $this->systemRequestBase . 'generateAppStore';
             // ensure appstore file is there, then make salt size of this file
             if (file_exists($this->configDirectory . '/SALT.txt')) {
                 $this->salt = file_get_contents(
@@ -601,7 +602,7 @@ class HAXCMS
         $connection->url =
             $this->basePath .
             $this->appStoreFile .
-            '?op=generateAppStore&app-store-token=' .
+            '&app-store-token=' .
             $this->getRequestToken('appstore');
         return $connection;
     }
