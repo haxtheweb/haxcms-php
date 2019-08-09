@@ -371,6 +371,10 @@ class Operations {
             )
           );
         } else {
+            // sanity check
+            if (!isset($page->metadata)) {
+              $page->metadata = new stdClass();
+            }
             // update the updated timestamp
             $page->metadata->updated = time();
             // auto generate a text only description from first 200 chars
