@@ -1,5 +1,5 @@
 <?php
-include_once 'lib/bootstrapHAX.php';
+include_once dirname(__FILE__) . '/lib/bootstrapHAX.php';
 include_once $HAXCMS->configDirectory . '/config.php';
 // pull post off of the input stream to ensure we get a response coming through
 $post = json_decode(file_get_contents('php://input'));
