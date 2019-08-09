@@ -725,15 +725,19 @@ class HAXCMSSite
         // core values that live outside of the fields area
         $values = array(
             'title' => $this->manifest->title,
-            'author' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author : ''),
-            'license' => (isset($this->manifest->metadata->license) ? $this->manifest->metadata->license : ''),
             'description' => (isset($this->manifest->metadata->description) ? $this->manifest->metadata->description : ''),
             'icon' => (isset($this->manifest->metadata->icon) ? $this->manifest->metadata->icon : ''),
             'theme' => (isset($this->manifest->metadata->theme) ? $this->manifest->metadata->theme : ''),
             'domain' => (isset($this->manifest->metadata->domain) ? $this->manifest->metadata->domain : ''),
-            'pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : false),
+            'author.name' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->name : ''),
+            'author.image' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->image : ''),
+            'author.socialLink' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->socialLink : ''),
+            'author.license' => (isset($this->manifest->metadata->license) ? $this->manifest->metadata->license : ''),
+            'seo.pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : false),
+            'seo.offline' => (isset($this->manifest->metadata->offline) ? $this->manifest->metadata->offline : false),
             'image' => (isset($this->manifest->metadata->image) ? $this->manifest->metadata->image : ''),
             'cssVariable' => (isset($this->manifest->metadata->cssVariable) ? $this->manifest->metadata->cssVariable : ''),
+            'publishing.git' => (isset($this->manifest->metadata->publishing) ? $this->manifest->metadata->publishing->git : array()),
             'fields' => $nodeFields
         );
         // now get the field data from the page

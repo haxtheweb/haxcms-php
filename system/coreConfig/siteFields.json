@@ -60,13 +60,6 @@
   ],
   "advanced": [
     {
-      "property": "pathauto",
-      "title": "Pathauto",
-      "description": "Automatically maintain element paths",
-      "inputMethod": "boolean",
-      "icon": "icons:link"
-    },
-    {
       "property": "fields",
       "title": "Custom Fields",
       "description": "Store relational data about fields",
@@ -146,19 +139,115 @@
       ]
     },
     {
-      "property": "license",
-      "title": "License",
-      "description": "The source url for the element this is citing.",
-      "inputMethod": "select",
-      "options": {},
-      "icon": "link"
-    },
-    {
-      "property": "author",
-      "title": "Author",
-      "description": "who made this",
-      "inputMethod": "textfield",
-      "icon": "social:person"
+      "property": "settings",
+      "inputMethod": "tabs",
+      "properties": [
+        {
+          "property": "author",
+          "title": "Author / Ownership",
+          "description": "Author details",
+          "inputMethod": "textfield",
+          "icon": "social:person",
+          "properties": [
+            {
+              "property": "settings.author.license",
+              "title": "License",
+              "description": "The source url for the element this is citing.",
+              "inputMethod": "select",
+              "options": {
+                "by": "Attribution",
+                "by-nc": "Attribution non-commercial",
+                "by-nc-nd": "Attribution Non-commercial No derivatives",
+                "by-nc-sa": "Attribution non-commercial share a like",
+                "by-nd": "Attribution No derivatives",
+                "by-sa": "Attribution Share a like"
+              },
+              "icon": "link"
+            },
+            {
+              "property": "author.image",
+              "title": "Image",
+              "description": "Photo",
+              "inputMethod": "haxupload"
+            },
+            {
+              "property": "author.name",
+              "title": "Name",
+              "description": "Name",
+              "inputMethod": "textfield"
+            },
+            {
+              "property": "author.socialLink",
+              "title": "Social media link",
+              "description": "A primary social space / point of contact",
+              "inputMethod": "textfield"
+            }
+          ]
+        },
+        {
+          "property": "seo",
+          "title": "SEO / Path",
+          "description": "Search engine and detailed internal path handling",
+          "icon": "social:person",
+          "properties": [
+            {
+              "property": "pathauto",
+              "title": "Pathauto",
+              "description": "Automatically maintain element paths",
+              "inputMethod": "boolean",
+              "icon": "icons:link"
+            },
+            {
+              "property": "seo.offline",
+              "title": "Offline",
+              "description": "If site should be offline capable or not",
+              "inputMethod": "boolean",
+              "icon": "icons:link"
+            }
+          ]
+        },
+        {
+          "property": "publishing",
+          "title": "Publishing",
+          "description": "Store relational data about fields",
+          "properties": [
+            {
+              "property": "git.cdn",
+              "title": "CDN",
+              "description": "CDN to use for published assets",
+              "inputMethod": "select",
+              "required": true,
+              "options": {
+                "https://webcomponents.psu.edu/cdn/": "Penn State CDN",
+                "https://cdn.waxam.io/": "Waxam CDN",
+                "build/": "Local (no CDN)"
+              },
+              "icon": "link"
+            },
+            {
+              "property": "git.branch",
+              "title": "Branch",
+              "description": "Branch to publish on (gh-pages / master are common)",
+              "inputMethod": "textfield",
+              "required": true
+            },
+            {
+              "property": "git.url",
+              "title": "Git url",
+              "description": "location of the git repository to sync up to",
+              "inputMethod": "textfield",
+              "required": true
+            },
+            {
+              "property": "git.vendor",
+              "title": "Vendor",
+              "description": "Vendor to publish to (github only supported currently)",
+              "inputMethod": "textfield",
+              "required": true
+            }
+          ]
+        }
+      ]
     }
   ]
 }
