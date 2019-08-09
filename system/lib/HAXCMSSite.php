@@ -235,7 +235,7 @@ class HAXCMSSite
         $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
         $this->manifest->addItem($page);
         $this->manifest->save();
-        $this->updateStaticVersions();
+        $this->updateAlternateFormats();
         return $page;
     }
     /**
@@ -245,77 +245,86 @@ class HAXCMSSite
       $this->manifest->save();
     }
     /**
-     * Update RSS / Atom feeds which are physical files
+     * Update RSS, Atom feeds, site map, legacy outline, search index
+     * which are physical files and need rebuilt on chnages to data structure
      */
-    public function updateStaticVersions()
+    public function updateAlternateFormats($format = NULL)
     {
-        // rip changes to feed urls
-        $rss = new FeedMe();
-        $siteDirectory =
-            $this->directory . '/' . $this->manifest->metadata->siteName . '/';
-        @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
-        @file_put_contents(
-            $siteDirectory . 'atom.xml',
-            $rss->getAtomFeed($this)
-        );
-        // build a sitemap if we have a domain, kinda required...
-        if (isset($this->manifest->metadata->domain)) {
-            $domain = $this->manifest->metadata->domain;
-            $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                $domain,
-                $siteDirectory
+        if (is_null($format) || $format == 'rss') {
+            // rip changes to feed urls
+            $rss = new FeedMe();
+            $siteDirectory =
+                $this->directory . '/' . $this->manifest->metadata->siteName . '/';
+            @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+            @file_put_contents(
+                $siteDirectory . 'atom.xml',
+                $rss->getAtomFeed($this)
             );
-            // will create also compressed (gzipped) sitemap
-            $generator->createGZipFile = true;
-            // determine how many urls should be put into one file
-            // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-            $generator->maxURLsPerSitemap = 50000;
-            // sitemap file name
-            $generator->sitemapFileName = "sitemap.xml";
-            // sitemap index file name
-            $generator->sitemapIndexFileName = "sitemap-index.xml";
-            // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-            foreach ($this->manifest->items as $key => $item) {
-                if ($item->parent == null) {
-                    $priority = '1.0';
-                } elseif ($item->indent == 2) {
-                    $priority = '0.7';
-                } else {
-                    $priority = '0.5';
-                }
-                $updatedTime = new DateTime();
-                $updatedTime->setTimestamp($item->metadata->updated);
-                $updatedTime->format(DateTime::ATOM);
-                $generator->addUrl(
-                    $domain .
-                        '/' .
-                        str_replace(
-                            'pages/',
-                            '',
-                            str_replace('/index.html', '', $item->location)
-                        ),
-                    $updatedTime,
-                    'daily',
-                    $priority
-                );
-            }
-            // generating internally a sitemap
-            $generator->createSitemap();
-            // writing early generated sitemap to file
-            $generator->writeSitemap();
         }
-        // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-        @file_put_contents(
-            $siteDirectory . 'legacy-outline.html',
-            '<!DOCTYPE html><html lang="en"><head></head><body>' .
-                $this->treeToNodes($this->manifest->items) .
-                '</body></html>'
-        );
-        // now generate the search index
-        @file_put_contents(
-            $siteDirectory . 'lunrSearchIndex.json',
-                json_encode($this->lunrSearchIndex($this->manifest->items))
-        );
+        // build a sitemap if we have a domain, kinda required...
+        if (is_null($format) || $format == 'sitemap') {
+            if (isset($this->manifest->metadata->domain)) {
+                $domain = $this->manifest->metadata->domain;
+                $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                    $domain,
+                    $siteDirectory
+                );
+                // will create also compressed (gzipped) sitemap
+                $generator->createGZipFile = true;
+                // determine how many urls should be put into one file
+                // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+                $generator->maxURLsPerSitemap = 50000;
+                // sitemap file name
+                $generator->sitemapFileName = "sitemap.xml";
+                // sitemap index file name
+                $generator->sitemapIndexFileName = "sitemap-index.xml";
+                // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+                foreach ($this->manifest->items as $key => $item) {
+                    if ($item->parent == null) {
+                        $priority = '1.0';
+                    } elseif ($item->indent == 2) {
+                        $priority = '0.7';
+                    } else {
+                        $priority = '0.5';
+                    }
+                    $updatedTime = new DateTime();
+                    $updatedTime->setTimestamp($item->metadata->updated);
+                    $updatedTime->format(DateTime::ATOM);
+                    $generator->addUrl(
+                        $domain .
+                            '/' .
+                            str_replace(
+                                'pages/',
+                                '',
+                                str_replace('/index.html', '', $item->location)
+                            ),
+                        $updatedTime,
+                        'daily',
+                        $priority
+                    );
+                }
+                // generating internally a sitemap
+                $generator->createSitemap();
+                // writing early generated sitemap to file
+                $generator->writeSitemap();
+            }
+        }
+        if (is_null($format) || $format == 'legacy') {
+            // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
+            @file_put_contents(
+                $siteDirectory . 'legacy-outline.html',
+                '<!DOCTYPE html><html lang="en"><head></head><body>' .
+                    $this->treeToNodes($this->manifest->items) .
+                    '</body></html>'
+            );
+        }
+        if (is_null($format) || $format == 'search') {
+            // now generate the search index
+            @file_put_contents(
+                $siteDirectory . 'lunrSearchIndex.json',
+                    json_encode($this->lunrSearchIndex($this->manifest->items))
+            );
+        }
     }
     /**
      * Create Lunr.js style search index
@@ -803,7 +812,7 @@ class HAXCMSSite
             if ($item->id === $page->id) {
                 $this->manifest->items[$key] = $page;
                 $this->manifest->save(false);
-                $this->updateStaticVersions();
+                $this->updateAlternateFormats();
                 return $page;
             }
         }
@@ -819,7 +828,7 @@ class HAXCMSSite
             if ($item->id === $page->id) {
                 unset($this->manifest->items[$key]);
                 $this->manifest->save(false);
-                $this->updateStaticVersions();
+                $this->updateAlternateFormats();
                 return true;
             }
         }

@@ -592,6 +592,17 @@ class Operations {
     }
   }
   /**
+   * Update site alternate formats
+   */
+  public function siteUpdateAlternateFormats() {
+    $format = NULL;
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['siteName']);
+    if (isset($this->params['format'])) {
+      $format = $this->params['format'];
+    }
+    $site->updateAlternateFormats($format);
+  }
+  /**
    * Revert site commit
    */
   public function revertCommit() {
