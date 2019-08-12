@@ -76,10 +76,10 @@
         "transformModulesToAmd": true
       },
       "css": {
-        "minify": false
+        "minify": true
       },
       "html": {
-        "minify": false
+        "minify": true
       },
       "bundle": false
     }
