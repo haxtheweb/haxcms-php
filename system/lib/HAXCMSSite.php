@@ -313,9 +313,16 @@ class HAXCMSSite
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
             @file_put_contents(
                 $siteDirectory . 'legacy-outline.html',
-                '<!DOCTYPE html><html lang="en"><head></head><body>' .
+                '<!DOCTYPE html>
+                <html lang="en">
+                    <head>
+                        <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+                        <meta content="utf-8" http-equiv="encoding">
+                    </head>
+                    <body>' .
                     $this->treeToNodes($this->manifest->items) .
-                    '</body></html>'
+                    '</body>
+                </html>'
             );
         }
         if (is_null($format) || $format == 'search') {
