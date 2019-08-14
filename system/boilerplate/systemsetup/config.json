@@ -618,7 +618,7 @@
           "pixabay": ""
       }
   },
-  "publishing": {
+  "site": {
     "git": {
         "vendor": "github",
         "branch": "gh-pages"

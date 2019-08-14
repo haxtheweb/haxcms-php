@@ -57,6 +57,32 @@ class Request {
         if (method_exists($operations, $op)) {
           $operations->params = $params;
           $operations->rawParams = $rawParams;
+          // support some commands that have to set via the camelCase
+          // this only happens in rare situations like file upload
+          // because of front end requirements to ship via GET vars
+          // normalize these edge cases here, CLI needs this as well
+          // siteName and nodeId should be the only two
+          if (isset($operations->rawParams['siteName'])) {
+            if (!isset($operations->params['site'])) {
+              $operations->params['site'] = array();
+            }
+            $operations->params['site']['name'] = $operations->rawParams['siteName'];
+            if (!isset($operations->rawParams['site'])) {
+              $operations->rawParams['site'] = array();
+            }
+            $operations->rawParams['site']['name'] = $operations->rawParams['siteName'];
+          }
+          // nodeId is the same way
+          if (isset($operations->rawParams['nodeId'])) {
+            if (!isset($operations->params['node'])) {
+              $operations->params['node'] = array();
+            }
+            $operations->params['node']['id'] = $operations->rawParams['nodeId'];
+            if (!isset($operations->rawParams['node'])) {
+              $operations->rawParams['node'] = array();
+            }
+            $operations->rawParams['node']['id'] = $operations->rawParams['nodeId'];
+          }
           $response = $operations->{$op}();
           if (is_array($response) && isset($response['__failed'])) {
             $this->status = $response['__failed']['status'];
