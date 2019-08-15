@@ -108,7 +108,7 @@ class HAXCMS
         $this->user->name = null;
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
-        $this->systemRequestBase = 'system/request.php?op=';
+        $this->systemRequestBase = 'system/request?op=';
         // end point to get the sites data
         $this->sitesJSON = $this->systemRequestBase . 'listSites';
         // sites directory
@@ -594,7 +594,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/loadFiles.php",
+            "endPoint": "system/loadFiles",
             "pagination": {
               "style": "link",
               "props": {
@@ -627,7 +627,7 @@ class HAXCMS
           },
           "add": {
             "method": "POST",
-            "endPoint": "system/saveFile.php",
+            "endPoint": "system/saveFile",
             "acceptsGizmoTypes": [
               "image",
               "video",
@@ -879,8 +879,8 @@ class HAXCMS
     {
         $path = $this->basePath . $this->systemRequestBase;
         $settings = new stdClass();
-        $settings->login = $this->basePath . 'system/login.php';
-        $settings->logout = $this->basePath . 'system/logout.php';
+        $settings->login = $this->basePath . 'system/login';
+        $settings->logout = $this->basePath . 'system/logout';
         $settings->themes = $this->getThemes();
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
