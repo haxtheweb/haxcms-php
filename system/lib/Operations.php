@@ -874,8 +874,8 @@ class Operations {
       }
       $schema->metadata->theme->variables = new stdClass();
       // description for an overview if desired
-      if (isset($this->params['description'])) {
-          $schema->description = $this->params['description'];
+      if (isset($this->params['site']['description'])) {
+          $schema->description = $this->params['site']['description'];
       }
       // background image / banner
       if (isset($this->params['theme']['variables']['image'])) {

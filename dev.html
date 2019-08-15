@@ -132,6 +132,7 @@
           themeCoreJson = myJson;
           return myJson;
         });
+      // fake an async
       setTimeout(() => {
         // combine so they are there for review just like a real backend would present
         window.appSettings.themes = Object.assign(
@@ -139,7 +140,7 @@
           themeCoreJson,
           configJson.themes
         );
-      }, 50);
+      }, 100);
       // append global base styles
       var link = document.createElement("link");
       link.rel = "stylesheet";
