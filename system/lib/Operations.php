@@ -1107,8 +1107,8 @@ class Operations {
                 }
             }
             // werid looking I know but if we have a CDN then we need to "rewrite" this file
-            if (isset($site->manifest->metadata->static->cdn)) {
-                $cdn = $site->manifest->metadata->static->cdn;
+            if (isset($site->manifest->metadata->site->static->cdn)) {
+                $cdn = $site->manifest->metadata->site->static->cdn;
             } else {
                 $cdn = 'custom';
             }
