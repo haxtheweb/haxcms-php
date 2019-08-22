@@ -831,7 +831,7 @@ class HAXCMS
         $settings->setConfigPath = $path . 'setConfig';
         $settings->getConfigPath = $path . 'getConfig';
         $settings->getNodeFieldsPath = $path . 'getNodeFields';
-        $settings->getSiteFieldsPath = $path . 'getSiteFields';
+        $settings->getSiteFieldsPath = $path . 'formLoad&form_id=site_settings';
         $settings->revertSitePath = $path . 'revertCommit';
         $settings->getFieldsToken = $this->getRequestToken('fields');
         $settings->createNodePath = $path . 'createNode';
