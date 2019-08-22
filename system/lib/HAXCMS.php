@@ -73,7 +73,7 @@ class HAXCMS
         // stupid session less handling thing
         $_POST = (array) json_decode(file_get_contents('php://input'));
         // handle sanitization on request data, drop security things
-        $this->safePost = filter_var_array($_POST, FILTER_SANITIZE_STRING);
+        $this->safePost = $this->object_to_array($this->sanitizeArrayValues($_POST));
         if (isset($this->safePost['jwt'])) {
           $this->sessionJwt = $this->safePost['jwt'];
         }
@@ -82,7 +82,7 @@ class HAXCMS
           $this->sessionToken = $this->safePost['token'];
         }
         unset($this->safePost['token']);
-        $this->safeGet = filter_var_array($_GET, FILTER_SANITIZE_STRING);
+        $this->safeGet = $this->object_to_array($this->sanitizeArrayValues($_GET));
         // Get HTTP/HTTPS (the possible values for this vary from server to server)
         $this->protocol =
             isset($_SERVER['HTTPS']) &&
@@ -108,7 +108,7 @@ class HAXCMS
         $this->user->name = null;
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
-        $this->systemRequestBase = 'system/request.php?op=';
+        $this->systemRequestBase = 'system/request?op=';
         // end point to get the sites data
         $this->sitesJSON = $this->systemRequestBase . 'listSites';
         // sites directory
@@ -169,8 +169,10 @@ class HAXCMS
                     $this->config->themes->{$name} = $data;
                 }
                 // dynamicImporter
-                if (!isset($this->config->dynamicElementLoader)) {
-                    $this->config->dynamicElementLoader = new stdClass();
+                if (!isset($this->config->node)) {
+                    $this->config->node = new stdClass();
+                    $this->config->node->dynamicElementLoader = new stdClass();
+                    $this->config->node->fields = new stdClass();
                 }
                 // load in core dynamicElementLoader data
                 $dynamicElementLoader = json_decode(
@@ -179,24 +181,30 @@ class HAXCMS
                     )
                 );
                 foreach ($dynamicElementLoader as $name => $data) {
-                    $this->config->dynamicElementLoader->{$name} = $data;
+                    $this->config->node->dynamicElementLoader->{$name} = $data;
                 }
                 // publishing endpoints
-                if (!isset($this->config->publishing)) {
-                    $this->config->publishing = new stdClass();
+                if (!isset($this->config->site)) {
+                    $this->config->site = new stdClass();
+                    $this->config->site->settings = new stdClass();
+                    $this->config->site->git = new stdClass();
+                    $this->config->site->static = new stdClass();
+                }
+                if (!isset($this->config->site->publishers)) {
+                  $this->config->site->publishers = new stdClass();
                 }
                 // load in core publishing data
                 $publishingData = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/publishing.json'
+                        HAXCMS_ROOT . '/system/coreConfig/publishers.json'
                     )
                 );
                 foreach ($publishingData as $name => $data) {
-                    $this->config->publishing->{$name} = $data;
+                    $this->config->site->publishers->{$name} = $data;
                 }
                 // importer formats to ingest
-                if (!isset($this->config->importers)) {
-                    $this->config->importers = new stdClass();
+                if (!isset($this->config->site->importers)) {
+                    $this->config->site->importers = new stdClass();
                 }
                 // load in core importers data
                 $importersData = json_decode(
@@ -205,11 +213,61 @@ class HAXCMS
                     )
                 );
                 foreach ($importersData as $name => $data) {
-                    $this->config->importers->{$name} = $data;
+                    $this->config->site->importers->{$name} = $data;
                 }
             }
             $this->dispatchEvent('haxcms-init', $this);
         }
+    }
+    /**
+     * recursively convert an object to an array, deeply
+     */
+    private function object_to_array($obj) {
+        //only process if it's an object or array being passed to the function
+        if(is_object($obj) || is_array($obj)) {
+            $ret = (array) $obj;
+            foreach($ret as &$item) {
+                //recursively process EACH element regardless of type
+                $item = $this->object_to_array($item);
+            }
+            return $ret;
+        }
+        //otherwise (i.e. for scalar values) return without modification
+        else {
+            return $obj;
+        }
+    }
+    /**
+     * Deep sanitize array values
+     */
+    public function sanitizeArrayValues($values) {
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                if (is_array($values)) {
+                    $values[$key] = $this->sanitizeArrayValues($value);
+                }
+                else if (is_object($values)) {
+                    $values->{$key} = $this->sanitizeArrayValues($value);
+                }
+            }
+            else if (is_object($value)) {
+                if (is_array($values)) {
+                    $values[$key] = $this->sanitizeArrayValues($value);
+                }
+                else if (is_object($values)) {
+                    $values->{$key} = $this->sanitizeArrayValues($value);
+                }
+            }
+            else {
+                if (is_array($values)) {
+                    $values[$key] = filter_var($value);
+                }
+                else if (is_object($values)) {
+                    $values->{$key} = filter_var($value);
+                }
+            }
+        }
+        return $values;
     }
     /**
      * If we are a cli
@@ -331,8 +389,8 @@ class HAXCMS
             $props = new stdClass();
             $props->title = $value['name'];
             $props->type = 'string';
-            if (isset($this->config->publishing->git->{$key})) {
-                $props->value = $this->config->publishing->git->{$key};
+            if (isset($this->config->site->git->{$key})) {
+                $props->value = $this->config->site->git->{$key};
             } else {
                 $props->value = $value['value'];
             }
@@ -345,7 +403,7 @@ class HAXCMS
                 $props->component->attributes = new stdClass();
                 $props->component->attributes->type = 'password';
             }
-            if ($key == 'pass' && isset($this->config->publishing->git->user)) {
+            if ($key == 'pass' && isset($this->config->site->git->user)) {
                 // keep moving but if we already have a user name we don't need this
                 // we only ask for a password on the very first run through
                 $schema->properties->publishing->properties->user->component->slot =
@@ -400,26 +458,26 @@ class HAXCMS
             $this->config->appStore->apiKeys->{$key} = $val;
           }
         }
-        if (!isset($this->config->publishing)) {
-          $this->config->publishing = new stdClass();
+        if (!isset($this->config->site)) {
+          $this->config->site = new stdClass();
         }
-        if (!isset($this->config->publishing->git)) {
-          $this->config->publishing->git = new stdClass();
+        if (!isset($this->config->site->git)) {
+          $this->config->site->git = new stdClass();
         }
         if ($values->publishing) {
           foreach ($values->publishing as $key => $val) {
-            $this->config->publishing->git->{$key} = $val;
+            $this->config->site->git->{$key} = $val;
           }
         }
         // test for a password in order to do the git hook up this one time
         if (
-          isset($this->config->publishing->git->email) &&
-          isset($this->config->publishing->git->pass)
+          isset($this->config->site->git->email) &&
+          isset($this->config->site->git->pass)
         ) {
-          $email = $this->config->publishing->git->email;
-          $pass = $this->config->publishing->git->pass;
+          $email = $this->config->site->git->email;
+          $pass = $this->config->site->git->pass;
           // ensure we never save the password, this is just a 1 time pass through
-          unset($this->config->publishing->git->pass);
+          unset($this->config->site->git->pass);
         }
         // save config to the file
         $this->saveConfigFile();
@@ -428,9 +486,9 @@ class HAXCMS
         if (
           isset($email) &&
           isset($pass) &&
-          !isset($this->config->publishing->git->keySet) &&
-          isset($this->config->publishing->git->vendor) &&
-          $this->config->publishing->git->vendor == 'github'
+          !isset($this->config->site->git->keySet) &&
+          isset($this->config->site->git->vendor) &&
+          $this->config->site->git->vendor == 'github'
         ) {
             $json = new stdClass();
             $json->title = 'HAXCMS Publishing key';
@@ -447,18 +505,18 @@ class HAXCMS
             );
             // we did it, now store that it worked so we can skip all this setup in the future
             if ($response->getStatusCode() == 201) {
-                $this->config->publishing->git->keySet = true;
+                $this->config->site->git->keySet = true;
                 $this->saveConfigFile();
                 // set global config for username / email if we can
                 $gitRepo = new GitRepo();
                 $gitRepo->run(
                     'config --global user.name "' .
-                        $this->config->publishing->git->user .
+                        $this->config->site->git->user .
                         '"'
                 );
                 $gitRepo->run(
                     'config --global user.email "' .
-                        $this->config->publishing->git->email .
+                        $this->config->site->git->email .
                         '"'
                 );
             }
@@ -492,7 +550,7 @@ class HAXCMS
                 'ssh-keygen -f ' .
                     $this->configDirectory .
                     '/.ssh/haxyourweb -t rsa -N "" -C "' .
-                    $this->config->publishing->git->email .
+                    $this->config->site->git->email .
                     '"'
             );
             // check if it exists now
@@ -536,7 +594,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/loadFiles.php",
+            "endPoint": "system/loadFiles",
             "pagination": {
               "style": "link",
               "props": {
@@ -569,7 +627,7 @@ class HAXCMS
           },
           "add": {
             "method": "POST",
-            "endPoint": "system/saveFile.php",
+            "endPoint": "system/saveFile",
             "acceptsGizmoTypes": [
               "image",
               "video",
@@ -647,8 +705,8 @@ class HAXCMS
         // try and make the folder
         $site = new HAXCMSSite();
         // see if we can get a remote setup on the fly
-        if (!isset($git->url) && isset($this->config->publishing->git)) {
-            $git = $this->config->publishing->git;
+        if (!isset($git->url) && isset($this->config->site->git)) {
+            $git = $this->config->site->git;
             // getting really into fallback mode here
             if (isset($git->url)) {
                 $git->url .= '/' . $name . '.git';
@@ -821,8 +879,8 @@ class HAXCMS
     {
         $path = $this->basePath . $this->systemRequestBase;
         $settings = new stdClass();
-        $settings->login = $this->basePath . 'system/login.php';
-        $settings->logout = $this->basePath . 'system/logout.php';
+        $settings->login = $this->basePath . 'system/login';
+        $settings->logout = $this->basePath . 'system/logout';
         $settings->themes = $this->getThemes();
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
@@ -857,9 +915,9 @@ class HAXCMS
     /**
      * Test and ensure the name being returned is a location currently unused
      */
-    public function getUniqueName($siteName)
+    public function getUniqueName($name)
     {
-        $location = $siteName;
+        $location = $name;
         $loop = 0;
         $original = $location;
         while (

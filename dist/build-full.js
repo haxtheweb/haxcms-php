@@ -51,6 +51,8 @@ import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
 import "@lrnwebcomponents/haxor-slevin/haxor-slevin.js";
 
 // these should all be dynamically imported as well
+import "@lrnwebcomponents/h5p-element/h5p-element.js";
+import "@lrnwebcomponents/hax-logo/hax-logo.js";
 import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
 import "@lrnwebcomponents/citation-element/citation-element.js";
 import "@lrnwebcomponents/hero-banner/hero-banner.js";

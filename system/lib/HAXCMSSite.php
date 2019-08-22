@@ -94,10 +94,18 @@ class HAXCMSSite
         // start updating the schema to match this new item we got
         $this->manifest->title = $name;
         $this->manifest->location = $this->basePath . $tmpname . '/index.html';
-        $this->manifest->metadata->siteName = $tmpname;
-        $this->manifest->metadata->domain = $domain;
-        $this->manifest->metadata->created = time();
-        $this->manifest->metadata->updated = time();
+        $this->manifest->metadata = new stdClass();
+        $this->manifest->metadata->author = new stdClass();
+        $this->manifest->metadata->site = new stdClass();
+        $this->manifest->metadata->site->name = $tmpname;
+        $this->manifest->metadata->site->domain = $domain;
+        $this->manifest->metadata->site->created = time();
+        $this->manifest->metadata->site->updated = time();
+        $this->manifest->metadata->theme = new stdClass();
+        $this->manifest->metadata->theme->variables = new stdClass();
+        $this->manifest->metadata->node = new stdClass();
+        $this->manifest->metadata->node->fields = new stdClass();
+        $this->manifest->metadata->node->dynamicElementLoader = new stdClass();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         $this->addPage();
@@ -105,7 +113,7 @@ class HAXCMSSite
         $git = new Git();
         $repo = $git->create($directory . '/' . $tmpname);
         if (
-            !isset($this->manifest->metadata->git->url) &&
+            !isset($this->manifest->metadata->site->git->url) &&
             isset($gitDetails->url)
         ) {
             $this->gitSetRemote($gitDetails);
@@ -119,7 +127,7 @@ class HAXCMSSite
     public function refreshSiteFiles() {
         $this->recurseCopy(
             HAXCMS_ROOT . '/system/boilerplate/site',
-            HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->siteName,
+            HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name,
             array('pages', 'files', 'custom')
         );
     }
@@ -132,7 +140,7 @@ class HAXCMSSite
     public function renamePageLocation($old, $new)
     {
         $siteDirectory =
-            $this->directory . '/' . $this->manifest->metadata->siteName;
+            $this->directory . '/' . $this->manifest->metadata->site->name;
         $old = str_replace('./', '', str_replace('../', '', $old));
         $new = str_replace('./', '', str_replace('../', '', $new));
         global $fileSystem;
@@ -151,7 +159,7 @@ class HAXCMSSite
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName, true
+            $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->add('.');
         $repo->commit($msg);
@@ -164,7 +172,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName, true
+            $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->revert($count);
         return true;
@@ -176,7 +184,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName, true
+            $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->add('.');
         $repo->commit($msg);
@@ -192,7 +200,7 @@ class HAXCMSSite
     {
         $git = new Git();
         $repo = $git->open(
-            $this->directory . '/' . $this->manifest->metadata->siteName, true
+            $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->set_remote("origin", $gitDetails->url);
         return true;
@@ -228,7 +236,7 @@ class HAXCMSSite
         $location =
             $this->directory .
             '/' .
-            $this->manifest->metadata->siteName .
+            $this->manifest->metadata->site->name .
             '/pages/' .
             $page->id;
         // copy the page we use for simplicity (or later complexity if we want)
@@ -254,7 +262,7 @@ class HAXCMSSite
             // rip changes to feed urls
             $rss = new FeedMe();
             $siteDirectory =
-                $this->directory . '/' . $this->manifest->metadata->siteName . '/';
+                $this->directory . '/' . $this->manifest->metadata->site->name . '/';
             @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
             @file_put_contents(
                 $siteDirectory . 'atom.xml',
@@ -263,8 +271,8 @@ class HAXCMSSite
         }
         // build a sitemap if we have a domain, kinda required...
         if (is_null($format) || $format == 'sitemap') {
-            if (isset($this->manifest->metadata->domain)) {
-                $domain = $this->manifest->metadata->domain;
+            if (isset($this->manifest->metadata->site->domain)) {
+                $domain = $this->manifest->metadata->site->domain;
                 $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
                     $domain,
                     $siteDirectory
@@ -313,9 +321,16 @@ class HAXCMSSite
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
             @file_put_contents(
                 $siteDirectory . 'legacy-outline.html',
-                '<!DOCTYPE html><html lang="en"><head></head><body>' .
+                '<!DOCTYPE html>
+                <html lang="en">
+                    <head>
+                        <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+                        <meta content="utf-8" http-equiv="encoding">
+                    </head>
+                    <body>' .
                     $this->treeToNodes($this->manifest->items) .
-                    '</body></html>'
+                    '</body>
+                </html>'
             );
         }
         if (is_null($format) || $format == 'search') {
@@ -343,7 +358,7 @@ class HAXCMSSite
           "created" => $created,
           "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
           "description" => $item->description,
-          "text" => $this->cleanSearchData(@file_get_contents($this->directory . '/' . $this->manifest->metadata->siteName . '/' . $item->location)),
+          "text" => $this->cleanSearchData(@file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location)),
         );
       }
       return $data;
@@ -496,7 +511,7 @@ class HAXCMSSite
             if (isset($coreFields->configure)) {
                 foreach ($coreFields->configure as $item) {
                     // edge case for pathauto
-                    if ($item->property == 'location' && isset($this->manifest->metadata->pathauto) && $this->manifest->metadata->pathauto) {
+                    if ($item->property == 'location' && isset($this->manifest->metadata->site->settings->pathauto) && $this->manifest->metadata->site->settings->pathauto) {
                         // skip this core field if we have pathauto on
                         $item->required = false;
                         $item->disabled = true;
@@ -511,18 +526,18 @@ class HAXCMSSite
             }
         }
         // fields can live globally in config
-        if (isset($GLOBALS['HAXCMS']->config->fields)) {
-            if (isset($GLOBALS['HAXCMS']->config->fields->configure)) {
+        if (isset($GLOBALS['HAXCMS']->config->node->fields)) {
+            if (isset($GLOBALS['HAXCMS']->config->node->fields->configure)) {
                 foreach (
-                    $GLOBALS['HAXCMS']->config->fields->configure
+                    $GLOBALS['HAXCMS']->config->node->fields->configure
                     as $item
                 ) {
                     $fields['configure'][] = $item;
                 }
             }
-            if (isset($GLOBALS['HAXCMS']->config->fields->advanced)) {
+            if (isset($GLOBALS['HAXCMS']->config->node->fields->advanced)) {
                 foreach (
-                    $GLOBALS['HAXCMS']->config->fields->advanced
+                    $GLOBALS['HAXCMS']->config->node->fields->advanced
                     as $item
                 ) {
                     $fields['advanced'][] = $item;
@@ -559,17 +574,17 @@ class HAXCMSSite
             }
         }
         // fields can live in the site itself
-        if (isset($this->manifest->metadata->fields)) {
-            if (isset($this->manifest->metadata->fields->configure)) {
+        if (isset($this->manifest->metadata->node->fields)) {
+            if (isset($this->manifest->metadata->node->fields->configure)) {
                 foreach (
-                    $this->manifest->metadata->fields->configure
+                    $this->manifest->metadata->node->fields->configure
                     as $item
                 ) {
                     $fields['configure'][] = $item;
                 }
             }
-            if (isset($this->manifest->metadata->fields->advanced)) {
-                foreach ($this->manifest->metadata->fields->advanced as $item) {
+            if (isset($this->manifest->metadata->node->fields->advanced)) {
+                foreach ($this->manifest->metadata->node->fields->advanced as $item) {
                     $fields['advanced'][] = $item;
                 }
             }
@@ -701,26 +716,26 @@ class HAXCMSSite
         }
         // fields can live in the site itself
         // @todo this needs to give you data differently
-        if (isset($this->manifest->metadata->fields)) {
-            if (isset($this->manifest->metadata->fields->configure)) {
+        if (isset($this->manifest->metadata->node->fields)) {
+            if (isset($this->manifest->metadata->node->fields->configure)) {
                 foreach (
-                    $this->manifest->metadata->fields->configure
+                    $this->manifest->metadata->node->fields->configure
                     as $item
                 ) {
                     $item->formgroup = 'configure';
                     $nodeFields[] = $item;
                 }
             }
-            if (isset($this->manifest->metadata->fields->advanced)) {
-                foreach ($this->manifest->metadata->fields->advanced as $item) {
+            if (isset($this->manifest->metadata->node->fields->advanced)) {
+                foreach ($this->manifest->metadata->node->fields->advanced as $item) {
                     $item->formgroup = 'advanced';
                     $nodeFields[] = $item;
                 }
             }
         }
         // icon wasn't required at one point
-        if (!isset($this->manifest->metadata->icon)) {
-            $this->manifest->metadata->icon = '';
+        if (!isset($this->manifest->metadata->theme->variables->icon)) {
+            $this->manifest->metadata->theme->variables->icon = '';
         }
         // core values that live outside of the fields area
         $values = array(
@@ -741,8 +756,8 @@ class HAXCMSSite
             'fields' => $nodeFields
         );
         // now get the field data from the page
-        if (isset($this->manifest->metadata->fields)) {
-            foreach ($this->manifest->metadata->fields as $key => $item) {
+        if (isset($this->manifest->metadata->node->fields)) {
+            foreach ($this->manifest->metadata->node->fields as $key => $item) {
                 if ($key == 'theme') {
                     $values[$key] = $item['key'];
                 } else if ($key != 'configure' && $key != 'advanced')  {
@@ -845,9 +860,9 @@ class HAXCMSSite
     {
         $new = str_replace('./', '', str_replace('../', '', $new));
         // attempt to shift it on the file system
-        if ($new != $this->manifest->metadata->siteName) {
-            $this->manifest->metadata->siteName = $new;
-            return @rename($this->manifest->metadata->siteName, $new);
+        if ($new != $this->manifest->metadata->site->name) {
+            $this->manifest->metadata->site->name = $new;
+            return @rename($this->manifest->metadata->site->name, $new);
         }
     }
     /**
@@ -856,7 +871,7 @@ class HAXCMSSite
     public function getUniqueLocationName($location, $page = null)
     {
         $siteDirectory =
-            $this->directory . '/' . $this->manifest->metadata->siteName;
+            $this->directory . '/' . $this->manifest->metadata->site->name;
         $loop = 0;
         $original = $location;
         if ($page != null && $page->parent != null && $page->parent != '') {

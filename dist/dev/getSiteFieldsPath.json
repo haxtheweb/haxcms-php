@@ -70,16 +70,16 @@
         "inputMethod": "iconpicker",
         "required": false,
         "icon": "icons:send"
-      },
-      {
-        "property": "custom-theme-tag",
-        "title": "Custom theme tag",
-        "description": "The name of the primary element for your HAXcms custom theme",
-        "inputMethod": "textfield",
-        "required": false
       }
     ],
     "advanced": [
+      {
+        "property": "pathauto",
+        "title": "Pathauto",
+        "description": "Automatically maintain element paths",
+        "inputMethod": "boolean",
+        "icon": "icons:link"
+      },
       {
         "property": "fields",
         "title": "Custom Fields",
@@ -184,137 +184,57 @@
     ]
   },
   "values": {
-    "title": "Py4E",
-    "author": "Bryan Ollendyke",
-    "license": "by-sa",
-    "description": "Python for everyone!",
-    "icon": "icons:save",
-    "theme": {
-      "element": "learn-two-theme",
-      "path": "@lrnwebcomponents\/learn-two-theme\/learn-two-theme.js",
-      "name": "Learn"
+    "title": "btopro",
+    "author": {
+      "name": "Bryan Ollendyke",
+      "image": "files\/headshot.jpg",
+      "socialLink": "https:\/\/twitter.com\/btopro"
     },
-    "domain": "https:\/\/btopro.github.io\/testtesttest",
+    "license": "by-sa",
+    "description": "Crazy, abrasive, caring, dreaming the future into existence.",
+    "domain": "https:\/\/btopro.com",
+    "pathauto": true,
+    "theme": {
+      "element": "haxor-slevin",
+      "path": "@lrnwebcomponents\/haxor-slevin\/haxor-slevin.js",
+      "name": "Coder blog",
+      "variables": {
+        "image": "assets\/banner.jpg",
+        "icon": "icons:record-voice-over",
+        "hexCode": "#da004e",
+        "cssVariable": "pink"
+      }
+    },
+    "icon": "icons:record-voice-over",
     "image": "assets\/banner.jpg",
-    "cssVariable": "yellow",
+    "cssVariable": "pink",
     "fields": [
       {
+        "inputMethod": "array",
         "property": "images",
+        "title": "Other sources",
         "description": "List of images",
         "required": false,
         "icon": "image:collections",
-        "title": "Other sources",
-        "inputMethod": "array",
-        "properties": [
-          {
-            "property": "src",
-            "title": "Source",
-            "description": "The URL for the image",
-            "inputMethod": "haxupload"
-          },
-          {
-            "property": "alt",
-            "title": "Alt",
-            "description": "Alt text",
-            "inputMethod": "textfield"
-          }
-        ],
         "formgroup": "configure"
       },
       {
+        "inputMethod": "textfield",
         "property": "subtitle",
         "title": "Subtitle",
         "description": "An additional subtitle",
-        "inputMethod": "textfield",
+        "required": false,
         "icon": "editor:text-fields",
         "formgroup": "configure"
       },
       {
+        "inputMethod": "array",
         "property": "tags",
+        "title": "Tags",
         "description": "Tags for the page",
         "required": false,
         "icon": "image:collections",
-        "title": "Tags",
-        "inputMethod": "array",
-        "properties": [
-          {
-            "property": "tag",
-            "title": "Tag",
-            "description": "Individual tag",
-            "inputMethod": "textfield"
-          }
-        ],
         "formgroup": "configure"
-      },
-      {
-        "inputMethod": "number",
-        "property": "sads",
-        "title": "dsdasads",
-        "description": "asdadsasd",
-        "required": true,
-        "icon": "editor:format-color-fill",
-        "formgroup": "advanced"
-      }
-    ],
-    "configure": [
-      {
-        "property": "images",
-        "description": "List of images",
-        "required": false,
-        "icon": "image:collections",
-        "title": "Other sources",
-        "inputMethod": "array",
-        "properties": [
-          {
-            "property": "src",
-            "title": "Source",
-            "description": "The URL for the image",
-            "inputMethod": "haxupload"
-          },
-          {
-            "property": "alt",
-            "title": "Alt",
-            "description": "Alt text",
-            "inputMethod": "textfield"
-          }
-        ],
-        "formgroup": "configure"
-      },
-      {
-        "property": "subtitle",
-        "title": "Subtitle",
-        "description": "An additional subtitle",
-        "inputMethod": "textfield",
-        "icon": "editor:text-fields",
-        "formgroup": "configure"
-      },
-      {
-        "property": "tags",
-        "description": "Tags for the page",
-        "required": false,
-        "icon": "image:collections",
-        "title": "Tags",
-        "inputMethod": "array",
-        "properties": [
-          {
-            "property": "tag",
-            "title": "Tag",
-            "description": "Individual tag",
-            "inputMethod": "textfield"
-          }
-        ],
-        "formgroup": "configure"
-      }
-    ],
-    "advanced": [
-      {
-        "inputMethod": "number",
-        "property": "sads",
-        "title": "dsdasads",
-        "description": "asdadsasd",
-        "required": true,
-        "icon": "editor:format-color-fill",
-        "formgroup": "advanced"
       }
     ]
   }
