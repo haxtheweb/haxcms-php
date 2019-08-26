@@ -1,0 +1,145 @@
+<!--
+Place the following html in your index.html.
+Preferably just after the legacy browser check.
+If you are unsure about this, paste it just above your closing </body> tag.
+
+▼▼▼▼▼▼ COPY ▼▼▼▼▼▼
+
+// upgrade-browser.html
+if (old) {
+  window.location.href = "upgrade-browser.html";
+}
+
+▲▲▲▲▲▲ COPY ▲▲▲▲▲
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Outdated Browser - heymp101</title>
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" crossorigin>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+  .header--lg {
+    color: #444;
+    font-size: 1.75rem;
+    font-weight: bold;
+    padding: 10px;
+    margin: 0;
+  }
+
+  .check-browser {
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .check-browser .message--warning {
+    background-color: #c00;
+    color: #fff;
+    padding: 2rem;
+  }
+
+  .check-browser__icon-container {
+    display: inline-block;
+    color: #fff;
+    text-align: center;
+  }
+
+  .check-browser__icon {
+    float: left;
+    padding: 1rem .5rem;
+  }
+
+  .check-browser__icon a {
+    clear: both;
+    padding: 2.5rem 2rem;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .check-browser--chrome {
+    background-color: #ffb31a;
+  }
+
+  .check-browser--firefox {
+    background-color: #f78009;
+  }
+
+  .check-browser--edge {
+    background-color: #33ccff;
+  }
+
+  .check-browser--safari {
+    background-color: #0099ff;
+  }
+
+  .check-browser--opera {
+    background-color: #ff4d4d;
+  }
+
+  .icon--browser {
+    color: #fff;
+    font-size: 3rem;
+    padding-bottom: 1rem;
+  }
+  </style>
+</head>
+<body>
+  <div class="check-browser">
+      <h1 class="header--lg">Outdated Browser</h1>
+      
+      <p class="message--warning">
+        Support for web components required
+      </p>
+      
+      <p>
+        Your browser does not support the new web components standard.
+        <br>
+        Upgrade your browser to the latest version or download one of these browsers:
+      </p>
+    
+      <div class="check-browser__icon-container">
+        <div class="check-browser__icon check-browser--chrome">
+          <a href="https://www.google.com/chrome" target="_blank">
+            <span><i class="fa fa-chrome icon--browser"></i></span>
+        </a>
+          <br>
+          Chrome
+          <br> &nbsp;
+        </div>
+        <div class="check-browser__icon check-browser--firefox">
+          <a href="http://www.mozilla.com/firefox" target="_blank">
+            <span><i class="fa fa-firefox icon--browser"></i></span>
+          </a>
+          <br> FireFox
+          <br> &nbsp;
+        </div>
+        <div class="check-browser__icon check-browser--edge">
+          <a href="https://www.microsoftedgeinsider.com/en-us/" target="_blank">
+            <span><i class="fa fa-edge icon--browser"></i></span>
+          </a>
+          <br> Edge Beta
+          <br> (Chromium)
+        </div>
+        <div class="check-browser__icon check-browser--safari">
+          <a href="https://support.apple.com/downloads/safari" target="_blank">
+            <span><i class="fa fa-safari icon--browser"></i></span>
+          </a>
+          <br> Safari
+          <br> &nbsp;
+        </div>
+        <div class="check-browser__icon check-browser--opera" target="_blank">
+          <a href="http://www.opera.com/download/">
+            <span><i class="fa fa-opera icon--browser"></i></span>
+          </a>
+          <br> Opera
+          <br> &nbsp;
+        </div>
+      </div>
+    </div>
+</body>
+</html>
