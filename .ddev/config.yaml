@@ -1,4 +1,4 @@
-APIVersion: v1.8.0
+APIVersion: v1.10.2
 name: haxcms
 type: php
 docroot: ""
@@ -21,13 +21,15 @@ hooks:
   - exec: bash scripts/github-publishing-ssh.sh
   - exec: echo 'go to http://haxcms.ddev.local - click the top right power button
       and enter admin / admin to get started!'
+use_dns_when_possible: true
+timezone: ""
 
 
-# This config.yaml was created with ddev version v1.8.0 
-# webimage: drud/ddev-webserver:v1.8.0
-# dbimage: drud/ddev-dbserver:v1.8.0-10.2
-# dbaimage: drud/phpmyadmin:v1.8.0
-# bgsyncimage: drud/ddev-bgsync:v1.8.0
+# This config.yaml was created with ddev version v1.10.2 
+# webimage: drud/ddev-webserver:v1.10.2
+# dbimage: drud/ddev-dbserver:v1.10.0-10.2
+# dbaimage: drud/phpmyadmin:v1.10.0
+# bgsyncimage: drud/ddev-bgsync:v1.10.0
 # However we do not recommend explicitly wiring these images into the
 # config.yaml as they may break future versions of ddev.
 # You can update this config.yaml using 'ddev config'.
@@ -35,13 +37,13 @@ hooks:
 # Key features of ddev's config.yaml:
 
 # name: <projectname> # Name of the project, automatically provides
-#   http://projectname.ddev.local and https://projectname.ddev.local
+#   http://projectname.ddev.site and https://projectname.ddev.site
 
 # type: <projecttype>  # drupal6/7/8, backdrop, typo3, wordpress, php
 
 # docroot: <relative_path> # Relative path to the directory containing index.php.
 
-# php_version: "7.1"  # PHP version to use, "5.6", "7.0", "7.1", "7.2", "7.3"
+# php_version: "7.2"  # PHP version to use, "5.6", "7.0", "7.1", "7.2", "7.3"
 
 # You can explicitly specify the webimage, dbimage, dbaimage lines but this
 # is not recommended, as the images are often closely tied to ddev's' behavior,
@@ -56,14 +58,23 @@ hooks:
 # router_https_port: <port> # Port for https (defaults to 443)
 
 # xdebug_enabled: false  # Set to true to enable xdebug and "ddev start" or "ddev restart"
+# Note that for most people the commands 
+# "ddev exec enable_xdebug" and "ddev exec disable_xdebug" work better,
+# as leaving xdebug enabled all the time is a big performance hit.
 
 # webserver_type: nginx-fpm  # Can be set to apache-fpm or apache-cgi as well
+
+# timezone: Europe/Berlin
+# This is the timezone used in the containers and by PHP;
+# it can be set to any valid timezone, 
+# see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+# For example Europe/Dublin or MST7MDT
 
 # additional_hostnames:
 #  - somename
 #  - someothername
-# would provide http and https URLs for "somename.ddev.local"
-# and "someothername.ddev.local".
+# would provide http and https URLs for "somename.ddev.site"
+# and "someothername.ddev.site".
 
 # additional_fqdns:
 #  - example.com
@@ -111,18 +122,39 @@ hooks:
 # The host port binding for the ddev-dbserver can be explicitly specified. It is dynamic
 # unless explicitly specified.
 
+# phpmyadmin_port: "1000"
+# The PHPMyAdmin port can be changed from the default 8036
+
+# mailhog_port: "1001"
+# The MailHog port can be changed from the default 8025
+
 # webimage_extra_packages: [php-yaml, php7.3-ldap]
 # Extra Debian packages that are needed in the webimage can be added here
-# This is ignored if a free-form .ddev/web-build/Dockerfile is provided
 
 # dbimage_extra_packages: [telnet,netcat]
 # Extra Debian packages that are needed in the dbimage can be added here
-# This is ignored if a free-form .ddev/db-build/Dockerfile is provided
+
+# use_dns_when_possible: true
+# If the host has internet access and the domain configured can 
+# successfully be looked up, DNS will be used for hostname resolution 
+# instead of editing /etc/hosts
+# Defaults to true
+
+# project_tld: ddev.site
+# The top-level domain used for project URLs
+# The default "ddev.site" allows DNS lookup via a wildcard
+# If you prefer you can change this to "ddev.local" to preserve
+# pre-v1.9 behavior.
+
+# ngrok_args: --subdomain mysite --auth username:pass
+# Provide extra flags to the "ngrok http" command, see 
+# https://ngrok.com/docs#http or run "ngrok http -h"
 
 # provider: default # Currently either "default" or "pantheon"
 #
-# Many ddev commands can be extended to run tasks after the ddev command is
-# executed.
+# Many ddev commands can be extended to run tasks before or after the 
+# ddev command is executed, for example "post-start", "post-import-db", 
+# "pre-composer", "post-composer"
 # See https://ddev.readthedocs.io/en/stable/users/extending-commands/ for more
 # information on the commands that can be extended and the tasks you can define
 # for them. Example:
