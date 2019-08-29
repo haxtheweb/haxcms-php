@@ -88,7 +88,7 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js');var cdn="";var old=false;var ancient=false;
+  <script>document.body.removeAttribute('no-js');var cdn="";var forceUpgrade=false;var old=false;var ancient=false;
     if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site
       ancient = true;
     }
@@ -140,6 +140,9 @@
     }
     else {
       old=true;
+      if (forceUpgrade) {
+        window.location = "upgrade-browser.html";
+      }
       // we bombed somewhere above, this implies that it's some odd between version
       // most likely Safari 9ish, IE pre 11 and anything uber old. Serve no JS variation
       document.getElementById('site').style.display = 'none';
