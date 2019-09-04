@@ -18,6 +18,7 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 - PHP 7.1
 - Apache 2.4
 ## Install and win the future, NOW!
+- There are full installation instructions available at https://haxtheweb.org/installation which details many different install routines.
 ### MAMP
 - Download [MAMP](https://www.mamp.info/)
 - Download this repo https://github.com/elmsln/HAXcms/archive/master.zip
