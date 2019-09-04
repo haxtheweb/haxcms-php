@@ -36,8 +36,7 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 - Go to the link any of them give you in a browser.
 - Username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
 - Click the icon in the top-right and you're off and running!
-## Requirements (nodejs)
-coming soon
+
 ## Scope
 Generate `.html` files which have only "content" in them. Meaning the contents of the page in question. A simple method of adding new pages and managing the organization of those pages into a simple hierarchy (outline). Support for multiple mini web sites so that you can write a lot about different topics. HAXcms is only intended to be a micro-site generator and play nicely with the rest of the HAX ecosystem without needing a monster CMS in order to utilize it.
 
