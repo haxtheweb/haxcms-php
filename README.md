@@ -15,8 +15,9 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 - Built in gh-pages publishing
 
 # Requirements (PHP)
-- PHP 7.1
+- Supports PHP 7.1+
 - Apache 2.4
+- Requires `zip`, `gd`, and `xml` modules be installed
 ## Install and win the future, NOW!
 ### MAMP
 - Download [MAMP](https://www.mamp.info/)
