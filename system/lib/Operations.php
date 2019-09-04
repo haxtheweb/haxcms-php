@@ -18,136 +18,207 @@ class Operations {
     // load the site from name
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     // standard form submit
-    // @todo need the settings form refactor before this can even be worked on
-    if (isset($this->params['manifest']['title'])) {
-        $site->manifest->title = filter_var(
-            $this->params['manifest']['title'],
-            FILTER_SANITIZE_STRING
-        );
-        $site->manifest->description = filter_var(
-            $this->params['manifest']['description'],
-            FILTER_SANITIZE_STRING
-        );
-        $site->manifest->metadata->theme->variables->image = filter_var(
-            $this->params['manifest']['image'],
-            FILTER_SANITIZE_STRING
-        );
-        if (isset($this->params['manifest']['hexCode'])) {
-            $site->manifest->metadata->theme->variables->hexCode = filter_var(
-                $this->params['manifest']['hexCode'],
-                FILTER_SANITIZE_STRING
-            );
-        }
-        if (isset($this->params['manifest']['cssVariable'])) {
-            $site->manifest->metadata->theme->variables->cssVariable = filter_var(
-            $this->params['manifest']['cssVariable'],
-            FILTER_SANITIZE_STRING
-            );
-        }
-        // update these parts of the manifest to match POST
-        if (isset($this->params['manifest']['icon'])) {
-            $site->manifest->metadata->theme->variables->icon = filter_var(
-                $this->params['manifest']['icon'],
-                FILTER_SANITIZE_STRING
-            );
-        }
-        if (isset($this->params['manifest']['domain'])) {
-            $domain = filter_var(
-                $this->params['manifest']['domain'],
-                FILTER_SANITIZE_STRING
-            );
-            // support updating the domain CNAME value
-            if ($site->manifest->metadata->site->domain != $domain) {
-                $site->manifest->metadata->site->domain = $domain;
-                @file_put_contents(
-                    $site->directory .
-                        '/' .
-                        $site->manifest->site->name .
-                        '/CNAME',
-                    $domain
-                );
-            }
-        }
-        // look for a match so we can set the correct data
-        foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
-            if (
-                filter_var($this->params['manifest']['theme'], FILTER_SANITIZE_STRING) ==
-                $key
-            ) {
-                $site->manifest->metadata->theme = $theme;
-            }
-        }
-    }
-    // advanced form submitted
-    if (isset($this->params['manifest']['license'])) {
-        $site->manifest->license = filter_var(
-            $this->params['manifest']['license'],
-            FILTER_SANITIZE_STRING
-        );
-        $site->manifest->author = filter_var(
-            $this->params['manifest']['author'],
-            FILTER_SANITIZE_STRING
-        );
-    }
-    if (isset($this->params['manifest']['site']['settings']['pathauto'])) {
-        $site->manifest->metadata->site->settings->pathauto = filter_var(
-        $this->params['manifest']['site']['settings']['pathauto'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-    }
-    // more importantly, this is where the field UI stuff is...
-    if (isset($this->params['manifest']['node']['fields'])) {
-        $fields = new stdClass();
-        $fields->configure = array();
-        $fields->advanced = array();
-        // establish a fields block
-        $site->manifest->metadata->node->fields = new stdClass();
-        $site->manifest->metadata->node->fields->configure = array();
-        $site->manifest->metadata->node->fields->advanced = array();
-        foreach ($this->params['manifest']['node']['fields'] as $key => $field) {
-            // ensure formgroup isset, shouldn't be possible..
-            if (!isset($field['formgroup'])) {
-                $field['formgroup'] = 'configure';
-            }
-            $fieldgroup = $field['formgroup'];
-            unset($field['formgroup']);
-            // another sanity check
-            if ($fieldgroup == 'configure' || $fieldgroup == 'advanced') {
-                array_push($fields->{$fieldgroup}, $field);
-            }
-        }
-        if (count($fields->configure) > 0) {
-            $site->manifest->metadata->node->fields->configure = $fields->configure;
-        }
-        if (count($fields->advanced) > 0) {
-            $site->manifest->metadata->node->fields->advanced = $fields->advanced;
-        }
-    }
-    $site->manifest->metadata->site->updated = time();
-    $site->manifest->save(false);
-    // now work on HAXCMS layer to match the saved / sanitized data
-    $item = $site->manifest;
-    // remove items list as we only need the item itself not the nesting
-    unset($item->items);
-    $GLOBALS['HAXCMS']->outlineSchema->updateItem($item, true);
-    $site->gitCommit('Manifest updated');
-    // check git remote if it came across as a possible setting
-    if (isset($this->params['manifest']['git'])) {
-      if (
-        filter_var($this->params['manifest']['git']['url'], FILTER_SANITIZE_STRING) &&
-        (!isset($site->manifest->metadata->site->git->url) ||
-          $site->manifest->metadata->site->git->url !=
-            filter_var(
-              $this->params['manifest']['git']['url'],
+    // @todo 
+    // make the form point to a form submission endpoint with appropriate name
+    // add a hidden field to the output that always has the haxcms_form_id as well
+    // as a dynamically generated Request token relative to the name of the
+    // form
+    // pull the form schema for the form itself internally
+    // ensure ONLY the things that appear in that schema get set
+    // if something DID NOT COME ACROSS, don't unset it, only set what shows up
+    // if something DID COME ACROSS WE DIDN'T SET, kill the transaction (xss)
+
+    // - snag the form
+    // @todo see if we can dynamically save the valus in the same format we loaded
+    // the original form in. This would involve removing the vast majority of
+    // what's below
+    /*if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
+      $context = array(
+        'site' => array(),
+        'node' => array(),
+      );
+      if (isset($this->params['site'])) {
+        $context['site'] = $this->params['site'];
+      }
+      if (isset($this->params['node'])) {
+        $context['node'] = $this->params['node'];
+      }
+      $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
+    }*/
+    if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
+      $site->manifest->title = filter_var(
+          $this->params['manifest']['site']['manifest-title'],
+          FILTER_SANITIZE_STRING
+      );
+      $site->manifest->description = filter_var(
+          $this->params['manifest']['site']['manifest-description'],
+          FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->site->domain = filter_var(
+          $this->params['manifest']['site']['manifest-metadata-site-domain'],
+          FILTER_SANITIZE_STRING
+      );
+      if (!isset($site->manifest->metadata->site->static)) {
+        $site->manifest->metadata->site->static = new stdClass();
+      }
+      $site->manifest->metadata->site->static->cdn = filter_var(
+          $this->params['manifest']['static']['manifest-metadata-site-static-cdn'],
+          FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->site->static->offline = filter_var(
+          $this->params['manifest']['static']['manifest-metadata-site-static-offline'],
+          FILTER_VALIDATE_BOOLEAN
+      );
+      if (isset($this->params['manifest']['site']['manifest-domain'])) {
+          $domain = filter_var(
+              $this->params['manifest']['site']['manifest-domain'],
               FILTER_SANITIZE_STRING
-            ))
-      ) {
-        $site->gitSetRemote(
-            filter_var($this->params['manifest']['git']['url'], FILTER_SANITIZE_STRING)
+          );
+          // support updating the domain CNAME value
+          if ($site->manifest->metadata->site->domain != $domain) {
+              $site->manifest->metadata->site->domain = $domain;
+              @file_put_contents(
+                  $site->directory .
+                      '/' .
+                      $site->manifest->site->name .
+                      '/CNAME',
+                  $domain
+              );
+          }
+      }
+      // look for a match so we can set the correct data
+      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
+        if (
+            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
+            $key
+        ) {
+            $site->manifest->metadata->theme = $theme;
+        }
+      }
+      if (!isset($site->manifest->metadata->theme->variables)) {
+        $site->manifest->metadata->theme->variables = new stdClass();
+      }
+      $site->manifest->metadata->theme->variables->image = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
+      );
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
+        $site->manifest->metadata->theme->variables->hexCode = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
         );
       }
+      $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
+      ). "-7";
+      $site->manifest->metadata->theme->variables->icon = filter_var(
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
+      );
+      if (isset($this->params['manifest']['author']['manifest-license'])) {
+          $site->manifest->license = filter_var(
+              $this->params['manifest']['author']['manifest-license'],
+              FILTER_SANITIZE_STRING
+          );
+          if (!isset($site->manifest->metadata->author)) {
+            $site->manifest->metadata->author = new stdClass();
+          }
+          $site->manifest->metadata->author->image = filter_var(
+              $this->params['manifest']['author']['manifest-metadata-author-image'],
+              FILTER_SANITIZE_STRING
+          );
+          $site->manifest->metadata->author->name = filter_var(
+              $this->params['manifest']['author']['manifest-metadata-author-name'],
+              FILTER_SANITIZE_STRING
+          );
+          $site->manifest->metadata->author->socialLink = filter_var(
+              $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
+              FILTER_SANITIZE_STRING
+          );
+      }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
+          $site->manifest->metadata->site->settings->pathauto = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+      }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
+        $site->manifest->metadata->site->settings->publishPagesOn = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'],
+        FILTER_VALIDATE_BOOLEAN
+        );
+      }
+      // more importantly, this is where the field UI stuff is...
+      if (isset($this->params['manifest']['fields']['manifest-metadata-node-fields'])) {
+          $fields = new stdClass();
+          $fields->configure = array();
+          $fields->advanced = array();
+          // establish a fields block
+          $site->manifest->metadata->node->fields = new stdClass();
+          $site->manifest->metadata->node->fields->configure = array();
+          $site->manifest->metadata->node->fields->advanced = array();
+          foreach ($this->params['manifest']['fields']['manifest-metadata-node-fields'] as $key => $field) {
+              // ensure formgroup isset, shouldn't be possible..
+              if (!isset($field['formgroup'])) {
+                  $field['formgroup'] = 'configure';
+              }
+              $fieldgroup = $field['formgroup'];
+              unset($field['formgroup']);
+              // another sanity check
+              if ($fieldgroup == 'configure' || $fieldgroup == 'advanced') {
+                  array_push($fields->{$fieldgroup}, $field);
+              }
+          }
+          if (count($fields->configure) > 0) {
+              $site->manifest->metadata->node->fields->configure = $fields->configure;
+          }
+          if (count($fields->advanced) > 0) {
+              $site->manifest->metadata->node->fields->advanced = $fields->advanced;
+          }
+      }
+      $site->manifest->metadata->site->git->autoPush = filter_var(
+          $this->params['manifest']['git']['manifest-metadata-site-git-autoPush'],
+          FILTER_VALIDATE_BOOLEAN
+        );
+        $site->manifest->metadata->site->git->branch = filter_var(
+          $this->params['manifest']['git']['manifest-metadata-site-git-branch'],
+          FILTER_SANITIZE_STRING
+        );
+        $site->manifest->metadata->site->git->staticBranch = filter_var(
+          $this->params['manifest']['git']['manifest-metadata-site-git-staticBranch'],
+          FILTER_SANITIZE_STRING
+        );
+        $site->manifest->metadata->site->git->vendor = filter_var(
+          $this->params['manifest']['git']['manifest-metadata-site-git-vendor'],
+          FILTER_SANITIZE_STRING
+        );
+      $site->manifest->metadata->site->updated = time();
+      // don't reorganize the structure
+      $site->manifest->save(false);
+      $site->gitCommit('Manifest updated');
+      // check git remote if it came across as a possible setting
+      if (isset($this->params['manifest']['git']['manifest-metadata-site-git-url'])) {
+        if (
+          filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING) &&
+          (!isset($site->manifest->metadata->site->git->url) ||
+            $site->manifest->metadata->site->git->url !=
+              filter_var(
+                $this->params['manifest']['git']['manifest-metadata-site-git-url'],
+                FILTER_SANITIZE_STRING
+              ))
+        ) {
+          $site->gitSetRemote(
+              filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING)
+          );
+        }
+      }
+      return $site->manifest;
     }
-    return $site->manifest;
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
   }
   /**
    * save outline
@@ -620,7 +691,7 @@ class Operations {
    * fields associated with node
    */
   public function getNodeFields() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'fields')) {
+    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       if ($page = $site->loadNode($this->params['node']['id'])) {
         $schema = $site->loadNodeFieldSchema($page);
@@ -722,6 +793,77 @@ class Operations {
     }
   }
   /**
+   * load form
+   */
+  public function formLoad() {
+    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
+      $context = array(
+        'site' => array(),
+        'node' => array(),
+      );
+      if (isset($this->params['site'])) {
+        $context['site'] = $this->params['site'];
+      }
+      if (isset($this->params['node'])) {
+        $context['node'] = $this->params['node'];
+      }
+      // @todo add support for hooking in multiple
+      $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
+      if (isset($form->fields['__failed'])) {
+        return array(
+          $form->fields
+        );
+      }
+      return array(
+        'status' => 200,
+        'data' => $form
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+  }
+  /**
+   * Submit / process form
+   */
+  public function formProcess() {
+    if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
+      $context = array(
+        'site' => array(),
+        'node' => array(),
+      );
+      if (isset($this->params['site'])) {
+        $context['site'] = $this->params['site'];
+      }
+      if (isset($this->params['node'])) {
+        $context['node'] = $this->params['node'];
+      }
+      $form = $GLOBALS['HAXCMS']->processForm($this->params['haxcms_form_id'], $this->params, $context);
+      if (isset($form->fields['__failed'])) {
+        return array(
+          $form->fields
+        );
+      }
+      return array(
+        'status' => 200,
+        'data' => $form
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+  }
+  /**
    * load files
    */
   public function loadFiles() {
@@ -759,42 +901,6 @@ class Operations {
    * HAXCMS CORE SETTINGS AND FIELDS FOR SITES AND INTERNALS
    * 
    */
-  /**
-   * get site fields
-   */
-  public function getSiteFields() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'fields')) {
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      $schema = $site->loadSiteFieldSchema();
-      return $schema;
-    }
-    else {
-      return array(
-        '__failed' => array(
-          'status' => 403,
-          'message' => 'invalid request token',
-        )
-      );
-    }
-  }
-  /**
-   * List available themes
-   */
-  public function getThemes() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken()) {
-      $response = new stdClass();
-      $response->themes = $GLOBALS['HAXCMS']->getThemes();
-      return $response;
-    }
-    else {
-      return array(
-        '__failed' => array(
-          'status' => 403,
-          'message' => 'invalid request token',
-        )
-      );
-    }
-  }
   /**
    * 
    * SITE LISTING CALLBACKS
@@ -838,7 +944,7 @@ class Operations {
       $domain = null;
       // woohoo we can edit this thing!
       if (isset($this->params['site']['domain'])) {
-          $domain = $this->params['site']['domain'];
+        $domain = $this->params['site']['domain'];
       }
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
@@ -968,6 +1074,60 @@ class Operations {
     }
   }
   /**
+   * Git import from URL
+   */
+  public function gitImportSite() {
+    if ($GLOBALS['HAXCMS']->validateRequestToken()) {
+      $domain = null;
+      // woohoo we can edit this thing!
+      if (isset($this->params['site']['git']['url'])) {
+        $repoUrl = $this->params['site']['git']['url'];
+        if (filter_var($repoUrl, FILTER_VALIDATE_URL) !== false &&
+            strpos($repoUrl, '.git')
+          ) {
+          $ary = explode('/', str_replace('.git', '', $repoUrl));
+          $repo_path = array_pop($ary);
+          $git = new Git();
+          // @todo check if this fails
+          $repo = $git->create($GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path);
+          $repo = $git->open(
+              $this->directory . '/' . $repo_path, true
+          );
+          $repo->set_remote("origin", $repoUrl);
+          $repo->pull('origin', 'master');
+          // load the site that we SHOULD have just pulled in
+          if ($site = $GLOBALS['HAXCMS']->loadSite($repo_path)) {
+            return array(
+              'manifest' => $site->manifest
+            );
+          }
+          else {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'invalid url',
+              )
+            );
+          }
+        }
+      }
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'invalid url',
+        )
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+  }
+  /**
    * Get configuration related to HAXcms itself
    */
   public function getConfig() {
@@ -1001,6 +1161,43 @@ class Operations {
         '__failed' => array(
           'status' => 403,
           'message' => 'failed to validate request token',
+        )
+      );
+    }
+  }
+  /**
+   * sync site
+   */
+  public function syncSite() {
+    // ensure we have something we can load and ship back out the door
+    if ($site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name'])) {
+      // local publishing options, then defer to system, then make some up...
+      if (isset($site->manifest->metadata->site->git)) {
+          $gitSettings = $site->manifest->metadata->site->git;
+      } elseif (isset($GLOBALS['HAXCMS']->config->site->git)) {
+          $gitSettings = $GLOBALS['HAXCMS']->config->site->git;
+      } else {
+          $gitSettings = new stdClass();
+          $gitSettings->vendor = 'github';
+          $gitSettings->branch = 'master';
+          $gitSettings->staticBranch = 'gh-pages';
+          $gitSettings->url = '';
+      }
+      if (isset($gitSettings)) {
+          $git = new Git();
+          $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
+          $repo = $git->open($siteDirectoryPath, true);
+          // ensure we're on branch, most likley master
+          $repo->checkout($gitSettings->branch);
+          $repo->pull('origin', $gitSettings->branch);
+          $repo->push('origin', $gitSettings->branch);
+          return TRUE;
+      }
+    } else {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Unable to load site',
         )
       );
     }
