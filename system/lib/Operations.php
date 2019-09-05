@@ -208,6 +208,13 @@ class Operations {
               filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING)
           );
         }
+        $site->manifest->metadata->site->git->url =
+        filter_var(
+          $this->params['manifest']['git']['manifest-metadata-site-git-url'],
+          FILTER_SANITIZE_STRING
+        );
+        $site->manifest->save(false);
+        $site->gitCommit('origin updated');
       }
       return $site->manifest;
     }
