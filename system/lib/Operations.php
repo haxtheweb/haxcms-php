@@ -1394,17 +1394,21 @@ class Operations {
                 if ($cdn == 'haxtheweb.org') {
                     $templateVars['cdn'] = 'cdn.waxam.io';
                     $templateVars['cdnRegex'] =
-                        "(https?:\/\/" .
-                        str_replace('.', '\.', 'cdn.waxam.io') .
-                        "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+                      "(https?:\/\/" .
+                      str_replace('.', '\.', 'cdn.waxam.io') .
+                      "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
                 }
                 // custom isn't a regex by design
                 elseif ($cdn != 'custom') {
                     $templateVars['cdn'] = $cdn;
                     $templateVars['cdnRegex'] =
-                        "(https?:\/\/" .
-                        str_replace('.', '\.', $cdn) .
-                        "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+                      "(https?:\/\/" .
+                      str_replace('.', '\.', $cdn) .
+                      "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+                }
+                // support for disabling cdnRegex via offline setting
+                if (isset($site->manifest->metadata->site->static->offline) && !$site->manifest->metadata->site->static->offline) {
+                  unset($templateVars['cdnRegex']);
                 }
                 // if we have a custom domain, try and engineer the base path
                 // correctly for the manifest / service worker
