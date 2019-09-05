@@ -174,21 +174,25 @@ class Operations {
           }
       }
       $site->manifest->metadata->site->git->autoPush = filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-autoPush'],
-          FILTER_VALIDATE_BOOLEAN
-        );
-        $site->manifest->metadata->site->git->branch = filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-branch'],
-          FILTER_SANITIZE_STRING
-        );
-        $site->manifest->metadata->site->git->staticBranch = filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-staticBranch'],
-          FILTER_SANITIZE_STRING
-        );
-        $site->manifest->metadata->site->git->vendor = filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-vendor'],
-          FILTER_SANITIZE_STRING
-        );
+        $this->params['manifest']['git']['manifest-metadata-site-git-autoPush'],
+        FILTER_VALIDATE_BOOLEAN
+      );
+      $site->manifest->metadata->site->git->branch = filter_var(
+        $this->params['manifest']['git']['manifest-metadata-site-git-branch'],
+        FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->site->git->staticBranch = filter_var(
+        $this->params['manifest']['git']['manifest-metadata-site-git-staticBranch'],
+        FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->site->git->vendor = filter_var(
+        $this->params['manifest']['git']['manifest-metadata-site-git-vendor'],
+        FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->site->git->publicRepoUrl = filter_var(
+        $this->params['manifest']['git']['manifest-metadata-site-git-publicRepoUrl'],
+        FILTER_SANITIZE_STRING
+      );
       $site->manifest->metadata->site->updated = time();
       // don't reorganize the structure
       $site->manifest->save(false);

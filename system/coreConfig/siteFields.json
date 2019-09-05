@@ -290,6 +290,14 @@
           "required": true
         },
         {
+          "property": "manifest-metadata-site-git-publicRepoUrl",
+          "title": "Public repo address",
+          "description": "URL with path to where the files of this site are publicly accessible. This is useful for having people contribute to the source backing your site. Example: https://github.com/{you}/{repoName}/tree/master/",
+          "inputMethod": "textfield",
+          "validationType": "url",
+          "required": true
+        },
+        {
           "property": "dangerzone",
           "title": "dangerzone",
           "inputMethod": "markup"
