@@ -1078,10 +1078,9 @@ class Operations {
    */
   public function gitImportSite() {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
-      $domain = null;
-      // woohoo we can edit this thing!
       if (isset($this->params['site']['git']['url'])) {
         $repoUrl = $this->params['site']['git']['url'];
+        // make sure there's a .git in the address
         if (filter_var($repoUrl, FILTER_VALIDATE_URL) !== false &&
             strpos($repoUrl, '.git')
           ) {
@@ -1089,12 +1088,11 @@ class Operations {
           $repo_path = array_pop($ary);
           $git = new Git();
           // @todo check if this fails
-          $repo = $git->create($GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path);
-          $repo = $git->open(
-              $GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path, true
-          );
-          $repo->set_remote("origin", $repoUrl);
-          $repo->pull('origin', 'master');
+          $directory = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path;
+          $repo = @$git->create($directory);
+          $repo = @$git->open($directory, true);
+          @$repo->set_remote("origin", $repoUrl);
+          @$repo->pull('origin', 'master');
           // load the site that we SHOULD have just pulled in
           if ($site = $GLOBALS['HAXCMS']->loadSite($repo_path)) {
             return array(
