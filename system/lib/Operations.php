@@ -1091,7 +1091,7 @@ class Operations {
           // @todo check if this fails
           $repo = $git->create($GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path);
           $repo = $git->open(
-              $this->directory . '/' . $repo_path, true
+              $GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path, true
           );
           $repo->set_remote("origin", $repoUrl);
           $repo->pull('origin', 'master');
