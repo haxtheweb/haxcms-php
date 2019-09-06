@@ -215,6 +215,26 @@ class HAXCMS
                 foreach ($importersData as $name => $data) {
                     $this->config->site->importers->{$name} = $data;
                 }
+                // site fields in HAXschema format
+                if (!isset($this->config->site->fields)) {
+                    $this->config->site->fields = array(new stdClass());
+                }
+                // load in core importers data
+                $fieldsData = json_decode(
+                    file_get_contents(
+                        HAXCMS_ROOT . '/system/coreConfig/siteFields.json'
+                    )
+                );
+                foreach ($fieldsData as $name => $data) {
+                    $this->config->site->fields[0]->{$name} = $data;
+                }
+                $themeSelect = array();
+                // ensure field schema has correct theme options
+                foreach ($this->config->themes as $name => $data) {
+                  $themeSelect[$name] = $data->name;
+                }
+                // @todo this is pretty hacky specific placement of the theme options
+                $this->config->site->fields[0]->properties[2]->properties[0]->options = $themeSelect;
             }
             $this->dispatchEvent('haxcms-init', $this);
         }
@@ -276,6 +296,7 @@ class HAXCMS
         return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
     }
     public function executeRequest($op = null) {
+      $usedGet = FALSE;
       // calculate the correct params to use
       if ($this->isCLI()) {
         $params = $this->safeCLI;
@@ -284,6 +305,7 @@ class HAXCMS
         $params = $this->safePost;
       }
       else if (is_array($this->safeGet) && count($this->safeGet)) {
+        $usedGet = TRUE;
         $params = $this->safeGet;
       }
       else {
@@ -311,11 +333,181 @@ class HAXCMS
           $op = $this->safeGet['op'];
         }
       }
+      // loop through other potential GET based args so long as they aren't set yet
+      // this ensures that post has priority for security but allowing us to develop
+      // faster when it comes to pulling across other arguments like form_id
+      if (!$usedGet) {
+        foreach ($this->safeGet as $key => $arg) {
+          if (!isset($params[$key])) {
+            $params[$key] = $arg;
+          }
+        }
+      }
       // execute the request with contextual params mixed in
       // based on how the request was formulated
       $request = new Request();
       // this will output the response headers and everything
       $request->execute($op, $params, $rawParams);
+    }
+    /**
+     * load form and spitting out HAXschema + values in our standard transmission method
+     */
+    public function loadForm($form_id, $context = array()) {
+      $fields = array();
+      $value = new stdClass();
+      // @todo add future support for dependency injection as far as allowed forms
+      if (method_exists($this, $form_id . "Form")) {
+        $fields = $this->{$form_id . "Form"}($context);
+        // reserved so we know what form is being submitted
+        $fields['haxcms_form_id'] = json_decode(
+          '{
+            "property": "haxcms_form_id",
+            "title": "haxcms_form_id",
+            "description": "",
+            "inputMethod": "textfield",
+            "hidden": true
+          }'
+        );
+        // reserved so we know what form is being submitted
+        $fields['haxcms_form_token'] = json_decode(
+          '{
+            "property": "haxcms_form_token",
+            "title": "haxcms_form_token",
+            "description": "",
+            "inputMethod": "textfield",
+            "hidden": true
+          }'
+        );
+      }
+      else {
+        $fields = array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => $form_id . ' does not exist',
+          )
+        );
+      }
+      if (method_exists($this, $form_id . "Value")) {
+        $value = $this->{$form_id . "Value"}($context);
+      }
+      // ensure values are set for the hidden internal fields
+      $value->haxcms_form_id = $form_id;
+      $value->haxcms_form_token = $this->getRequestToken($form_id);
+      return array(
+        'fields' => $fields,
+        'value' => $value,
+      );
+    }
+    /**
+     * Process the form submission data
+     */
+    public function processForm($form_id, $params, $context = array()) {
+      // make sure we have the original value / key pairs for the form
+      if (method_exists($this, $form_id . "Value")) {
+        $value = $this->{$form_id . "Value"}($context);
+
+      }
+      else {
+        $fields = array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => $form_id . ' does not exist',
+          )
+        );
+      }
+    }
+    /**
+     * Magic function that will convert foo.bar.zzz into $obj->foo->bar->zzz with look up.
+     */
+    private function deepObjectLookUp($obj, $path) {
+      return array_reduce(explode('-', $path), function ($o, $p) { return is_numeric($p) ? ($o[$p] ?? null) : ($o->$p ?? null); }, $obj);
+    }
+
+    /**
+     * Return the form for the siteSettings
+     */
+    private function siteSettingsForm($context) {
+      return $this->config->site->fields;
+    }
+    /**
+     * Return the form for the siteSettings
+     */
+    private function siteSettingsValue($context) {
+      $site = $this->loadSite($context['site']['name']);
+      // passing in as JSON for sanity
+      $jsonResponse = json_decode('{
+        "manifest": {
+          "site": {
+            "manifest-title": null,
+            "manifest-description": null,
+            "manifest-metadata-site-domain": null
+          },
+          "author": {
+            "manifest-license": null,
+            "manifest-metadata-author-image": null,
+            "manifest-metadata-author-name": null,
+            "manifest-metadata-author-socialLink": null
+          },
+          "theme": {
+            "manifest-metadata-theme-element": null,
+            "manifest-metadata-theme-variables-image": null,
+            "manifest-metadata-theme-variables-hexCode": null,
+            "manifest-metadata-theme-variables-cssVariable": null,
+            "manifest-metadata-theme-variables-icon": null
+          },
+         "fields": {
+            "manifest-metadata-node-fields-configure": null,
+            "manifest-metadata-node-fields-advanced": null
+          },
+          "seo": {
+            "manifest-metadata-site-settings-pathauto": null,
+            "manifest-metadata-site-settings-publishPagesOn": null
+          },
+          "static": {
+            "manifest-metadata-site-static-cdn": null,
+            "manifest-metadata-site-static-offline": null
+          },
+          "git": {
+            "manifest-metadata-site-git-vendor": null,
+            "manifest-metadata-site-git-branch": null,
+            "manifest-metadata-site-git-staticBranch": null,
+            "manifest-metadata-site-git-autoPush": null,
+            "manifest-metadata-site-git-url": null,
+            "manifest-metadata-site-git-publicRepoUrl": null,
+            "dangerzone": "<h2>Danger zone</h2><div style=\"border: solid 1px #cb2431; padding:16px;\"><p>This will publish your site, overwriting the previous copy living in your \"published\" storage location.</p><user-action track=\"click\" every eventname=\"haxcms-publish-site\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"icons:cloud-upload\"></iron-icon> Publish</paper-button></user-action><user-action track=\"click\" every eventname=\"haxcms-sync-site\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"notification:sync\"></iron-icon> Sync git origin</paper-button></user-action><p>This wil revert the git history powering the site by 1 commit. This is a destructive command, only use this if you just saved something you didn\'t mean to.</p><user-action track=\"click\" every eventname=\"haxcms-git-revert-last-commit\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"icons:cloud-upload\"></iron-icon> Revert last commit</paper-button></user-action></div>"
+          }
+        }
+      }');
+      // this will process the form values and engineer them out of
+      // the manifest based on key location to value found there (if any)
+      return $this->populateManifestValues($site, $jsonResponse);
+    }
+    /**
+     * Populate values based on the structure of the form schema values
+     * established previously. This REQUIRES that the key in the end
+     * is a string in the form of "manifest-what-ever-value-this-needs"
+     * which it then takes ANY structure and recursively populates it
+     * with the appropriate values to match
+     */
+    private function populateManifestValues($site, $manifestKeys) {
+      foreach ($manifestKeys as $key => $value) {
+        // cascade of our methodology for building out forms
+        // which peg to the internal workings of JSON outline schema
+        // while still being presented in a visually agnostic manner
+        // this is some crazy S..
+        // test if we have deeper items to traverse at this level
+        if (!is_string($value) && count((array)$value) > 0) {
+          $manifestKeys->{$key} = $this->populateManifestValues($site, $value);
+        }
+        else if (is_string($key) && $lookup = $this->deepObjectLookUp($site, $key)) {
+          $manifestKeys->{$key} = $lookup;
+        }
+      }
+      // @todo needs to not be a hack :p
+      if (isset($manifestKeys->{"manifest-metadata-theme-variables-cssVariable"})) {
+        $manifestKeys->{"manifest-metadata-theme-variables-cssVariable"} = str_replace("-7", "", str_replace("--simple-colors-default-theme-", "", $manifestKeys->{"manifest-metadata-theme-variables-cssVariable"}));
+      }
+      return $manifestKeys;
     }
     /**
      * Load theme location data as mix of config and system
@@ -886,15 +1078,18 @@ class HAXCMS
         $settings->saveManifestPath = $path . 'saveManifest';
         $settings->saveOutlinePath = $path . 'saveOutline';
         $settings->publishSitePath = $path . 'publishSite';
+        $settings->syncSitePath = $path . 'syncSite';
         $settings->setConfigPath = $path . 'setConfig';
         $settings->getConfigPath = $path . 'getConfig';
         $settings->getNodeFieldsPath = $path . 'getNodeFields';
-        $settings->getSiteFieldsPath = $path . 'formLoad&form_id=site_settings';
+        $settings->getSiteFieldsPath = $path . 'formLoad&haxcms_form_id=siteSettings';
         $settings->revertSitePath = $path . 'revertCommit';
-        $settings->getFieldsToken = $this->getRequestToken('fields');
+        // form token to validate form submissions as unique to the session
+        $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode';
         $settings->deleteNodePath = $path . 'deleteNode';
         $settings->createNewSitePath = $path . 'createSite';
+        $settings->gitImportSitePath = $path . 'gitImportSite';
         $settings->downloadSitePath = $path . 'downloadSite';
         $settings->archiveSitePath = $path . 'archiveSite';
         $settings->cloneSitePath = $path . 'cloneSite';

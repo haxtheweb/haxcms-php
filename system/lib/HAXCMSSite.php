@@ -163,6 +163,10 @@ class HAXCMSSite
         );
         $repo->add('.');
         $repo->commit($msg);
+        // commit should execute the automatic push flag if it's on
+        if (isset($this->manifest->metadata->site->git->autoPush) && $this->manifest->metadata->site->git->autoPush && isset($this->manifest->metadata->site->git->branch)) {
+            $repo->push('origin', $this->manifest->metadata->site->git->branch);
+        }
         return true;
     }
     /**
@@ -258,6 +262,7 @@ class HAXCMSSite
      */
     public function updateAlternateFormats($format = NULL)
     {
+        $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
         if (is_null($format) || $format == 'rss') {
             // rip changes to feed urls
             $rss = new FeedMe();
@@ -553,7 +558,7 @@ class HAXCMSSite
                     $this->manifest->metadata->theme->fields
             )
         ) {
-            // @todo thik of how to make this less brittle
+            // @todo think of how to make this less brittle
             // not a fan of pegging loading this definition to our file system's publishing structure
             $themeFields = json_decode(
                 file_get_contents(
@@ -606,161 +611,6 @@ class HAXCMSSite
                 if ($key == 'theme') {
                     $values[$key] = $item['key'];
                 } else {
-                    $values[$key] = $item;
-                }
-            }
-        }
-        // response as schema and values
-        $response = new stdClass();
-        $response->haxSchema = $fields;
-        $response->values = $values;
-        return $response;
-    }
-    /**
-     * Load field schema for a page
-     * Field cascade always follows Core -> Deploy -> Theme -> Site
-     * Anything downstream can always override upstream but no one can remove fields
-     */
-    public function loadSiteFieldSchema()
-    {
-        $fields = array(
-            'configure' => array(),
-            'advanced' => array()
-        );
-        $nodeFields = array();
-        // load core fields
-        // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-        if (file_exists(HAXCMS_ROOT . '/system/coreConfig/siteFields.json')) {
-            $coreFields = json_decode(
-                file_get_contents(
-                    HAXCMS_ROOT . '/system/coreConfig/siteFields.json'
-                )
-            );
-            $themes = array();
-            foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
-                $themes[$key] = $item->name;
-                $themes['key'] = $key;
-            }
-            // this needs to be set dynamically
-            foreach ($coreFields->configure as $key => $item) {
-                if ($item->property === 'theme') {
-                    $coreFields->configure[$key]->options = $themes;
-                }
-            }
-            foreach ($coreFields->advanced as $key => $item) {
-                if ($item->property === 'license') {
-                    $coreFields->advanced[
-                        $key
-                    ]->options = $this->getLicenseData();
-                }
-            }
-            // CORE fields
-            if (isset($coreFields->configure)) {
-                foreach ($coreFields->configure as $item) {
-                    $fields['configure'][] = $item;
-                }
-            }
-            if (isset($coreFields->advanced)) {
-                foreach ($coreFields->advanced as $item) {
-                    $fields['advanced'][] = $item;
-                }
-            }
-        }
-        // fields can live globally in config
-        if (isset($GLOBALS['HAXCMS']->config->siteFields)) {
-            if (isset($GLOBALS['HAXCMS']->config->siteFields->configure)) {
-                foreach (
-                    $GLOBALS['HAXCMS']->config->siteFields->configure
-                    as $item
-                ) {
-                    $fields['configure'][] = $item;
-                }
-            }
-            if (isset($GLOBALS['HAXCMS']->config->siteFields->advanced)) {
-                foreach (
-                    $GLOBALS['HAXCMS']->config->siteFields->advanced
-                    as $item
-                ) {
-                    $fields['advanced'][] = $item;
-                }
-            }
-        }
-        // fields can live in the theme
-        if (
-            isset($this->manifest->metadata->theme->siteFields) &&
-            file_exists(
-                HAXCMS_ROOT .
-                    '/build/es6/node_modules/' .
-                    $this->manifest->metadata->theme->siteFields
-            )
-        ) {
-            // @todo thik of how to make this less brittle
-            // not a fan of pegging loading this definition to our file system's publishing structure
-            $themeFields = json_decode(
-                file_get_contents(
-                    HAXCMS_ROOT .
-                        '/build/es6/node_modules/' .
-                        $this->manifest->metadata->theme->siteFields
-                )
-            );
-            if (isset($themeFields->configure)) {
-                foreach ($themeFields->configure as $item) {
-                    $fields['configure'][] = $item;
-                }
-            }
-            if (isset($themeFields->advanced)) {
-                foreach ($themeFields->advanced as $item) {
-                    $fields['advanced'][] = $item;
-                }
-            }
-        }
-        // fields can live in the site itself
-        // @todo this needs to give you data differently
-        if (isset($this->manifest->metadata->node->fields)) {
-            if (isset($this->manifest->metadata->node->fields->configure)) {
-                foreach (
-                    $this->manifest->metadata->node->fields->configure
-                    as $item
-                ) {
-                    $item->formgroup = 'configure';
-                    $nodeFields[] = $item;
-                }
-            }
-            if (isset($this->manifest->metadata->node->fields->advanced)) {
-                foreach ($this->manifest->metadata->node->fields->advanced as $item) {
-                    $item->formgroup = 'advanced';
-                    $nodeFields[] = $item;
-                }
-            }
-        }
-        // icon wasn't required at one point
-        if (!isset($this->manifest->metadata->theme->variables->icon)) {
-            $this->manifest->metadata->theme->variables->icon = '';
-        }
-        // core values that live outside of the fields area
-        $values = array(
-            'title' => $this->manifest->title,
-            'description' => (isset($this->manifest->metadata->description) ? $this->manifest->metadata->description : ''),
-            'icon' => (isset($this->manifest->metadata->icon) ? $this->manifest->metadata->icon : ''),
-            'theme' => (isset($this->manifest->metadata->theme) ? $this->manifest->metadata->theme : ''),
-            'domain' => (isset($this->manifest->metadata->domain) ? $this->manifest->metadata->domain : ''),
-            'author.name' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->name : ''),
-            'author.image' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->image : ''),
-            'author.socialLink' => (isset($this->manifest->metadata->author) ? $this->manifest->metadata->author->socialLink : ''),
-            'author.license' => (isset($this->manifest->metadata->license) ? $this->manifest->metadata->license : ''),
-            'seo.pathauto' => (isset($this->manifest->metadata->pathauto) ? $this->manifest->metadata->pathauto : false),
-            'seo.offline' => (isset($this->manifest->metadata->offline) ? $this->manifest->metadata->offline : false),
-            'image' => (isset($this->manifest->metadata->image) ? $this->manifest->metadata->image : ''),
-            'cssVariable' => (isset($this->manifest->metadata->cssVariable) ? $this->manifest->metadata->cssVariable : ''),
-            'publishing.git' => (isset($this->manifest->metadata->publishing) ? $this->manifest->metadata->publishing->git : array()),
-            'fields' => $nodeFields
-        );
-        // now get the field data from the page
-        if (isset($this->manifest->metadata->node->fields)) {
-            foreach ($this->manifest->metadata->node->fields as $key => $item) {
-                if ($key == 'theme') {
-                    $values[$key] = $item['key'];
-                } else if ($key != 'configure' && $key != 'advanced')  {
                     $values[$key] = $item;
                 }
             }
