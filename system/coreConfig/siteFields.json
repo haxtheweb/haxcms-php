@@ -127,18 +127,6 @@
           "inputMethod": "array",
           "properties": [
             {
-              "property": "formgroup",
-              "title": "Form group",
-              "description": "Which tab will users input values",
-              "inputMethod": "select",
-              "required": true,
-              "options": {
-                "configure": "Configure",
-                "advanced": "Advanced"
-              },
-              "icon": "link"
-            },
-            {
               "property": "inputMethod",
               "title": "Input method",
               "description": "How users can enter data for this field",

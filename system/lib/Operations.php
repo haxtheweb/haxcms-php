@@ -147,30 +147,14 @@ class Operations {
       }
       // more importantly, this is where the field UI stuff is...
       if (isset($this->params['manifest']['fields']['manifest-metadata-node-fields'])) {
-          $fields = new stdClass();
-          $fields->configure = array();
-          $fields->advanced = array();
-          // establish a fields block
+          $fields = array();
+          // establish a fields block, replacing with whatever is there now
           $site->manifest->metadata->node->fields = new stdClass();
-          $site->manifest->metadata->node->fields->configure = array();
-          $site->manifest->metadata->node->fields->advanced = array();
           foreach ($this->params['manifest']['fields']['manifest-metadata-node-fields'] as $key => $field) {
-              // ensure formgroup isset, shouldn't be possible..
-              if (!isset($field['formgroup'])) {
-                  $field['formgroup'] = 'configure';
-              }
-              $fieldgroup = $field['formgroup'];
-              unset($field['formgroup']);
-              // another sanity check
-              if ($fieldgroup == 'configure' || $fieldgroup == 'advanced') {
-                  array_push($fields->{$fieldgroup}, $field);
-              }
+              array_push($fields, $field);
           }
-          if (count($fields->configure) > 0) {
-              $site->manifest->metadata->node->fields->configure = $fields->configure;
-          }
-          if (count($fields->advanced) > 0) {
-              $site->manifest->metadata->node->fields->advanced = $fields->advanced;
+          if (count($fields) > 0) {
+              $site->manifest->metadata->node->fields = $fields;
           }
       }
       $site->manifest->metadata->site->git->autoPush = filter_var(

@@ -456,8 +456,7 @@ class HAXCMS
             "manifest-metadata-theme-variables-icon": null
           },
          "fields": {
-            "manifest-metadata-node-fields-configure": null,
-            "manifest-metadata-node-fields-advanced": null
+            "manifest-metadata-node-fields": null
           },
           "seo": {
             "manifest-metadata-site-settings-pathauto": null,
