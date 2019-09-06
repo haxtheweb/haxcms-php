@@ -8,7 +8,7 @@
       "description": "Settings directly related to the internals of the site",
       "properties": [
         {
-          "property": "manifest.title",
+          "property": "manifest-title",
           "title": "title",
           "description": "Name of the site",
           "inputMethod": "textfield",
@@ -16,7 +16,7 @@
           "icon": "editor:title"
         },
         {
-          "property": "manifest.metadata.site.domain",
+          "property": "manifest-metadata-site-domain",
           "title": "Domain",
           "description": "Domain of this website",
           "inputMethod": "textfield",
@@ -24,7 +24,7 @@
           "icon": "icons:open-in-browser"
         },
         {
-          "property": "manifest.description",
+          "property": "manifest-description",
           "title": "Description",
           "description": "Simple description of the site",
           "inputMethod": "textfield",
@@ -35,11 +35,11 @@
     },
     {
       "property": "author",
-      "title": "Author / Ownership",
+      "title": "Author",
       "description": "Author details",
       "properties": [
         {
-          "property": "manifest.license",
+          "property": "manifest-license",
           "title": "License",
           "description": "The source url for the element this is citing.",
           "inputMethod": "select",
@@ -54,19 +54,19 @@
           "icon": "link"
         },
         {
-          "property": "manifest.metadata.author.image",
+          "property": "manifest-metadata-author-image",
           "title": "Image",
           "description": "Photo",
           "inputMethod": "haxupload"
         },
         {
-          "property": "manifest.metadata.author.name",
+          "property": "manifest-metadata-author-name",
           "title": "Name",
           "description": "Name",
           "inputMethod": "textfield"
         },
         {
-          "property": "manifest.metadata.author.socialLink",
+          "property": "manifest-metadata-author-socialLink",
           "title": "Social media link",
           "description": "A primary social space / point of contact",
           "inputMethod": "textfield"
@@ -75,11 +75,11 @@
     },
     {
       "property": "theme",
-      "title": "Theme / Design",
+      "title": "Theme",
       "description": "Theme and design settings for the site",
       "properties": [
         {
-          "property": "manifest.metadata.theme.name",
+          "property": "manifest-metadata-theme-element",
           "title": "Theme",
           "description": "Page theme",
           "inputMethod": "select",
@@ -88,7 +88,7 @@
           "options": {}
         },
         {
-          "property": "manifest.metadata.theme.variables.image",
+          "property": "manifest-metadata-theme-variables-image",
           "title": "Banner",
           "description": "Image for the site",
           "inputMethod": "haxupload",
@@ -96,7 +96,7 @@
           "icon": "image:image"
         },
         {
-          "property": "manifest.metadata.theme.variables.cssVariable",
+          "property": "manifest-metadata-theme-variables-cssVariable",
           "title": "Color",
           "description": "A base accent color for the site",
           "inputMethod": "colorpicker",
@@ -104,7 +104,7 @@
           "icon": "editor:format-color-fill"
         },
         {
-          "property": "manifest.metadata.theme.variables.icon",
+          "property": "manifest-metadata-theme-variables-icon",
           "title": "Icon",
           "description": "Icon to represent the site",
           "inputMethod": "iconpicker",
@@ -119,7 +119,7 @@
       "description": "Custom fields for nodes in the site",
       "properties": [
         {
-          "property": "manifest.metadata.node.fields",
+          "property": "manifest-metadata-node-fields",
           "title": "Custom Fields",
           "description": "Store relational data about nodes and other properties",
           "required": false,
@@ -201,18 +201,18 @@
     },
     {
       "property": "seo",
-      "title": "SEO / Path",
+      "title": "SEO",
       "description": "Search engine and detailed internal path handling",
       "properties": [
         {
-          "property": "manifest.metadata.site.settings.pathauto",
+          "property": "manifest-metadata-site-settings-pathauto",
           "title": "Pathauto",
           "description": "Automatically maintain and update page paths",
           "inputMethod": "boolean",
           "icon": "icons:link"
         },
         {
-          "property": "manifest.metadata.site.settings.publishPagesOn",
+          "property": "manifest-metadata-site-settings-publishPagesOn",
           "title": "Show unpublished pages",
           "description": "Whether to hide unpublished pages or not",
           "inputMethod": "boolean",
@@ -222,24 +222,24 @@
     },
     {
       "property": "static",
-      "title": "Static publishing",
+      "title": "Publishing",
       "description": "Publishing options",
       "properties": [
         {
-          "property": "manifest.metadata.site.static.cdn",
+          "property": "manifest-metadata-site-static-cdn",
           "title": "CDN",
           "description": "CDN to use for published assets",
           "inputMethod": "select",
           "required": true,
           "options": {
-            "https://webcomponents.psu.edu/cdn/": "Penn State CDN",
-            "https://cdn.waxam.io/": "Waxam CDN",
-            "build/": "Local (no CDN)"
+            "webcomponents.psu.edu": "Penn State CDN",
+            "cdn.waxam.io": "Waxam CDN",
+            "build": "Local (no CDN)"
           },
           "icon": "link"
         },
         {
-          "property": "manifest.metadata.site.static.offline",
+          "property": "manifest-metadata-site-static-offline",
           "title": "Offline",
           "description": "Published site will work when completely offline",
           "inputMethod": "boolean",
@@ -249,32 +249,38 @@
     },
     {
       "property": "git",
-      "title": "Git settings",
+      "title": "Version control",
       "description": "Store relational data about fields",
       "properties": [
         {
-          "property": "manifest.metadata.site.git.branch",
+          "property": "manifest-metadata-site-git-branch",
           "title": "Default branch",
           "description": "Branch to publish on (master is common)",
           "inputMethod": "textfield",
           "required": true
         },
         {
-          "property": "manifest.metadata.site.git.staticBranch",
+          "property": "manifest-metadata-site-git-staticBranch",
           "title": "Static branch",
           "description": "Branch to publish on (gh-pages is common)",
           "inputMethod": "textfield",
           "required": true
         },
         {
-          "property": "manifest.metadata.site.git.url",
+          "property": "manifest-metadata-site-git-url",
           "title": "Git url",
           "description": "location of the git repository to sync up to",
           "inputMethod": "textfield",
           "required": true
         },
         {
-          "property": "manifest.metadata.site.git.vendor",
+          "property": "manifest-metadata-site-git-autoPush",
+          "title": "Auto push on save",
+          "description": "Push code to the associated remote repo whenever any change is made",
+          "inputMethod": "boolean"
+        },
+        {
+          "property": "manifest-metadata-site-git-vendor",
           "title": "Vendor",
           "description": "Vendor used for internal publishing flexibility",
           "inputMethod": "select",
@@ -282,6 +288,19 @@
             "github": "Github"
           },
           "required": true
+        },
+        {
+          "property": "manifest-metadata-site-git-publicRepoUrl",
+          "title": "Public repo address",
+          "description": "URL with path to where the files of this site are publicly accessible. This is useful for having people contribute to the source backing your site. Example: https://github.com/{you}/{repoName}/tree/master/",
+          "inputMethod": "textfield",
+          "validationType": "url",
+          "required": true
+        },
+        {
+          "property": "dangerzone",
+          "title": "dangerzone",
+          "inputMethod": "markup"
         }
       ]
     }
