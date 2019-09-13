@@ -46,13 +46,11 @@ class Operations {
       $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
     }*/
     if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
-      $site->manifest->title = filter_var(
-          $this->params['manifest']['site']['manifest-title'],
-          FILTER_SANITIZE_STRING
+      $site->manifest->title = strip_tags(
+          $this->params['manifest']['site']['manifest-title']
       );
-      $site->manifest->description = filter_var(
-          $this->params['manifest']['site']['manifest-description'],
-          FILTER_SANITIZE_STRING
+      $site->manifest->description = strip_tags(
+          $this->params['manifest']['site']['manifest-description']
       );
       $site->manifest->metadata->site->domain = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-domain'],
