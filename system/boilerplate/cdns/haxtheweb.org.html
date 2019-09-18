@@ -196,17 +196,29 @@
   <script>
     // this is in order to fake a connection for development purposes
     window.appSettings = {
-      "login": "dist\/dev\//login.json",
-      "logout": "dist\/dev\/logout.json",
-      "saveNodePath": "dist\/dev\/saveNode.json",
-      "saveManifestPath": "dist\/dev\/saveNode.json",
-      "createNodePath": "dist\/dev\/saveNode.json",
-      "deleteNodePath": "dist\/dev\/saveNode.json",
-      "saveOutlinePath": "dist\/dev\/saveNode.json",
-      "publishSitePath": "dist\/dev\/saveNode.json",
-      "syncSitePath": "dist\/dev\/saveNode.json",
+      "login": "fake\/dev\/login.json",
+      "logout": "fake\/dev\/logout.json",
+      "saveNodePath": "fake\/dev\/saveNode.json",
+      "saveManifestPath": "fake\/dev\/saveManifestPath.json",
+      "createNodePath": "fake\/dev\/saveNode.json",
+      "deleteNodePath": "fake\/dev\/saveNode.json",
+      "saveOutlinePath": "fake\/dev\/saveNode.json",
+      "publishSitePath": "fake\/dev\/saveNode.json",
+      "getNodeFieldsPath": "fake\/dev\/getNodeFieldsPath.json",
+      "getSiteFieldsPath": "fake\/dev\/getSiteFieldsPath.json",
+      "revertSitePath": "fake\/dev\/saveNode.json",
+      "getFieldsToken": "adskjadshjudfu823u823u8fu8fij",
       "appStore": {
-        "url": "appstore.json"
+        "url": "fake\/dev\/appstore.json"
+      },
+      // add your custom theme here if testing locally and wanting to emulate the theme selector
+      // this isn't really nessecary though
+      "themes": {
+        "haxcms-dev-theme": {
+          "element": "haxcms-dev-theme",
+          "path": "@lrnwebcomponents/haxcms-elements/lib/haxcms-dev-theme.js",
+          "name": "Developer theme"
+        }
       }
     };
   </script>
