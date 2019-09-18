@@ -222,7 +222,8 @@
           "options": {
             "webcomponents.psu.edu": "Penn State CDN",
             "cdn.waxam.io": "Waxam CDN",
-            "build": "Local (no CDN)"
+            "build": "Local (no CDN)",
+            "haxtheweb.org": "HaxTheWeb live demo (developers only)"
           },
           "icon": "link"
         },
