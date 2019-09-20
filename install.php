@@ -1,3 +1,10 @@
+<?php
+$failed = false;
+// check for core directories existing, redirect if we do
+if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_archived')) {
+  header("Location: index.php");
+  exit();
+} else { ?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -81,12 +88,6 @@
     <div class="wrapper">
       <paper-card elevation="5">
 <?php
-$failed = false;
-// check for core directories existing, redirect if we do
-if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_archived')) {
-  header("Location: index.php");
-  exit();
-} else {
   include_once 'system/lib/Git.php';
   // add git library
   if (!is_dir('_config')) {
