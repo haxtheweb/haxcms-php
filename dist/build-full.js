@@ -1,6 +1,7 @@
 // the base line build that's used to setup everything in a production environment
 import "./build.js";
 import "./build-home.js";
+import "./build-install.js";
 import "./build-legacy.js";
 // we build elmsln dependency trees from here since there's so much overlap.
 import "./elmsln-build.js";

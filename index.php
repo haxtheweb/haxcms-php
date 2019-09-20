@@ -15,7 +15,8 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
       as="script" crossorigin="anonymous">
     <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">    
+    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
+    <link rel="stylesheet" href="build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
     <script type="text/javascript">
       document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
     </script>
@@ -28,7 +29,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
 
     <link rel="manifest" href="manifest.json">
 
-    <meta name="theme-color" content="#3f51b5">
+    <meta name="theme-color" content="#37474f">
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="My site">
@@ -44,7 +45,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
 
     <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
-    <meta name="msapplication-TileColor" content="#3f51b5">
+    <meta name="msapplication-TileColor" content="#37474f">
     <meta name="msapplication-tap-highlight" content="no">
 
     <meta name="twitter:card" content="summary">
@@ -57,8 +58,21 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
         margin: 0;
         min-height: 100vh;
       }
+      body[data-logged-in] {
+        background-color: #EEEEEE;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        transition: .6s linear background;
+        background-color: var(--haxcms-system-bg);
+      }
       haxcms-site-listing {
         transition: all 1s linear;
+        --haxcms-site-listing-color-dark: var(--haxcms-system-bg, --simple-colors-default-theme-blue-11);
+        --haxcms-site-listing-color-light: #FFFFFF;
+        --haxcms-site-listing-color-hover: var(--haxcms-system-action-color);
+        outline-color: var(--haxcms-site-listing-color-hover);
       }
       haxcms-site-listing:not(:defined) {
         width: 100vw;
@@ -94,7 +108,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
       <div>HAXcms</div><div>loading</div>
       <?php print $HAXCMS->siteListing->slot; ?>
     </haxcms-site-listing>
-    <noscript>Please enable JavaScript to view this website.</noscript>
+    <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');var cdn="";var old=false;var ancient=false;
       if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site
         ancient = true;
