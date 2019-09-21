@@ -98,6 +98,16 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
       body[no-js] haxcms-site-listing {
         display: none !important;
       }
+      .version {
+        font-size: 10px;
+        padding: 0 2px;
+        font-weight: bold;
+        color: #FFFFFF;
+        position: absolute;
+        right: 0;
+        top: 0;
+        z-index: 2;
+      }
     </style>
   </head>
   <body no-js>
@@ -108,6 +118,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
       <div>HAXcms</div><div>loading</div>
       <?php print $HAXCMS->siteListing->slot; ?>
     </haxcms-site-listing>
+    <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');var cdn="";var old=false;var ancient=false;
       if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site

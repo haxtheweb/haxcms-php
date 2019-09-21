@@ -509,6 +509,17 @@ class HAXCMS
       return $manifestKeys;
     }
     /**
+     * Get the current version number
+     */
+    public function getHAXCMSVersion()
+    {
+      // sanity
+      $vFile = HAXCMS_ROOT . '/VERSION.txt';
+      if (file_exists($vFile)) {
+        return filter_var(file_get_contents($vFile));
+      }
+    }
+    /**
      * Load theme location data as mix of config and system
      */
     public function getThemes()

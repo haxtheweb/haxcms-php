@@ -1,5 +1,8 @@
 <?php
 $failed = false;
+if (file_exists(__DIR__ . '/VERSION.txt')) {
+  $version = filter_var(file_get_contents(__DIR__ . '/VERSION.txt'));
+}
 // check for core directories existing, redirect if we do
 if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_archived')) {
   header("Location: index.php");
@@ -54,6 +57,10 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         hax-logo {
           --hax-logo-font-size: 20px;
         }
+      }
+      .version {
+        float:right;
+        font-weight: bold;
       }
       ul li {
         padding: 4px;
@@ -199,7 +206,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
   }
 }
 if ($failed) { ?>
-        <hax-logo hide-hax>install-issue</hax-logo>
+        <hax-logo hide-hax>install-issue</hax-logo><div class="version">V<?php print $version;?></div>
         <h1>HAXcms folder needs to be writeable</h1>
         <p>
           You can modify permissions in order to achieve this
@@ -211,7 +218,7 @@ if ($failed) { ?>
           <paper-button raised><iron-icon icon="icons:build"></iron-icon> HAXTheWeb</paper-button></a>.
         </p>
 <?php } else { ?>
-        <hax-logo hide-hax>HAXcms</hax-logo>
+        <hax-logo hide-hax>HAXcms</hax-logo><div class="version">V<?php print $version;?></div>
         <h1>Install successful!</h1>
         <p>If you don' see any errors then that means HAXcms has been successfully installed!
         Configuration settings were saved to <strong>_config/config.php</strong></p>
