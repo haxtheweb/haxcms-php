@@ -785,6 +785,12 @@ class Operations {
       );
     }
   }
+  public function getUserData() {
+    return array(
+      'status' => 200,
+      'data' => $GLOBALS['HAXCMS']->userData
+    );
+  }
   /**
    * load form
    */
@@ -862,6 +868,30 @@ class Operations {
   public function loadFiles() {
     // @todo make this load the files out of the JSON outline schema and only return them
     return array();
+  }
+  /**
+   * Save file into the system level
+   */
+  public function setUserPhoto() {
+    // @todo might want to scrub prior to this level but not sure
+    if (isset($_FILES['file-upload'])) {
+      $upload = $_FILES['file-upload'];
+      $file = new HAXCMSFile();
+      $fileResult = $file->save($upload, 'system/user/files', null, 'thumbnail');
+      if ($fileResult['status'] == 500) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'failed to write',
+          )
+        );
+      }
+      // save this back to the user data object
+      $values = new stdClass();
+      $values->userPicture = $fileResult['data']['file']['fullUrl'];
+      $GLOBALS['HAXCMS']->setUserData($values);
+      return $fileResult;
+    }
   }
   /**
    * save file from editor upload

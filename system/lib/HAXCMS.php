@@ -33,6 +33,7 @@ class HAXCMS
     public $outlineSchema;
     public $privateKey;
     public $config;
+    public $userData;
     public $superUser;
     public $user;
     public $sitesDirectory;
@@ -235,6 +236,14 @@ class HAXCMS
                 }
                 // @todo this is pretty hacky specific placement of the theme options
                 $this->config->site->fields[0]->properties[2]->properties[0]->options = $themeSelect;
+                // userData object
+                // load in core dynamicElementLoader data
+                if (
+                !($this->userData = json_decode(
+                    file_get_contents($this->configDirectory . '/userData.json')
+                ))) {
+                  $this->userData = new stdClass();
+                }
             }
             $this->dispatchEvent('haxcms-init', $this);
         }
@@ -653,6 +662,17 @@ class HAXCMS
     /**
      * Set and validate config
      */
+    public function setUserData($values)
+    {
+      // only support user picture for the moment
+      if (isset($values->userPicture)) {
+        $this->userData->userPicture = $values->userPicture;
+      }
+      $this->saveUserDataFile();
+    }
+    /**
+     * Set and validate config
+     */
     public function setConfig($values)
     {
         if (isset($values->apis)) {
@@ -726,6 +746,16 @@ class HAXCMS
             return $response->getStatusCode();
         }
         return 'saved';
+    }
+    /**
+     * Write configuration to the config file
+     */
+    private function saveUserDataFile()
+    {
+        return @file_put_contents(
+            $this->configDirectory . '/userData.json',
+            json_encode($this->userData, JSON_PRETTY_PRINT)
+        );
     }
     /**
      * Write configuration to the config file
@@ -1097,6 +1127,8 @@ class HAXCMS
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode';
+        $settings->getUserDataPath = $path . 'getUserData';
+        $settings->setUserPhotoPath = $path . 'setUserPhoto';
         $settings->deleteNodePath = $path . 'deleteNode';
         $settings->createNewSitePath = $path . 'createSite';
         $settings->gitImportSitePath = $path . 'gitImportSite';

@@ -106,6 +106,8 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     mkdir('_config/.ssh');
     // tmp directory for uploads and other file management
     mkdir('_config/tmp');
+    mkdir('_config/user');
+    mkdir('_config/user/files');
     // node modules for local theme development if desired
     mkdir('_config/node_modules');
     // make config.json boilerplate
@@ -120,8 +122,9 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     );
     // make a config.php boilerplate for larger overrides
     copy('system/boilerplate/systemsetup/config.php', '_config/config.php');
-    // htaccess file
+    // htaccess files
     copy('system/boilerplate/systemsetup/.htaccess', '_config/.htaccess');
+    copy('system/boilerplate/systemsetup/.user-files-htaccess', '_config/user/files/.htaccess');
     // set permissions
     chmod("_config", 0755);
     chmod("_config/tmp", 0777);
