@@ -516,14 +516,49 @@ class HAXCMSSite
      */
     public function getSiteMetadata($page) {
       $title = $page->title;
+      $siteTitle = $this->manifest->title . ' | ' . $page->title;
       $description = $page->description;
-        if ($description == '') {
-          $description = $this->manifest->description;
-        }
-        if ($title == '' || $title == 'New item') {
-          $title = $this->manifest->title;
-        }
-        $metadata = '<meta name="description" content="' . $description . '" />
+      $hexCode = HAXCMS_FALLBACK_HEX;
+      if ($description == '') {
+        $description = $this->manifest->description;
+      }
+      if ($title == '' || $title == 'New item') {
+        $title = $this->manifest->title;
+        $siteTitle = $this->manifest->title;
+      }
+      if (isset($this->manifest->metadata->theme->variables->hexCode)) {
+          $hexCode = $this->manifest->metadata->theme->variables->hexCode;
+      }
+      $metadata = '<meta charset="utf-8">
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
+  <meta name="generator" content="HAXcms">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <title>' . $siteTitle . '</title>
+  <link rel="icon" href="assets/favicon.ico">
+  <meta name="theme-color" content="' . $hexCode . '">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="' . $title . '">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="' . $title . '">
+
+  <link rel="apple-touch-icon" href="assets/icon-48x48.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
+
+  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
+  <meta name="msapplication-TileColor" content="' . $hexCode . '">
+  <meta name="msapplication-tap-highlight" content="no">
+        
+  <meta name="description" content="' . $description . '" />
   <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
@@ -531,15 +566,21 @@ class HAXCMSSite
   <meta name="og:description" property="og:description" content="' . $description . '" />
   <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" property="twitter:site" content="' . $GLOBALS['HAXCMS']->getURI() . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
-  <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';
-        // mix in license metadata if we have it
-        $licenseData = $this->getLicenseData('all');
-        if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
-            $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
-        }
-        return $metadata;
+  <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
+      // mix in license metadata if we have it
+      $licenseData = $this->getLicenseData('all');
+      if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
+          $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
+      }
+      // add in twitter link if they provided one
+      if (isset($this->manifest->metadata->author->socialLink) && strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0) {
+          $metadata .= "\n" . '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
+      }
+      $GLOBALS['HAXCMS']->dispatchEvent('haxcms-site-metadata', $metadata);
+      return $metadata;
     }
     /**
      * Load a node based on a path
@@ -549,7 +590,7 @@ class HAXCMSSite
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
         if (is_null($path) && isset($_SERVER['SCRIPT_URL'])) {
-            $path = str_replace('/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $_SERVER['SCRIPT_URL']);
+          $path = str_replace('/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $_SERVER['SCRIPT_URL']);
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /

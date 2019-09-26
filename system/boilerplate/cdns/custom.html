@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
   <link rel="preload" href="./build/es6/dist/build.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js"
@@ -9,44 +8,8 @@
   <link rel="preload" href="./build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
   <link rel="preload" href="./theme/theme.css" as="style">
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
-  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
-  <meta name="generator" content="HAXCMS">
-  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
-  <title>{{ title }}</title>
-  <meta name="description" content="{{ description }}">
   <base href="{{ basePath }}" />
-  
-  <link rel="icon" href="assets/favicon.ico">
-  
-  <link rel="manifest" href="manifest.json">
-  
-  <meta name="theme-color" content="{{ hexCode }}">
-  
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="{{ title }}">
-  
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="{{ title }}">
-  
-  <link rel="apple-touch-icon" href="assets/icon-48x48.png">
-  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
-  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
-  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
-  
-  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
-  <meta name="msapplication-TileColor" content="{{ hexCode }}">
-  <meta name="msapplication-tap-highlight" content="no">
-  
-  <meta name="twitter:card" content="{{ description }}">
-  <meta name="twitter:site" content="{{ twitter }}">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="{{ title }}">
-  <meta property="og:image" content="assets/icon-144x144.png" />
+  {{ metadata|raw }}
   <!-- Start Single Page Apps for GitHub Pages -->
   <script>
     // Single Page Apps for GitHub Pages

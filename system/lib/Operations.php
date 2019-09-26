@@ -1395,16 +1395,15 @@ class Operations {
                 }
                 // process twig variables and templates for static publishing
                 $templateVars = array(
-                    'hexCode' => '#3f51b5',
-                    // @todo support user setting a twitter account for themselves / site if desired
-                    'twitter' => '',
+                    'hexCode' => HAXCMS_FALLBACK_HEX,
                     'basePath' =>
                         '/' . $site->manifest->metadata->site->name . '/',
                     'title' => $site->manifest->title,
                     'short' => $site->manifest->metadata->site->name,
                     'description' => $site->manifest->description,
                     'swhash' => array(),
-                    'segmentCount' => 1
+                    'segmentCount' => 1,
+                    'metadata' => $site->getSiteMetadata(),
                 );
                 // special fallback for HAXtheWeb since it cheats in order to demo the solution
                 if ($cdn == 'haxtheweb.org') {
