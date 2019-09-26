@@ -134,7 +134,7 @@ foreach ($lessons as $key => $lesson) {
     $cleanTitleParent = $lesson['@attributes']['directory'];
     $page->location = 'pages/' . $cleanTitleParent . '/index.html';
     $site->recurseCopy(
-        HAXCMS_ROOT . '/system/boilerplate/page',
+        HAXCMS_ROOT . '/system/boilerplate/page/default',
         $siteDirectory . '/pages/' . $cleanTitleParent
     );
     $page->writeLocation(
@@ -207,7 +207,7 @@ foreach ($lessons as $key => $lesson) {
                     $cleanTitle .
                     '/index.html';
                 $site->recurseCopy(
-                    HAXCMS_ROOT . '/system/boilerplate/page',
+                    HAXCMS_ROOT . '/system/boilerplate/page/default',
                     $siteDirectory .
                         '/pages/' .
                         $cleanTitleParent .

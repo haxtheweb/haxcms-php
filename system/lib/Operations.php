@@ -271,7 +271,7 @@ class Operations {
           $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
           $page->location = 'pages/' . $tmpTitle . '/index.html';
           $site->recurseCopy(
-              HAXCMS_ROOT . '/system/boilerplate/page',
+              HAXCMS_ROOT . '/system/boilerplate/page/default',
               $siteDirectory . '/pages/' . $tmpTitle
           );
       }
@@ -314,7 +314,7 @@ class Operations {
               $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
               $page->location = 'pages/' . $tmpTitle . '/index.html';
               $site->recurseCopy(
-                  HAXCMS_ROOT . '/system/boilerplate/page',
+                  HAXCMS_ROOT . '/system/boilerplate/page/default',
                   $siteDirectory . '/pages/' . $tmpTitle
               );
           }
@@ -385,7 +385,7 @@ class Operations {
     // this logic should be cleaned up in addPage to allow for
     // passing in arguments
     $site->recurseCopy(
-        HAXCMS_ROOT . '/system/boilerplate/page',
+        HAXCMS_ROOT . '/system/boilerplate/page/default',
         $site->directory .
             '/' .
             $site->manifest->metadata->site->name .

@@ -108,7 +108,7 @@ class HAXCMSSite
         $this->manifest->metadata->node->dynamicElementLoader = new stdClass();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
-        $this->addPage();
+        $this->addPage(null, 'Welcome to a new HAXcms site!', 'init');
         // put this in version control :) :) :)
         $git = new Git();
         $repo = $git->create($directory . '/' . $tmpname);
@@ -213,15 +213,17 @@ class HAXCMSSite
      * Add a page to the site's file system and reflect it in the outine schema.
      *
      * @var $parent JSONOutlineSchemaItem representing a parent to add this page under
+     * @var $title title of the new page to create
+     * @var $template string which boilerplate page template / directory to load
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null)
+    public function addPage($parent = null, $title = 'New page', $template = "default")
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
         // set a crappy default title
-        $page->title = 'New page';
+        $page->title = $title;
         if ($parent == null) {
             $page->parent = null;
             $page->indent = 0;
@@ -234,17 +236,23 @@ class HAXCMSSite
         // set order to the page's count for default add to end ordering
         $page->order = count($this->manifest->items);
         // location is the html file we just copied and renamed
-        $page->location = 'pages/' . $page->id . '/index.html';
+        $page->location = 'pages/welcome/index.html';
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location =
             $this->directory .
             '/' .
             $this->manifest->metadata->site->name .
-            '/pages/' .
-            $page->id;
+            '/pages/welcome';
         // copy the page we use for simplicity (or later complexity if we want)
-        $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page', $location);
+        switch ($template) {
+            case 'init':
+                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/init', $location);
+            break;
+            default:
+                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
+            break;
+        }
         $this->manifest->addItem($page);
         $this->manifest->save();
         $this->updateAlternateFormats();
