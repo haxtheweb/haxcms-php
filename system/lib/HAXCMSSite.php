@@ -479,7 +479,7 @@ class HAXCMSSite
         return $html . $loc;
     }
     /**
-     * Load page by unique id
+     * Load node by unique id
      */
     public function loadNode($uuid)
     {
@@ -489,6 +489,77 @@ class HAXCMSSite
             }
         }
         return false;
+    }
+    /**
+     * Get a social sharing image based on context of page or site having media
+     * @var string $page page to mine the image from or attempt to
+     * @return string full URL to an image
+     */
+    public function getSocialShareImage($page = null) {
+        if (is_null($page)) {
+            $page = $this->loadNodeByLocation();
+        }
+        if (isset($page->metadata->files)) {
+            foreach ($page->metadata->files as $file) {
+                if ($file->type == 'image/jpeg') {
+                    return $file->fullUrl;
+                }
+            }
+        }
+        // look for the theme banner
+        if (isset($this->manifest->metadata->theme->variables->image)) {
+            return $this->manifest->metadata->theme->variables->image;
+        }
+    }
+    /**
+     * Return accurate, rendered site metadata
+     */
+    public function getSiteMetadata($page) {
+      $title = $page->title;
+      $description = $page->description;
+        if ($description == '') {
+          $description = $this->manifest->description;
+        }
+        if ($title == '' || $title == 'New item') {
+          $title = $this->manifest->title;
+        }
+        $metadata = '<meta name="description" content="' . $description . '" />
+  <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
+  <meta name="og:title" property="og:title" content="' . $title . '" />
+  <meta name="og:type" property="og:type" content="article" />
+  <meta name="og:url" property="og:url" content="' . $GLOBALS['HAXCMS']->getURI() . '" />
+  <meta name="og:description" property="og:description" content="' . $description . '" />
+  <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
+  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
+  <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
+  <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';
+        // mix in license metadata if we have it
+        $licenseData = $this->getLicenseData('all');
+        if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
+            $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
+        }
+        return $metadata;
+    }
+    /**
+     * Load a node based on a path
+     * @var $path the path to try loading based on or search for the active from address
+     * @return new JSONOutlineSchemaItem() a blank JOS item
+     */
+    public function loadNodeByLocation($path = NULL) {
+        // load from the active address if we have one
+        if (is_null($path) && isset($_SERVER['SCRIPT_URL'])) {
+            $path = str_replace('/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $_SERVER['SCRIPT_URL']);
+        }
+        $path .= "/index.html";
+        // failsafe in case someone had closing /
+        $path = 'pages/' . str_replace('//', '/', $path);
+        foreach ($this->manifest->items as $item) {
+            if ($item->location == $path) {
+                return $item;
+            }
+        }
+       return new JSONOutlineSchemaItem();
     }
     /**
      * Load field schema for a page
@@ -675,6 +746,9 @@ class HAXCMSSite
             foreach ($list as $key => $item) {
                 $data[$key] = $item['name'];
             }
+        }
+        else {
+            $data = $list;
         }
         return $data;
     }

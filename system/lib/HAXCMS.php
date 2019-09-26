@@ -897,6 +897,14 @@ class HAXCMS
         return $connection;
     }
     /**
+     * Return the active URI if it exists
+     */
+    public function getURI() {
+      if (isset($_SERVER['SCRIPT_URI'])) {
+        return $_SERVER['SCRIPT_URI'];
+      }
+    }
+    /**
      * Load a site off the file system with option to create
      */
     public function loadSite($name, $create = false, $domain = null)
