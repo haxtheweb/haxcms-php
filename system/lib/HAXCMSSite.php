@@ -171,7 +171,7 @@ class HAXCMSSite
           'licenseName' => $licenseName,
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
           'bodyAttrs' => $this->getSitePageAttributes(),
-          'metadata' => $this->getSiteMetadata(new JSONOutlineSchemaItem()),
+          'metadata' => $this->getSiteMetadata(),
           'logo512x512' => $this->getLogoSize('512','512'),
           'logo310x310' => $this->getLogoSize('310','310'),
           'logo192x192' => $this->getLogoSize('192','192'),
@@ -757,7 +757,7 @@ class HAXCMSSite
      */
     public function getPageContent($page) {
       if (isset($page->location) && $page->location != '') {
-        return file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location);
+        return filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location));
       }
     }
     /**
@@ -766,7 +766,10 @@ class HAXCMSSite
      * @return string an html chunk of tags for the head section
      * @todo move this to a render function / section / engine
      */
-    public function getSiteMetadata($page) {
+    public function getSiteMetadata($page = NULL) {
+      if (is_null($page)) {
+        $page = new JSONOutlineSchemaItem();
+      }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
       $description = $page->description;

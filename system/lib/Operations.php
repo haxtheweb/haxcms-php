@@ -1383,24 +1383,19 @@ class Operations {
                   'msbc' => 'browserconfig.xml',
                   'dat' => 'dat.json',
                 );
-                foreach ($templates as $path) {
-                    rename(
-                        $siteDirectoryPath . '/' . $path,
-                        $siteDirectoryPath . '/_' . $path
-                    );
-                    // support for index as that comes from a CDN defining what to do
-                    if ($path === 'index.html') {
-                        $boilerPath =
-                            HAXCMS_ROOT .
-                            '/system/boilerplate/cdns/' .
-                            $cdn .
-                            '.html';
-                    } else {
-                        $boilerPath =
-                            HAXCMS_ROOT . '/system/boilerplate/site/' . $path;
-                    }
-                    copy($boilerPath, $siteDirectoryPath . '/' . $path);
+                $site->rebuildManagedFiles();
+                // support for index as that comes from a CDN defining what to do
+                if ($path === 'index.html') {
+                    $boilerPath =
+                        HAXCMS_ROOT .
+                        '/system/boilerplate/cdns/' .
+                        $cdn .
+                        '.html';
+                } else {
+                    $boilerPath =
+                        HAXCMS_ROOT . '/system/boilerplate/site/' . $path;
                 }
+                copy($boilerPath, $siteDirectoryPath . '/' . $path);
                 // process twig variables and templates for static publishing
                 $licenseData = $site->getLicenseData('all');
                 $licenseLink = '';
@@ -1423,16 +1418,6 @@ class Operations {
                     'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
                     'bodyAttrs' => $site->getSitePageAttributes(),
                     'metadata' => $site->getSiteMetadata(),
-                    'logo512x512' => $site->getLogoSize('512','512'),
-                    'logo310x310' => $site->getLogoSize('310','310'),
-                    'logo192x192' => $site->getLogoSize('192','192'),
-                    'logo150x150' => $site->getLogoSize('150','150'),
-                    'logo144x144' => $site->getLogoSize('144','144'),
-                    'logo96x96' => $site->getLogoSize('96','96'),
-                    'logo72x72' => $site->getLogoSize('72','72'),
-                    'logo70x70' => $site->getLogoSize('70','70'),
-                    'logo48x48' => $site->getLogoSize('48','48'),
-                    'logo36x36' => $site->getLogoSize('36','36'),
                 );
                 // special fallback for HAXtheWeb since it cheats in order to demo the solution
                 if ($cdn == 'haxtheweb.org') {
@@ -1657,11 +1642,11 @@ class Operations {
                 $siteDirectoryPath . '/assets/babel-bottom.js'
             );
             @symlink('../../build', $siteDirectoryPath . '/build');
-            // reset the templated files to their boilerplate equivalent
-            foreach ($templates as $path) {
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/_' . $path, $siteDirectoryPath . '/' . $path]);
-                copy(HAXCMS_ROOT . '/system/boilerplate/site/' . $path, $siteDirectoryPath . '/' . $path);
-            }
+            // reset the templated file for the index.html
+            // since the "CDN" cleaned up how this worked most likely at run time
+            $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/_index.html', $siteDirectoryPath . '/index.html']);
+            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.html', $siteDirectoryPath . '/index.html');
+            
             return array(
                 'status' => 200,
                 'url' => $domain,
