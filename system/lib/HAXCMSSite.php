@@ -1,6 +1,7 @@
 <?php
 // working with RSS
 include_once 'RSS.php';
+use \Gumlet\ImageResize;
 // a site object
 class HAXCMSSite
 {
@@ -130,6 +131,145 @@ class HAXCMSSite
             HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name,
             array('pages', 'files', 'custom')
         );
+    }
+    /**
+     * Reprocess the files that twig helps set in their static
+     * form that the user is not in control of.
+     */
+    public function rebuildManagedFiles() {
+      $templates = array(
+        'sw' => 'service-worker.js',
+        'index' => 'index.html',
+        'manifest' => 'manifest.json',
+        '404' => '404.html',
+        'msbc' => 'browserconfig.xml',
+        'dat' => 'dat.json',
+      );
+      $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
+      $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
+      foreach ($templates as $file) {
+        copy($boilerPath . $file, $siteDirectoryPath . '/' . $file);
+      }
+      $licenseData = $this->getLicenseData('all');
+      $licenseLink = '';
+      $licenseName = '';
+      if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
+        $licenseLink = $licenseData[$this->manifest->license]['link'];
+        $licenseName = 'License: ' . $licenseData[$this->manifest->license]['name'];
+      }
+      
+      $templateVars = array(
+          'hexCode' => HAXCMS_FALLBACK_HEX,
+          'basePath' =>
+              $this->basePath . $this->manifest->metadata->site->name . '/',
+          'title' => $this->manifest->title,
+          'short' => $this->manifest->metadata->site->name,
+          'description' => $this->manifest->description,
+          'swhash' => array(),
+          'segmentCount' => 2,
+          'licenseLink' => $licenseLink,
+          'licenseName' => $licenseName,
+          'metadata' => $this->getSiteMetadata(new JSONOutlineSchemaItem()),
+          'logo512x512' => $this->getLogoSize('512','512'),
+          'logo310x310' => $this->getLogoSize('310','310'),
+          'logo192x192' => $this->getLogoSize('192','192'),
+          'logo150x150' => $this->getLogoSize('150','150'),
+          'logo144x144' => $this->getLogoSize('144','144'),
+          'logo96x96' => $this->getLogoSize('96','96'),
+          'logo72x72' => $this->getLogoSize('72','72'),
+          'logo70x70' => $this->getLogoSize('70','70'),
+          'logo48x48' => $this->getLogoSize('48','48'),
+          'logo36x36' => $this->getLogoSize('36','36'),
+      );
+      $swItems = $this->manifest->items;
+      // the core files you need in every SW manifest
+      $coreFiles = array(
+          'index.html',
+          'manifest.json',
+          'site.json',
+          'assets/favicon.ico',
+          '404.html'
+      );
+      // loop through files directory so we can cache those things too
+      if ($handle = opendir($siteDirectoryPath . '/files')) {
+          while (false !== ($file = readdir($handle))) {
+              if (
+                  $file != "." &&
+                  $file != ".." &&
+                  $file != '.gitkeep' &&
+                  $file != '.DS_Store'
+              ) {
+                  // ensure this is a file
+                  if (
+                      is_file($siteDirectoryPath . '/files/' . $file)
+                  ) {
+                      $coreFiles[] = 'files/' . $file;
+                  } else {
+                      // @todo maybe step into directories?
+                  }
+              }
+          }
+          closedir($handle);
+      }
+      foreach ($coreFiles as $itemLocation) {
+          $coreItem = new stdClass();
+          $coreItem->location = $itemLocation;
+          $swItems[] = $coreItem;
+      }
+      // generate a legit hash value that's the same for each file name + file size
+      foreach ($swItems as $item) {
+          if (
+              $item->location === '' ||
+              $item->location === $templateVars['basePath']
+          ) {
+              $filesize = filesize(
+                  $siteDirectoryPath . '/index.html'
+              );
+          } elseif (
+              file_exists($siteDirectoryPath . '/' . $item->location)
+          ) {
+              $filesize = filesize(
+                  $siteDirectoryPath . '/' . $item->location
+              );
+          } else {
+              // ?? file referenced but doesn't exist
+              $filesize = 0;
+          }
+          if ($filesize !== 0) {
+              $templateVars['swhash'][] = array(
+                  $item->location,
+                  strtr(
+                      base64_encode(
+                          hash_hmac(
+                              'md5',
+                              (string) $item->location . $filesize,
+                              (string) 'haxcmsswhash',
+                              true
+                          )
+                      ),
+                      array(
+                          '+' => '',
+                          '/' => '',
+                          '=' => '',
+                          '-' => ''
+                      )
+                  )
+              );
+          }
+      }
+      if (isset($this->manifest->metadata->theme->variables->hexCode)) {
+          $templateVars['hexCode'] =
+              $this->manifest->metadata->theme->variables->hexCode;
+      }
+      // put the twig written output into the file
+      $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
+      $twig = new \Twig\Environment($loader);
+      foreach ($templates as $location) {
+          @file_put_contents(
+              $siteDirectoryPath . '/' . $location,
+              $twig->render($location, $templateVars)
+          );
+      }
     }
     /**
      * Rename a page from one location to another
@@ -548,13 +688,13 @@ class HAXCMSSite
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="' . $title . '">
 
-  <link rel="apple-touch-icon" href="assets/icon-48x48.png">
-  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
-  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
-  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '">
+  <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '">
+  <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '">
+  <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '">
+  <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '">
 
-  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
+  <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '">
   <meta name="msapplication-TileColor" content="' . $hexCode . '">
   <meta name="msapplication-tap-highlight" content="no">
         
@@ -601,6 +741,25 @@ class HAXCMSSite
             }
         }
        return new JSONOutlineSchemaItem();
+    }
+    /**
+     * Generate or load the path to variations on the logo
+     */
+    public function getLogoSize($height, $width) {
+      $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
+      // ensure this path exists
+      if (!isset($this->manifest->metadata->site->logo)) {
+        return 'assets/icon-128x128.png';
+      }
+      $newName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+      if (!file_exists($newName)) {
+        global $fileSystem;
+        $fileSystem->mkdir($path . 'files/haxcms-managed');
+        $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+        $image->crop($height, $width)
+          ->save($path . $newName);
+      }
+      return $newName;
     }
     /**
      * Load field schema for a page

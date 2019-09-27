@@ -449,7 +449,8 @@ class HAXCMS
           "site": {
             "manifest-title": null,
             "manifest-description": null,
-            "manifest-metadata-site-domain": null
+            "manifest-metadata-site-domain": null,
+            "manifest-metadata-site-logo": null
           },
           "author": {
             "manifest-license": null,

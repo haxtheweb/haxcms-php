@@ -56,6 +56,10 @@ class Operations {
           $this->params['manifest']['site']['manifest-metadata-site-domain'],
           FILTER_SANITIZE_STRING
       );
+      $site->manifest->metadata->site->logo = filter_var(
+          $this->params['manifest']['site']['manifest-metadata-site-logo'],
+          FILTER_SANITIZE_STRING
+      );
       if (!isset($site->manifest->metadata->site->static)) {
         $site->manifest->metadata->site->static = new stdClass();
       }
@@ -179,6 +183,9 @@ class Operations {
       // don't reorganize the structure
       $site->manifest->save(false);
       $site->gitCommit('Manifest updated');
+      // rebuild the files that twig processes
+      $site->rebuildManagedFiles();
+      $site->gitCommit('Managed files updated');
       // check git remote if it came across as a possible setting
       if (isset($this->params['manifest']['git']['manifest-metadata-site-git-url'])) {
         if (
@@ -1369,11 +1376,12 @@ class Operations {
                 }
                 // additional files to move to ensure we don't screw things up
                 $templates = array(
-                    'sw' => 'service-worker.js',
-                    'index' => 'index.html',
-                    'manifest' => 'manifest.json',
-                    '404' => '404.html',
-                    'msbc' => 'browserconfig.xml'
+                  'sw' => 'service-worker.js',
+                  'index' => 'index.html',
+                  'manifest' => 'manifest.json',
+                  '404' => '404.html',
+                  'msbc' => 'browserconfig.xml',
+                  'dat' => 'dat.json',
                 );
                 foreach ($templates as $path) {
                     rename(
@@ -1394,6 +1402,13 @@ class Operations {
                     copy($boilerPath, $siteDirectoryPath . '/' . $path);
                 }
                 // process twig variables and templates for static publishing
+                $licenseData = $site->getLicenseData('all');
+                $licenseLink = '';
+                $licenseName = '';
+                if (isset($site->manifest->license) && isset($licenseData[$site->manifest->license])) {
+                  $licenseLink = $licenseData[$site->manifest->license]['link'];
+                  $licenseName = 'License: ' . $licenseData[$site->manifest->license]['name'];
+                }
                 $templateVars = array(
                     'hexCode' => HAXCMS_FALLBACK_HEX,
                     'basePath' =>
@@ -1403,7 +1418,19 @@ class Operations {
                     'description' => $site->manifest->description,
                     'swhash' => array(),
                     'segmentCount' => 1,
+                    'licenseLink' => $licenseLink,
+                    'licenseName' => $licenseName,
                     'metadata' => $site->getSiteMetadata(),
+                    'logo512x512' => $site->getLogoSize('512','512'),
+                    'logo310x310' => $site->getLogoSize('310','310'),
+                    'logo192x192' => $site->getLogoSize('192','192'),
+                    'logo150x150' => $site->getLogoSize('150','150'),
+                    'logo144x144' => $site->getLogoSize('144','144'),
+                    'logo96x96' => $site->getLogoSize('96','96'),
+                    'logo72x72' => $site->getLogoSize('72','72'),
+                    'logo70x70' => $site->getLogoSize('70','70'),
+                    'logo48x48' => $site->getLogoSize('48','48'),
+                    'logo36x36' => $site->getLogoSize('36','36'),
                 );
                 // special fallback for HAXtheWeb since it cheats in order to demo the solution
                 if ($cdn == 'haxtheweb.org') {
