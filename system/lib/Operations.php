@@ -1383,20 +1383,12 @@ class Operations {
                   'msbc' => 'browserconfig.xml',
                   'dat' => 'dat.json',
                 );
-                $site->rebuildManagedFiles();
                 // support for index as that comes from a CDN defining what to do
-                if ($path === 'index.html') {
-                    $boilerPath =
-                        HAXCMS_ROOT .
-                        '/system/boilerplate/cdns/' .
-                        $cdn .
-                        '.html';
-                } else {
-                    $boilerPath =
-                        HAXCMS_ROOT . '/system/boilerplate/site/' . $path;
-                }
-                copy($boilerPath, $siteDirectoryPath . '/' . $path);
-                // process twig variables and templates for static publishing
+                // remove current index, then pull a new one
+                // this ensures that the php file won't be in the published copy while it is in master
+                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html', $siteDirectoryPath . '/index.php']);
+                copy(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $cdn . '.html', $siteDirectoryPath . '/index.html');
+                // process twig variables for static publishing
                 $licenseData = $site->getLicenseData('all');
                 $licenseLink = '';
                 $licenseName = '';
@@ -1598,11 +1590,11 @@ class Operations {
             );
             // tag, attempt to push, and set things up for next time
             $repo->add_tag(
-                'version-' . $site->manifest->metadata->lastPublished
+                'version-' . $site->manifest->metadata->site->static->lastPublished
             );
             @$repo->push(
                 'origin',
-                'version-' . $site->manifest->metadata->lastPublished,
+                'version-' . $site->manifest->metadata->site->static->lastPublished,
                 "--force"
             );
             if ($gitSettings->staticBranch != 'master') {
@@ -1644,9 +1636,10 @@ class Operations {
             @symlink('../../build', $siteDirectoryPath . '/build');
             // reset the templated file for the index.html
             // since the "CDN" cleaned up how this worked most likely at run time
-            $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/_index.html', $siteDirectoryPath . '/index.html']);
+            $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html']);
             copy(HAXCMS_ROOT . '/system/boilerplate/site/index.html', $siteDirectoryPath . '/index.html');
-            
+            // this ensures that the php file wasn't in version control for the published copy
+            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.php', $siteDirectoryPath . '/index.php');
             return array(
                 'status' => 200,
                 'url' => $domain,
