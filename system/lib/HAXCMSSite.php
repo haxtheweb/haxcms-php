@@ -652,7 +652,18 @@ class HAXCMSSite
         }
     }
     /**
+     * Return attributes for the site
+     * @todo make this mirror the drupal get attributes method
+     * @return string eventually, array of data keyed by type of information
+     */
+    public function getSitePageAttributes() {
+      return 'vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/"';
+    }
+    /**
      * Return accurate, rendered site metadata
+     * @var JSONOutlineSchemaItem $page - a loaded page object, most likely whats active
+     * @return string an html chunk of tags for the head section
+     * @todo move this to a render function / section / engine
      */
     public function getSiteMetadata($page) {
       $title = $page->title;
@@ -680,7 +691,7 @@ class HAXCMSSite
   <title>' . $siteTitle . '</title>
   <link rel="icon" href="assets/favicon.ico">
   <meta name="theme-color" content="' . $hexCode . '">
-
+  <meta name="robots" content="index, follow">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="' . $title . '">
 
