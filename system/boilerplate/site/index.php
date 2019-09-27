@@ -53,7 +53,13 @@
   </style>
 </head>
 <body no-js <?php print $site->getSitePageAttributes();?>>
-  <haxcms-site-builder id="site" file="site.json"><div class="loading"><div><?php print $site->name; ?></div><div>loading</div></div></haxcms-site-builder>
+  <haxcms-site-builder id="site" file="site.json">
+    <div class="loading">
+      <div><?php print $site->name; ?></div>
+      <div>loading</div>
+    </div>
+    <?php print $site->getPageContent($page); ?>
+  </haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
     <haxcms-legacy-player file="site.json"></haxcms-legacy-player>
     <div id="haxcmsoutdatedfallbacksuperold"> 

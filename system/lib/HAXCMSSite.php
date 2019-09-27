@@ -751,6 +751,16 @@ class HAXCMSSite
   </script>";
     }
     /**
+     * Load content of this page
+     * @var JSONOutlineSchemaItem $page - a loaded page object
+     * @return string HTML / contents of the page object
+     */
+    public function getPageContent($page) {
+      if (isset($page->location) && $page->location != '') {
+        return file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location);
+      }
+    }
+    /**
      * Return accurate, rendered site metadata
      * @var JSONOutlineSchemaItem $page - a loaded page object, most likely whats active
      * @return string an html chunk of tags for the head section
