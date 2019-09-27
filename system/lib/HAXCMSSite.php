@@ -182,15 +182,26 @@ class HAXCMSSite
           'logo70x70' => $this->getLogoSize('70','70'),
           'logo48x48' => $this->getLogoSize('48','48'),
           'logo36x36' => $this->getLogoSize('36','36'),
+          'favicon' => $this->getLogoSize('16','16'),
       );
       $swItems = $this->manifest->items;
       // the core files you need in every SW manifest
       $coreFiles = array(
           'index.html',
+          $this->getLogoSize('512','512'),
+          $this->getLogoSize('310','310'),
+          $this->getLogoSize('192','192'),
+          $this->getLogoSize('150','150'),
+          $this->getLogoSize('144','144'),
+          $this->getLogoSize('96','96'),
+          $this->getLogoSize('72','72'),
+          $this->getLogoSize('70','70'),
+          $this->getLogoSize('48','48'),
+          $this->getLogoSize('36','36'),
+          $this->getLogoSize('16','16'),
           'manifest.json',
           'site.json',
-          'assets/favicon.ico',
-          '404.html'
+          '404.html',
       );
       // loop through files directory so we can cache those things too
       if ($handle = opendir($siteDirectoryPath . '/files')) {
@@ -766,9 +777,18 @@ class HAXCMSSite
      * @return string an html chunk of tags for the head section
      * @todo move this to a render function / section / engine
      */
-    public function getSiteMetadata($page = NULL) {
+    public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
       if (is_null($page)) {
         $page = new JSONOutlineSchemaItem();
+      }
+      // domain's need to inject their own full path for OG metadata (which is edge case)
+      // most of the time this is the actual usecase so use the active path
+      if (is_null($domain)) {
+        $domain = $GLOBALS['HAXCMS']->getURI();
+      }
+      // support preconnecting CDNs, sets us up for dynamic CDN switching too
+      if ($cdn != '') {
+        $cdn = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
       }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
@@ -786,6 +806,7 @@ class HAXCMSSite
       }
       $metadata = '<meta charset="utf-8">
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  ' . $cdn . '
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
   <link rel="preconnect" crossorigin href="https://licensebuttons.net">
@@ -793,7 +814,7 @@ class HAXCMSSite
   <link rel="manifest" href="manifest.json">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
   <title>' . $siteTitle . '</title>
-  <link rel="icon" href="assets/favicon.ico">
+  <link rel="icon" href="' . $this->getLogoSize('16', '16') . '">
   <meta name="theme-color" content="' . $hexCode . '">
   <meta name="robots" content="index, follow">
   <meta name="mobile-web-app-capable" content="yes">
@@ -817,11 +838,11 @@ class HAXCMSSite
   <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
-  <meta name="og:url" property="og:url" content="' . $GLOBALS['HAXCMS']->getURI() . '" />
+  <meta name="og:url" property="og:url" content="' . $domain . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
   <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" property="twitter:site" content="' . $GLOBALS['HAXCMS']->getURI() . '" />
+  <meta name="twitter:site" property="twitter:site" content="' . $domain . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
   <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
@@ -859,15 +880,19 @@ class HAXCMSSite
     }
     /**
      * Generate or load the path to variations on the logo
+     * @var string $height height of the icon as a string
+     * @var string $width width of the icon as a string
+     * @return string path to the image (web visible) that was created or pulled together
      */
     public function getLogoSize($height, $width) {
-      $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
-      // ensure this path exists
+      // if no logo, just bail with an easy standard one
       if (!isset($this->manifest->metadata->site->logo)) {
-        return 'assets/icon-128x128.png';
+        return 'assets/icon-' . $height . 'x' . $width . '.png';
       }
+      // ensure this path exists otherwise let's create it on the fly
+      $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
       $newName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
-      if (!file_exists($newName)) {
+      if (!file_exists($path . $newName)) {
         global $fileSystem;
         $fileSystem->mkdir($path . 'files/haxcms-managed');
         $image = new ImageResize($path . $this->manifest->metadata->site->logo);

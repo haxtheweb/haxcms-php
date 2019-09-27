@@ -52,6 +52,8 @@ class Operations {
       $site->manifest->description = strip_tags(
           $this->params['manifest']['site']['manifest-description']
       );
+      // store some version data here just so we can find it later
+      $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
       $site->manifest->metadata->site->domain = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-domain'],
           FILTER_SANITIZE_STRING
@@ -1409,27 +1411,26 @@ class Operations {
                     'licenseName' => $licenseName,
                     'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
                     'bodyAttrs' => $site->getSitePageAttributes(),
-                    'metadata' => $site->getSiteMetadata(),
                 );
-                // special fallback for HAXtheWeb since it cheats in order to demo the solution
-                if ($cdn == 'haxtheweb.org') {
-                    $templateVars['cdn'] = 'cdn.waxam.io';
-                    $templateVars['cdnRegex'] =
-                      "(https?:\/\/" .
-                      str_replace('.', '\.', 'cdn.waxam.io') .
-                      "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
-                }
                 // custom isn't a regex by design
-                elseif ($cdn != 'custom') {
+                if ($cdn != 'custom') {
+                  // special fallback for HAXtheWeb since it cheats in order to demo the solution
+                  if ($cdn == 'haxtheweb.org') {
+                    $templateVars['cdn'] = 'cdn.waxam.io';
+                  }
+                  else {
                     $templateVars['cdn'] = $cdn;
-                    $templateVars['cdnRegex'] =
-                      "(https?:\/\/" .
-                      str_replace('.', '\.', $cdn) .
-                      "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
-                }
-                // support for disabling cdnRegex via offline setting
-                if (isset($site->manifest->metadata->site->static->offline) && !$site->manifest->metadata->site->static->offline) {
-                  unset($templateVars['cdnRegex']);
+                  }
+                  $templateVars['metadata'] = $site->getSiteMetadata(NULL, $domain, 'https://' . $templateVars['cdn']);
+                  // build a regex so that we can do fully offline sites and cache the cdn requests even
+                  $templateVars['cdnRegex'] =
+                    "(https?:\/\/" .
+                    str_replace('.', '\.', $templateVars['cdn']) .
+                    "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+                  // support for disabling regex via offline setting
+                  if (isset($site->manifest->metadata->site->static->offline) && !$site->manifest->metadata->site->static->offline) {
+                    unset($templateVars['cdnRegex']);
+                  }
                 }
                 // if we have a custom domain, try and engineer the base path
                 // correctly for the manifest / service worker
@@ -1459,8 +1460,18 @@ class Operations {
                     'index.html',
                     'manifest.json',
                     'site.json',
-                    'assets/favicon.ico',
-                    '404.html'
+                    $this->getLogoSize('512','512'),
+                    $this->getLogoSize('310','310'),
+                    $this->getLogoSize('192','192'),
+                    $this->getLogoSize('150','150'),
+                    $this->getLogoSize('144','144'),
+                    $this->getLogoSize('96','96'),
+                    $this->getLogoSize('72','72'),
+                    $this->getLogoSize('70','70'),
+                    $this->getLogoSize('48','48'),
+                    $this->getLogoSize('36','36'),
+                    $this->getLogoSize('16','16'),
+                    '404.html',
                 );
                 // loop through files directory so we can cache those things too
                 if ($handle = opendir($siteDirectoryPath . '/files')) {

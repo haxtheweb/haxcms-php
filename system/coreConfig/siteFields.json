@@ -240,6 +240,11 @@
           "description": "Published site will work when completely offline",
           "inputMethod": "boolean",
           "required": false
+        },
+        {
+          "property": "publishacopy",
+          "title": "publishacopy",
+          "inputMethod": "markup"
         }
       ]
     },
