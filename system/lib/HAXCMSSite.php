@@ -169,6 +169,8 @@ class HAXCMSSite
           'segmentCount' => 2,
           'licenseLink' => $licenseLink,
           'licenseName' => $licenseName,
+          'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
+          'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(new JSONOutlineSchemaItem()),
           'logo512x512' => $this->getLogoSize('512','512'),
           'logo310x310' => $this->getLogoSize('310','310'),
@@ -658,6 +660,95 @@ class HAXCMSSite
      */
     public function getSitePageAttributes() {
       return 'vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/"';
+    }
+    /**
+     * Return the base tag accurately which helps with the PWA / SW side of things
+     * @return string HTML blob for hte <base> tag
+     */
+    public function getBaseTag() {
+      return '<base href="' . $this->basePath . $this->name . '/" />';
+    }
+    /**
+     * Return a standard service worker that takes into account
+     * the context of the page it's been placed on.
+     * @todo this will need additional vetting based on the context applied
+     * @return string <script> tag that will be a rather standard service worker
+     */
+    public function getServiceWorkerScript($basePath = null, $ignoreDevMode = FALSE) {
+      // because this can screw with caching, let's make sure we
+      // can throttle it locally for developers as needed
+      if (($GLOBALS["HAXCMS"]->developerMode) && !$ignoreDevMode) {
+        return '// SW disabled via developerMode';
+      }
+      // support dynamic calculation
+      if (is_null($basePath)) {
+        $basePath = $this->basePath . $this->name . '/';
+      }
+      return "
+  <script>
+    if ('serviceWorker' in navigator) {
+      var sitePath = '" . $basePath . "';
+      // discover this path downstream of the root of the domain
+      var swScope = window.location.pathname.substring(0, window.location.pathname.indexOf(sitePath)) + sitePath;
+      if (swScope != document.head.getElementsByTagName('base')[0].href) {
+        document.head.getElementsByTagName('base')[0].href = swScope;
+      }
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js', {
+          scope: swScope
+        }).then(function (registration) {
+          registration.onupdatefound = function () {
+            // The updatefound event implies that registration.installing is set; see
+            // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-container-updatefound-event
+            var installingWorker = registration.installing;
+            installingWorker.onstatechange = function () {
+              switch (installingWorker.state) {
+                case 'installed':
+                  if (!navigator.serviceWorker.controller) {
+                    window.dispatchEvent(new CustomEvent('simple-toast-show', {
+                      bubbles: true,
+                      cancelable: false,
+                      detail: {
+                        text: 'Pages you view are cached for offline use.',
+                        duration: 8000
+                      }
+                    }));
+                  }
+                break;
+                case 'redundant':
+                  throw Error('The installing service worker became redundant.');
+                break;
+              }
+            };
+          };
+        }).catch(function (e) {
+          console.warn('Service worker registration failed:', e);
+        });
+        // Check to see if the service worker controlling the page at initial load
+        // has become redundant, since this implies there's a new service worker with fresh content.
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.onstatechange = function(event) {
+            if (event.target.state === 'redundant') {
+              var b = document.createElement('paper-button');
+              b.appendChild(document.createTextNode('Reload'));
+              b.raised = true;
+              b.addEventListener('click', function(e){ window.location.reload(true); });
+              window.dispatchEvent(new CustomEvent('simple-toast-show', {
+                bubbles: true,
+                cancelable: false,
+                detail: {
+                  text: 'A site update is available. Reload for latest content.',
+                  duration: 12000,
+                  slot: b,
+                  clone: false
+                }
+              }));
+            }
+          };
+        }
+      });
+    }
+  </script>";
     }
     /**
      * Return accurate, rendered site metadata

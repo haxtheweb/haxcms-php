@@ -1420,6 +1420,8 @@ class Operations {
                     'segmentCount' => 1,
                     'licenseLink' => $licenseLink,
                     'licenseName' => $licenseName,
+                    'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
+                    'bodyAttrs' => $site->getSitePageAttributes(),
                     'metadata' => $site->getSiteMetadata(),
                     'logo512x512' => $site->getLogoSize('512','512'),
                     'logo310x310' => $site->getLogoSize('310','310'),
@@ -1467,6 +1469,8 @@ class Operations {
                     if ($templateVars['basePath'] == '/') {
                         $templateVars['segmentCount'] = 0;
                     }
+                    // now we need to update the SW to match
+                    $templateVars['serviceWorkerScript'] = $site->getServiceWorkerScript($templateVars['basePath'], TRUE);
                 }
                 if (isset($site->manifest->metadata->theme->variables->hexCode)) {
                     $templateVars['hexCode'] =

@@ -45,70 +45,7 @@
     }(window.location))
   </script>
   <!-- End Single Page Apps for GitHub Pages -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      var sitePath = '{{ basePath }}';
-      // discover this path downstream of the root of the domain
-      var swScope = window.location.pathname.substring(0, window.location.pathname.indexOf(sitePath)) + sitePath;
-      if (swScope != document.head.getElementsByTagName('base')[0].href) {
-        document.head.getElementsByTagName('base')[0].href = swScope;
-      }
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('service-worker.js', {
-          scope: swScope
-        }).then(function (registration) {
-          registration.onupdatefound = function () {
-            // The updatefound event implies that registration.installing is set; see
-            // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-container-updatefound-event
-            var installingWorker = registration.installing;
-            installingWorker.onstatechange = function () {
-              switch (installingWorker.state) {
-                case 'installed':
-                  if (!navigator.serviceWorker.controller) {
-                    window.dispatchEvent(new CustomEvent("simple-toast-show", {
-                      bubbles: true,
-                      cancelable: false,
-                      detail: {
-                        text: 'Pages you view are cached for offline use.',
-                        duration: 8000
-                      }
-                    }));
-                  }
-                  break;
-                case 'redundant':
-                  throw Error('The installing service worker became redundant.');
-                  break;
-              }
-            };
-          };
-        }).catch(function (e) {
-          console.warn('Service worker registration failed:', e);
-        });
-        // Check to see if the service worker controlling the page at initial load
-        // has become redundant, since this implies there's a new service worker with fresh content.
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.onstatechange = function (event) {
-            if (event.target.state === 'redundant') {
-              var b = document.createElement('paper-button');
-              b.appendChild(document.createTextNode('Reload'));
-              b.raised = true;
-              b.addEventListener('click', function(e) { window.location.reload(true); });
-              window.dispatchEvent(new CustomEvent("simple-toast-show", {
-                bubbles: true,
-                cancelable: false,
-                detail: {
-                  text: 'A site update is available. Reload for latest content.',
-                  duration: 12000,
-                  slot: b,
-                  clone: false
-                }
-              }));
-            }
-          };
-        }
-      });
-    }
-  </script>
+  {{ serviceWorkerScript|raw }}
   <style>
     body {
       margin: 0;
@@ -144,7 +81,7 @@
     }
   </style>
 </head>
-<body no-js>
+<body no-js {{ bodyAttrs|raw }}>
   <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>{{ title }}</div><div>loading</div></div></haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
     <haxcms-legacy-player file="site.json"></haxcms-legacy-player>

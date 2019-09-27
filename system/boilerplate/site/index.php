@@ -15,15 +15,8 @@
   <link rel="preload" href="./build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
   <link rel="preload" href="./theme/theme.css" as="style">
-  <script type="text/javascript">
-    // attempt to correctly set the base without knowing where we're installed fully...
-    if (document.location.pathname.indexOf('/_sites/') != -1) {
-      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/_sites/') + 8)) + "/' />");
-    }
-    else if (document.location.pathname.indexOf('/sites/') != -1) {
-      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
-    }
-  </script>
+  <?php print $site->getBaseTag(); ?>
+  <?php print $site->getServiceWorkerScript(); ?>
   <style>
     body {
       margin: 0;
@@ -59,7 +52,7 @@
     }
   </style>
 </head>
-<body no-js>
+<body no-js <?php print $site->getSitePageAttributes();?>>
   <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>Site</div><div>loading</div></div></haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
     <haxcms-legacy-player file="site.json"></haxcms-legacy-player>

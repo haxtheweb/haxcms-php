@@ -41,6 +41,8 @@ class HAXCMS
     public $publishedDirectory;
     public $sites;
     public $data;
+    public $developerMode;
+    public $developerModeAdminOnly;
     public $configDirectory;
     public $sitesJSON;
     public $domain;
@@ -61,6 +63,8 @@ class HAXCMS
      */
     public function __construct()
     {
+      $this->developerMode = FALSE;
+      $this->developerModeAdminOnly = FALSE;
       // critical for the CLI operations to validate
       $this->validArgs = array('op:', 'siteName::', 'theme:');
       // test for CLI and bring in arg data correctly
