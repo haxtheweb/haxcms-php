@@ -131,10 +131,6 @@ else
   chown ${wwwuser}:${wwwgrp} _published
   chown ${wwwuser}:${wwwgrp} _archived
 fi
-# basic home user alias stuff for simplier CLI calls
-echo "alias g='git'" >> $HOME/.bashrc
-echo "alias l='ls -laHF'" >> $homedir/.bashrc
-echo "alias haxcms='bash /var/www/html/scripts/haxcms.sh'" >> $homedir/.bashrc
 
 # you get candy if you reference this
 haxecho ""
