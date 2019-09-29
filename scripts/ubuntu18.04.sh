@@ -39,5 +39,9 @@ sudo a2enmod http2
 # enable protocol support
 echo "Protocols h2 http/1.1" > /etc/apache2/conf-available/http2.conf
 sudo a2enconf http2
-# get this party started
+# make sure we allow for overrides for .htaccess files to work in the CMS area
+cp $DIR/haxcms.conf /etc/apache2/conf-available/haxcms.conf
+sudo a2enconf haxcms
+# get this party started, one of these will work
 sudo service apache2 restart
+sudo systemctl reload apache2
