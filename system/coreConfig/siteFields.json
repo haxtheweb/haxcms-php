@@ -73,6 +73,12 @@
           "inputMethod": "textfield"
         },
         {
+          "property": "manifest-metadata-author-email",
+          "title": "Email",
+          "description": "email address",
+          "inputMethod": "textfield"
+        },
+        {
           "property": "manifest-metadata-author-socialLink",
           "title": "Social media link",
           "description": "A primary social space / point of contact",

@@ -132,6 +132,10 @@ class Operations {
               $this->params['manifest']['author']['manifest-metadata-author-name'],
               FILTER_SANITIZE_STRING
           );
+          $site->manifest->metadata->author->email = filter_var(
+              $this->params['manifest']['author']['manifest-metadata-author-email'],
+              FILTER_SANITIZE_STRING
+          );
           $site->manifest->metadata->author->socialLink = filter_var(
               $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
               FILTER_SANITIZE_STRING

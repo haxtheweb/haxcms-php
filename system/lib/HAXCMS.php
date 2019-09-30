@@ -460,6 +460,7 @@ class HAXCMS
             "manifest-license": null,
             "manifest-metadata-author-image": null,
             "manifest-metadata-author-name": null,
+            "manifest-metadata-author-email": null,
             "manifest-metadata-author-socialLink": null
           },
           "theme": {
