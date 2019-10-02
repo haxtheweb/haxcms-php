@@ -142,7 +142,6 @@ class HAXCMSSite
             'msbc' => 'browserconfig.xml',
             'dat' => 'dat.json',
             'index' => 'index.html',
-            'indexphp' => 'index.php',
             'manifest' => 'manifest.json',
             'package' => 'package.json',
             'polymer' => 'polymer.json',
@@ -158,6 +157,9 @@ class HAXCMSSite
      */
     public function rebuildManagedFiles() {
       $templates = $this->getManagedTemplateFiles();
+      // this can't be there by default since it's a dynamic file and we only
+      // want to update this when we are refreshing the managed files directly
+      $templates['indexphp'] = 'index.php';
       $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
       $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
       foreach ($templates as $file) {
