@@ -70,7 +70,7 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js');var cdn="";var forceUpgrade=false;var old=false;var ancient=false;
+  <script>document.body.removeAttribute('no-js');var cdn="";var forceUpgrade=<?php print $site->getForceUpgrade();?>;var old=false;var ancient=false;
     if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site
       ancient = true;
     }

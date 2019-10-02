@@ -153,6 +153,12 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
         );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
+        $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
+        FILTER_VALIDATE_BOOLEAN
+        );
+      }
       // more importantly, this is where the field UI stuff is...
       if (isset($this->params['manifest']['fields']['manifest-metadata-node-fields'])) {
           $fields = array();
@@ -1381,14 +1387,7 @@ class Operations {
                     );
                 }
                 // additional files to move to ensure we don't screw things up
-                $templates = array(
-                  'sw' => 'service-worker.js',
-                  'index' => 'index.html',
-                  'manifest' => 'manifest.json',
-                  '404' => '404.html',
-                  'msbc' => 'browserconfig.xml',
-                  'dat' => 'dat.json',
-                );
+                $templates = $site->getManagedTemplateFiles();
                 // support for index as that comes from a CDN defining what to do
                 // remove current index, then pull a new one
                 // this ensures that the php file won't be in the published copy while it is in master
@@ -1404,11 +1403,13 @@ class Operations {
                 }
                 $templateVars = array(
                     'hexCode' => HAXCMS_FALLBACK_HEX,
+                    'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
                     'basePath' =>
                         '/' . $site->manifest->metadata->site->name . '/',
                     'title' => $site->manifest->title,
                     'short' => $site->manifest->metadata->site->name,
                     'description' => $site->manifest->description,
+                    'forceUpgrade' => $site->getForceUpgrade(),
                     'swhash' => array(),
                     'segmentCount' => 1,
                     'licenseLink' => $licenseLink,

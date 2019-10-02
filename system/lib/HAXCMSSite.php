@@ -122,14 +122,34 @@ class HAXCMSSite
         return $this;
     }
     /**
-     * Refresh a site's base files without removing anything existing
-     * @todo needs actual testing and debug
+     * Return the forceUpgrade status which is whether to force end users to upgrade their browser
+     * @return string status of forced upgrade, string as boolean since it'll get written into a JS file
      */
-    public function refreshSiteFiles() {
-        $this->recurseCopy(
-            HAXCMS_ROOT . '/system/boilerplate/site',
-            HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name,
-            array('pages', 'files', 'custom')
+    public function getForceUpgrade() {
+        if (isset($this->manifest->metadata->site->settings->forceUpgrade) && $this->manifest->metadata->site->settings->forceUpgrade) {
+            return "true";
+        }
+        return "false";
+    }
+    /**
+     * Return an array of files we care about rebuilding on managed file operations
+     * @return array keyed array of files we wish to pull from the boilerplate and keep in sync
+     */
+    public function getManagedTemplateFiles() {
+        return array(
+            'htaccess' => '.htaccess', // not templated (yet) but ensures self refreshing if we tweak it
+            '404' => '404.html',
+            'msbc' => 'browserconfig.xml',
+            'dat' => 'dat.json',
+            'index' => 'index.html',
+            'indexphp' => 'index.php',
+            'manifest' => 'manifest.json',
+            'package' => 'package.json',
+            'polymer' => 'polymer.json',
+            'push' => 'push-manifest.json',
+            'robots' => 'robots.txt',
+            'sw' => 'service-worker.js',
+            'outdated' => 'upgrade-browser.html',
         );
     }
     /**
@@ -137,14 +157,7 @@ class HAXCMSSite
      * form that the user is not in control of.
      */
     public function rebuildManagedFiles() {
-      $templates = array(
-        'sw' => 'service-worker.js',
-        'index' => 'index.html',
-        'manifest' => 'manifest.json',
-        '404' => '404.html',
-        'msbc' => 'browserconfig.xml',
-        'dat' => 'dat.json',
-      );
+      $templates = $this->getManagedTemplateFiles();
       $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
       $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
       foreach ($templates as $file) {
@@ -160,11 +173,13 @@ class HAXCMSSite
       
       $templateVars = array(
           'hexCode' => HAXCMS_FALLBACK_HEX,
+          'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
           'basePath' =>
               $this->basePath . $this->manifest->metadata->site->name . '/',
           'title' => $this->manifest->title,
           'short' => $this->manifest->metadata->site->name,
           'description' => $this->manifest->description,
+          'forceUpgrade' => $this->getForceUpgrade(),
           'swhash' => array(),
           'segmentCount' => 2,
           'licenseLink' => $licenseLink,

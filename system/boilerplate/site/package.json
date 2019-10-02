@@ -1,7 +1,7 @@
 {
-  "name": "haxcms",
-  "version": "0.0.1",
-  "description": "HAXcms microsite dependencies for developer usage",
+  "name": "{{ short }}",
+  "version": "{{ version }}",
+  "description": "{{ description }}",
   "main": "index.html",
   "repository": {
     "type": "git",

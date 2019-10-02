@@ -218,6 +218,13 @@
           "description": "Whether to hide unpublished pages or not",
           "inputMethod": "boolean",
           "icon": "icons:link"
+        },
+        {
+          "property": "manifest-metadata-site-settings-forceUpgrade",
+          "title": "Force browser upgrade",
+          "description": "Force users viewing the site to have evergreen browsers (not recommended)",
+          "inputMethod": "boolean",
+          "icon": "icons:link"
         }
       ]
     },

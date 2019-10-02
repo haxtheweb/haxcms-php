@@ -475,7 +475,8 @@ class HAXCMS
           },
           "seo": {
             "manifest-metadata-site-settings-pathauto": null,
-            "manifest-metadata-site-settings-publishPagesOn": null
+            "manifest-metadata-site-settings-publishPagesOn": null,
+            "manifest-metadata-site-settings-forceUpgrade": null
           },
           "static": {
             "manifest-metadata-site-static-cdn": null,
