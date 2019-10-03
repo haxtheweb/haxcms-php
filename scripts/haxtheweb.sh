@@ -79,6 +79,7 @@ chmod 775 _config
 chmod 777 _config/tmp
 chmod 777 _config/user/files
 chmod 777 _config/config.json
+chmod 777 _config/userData.json
 chmod 777 _sites
 chmod 775 _published
 chmod 775 _archived

@@ -120,6 +120,11 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       'system/boilerplate/systemsetup/my-custom-elements.js',
       '_config/my-custom-elements.js'
     );
+    // make a file for userData to reside
+    copy(
+      'system/boilerplate/systemsetup/userData.json',
+      '_config/userData.json'
+    );
     // make a config.php boilerplate for larger overrides
     copy('system/boilerplate/systemsetup/config.php', '_config/config.php');
     // htaccess files
@@ -129,6 +134,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     chmod("_config", 0755);
     chmod("_config/tmp", 0777);
     chmod("_config/config.json", 0777);
+    chmod("_config/userData.json", 0777);
     // set SALT
     file_put_contents(
       '_config/SALT.txt',
