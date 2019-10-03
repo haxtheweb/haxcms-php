@@ -16,7 +16,7 @@
   <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
   <link rel="preload" href="./theme/theme.css" as="style">
   <?php print $site->getBaseTag(); ?>
-  <?php print $site->getServiceWorkerScript(); ?>
+  <?php print $site->getServiceWorkerScript(null, FALSE, $site->getServiceWorkerStatus()); ?>
   <style>
     body {
       margin: 0;

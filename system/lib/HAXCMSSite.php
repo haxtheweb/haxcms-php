@@ -132,6 +132,16 @@ class HAXCMSSite
         return "false";
     }
     /**
+     * Return the sw status
+     * @return string status of forced upgrade, string as boolean since it'll get written into a JS file
+     */
+    public function getServiceWorkerStatus() {
+        if (isset($this->manifest->metadata->site->settings->sw) && $this->manifest->metadata->site->settings->sw) {
+            return TRUE;
+        }
+        return FALSE;
+    }
+    /**
      * Return an array of files we care about rebuilding on managed file operations
      * @return array keyed array of files we wish to pull from the boilerplate and keep in sync
      */
@@ -702,11 +712,11 @@ class HAXCMSSite
      * @todo this will need additional vetting based on the context applied
      * @return string <script> tag that will be a rather standard service worker
      */
-    public function getServiceWorkerScript($basePath = null, $ignoreDevMode = FALSE) {
+    public function getServiceWorkerScript($basePath = null, $ignoreDevMode = FALSE, $addSW = TRUE) {
       // because this can screw with caching, let's make sure we
       // can throttle it locally for developers as needed
-      if (($GLOBALS["HAXCMS"]->developerMode) && !$ignoreDevMode) {
-        return '// SW disabled via developerMode';
+      if (!$addSW || ($GLOBALS["HAXCMS"]->developerMode && !$ignoreDevMode)) {
+        return "\n  <!-- Service worker disabled via settings -->\n";
       }
       // support dynamic calculation
       if (is_null($basePath)) {

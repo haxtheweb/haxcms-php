@@ -153,6 +153,12 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
         );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-sw'])) {
+        $site->manifest->metadata->site->settings->sw = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-sw'],
+        FILTER_VALIDATE_BOOLEAN
+        );
+      }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
         $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
         $this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],

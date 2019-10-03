@@ -220,6 +220,13 @@
           "icon": "icons:link"
         },
         {
+          "property": "manifest-metadata-site-settings-sw",
+          "title": "Add service worker to dynamic page",
+          "description": "Whether or not add the service worker to the .php version. Disable this if you need users to see changes instantly.",
+          "inputMethod": "boolean",
+          "required": false
+        },
+        {
           "property": "manifest-metadata-site-settings-forceUpgrade",
           "title": "Force browser upgrade",
           "description": "Force users viewing the site to have evergreen browsers (not recommended)",
