@@ -95,6 +95,10 @@ class HAXCMS
             !in_array(strtolower($_SERVER['HTTPS']), array('off', 'no'))
                 ? 'https'
                 : 'http';
+        // fallback test for https
+        if ($this->protocol == 'http' && isset($_SERVER["HTTP_USESSL"]) && $_SERVER["HTTP_USESSL"]) {
+          $this->protocol = 'https';
+        }
         // CLIs dont have a domain argument
         if (isset($_SERVER['HTTP_HOST'])) {
           $this->domain = $_SERVER['HTTP_HOST'];
