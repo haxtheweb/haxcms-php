@@ -7,6 +7,8 @@ $HAXCMS->superUser->name = 'jeff';
 $HAXCMS->superUser->password = 'jimmerson';
 // set basePath to be the haxCMS location we've got this placed at
 $HAXCMS->basePath = '/';
+// force https for load balanced situations where detection is not accurate
+//$HAXCMS->protocol = 'https';
 // this ensures certain things are disabled in order to more effectively
 // do development on the platform itself. Useful for testing output and
 // what not. this applies to ALL REQUESTS asking for it.
