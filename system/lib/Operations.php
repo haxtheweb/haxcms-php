@@ -1555,10 +1555,12 @@ class Operations {
                 $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
                 $twig = new \Twig\Environment($loader);
                 foreach ($templates as $location) {
+                  if (file_exists($siteDirectoryPath . '/' . $location)) {
                     @file_put_contents(
                         $siteDirectoryPath . '/' . $location,
                         $twig->render($location, $templateVars)
                     );
+                  }
                 }
                 try {
                     $repo->add('.');
