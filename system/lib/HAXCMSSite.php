@@ -193,7 +193,7 @@ class HAXCMSSite
           'description' => $this->manifest->description,
           'forceUpgrade' => $this->getForceUpgrade(),
           'swhash' => array(),
-          'segmentCount' => 2,
+          'ghPagesURLParamCount' => 0,
           'licenseLink' => $licenseLink,
           'licenseName' => $licenseName,
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),

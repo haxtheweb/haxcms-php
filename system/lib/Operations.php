@@ -1417,7 +1417,7 @@ class Operations {
                     'description' => $site->manifest->description,
                     'forceUpgrade' => $site->getForceUpgrade(),
                     'swhash' => array(),
-                    'segmentCount' => 1,
+                    'ghPagesURLParamCount' => 1,
                     'licenseLink' => $licenseLink,
                     'licenseName' => $licenseName,
                     'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
@@ -1456,7 +1456,7 @@ class Operations {
                         $templateVars['basePath'] = $parts['base'];
                     }
                     if ($templateVars['basePath'] == '/') {
-                        $templateVars['segmentCount'] = 0;
+                        $templateVars['ghPagesURLParamCount'] = 0;
                     }
                     // now we need to update the SW to match
                     $templateVars['serviceWorkerScript'] = $site->getServiceWorkerScript($templateVars['basePath'], TRUE);
