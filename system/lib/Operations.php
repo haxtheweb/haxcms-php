@@ -551,7 +551,7 @@ class Operations {
                     $value = filter_var($value, FILTER_SANITIZE_STRING);
                     $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($value);
                     if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                        $new = 'pages/' . $site->getUniqueLocationName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details->title, FILTER_SANITIZE_STRING)), $page) . '/index.html';
+                        $new = 'pages/' . $site->getUniqueLocationName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details['title'], FILTER_SANITIZE_STRING)), $page) . '/index.html';
                         $site->renamePageLocation(
                             $page->location,
                             $new
