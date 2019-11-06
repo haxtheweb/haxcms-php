@@ -134,7 +134,6 @@
             NODE_ENV: 'production'
           }
         };
-        
         define(defs, function () { "use strict" });
         old=true;
       }
@@ -152,6 +151,12 @@
       if (path) {
         document.getElementById('content').src = 'pages/' + path + '/index.html';
       }
+    }
+    if (!old) {
+      // kill fallback methods if we aren't old
+      document.body.removeChild(
+        document.getElementById("haxcmsoutdatedfallback")
+      );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';

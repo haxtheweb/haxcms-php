@@ -153,6 +153,12 @@
         document.getElementById('content').src = 'pages/' + path + '/index.html';
       }
     }
+    if (!old) {
+      // kill fallback methods if we aren't old
+      document.body.removeChild(
+        document.getElementById("haxcmsoutdatedfallback")
+      );
+    }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = cdn + 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
