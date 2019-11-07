@@ -218,6 +218,7 @@
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
     "build": "polymer build && yarn run terser",
     "terser": "gulp",
-    "dev": "polymer serve --open --entrypoint dev.html"
+    "start": "yarn run dev",
+    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
   }
 }
