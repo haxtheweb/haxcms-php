@@ -7,21 +7,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="preload" href="./build/es6/dist/build.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js"
-    as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/mobx/lib/mobx.module.js"
-  as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js"
-  as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/simple-colors/simple-colors.js"
-  as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
-  <link rel="preload" href="./theme/theme.css" as="style">
-  <?php print $site->getSiteMetadata($page); ?>
   <?php print $site->getBaseTag(); ?>
+  <?php print $site->getSiteMetadata($page); ?>
   <?php print $site->getServiceWorkerScript(null, FALSE, $site->getServiceWorkerStatus()); ?>
   <style>
     body {
