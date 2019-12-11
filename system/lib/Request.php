@@ -45,7 +45,7 @@ class Request {
      */
     public function execute($op, $params = array(), $rawParams = array()) {
       // we only skip JWT validation on edge cases
-      if (in_array($op, array('generateAppStore', 'listSites'))) {
+      if (in_array($op, array('generateAppStore', 'listSites', 'accessToken'))) {
         $this->validateJWT = FALSE;
       }
       if ($this->valid()) {

@@ -1797,4 +1797,18 @@ class Operations {
       );
     }
   }
+
+  public function accessToken() {
+    // check that we have a valid refresh token
+    $validRefresh  = $GLOBALS['HAXCMS']->validateRefreshToken();
+    // if we have a valid refresh token then issue a new access token
+    if ($validRefresh) {
+      return $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
+    }
+    else {
+      header('Status: 403');
+      print 'Invalid refresh_token';
+      exit;
+    }
+  }
 }

@@ -1132,12 +1132,21 @@ class HAXCMS
     /**
      * Get user's JWT
      */
-    public function getJWT()
+    public function getJWT($user = NULL)
     {
         $token = array();
         $token['id'] = $this->getRequestToken('user');
-        if (is_array($this->safePost) && isset($this->safePost['u'])) {
-            $token['user'] = $this->safePost['u'];
+        // used at time
+        $token['iat'] = time();
+        // expiration time, 15 minutes
+        $token['exp'] = time() + (15 * 60);
+        // if the user was supplied then add to token
+        if ($user) {
+          $token['user'] = $user;
+        }
+        // if not, see if we can get it from the login form
+        else if (is_array($this->safePost) && isset($this->safePost['u'])) {
+          $token['user'] = $this->safePost['u'];
         }
         $this->dispatchEvent('haxcms-jwt-get', $token);
         return JWT::encode($token, $this->privateKey . $this->salt);
@@ -1153,6 +1162,77 @@ class HAXCMS
       catch (Exception $e) {
         return FALSE;
       }
+    }
+    /**
+     * Get user's Refresh Token
+     * @todo private key needs to be different than jwt private key
+     */
+    public function getRefreshToken()
+    {
+        $token = array();
+        if (is_array($this->safePost) && isset($this->safePost['u'])) {
+            $token['user'] = $this->safePost['u'];
+            $token['iat'] = time();
+            $token['exp'] = time() + (7 * 24 * 60 * 60);
+        }
+        $this->dispatchEvent('haxcms-refresh-token-get', $token);
+        return JWT::encode($token, $this->privateKey . $this->salt);
+    }
+    /**
+     * Decode the JWT to ensure accuracy, return false if an error happens
+     * @todo private key needs to be different than jwt private key
+     */
+    private function decodeRefreshToken($key) {
+      // if it can decode, it'll be an object, otherwise it's false
+      try {
+        return JWT::decode($key, $this->privateKey . $this->salt);
+      }
+      catch (Exception $e) {
+        return FALSE;
+      }
+    }
+    /**
+     * Validate a JTW during POST
+     */
+    public function validateRefreshToken($endOnInvalid = TRUE)
+    {
+      if ($this->isCLI()) {
+        return TRUE;
+      }
+
+      // get the refresh token from cookie
+      $refreshToken = $_COOKIE['refresh_token'];
+
+      // if there isn't one then we have to bail hard
+      if (!$refreshToken) {
+        header('Status: 403');
+        print 'refresh_token not found';
+        exit();
+      }
+
+      // if there is a refresh token then decode it
+      $refreshTokenDecoded = $this->decodeRefreshToken($refreshToken);
+      
+      // validate the token
+      // make sure token has issued and expiration dates
+      if (isset($refreshTokenDecoded->iat) && isset($refreshTokenDecoded->exp)) {
+        // issued at date is less than now
+        if ($refreshTokenDecoded->iat < time()) {
+          // expiration date is greater than now
+          if (time() < $refreshTokenDecoded->exp) {
+            // it's valid
+            return $refreshTokenDecoded;
+          }
+        }
+      }
+
+      // kick back the end if its invalid
+      if ($endOnInvalid) {
+        header('Status: 403');
+        print 'Invalid refresh_token';
+        exit();
+      }
+      return FALSE;
     }
     /**
      * Get Front end JWT based connection settings
@@ -1217,6 +1297,7 @@ class HAXCMS
     }
     /**
      * Validate a JTW during POST
+     * @todo need to validate expiration date
      */
     public function validateJWT($endOnInvalid = TRUE)
     {

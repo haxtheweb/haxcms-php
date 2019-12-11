@@ -18,6 +18,10 @@ if (isset($post->u) && isset($post->p)) {
   } else {
       header('Content-Type: application/json');
       header('Status: 200');
+      /**
+       * @todo need to configure domain and possibly path
+       */
+      setcookie('refresh_token', $HAXCMS->getRefreshToken(), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
       print json_encode($HAXCMS->getJWT());
       exit;
   }
