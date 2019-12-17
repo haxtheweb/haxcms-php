@@ -327,11 +327,13 @@ class HAXCMSSite
         $new = str_replace('./', '', str_replace('../', '', $new));
         global $fileSystem;
         // ensure the path to the new folder is valid
-        $fileSystem->mirror(
-            str_replace('/index.html', '', $siteDirectory . '/' . $old),
-            str_replace('/index.html', '', $siteDirectory . '/' . $new)
-        );
-        $fileSystem->remove($siteDirectory . '/' . $old);
+        if (file_exists($siteDirectory . '/' . $old)) {
+            $fileSystem->mirror(
+                str_replace('/index.html', '', $siteDirectory . '/' . $old),
+                str_replace('/index.html', '', $siteDirectory . '/' . $new)
+            );
+            $fileSystem->remove($siteDirectory . '/' . $old);
+        }
     }
     /**
      * Basic wrapper to commit current changes to version control of the site
