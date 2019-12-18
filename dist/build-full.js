@@ -38,7 +38,7 @@ import "@lrnwebcomponents/haxcms-elements/lib/ui-components/query/site-query-men
 import "@lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-rss-button.js";
 import "@lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-title.js";
 
-// themes are dynamically imported
+// themes are dynamically imported and without directly being mentioned
 import "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-dev-theme.js";
 import "@lrnwebcomponents/haxcms-elements/lib/development/haxcms-theme-developer.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-slide-theme.js";
@@ -52,6 +52,7 @@ import "@lrnwebcomponents/learn-two-theme/learn-two-theme.js";
 import "@lrnwebcomponents/haxor-slevin/haxor-slevin.js";
 
 // these should all be dynamically imported as well
+import "@lrnwebcomponents/voice-recorder/voice-recorder.js";
 import "@lrnwebcomponents/h5p-element/h5p-element.js";
 import "@lrnwebcomponents/hax-logo/hax-logo.js";
 import "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js";
