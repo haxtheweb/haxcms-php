@@ -62,11 +62,9 @@ class HAXCMSSite
         // create symlink to make it easier to resolve things to single built asset buckets
         @symlink('../../build', $directory . '/' . $tmpname . '/build');
         // symlink to do local development if needed
-        if (is_dir('../../dist')) {
-            @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
-        }
+        @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
         // symlink to do project development if needed
-        if (is_dir('../../node_modules')) {
+        if (is_link('../../node_modules') || is_dir('../../node_modules')) {
             @symlink(
             '../../node_modules',
             $directory . '/' . $tmpname . '/node_modules'
@@ -119,6 +117,9 @@ class HAXCMSSite
         ) {
             $this->gitSetRemote($gitDetails);
         }
+        // write the managed files to ensure we get happy copies
+        $this->rebuildManagedFiles();
+        $this->gitCommit('Managed files updated');
         return $this;
     }
     /**
