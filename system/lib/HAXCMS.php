@@ -1238,8 +1238,10 @@ class HAXCMS
           $this->validateUser($post->user)) {
         return TRUE;
       }
-      // kick back the end if its invalid
-      if ($endOnInvalid) {
+      $code = 403;
+      // allow for rewriting this
+      $this->dispatchEvent('haxcms-jwt-invalid', $code);
+      if ($code == 403 && $endOnInvalid) {
         header('Status: 403');
         print 'Invalid token';
         exit();
