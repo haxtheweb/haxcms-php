@@ -931,7 +931,7 @@ class HAXCMSSite
      */
     public function getLogoSize($height, $width) {
       // if no logo, just bail with an easy standard one
-      if (!isset($this->manifest->metadata->site->logo)) {
+      if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo = null))) {
         return 'assets/icon-' . $height . 'x' . $width . '.png';
       }
       // ensure this path exists otherwise let's create it on the fly
