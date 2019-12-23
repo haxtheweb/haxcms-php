@@ -64,7 +64,7 @@ class HAXCMSSite
         // symlink to do local development if needed
         @symlink('../../dist', $directory . '/' . $tmpname . '/dist');
         // symlink to do project development if needed
-        if (is_link('../../node_modules') || is_dir('../../node_modules')) {
+        if (is_link(HAXCMS_ROOT . '/node_modules') || is_dir(HAXCMS_ROOT . '/node_modules')) {
             @symlink(
             '../../node_modules',
             $directory . '/' . $tmpname . '/node_modules'
