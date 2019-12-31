@@ -8,7 +8,7 @@ gulp.task(
         keep_fnames: true,
         mangle: false,
         compress: true,
-        module: true
+        module: true,
       }))
       .pipe(gulp.dest('./build/es6/node_modules/@polymer/polymer/'));
     // now work on all the other files
@@ -17,7 +17,7 @@ gulp.task(
         keep_fnames: true,
         mangle: false,
         compress: true,
-        module: true
+        module: true,
       }))
       .pipe(gulp.dest('./build/es6/'));
     // not sure why but polymer isn't picked up unless we do this
@@ -26,7 +26,8 @@ gulp.task(
         keep_fnames: true,
         mangle: false,
         compress: true,
-        module: true
+        module: true,
+        safari10: true,
       }))
       .pipe(gulp.dest('./build/es6-amd/node_modules/@polymer/polymer/'));
     // now work on all the other files
@@ -35,7 +36,8 @@ gulp.task(
         keep_fnames: true,
         mangle: false,
         compress: true,
-        module: true
+        module: true,
+        safari10: true,
       }))
       .pipe(gulp.dest('./build/es6-amd/'));
   }
