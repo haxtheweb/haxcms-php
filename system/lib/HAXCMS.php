@@ -117,9 +117,9 @@ class HAXCMS
         $this->user->name = null;
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
-        $this->systemRequestBase = 'system/request?op=';
+        $this->systemRequestBase = 'system/api';
         // end point to get the sites data
-        $this->sitesJSON = $this->systemRequestBase . 'listSites';
+        $this->sitesJSON = $this->systemRequestBase . '/listSites';
         // sites directory
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
@@ -146,7 +146,7 @@ class HAXCMS
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
             // add in the auto-generated app store file
-            $this->appStoreFile = $this->systemRequestBase . 'generateAppStore';
+            $this->appStoreFile = $this->systemRequestBase . '/generateAppStore';
             // ensure appstore file is there, then make salt size of this file
             if (file_exists($this->configDirectory . '/SALT.txt')) {
                 $this->salt = file_get_contents(
@@ -349,6 +349,20 @@ class HAXCMS
         else if (isset($_GET['op'])) {
           $op = $this->safeGet['op'];
         }
+      }
+      // remove api/ from the op
+      if (strpos($op, 'api/') === 0) {
+        $op = substr($op, 4);
+      }
+      if ($op == '') {
+        $op = 'api';
+      }
+      // look for any paths and only return 1st
+      if (strpos($op, '/')) {
+        $tmp = explode('/', $op);
+        $op = $tmp[0];
+        // store as args bc this will be common to want access to
+        $params['args'] = $tmp;
       }
       // loop through other potential GET based args so long as they aren't set yet
       // this ensures that post has priority for security but allowing us to develop
@@ -839,7 +853,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/loadFiles",
+            "endPoint": "system/api/loadFiles",
             "pagination": {
               "style": "link",
               "props": {
@@ -872,7 +886,7 @@ class HAXCMS
           },
           "add": {
             "method": "POST",
-            "endPoint": "system/saveFile",
+            "endPoint": "system/api/saveFile",
             "acceptsGizmoTypes": [
               "image",
               "video",
@@ -1159,10 +1173,10 @@ class HAXCMS
      */
     public function appJWTConnectionSettings()
     {
-        $path = $this->basePath . $this->systemRequestBase;
+        $path = $this->basePath . $this->systemRequestBase . '/';
         $settings = new stdClass();
-        $settings->login = $this->basePath . 'system/login';
-        $settings->logout = $this->basePath . 'system/logout';
+        $settings->login = $path . 'login';
+        $settings->logout = $path . 'logout';
         $settings->themes = $this->getThemes();
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
@@ -1172,7 +1186,7 @@ class HAXCMS
         $settings->setConfigPath = $path . 'setConfig';
         $settings->getConfigPath = $path . 'getConfig';
         $settings->getNodeFieldsPath = $path . 'getNodeFields';
-        $settings->getSiteFieldsPath = $path . 'formLoad&haxcms_form_id=siteSettings';
+        $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->revertSitePath = $path . 'revertCommit';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');

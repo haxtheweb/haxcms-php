@@ -1,18 +1,157 @@
 <?php
+/**
+ * @OA\Info(
+ *     title="HAXcms API",
+ *     version="",
+ *     description="API for interfacing with HAXcms end points",
+ *     termsOfService="https://haxtheweb.org",
+ *     @OA\Contact(
+ *       email="hax@psu.edu"
+ *     ),
+ *     @OA\License(
+ *       name="Apache 2.0",
+ *       url="http://www.apache.org/licenses/LICENSE-2.0.html"
+ *     )
+ * ),
+ * @OA\ExternalDocumentation(
+ *     description="HAXcms and all things HAX documentations",
+ *     url="https://haxtheweb.org/"
+ * ),
+ * @OA\Tag(
+ *     name="hax",
+ *     description="Operations required for HAX editor to work",
+ *     @OA\ExternalDocumentation(
+ *         description="Find out more about hax editor integrations",
+ *         url="https://haxtheweb.org/integrations/create-new-ones"
+ *     )
+ * ),
+ * @OA\Tag(
+ *     name="cms",
+ *     description="Operations for the CMS side"
+ * ),
+ * @OA\Tag(
+ *     name="site",
+ *     description="Operations for sites"
+ * ),
+ * @OA\Tag(
+ *     name="node",
+ *     description="Operations for individual nodes in a site"
+ * ),
+ * @OA\Tag(
+ *     name="file",
+ *     description="Operations for files related to CMS or HAX"
+ * ),
+ * @OA\Tag(
+ *     name="form",
+ *     description="Operations related to form submission or generation"
+ * ),
+ * @OA\Tag(
+ *     name="meta",
+ *     description="Operations related to metadata management or processes"
+ * ),
+ * @OA\Tag(
+ *     name="git",
+ *     description="Operations related to git / version control of the site"
+ * ),
+ * @OA\Tag(
+ *     name="user",
+ *     description="Operations for the user account / object"
+ * ),
+ * @OA\Tag(
+ *     name="api",
+ *     description="endpoint to generate the API or surrounding API callbacks"
+ * ),
+ * @OA\Tag(
+ *     name="settings",
+ *     description="Internal settings related to configuration of this HAXcms deployment"
+ * ),
+ * @OA\Tag(
+ *     name="authenticated",
+ *     description="Operations requiring authentication"
+ * )
+ */
 class Operations {
   public $params;
   public $rawParams;
   /**
-   * META: options request
+   * 
+   * @OA\Post(
+   *    path="/options",
+   *    tags={"api"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="API bandaid till we get all the APIs documented. This is an array of callbacks"
+   *    )
+   * )
    */
   public function options() {
     return get_class_methods($this);
   }
   /**
-   * HAXCMS SITE OPERATIONS
+   * Generate the swagger API documentation for this site
+   * 
+   * @OA\Post(
+   *    path="/",
+   *    tags={"api"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="API documentation in YAML"
+   *    )
+   * )
+   * @todo generate JSON:API
    */
+  public function api() {
+    $this->openapi();
+  }
   /**
-   * save manifest
+   * Generate the swagger API documentation for this site
+   * 
+   * @OA\Post(
+   *    path="/openapi",
+   *    tags={"api"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="API documentation in YAML, alternative endpoint"
+   *    )
+   * ),
+   * @OA\Post(
+   *    path="/openapi/json",
+   *    tags={"api"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="API documentation in JSON"
+   *    )
+   * )
+   */
+  public function openapi() {
+    // scan this document in order to build the Swagger docs
+    // @todo make this scan multiple sources to surface user defined microservices
+    $openapi = \OpenApi\scan(dirname(__FILE__) . '/Operations.php');
+    // dynamically add the version
+    $openapi->info->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+    $openapi->servers = Array();
+    $openapi->servers[0] = new stdClass();
+    // generate url dynamically w/ path to the API route
+    $openapi->servers[0]->url = $GLOBALS['HAXCMS']->protocol . '://' . $GLOBALS['HAXCMS']->domain . $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase;
+    $openapi->servers[0]->description = "Site list / dashboard for administrator user";
+    // output, yaml we have to exit early or we'll get encapsulation
+    if (isset($this->params['args']) && $this->params['args'][1] == 'json') {
+      return json_decode($openapi->toJson());
+    }
+    else {
+      echo $openapi->toYaml();
+      exit;
+    }
+  }
+  /**
+   * @OA\Post(
+   *    path="/saveManifest",
+   *    tags={"cms","authenticated"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save the manifest of the site"
+   *   )
+   * )
    */
   public function saveManifest() {
     // load the site from name
@@ -239,7 +378,14 @@ class Operations {
     }
   }
   /**
-   * save outline
+   * @OA\Post(
+   *    path="/saveOutline",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save an entire site outline"
+   *   )
+   * )
    */
   public function saveOutline() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -366,7 +512,14 @@ class Operations {
     return $site->manifest->items;
   }
   /**
-   * create node
+   * @OA\Post(
+   *    path="/createNode",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Create a new node"
+   *   )
+   * )
    */
   public function createNode() {
     $site = $GLOBALS['HAXCMS']->loadSite(strtolower($this->params['site']['name']));
@@ -423,7 +576,14 @@ class Operations {
     return $item;
   }
   /**
-   * save node
+   * @OA\Post(
+   *    path="/saveNode",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save a node"
+   *   )
+   * )
    */
   public function saveNode() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -654,7 +814,14 @@ class Operations {
     }
   }
   /**
-   * delete node
+   * @OA\Post(
+   *    path="/deleteNode",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Delete a node"
+   *   )
+   * )
    */
   public function deleteNode() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -686,7 +853,14 @@ class Operations {
     }
   }
   /**
-   * Update site alternate formats
+   * @OA\Post(
+   *    path="/siteUpdateAlternateFormats",
+   *    tags={"cms","authenticated","meta"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Update the alternative formats surrounding a site"
+   *   )
+   * )
    */
   public function siteUpdateAlternateFormats() {
     $format = NULL;
@@ -697,7 +871,14 @@ class Operations {
     $site->updateAlternateFormats($format);
   }
   /**
-   * Revert site commit
+   * @OA\Post(
+   *    path="/revertCommit",
+   *    tags={"cms","authenticated","meta","git","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Revert the last commit to the git repo backing the site"
+   *   )
+   * )
    */
   public function revertCommit() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -706,7 +887,14 @@ class Operations {
     return TRUE;
   }
   /**
-   * fields associated with node
+   * @OA\Post(
+   *    path="/getNodeFields",
+   *    tags={"cms","authenticated","node","form"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Update the alternative formats surrounding a site"
+   *   )
+   * )
    */
   public function getNodeFields() {
     if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
@@ -730,8 +918,16 @@ class Operations {
    * HAX EDITOR CALLBACKS
    * 
    */
+
   /**
-   * Generate the AppStore spec for HAX editor directions
+   * @OA\Post(
+   *    path="/generateAppStore",
+   *    tags={"hax","api"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Generate the AppStore spec for HAX editor directions"
+   *   )
+   * )
    */
   public function generateAppStore() {
     // test if this is a valid user login with this specialty token that HAX looks for
@@ -810,6 +1006,16 @@ class Operations {
       );
     }
   }
+  /**
+   * @OA\Post(
+   *    path="/getUserData",
+   *    tags={"cms","authenticated","user","settings"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Load data about the logged in user"
+   *   )
+   * )
+   */
   public function getUserData() {
     return array(
       'status' => 200,
@@ -817,7 +1023,14 @@ class Operations {
     );
   }
   /**
-   * load form
+   * @OA\Post(
+   *    path="/formLoad",
+   *    tags={"cms","authenticated","form"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Load a form based on ID"
+   *   )
+   * )
    */
   public function formLoad() {
     if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
@@ -853,7 +1066,14 @@ class Operations {
     }
   }
   /**
-   * Submit / process form
+   * @OA\Post(
+   *    path="/formProcess",
+   *    tags={"cms","authenticated","form"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Process a form based on ID and input data"
+   *   )
+   * )
    */
   public function formProcess() {
     if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
@@ -888,14 +1108,85 @@ class Operations {
     }
   }
   /**
-   * load files
+   * @OA\Post(
+   *    path="/loadFiles",
+   *    tags={"hax","authenticated","file"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Load existing files for presentation in HAX find area"
+   *   )
+   * )
    */
   public function loadFiles() {
     // @todo make this load the files out of the JSON outline schema and only return them
     return array();
   }
   /**
-   * Save file into the system level
+   * @OA\Post(
+   *    path="/login",
+   *    tags={"cms","user"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="User login attempt"
+   *   )
+   * )
+   */
+  public function login() {
+    // if we don't have a user and the don't answer, bail
+    if (isset($this->params['u']) && isset($this->params['p'])) {
+      // _ paranoia
+      $u = $this->params['u'];
+      // driving me insane
+      $p = $this->params['p'];
+      // _ paranoia ripping up my brain
+      // test if this is a valid user login
+      if (!$GLOBALS['HAXCMS']->testLogin($u, $p, true)) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Access denied',
+          )
+        );
+      } else {
+          return $GLOBALS['HAXCMS']->getJWT();
+      }
+    }
+    // login end point requested yet a jwt already exists
+    // this is something of a revalidate case
+    else if (isset($this->params['jwt'])) {
+      return $GLOBALS['HAXCMS']->validateJWT();
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Login is required',
+        )
+      );
+    } 
+  }
+  /**
+   * @OA\Post(
+   *    path="/logout",
+   *    tags={"cms","user"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="User logout, front end will kill token"
+   *   )
+   * )
+   */
+  public function logout() {
+    return 'loggedout';
+  }
+  /**
+   * @OA\Post(
+   *    path="/setUserPhoto",
+   *    tags={"cms","authenticated","user"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Set the user's uploaded photo"
+   *   )
+   * )
    */
   public function setUserPhoto() {
     // @todo might want to scrub prior to this level but not sure
@@ -919,7 +1210,14 @@ class Operations {
     }
   }
   /**
-   * save file from editor upload
+   * @OA\Post(
+   *    path="/saveFile",
+   *    tags={"hax","authenticated","file"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="User is uploading a file to present in a site"
+   *   )
+   * )
    */
   public function saveFile() {
     // @todo might want to scrub prior to this level but not sure
@@ -944,18 +1242,22 @@ class Operations {
       return $fileResult;
     }
   }
-  /**
-   * 
-   * HAXCMS CORE SETTINGS AND FIELDS FOR SITES AND INTERNALS
-   * 
-   */
+
   /**
    * 
    * SITE LISTING CALLBACKS
    * 
    */
+
   /**
-   * List sites on the overview page
+   * @OA\Post(
+   *    path="/listSites",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Load a list of all sites the user has created"
+   *   )
+   * )
    */
   public function listSites() {
     // top level fake JOS
@@ -985,7 +1287,14 @@ class Operations {
     return $return;
   }
   /**
-   * Create site
+   * @OA\Post(
+   *    path="/createSite",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Create a new site"
+   *   )
+   * )
    */
   public function createSite() {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
@@ -1122,7 +1431,14 @@ class Operations {
     }
   }
   /**
-   * Git import from URL
+   * @OA\Post(
+   *    path="/gitImportSite",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Create a new site from a git repo reference"
+   *   )
+   * )
    */
   public function gitImportSite() {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
@@ -1176,6 +1492,16 @@ class Operations {
   /**
    * Get configuration related to HAXcms itself
    */
+  /**
+   * @OA\Post(
+   *    path="/getConfig",
+   *    tags={"cms","authenticated","settings"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Get configuration for HAXcms itself"
+   *   )
+   * )
+   */
   public function getConfig() {
     $response = new stdClass();
     $response->schema = $GLOBALS['HAXCMS']->getConfigSchema();
@@ -1188,7 +1514,14 @@ class Operations {
     return $response;
   }
   /**
-   * Set system configuration
+   * @OA\Post(
+   *    path="/setConfig",
+   *    tags={"cms","authenticated","form","settings"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Set configuration for HAXcms"
+   *   )
+   * )
    */
   public function setConfig() {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
@@ -1212,7 +1545,14 @@ class Operations {
     }
   }
   /**
-   * sync site
+   * @OA\Post(
+   *    path="/syncSite",
+   *    tags={"cms","authenticated","git","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Sync the site using the git config settings in the site.json file"
+   *   )
+   * )
    */
   public function syncSite() {
     // ensure we have something we can load and ship back out the door
@@ -1249,7 +1589,14 @@ class Operations {
     }
   }
   /**
-   * publish site
+   * @OA\Post(
+   *    path="/publishSite",
+   *    tags={"cms","authenticated","git","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Publishes the site to a remote source using git settings from site.json for details "
+   *   )
+   * )
    */
   public function publishSite() {
     // ensure we have something we can load and ship back out the door
@@ -1682,7 +2029,14 @@ class Operations {
     }
   }
   /**
-   * clone site
+   * @OA\Post(
+   *    path="/cloneSite",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Clone a site by copying and renaming the folder on file system"
+   *   )
+   * )
    */
   public function cloneSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -1707,7 +2061,14 @@ class Operations {
     );
   }
   /**
-   * delete site
+   * @OA\Post(
+   *    path="/deleteSite",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Delete a site from the file system"
+   *   )
+   * )
    */
   public function deleteSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -1729,6 +2090,16 @@ class Operations {
       );
     }
   }
+  /**
+   * @OA\Post(
+   *    path="/downloadSite",
+   *    tags={"cms","authenticated","site","meta"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Download the site folder as a zip file"
+   *   )
+   * )
+   */
   public function downloadSite() {
     // load site
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -1775,7 +2146,14 @@ class Operations {
     );
   }
   /**
-   * archive site
+   * @OA\Post(
+   *    path="/archiveSite",
+   *    tags={"cms","authenticated","site"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Archive a site by moving it on the file system"
+   *   )
+   * )
    */
   public function archiveSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);

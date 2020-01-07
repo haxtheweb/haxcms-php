@@ -56,7 +56,8 @@
         "modules"
       ],
       "js": {
-        "minify": false
+        "minify": false,
+        "transformImportMeta": true
       },
       "css": {
         "minify": false
@@ -73,7 +74,8 @@
       ],
       "js": {
         "minify": false,
-        "transformModulesToAmd": true
+        "transformModulesToAmd": true,
+        "transformImportMeta": true
       },
       "css": {
         "minify": false
@@ -88,7 +90,8 @@
       "js": {
         "compile": true,
         "minify": false,
-        "transformModulesToAmd": true
+        "transformModulesToAmd": true,
+        "transformImportMeta": true
       },
       "css": {
         "minify": true
