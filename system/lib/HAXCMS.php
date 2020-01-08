@@ -1146,12 +1146,12 @@ class HAXCMS
     /**
      * Get user's JWT
      */
-    public function getJWT()
+    public function getJWT($name = null)
     {
         $token = array();
         $token['id'] = $this->getRequestToken('user');
-        if (is_array($this->safePost) && isset($this->safePost['u'])) {
-            $token['user'] = $this->safePost['u'];
+        if (!is_null($name)) {
+            $token['user'] = $name;
         }
         $this->dispatchEvent('haxcms-jwt-get', $token);
         return JWT::encode($token, $this->privateKey . $this->salt);
@@ -1237,19 +1237,20 @@ class HAXCMS
       if ($this->isCLI()) {
         return TRUE;
       }
-      $post = FALSE;
-      if (isset($this->sessionJwt) && $this->sessionJwt != null && $post = $this->decodeJWT($this->sessionJwt)) {
+      $request = FALSE;
+      if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
       }
-      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $post = $this->decodeJWT($_POST['jwt'])) {
+      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $request = $this->decodeJWT($_POST['jwt'])) {
       }
-      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $post = $this->decodeJWT($_GET['jwt'])) {
+      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
       }
       // if we were able to find a valid JWT in that mess, try and validate it
       if (
-          $post != FALSE &&
-          isset($post->id) &&
-          $post->id == $this->getRequestToken('user') &&
-          $this->validateUser($post->user)) {
+          $request != FALSE &&
+          isset($request->id) &&
+          $request->id == $this->getRequestToken('user') &&
+          isset($request->user) &&
+          $this->validateUser($request->user)) {
         return TRUE;
       }
       $code = 403;

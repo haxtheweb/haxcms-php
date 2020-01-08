@@ -99,21 +99,13 @@ class Operations {
    *    )
    * )
    * @todo generate JSON:API
-   */
+   */   
   public function api() {
     $this->openapi();
   }
   /**
    * Generate the swagger API documentation for this site
    * 
-   * @OA\Post(
-   *    path="/openapi",
-   *    tags={"api"},
-   *    @OA\Response(
-   *        response="200",
-   *        description="API documentation in YAML, alternative endpoint"
-   *    )
-   * ),
    * @OA\Post(
    *    path="/openapi/json",
    *    tags={"api"},
@@ -147,6 +139,13 @@ class Operations {
    * @OA\Post(
    *    path="/saveManifest",
    *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Save the manifest of the site"
@@ -381,6 +380,13 @@ class Operations {
    * @OA\Post(
    *    path="/saveOutline",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Save an entire site outline"
@@ -513,11 +519,69 @@ class Operations {
   }
   /**
    * @OA\Post(
-   *    path="/createNode",
-   *    tags={"cms","authenticated","node"},
+   *     path="/createNode",
+   *     tags={"cms","authenticated","node"},
+   *     @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *     ),
+   *     @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="node",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="indent",
+   *                     type="number"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="order",
+   *                     type="number"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="parent",
+   *                     type="string"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="description",
+   *                     type="string"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="metadata",
+   *                     type="object"
+   *                 ),
+   *                 required={"site","node"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mysite"
+   *                    },
+   *                    "node": {
+   *                      "id": null,
+   *                      "title": "Cool post",
+   *                      "location": null
+   *                    },
+   *                    "indent": null,
+   *                    "order": null,
+   *                    "parent": null,
+   *                    "description": "An example description for the post",
+   *                    "metadata": {"tags": "metadata,can,be,whatever,you,want","other":"stuff"}
+   *                 }
+   *             )
+   *         )
+   *     ),
    *    @OA\Response(
    *        response="200",
-   *        description="Create a new node"
+   *        description="object with full properties returned"
    *   )
    * )
    */
@@ -527,10 +591,10 @@ class Operations {
     $item = $GLOBALS['HAXCMS']->outlineSchema->newItem();
     // set the title
     $item->title = str_replace("\n", '', $this->params['node']['title']);
-    if (isset($this->params['node']['id']) && $this->params['node']['id'] != '') {
+    if (isset($this->params['node']['id']) && $this->params['node']['id'] != '' && $this->params['node']['id'] != null) {
         $item->id = $this->params['node']['id'];
     }
-    if (isset($this->params['node']['location']) && $this->params['node']['location'] != '') {
+    if (isset($this->params['node']['location']) && $this->params['node']['location'] != '' && $this->params['node']['location'] != null) {
         $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($this->params['node']['location']);
     } else {
         $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
@@ -539,21 +603,21 @@ class Operations {
     $item->location =
         'pages/' . $site->getUniqueLocationName($cleanTitle) . '/index.html';
 
-    if (isset($this->params['indent']) && $this->params['indent'] != '') {
+    if (isset($this->params['indent']) && $this->params['indent'] != '' && $this->params['indent'] != null) {
         $item->indent = $this->params['indent'];
     }
-    if (isset($this->params['order']) && $this->params['order'] != '') {
+    if (isset($this->params['order']) && $this->params['order'] != '' && $this->params['order'] != null) {
         $item->order = $this->params['order'];
     }
-    if (isset($this->params['parent']) && $this->params['parent'] != '') {
+    if (isset($this->params['parent']) && $this->params['parent'] != '' && $this->params['parent'] != null) {
         $item->parent = $this->params['parent'];
     } else {
         $item->parent = null;
     }
-    if (isset($this->params['description']) && $this->params['description'] != '') {
+    if (isset($this->params['description']) && $this->params['description'] != '' && $this->params['description'] != null) {
         $item->description = str_replace("\n", '', $this->params['description']);
     }
-    if (isset($this->params['order']) && $this->params['metadata'] != '') {
+    if (isset($this->params['order']) && $this->params['metadata'] != '' && $this->params['metadata'] != null) {
         $item->metadata = $this->params['metadata'];
     }
     $item->metadata->created = time();
@@ -579,6 +643,13 @@ class Operations {
    * @OA\Post(
    *    path="/saveNode",
    *    tags={"cms","authenticated","node"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Save a node"
@@ -817,6 +888,13 @@ class Operations {
    * @OA\Post(
    *    path="/deleteNode",
    *    tags={"cms","authenticated","node"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Delete a node"
@@ -856,6 +934,13 @@ class Operations {
    * @OA\Post(
    *    path="/siteUpdateAlternateFormats",
    *    tags={"cms","authenticated","meta"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Update the alternative formats surrounding a site"
@@ -874,6 +959,13 @@ class Operations {
    * @OA\Post(
    *    path="/revertCommit",
    *    tags={"cms","authenticated","meta","git","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Revert the last commit to the git repo backing the site"
@@ -890,6 +982,13 @@ class Operations {
    * @OA\Post(
    *    path="/getNodeFields",
    *    tags={"cms","authenticated","node","form"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Update the alternative formats surrounding a site"
@@ -1010,6 +1109,13 @@ class Operations {
    * @OA\Post(
    *    path="/getUserData",
    *    tags={"cms","authenticated","user","settings"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Load data about the logged in user"
@@ -1026,6 +1132,13 @@ class Operations {
    * @OA\Post(
    *    path="/formLoad",
    *    tags={"cms","authenticated","form"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Load a form based on ID"
@@ -1069,6 +1182,13 @@ class Operations {
    * @OA\Post(
    *    path="/formProcess",
    *    tags={"cms","authenticated","form"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Process a form based on ID and input data"
@@ -1111,6 +1231,13 @@ class Operations {
    * @OA\Post(
    *    path="/loadFiles",
    *    tags={"hax","authenticated","file"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Load existing files for presentation in HAX find area"
@@ -1125,9 +1252,30 @@ class Operations {
    * @OA\Post(
    *    path="/login",
    *    tags={"cms","user"},
+   *    description="Attempt a user login",
+   *    @OA\Parameter(
+   *     description="User name",
+   *     example="admin",
+   *     name="u",
+   *     in="query",
+   *     required=true,
+   *     @OA\Schema(type="string")
+   *   ),
+   *   @OA\Parameter(
+   *     description="Password",
+   *     example="admin",
+   *     name="p",
+   *     in="query",
+   *     required=true,
+   *     @OA\Schema(type="string")
+   *   ),
    *    @OA\Response(
    *        response="200",
-   *        description="User login attempt"
+   *        description="JWT token as response"
+   *   ),
+   *    @OA\Response(
+   *        response="403",
+   *        description="Invalid token / Login is required"
    *   )
    * )
    */
@@ -1148,7 +1296,7 @@ class Operations {
           )
         );
       } else {
-          return $GLOBALS['HAXCMS']->getJWT();
+          return $GLOBALS['HAXCMS']->getJWT($u);
       }
     }
     // login end point requested yet a jwt already exists
@@ -1182,6 +1330,13 @@ class Operations {
    * @OA\Post(
    *    path="/setUserPhoto",
    *    tags={"cms","authenticated","user"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Set the user's uploaded photo"
@@ -1213,6 +1368,44 @@ class Operations {
    * @OA\Post(
    *    path="/saveFile",
    *    tags={"hax","authenticated","file"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="file-upload",
+   *         description="File to upload",
+   *         in="header",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="node",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                    "node": {
+   *                      "id": ""
+   *                    }
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="User is uploading a file to present in a site"
@@ -1290,6 +1483,44 @@ class Operations {
    * @OA\Post(
    *    path="/createSite",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *     @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="theme",
+   *                     type="object"
+   *                 ),
+   *                 required={"site","node"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite",
+   *                      "domain": ""
+   *                    },
+   *                    "theme": {
+   *                      "name": "learn-two-theme",
+   *                      "variables": {
+   *                        "image":"",
+   *                        "icon":"",
+   *                        "hexCode":"",
+   *                        "cssVariable":"",
+   *                        }                   
+   *                    }
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Create a new site"
@@ -1300,7 +1531,7 @@ class Operations {
     if ($GLOBALS['HAXCMS']->validateRequestToken()) {
       $domain = null;
       // woohoo we can edit this thing!
-      if (isset($this->params['site']['domain'])) {
+      if (isset($this->params['site']['domain']) && $this->params['site']['domain'] != null && $this->params['site']['domain'] != '') {
         $domain = $this->params['site']['domain'];
       }
       // sanitize name
@@ -1337,28 +1568,28 @@ class Operations {
       }
       $schema->metadata->theme->variables = new stdClass();
       // description for an overview if desired
-      if (isset($this->params['site']['description'])) {
+      if (isset($this->params['site']['description']) && $this->params['site']['description'] != '' && $this->params['site']['description'] != null) {
           $schema->description = strip_tags($this->params['site']['description']);
       }
       // background image / banner
-      if (isset($this->params['theme']['variables']['image'])) {
+      if (isset($this->params['theme']['variables']['image']) && $this->params['theme']['variables']['image'] != '' && $this->params['theme']['variables']['image'] != null) {
           $schema->metadata->theme->variables->image = $this->params['theme']['variables']['image'];
       }
       else {
         $schema->metadata->theme->variables->image = 'assets/banner.jpg';
       }
       // icon to express the concept / visually identify site
-      if (isset($this->params['theme']['variables']['icon'])) {
+      if (isset($this->params['theme']['variables']['icon']) && $this->params['theme']['variables']['icon'] != '' && $this->params['theme']['variables']['icon'] != null) {
           $schema->metadata->theme->variables->icon = $this->params['theme']['variables']['icon'];
       }
       // slightly style the site based on css vars and hexcode
-      if (isset($this->params['theme']['variables']['hexCode'])) {
+      if (isset($this->params['theme']['variables']['hexCode']) && $this->params['theme']['variables']['hexCode'] != '' && $this->params['theme']['variables']['hexCode'] != null) {
           $hex = $this->params['theme']['variables']['hexCode'];
       } else {
           $hex = '#aeff00';
       }
       $schema->metadata->theme->variables->hexCode = $hex;
-      if (isset($this->params['theme']['variables']['cssVariable'])) {
+      if (isset($this->params['theme']['variables']['cssVariable']) && $this->params['theme']['variables']['cssVariable'] != '' && $this->params['theme']['variables']['cssVariable'] != null) {
           $cssvar = $this->params['theme']['variables']['cssVariable'];
       } else {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
@@ -1434,6 +1665,32 @@ class Operations {
    * @OA\Post(
    *    path="/gitImportSite",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "git": {
+   *                        "url": ""
+   *                      }
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Create a new site from a git repo reference"
@@ -1496,6 +1753,13 @@ class Operations {
    * @OA\Post(
    *    path="/getConfig",
    *    tags={"cms","authenticated","settings"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Get configuration for HAXcms itself"
@@ -1517,6 +1781,28 @@ class Operations {
    * @OA\Post(
    *    path="/setConfig",
    *    tags={"cms","authenticated","form","settings"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="values",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "values": {}
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Set configuration for HAXcms"
@@ -1548,6 +1834,30 @@ class Operations {
    * @OA\Post(
    *    path="/syncSite",
    *    tags={"cms","authenticated","git","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Sync the site using the git config settings in the site.json file"
@@ -1592,6 +1902,30 @@ class Operations {
    * @OA\Post(
    *    path="/publishSite",
    *    tags={"cms","authenticated","git","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Publishes the site to a remote source using git settings from site.json for details "
@@ -2032,6 +2366,30 @@ class Operations {
    * @OA\Post(
    *    path="/cloneSite",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Clone a site by copying and renaming the folder on file system"
@@ -2064,6 +2422,30 @@ class Operations {
    * @OA\Post(
    *    path="/deleteSite",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Delete a site from the file system"
@@ -2094,6 +2476,30 @@ class Operations {
    * @OA\Post(
    *    path="/downloadSite",
    *    tags={"cms","authenticated","site","meta"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Download the site folder as a zip file"
@@ -2149,6 +2555,30 @@ class Operations {
    * @OA\Post(
    *    path="/archiveSite",
    *    tags={"cms","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="site",
+   *                     type="object"
+   *                 ),
+   *                 required={"site"},
+   *                 example={
+   *                    "site": {
+   *                      "name": "mynewsite"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Archive a site by moving it on the file system"
