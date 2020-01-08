@@ -97,6 +97,9 @@ echo "$(getuuid)" > _config/SALT.txt
 # write private key
 pk="$(getuuid)"
 sed -i "s/HAXTHEWEBPRIVATEKEY/${pk}/g" _config/config.php
+# write refresh private key
+rpk="$(getuuid)"
+sed -i "s/HAXTHEWEBREFRESHPRIVATEKEY/${rpk}/g" _config/config.php
 user=$1
 pass=$2
 # enter a super user name, dun dun dun dunnnnnnn!

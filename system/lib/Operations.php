@@ -1022,6 +1022,13 @@ class Operations {
    * @OA\Post(
    *    path="/generateAppStore",
    *    tags={"hax","api"},
+   *    @OA\Parameter(
+   *         name="app-store-token",
+   *         description="security token for appstore",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Generate the AppStore spec for HAX editor directions"
@@ -1296,6 +1303,8 @@ class Operations {
           )
         );
       } else {
+          // set a refresh_token COOKIE that will ship w/ all calls automatically
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
           return $GLOBALS['HAXCMS']->getJWT($u);
       }
     }
@@ -1325,6 +1334,34 @@ class Operations {
    */
   public function logout() {
     return 'loggedout';
+  }
+  /**
+   * @OA\Post(
+   *    path="/refreshAccessToken",
+   *    tags={"cms","user"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="User access token for refreshing JWT when it goes stale"
+   *   )
+   * )
+   */
+  public function refreshAccessToken() {
+    // check that we have a valid refresh token
+    $validRefresh = $GLOBALS['HAXCMS']->validateRefreshToken(FALSE);
+    // if we have a valid refresh token then issue a new access token
+    if ($validRefresh) {
+      return $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
+    }
+    else {
+      // this failed so unset the cookie
+      setcookie('haxcms_refresh_token', '', 1);
+      return array(
+        '__failed' => array(
+          'status' => 401,
+          'message' => 'haxcms_refresh_token:invalid',
+        )
+      );
+    }
   }
   /**
    * @OA\Post(

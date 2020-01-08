@@ -1,6 +1,8 @@
 <?php
 // a private key to do an additional hash via
 $HAXCMS->privateKey = 'HAXTHEWEBPRIVATEKEY';
+// a private key for the refresh token for added security
+$HAXCMS->refreshPrivateKey = 'HAXTHEWEBREFRESHPRIVATEKEY';
 // super admin account
 $HAXCMS->superUser->name = 'jeff';
 // super admin password, you must set this in order for HAX to work

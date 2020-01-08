@@ -148,6 +148,12 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid(),
       $configFile
     );
+    // refresh private key
+    $configFile = str_replace(
+      'HAXTHEWEBREFRESHPRIVATEKEY',
+      uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid(),
+      $configFile
+    );
     // user
     if(isset($_POST['user'])){
       $configFile = str_replace('jeff', $_POST['user'], $configFile);

@@ -28,36 +28,35 @@ $fileSystem = new Filesystem();
 
 class HAXCMS
 {
-    public $appStoreFile;
-    public $salt;
-    public $outlineSchema;
-    public $privateKey;
-    public $config;
-    public $userData;
-    public $superUser;
-    public $user;
-    public $sitesDirectory;
-    public $archivedDirectory;
-    public $publishedDirectory;
-    public $sites;
-    public $data;
-    public $developerMode;
-    public $developerModeAdminOnly;
-    public $configDirectory;
-    public $sitesJSON;
-    public $domain;
-    public $protocol;
-    public $basePath;
-    public $safePost;
-    public $safeGet;
-    public $safeCLI;
-    public $safeInputStream;
-    public $sessionJwt;
-    public $sessionToken;
-    public $siteListingAttr;
-    public $systemRequestBase;
-    private $validArgs;
-    private $events;
+    public $appStoreFile;           // location of the HAX appstore API call which powers the editor
+    public $salt;                   // salt to mix into all calls
+    public $outlineSchema;          // JSONOutlineSchema object to make it easier to call helper functions
+    public $privateKey;             // private key
+    public $refreshPrivateKey;      // refresh token private key
+    public $config;                 // system level configuration, API keys, etc
+    public $userData;               // user data object like picture
+    public $superUser;              // super user object
+    public $user;                   // user object
+    public $sitesDirectory;         // sites directory
+    public $archivedDirectory;      // archived directory
+    public $publishedDirectory;     // published directory
+    public $developerMode;          // developer mode flag for deep interal validation bypasses
+    public $developerModeAdminOnly; // if developer mode should only be on for the super user
+    public $configDirectory;        // location of the _config directory
+    public $sitesJSON;              // endpoint to obtain a listing of sites in json format
+    public $domain;                 // domain to write urls off of
+    public $protocol;               // http or https
+    public $basePath;               // directory that haxcms is installed in on the server
+    public $safePost;               // sanitized _POST data
+    public $safeGet;                // sanitized _GET data
+    public $safeCLI;                // sanitized data from CLI arguments
+    public $safeInputStream;        // sanitized php input stream
+    public $sessionJwt;             // session jwt; set via POST if it exists
+    public $sessionToken;           // token for the request coming in; not a JWT but for form validation / XSS
+    public $siteListingAttr;        // additional attributes allowed to be injected into the site-listing page
+    public $systemRequestBase;      // base path to the API backend
+    private $validArgs;             // list of allowed CLI arguments
+    private $events;                // array of events we are listening for globally in PHP
     /**
      * Establish defaults for HAXCMS
      */
@@ -913,14 +912,16 @@ class HAXCMS
      * Generate appstore connection information. This has to happen at run time.
      * to get into account _config / environmental overrides
      */
-    public function appStoreConnection()
-    {
+    public function appStoreConnection() {
         $connection = new stdClass();
-        $connection->url =
-            $this->basePath .
-            $this->appStoreFile .
-            '&app-store-token=' .
-            $this->getRequestToken('appstore');
+        // support for remote appstores if a developer overrides the location
+        // of the appstore then we can't assum eit exists on this server
+        if ($this->appStoreFile == $this->systemRequestBase . '/generateAppStore') {
+          $connection->url = $this->basePath . $this->appStoreFile . '?app-store-token=' . $this->getRequestToken('appstore');
+        }
+        else {
+          $connection->url = $this->appStoreFile;
+        }
         return $connection;
     }
     /**
@@ -1150,6 +1151,11 @@ class HAXCMS
     {
         $token = array();
         $token['id'] = $this->getRequestToken('user');
+        // used at time
+        $token['iat'] = time();
+        // expiration time, 15 minutes
+        $token['exp'] = time() + (15 * 60);
+        // if the user was supplied then add to token, if not it's relatively worthless but oh well :)
         if (!is_null($name)) {
             $token['user'] = $name;
         }
@@ -1169,6 +1175,68 @@ class HAXCMS
       }
     }
     /**
+     * Get user's Refresh Token
+     */
+    public function getRefreshToken($name = null) {
+      $token = array();
+      $token['user'] = $name;
+      $token['iat'] = time();
+      $token['exp'] = time() + (7 * 24 * 60 * 60);
+      $this->dispatchEvent('haxcms-refresh-token-get', $token);
+      return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
+    }
+    /**
+     * Decode the JWT to ensure accuracy, return false if an error happens
+     */
+    private function decodeRefreshToken($key) {
+      // if it can decode, it'll be an object, otherwise it's false
+      try {
+        return JWT::decode($key, $this->refreshPrivateKey . $this->salt);
+      }
+      catch (Exception $e) {
+        return FALSE;
+      }
+    }
+    /**
+     * Validate a JTW during POST
+     */
+    public function validateRefreshToken($endOnInvalid = TRUE) {
+      if ($this->isCLI()) {
+        return TRUE;
+      }
+      // get the refresh token from cookie
+      $refreshToken = $_COOKIE['haxcms_refresh_token'];
+      // if there isn't one then we have to bail hard
+      if (!$refreshToken) {
+        header('Status: 401');
+        print 'haxcms_refresh_token:not_found';
+        exit();
+      }
+      // if there is a refresh token then decode it
+      $refreshTokenDecoded = $this->decodeRefreshToken($refreshToken);
+      
+      // validate the token
+      // make sure token has issued and expiration dates
+      if (isset($refreshTokenDecoded->iat) && isset($refreshTokenDecoded->exp)) {
+        // issued at date is less than now
+        if ($refreshTokenDecoded->iat < time()) {
+          // expiration date is greater than now
+          if (time() < $refreshTokenDecoded->exp) {
+            // it's valid
+            return $refreshTokenDecoded;
+          }
+        }
+      }
+      // kick back the end if its invalid
+      if ($endOnInvalid) {
+        setcookie('haxcms_refresh_token', '', 1);
+        header('Status: 401');
+        print 'haxcms_refresh_token:invalid';
+        exit();
+      }
+      return FALSE;
+    }
+    /**
      * Get Front end JWT based connection settings
      */
     public function appJWTConnectionSettings()
@@ -1176,7 +1244,9 @@ class HAXCMS
         $path = $this->basePath . $this->systemRequestBase . '/';
         $settings = new stdClass();
         $settings->login = $path . 'login';
+        $settings->refreshUrl = $path . 'refreshAccessToken';
         $settings->logout = $path . 'logout';
+        $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
         $settings->themes = $this->getThemes();
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
@@ -1284,7 +1354,7 @@ class HAXCMS
      * Add an event listener
      */
     public function addEventListener($event, $callback = NULL) {
-        // Adding or removing a callback?
+        // Adding or removing a callback
         if ($callback !== NULL) {
             if ($callback) {
                 $this->events[$event][] = $callback;
