@@ -1215,12 +1215,11 @@ class HAXCMS
       }
       // if there is a refresh token then decode it
       $refreshTokenDecoded = $this->decodeRefreshToken($refreshToken);
-      
       // validate the token
       // make sure token has issued and expiration dates
       if (isset($refreshTokenDecoded->iat) && isset($refreshTokenDecoded->exp)) {
-        // issued at date is less than now
-        if ($refreshTokenDecoded->iat < time()) {
+        // issued at date is less than or equal to now
+        if ($refreshTokenDecoded->iat <= time()) {
           // expiration date is greater than now
           if (time() < $refreshTokenDecoded->exp) {
             // it's valid
@@ -1232,7 +1231,7 @@ class HAXCMS
       if ($endOnInvalid) {
         setcookie('haxcms_refresh_token', '', 1);
         header('Status: 401');
-        print 'haxcms_refresh_token:invalid';
+        print 'haxcms_refresh_token:invalid:end_on_invalid_flag';
         exit();
       }
       return FALSE;
