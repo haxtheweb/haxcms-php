@@ -65,7 +65,7 @@ class HAXCMS
       $this->developerMode = FALSE;
       $this->developerModeAdminOnly = FALSE;
       // critical for the CLI operations to validate
-      $this->validArgs = array('op:', 'siteName::', 'theme:');
+      $this->validArgs = array('op:', 'siteName::', 'iamUser::', 'theme:');
       // test for CLI and bring in arg data correctly
         if ($this->isCLI()) {
             // global but shift off the required pieces for usage

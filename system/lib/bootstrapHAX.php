@@ -28,14 +28,26 @@ $here = str_replace('/system/lib/bootstrapHAX.php', '', __FILE__);
 // core support for IAM symlinked core which follows a similar pattern at a custom base path
 // this is needed because of how PHP resolves paths when in symlinked patterns
 // @todo need to support HAXiam in the CLI
-if (file_exists($here . '/_config/IAM') && isset($_SERVER['REQUEST_URI'])) {
-  $pieces = explode('/', $_SERVER['REQUEST_URI']);
-  array_shift($pieces);
+if (file_exists($here . '/_config/IAM')) {
+  if (isset($_SERVER['REQUEST_URI'])) {
+    $pieces = explode('/', $_SERVER['REQUEST_URI']);
+    array_shift($pieces);
+    $userDir = $pieces[0];
+  }
+  // account for CLI
+  else if (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0)) {
+    if (file_exists($here . '/_config/IAM')) {
+      $cliOpts = getopt('', array('op:', 'siteName::', 'iamUser::', 'theme:')) + array('args' => $GLOBALS['argv']);
+      if (isset($cliOpts['iamUser'])) {
+        $userDir = $cliOpts['iamUser'];
+      }
+    }
+  }
   // leverage BRANCH in order to calculate the correct directory name here
   if ($branch = file_get_contents($here . '/BRANCH.txt')) {
     // intenals rewrite for things that are login in nature
-    if (IAM_INTERNALS != 'login') {
-      $here = str_replace('cores/HAXcms-' . $branch, 'users/' . $pieces[0], $here);
+    if (!defined('IAM_INTERNALS') && isset($userDir)) {
+      $here = str_replace('cores/HAXcms-' . $branch, 'users/' . $userDir, $here);
     }
   }
 }
