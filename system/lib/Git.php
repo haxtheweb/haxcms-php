@@ -409,6 +409,12 @@ class GitRepo
     {
         return $this->run_command(Git::get_bin() . " " . $command);
     }
+    /**
+     * return the current sha as a string
+     */
+    public function currentSHA() {
+        return str_replace("\n","",$this->run("rev-parse HEAD"));
+    }
 
     /**
      * Runs a 'git status' call

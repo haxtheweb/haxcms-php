@@ -1284,6 +1284,41 @@ class HAXCMS
         return $settings;
     }
     /**
+     * Static cache a variable that may be called multiple times
+     * in one transaction yet has same result
+     */
+    private function &staticCache($name, $default_value = NULL, $reset = FALSE) {
+      static $data = array(), $default = array();
+      if (isset($data[$name]) || array_key_exists($name, $data)) {
+        if ($reset) {
+          $data[$name] = $default[$name];
+        }
+        return $data[$name];
+      }
+      if (isset($name)) {
+        if ($reset) {
+          return $data;
+        }
+        $default[$name] = $data[$name] = $default_value;
+        return $data[$name];
+      }
+      foreach ($default as $name => $value) {
+        $data[$name] = $value;
+      }
+      return $data;
+    }
+    public function cacheBusterHash($prepend = '?') {
+      $buster = &$this->staticCache(__FUNCTION__);
+      if (!isset($buster)) {
+        $buster = $prepend;
+        // open the system itself
+        $git = new Git();
+        $repo = $git->open(HAXCMS_ROOT, false);
+        $buster .= $this->getRequestToken($repo->currentSHA());
+      }
+      return $buster;
+    }
+    /**
      * Test and ensure the name being returned is a location currently unused
      */
     public function getUniqueName($name)
