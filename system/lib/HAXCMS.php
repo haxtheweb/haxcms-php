@@ -1132,6 +1132,7 @@ class HAXCMS
             $usr->name = $name;
             $usr->grantAccess = false;
             // fire custom event for things to respond to as needed
+            // this is for SaaS providers to provide global validation
             $this->dispatchEvent('haxcms-validate-user', $usr);
             return $usr->grantAccess;
         }
