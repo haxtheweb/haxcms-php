@@ -33,7 +33,10 @@ if (file_exists($here . '/_config/IAM') && isset($_SERVER['REQUEST_URI'])) {
   array_shift($pieces);
   // leverage BRANCH in order to calculate the correct directory name here
   if ($branch = file_get_contents($here . '/BRANCH.txt')) {
-    $here = str_replace('cores/HAXcms-' . $branch, 'users/' . $pieces[0], $here);
+    // intenals rewrite for things that are login in nature
+    if (IAM_INTERNALS != 'login') {
+      $here = str_replace('cores/HAXcms-' . $branch, 'users/' . $pieces[0], $here);
+    }
   }
 }
 define('HAXCMS_ROOT', $here);
