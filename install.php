@@ -95,7 +95,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     <div class="wrapper">
       <paper-card elevation="5">
 <?php
-  include_once 'system/lib/Git.php';
+  include_once 'system/backend/php/lib/Git.php';
   // add git library
   if (!is_dir('_config')) {
     // gotta config some place now don't we

@@ -17,10 +17,10 @@ include_once 'JSONOutlineSchema.php';
 include_once 'JWT.php';
 // working with git operators
 include_once 'Git.php';
-// basica request validation / handling
-include_once dirname(__FILE__) . '/Request.php';
+// basic request validation / handling
+include_once 'Request.php';
 // composer...ugh
-include_once dirname(__FILE__) . "/../../vendor/autoload.php";
+include_once dirname(__FILE__) . "/../vendor/autoload.php";
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 global $fileSystem;
@@ -28,6 +28,10 @@ $fileSystem = new Filesystem();
 
 class HAXCMS
 {
+    private $validArgs;             // list of allowed CLI arguments
+    private $events;                // array of events we are listening for globally in PHP
+    
+    public $cdn;                    // optional cdn for all paths even while developing sites
     public $appStoreFile;           // location of the HAX appstore API call which powers the editor
     public $salt;                   // salt to mix into all calls
     public $outlineSchema;          // JSONOutlineSchema object to make it easier to call helper functions
@@ -55,8 +59,6 @@ class HAXCMS
     public $sessionToken;           // token for the request coming in; not a JWT but for form validation / XSS
     public $siteListingAttr;        // additional attributes allowed to be injected into the site-listing page
     public $systemRequestBase;      // base path to the API backend
-    private $validArgs;             // list of allowed CLI arguments
-    private $events;                // array of events we are listening for globally in PHP
     /**
      * Establish defaults for HAXCMS
      */
@@ -64,6 +66,7 @@ class HAXCMS
     {
       $this->developerMode = FALSE;
       $this->developerModeAdminOnly = FALSE;
+      $this->cdn = './';
       // critical for the CLI operations to validate
       $this->validArgs = array('op:', 'siteName::', 'iamUser::', 'theme:');
       // test for CLI and bring in arg data correctly
@@ -1307,6 +1310,15 @@ class HAXCMS
       }
       return $data;
     }
+    /**
+     * Return the link to the cdn to use for serving dynamic pages
+     */
+    public function getCDNForDynamic() {
+      return $this->cdn;
+    }
+    /**
+     * generate a hash based on the SHA of the git commit
+     */
     public function cacheBusterHash($prepend = '?') {
       $buster = &$this->staticCache(__FUNCTION__);
       if (!isset($buster)) {

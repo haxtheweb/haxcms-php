@@ -18,6 +18,6 @@ $HAXCMS->basePath = '/';
 // use this flag for things that want annonymous page loads to work as they should
 // but yet be able to debug things as an admin/authenticated user efficiently
 //$HAXCMS->developerModeAdminOnly = TRUE;
-// see system/lib/HAXCMS.php for additional deeper options
+// see system/backend/php/lib/HAXCMS.php for additional deeper options
 // including $HAXCMS->user and $HAXCMS->password which can be used
 // to allow for lower permissioned users to login to specific sites

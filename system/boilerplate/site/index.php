@@ -1,5 +1,5 @@
 <?php
-  include_once __DIR__ . '/../../system/lib/bootstrapHAX.php';
+  include_once __DIR__ . '/../../system/backend/php/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   $site = $HAXCMS->loadSite(basename(__DIR__));
   $page = $site->loadNodeByLocation();
@@ -62,7 +62,7 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js');var cdn="";var forceUpgrade=<?php print $site->getForceUpgrade();?>;var old=false;var ancient=false;
+  <script>document.body.removeAttribute('no-js');var cdn="<?php print $HAXCMS->getCDNForDynamic();?>";var forceUpgrade=<?php print $site->getForceUpgrade();?>;var old=false;var ancient=false;
     if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site
       ancient = true;
     }
@@ -146,10 +146,10 @@
   </script>
   <script>if(old)document.write('<!--');</script>
   <script type="module">
-    import "./build/es6/dist/build.js<?php print $HAXCMS->cacheBusterHash();?>";
+    import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/dist/build.js<?php print $HAXCMS->cacheBusterHash();?>";
     import "./custom/build/custom.es6.js<?php print $HAXCMS->cacheBusterHash();?>";
   </script>
-  <script async src="build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
+  <script async src="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js">
   //<!--! do not remove -->
   </script>
 </body>

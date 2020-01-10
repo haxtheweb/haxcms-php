@@ -29,12 +29,17 @@ class Request {
     /**
      * Return encoded data, optional flag for data without headers
      */
-    private function encodeData($response, $dataOnly = false) {
+    private function encodeData($response, $dataOnly = FALSE, $encode = TRUE) {
       if (!$dataOnly) {
         header('Status: ' . $this->status);
         header('Content-Type: ' . $this->contentType);
       }
-      print json_encode($response);
+      if ($encode) {
+        print json_encode($response);
+      }
+      else {
+        print $response;
+      }
       if (!$dataOnly) {
         exit();
       }
@@ -46,7 +51,16 @@ class Request {
     public function execute($op, $params = array(), $rawParams = array()) {
       // we only skip JWT validation on edge cases
       // @todo add support for supplying these pass throughs via object if we find we need a lot
-      if (in_array($op, array('generateAppStore', 'listSites', 'login', 'logout', 'api','options', 'openapi', 'refreshAccessToken'))) {
+      if (in_array($op, array(
+        'generateAppStore',
+        'connectionSettings',
+        'listSites',
+        'login',
+        'logout',
+        'api',
+        'options',
+        'openapi',
+        'refreshAccessToken'))) {
         $this->validateJWT = FALSE;
       }
       if ($this->valid()) {
@@ -88,6 +102,11 @@ class Request {
           if (is_array($response) && isset($response['__failed'])) {
             $this->status = $response['__failed']['status'];
             $this->encodeData($response['__failed']['message']);
+          }
+          else if (is_array($response) && isset($response['__noencode'])) {
+            $this->contentType = $response['__noencode']['contentType'];
+            $this->status = $response['__noencode']['status'];
+            $this->encodeData($response['__noencode']['message'], FALSE, FALSE);
           }
           else {
             $this->encodeData($response);

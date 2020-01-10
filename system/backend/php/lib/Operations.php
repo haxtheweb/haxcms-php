@@ -1011,7 +1011,26 @@ class Operations {
       );
     }
   }
-
+/**
+   * @OA\Post(
+   *    path="/connectionSettings",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Generate the connection settings dynamically for implying we have a PHP backend"
+   *   )
+   * )
+   */
+  public function connectionSettings() {
+    // need to return this as if it was a javascript file, weird looking for sure
+    return array(
+      '__noencode' => array(
+        'status' => 200,
+        'contentType' => 'application/javascript',
+        'message' => 'window.appSettings = ' . json_encode($GLOBALS['HAXCMS']->appJWTConnectionSettings()) . ';',
+      )
+    );
+  }
   /**
    * 
    * HAX EDITOR CALLBACKS
