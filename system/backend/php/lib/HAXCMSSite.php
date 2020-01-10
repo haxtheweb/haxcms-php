@@ -821,6 +821,10 @@ class HAXCMSSite
       // support preconnecting CDNs, sets us up for dynamic CDN switching too
       $preconnect = '';
       $base = '.';
+      if ($cdn == '' && $GLOBALS['HAXCMS']->cdn != './') {
+        $preconnect = '<link rel="preconnect" crossorigin href="' . $GLOBALS['HAXCMS']->cdn . '">';
+        $cdn = $GLOBALS['HAXCMS']->cdn;
+      }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
         $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
@@ -932,13 +936,13 @@ class HAXCMSSite
      */
     public function getLogoSize($height, $width) {
       // if no logo, just bail with an easy standard one
-      if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo == null))) {
+      if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo == null || $this->manifest->metadata->site->logo == "null"))) {
         return 'assets/icon-' . $height . 'x' . $width . '.png';
       }
       // ensure this path exists otherwise let's create it on the fly
       $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
       $newName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
-      if (!file_exists($path . $newName)) {
+      if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $newName)) {
         global $fileSystem;
         $fileSystem->mkdir($path . 'files/haxcms-managed');
         $image = new ImageResize($path . $this->manifest->metadata->site->logo);

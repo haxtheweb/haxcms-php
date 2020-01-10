@@ -1,3 +1,3 @@
 <?php
 // here for historical purposes
-include_once "../backend/php/bootstrapHAX.php";
+include_once dirname(__FILE__) . "/../backend/php/bootstrapHAX.php";
