@@ -681,20 +681,32 @@ class HAXCMSSite
      * @return string full URL to an image
      */
     public function getSocialShareImage($page = null) {
+      // resolve a JOS Item vs null
+      if ($page != null) {
+        $id = $page->id;
+      }
+      else {
+        $id = null;
+      }
+      $fileName = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $id);
+      
+      if (!isset($fileName)) {
         if (is_null($page)) {
-            $page = $this->loadNodeByLocation();
+          $page = $this->loadNodeByLocation();
         }
         if (isset($page->metadata->files)) {
-            foreach ($page->metadata->files as $file) {
-                if ($file->type == 'image/jpeg') {
-                    return $file->fullUrl;
-                }
+          foreach ($page->metadata->files as $file) {
+            if ($file->type == 'image/jpeg') {
+              $fileName = $file->fullUrl;
             }
+          }
         }
         // look for the theme banner
         if (isset($this->manifest->metadata->theme->variables->image)) {
-            return $this->manifest->metadata->theme->variables->image;
+          $fileName = $this->manifest->metadata->theme->variables->image;
         }
+      }
+      return $fileName;
     }
     /**
      * Return attributes for the site
@@ -935,21 +947,26 @@ class HAXCMSSite
      * @return string path to the image (web visible) that was created or pulled together
      */
     public function getLogoSize($height, $width) {
-      // if no logo, just bail with an easy standard one
-      if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo == null || $this->manifest->metadata->site->logo == "null"))) {
-        return 'assets/icon-' . $height . 'x' . $width . '.png';
+      $fileName = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $height . $width);
+      if (!isset($fileName)) {
+        // if no logo, just bail with an easy standard one
+        if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo == null || $this->manifest->metadata->site->logo == "null"))) {
+            $fileName = 'assets/icon-' . $height . 'x' . $width . '.png';
+        }
+        else {
+          // ensure this path exists otherwise let's create it on the fly
+          $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
+          $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
+              global $fileSystem;
+              $fileSystem->mkdir($path . 'files/haxcms-managed');
+              $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+              $image->crop($height, $width)
+              ->save($path . $fileName);
+          }
+        }
       }
-      // ensure this path exists otherwise let's create it on the fly
-      $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
-      $newName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
-      if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $newName)) {
-        global $fileSystem;
-        $fileSystem->mkdir($path . 'files/haxcms-managed');
-        $image = new ImageResize($path . $this->manifest->metadata->site->logo);
-        $image->crop($height, $width)
-          ->save($path . $newName);
-      }
-      return $newName;
+      return $fileName;
     }
     /**
      * Load field schema for a page

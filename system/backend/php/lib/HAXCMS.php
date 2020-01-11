@@ -551,11 +551,15 @@ class HAXCMS
      */
     public function getHAXCMSVersion()
     {
-      // sanity
-      $vFile = HAXCMS_ROOT . '/VERSION.txt';
-      if (file_exists($vFile)) {
-        return filter_var(file_get_contents($vFile));
+      $version = &$this->staticCache(__FUNCTION__);
+      if (!isset($version)) {
+        // sanity
+        $vFile = HAXCMS_ROOT . '/VERSION.txt';
+        if (file_exists($vFile)) {
+          $version = filter_var(file_get_contents($vFile));
+        }
       }
+      return $version;
     }
     /**
      * Load theme location data as mix of config and system
@@ -1290,7 +1294,7 @@ class HAXCMS
      * Static cache a variable that may be called multiple times
      * in one transaction yet has same result
      */
-    private function &staticCache($name, $default_value = NULL, $reset = FALSE) {
+    public function &staticCache($name, $default_value = NULL, $reset = FALSE) {
       static $data = array(), $default = array();
       if (isset($data[$name]) || array_key_exists($name, $data)) {
         if ($reset) {
