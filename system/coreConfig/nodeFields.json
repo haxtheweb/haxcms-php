@@ -8,6 +8,12 @@
       "icon": "editor:title"
     },
     {
+      "property": "published",
+      "title": "Published",
+      "description": "Uncheck box to hide content",
+      "inputMethod": "boolean"
+    },
+    {
       "property": "location",
       "description": "Location used in the URL",
       "inputMethod": "textfield",

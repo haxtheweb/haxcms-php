@@ -981,10 +981,10 @@ class HAXCMSSite
         );
         // load core fields
         // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-        if (file_exists(HAXCMS_ROOT . '/system/coreConfig/itemFields.json')) {
+        if (file_exists(HAXCMS_ROOT . '/system/coreConfig/nodeFields.json')) {
             $coreFields = json_decode(
                 file_get_contents(
-                    HAXCMS_ROOT . '/system/coreConfig/itemFields.json'
+                    HAXCMS_ROOT . '/system/coreConfig/nodeFields.json'
                 )
             );
             $themes = array();
@@ -1089,7 +1089,8 @@ class HAXCMSSite
                 str_replace('/index.html', '', $page->location)
             ),
             'description' => $page->description,
-            'created' => (isset($page->metadata->created) ? $page->metadata->created : 54)
+            'created' => (isset($page->metadata->created) ? $page->metadata->created : 54),
+            'published' => (isset($page->metadata->published) ? $page->metadata->published : TRUE),
         );
         // now get the field data from the page
         if (isset($page->metadata->fields)) {

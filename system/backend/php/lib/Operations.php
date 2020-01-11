@@ -818,6 +818,9 @@ class Operations {
                     $value = filter_var($value, FILTER_VALIDATE_INT);
                     $page->metadata->created = $value;
                     break;
+                case 'published':
+                    $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                    $page->metadata->published = $value;
                 case 'theme':
                     $themes = $GLOBALS['HAXCMS']->getThemes();
                     $value = filter_var($value, FILTER_SANITIZE_STRING);

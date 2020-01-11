@@ -245,7 +245,7 @@ class HAXCMS
                   $themeSelect[$name] = $data->name;
                 }
                 // @todo this is pretty hacky specific placement of the theme options
-                $this->config->site->fields[0]->properties[2]->properties[0]->options = $themeSelect;
+                $this->config->site->fields[0]->properties[1]->properties[0]->options = $themeSelect;
                 // userData object
                 // load in core dynamicElementLoader data
                 if (
