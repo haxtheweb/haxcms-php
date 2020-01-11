@@ -820,7 +820,7 @@ class HAXCMSSite
       }
       // support preconnecting CDNs, sets us up for dynamic CDN switching too
       $preconnect = '';
-      $base = '.';
+      $base = './';
       if ($cdn == '' && $GLOBALS['HAXCMS']->cdn != './') {
         $preconnect = '<link rel="preconnect" crossorigin href="' . $GLOBALS['HAXCMS']->cdn . '">';
         $cdn = $GLOBALS['HAXCMS']->cdn;
@@ -851,13 +851,13 @@ class HAXCMSSite
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
   <link rel="preconnect" crossorigin href="https://licensebuttons.net">
-  <link rel="preload" href="' . $base . '/build/es6/dist/build.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/node_modules/mobx/lib/mobx.module.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/node_modules/@lrnwebcomponents/simple-colors/simple-colors.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . '/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
+  <link rel="preload" href="' . $base . 'build/es6/dist/build.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/mobx/lib/mobx.module.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/simple-colors/simple-colors.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="./theme/theme.css" as="style" />  
   <meta name="generator" content="HAXcms">
