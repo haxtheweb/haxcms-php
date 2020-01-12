@@ -19,6 +19,8 @@ include_once 'JWT.php';
 include_once 'Git.php';
 // basic request validation / handling
 include_once 'Request.php';
+// basic cache writing to file system
+include_once 'Cache.php';
 // composer...ugh
 include_once dirname(__FILE__) . "/../vendor/autoload.php";
 use Symfony\Component\Filesystem\Filesystem;
@@ -30,7 +32,7 @@ class HAXCMS
 {
     private $validArgs;             // list of allowed CLI arguments
     private $events;                // array of events we are listening for globally in PHP
-    
+    private $cache;                 // Cache object
     public $cdn;                    // optional cdn for all paths even while developing sites
     public $appStoreFile;           // location of the HAX appstore API call which powers the editor
     public $salt;                   // salt to mix into all calls
@@ -147,6 +149,12 @@ class HAXCMS
         // set default config directory to look in if there
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
+            // setup cache bin
+            $this->cache = new Cache(array(
+              'name'      => 'haxcms',
+              'path'      => $this->configDirectory . '/cache/',
+              'extension' => '.cache'
+            ));
             // add in the auto-generated app store file
             $this->appStoreFile = $this->systemRequestBase . '/generateAppStore';
             // ensure appstore file is there, then make salt size of this file
@@ -1291,6 +1299,18 @@ class HAXCMS
         return $settings;
     }
     /**
+     * Get cache data from file system
+     */
+    public function getCache($key) {
+      return $this->cache->retrieve($key);
+    }
+    /**
+     * Set cache data on file system
+     */
+    public function setCache($key, $data, $expiration = 86400) {
+      return $this->cache->store($key, $data, $expiration);
+    }
+    /**
      * Static cache a variable that may be called multiple times
      * in one transaction yet has same result
      */
@@ -1326,11 +1346,15 @@ class HAXCMS
     public function cacheBusterHash($prepend = '?') {
       $buster = &$this->staticCache(__FUNCTION__);
       if (!isset($buster)) {
-        $buster = $prepend;
-        // open the system itself
-        $git = new Git();
-        $repo = $git->open(HAXCMS_ROOT, false);
-        $buster .= $this->getRequestToken($repo->currentSHA());
+        $buster = $this->getCache('git-sha');
+        if (is_null($buster)) {
+          $buster = $prepend;
+          // open the system itself
+          $git = new Git();
+          $repo = $git->open(HAXCMS_ROOT, false);
+          $buster .= $this->getRequestToken($repo->currentSHA());
+          $this->setCache('git-sha', $buster);
+        }
       }
       return $buster;
     }

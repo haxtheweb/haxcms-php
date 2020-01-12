@@ -1014,7 +1014,7 @@ class Operations {
       );
     }
   }
-/**
+  /**
    * @OA\Post(
    *    path="/connectionSettings",
    *    tags={"cms"},
