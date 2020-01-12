@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y \
 # Enable rewrite
 RUN a2enmod rewrite
 # Copy custom apache conf
-COPY ./system/docker/apache2.conf /etc/apache2/apache2.conf
+COPY ./scripts/docker/apache2.conf /etc/apache2/apache2.conf
 # Customize the php entrypoint to clean up permissions
-COPY ./system/docker/docker-php-entrypoint /usr/local/bin/
+COPY ./scripts/docker/docker-php-entrypoint /usr/local/bin/
 # Make sure the entrypoint is executable
 RUN chmod +x /usr/local/bin/docker-php-entrypoint
 # Copy HAXcms into the web root directory
