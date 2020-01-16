@@ -1,4 +1,4 @@
-APIVersion: v1.12.0
+APIVersion: v1.12.1
 name: haxcms
 type: php
 docroot: ""
@@ -25,7 +25,7 @@ use_dns_when_possible: true
 timezone: ""
 
 
-# This config.yaml was created with ddev version v1.12.0
+# This config.yaml was created with ddev version v1.12.1
 # webimage: drud/ddev-webserver:v1.12.1
 # dbimage: drud/ddev-dbserver-mariadb-10.2:v1.12.0
 # dbaimage: drud/phpmyadmin:v1.12.0
