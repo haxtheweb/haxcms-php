@@ -7,19 +7,10 @@ const port = 3000;
 const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
-
-server.listen(port, (err) => {
-	if (err) {
-		throw err;
-	}
-	/* eslint-disable no-console */
-	console.log('http://localhost:3000');
-});
-
-module.exports = server;
+const HAXCMS_ROOT = process.env.HAXCMS_ROOT || "../../../"
 
 app.use(helmet());
-app.use(express.static('app'))
+app.use(express.static("public"))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -27,18 +18,19 @@ app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
+  next();
 });
 
 //pre-flight requests
 app.options('*', function(req, res) {
 	res.send(200);
 });
-/**
- * site-listing / login page
- */
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname + '/index.html'));
-});
+// /**
+//  * site-listing / login page
+//  */
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, HAXCMS_ROOT, 'index.html'));
+// });
 
 app.post('/system/api/login', (req, res) => {
   res.send('fake-jwt');
@@ -55,7 +47,7 @@ app.post('/system/api/login', (req, res) => {
  * )
  */
 app.get('/system/api/connectionSettings', (req, res) => {
-  const themes = JSON.parse(fs.readFileSync(__dirname + "/system/coreConfig/themes.json", 'utf8'));
+  const themes = JSON.parse(fs.readFileSync(path.join(__dirname, HAXCMS_ROOT, "system/coreConfig/themes.json"), 'utf8'));
   res.send(
     {
       getFormToken:"_fKooppQmgxzaRhIx7s2OWt7atWUJiHICt4vksHkB6E",
@@ -91,3 +83,13 @@ app.get('/system/api/connectionSettings', (req, res) => {
     }
   );
 });
+
+server.listen(port, (err) => {
+	if (err) {
+		throw err;
+	}
+	/* eslint-disable no-console */
+	console.log('http://localhost:3000');
+});
+
+// module.exports = app;
