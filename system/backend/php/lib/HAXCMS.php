@@ -61,6 +61,7 @@ class HAXCMS
     public $sessionToken;           // token for the request coming in; not a JWT but for form validation / XSS
     public $siteListingAttr;        // additional attributes allowed to be injected into the site-listing page
     public $systemRequestBase;      // base path to the API backend
+    public $acceptedHAXFileTypes;   // array of accepted file types via HAX types
     /**
      * Establish defaults for HAXCMS
      */
@@ -122,6 +123,18 @@ class HAXCMS
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
         $this->systemRequestBase = 'system/api';
+        $this->acceptedHAXFileTypes = array(
+          "image",
+          "video",
+          "audio",
+          "pdf",
+          "svg",
+          "document",
+          "csv",
+          "archive",
+          "markdown",
+          "html"
+        );
         // end point to get the sites data
         $this->sitesJSON = $this->systemRequestBase . '/listSites';
         // sites directory
@@ -854,16 +867,11 @@ class HAXCMS
         "color": "light-blue",
         "author": "HAXCMS",
         "description": "HAXCMS integration for HAX",
-        "tags": ["media", "hax"]
+        "tags": ["media"]
       },
       "connection": {
-        "protocol": "' .
-            $this->protocol .
-            '",
-        "url": "' .
-            $this->domain .
-            $this->basePath .
-            '",
+        "protocol": "' . $this->protocol . '",
+        "url": "' . $this->domain . $this->basePath . '",
         "operations": {
           "browse": {
             "method": "GET",
@@ -901,15 +909,7 @@ class HAXCMS
           "add": {
             "method": "POST",
             "endPoint": "system/api/saveFile",
-            "acceptsGizmoTypes": [
-              "image",
-              "video",
-              "audio",
-              "pdf",
-              "svg",
-              "document",
-              "csv"
-            ],
+            "acceptsGizmoTypes": ' . json_encode($this->acceptedHAXFileTypes) . ',
             "resultMap": {
               "item": "data.file",
               "defaultGizmoType": "image",
