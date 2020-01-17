@@ -99,41 +99,41 @@ app.post(`${apiBase}/logout`, (req, res) => {
  * )
  */
 app.get(`${apiBase}/connectionSettings`, (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
   const themes = JSON.parse(fs.readFileSync(path.join(__dirname, HAXCMS_ROOT, "system/coreConfig/themes.json"), 'utf8'));
-  res.send(
-    {
-      getFormToken:"_fKooppQmgxzaRhIx7s2OWt7atWUJiHICt4vksHkB6E",
-      jwt: null,
-      appStore: { 
-        url: "/system/api/generateAppStore?app-store-token=dxBSYYShFGgmxdII6NxM0F9ZFPHA7P_hh0izsdu3B5s"
-      },
-      themes: themes,
-      login: "/system/api/login",
-      refreshUrl: "/system/api/refreshAccessToken",
-      logout: "/system/api/logout",
-      redirectUrl: "/",
-      saveNodePath: "/system/api/saveNode",
-      saveManifestPath: "/system/api/saveManifest",
-      saveOutlinePath: "/system/api/saveOutline",
-      publishSitePath: "/system/api/publishSite",
-      syncSitePath:"/system/api/syncSite",
-      setConfigPath:"/system/api/setConfig",
-      getConfigPath:"/system/api/getConfig",
-      getNodeFieldsPath:"/system/api/getNodeFields",
-      getSiteFieldsPath:"/system/api/formLoad?haxcms_form_id=siteSettings",
-      revertSitePath:"/system/api/revertCommit",
-      createNodePath:"/system/api/createNode",
-      getUserDataPath:"/system/api/getUserData",
-      setUserPhotoPath:"/system/api/setUserPhoto",
-      deleteNodePath:"/system/api/deleteNode",
-      createNewSitePath:"/system/api/createSite",
-      gitImportSitePath:"/system/api/gitImportSite",
-      downloadSitePath:"/system/api/downloadSite",
-      archiveSitePath:"/system/api/archiveSite",
-      cloneSitePath:"/system/api/cloneSite",
-      deleteSitePath:"/system/api/deleteSite",
-    }
-  );
+  const returnData = JSON.stringify({
+    getFormToken:"_fKooppQmgxzaRhIx7s2OWt7atWUJiHICt4vksHkB6E",
+    jwt: null,
+    appStore: { 
+      url: "/system/api/generateAppStore?app-store-token=dxBSYYShFGgmxdII6NxM0F9ZFPHA7P_hh0izsdu3B5s"
+    },
+    themes: themes,
+    login: "/system/api/login",
+    refreshUrl: "/system/api/refreshAccessToken",
+    logout: "/system/api/logout",
+    redirectUrl: "/",
+    saveNodePath: "/system/api/saveNode",
+    saveManifestPath: "/system/api/saveManifest",
+    saveOutlinePath: "/system/api/saveOutline",
+    publishSitePath: "/system/api/publishSite",
+    syncSitePath:"/system/api/syncSite",
+    setConfigPath:"/system/api/setConfig",
+    getConfigPath:"/system/api/getConfig",
+    getNodeFieldsPath:"/system/api/getNodeFields",
+    getSiteFieldsPath:"/system/api/formLoad?haxcms_form_id=siteSettings",
+    revertSitePath:"/system/api/revertCommit",
+    createNodePath:"/system/api/createNode",
+    getUserDataPath:"/system/api/getUserData",
+    setUserPhotoPath:"/system/api/setUserPhoto",
+    deleteNodePath:"/system/api/deleteNode",
+    createNewSitePath:"/system/api/createSite",
+    gitImportSitePath:"/system/api/gitImportSite",
+    downloadSitePath:"/system/api/downloadSite",
+    archiveSitePath:"/system/api/archiveSite",
+    cloneSitePath:"/system/api/cloneSite",
+    deleteSitePath:"/system/api/deleteSite",
+  });
+  res.send(`window.appSettings =${returnData};`);
 });
 
 server.listen(port, (err) => {

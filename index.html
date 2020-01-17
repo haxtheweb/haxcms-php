@@ -104,14 +104,16 @@
   </head>
   <body no-js>
     <script>
-      fetch("/system/api/connectionSettings")
-      .then(function(response) {
-        return response.json();
-      })
-      .then(function(myJson) {
-        window.appSettings = myJson;
-        return myJson;
+      // very trusting but it's us so...
+      let script = document.createElement("script");
+      // IF we're in a live environment this will always be 2 levels back
+      script.src = `/system/api/connectionSettings`;
+      fetch(script.src).then(response => {
+        if (response.status != 404) {
+          document.documentElement.appendChild(script);
+        }
       });
+      // get the version
       fetch("/VERSION.txt")
       .then(function(response) {
         return response.text();
