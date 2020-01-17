@@ -56,7 +56,7 @@ app.post(`${apiBase}/logout`, (req, res) => {
    * )
    */
   // @todo this looks correct but its not doing it async so never returns the right value
-  app.get(`${apiBase}/listSites`, (req, res) => {
+  app.get(`${apiBase}/listSites`, async (req, res) => {
     // top level fake JOS
     let returnData = {
       id: '123-123-123-123',
@@ -68,34 +68,23 @@ app.post(`${apiBase}/logout`, (req, res) => {
       items: []
     };
     // Loop through all the files in the temp directory
-    fs.readdir(HAXCMS_ROOT + 'sites', (err, files) => {
-      if (err) {
-        console.error("Could not list the directory.", err);
-        process.exit(1);
+    const files = fs.readdirSync(HAXCMS_ROOT + 'sites');
+    // Need to use a for loop to remain syncronous
+    for (const item of files) {
+      const stat = fs.statSync(HAXCMS_ROOT + 'sites/' + item)
+      if (stat.isDirectory() && item != '.git') {
+        try {
+          let site = JSON.parse(await fs.readFileSync(path.join(__dirname, HAXCMS_ROOT, `${sitesDirectory}/${item}/site.json`), 'utf8'));
+          site.location = `${basePath}${sitesDirectory}/${item}/`;
+          site.metadata.pageCount = site.items.length;
+          delete site.items;
+          returnData.items.push(site);  
+        }
+        catch(err) {
+          console.error(err)
+        }
       }
-
-      files.forEach( (item, index) => {
-
-          fs.stat(HAXCMS_ROOT + 'sites/' + item, async (error, stat) => {
-          if (error) {
-            console.error("Error stating file.", error);
-            return;
-          }
-          if (stat.isDirectory() && item != '.git') {
-            try {
-              let site = JSON.parse(await fs.readFile(path.join(__dirname, HAXCMS_ROOT, `${sitesDirectory}/${item}/site.json`), 'utf8'));
-              site.location = `${basePath}${sitesDirectory}/${item}/`;
-              site.metadata.pageCount = site.items.length;
-              delete site.items;
-              returnData.items.push(site);  
-            }
-            catch(err) {
-              console.error(err)
-            }
-          }
-        });
-      });
-    });
+    }
     res.send(returnData);
   });
 
