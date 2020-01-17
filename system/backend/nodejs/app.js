@@ -6,9 +6,11 @@ const server = require('http').Server(app);
 const port = 3000;
 const helmet = require('helmet');
 const path = require('path');
-const fs = require('fs');
-const HAXCMS_ROOT = process.env.HAXCMS_ROOT || "../../../"
-
+const fs = require('fs-extra');
+const HAXCMS_ROOT = process.env.HAXCMS_ROOT || "../../../";
+const apiBase = '/system/api';
+const sitesDirectory = 'sites';
+const basePath = '/';
 app.use(helmet());
 app.use(express.static("public"))
 app.use(bodyParser.json());
@@ -18,6 +20,7 @@ app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
+  res.setHeader('Content-Type', 'application/json');
   next();
 });
 
@@ -25,16 +28,76 @@ app.use((req, res, next) => {
 app.options('*', function(req, res) {
 	res.send(200);
 });
-// /**
-//  * site-listing / login page
-//  */
-// app.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, HAXCMS_ROOT, 'index.html'));
-// });
 
-app.post('/system/api/login', (req, res) => {
-  res.send('fake-jwt');
+/**
+ * Login
+ */
+app.post(`${apiBase}/login`, (req, res) => {
+  if (req.body && req.body.u && req.body.p) {
+    // @todo need to read off and validate the jwt
+    res.send('"fake-jwt"');
+  }
 });
+/**
+ * Logout
+ */
+app.post(`${apiBase}/logout`, (req, res) => {
+  res.send('"user-logged-out"');
+});
+
+/**
+   * @OA\Get(
+   *    path="/listSites",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Load a list of all sites the user has created"
+   *   )
+   * )
+   */
+  // @todo this looks correct but its not doing it async so never returns the right value
+  app.get(`${apiBase}/listSites`, (req, res) => {
+    // top level fake JOS
+    let returnData = {
+      id: '123-123-123-123',
+      title: 'My sites',
+      author: 'me',
+      description: 'All of my micro sites I know and love',
+      license: 'by-sa',
+      metadata: {},
+      items: []
+    };
+    // Loop through all the files in the temp directory
+    fs.readdir(HAXCMS_ROOT + 'sites', (err, files) => {
+      if (err) {
+        console.error("Could not list the directory.", err);
+        process.exit(1);
+      }
+
+      files.forEach( (item, index) => {
+
+          fs.stat(HAXCMS_ROOT + 'sites/' + item, async (error, stat) => {
+          if (error) {
+            console.error("Error stating file.", error);
+            return;
+          }
+          if (stat.isDirectory() && item != '.git') {
+            try {
+              let site = JSON.parse(await fs.readFile(path.join(__dirname, HAXCMS_ROOT, `${sitesDirectory}/${item}/site.json`), 'utf8'));
+              site.location = `${basePath}${sitesDirectory}/${item}/`;
+              site.metadata.pageCount = site.items.length;
+              delete site.items;
+              returnData.items.push(site);  
+            }
+            catch(err) {
+              console.error(err)
+            }
+          }
+        });
+      });
+    });
+    res.send(returnData);
+  });
 
 /**
  * @OA\Post(
@@ -46,7 +109,7 @@ app.post('/system/api/login', (req, res) => {
  *   )
  * )
  */
-app.get('/system/api/connectionSettings', (req, res) => {
+app.get(`${apiBase}/connectionSettings`, (req, res) => {
   const themes = JSON.parse(fs.readFileSync(path.join(__dirname, HAXCMS_ROOT, "system/coreConfig/themes.json"), 'utf8'));
   res.send(
     {

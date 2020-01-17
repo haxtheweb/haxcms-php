@@ -1502,7 +1502,7 @@ class Operations {
    */
 
   /**
-   * @OA\Post(
+   * @OA\Get(
    *    path="/listSites",
    *    tags={"cms"},
    *    @OA\Response(
