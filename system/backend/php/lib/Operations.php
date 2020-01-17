@@ -1015,7 +1015,7 @@ class Operations {
     }
   }
   /**
-   * @OA\Post(
+   * @OA\Get(
    *    path="/connectionSettings",
    *    tags={"cms"},
    *    @OA\Response(
@@ -1041,7 +1041,7 @@ class Operations {
    */
 
   /**
-   * @OA\Post(
+   * @OA\GET(
    *    path="/generateAppStore",
    *    tags={"hax","api"},
    *    @OA\Parameter(
