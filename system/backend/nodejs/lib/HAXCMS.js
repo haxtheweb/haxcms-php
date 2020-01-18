@@ -9,11 +9,12 @@ const HAXCMS = new class HAXCMS {
   constructor() {
     this.HAXCMS_ROOT = HAXCMS_ROOT;
     this.configDirectory = HAXCMS_ROOT + '_config/';
-    this.apiBase = '/system/api';
+    this.apiBase = 'system/api/';
     this.sitesDirectory = 'sites';
     this.archivedDirectory = 'archived';
     this.publishedDirectory = 'published';
     this.basePath = '/';
+    this.sessionJwt = null;
     this.protocol = url.protocol;
     this.domain = url.hostname;
     // @todo these need to be read in from a file
@@ -45,6 +46,7 @@ const HAXCMS = new class HAXCMS {
         if (this.isCLI()) {
             return true;
         }
+        console.log(token);
         // default token is POST
         if (token == null && query['token']) {
           token = query['token'];
@@ -142,6 +144,35 @@ const HAXCMS = new class HAXCMS {
         }
       }
     };
+    }
+    /**
+     * Validate a JTW during POST
+     */
+    validateJWT(req)
+    {
+      if (this.isCLI()) {
+        return true;
+      }
+      var request = false;
+      if (this.sessionJwt && this.sessionJwt != null) {
+        request = this.decodeJWT(this.sessionJwt);
+      }
+      if (request == false && req.body['jwt'] && req.body['jwt'] != null) {
+        request = this.decodeJWT(req.body['jwt'])
+      }
+      if (request == false && req.query['jwt'] && req.query['jwt'] != null) {
+        request = this.decodeJWT(req.body['jwt'])
+      }
+      // if we were able to find a valid JWT in that mess, try and validate it
+      if (  
+          request != false &&
+          request.id &&
+          request.id == this.getRequestToken('user') &&
+          request.user &&
+          this.validateUser(request.user)) {
+        return true;
+      }
+      return false;
     }
     /**
      * Get user's JWT

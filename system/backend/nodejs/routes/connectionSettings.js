@@ -15,36 +15,36 @@ const HAXCMS = require('../lib/HAXCMS.js');
 function connectionSettings(req, res) {
   res.setHeader('Content-Type', 'application/javascript');
   const themes = JSON.parse(fs.readFileSync(path.join(HAXCMS.HAXCMS_ROOT, "system/coreConfig/themes.json"), 'utf8'));
+  const baseAPIPath = HAXCMS.basePath + HAXCMS.apiBase;
   const returnData = JSON.stringify({
     getFormToken: HAXCMS.getRequestToken('form'),
     appStore: { 
-          url: "/system/api/generateAppStore?app-store-token=" + HAXCMS.getRequestToken('appstore')
+      url: `${baseAPIPath}generateAppStore?app-store-token=${HAXCMS.getRequestToken('appstore')}`
     },
     themes: themes,
-    login: "/system/api/login",
-    refreshUrl: "/system/api/refreshAccessToken",
-    logout: "/system/api/logout",
+    login: `${baseAPIPath}login`,
+    refreshUrl: `${baseAPIPath}refreshAccessToken`,
+    logout: `${baseAPIPath}logout`,
     redirectUrl: HAXCMS.basePath,
-    saveNodePath: "/system/api/saveNode",
-    saveManifestPath: "/system/api/saveManifest",
-    saveOutlinePath: "/system/api/saveOutline",
-    publishSitePath: "/system/api/publishSite",
-    syncSitePath:"/system/api/syncSite",
-    setConfigPath:"/system/api/setConfig",
-    getConfigPath:"/system/api/getConfig",
-    getNodeFieldsPath:"/system/api/getNodeFields",
-    getSiteFieldsPath:"/system/api/formLoad?haxcms_form_id=siteSettings",
-    revertSitePath:"/system/api/revertCommit",
-    createNodePath:"/system/api/createNode",
-    getUserDataPath:"/system/api/getUserData",
-    setUserPhotoPath:"/system/api/setUserPhoto",
-    deleteNodePath:"/system/api/deleteNode",
-    createNewSitePath:"/system/api/createSite",
-    gitImportSitePath:"/system/api/gitImportSite",
-    downloadSitePath:"/system/api/downloadSite",
-    archiveSitePath:"/system/api/archiveSite",
-    cloneSitePath:"/system/api/cloneSite",
-    deleteSitePath:"/system/api/deleteSite",
+    saveNodePath: `${baseAPIPath}saveNode`,
+    saveManifestPath: `${baseAPIPath}saveManifest`,
+    saveOutlinePath: `${baseAPIPath}saveOutline`,
+    publishSitePath: `${baseAPIPath}publishSite`,
+    syncSitePath: `${baseAPIPath}syncSite`,
+    setConfigPath:`${baseAPIPath}setConfig`,
+    getConfigPath: `${baseAPIPath}getConfig`,
+    getNodeFieldsPath: `${baseAPIPath}getNodeFields`,
+    getSiteFieldsPath: `${baseAPIPath}formLoad?haxcms_form_id=siteSettings`,
+    revertSitePath: `${baseAPIPath}revertCommit`,
+    createNodePath: `${baseAPIPath}createNode`,
+    getUserDataPath: `${baseAPIPath}getUserData`,
+    setUserPhotoPath: `${baseAPIPath}setUserPhoto`,
+    deleteNodePath: `${baseAPIPath}deleteNode`,
+    createNewSitePath: `${baseAPIPath}createSite`,
+    gitImportSitePath: `${baseAPIPath}gitImportSite`,
+    downloadSitePath: `${baseAPIPath}downloadSite`,
+    archiveSitePath: `${baseAPIPath}archiveSite`,
+    cloneSitePath: `${baseAPIPath}cloneSite`,
   });
   res.send(`window.appSettings =${returnData};`);
 }

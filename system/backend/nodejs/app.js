@@ -5,8 +5,6 @@ const app = express();
 const cookieParser = require('cookie-parser');
 const server = require('http').Server(app);
 const helmet = require('helmet');
-const path = require('path');
-const fs = require('fs-extra');
 // HAXcms core settings
 const HAXCMS = require('./lib/HAXCMS.js');
 // app settings
@@ -38,17 +36,38 @@ const routes = {
   get: {
     listSites: require('./routes/listSites.js'),
     connectionSettings: require('./routes/connectionSettings.js'),
-    generateAppstore: require('./routes/generateAppstore.js'),
+    generateAppStore: require('./routes/generateAppStore.js'),
   }
 };
-
+// these routes need to return a response without a JWT validation
+const openRoutes = [
+  'generateAppStore',
+  'connectionSettings',
+  'listSites',
+  'login',
+  'logout',
+  'api',
+  'options',
+  'openapi',
+  'refreshAccessToken'
+];
 // loop through methods and apply the route to the file to deliver it
 // @todo ensure that we apply the same JWT checking that we do in the PHP side
 // instead of a simple array of what to let go through we could put it into our
 // routes object above and apply JWT requirement on paths in a better way
 for (var method in routes) {
   for (var route in routes[method]) {
-    app[method](`${HAXCMS.apiBase}/${route}`, routes[method][route]);
+    app[method](`${HAXCMS.basePath}${HAXCMS.apiBase}${route}`, (req, res) => {
+      const op = req.route.path.replace(`${HAXCMS.basePath}${HAXCMS.apiBase}`, '');
+      const rMethod = req.method.toLowerCase();
+      if (openRoutes.includes(op) || HAXCMS.validateJWT(req)) {
+        // call the method
+        routes[rMethod][op](req, res);
+      }
+      else {
+        res.sendStatus(403);
+      }
+    });
   }
 }
 

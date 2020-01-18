@@ -18,7 +18,7 @@ function loginRoute(req, res)  {
         path: '/',
         domain: '',
         secure: false,
-        httpOnly: true,          
+        httpOnly: true,
       });
       res.send('"' + HAXCMS.getJWT(u) + '"');
     }
