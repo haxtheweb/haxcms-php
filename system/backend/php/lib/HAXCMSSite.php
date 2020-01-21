@@ -981,10 +981,10 @@ class HAXCMSSite
         );
         // load core fields
         // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-        if (file_exists(HAXCMS_ROOT . '/system/coreConfig/nodeFields.json')) {
+        if (file_exists($GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json')) {
             $coreFields = json_decode(
                 file_get_contents(
-                    HAXCMS_ROOT . '/system/coreConfig/nodeFields.json'
+                    $GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json'
                 )
             );
             $themes = array();

@@ -14,7 +14,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
  */
 function connectionSettings(req, res) {
   res.setHeader('Content-Type', 'application/javascript');
-  const themes = JSON.parse(fs.readFileSync(path.join(HAXCMS.HAXCMS_ROOT, "system/coreConfig/themes.json"), 'utf8'));
+  const themes = JSON.parse(fs.readFileSync(path.join(HAXCMS.coreConfigPath, "themes.json"), 'utf8'));
   const baseAPIPath = HAXCMS.basePath + HAXCMS.apiBase;
   const returnData = JSON.stringify({
     getFormToken: HAXCMS.getRequestToken('form'),

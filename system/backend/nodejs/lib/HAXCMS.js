@@ -10,6 +10,7 @@ const HAXCMS = new class HAXCMS {
     this.HAXCMS_ROOT = HAXCMS_ROOT;
     this.configDirectory = HAXCMS_ROOT + '_config/';
     this.apiBase = 'system/api/';
+    this.coreConfigPath = HAXCMS_ROOT + 'system/coreConfig/';
     this.sitesDirectory = 'sites';
     this.archivedDirectory = 'archived';
     this.publishedDirectory = 'published';

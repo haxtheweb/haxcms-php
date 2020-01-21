@@ -62,6 +62,7 @@ class HAXCMS
     public $siteListingAttr;        // additional attributes allowed to be injected into the site-listing page
     public $systemRequestBase;      // base path to the API backend
     public $acceptedHAXFileTypes;   // array of accepted file types via HAX types
+    public $coreConfigPath;         // coreConfig path
     /**
      * Establish defaults for HAXCMS
      */
@@ -123,6 +124,7 @@ class HAXCMS
         $this->user->password = null;
         $this->outlineSchema = new JSONOutlineSchema();
         $this->systemRequestBase = 'system/api';
+        $this->coreConfigPath = HAXCMS_ROOT . '/system/coreConfig/';
         $this->acceptedHAXFileTypes = array(
           "image",
           "video",
@@ -194,7 +196,7 @@ class HAXCMS
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/themes.json'
+                        $this->coreConfigPath . 'themes.json'
                     )
                 );
                 foreach ($themeData as $name => $data) {
@@ -209,7 +211,7 @@ class HAXCMS
                 // load in core dynamicElementLoader data
                 $dynamicElementLoader = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/dynamicElementLoader.json'
+                      $this->coreConfigPath . 'dynamicElementLoader.json'
                     )
                 );
                 foreach ($dynamicElementLoader as $name => $data) {
@@ -228,7 +230,7 @@ class HAXCMS
                 // load in core publishing data
                 $publishingData = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/publishers.json'
+                      $this->coreConfigPath . 'publishers.json'
                     )
                 );
                 foreach ($publishingData as $name => $data) {
@@ -241,7 +243,7 @@ class HAXCMS
                 // load in core importers data
                 $importersData = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/importers.json'
+                      $this->coreConfigPath . 'importers.json'
                     )
                 );
                 foreach ($importersData as $name => $data) {
@@ -254,7 +256,7 @@ class HAXCMS
                 // load in core importers data
                 $fieldsData = json_decode(
                     file_get_contents(
-                        HAXCMS_ROOT . '/system/coreConfig/siteFields.json'
+                      $this->coreConfigPath . 'siteFields.json'
                     )
                 );
                 foreach ($fieldsData as $name => $data) {
@@ -1390,7 +1392,7 @@ class HAXCMS
       else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
       }
       // if we were able to find a valid JWT in that mess, try and validate it
-      if (
+      if (  
           $request != FALSE &&
           isset($request->id) &&
           $request->id == $this->getRequestToken('user') &&
