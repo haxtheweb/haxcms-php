@@ -52,5 +52,15 @@ able to better interface with enterprise login systems while maintaining a clean
 HAXcms does not require HAXiam to operate but it is an alternate configuration that we support. 
 Therefore if you see anything in the docs or under the hood referencing how to change settings 
 when in that type of environment, you know why.
+
+## Windows
+[Cygwin command line](https://www.cygwin.com/) is lightly tested, but slower than true Bash environment.
+
+### Windows Install
+To properly configure git endlines for Windows, run this configuration
+```bash
+$ git config --global core.autocrlf true
+```
+
 ## License
 [Apache 2.0](LICENSE.md)
