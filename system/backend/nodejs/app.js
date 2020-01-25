@@ -32,6 +32,7 @@ const routes = {
     logout: require('./routes/logout.js'),
     getUserData: require('./routes/getUserData.js'),
     refreshAccessToken: require('./routes/refreshAccessToken.js'),
+    createSite: require('./routes/createSite.js'),
   },
   get: {
     listSites: require('./routes/listSites.js'),
