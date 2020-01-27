@@ -1,16 +1,18 @@
 // lib dependencies
 const express = require('express');
 const bodyParser = require('body-parser');
-const app = express();
+const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
-const server = require('http').Server(app);
 const helmet = require('helmet');
+const app = express();
+const server = require('http').Server(app);
 // HAXcms core settings
 const HAXCMS = require('./lib/HAXCMS.js');
 // app settings
 const port = 3000;
 app.use(helmet());
 app.use(cookieParser());
+app.use(fileUpload());
 app.use(express.static("public"))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

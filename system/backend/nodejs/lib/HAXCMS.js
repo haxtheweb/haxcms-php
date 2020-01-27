@@ -344,7 +344,7 @@ const HAXCMS = new class HAXCMS {
       let n = Math.floor(Date.now() / 1000);
       // validate the token
       // make sure token has issued and expiration dates
-      if (isset(refreshTokenDecoded.iat) && isset(refreshTokenDecoded.exp)) {
+      if ((refreshTokenDecoded.iat) && (refreshTokenDecoded.exp)) {
         // issued at date is less than or equal to now
         if (refreshTokenDecoded.iat <= n) {
           // expiration date is greater than now
@@ -379,7 +379,7 @@ const HAXCMS = new class HAXCMS {
             return true;
         }
         else {
-            usr = new stdClass();
+            usr = {};
             usr.name = name;
             usr.grantAccess = false;
             // fire custom event for things to respond to as needed
@@ -410,7 +410,7 @@ const HAXCMS = new class HAXCMS {
             return true;
         }
         else {
-            usr = new stdClass();
+            usr = {};
             usr.name = name;
             usr.password = pass;
             usr.adminFallback = adminFallback;
