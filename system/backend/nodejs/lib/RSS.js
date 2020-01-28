@@ -1,4 +1,4 @@
-
+const fs = require('fs-extra');
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
@@ -17,9 +17,9 @@ class FeedMe
   <title>${site.manifest.title}</title>
   <link>${domain}/rss.xml</link>
   <description>${site.manifest.description}</description>
-  <copyright>Copyright (C) ${date('Y')} ${domain}</copyright>
+  <copyright>Copyright (C) ${new Date().getFullYear()} ${domain}</copyright>
   <language>${site.language}</language>
-  <lastBuildDate>${date(\DateTime::RSS, site.manifest.metadata.site.updated)}</lastBuildDate>
+  <lastBuildDate>${new Date(site.manifest.metadata.site.updated).toISOString()}</lastBuildDate>
   <atom:link href="${domain}/rss.xml" rel="self" type="application/rss+xml"/>
   ${this.rssItems(site)}
 </channel>
@@ -46,8 +46,8 @@ class FeedMe
               item.metadata = {};
             }
             if (!(item.metadata.created)) {
-              item.metadata.created = time();
-              item.metadata.updated = time();
+              item.metadata.created = Date.now();
+              item.metadata.updated = Date.now();
             }
             if ((item.metadata.tags)) {
                 tags = implode(',', item.metadata.tags);
@@ -60,13 +60,13 @@ class FeedMe
     ${domain + '/' + item.location.replace('pages/','').replace('/index.html', '')}
     </link>
     <description>
-        <![CDATA[ ${file_get_contents(siteDirectory + '/' + item.location)} ]]>
+        <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location)} ]]>
     </description>
     <category>${tags}</category>
     <guid>
     ${domain + '/' + item.location.replace('pages/','').replace('/index.html', '')}
     </guid>
-    <pubDate>${date(\DateTime::RSS, item.metadata.created)}</pubDate>
+    <pubDate>${new Date(item.metadata.created).toISOString()}</pubDate>
   </item>`;
             }
             count++;
@@ -87,7 +87,7 @@ class FeedMe
   <title>${site.manifest.title}</title>
   <link href="${domain}/atom.xml" rel="self" />
   <subtitle>${site.manifest.description}</subtitle>
-  <updated>${date(\DateTime::ATOM, site.manifest.metadata.site.updated)}</updated>
+  <updated>${new Date(site.manifest.metadata.site.updated).toISOString()}</updated>
   <author>
       <name>${site.manifest.author}</name>
   </author>
@@ -116,8 +116,8 @@ class FeedMe
               item.metadata = {};
             }
             if (!(item.metadata.created)) {
-              item.metadata.created = time();
-              item.metadata.updated = time();
+              item.metadata.created = Date.now();
+              item.metadata.updated = Date.now();
             }
             if ((item.metadata.tags)) {
                 for (var key2 in item.metadata.tags) {
@@ -130,13 +130,13 @@ class FeedMe
   <entry>
     <title>${item.title}</title>
     <id>${domain}/${item.location.replace('pages/','').replace('/index.html', '')}</id>
-    <updated>${date(\DateTime::ATOM, item.metadata.updated)}</updated>
-    <published>${date(\DateTime::ATOM, item.metadata.created)}</published>
+    <updated>${new Date(item.metadata.updated).toISOString()}</updated>
+    <published>${new Date(item.metadata.created).toISOString()}</published>
     <summary>${item.description}</summary>
     <link href="${domain}/${item.location.replace('pages/','').replace('/index.html', '')}"/>
     ${tags}]
     <content type="html">
-      <![CDATA[ ${file_get_contents(siteDirectory + '/' + item.location)} ]]>
+      <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location)} ]]>
     </content>
   </entry>`;
             }

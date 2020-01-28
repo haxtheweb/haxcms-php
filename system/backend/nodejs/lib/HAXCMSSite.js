@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const utf8 = require('utf8');
 const HAXCMS = require('./lib/HAXCMS.js');
+const JSONOutlineSchemaItem = require('./lib/JSONOutlineSchemaItem.js');
 const path = require('path');
 const RSS = require('./lib/RSS.js');
 const sharp = require('sharp');
@@ -55,7 +56,7 @@ class HAXCMSSite
         tmpname = HAXCMS.cleanTitle(tmpname, false);
         let loop = 0;
         let newName = tmpname;
-        while (file_exists(directory + '/' + newName)) {
+        while (fs.lstatSync(directory + '/' + newName).isFile()) {
             loop++;
             newName = tmpname + '-' + loop;
         }
@@ -70,7 +71,7 @@ class HAXCMSSite
         // symlink to do local development if needed
         fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
         // symlink to do project development if needed
-        if (is_link(HAXCMS.HAXCMS_ROOT + '/node_modules') || is_dir(HAXCMS.HAXCMS_ROOT + '/node_modules')) {
+        if (fs.lstat(HAXCMS.HAXCMS_ROOT + '/node_modules').isSymbolicLink() || fs.lstat(HAXCMS.HAXCMS_ROOT + '/node_modules').isDirectory()) {
             fs.symlink(
             '../../node_modules',
             directory + '/' + tmpname + '/node_modules'
@@ -90,7 +91,7 @@ class HAXCMSSite
             domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
         } else {
             // put domain into CNAME not the github.io address if that exists
-            file_put_contents(directory + '/' + tmpname + '/CNAME', domain);
+            fs.writeFile(directory + '/' + tmpname + '/CNAME', domain);
         }
         // load what we just created
         this.manifest = new JSONOutlineSchema();
@@ -104,8 +105,8 @@ class HAXCMSSite
         this.manifest.metadata.site = {};
         this.manifest.metadata.site.name = tmpname;
         this.manifest.metadata.site.domain = domain;
-        this.manifest.metadata.site.created = time();
-        this.manifest.metadata.site.updated = time();
+        this.manifest.metadata.site.created = Date.now();
+        this.manifest.metadata.site.updated = Date.now();
         this.manifest.metadata.theme = {};
         this.manifest.metadata.theme.variables = {};
         this.manifest.metadata.node = {};
@@ -248,7 +249,7 @@ class HAXCMSSite
               ) {
                   // ensure this is a file
                   if (
-                      is_file(siteDirectoryPath + '/files/' + file)
+                    fs.lstat(siteDirectoryPath + '/files/' + file).isFile()
                   ) {
                       coreFiles.push('files/' + file);
                   } else {
@@ -274,7 +275,7 @@ class HAXCMSSite
                   siteDirectoryPath + '/index.html'
               );
           } else if (
-              file_exists(siteDirectoryPath + '/' + item.location)
+            fs.lstatSync(siteDirectoryPath + '/' + item.location).isFile()
           ) {
               filesize = filesize(
                   siteDirectoryPath + '/' + item.location
@@ -309,16 +310,17 @@ class HAXCMSSite
         templateVars['hexCode'] = this.manifest.metadata.theme.variables.hexCode;
       }
       // put the twig written output into the file
-      let loader = new \Twig\Loader\FilesystemLoader(siteDirectoryPath);
-      let twig = new \Twig\Environment(loader);
-      for (var key in templates) {
-          if (file_exists(siteDirectoryPath + '/' + templates[key])) {
-            file_put_contents(
+      // @todo figure out how to port Twig
+      //let loader = new \Twig\Loader\FilesystemLoader(siteDirectoryPath);
+      //let twig = new \Twig\Environment(loader);
+      /*for (var key in templates) {
+          if (fs.lstatSync(siteDirectoryPath + '/' + templates[key]).isFile()) {
+            fs.writeFile(
                 siteDirectoryPath + '/' + templates[key],
                 twig.render(templates[key], templateVars)
             );
           }
-      }
+      }*/
     }
     /**
      * Rename a page from one location to another
@@ -331,12 +333,12 @@ class HAXCMSSite
         oldItem = oldItem.replace('./', '').replace('../', '');
         newItem = newItem.replace('./', '').replace('../', '');
         // ensure the path to the new folder is valid
-        if (file_exists(siteDirectory + '/' + oldItem)) {
+        if (fs.lstatSync(siteDirectory + '/' + oldItem).isFile()) {
             fs.mirror(
                 siteDirectory + '/' + oldItem.replace('/index.html', ''),
                 siteDirectory + '/' + newItem.replace('/index.html', '')
             );
-            fs.remove(siteDirectory + '/' + oldItem);
+            fs.unlink(siteDirectory + '/' + oldItem);
         }
     }
     /**
@@ -425,8 +427,8 @@ class HAXCMSSite
         page.order = this.manifest.items.length;
         // location is the html file we just copied and renamed
         page.location = 'pages/welcome/index.html';
-        page.metadata.created = time();
-        page.metadata.updated = time();
+        page.metadata.created = Date.now();
+        page.metadata.updated = Date.now();
         location =
             this.directory +
             '/' +
@@ -464,8 +466,8 @@ class HAXCMSSite
             rss = new FeedMe();
             siteDirectory =
                 this.directory + '/' + this.manifest.metadata.site.name + '/';
-            file_put_contents(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
-            file_put_contents(
+            fs.writeFile(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
+            fs.writeFile(
                 siteDirectory + 'atom.xml',
                 rss.getAtomFeed(this)
             );
@@ -474,10 +476,11 @@ class HAXCMSSite
         if (format == null || format == 'sitemap') {
             if ((this.manifest.metadata.site.domain)) {
                 domain = this.manifest.metadata.site.domain;
-                generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                    domain,
-                    siteDirectory
-                );
+                // @todo sitemap generator needs an equivalent
+                //generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                //    domain,
+                //    siteDirectory
+                //);
                 // will create also compressed (gzipped) sitemap
                 generator.createGZipFile = true;
                 // determine how many urls should be put into one file
@@ -497,9 +500,10 @@ class HAXCMSSite
                     } else {
                         priority = '0.5';
                     }
-                    updatedTime = new DateTime();
+                    updatedTime = Date.now();
                     updatedTime.setTimestamp(item.metadata.updated);
-                    updatedTime.format(DateTime::ATOM);
+                    let d = new Date();
+                    updatedTime.format(d.toISOString());
                     generator.addUrl(
                         domain + '/' + item.location.replace('pages/', '').replace('/index.html', ''),
                         updatedTime,
@@ -515,7 +519,7 @@ class HAXCMSSite
         }
         if (format == null || format == 'legacy') {
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-            file_put_contents(
+            fs.writeFile(
                 siteDirectory + 'legacy-outline.html',
                 `<!DOCTYPE html>
                 <html lang="en">
@@ -529,7 +533,7 @@ class HAXCMSSite
         }
         if (format == null || format == 'search') {
             // now generate the search index
-            file_put_contents(
+            fs.writeFile(
                 siteDirectory + 'lunrSearchIndex.json',
                     json_encode(this.lunrSearchIndex(this.manifest.items))
             );
@@ -542,7 +546,7 @@ class HAXCMSSite
       let data = [];
       for (var key in items) {
         let item = items[key];
-        let created = time();
+        let created = Date.now();
         if ((item.metadata) && (item.metadata.created)) {
           created = item.metadata.created;
         }
@@ -553,7 +557,7 @@ class HAXCMSSite
           "created":created,
           "location":item.location.replace('pages/', '').replace('/index.html', ''),
           "description":item.description,
-          "text":this.cleanSearchData(file_get_contents(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location)),
+          "text":this.cleanSearchData(fs.readFileSync(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location)),
         });
       }
       return data;
@@ -805,7 +809,7 @@ class HAXCMSSite
      */
     getPageContent(page) {
       if ((page.location) && page.location != '') {
-        return filter_var(file_get_contents(HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/' + page.location));
+        return filter_var(fs.readFileSync(HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/' + page.location));
       }
     }
     /**
@@ -951,7 +955,7 @@ class HAXCMSSite
           // ensure this path exists otherwise let's create it on the fly
           path = HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/';
           fileName = str_replace('files/', 'files/haxcms-managed/' + height + 'x' + width + '-', this.manifest.metadata.site.logo);
-          if (file_exists(path + this.manifest.metadata.site.logo) && !file_exists(path + fileName)) {
+          if (fs.lstatSync(path + this.manifest.metadata.site.logo).isFile() && !fs.lstatSync(path + fileName).isFile()) {
               fs.mkdir(path + 'files/haxcms-managed');
               image = new ImageResize(path + this.manifest.metadata.site.logo);
               image.crop(height, width)
@@ -974,9 +978,9 @@ class HAXCMSSite
         };
         // load core fields
         // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-        if (file_exists(HAXCMS.coreConfigPath + 'nodeFields.json')) {
+        if (fs.lstatSync(HAXCMS.coreConfigPath + 'nodeFields.json').isFile()) {
             let coreFields = json_decode(
-                file_get_contents(
+                fs.readFileSync(
                     HAXCMS.coreConfigPath + 'nodeFields.json'
                 )
             );
@@ -1030,16 +1034,16 @@ class HAXCMSSite
         // fields can live in the theme
         if (
             (this.manifest.metadata.theme.fields) &&
-            file_exists(
+            fs.lstatSync(
                 HAXCMS.HAXCMS_ROOT +
                     '/build/es6/node_modules/' +
                     this.manifest.metadata.theme.fields
-            )
+            ).isFile()
         ) {
             // @todo think of how to make this less brittle
             // not a fan of pegging loading this definition to our file system's publishing structure
             themeFields = json_decode(
-                file_get_contents(
+                fs.readFileSync(
                     HAXCMS.HAXCMS_ROOT +
                         '/build/es6/node_modules/' +
                         this.manifest.metadata.theme.fields
@@ -1215,7 +1219,7 @@ class HAXCMSSite
             location = original;
         }
         while (
-            file_exists(siteDirectory + '/pages/' + location + '/index.html')
+          fs.lstatSync(siteDirectory + '/pages/' + location + '/index.html').isFile()
         ) {
             loop++;
             location = original + '-' + loop;
@@ -1229,10 +1233,10 @@ class HAXCMSSite
     {
         dir = opendir(src);
         // see if we can make the directory to start off
-        if (!is_dir(dst) && array_search(dst, skip) === FALSE && fs.mkdir(dst, 0777, true)) {
+        if (!fs.lstat(dst).isDirectory() && array_search(dst, skip) === FALSE && fs.mkdir(dst, 0777, true)) {
             while (false !== (file = readdir(dir))) {
                 if (file != '.' && file != '..') {
-                    if (is_dir(src + '/' + file) && array_search(file, skip) === FALSE) {
+                    if (fs.lstat(src + '/' + file).isDirectory() && array_search(file, skip) === FALSE) {
                         this.recurseCopy(
                             src + '/' + file,
                             dst + '/' + file

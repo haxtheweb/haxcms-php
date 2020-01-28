@@ -1,0 +1,251 @@
+const HAXCMS = require('../lib/HAXCMS.js');
+
+/**
+   * @OA\Post(
+   *    path="/saveNode",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save a node"
+   *   )
+   * )
+   */
+  function saveNode(req, res) {
+    site = HAXCMS.loadSite(req.query['site']['name']);
+    schema = [];
+    if ((req.query['node']['body'])) {
+      body = req.query['node']['body'];
+      // we ship the schema with the body
+      if ((req.query['node']['schema'])) {
+        schema = req.query['node']['schema'];
+      }
+    }
+    if ((req.query['node']['details'])) {
+      details = req.query['node']['details'];
+    }
+    // update the page's content, using manifest to find it
+    // this ensures that writing is always to what the file system
+    // determines to be the correct page
+    if (page = site.loadNode(req.query['node']['id'])) {
+      // convert web location for loading into file location for writing
+      if ((body)) {
+        let bytes = page.writeLocation(
+          body,
+          HAXCMS.HAXCMS_ROOT +
+          '/' +
+          HAXCMS.sitesDirectory +
+          '/' +
+          site.name +
+          '/'
+        );
+        if (bytes === false) {
+            req.send(500);
+        } else {
+            // sanity check
+            if (!(page.metadata)) {
+              page.metadata = {};
+            }
+            // update the updated timestamp
+            page.metadata.updated = Date.now();
+            // auto generate a text only description from first 200 chars
+            let clean = body.replace(/<\/?[^>]+(>|$)/g, "");
+            page.description = str_replace(
+                "\n",
+                '',
+                substr(clean, 0, 200)
+            );
+            
+            readtime = Math.round(countWords(clean) / 200);
+            // account for uber small body
+            if (readtime == 0) {
+              readtime = 1;
+            }
+            page.metadata.readtime = readtime;
+            // assemble other relevent content detail by skimming it off
+            contentDetails = {};
+            contentDetails.headings = 0;
+            contentDetails.paragraphs = 0;
+            contentDetails.schema = [];
+            contentDetails.tags = [];
+            contentDetails.elements = schema.length;
+            // pull schema apart and store the relevent pieces
+            foreach (schema as element) {
+              switch(element['tag']) {
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    contentDetails.headings++;
+                break;
+                case 'p':
+                    contentDetails.paragraphs++;
+                break;
+              }
+              if (!(contentDetails.tags[element['tag']])) {
+                  contentDetails.tags[element['tag']] = 0;
+              }
+              contentDetails.tags[element['tag']]++;
+              newItem = {};
+              hasSchema = false;
+              if ((element['properties']['property'])) {
+                hasSchema = true;
+                newItem.property = element['properties']['property'];
+              }
+              if ((element['properties']['typeof'])) {
+                hasSchema = true;
+                newItem.typeof = element['properties']['typeof'];
+              }
+              if ((element['properties']['resource'])) {
+                hasSchema = true;
+                newItem.resource = element['properties']['resource'];
+              }
+              if ((element['properties']['prefix'])) {
+                hasSchema = true;
+                newItem.prefix = element['properties']['prefix'];
+              }
+              if ((element['properties']['vocab'])) {
+                hasSchema = true;
+                newItem.vocab = element['properties']['vocab'];
+              }
+              if (hasSchema) {
+                contentDetails.schema.push(newItem);
+              }
+            }
+            page.metadata.contentDetails = contentDetails;
+            site.updateNode(page);
+            site.gitCommit(
+              'Page updated: ' + page.title + ' (' + page.id + ')'
+            );
+            return bytes;
+        }
+      } else if ((details)) {
+        // update the updated timestamp
+        page.metadata.updated = Date.now();
+        for (var key in details) {
+            let value = details[key];
+            // sanitize both sides
+            key = filter_var(key, FILTER_SANITIZE_STRING);
+            switch (key) {
+                case 'location':
+                    // check on name
+                    value = filter_var(value, FILTER_SANITIZE_STRING);
+                    cleanTitle = HAXCMS.cleanTitle(value);
+                    if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
+                        let newPath = 'pages/' + site.getUniqueLocationName(HAXCMS.cleanTitle(filter_var(details['title'], FILTER_SANITIZE_STRING)), page) + '/index.html';
+                        site.renamePageLocation(
+                            page.location,
+                            newPath
+                        );
+                        page.location = newPath;
+                    }
+                    else if (
+                        cleanTitle !=
+                        str_replace(
+                            'pages/',
+                            '',
+                            str_replace('/index.html', '', page.location)
+                        )
+                    ) {
+                        tmpTitle = site.getUniqueLocationName(
+                            cleanTitle, page
+                        );
+                        location = 'pages/' + tmpTitle + '/index.html';
+                        // move the folder
+                        site.renamePageLocation(
+                            page.location,
+                            location
+                        );
+                        page.location = location;
+                    }
+                    break;
+                case 'title':
+                case 'description':
+                    value = filter_var(value, FILTER_SANITIZE_STRING);
+                    page.{key} = value;
+                    break;
+                case 'created':
+                    value = filter_var(value, FILTER_VALIDATE_INT);
+                    page.metadata.created = value;
+                    break;
+                case 'published':
+                    value = filter_var(value, FILTER_VALIDATE_BOOLEAN);
+                    page.metadata.published = value;
+                case 'theme':
+                    themes = HAXCMS.getThemes();
+                    value = filter_var(value, FILTER_SANITIZE_STRING);
+                    if ((themes.{value})) {
+                        page.metadata.theme = themes.{value};
+                        page.metadata.theme.key = value;
+                    }
+                    break;
+                default:
+                    // ensure ID is never changed
+                    if (key != 'id') {
+                        // support for saving fields
+                        if (!(page.metadata.fields)) {
+                            page.metadata.fields = {};
+                        }
+                        switch (gettype(value)) {
+                            case 'array':
+                            case 'object':
+                                page.metadata.fields.{key} = {};
+                                foreach (value as key2 : val) {
+                                    page.metadata.fields.{key}.{key2} = {};
+                                    key2 = filter_var(
+                                        key2,
+                                        FILTER_VALIDATE_INT
+                                    );
+                                    foreach (val as key3 : deepVal) {
+                                        key3 = filter_var(
+                                            key3,
+                                            FILTER_SANITIZE_STRING
+                                        );
+                                        deepVal = filter_var(
+                                            deepVal,
+                                            FILTER_SANITIZE_STRING
+                                        );
+                                        page.metadata.fields.{key}.{key2}.{key3} = deepVal;
+                                    }
+                                }
+                                break;
+                            case 'integer':
+                            case 'double':
+                                value = filter_var(
+                                    value,
+                                    FILTER_VALIDATE_INT
+                                );
+                                page.metadata.fields.{key} = value;
+                                break;
+                            default:
+                                value = filter_var(
+                                    value,
+                                    FILTER_SANITIZE_STRING
+                                );
+                                page.metadata.fields.{key} = value;
+                                break;
+                        }
+                    }
+                    break;
+            }
+        }
+        site.updateNode(page);
+        site.gitCommit(
+            'Page details updated: ' + page.title + ' (' + page.id + ')'
+        );
+        res.send(page);
+      }
+    }
+  }
+  function countWords(str) {
+    return str.trim().split(/\s+/).length;
+  }
+  module.exports = saveNode;

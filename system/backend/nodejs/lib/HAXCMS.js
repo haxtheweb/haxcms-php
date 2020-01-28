@@ -334,7 +334,7 @@ const HAXCMS = new class HAXCMS {
         return true;
       }
       // get the refresh token from cookie
-      refreshToken = req.cookies['haxcms_refresh_token'];
+      let refreshToken = req.cookies['haxcms_refresh_token'];
       // if there isn't one then we have to bail hard
       if (!refreshToken) {
        res.send(401);

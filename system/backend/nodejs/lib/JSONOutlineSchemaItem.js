@@ -1,3 +1,4 @@
+const fs = require('fs-extra');
 const uuidv4 = require('uuid/v4');
 /**
  * JSONOutlineSchemaItem - a single item without an outline of items.
@@ -23,8 +24,8 @@ class JSONOutlineSchemaItem
      */
     readLocation(basePath = '')
     {
-        if (file_exists(basePath + this.location)) {
-            return file_get_contents(basePath + this.location);
+        if (fs.lstatSync(basePath + this.location).isFile()) {
+            return fs.readFileSync(basePath + this.location);
         }
         return false;
     }
@@ -37,8 +38,8 @@ class JSONOutlineSchemaItem
         if (body == '') {
             body = '<p></p>';
         }
-        if (file_exists(basePath + this.location)) {
-            return file_put_contents(basePath + this.location, body);
+        if (fs.lstatSync(basePath + this.location).isFile()) {
+            return fs.writeFile(basePath + this.location, body);
         }
         return false;
     }

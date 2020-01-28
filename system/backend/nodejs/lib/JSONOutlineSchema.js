@@ -1,3 +1,4 @@
+const fs = require('fs-extra');
 const uuidv4 = require('uuid/v4');
 const JSONOutlineSchemaItem = require('./lib/JSONOutlineSchemaItem.js');
 
@@ -157,9 +158,9 @@ class JSONOutlineSchema
      */
     load(location)
     {
-        if (file_exists(location)) {
+        if (fs.lstatSync(location).isFile()) {
             this.file = location;
-            let fileData = json_decode(file_get_contents(location));
+            let fileData = json_decode(fs.readFileSync(location));
             let vars = get_object_vars(fileData);
             for (var key in vars) {
                 if ((this[key]) && key != 'items') {
@@ -218,7 +219,7 @@ class JSONOutlineSchema
         }
         // ensure we have valid json object
         if (output = JSON.stringify(schema, null, 2)) {
-          return file_put_contents(file, output);
+          return fs.writeFile(file, output);
         }
     }
     /**
