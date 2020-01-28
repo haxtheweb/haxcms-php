@@ -117,7 +117,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
               !fs.lstatSync(siteDirectory + '/' + page.location).isFile()
           ) {
               // ensure this location doesn't exist already
-              tmpTitle = site.getUniqueLocationName(cleanTitle, page);
+              let tmpTitle = site.getUniqueLocationName(cleanTitle, page);
               page.location = 'pages/' + tmpTitle + '/index.html';
               site.recurseCopy(
                   HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',

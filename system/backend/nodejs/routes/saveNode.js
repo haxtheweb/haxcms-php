@@ -139,7 +139,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
                 case 'location':
                     // check on name
                     value = filter_var(value, FILTER_SANITIZE_STRING);
-                    cleanTitle = HAXCMS.cleanTitle(value);
+                    let cleanTitle = HAXCMS.cleanTitle(value);
                     if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
                         let newPath = 'pages/' + site.getUniqueLocationName(HAXCMS.cleanTitle(filter_var(details['title'], FILTER_SANITIZE_STRING)), page) + '/index.html';
                         site.renamePageLocation(
@@ -171,7 +171,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
                 case 'title':
                 case 'description':
                     value = filter_var(value, FILTER_SANITIZE_STRING);
-                    page.{key} = value;
+                    page[key] = value;
                     break;
                 case 'created':
                     value = filter_var(value, FILTER_VALIDATE_INT);
@@ -226,14 +226,14 @@ const HAXCMS = require('../lib/HAXCMS.js');
                                     value,
                                     FILTER_VALIDATE_INT
                                 );
-                                page.metadata.fields.{key} = value;
+                                page.metadata.fields[key] = value;
                                 break;
                             default:
                                 value = filter_var(
                                     value,
                                     FILTER_SANITIZE_STRING
                                 );
-                                page.metadata.fields.{key} = value;
+                                page.metadata.fields[key] = value;
                                 break;
                         }
                     }
