@@ -1,4 +1,4 @@
-<?php
+
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
