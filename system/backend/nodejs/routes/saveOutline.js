@@ -83,7 +83,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // this would imply existing item, lets see if it moved or needs moved
       else {
           moved = false;
-          foreach (original as key : tmpItem) {
+          for (var key in original) {
+              let tmpItem = original[key];
               // see if this is something moving as opposed to brand new
               if (
                   tmpItem.id == page.id &&
@@ -125,8 +126,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
           }
       }
       // check for any metadata keys that did come over
-      foreach (item.metadata as key : value) {
-          page.metadata.{key} = value;
+      for (var key in item.metadata) {
+          let value = item.metadata[key];
+          page.metadata[key] = value;
       }
       // safety check for new things
       if (!(page.metadata.created)) {

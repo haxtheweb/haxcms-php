@@ -76,7 +76,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
             contentDetails.tags = [];
             contentDetails.elements = schema.length;
             // pull schema apart and store the relevent pieces
-            foreach (schema as element) {
+            for(var key in schema) {
+              let element = schema[key];
               switch(element['tag']) {
                 case 'h1':
                 case 'h2':
@@ -94,8 +95,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
                   contentDetails.tags[element['tag']] = 0;
               }
               contentDetails.tags[element['tag']]++;
-              newItem = {};
-              hasSchema = false;
+              let newItem = {};
+              let hasSchema = false;
               if ((element['properties']['property'])) {
                 hasSchema = true;
                 newItem.property = element['properties']['property'];
@@ -197,14 +198,16 @@ const HAXCMS = require('../lib/HAXCMS.js');
                         switch (gettype(value)) {
                             case 'array':
                             case 'object':
-                                page.metadata.fields.{key} = {};
-                                foreach (value as key2 : val) {
-                                    page.metadata.fields.{key}.{key2} = {};
+                                page.metadata.fields[key] = {};
+                                for(var key2 in value) {
+                                  let val = value[key2];
+                                    page.metadata.fields[key][key2] = {};
                                     key2 = filter_var(
                                         key2,
                                         FILTER_VALIDATE_INT
                                     );
-                                    foreach (val as key3 : deepVal) {
+                                    for (var key3 in val) {
+                                      let deepVal = val[key3];
                                         key3 = filter_var(
                                             key3,
                                             FILTER_SANITIZE_STRING
@@ -213,7 +216,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
                                             deepVal,
                                             FILTER_SANITIZE_STRING
                                         );
-                                        page.metadata.fields.{key}.{key2}.{key3} = deepVal;
+                                        page.metadata.fields[key][key2][key3] = deepVal;
                                     }
                                 }
                                 break;

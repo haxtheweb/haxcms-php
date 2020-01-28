@@ -288,13 +288,15 @@ const HAXCMS = require('../lib/HAXCMS.js');
                     }
                     closedir(handle);
                 }
-                foreach (coreFiles as itemLocation) {
-                    coreItem = {};
+                for(var key in coreFiles) {
+                    let itemLocation = coreFiles[key];
+                    let coreItem = {};
                     coreItem.location = itemLocation;
                     swItems.push(coreItem);
                 }
                 // generate a legit hash value that's the same for each file name + file size
-                foreach (swItems as item) {
+                for(var key in swItems) {
+                    let item = swItems[key];
                     if (
                         item.location === '' ||
                         item.location === templateVars['basePath']
@@ -335,16 +337,18 @@ const HAXCMS = require('../lib/HAXCMS.js');
                     }
                 }
                 // put the twig written output into the file
-                loader = new \Twig\Loader\FilesystemLoader(siteDirectoryPath);
+                // @todo need to fix a twig library
+                /*loader = new \Twig\Loader\FilesystemLoader(siteDirectoryPath);
                 twig = new \Twig\Environment(loader);
-                foreach (templates as location) {
+                for (var key in templates) {
+                    let location = templates[key];
                   if (fs.lstatSync(siteDirectoryPath + '/' + location).isFile()) {
                     fs.writeFile(
                         siteDirectoryPath + '/' + location,
                         twig.render(location, templateVars)
                     );
                   }
-                }
+                }*/
                 try {
                     repo.add('.');
                     repo.commit('Published using CDN: ' + cdn);

@@ -89,8 +89,10 @@ const HAXCMS = require('../lib/HAXCMS.js');
               );
           }
       }
+      let hThemes = HAXCMS.getThemes();
       // look for a match so we can set the correct data
-      foreach (HAXCMS.getThemes() as key : theme) {
+      for (var key in hThemes) {
+        let theme = hThemes[key];
         if (
             filter_var(req.query['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
             key
