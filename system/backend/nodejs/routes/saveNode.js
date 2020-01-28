@@ -1,4 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
+const gettype = require('locutus/php/var/gettype');
+const filter_var = require('../lib/filter_var.js');
 
 /**
    * @OA\Post(
@@ -56,10 +58,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
             page.metadata.updated = Date.now();
             // auto generate a text only description from first 200 chars
             let clean = body.replace(/<\/?[^>]+(>|$)/g, "");
-            page.description = str_replace(
+            page.description = clean.substr(0, 200).replace(
                 "\n",
-                '',
-                substr(clean, 0, 200)
+                ''
             );
             
             readtime = Math.round(countWords(clean) / 200);
@@ -150,11 +151,11 @@ const HAXCMS = require('../lib/HAXCMS.js');
                     }
                     else if (
                         cleanTitle !=
-                        str_replace(
+                        page.location.replace(
                             'pages/',
                             '',
-                            str_replace('/index.html', '', page.location)
-                        )
+                        ).replace('/index.html', '')
+                        
                     ) {
                         tmpTitle = site.getUniqueLocationName(
                             cleanTitle, page
@@ -183,8 +184,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
                 case 'theme':
                     themes = HAXCMS.getThemes();
                     value = filter_var(value, FILTER_SANITIZE_STRING);
-                    if ((themes.{value})) {
-                        page.metadata.theme = themes.{value};
+                    if ((themes[value])) {
+                        page.metadata.theme = themes[value];
                         page.metadata.theme.key = value;
                     }
                     break;

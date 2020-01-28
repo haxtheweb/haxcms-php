@@ -1,5 +1,10 @@
 const fs = require('fs-extra');
 const HAXCMS = require('../lib/HAXCMS.js');
+const explode = require('locutus/php/strings/explode');
+const base64_encode = require('locutus/php/url/base64_encode');
+const parse_url = require('locutus/php/url/parse_url');
+const strtr = require('locutus/php/strings/strtr');
+
 /**
    * @OA\Post(
    *    path="/publishSite",
@@ -217,9 +222,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
                   templateVars['metadata'] = site.getSiteMetadata(NULL, domain, 'https://' + templateVars['cdn']);
                   // build a regex so that we can do fully offline sites and cache the cdn requests even
                   templateVars['cdnRegex'] =
-                    "(https?:\/\/" .
-                    templateVars['cdn'].replace('.', '\.') .
-                    "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
+                    "(https?:\/\/" +    
+                    templateVars['cdn'].replace('.', '\.') +
+                    `(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)`;
                   // support for disabling regex via offline setting
                   if ((site.manifest.metadata.site.static.offline) && !site.manifest.metadata.site.static.offline) {
                     delete templateVars['cdnRegex'];
@@ -318,12 +323,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
                         templateVars['swhash'].push([
                             item.location,
                             strtr(
-                                base64_encode(
-                                    hash_hmac(
-                                        'md5',
-                                        (string) item.location + filesize,
-                                        (string) 'haxcmsswhash',
-                                        true
+                                base64_encode(HAXCMS.hmacBase64(
+                                         item.location + filesize,
+                                         'haxcmsswhash'
                                     )
                                 ),
                                     {

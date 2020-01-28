@@ -1,5 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
-
+const filter_var = require('../lib/filter_var.js');
+const fs = require('fs-extra');
 /**
    * @OA\Post(
    *    path="/saveManifest",
@@ -19,7 +20,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    */
   async function saveManifest(req, res) {
     // load the site from name
-    site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.query['site']['name']);
     // standard form submit
     // @todo 
     // make the form point to a form submission endpoint with appropriate name
@@ -113,7 +114,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       }
       site.manifest.metadata.theme.variables.cssVariable = "--simple-colors-default-theme-" + filter_var(
         req.query['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
-      ). "-7";
+      ) + "-7";
       site.manifest.metadata.theme.variables.icon = filter_var(
         req.query['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
       );

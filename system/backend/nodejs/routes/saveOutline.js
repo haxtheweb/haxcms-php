@@ -147,4 +147,4 @@ const HAXCMS = require('../lib/HAXCMS.js');
     site.gitCommit('Outline updated in bulk');
     return site.manifest.items;
   }
-  module.exports = createNode;
+  module.exports = saveOutline;

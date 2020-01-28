@@ -32,9 +32,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // @todo add support for hooking in multiple
       form = HAXCMS.loadForm(req.query['haxcms_form_id'], context);
       if ((form.fields['__failed'])) {
-        res.send({
+        res.send(
           form.fields
-        });
+        );
       }
       res.send({
         'status': 200,

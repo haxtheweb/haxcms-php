@@ -96,7 +96,7 @@ async function createNode(req, res) {
       item.parent = null;
   }
   if ((req.query['description']) && req.query['description'] != '' && req.query['description'] != null) {
-      item.description = str_replace("\n", '', req.query['description']);
+      item.description = req.query['description'].replace("\n", '');
   }
   if ((req.query['order']) && req.query['metadata'] != '' && req.query['metadata'] != null) {
       item.metadata = req.query['metadata'];
@@ -118,6 +118,6 @@ async function createNode(req, res) {
   site.manifest.addItem(item);
   site.manifest.save();
   site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
-  return item;
+  req.send(item);
 }
 module.exports = createNode;

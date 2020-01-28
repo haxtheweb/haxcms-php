@@ -1,4 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
+const fs = require('fs-extra');
+const basename = require('locutus/php/filesystem/basename');
 
 /**
    * @OA\Post(
@@ -48,10 +50,12 @@ const HAXCMS = require('../lib/HAXCMS.js');
       site.name +
       '.zip';
     // Get real path for our folder
-    rootPath = realpath(dir);
+    rootPath = fs.realpath(dir);
     // Initialize archive object
-    zip = new ZipArchive();
-    zip.open(zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    let zip = '';
+    // @todo ZipArchive
+    //let zip = new ZipArchive();
+    //zip.open(zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
     // Create recursive directory iterator
     directory = new RecursiveDirectoryIterator(rootPath);
     filtered = new DirFilter(directory, ['node_modules']);
@@ -62,7 +66,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       if (!file.isDir()) {
         // Get real and relative path for current file
         filePath = file.getRealPath();
-        relativePath = substr(filePath, strlen(rootPath) + 1);
+        relativePath = filePath.substr(strlen(rootPath) + 1);
         // Add current file to archive
         if (filePath != '' && relativePath != '') {
           zip.addFile(filePath, relativePath);

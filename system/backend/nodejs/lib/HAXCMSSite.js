@@ -6,6 +6,13 @@ const path = require('path');
 const RSS = require('./lib/RSS.js');
 const sharp = require('sharp');
 const Twig = require('twig');
+const filter_var = require('./lib/filter_var.js');
+const array_search = require('locutus/php/array/array_search');
+const array_unshift = require('locutus/php/array/array_unshift');
+const base64_encode = require('locutus/php/url/base64_encode');
+const strtr = require('locutus/php/strings/strtr');
+const usort = require('locutus/php/array/usort');
+
 // a site object
 class HAXCMSSite
 {
@@ -912,7 +919,7 @@ class HAXCMSSite
       }
       // add in twitter link if they provided one
       if ((this.manifest.metadata.author.socialLink) && strpos(this.manifest.metadata.author.socialLink, 'https://twitter.com/') === 0) {
-          metadata += "\n" + '  <meta name="twitter:creator" content="' + str_replace('https://twitter.com/', '@', this.manifest.metadata.author.socialLink) + '" />';
+          metadata += "\n" + '  <meta name="twitter:creator" content="' + this.manifest.metadata.author.socialLink.replace('https://twitter.com/', '@') + '" />';
       }
       HAXCMS.dispatchEvent('haxcms-site-metadata', metadata);
       return metadata;
@@ -924,12 +931,12 @@ class HAXCMSSite
      */
     loadNodeByLocation(path = NULL) {
         // load from the active address if we have one
-        if (path == null && (_SERVER['SCRIPT_URL'])) {
-          path = _SERVER['SCRIPT_URL'].replace('/' + HAXCMS.sitesDirectory + '/' + this.name + '/', '');
+        if (path == null) {
+          path = path.resolve(__dirname).replace('/' + HAXCMS.sitesDirectory + '/' + this.name + '/', '');
         }
         path += "/index.html";
         // failsafe in case someone had closing /
-        path = 'pages/' + str_replace('//', '/', path);
+        path = 'pages/' + path.replace('//', '/');
         for (var key in this.manifest.files) {
           let item = this.manifest.items[key];
           if (item.location == path) {
@@ -945,7 +952,7 @@ class HAXCMSSite
      * @return string path to the image (web visible) that was created or pulled together
      */
     getLogoSize(height, width) {
-      fileName = HAXCMS.staticCache(__FUNCTION__ + height + width);
+      let fileName = HAXCMS.staticCache(__FUNCTION__ + height + width);
       if (!(fileName)) {
         // if no logo, just bail with an easy standard one
         if (!(this.manifest.metadata.site.logo) || ((this.manifest.metadata.site) && (this.manifest.metadata.site.logo == '' || this.manifest.metadata.site.logo == null || this.manifest.metadata.site.logo == "null"))) {
@@ -953,8 +960,8 @@ class HAXCMSSite
         }
         else {
           // ensure this path exists otherwise let's create it on the fly
-          path = HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/';
-          fileName = str_replace('files/', 'files/haxcms-managed/' + height + 'x' + width + '-', this.manifest.metadata.site.logo);
+          let path = HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/';
+          fileName = this.manifest.metadata.site.logo.replace('files/', 'files/haxcms-managed/' + height + 'x' + width + '-');
           if (fs.lstatSync(path + this.manifest.metadata.site.logo).isFile() && !fs.lstatSync(path + fileName).isFile()) {
               fs.mkdir(path + 'files/haxcms-managed');
               image = new ImageResize(path + this.manifest.metadata.site.logo);
@@ -1212,8 +1219,8 @@ class HAXCMSSite
             while (item = this.manifest.getItemById(item.parent)) {
                 tmp = explode('/', item.location);
                 // drop index.html
-                array_pop(tmp);
-                array_unshift(pieces, array_pop(tmp));
+                tmp.pop();
+                array_unshift(pieces, tmp.pop());
             }
             original = implode('/', pieces);
             location = original;

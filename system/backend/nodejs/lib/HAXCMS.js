@@ -340,7 +340,7 @@ const HAXCMS = new class HAXCMS {
        res.send(401);
       }
       // if there is a refresh token then decode it
-      refreshTokenDecoded = this.decodeRefreshToken(refreshToken);
+      let refreshTokenDecoded = this.decodeRefreshToken(refreshToken);
       let n = Math.floor(Date.now() / 1000);
       // validate the token
       // make sure token has issued and expiration dates

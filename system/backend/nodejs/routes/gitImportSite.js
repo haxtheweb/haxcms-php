@@ -1,4 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
+const explode = require('locutus/php/strings/explode');
+const filter_var = require('../lib/filter_var.js');
 /**
    * @OA\Post(
    *    path="/gitImportSite",
@@ -43,7 +45,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
         if (filter_var(repoUrl, FILTER_VALIDATE_URL) !== false &&
             strpos(repoUrl, '.git')
           ) {
-          ary = explode('/', str_replace('.git', '', repoUrl));
+          ary = explode('/', repoUrl.replace('.git', ''));
           repo_path = ary.pop();
           git = new Git();
           // @todo check if this fails

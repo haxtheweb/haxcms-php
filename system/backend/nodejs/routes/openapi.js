@@ -1,4 +1,5 @@
 const HAXCMS = require('../lib/HAXCMS.js');
+const json_decode = require('locutus/php/json/json_decode');
 
 /**
    * Generate the swagger API documentation for this site
@@ -15,7 +16,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
   function openapi(req, res) {
     // scan this document in order to build the Swagger docs
     // @todo make this scan multiple sources to surface user defined microservices
-    openapi = \OpenApi\scan(dirname(__FILE__) + '/Operations.php');
+    // @todo MAKE THIS WORK
+    //let openapi = \OpenApi\scan(dirname(__FILE__) + '/Operations.php');
+    let openapi = HAXCMS.HAXCMS_ROOT + '/system/backends/php/lib/Operations.php';
     // dynamically add the version
     openapi.info.version = HAXCMS.getHAXCMSVersion();
     openapi.servers = [];
@@ -28,8 +31,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       return json_decode(openapi.toJson());
     }
     else {
-      echo openapi.toYaml();
-      exit;
+      req.send(openapi.toYaml());
     }
   }
   module.exports = openapi;
