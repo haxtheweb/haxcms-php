@@ -47,7 +47,6 @@ const routes = {
     saveOutline: require('./routes/saveOutline.js'),
     openapi: require('./routes/openapi.js'),
 
-
     createSite: require('./routes/createSite.js'),
     syncSite: require('./routes/syncSite.js'),
     publishSite: require('./routes/publishSite.js'),
