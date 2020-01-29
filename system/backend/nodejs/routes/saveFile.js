@@ -51,11 +51,11 @@ const HAXCMS = require('../lib/HAXCMS.js');
   function saveFile(req, res) {
     // @todo might want to scrub prior to this level but not sure
     if (($_FILES['file-upload'])) {
-      site = HAXCMS.loadSite(req.query['site']['name']);
+      let site = HAXCMS.loadSite(req.body['site']['name']);
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
-      page = site.loadNode(req.query['node']['id']);
+      page = site.loadNode(req.body['node']['id']);
       upload = $_FILES['file-upload'];
       file = new HAXCMSFile();
       fileResult = file.save(upload, site, page);

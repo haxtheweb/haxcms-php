@@ -31,8 +31,6 @@ app.options('*', function(req, res) {
 const routes = {
   post: {
     login: require('./routes/login.js'),
-    logout: require('./routes/logout.js'),
-    refreshAccessToken: require('./routes/refreshAccessToken.js'),
     revertCommit: require('./routes/revertCommit.js'),
 
     formLoad: require('./routes/formLoad.js'),
@@ -59,13 +57,16 @@ const routes = {
     downloadSite: require('./routes/downloadSite.js'),
 
     createNode: require('./routes/createNode.js'),
+    saveNode: require('./routes/saveNode.js'),
     deleteNode: require('./routes/deleteNode.js'),
   },
   get: {
+    logout: require('./routes/logout.js'),
+    refreshAccessToken: require('./routes/refreshAccessToken.js'),
     listSites: require('./routes/listSites.js'),
     connectionSettings: require('./routes/connectionSettings.js'),
     generateAppStore: require('./routes/generateAppStore.js'),
-  }
+  },
 };
 // these routes need to return a response without a JWT validation
 const openRoutes = [

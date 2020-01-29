@@ -36,7 +36,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    */
   function syncSite(req, res) {
     // ensure we have something we can load and ship back out the door
-    if (site = HAXCMS.loadSite(req.query['site']['name'])) {
+    if (site = HAXCMS.loadSite(req.body['site']['name'])) {
       // local publishing options, then defer to system, then make some up...
       if ((site.manifest.metadata.site.git)) {
           gitSettings = site.manifest.metadata.site.git;

@@ -23,14 +23,14 @@ const HAXCMS = require('../lib/HAXCMS.js');
         'site':[],
         'node': [],
       };
-      if ((req.query['site'])) {
-        context['site'] = req.query['site'];
+      if ((req.body['site'])) {
+        context['site'] = req.body['site'];
       }
-      if ((req.query['node'])) {
-        context['node'] = req.query['node'];
+      if ((req.body['node'])) {
+        context['node'] = req.body['node'];
       }
       // @todo add support for hooking in multiple
-      form = HAXCMS.loadForm(req.query['haxcms_form_id'], context);
+      form = HAXCMS.loadForm(req.body['haxcms_form_id'], context);
       if ((form.fields['__failed'])) {
         res.send(
           form.fields

@@ -19,8 +19,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
    */
   function getNodeFields(req, res) {
     if (HAXCMS.validateRequestToken(null, 'form')) {
-      site = HAXCMS.loadSite(req.query['site']['name']);
-      if (page = site.loadNode(req.query['node']['id'])) {
+      let site = HAXCMS.loadSite(req.body['site']['name']);
+      if (page = site.loadNode(req.body['node']['id'])) {
         schema = site.loadNodeFieldSchema(page);
         return schema;
       }

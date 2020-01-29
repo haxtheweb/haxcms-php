@@ -35,7 +35,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   function cloneSite(req, res) {
-    site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.body['site']['name']);
     siteDirectoryPath = site.directory + '/' + site.manifest.metadata.site.name;
     cloneName = HAXCMS.getUniqueName(site.name);
     // ensure the path to the new folder is valid
@@ -44,7 +44,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
         HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + cloneName
     );
     // we need to then load and rewrite the site name var or it will conflict given the name change
-    site = HAXCMS.loadSite(cloneName);
+    let site = HAXCMS.loadSite(cloneName);
     site.manifest.metadata.site.name = cloneName;
     site.save();
     return {

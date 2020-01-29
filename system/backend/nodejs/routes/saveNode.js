@@ -1,7 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
 const gettype = require('locutus/php/var/gettype');
 const filter_var = require('../lib/filter_var.js');
-
 /**
    * @OA\Post(
    *    path="/saveNode",
@@ -20,22 +19,23 @@ const filter_var = require('../lib/filter_var.js');
    * )
    */
   function saveNode(req, res) {
-    site = HAXCMS.loadSite(req.query['site']['name']);
-    schema = [];
-    if ((req.query['node']['body'])) {
-      body = req.query['node']['body'];
+    let site = HAXCMS.loadSite(req.body['site']['name']);
+    let schema = [];
+    if ((req.body['node']['body'])) {
+      var body = req.body['node']['body'];
       // we ship the schema with the body
-      if ((req.query['node']['schema'])) {
-        schema = req.query['node']['schema'];
+      if ((req.body['node']['schema'])) {
+        schema = req.body['node']['schema'];
       }
     }
-    if ((req.query['node']['details'])) {
-      details = req.query['node']['details'];
+    if ((req.body['node']['details'])) {
+      var details = req.body['node']['details'];
     }
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    if (page = site.loadNode(req.query['node']['id'])) {
+    var page = site.loadNode(req.body['node']['id']);
+    if (page) {
       // convert web location for loading into file location for writing
       if ((body)) {
         let bytes = page.writeLocation(
@@ -63,14 +63,14 @@ const filter_var = require('../lib/filter_var.js');
                 ''
             );
             
-            readtime = Math.round(countWords(clean) / 200);
+            let readtime = Math.round(countWords(clean) / 200);
             // account for uber small body
             if (readtime == 0) {
               readtime = 1;
             }
             page.metadata.readtime = readtime;
             // assemble other relevent content detail by skimming it off
-            contentDetails = {};
+            let contentDetails = {};
             contentDetails.headings = 0;
             contentDetails.paragraphs = 0;
             contentDetails.schema = [];

@@ -68,38 +68,38 @@ const HAXCMS = require('../lib/HAXCMS.js');
  * )
  */
 async function createNode(req, res) {
-  let site = HAXCMS.loadSite(strtolower(req.query['site']['name']));
+  let site = HAXCMS.loadSite(strtolower(req.body['site']['name']));
   // get a new item prototype
   let item = HAXCMS.outlineSchema.newItem();
   // set the title
-  item.title = req.query['node']['title'].replace("\n", '');
-  if ((req.query['node']['id']) && req.query['node']['id'] != '' && req.query['node']['id'] != null) {
-      item.id = req.query['node']['id'];
+  item.title = req.body['node']['title'].replace("\n", '');
+  if ((req.body['node']['id']) && req.body['node']['id'] != '' && req.body['node']['id'] != null) {
+      item.id = req.body['node']['id'];
   }
   let cleanTitle = HAXCMS.cleanTitle(item.title);
-  if ((req.query['node']['location']) && req.query['node']['location'] != '' && req.query['node']['location'] != null) {
-      cleanTitle = HAXCMS.cleanTitle(req.query['node']['location']);
+  if ((req.body['node']['location']) && req.body['node']['location'] != '' && req.body['node']['location'] != null) {
+      cleanTitle = HAXCMS.cleanTitle(req.body['node']['location']);
   }
   // ensure this location doesn't exist already
   item.location =
       'pages/' + site.getUniqueLocationName(cleanTitle) + '/index.html';
 
-  if ((req.query['indent']) && req.query['indent'] != '' && req.query['indent'] != null) {
-      item.indent = req.query['indent'];
+  if ((req.body['indent']) && req.body['indent'] != '' && req.body['indent'] != null) {
+      item.indent = req.body['indent'];
   }
-  if ((req.query['order']) && req.query['order'] != '' && req.query['order'] != null) {
-      item.order = req.query['order'];
+  if ((req.body['order']) && req.body['order'] != '' && req.body['order'] != null) {
+      item.order = req.body['order'];
   }
-  if ((req.query['parent']) && req.query['parent'] != '' && req.query['parent'] != null) {
-      item.parent = req.query['parent'];
+  if ((req.body['parent']) && req.body['parent'] != '' && req.body['parent'] != null) {
+      item.parent = req.body['parent'];
   } else {
       item.parent = null;
   }
-  if ((req.query['description']) && req.query['description'] != '' && req.query['description'] != null) {
-      item.description = req.query['description'].replace("\n", '');
+  if ((req.body['description']) && req.body['description'] != '' && req.body['description'] != null) {
+      item.description = req.body['description'].replace("\n", '');
   }
-  if ((req.query['order']) && req.query['metadata'] != '' && req.query['metadata'] != null) {
-      item.metadata = req.query['metadata'];
+  if ((req.body['order']) && req.body['metadata'] != '' && req.body['metadata'] != null) {
+      item.metadata = req.body['metadata'];
   }
   item.metadata.created = Date.now();
   item.metadata.updated = Date.now();

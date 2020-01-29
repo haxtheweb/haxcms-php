@@ -45,7 +45,7 @@ const HAXCMS = new class HAXCMS {
         let tmpname = decodeURIComponent(name);
         tmpname = this.cleanTitle(tmpname, false);
         // check if this exists, load but fallback for creating on the fly
-        if (
+        if (fs.existsSync(this.HAXCMS_ROOT + '/' + this.sitesDirectory + '/' + tmpname) && 
           fs.lstat(this.HAXCMS_ROOT + '/' + this.sitesDirectory + '/' + tmpname).isDirectory() && !create
         ) {
             let site = new HAXCMSSite();
@@ -259,7 +259,7 @@ const HAXCMS = new class HAXCMS {
       if (request == false && req.body['jwt'] && req.body['jwt'] != null) {
         request = this.decodeJWT(req.body['jwt'])
       }
-      if (request == false && req.query['jwt'] && req.query['jwt'] != null) {
+      if (request == false && req.body['jwt'] && req.body['jwt'] != null) {
         request = this.decodeJWT(req.body['jwt'])
       }
       // if we were able to find a valid JWT in that mess, try and validate it

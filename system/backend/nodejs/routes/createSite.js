@@ -51,14 +51,14 @@ const Git = require("nodegit");
    * )
    */
 async function createSite(req, res) {
-if (HAXCMS.validateRequestToken('', null, req.query)) {
+if (HAXCMS.validateRequestToken('', null, req.body)) {
     let domain = null;
     // woohoo we can edit this thing!
-    if (req.query['site']['domain'] && req.query['site']['domain'] != null && req.query['site']['domain'] != '') {
-    domain = req.query['site']['domain'];
+    if (req.body['site']['domain'] && req.body['site']['domain'] != null && req.body['site']['domain'] != '') {
+    domain = req.body['site']['domain'];
     }
     // sanitize name
-    let name = HAXCMS.generateMachineName(req.query['site']['name']);
+    let name = HAXCMS.generateMachineName(req.body['site']['name']);
     let site = HAXCMS.loadSite(
         name.toLowerCase(),
         true,
@@ -78,8 +78,8 @@ if (HAXCMS.validateRequestToken('', null, req.query)) {
     schema.metadata.theme = {};
     schema.metadata.site.name = site.manifest.metadata.site.name;
     let theme = HAXCMS.HAXCMS_DEFAULT_THEME;
-    if (req.query['theme']['name'] && typeof req.query['theme']['name'] === "string") {
-    theme = req.query['theme']['name'];
+    if (req.body['theme']['name'] && typeof req.body['theme']['name'] === "string") {
+    theme = req.body['theme']['name'];
     }
     let themesAry = HAXCMS.getThemes();
     // look for a match so we can set the correct data
@@ -90,29 +90,29 @@ if (HAXCMS.validateRequestToken('', null, req.query)) {
     }
     schema.metadata.theme.variables = {};
     // description for an overview if desired
-    if (req.query['site']['description'] && req.query['site']['description'] != '' && req.query['site']['description'] != null) {
-        schema.description = req.query['site']['description'].replace(/<\/?[^>]+(>|$)/g, "");
+    if (req.body['site']['description'] && req.body['site']['description'] != '' && req.body['site']['description'] != null) {
+        schema.description = req.body['site']['description'].replace(/<\/?[^>]+(>|$)/g, "");
     }
     // background image / banner
-    if (req.query['theme']['variables']['image'] && req.query['theme']['variables']['image'] != '' && req.query['theme']['variables']['image'] != null) {
-        schema.metadata.theme.variables.image = req.query['theme']['variables']['image'];
+    if (req.body['theme']['variables']['image'] && req.body['theme']['variables']['image'] != '' && req.body['theme']['variables']['image'] != null) {
+        schema.metadata.theme.variables.image = req.body['theme']['variables']['image'];
     }
     else {
     schema.metadata.theme.variables.image = 'assets/banner.jpg';
     }
     // icon to express the concept / visually identify site
-    if (req.query['theme']['variables']['icon'] && req.query['theme']['variables']['icon'] != '' && req.query['theme']['variables']['icon'] != null) {
-        schema.metadata.theme.variables.icon = req.query['theme']['variables']['icon'];
+    if (req.body['theme']['variables']['icon'] && req.body['theme']['variables']['icon'] != '' && req.body['theme']['variables']['icon'] != null) {
+        schema.metadata.theme.variables.icon = req.body['theme']['variables']['icon'];
     }
     // slightly style the site based on css vars and hexcode
     let hex = HAXCMS.HAXCMS_FALLBACK_HEX;
-    if (req.query['theme']['variables']['hexCode'] && req.query['theme']['variables']['hexCode'] != '' && req.query['theme']['variables']['hexCode'] != null) {
-        hex = req.query['theme']['variables']['hexCode'];
+    if (req.body['theme']['variables']['hexCode'] && req.body['theme']['variables']['hexCode'] != '' && req.body['theme']['variables']['hexCode'] != null) {
+        hex = req.body['theme']['variables']['hexCode'];
     }
     schema.metadata.theme.variables.hexCode = hex;
     let cssvar = '--simple-colors-default-theme-light-blue-7';
-    if (req.query['theme']['variables']['cssVariable'] && req.query['theme']['variables']['cssVariable'] != '' && req.query['theme']['variables']['cssVariable'] != null) {
-        cssvar = req.query['theme']['variables']['cssVariable'];
+    if (req.body['theme']['variables']['cssVariable'] && req.body['theme']['variables']['cssVariable'] != '' && req.body['theme']['variables']['cssVariable'] != null) {
+        cssvar = req.body['theme']['variables']['cssVariable'];
     }
     schema.metadata.theme.variables.cssVariable = cssvar;
     schema.metadata.site.created = Date.now();

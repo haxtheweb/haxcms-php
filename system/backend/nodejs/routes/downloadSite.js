@@ -38,7 +38,7 @@ const basename = require('locutus/php/filesystem/basename');
    */
   function downloadSite(req, res) {
     // load site
-    site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.body['site']['name']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
     dir = HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + site.name;
     // form a basic name

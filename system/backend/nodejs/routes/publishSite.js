@@ -40,7 +40,7 @@ const strtr = require('locutus/php/strings/strtr');
    * )
    */
   function publishSite(req, res) {
-    let site = site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = site = HAXCMS.loadSite(req.body['site']['name']);
     // ensure we have something we can load and ship back out the door
     if (site) {
         // local publishing options, then defer to system, then make some up...

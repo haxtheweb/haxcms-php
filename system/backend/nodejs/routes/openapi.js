@@ -27,7 +27,7 @@ const json_decode = require('locutus/php/json/json_decode');
     openapi.servers[0].url = HAXCMS.protocol + '://' + HAXCMS.domain + HAXCMS.basePath + HAXCMS.systemRequestBase;
     openapi.servers[0].description = "Site list / dashboard for administrator user";
     // output, yaml we have to exit early or we'll get encapsulation
-    if ((req.query['args']) && req.query['args'][1] == 'json') {
+    if ((req.body['args']) && req.body['args'][1] == 'json') {
       return json_decode(openapi.toJson());
     }
     else {

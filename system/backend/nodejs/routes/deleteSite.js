@@ -36,7 +36,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   function deleteSite(req, res) {
-    let site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.body['site']['name']);
     if (site.name) {
       fs.unlink(
         site.directory + '/' + site.manifest.metadata.site.name

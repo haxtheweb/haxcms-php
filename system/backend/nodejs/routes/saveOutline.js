@@ -19,7 +19,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   async function saveOutline(req, res) {
-    let site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.body['site']['name']);
     let original = site.manifest.items;
     let items = this.rawParams['items'];
     let itemMap = [];

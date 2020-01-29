@@ -39,8 +39,8 @@ const filter_var = require('../lib/filter_var.js');
    */
   function gitImportSite(req, res) {
     if (HAXCMS.validateRequestToken()) {
-      if ((req.query['site']['git']['url'])) {
-        repoUrl = req.query['site']['git']['url'];
+      if ((req.body['site']['git']['url'])) {
+        repoUrl = req.body['site']['git']['url'];
         // make sure there's a .git in the address
         if (filter_var(repoUrl, FILTER_VALIDATE_URL) !== false &&
             strpos(repoUrl, '.git')

@@ -36,7 +36,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   function archiveSite(req, res) {
-    let site = HAXCMS.loadSite(req.query['site']['name']);
+    let site = HAXCMS.loadSite(req.body['site']['name']);
     if (site.name) {
       fs.rename(
         HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + site.manifest.metadata.site.name,
