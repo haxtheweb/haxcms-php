@@ -570,6 +570,29 @@ class HAXCMS
       return $manifestKeys;
     }
     /**
+     * Get input method for HAXSchema based on a data type
+     * @var $type [string]
+     */
+    public function getInputMethod($type = null) {
+      switch ($type) {
+        case 'string':
+          return 'textfield';
+        break;
+        case 'number':
+          return 'number';
+        break;
+        case 'date':
+          return 'datepicker';
+        break;
+        case 'boolean':
+          return 'boolean';
+        break;
+        default:
+          return 'textfield';
+        break;
+      }
+    }
+    /**
      * Get the current version number
      */
     public function getHAXCMSVersion()
