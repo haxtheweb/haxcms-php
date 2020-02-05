@@ -165,11 +165,16 @@ class HAXCMS
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
             // setup cache bin
-            $this->cache = new Cache(array(
-              'name'      => 'haxcms',
-              'path'      => $this->configDirectory . '/cache/',
-              'extension' => '.cache'
-            ));
+            try {
+              $this->cache = new Cache(array(
+                'name'      => 'haxcms',
+                'path'      => $this->configDirectory . '/cache/',
+                'extension' => '.cache'
+              ));  
+            }
+            catch(Exception $e) {
+              $this->cache = null;
+            }
             // add in the auto-generated app store file
             $this->appStoreFile = $this->systemRequestBase . '/generateAppStore';
             // ensure appstore file is there, then make salt size of this file
@@ -1327,12 +1332,20 @@ class HAXCMS
      * Get cache data from file system
      */
     public function getCache($key) {
+      // sanity check that we can cache data locally
+      if (is_null($this->cache)) {
+        return null;
+      }
       return $this->cache->retrieve($key);
     }
     /**
      * Set cache data on file system
      */
     public function setCache($key, $data, $expiration = 86400) {
+      // sanity check that we can cache data locally
+      if (is_null($this->cache)) {
+        return null;
+      }
       return $this->cache->store($key, $data, $expiration);
     }
     /**
