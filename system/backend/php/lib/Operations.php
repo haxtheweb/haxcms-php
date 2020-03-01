@@ -237,6 +237,9 @@ class Operations {
       if (!isset($site->manifest->metadata->site->static)) {
         $site->manifest->metadata->site->static = new stdClass();
       }
+      if (!isset($site->manifest->metadata->site->settings)) {
+        $site->manifest->metadata->site->settings = new stdClass();
+      }
       $site->manifest->metadata->site->static->cdn = filter_var(
           $this->params['manifest']['static']['manifest-metadata-site-static-cdn'],
           FILTER_SANITIZE_STRING
@@ -2202,6 +2205,9 @@ class Operations {
                   // special fallback for HAXtheWeb since it cheats in order to demo the solution
                   if ($cdn == 'haxtheweb.org') {
                     $templateVars['cdn'] = 'cdn.waxam.io';
+                  }
+                  else if ($cdn == 'webcomponents.psu.edu') {
+                    $templateVars['cdn'] = $cdn . 'cdn/';
                   }
                   else {
                     $templateVars['cdn'] = $cdn;

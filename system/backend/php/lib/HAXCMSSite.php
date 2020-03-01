@@ -841,7 +841,7 @@ class HAXCMSSite
         // preconnect for faster DNS lookup
         $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
         // preload rewrite correctly
-        $base = $cdn;
+        $base = $cdn . '/';
       }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
