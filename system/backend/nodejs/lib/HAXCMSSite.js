@@ -166,6 +166,7 @@ class HAXCMSSite
             '404':'404.html',
             'msbc':'browserconfig.xml',
             'dat':'dat.json',
+            'build':'build.js',
             'index':'index.html',
             'manifest':'manifest.json',
             'package':'package.json',

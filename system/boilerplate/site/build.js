@@ -1,5 +1,11 @@
 window.process = {env: {NODE_ENV: 'production'}};
-var cdn = window.__appCDN;
+var cdn;
+if (window.__appCDN) {
+  cdn = window.__appCDN;
+}
+else {
+  cdn = './';
+}
 var def = document.getElementsByTagName('script')[0];
 try {
   // if a dynamic import fails, we bail over to the compiled version
