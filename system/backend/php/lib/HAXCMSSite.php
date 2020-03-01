@@ -867,7 +867,6 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build/es6/node_modules/mobx/lib/mobx.module.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/simple-colors/simple-colors.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="' . $base . 'build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous" />

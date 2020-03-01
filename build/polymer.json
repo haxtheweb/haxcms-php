@@ -89,7 +89,7 @@
       "name": "es5-amd",
       "js": {
         "compile": true,
-        "minify": false,
+        "minify": true,
         "transformModulesToAmd": true,
         "transformImportMeta": true
       },
