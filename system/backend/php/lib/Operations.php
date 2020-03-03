@@ -1565,10 +1565,12 @@ class Operations {
         if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
           $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
           $site = json_decode($json);
-          $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
-          $site->metadata->pageCount = count($site->items);
-          unset($site->items);
-          $return['items'][] = $site;
+          if (isset($site->title)) {
+            $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
+            $site->metadata->pageCount = count($site->items);
+            unset($site->items);
+            $return['items'][] = $site;
+          }
         }
       }
       closedir($handle);
