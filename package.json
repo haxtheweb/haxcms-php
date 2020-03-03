@@ -22,11 +22,30 @@
     "@lrnwebcomponents/outline-player": "^2.5.0",
     "@lrnwebcomponents/simple-blog": "^2.5.0",
     "@webcomponents/webcomponentsjs": "^2.4.2",
-    "helmet": "^3.21.2",
-    "lunr": "^2.3.6",
-    "web-animations-js": "^2.3.1",
+    "helmet": "3.21.2",
+    "lunr": "2.3.6",
+    "web-animations-js": "2.3.1",
     "fetch-ie8": "1.5.0",
     "promise-polyfill": "8.1.3"
+  },
+  "devDependencies": {
+    "gulp-minify-html-literals": "1.1.7",
+    "@prettier/plugin-php": "0.11.0",
+    "gulp": "4.0.2",
+    "gulp-terser": "1.2.0",
+    "polymer-build": "3.1.4",
+    "polymer-cli": "1.9.11",
+    "prettier": "1.16.4",
+    "@open-wc/building-utils": "2.14.3",
+    "babel-plugin-template-html-minifier": "4.0.0"
+  },
+  "scripts": {
+    "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
+    "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
+    "build": "polymer build && yarn run terser && rm -rf ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build && cp -R build ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build",
+    "terser": "gulp",
+    "start": "yarn run dev",
+    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
   },
   "private": false,
   "publishConfig": {
@@ -215,23 +234,5 @@
     "ws": "6.1.4",
     "https-proxy-agent": "2.2.4",
     "depd": "2.0.0"
-  },
-  "devDependencies": {
-    "@prettier/plugin-php": "^0.11.0",
-    "gulp": "^4.0.2",
-    "gulp-terser": "^1.2.0",
-    "polymer-build": "3.1.4",
-    "polymer-cli": "1.9.11",
-    "prettier": "^1.16.4",
-    "@open-wc/building-utils": "2.14.3",
-    "babel-plugin-template-html-minifier": "4.0.0"
-  },
-  "scripts": {
-    "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
-    "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "build": "polymer build && yarn run terser && rm -rf ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build && cp -R build ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build",
-    "terser": "gulp",
-    "start": "yarn run dev",
-    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
   }
 }
