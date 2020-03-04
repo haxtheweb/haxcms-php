@@ -1,3 +1,4 @@
+var entry = "dist/build-haxcms.js";
 window.process = {env: {NODE_ENV: 'production'}};
 var cdn = "./";
 if (window.__appCDN) {
@@ -14,7 +15,7 @@ try {
     def.parentNode.insertBefore(ani, def);
   }
   var build = document.createElement('script');
-  build.src = cdn + 'build/es6/dist/app.js';
+  build.src = cdn + 'build/es6/' + entry;
   build.type = 'module';
   def.parentNode.insertBefore(build, def);
 } catch (err) {
@@ -37,7 +38,7 @@ try {
         cdn + "assets/babel-top.js",
         cdn + "build/es6-amd/node_modules/web-animations-js/web-animations-next-lite.min.js",
         cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js",
-        cdn + "build/es6-amd/dist/app.js"
+        cdn + "build/es6-amd/" + entry
       ];
     }
     else {
@@ -47,7 +48,7 @@ try {
         cdn + "build/es5-amd/node_modules/fetch-ie8/fetch.js",
         cdn + "build/es6/node_modules/@webcomponents/webcomponentsjs/custom-elements-es5-adapter.js",
         cdn + "build/es5-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js",
-        cdn + "build/es5-amd/dist/app.js"
+        cdn + "build/es5-amd/" + entry
       ];
     }
     define(defs, function () { "use strict" });
