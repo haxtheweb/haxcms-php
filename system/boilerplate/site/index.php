@@ -64,5 +64,6 @@
   </div>
   <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
   <script src="./build.js<?php print $HAXCMS->cacheBusterHash();?>"></script>
+  <script src="./build-haxcms.js<?php print $HAXCMS->cacheBusterHash();?>"></script>
 </body>
 </html>

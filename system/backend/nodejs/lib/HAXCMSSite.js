@@ -167,6 +167,7 @@ class HAXCMSSite
             'msbc':'browserconfig.xml',
             'dat':'dat.json',
             'build':'build.js',
+            'buildhaxcms':'build-haxcms.js',
             'index':'index.html',
             'manifest':'manifest.json',
             'package':'package.json',
@@ -174,7 +175,7 @@ class HAXCMSSite
             'push':'push-manifest.json',
             'robots':'robots.txt',
             'sw':'service-worker.js',
-            'outdated':'upgrade-browser.html',
+            'outdated':'assets/upgrade-browser.html',
         };
     }
     /**
