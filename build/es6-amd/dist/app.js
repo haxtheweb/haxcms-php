@@ -1,1 +1,1 @@
-define(["./build.js"],(function(i){}));
+define(["./build-cms.js"],(function(i){}));
