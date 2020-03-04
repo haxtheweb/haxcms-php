@@ -1,1 +1,1 @@
-import"./build-cms.js";
+import"./build-haxcms.js";

@@ -1,1 +1,1 @@
-define(["./build-cms.js"],(function(i){}));
+define(["./build-haxcms.js"],(function(i){}));
