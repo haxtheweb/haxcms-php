@@ -6,9 +6,7 @@ import "./build-install.js";
 import "./build-legacy.js";
 import "./build-haxcms.js";
 // we build elmsln dependency trees from here since there's so much overlap.
-import "./elmsln-build.js";
-import "./elmsln-build-edit.js";
-import "./elmsln-apps.js";
+import "./build-elmsln.js";
 // important in smaller builds
 import "@lrnwebcomponents/baseline-build-hax/baseline-build-hax.js";
 window.process = { env: { NODE_ENV: 'production' } };
