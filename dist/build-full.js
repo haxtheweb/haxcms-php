@@ -91,3 +91,4 @@ import "@lrnwebcomponents/user-action/user-action.js";
 import "@lrnwebcomponents/rss-items/rss-items.js";
 import "@lrnwebcomponents/grid-plate/grid-plate.js";
 import "@lrnwebcomponents/r-coder/r-coder.js";
+import "@lrnwebcomponents/simple-pages/simple-pages.js";
