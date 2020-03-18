@@ -2,7 +2,7 @@
 // this ties in custom theme files as well as removes DOM nodes related
 // to serving a legacy audience in the event this is evergreen (most times)
 var def = document.getElementsByTagName('script')[0];
-var cdn = "./";
+ var cdn = "./";
 if (window.__appCDN) {
   cdn = window.__appCDN;
 }
