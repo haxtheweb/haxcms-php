@@ -6,7 +6,7 @@ cd $DIR
 # move back to install root
 cd ../
 # run install to ensure we have it
-npm install --global surge
+yarn install --global surge
 # project name
 projectname=$1
 # seed login info which will force a prompting
