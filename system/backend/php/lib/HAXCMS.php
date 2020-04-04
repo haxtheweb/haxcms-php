@@ -419,26 +419,6 @@ class HAXCMS
       // @todo add future support for dependency injection as far as allowed forms
       if (method_exists($this, $form_id . "Form")) {
         $fields = $this->{$form_id . "Form"}($context);
-        // reserved so we know what form is being submitted
-        $fields['haxcms_form_id'] = json_decode(
-          '{
-            "property": "haxcms_form_id",
-            "title": "haxcms_form_id",
-            "description": "",
-            "inputMethod": "textfield",
-            "hidden": true
-          }'
-        );
-        // reserved so we know what form is being submitted
-        $fields['haxcms_form_token'] = json_decode(
-          '{
-            "property": "haxcms_form_token",
-            "title": "haxcms_form_token",
-            "description": "",
-            "inputMethod": "textfield",
-            "hidden": true
-          }'
-        );
       }
       else {
         $fields = array(
@@ -1387,10 +1367,16 @@ class HAXCMS
         $buster = $this->getCache('git-sha');
         if (is_null($buster)) {
           $buster = $prepend;
-          // open the system itself
-          $git = new Git();
-          $repo = $git->open(HAXCMS_ROOT, false);
-          $buster .= $this->getRequestToken($repo->currentSHA());
+          // for NON .git deploys or they brick
+          if (file_exists(HAXCMS_ROOT . '\/.git\/')) {
+            // open the system itself
+            $git = new Git();
+            $repo = $git->open(HAXCMS_ROOT, false);
+            $buster .= $this->getRequestToken($repo->currentSHA());
+          }
+          else {
+            $buster .= $this->getRequestToken($this->getHAXCMSVersion());
+          }
           $this->setCache('git-sha', $buster);
         }
       }

@@ -10,16 +10,14 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <base href="<?php print $HAXCMS->basePath;?>" />';
     <link rel="preload" href="./build/es6/dist/build-home.js" as="script" crossorigin="anonymous">
     <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js"
       as="script" crossorigin="anonymous">
     <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
-    <link rel="stylesheet" href="build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
-    <script type="text/javascript">
-      document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
-    </script>
+    <link rel="stylesheet" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
     <meta name="generator" content="HAXCMS">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>HAXCMS site list</title>
