@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@prettier/plugin-php": "0.11.0",
+    "glob": "^7.1.6",
     "gulp": "4.0.2",
     "gulp-terser": "1.2.0",
     "polymer-build": "3.1.4",
@@ -40,8 +41,9 @@
   "scripts": {
     "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "build": "polymer build && yarn run terser && rm -rf ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build && cp -R build ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build",
-    "terser": "gulp",
+    "build": "polymer build && yarn run terser && yarn run wc-autoloader && rm -rf ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build && cp -R build ~/Documents/git/elmsln/hax-all-the-things/platforms/haxcms/build",
+    "terser": "gulp terser",
+    "wc-autoloader": "gulp wc-autoloader",
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
   },
