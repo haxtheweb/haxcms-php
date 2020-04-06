@@ -1,0 +1,95 @@
+[
+    {
+        "monaco-element": "build/es6/@lrnwebcomponents/code-editor/lib/monaco-element/monaco-element.js"
+    },
+    {
+        "extensible-toolbar": "build/es6/@lrnwebcomponents/extensible-toolbar/extensible-toolbar.js"
+    },
+    {
+        "figure-label": "build/es6/@lrnwebcomponents/figure-label/figure-label.js"
+    },
+    {
+        "full-width-image": "build/es6/@lrnwebcomponents/full-width-image/full-width-image.js"
+    },
+    {
+        "h-a-x": "build/es6/@lrnwebcomponents/h-a-x/h-a-x.js"
+    },
+    {
+        "h5p-element": "build/es6/@lrnwebcomponents/h5p-element/h5p-element.js"
+    },
+    {
+        "undoer-element": "build/es6/@lrnwebcomponents/hax-body/lib/hax-store.js"
+    },
+    {
+        "hax-upload-field": "build/es6/@lrnwebcomponents/hax-body/lib/hax-upload-field.js"
+    },
+    {
+        "haxcms-basic-theme": "build/es6/@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js"
+    },
+    {
+        "haxcms-minimalist-theme": "build/es6/@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-minimalist-theme.js"
+    },
+    {
+        "haxcms-user-theme": "build/es6/@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-user-theme.js"
+    },
+    {
+        "basic-template": "build/es6/@lrnwebcomponents/haxcms-elements/lib/ui-components/templates/basic-template.js"
+    },
+    {
+        "minimalist-template": "build/es6/@lrnwebcomponents/haxcms-elements/lib/ui-components/templates/minimalist-template.js"
+    },
+    {
+        "lrn-math-controller": "build/es6/@lrnwebcomponents/lrn-math/lrn-math.js"
+    },
+    {
+        "lrn-shared-styles-demo": "build/es6/@lrnwebcomponents/lrn-shared-styles/lib/lrn-shared-styles-demo.js"
+    },
+    {
+        "lrndesign-gallery": "build/es6/@lrnwebcomponents/lrndesign-gallery/lrndesign-gallery.js"
+    },
+    {
+        "lrndesign-sidenote": "build/es6/@lrnwebcomponents/lrndesign-sidenote/lrndesign-sidenote.js"
+    },
+    {
+        "sortable-list": "build/es6/@lrnwebcomponents/outline-designer/lib/sortable-list.js"
+    },
+    {
+        "outline-designer": "build/es6/@lrnwebcomponents/outline-designer/outline-designer.js"
+    },
+    {
+        "page-scroll-position": "build/es6/@lrnwebcomponents/page-scroll-position/page-scroll-position.js"
+    },
+    {
+        "they-live": "build/es6/@lrnwebcomponents/they-live/they-live.js"
+    },
+    {
+        "undo-manager": "build/es6/@lrnwebcomponents/undo-manager/undo-manager.js"
+    },
+    {
+        "custom-style": "build/es6/@polymer/polymer/lib/elements/custom-style.js"
+    },
+    {
+        "dom-bind": "build/es6/@polymer/polymer/lib/elements/dom-bind.js"
+    },
+    {
+        "dom-module": "build/es6/@polymer/polymer/lib/elements/dom-module.js"
+    },
+    {
+        "vaadin-lumo-styles": "build/es6/@vaadin/vaadin-lumo-styles/version.js"
+    },
+    {
+        "vaadin-material-styles": "build/es6/@vaadin/vaadin-material-styles/version.js"
+    },
+    {
+        "datepicker-slide-from-left-animation": "build/es6/app-datepicker/animations/datepicker-slide-from-left-animation.js"
+    },
+    {
+        "datepicker-slide-from-right-animation": "build/es6/app-datepicker/animations/datepicker-slide-from-right-animation.js"
+    },
+    {
+        "app-datepicker": "build/es6/app-datepicker/app-datepicker.js"
+    },
+    {
+        "local-time": "build/es6/time-elements/dist/time-elements.js"
+    }
+]
