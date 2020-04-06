@@ -27,26 +27,60 @@ gulp.task(
 );
 
 gulp.task("wc-autoloader", async () => {
-  glob(path.join("./build/es6/**/*.js"), (er, files) => {
-    let elements = [];
+  glob(path.join("./build/es6/node_modules/**/*.js"), (er, files) => {
+    let elements = {};
     // async loop over files
     files.forEach((file) => {
-      // first check if this is a file we need to get.
-      if (file.includes("node_modules")) {
-        // grab the name of the file
-        const fName = file.replace("node_modules/", "");
-
-        if (fs.existsSync(file)) {
-          const contents = fs.readFileSync(file, "utf8");
-          // This Regex is looking for tags that are defined by string values
-          // this will work for customElements.define("local-time",s))
-          // This will NOT work for customElements.define(LocalTime.tagName,s))
-          const defineStatements = /customElements\.define\(["|'|`](.*?)["|'|`]/gm.exec(
+      // grab the name of the file
+      if (fs.existsSync(file)) {
+        let fLocation = file.replace("build/es6/node_modules/", "");
+        const contents = fs.readFileSync(file, "utf8");
+        // This Regex is looking for tags that are defined by string values
+        // this will work for customElements.define("local-time",s))
+        // This will NOT work for customElements.define(LocalTime.tagName,s))
+        const defineStatements = /customElements\.define\(["|'|`](.*?)["|'|`]/gm.exec(
+          contents
+        );
+        // basic
+        if (defineStatements) {
+          elements[defineStatements[1]] = fLocation;
+        }
+        // .tag calls
+        else {
+          const hasDefine = /customElements\.define\((.*?),(.*?)\)/gm.exec(
             contents
           );
-          if (defineStatements) {
-            const tagName = defineStatements[1];
-            elements.push({ [tagName]: fName });
+          // check for a define still
+          if (hasDefine && hasDefine[1] && hasDefine[1].includes('.tag')) {
+            const tagStatements = /static get tag\(\){return"(.*?)"}/gm.exec(
+              contents
+            );
+            if (tagStatements) {
+              elements[tagStatements[1]] = fLocation;
+            }
+          }
+          else if (hasDefine && hasDefine[1] && hasDefine[1].includes('.is')) {
+            const tagStatements = /static get is\(\){return"(.*?)"}/gm.exec(
+              contents
+            );
+            if (tagStatements) {
+              elements[tagStatements[1]] = fLocation;
+            }
+          }
+          else {
+            if (!hasDefine) {
+              // support for polymer legacy class housing
+              const PolymerLegacy = /\,is\:\"(.*?)\",/gm.exec(
+                contents
+              );
+              if (PolymerLegacy && PolymerLegacy[1]) {
+                elements[PolymerLegacy[1]] = fLocation;
+              }
+              else {
+                // if we got here, it wasn't a file w/ a custom element definition
+                // so it's not an entry point
+              }
+            }
           }
         }
       }
