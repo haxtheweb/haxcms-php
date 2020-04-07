@@ -87,10 +87,9 @@ gulp.task("wc-autoloader", async () => {
     });
 
     // write entries to file
-    // use null, 2 to format JSON
     fs.writeFileSync(
       path.join(__dirname, "wc-autoloader.json"),
-      JSON.stringify(elements, null, 4),
+      JSON.stringify(elements),
       "utf8"
     );
   });
