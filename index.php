@@ -119,6 +119,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=true;</script>
-    <script src="./build-home.js"></script>
+    <script src="./build.js"></script>
   </body>
 </html>
