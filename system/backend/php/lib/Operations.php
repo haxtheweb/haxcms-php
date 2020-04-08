@@ -1715,11 +1715,6 @@ class Operations {
       }
       $site->manifest->metadata->node = new stdClass();
       $site->manifest->metadata->node->fields = new stdClass();
-      $site->manifest->metadata->node->dynamicElementLoader = new stdClass();
-      // @todo support injecting this with out things via PHP
-      if (isset($GLOBALS['HAXCMS']->config->node->dynamicElementLoader)) {
-        $site->manifest->metadata->node->dynamicElementLoader = $GLOBALS['HAXCMS']->config->node->dynamicElementLoader;
-      }
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
@@ -2095,7 +2090,6 @@ class Operations {
             // when we first launched this site, HAX would have these definitions as well but
             // when in production, appstore isn't around so the user may have added custom
             // things that they care about but now magically in a published state its gone
-            $site->manifest->metadata->node->dynamicElementLoader = $GLOBALS['HAXCMS']->config->node->dynamicElementLoader;
             // set last published time to now
             if (!isset($site->manifest->metadata->site->static)) {
               $site->manifest->metadata->site->static = new stdClass();
@@ -2149,6 +2143,9 @@ class Operations {
                 }
                 if (is_link($siteDirectoryPath . '/node_modules')) {
                     @unlink($siteDirectoryPath . '/node_modules');
+                }
+                if (is_link($siteDirectoryPath . '/wc-registry.json')) {
+                  @unlink($siteDirectoryPath . '/wc-registry.json');
                 }
                 if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
                     @unlink($siteDirectoryPath . '/assets/babel-top.js');
@@ -2418,6 +2415,9 @@ class Operations {
                     $siteDirectoryPath . '/node_modules'
                 );
             }
+            if (is_link($siteDirectoryPath . '/wc-registry.json')) {
+              @unlink($siteDirectoryPath . '/wc-registry.json');
+            }
             if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
                 @unlink($siteDirectoryPath . '/assets/babel-top.js');
             }
@@ -2430,7 +2430,7 @@ class Operations {
             else {
                 $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
             }
-
+            @symlink('../../wc-registry.json', $siteDirectoryPath . '/wc-registry.json');
             @symlink(
                 '../../../babel/babel-top.js',
                 $siteDirectoryPath . '/assets/babel-top.js'

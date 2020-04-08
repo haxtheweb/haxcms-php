@@ -74,6 +74,7 @@ class HAXCMSSite
             directory + '/' + tmpname
         );
         // create symlink to make it easier to resolve things to single built asset buckets
+        fs.symlink('../../wc-registry.json', directory + '/' + tmpname + '/wc-registry.json');
         fs.symlink('../../build', directory + '/' + tmpname + '/build');
         // symlink to do local development if needed
         fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
@@ -118,7 +119,6 @@ class HAXCMSSite
         this.manifest.metadata.theme.variables = {};
         this.manifest.metadata.node = {};
         this.manifest.metadata.node.fields = {};
-        this.manifest.metadata.node.dynamicElementLoader = {};
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         this.addPage(null, 'Welcome to a new HAXcms site!', 'init');

@@ -102,6 +102,7 @@
   </head>
   <body>
     <script>
+      window.WCAutoloadRegistryFile = "./wc-registry.json";
       // set this in order to simulate the published form of the site
       // window.__haxCMSContextPublished = true;
       // set the below to simulate running a demo / end points to load data
@@ -180,6 +181,8 @@
       async
       src="node_modules/web-animations-js/web-animations-next-lite.min.js"
     ></script>
-    <script type="module" src="dist/build-home.js"></script>
+    <script type="module">
+      import "@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js";
+    </script>
   </body>
 </html>

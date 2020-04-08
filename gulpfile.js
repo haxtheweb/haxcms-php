@@ -7,7 +7,7 @@ gulp.task(
   "terser", () => {
     // now work on all the other files
     gulp.src('./build/es6/**/*.js')
-    .pipe(terser({
+      .pipe(terser({
         ecma: 2017,
         keep_fnames: true,
         mangle: true,
@@ -16,7 +16,7 @@ gulp.task(
       .pipe(gulp.dest('./build/es6/'));
     // now work on all the other files
     return gulp.src('./build/es6-amd/**/*.js')
-    .pipe(terser({
+      .pipe(terser({
         keep_fnames: true,
         mangle: true,
         module: false,
@@ -88,7 +88,7 @@ gulp.task("wc-autoloader", async () => {
 
     // write entries to file
     fs.writeFileSync(
-      path.join(__dirname, "wc-autoloader.json"),
+      path.join(__dirname, "wc-registry.json"),
       JSON.stringify(elements),
       "utf8"
     );

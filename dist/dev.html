@@ -98,7 +98,7 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js'); var cdn = ""; var forceUpgrade = false; var old = false; var ancient = false;
+  <script>document.body.removeAttribute('no-js'); var cdn = "./"; var forceUpgrade = false; var old = false; var ancient = false;
     if (!old) {
       // kill fallback methods if we aren't old
       document.body.removeChild(
@@ -117,18 +117,13 @@
     link2.type = 'text/css';
     def.parentNode.insertBefore(link2, def);
   </script>
-  <script>if (old) document.write('<!--');</script>
   <script type="module">
-    import "./dist/build.js";
+    import "@lrnwebcomponents/wc-autoload/wc-autoload.js";
     import "./custom/src/custom.js";
   </script>
-  <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js">
-    //<!--! do not remove -->
-  </script>
-  <!-- use this to test the legacy build
-    <script type="module" src="dist/build-legacy.js"></script>
-  -->
+  <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script async defer>
+    window.WCAutoloadRegistryFile = cdn + "wc-registry.json";
     // set this in order to simulate the published form of the site
     //window.__haxCMSContextPublished = true;
     // set the below to simulate running a demo / end points to load data

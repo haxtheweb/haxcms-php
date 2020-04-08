@@ -136,11 +136,6 @@ if (HAXCMS.validateRequestToken('', null, req.body)) {
     }
     site.manifest.metadata.node = {};
     site.manifest.metadata.node.fields = {};
-    site.manifest.metadata.node.dynamicElementLoader = {};
-    // @todo support injecting this with out things via PHP
-    if (HAXCMS.config.node.dynamicElementLoader) {
-    site.manifest.metadata.node.dynamicElementLoader = HAXCMS.config.node.dynamicElementLoader;
-    }
     site.manifest.description = schema.description;
     // save the outline into the new site
     site.manifest.save(false);

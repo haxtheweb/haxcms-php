@@ -59,6 +59,7 @@ const HAXCMS = new class HAXCMS {
               ) {
                 fs.unlink(siteDirectoryPath + '/build');
               }
+              fs.symlink('../../wc-registry.json', siteDirectoryPath + '/wc-registry.json');
               fs.symlink('../../build', siteDirectoryPath + '/build');
               if (!fs.lstat(siteDirectoryPath + '/dist').isSymbolicLink()) {
                 fs.symlink('../../dist', siteDirectoryPath + '/dist');

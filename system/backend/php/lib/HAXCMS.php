@@ -210,17 +210,7 @@ class HAXCMS
                 // dynamicImporter
                 if (!isset($this->config->node)) {
                     $this->config->node = new stdClass();
-                    $this->config->node->dynamicElementLoader = new stdClass();
                     $this->config->node->fields = new stdClass();
-                }
-                // load in core dynamicElementLoader data
-                $dynamicElementLoader = json_decode(
-                    file_get_contents(
-                      $this->coreConfigPath . 'dynamicElementLoader.json'
-                    )
-                );
-                foreach ($dynamicElementLoader as $name => $data) {
-                    $this->config->node->dynamicElementLoader->{$name} = $data;
                 }
                 // publishing endpoints
                 if (!isset($this->config->site)) {
@@ -274,8 +264,7 @@ class HAXCMS
                 }
                 // @todo this is VERY hacky specific placement of the theme options
                 $this->config->site->fields[0]->properties[1]->properties[0]->options = $themeSelect;
-                // userData object
-                // load in core dynamicElementLoader data
+                // load in core userData object
                 if (
                 !($this->userData = json_decode(
                     file_get_contents($this->configDirectory . '/userData.json')
@@ -977,6 +966,12 @@ class HAXCMS
                 $tmpname);
             $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
             // sanity checks to ensure we'll actually deliver a site
+            if (!is_link($siteDirectoryPath . '/wc-registry.json')) {
+              @symlink(
+                  '../../wc-registry.json',
+                  $siteDirectoryPath . '/wc-registry.json'
+              );
+            }
             if (!is_link($siteDirectoryPath . '/build')) {
               if (is_dir($siteDirectoryPath . '/build')) {
                 $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);

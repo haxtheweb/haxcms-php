@@ -99,11 +99,6 @@ const strtr = require('locutus/php/strings/strtr');
                     site.manifest.metadata.site.name +
                     '/';
             }
-            // ensure we have the latest dynamic element loader since it may have improved from
-            // when we first launched this site, HAX would have these definitions as well but
-            // when in production, appstore isn't around so the user may have added custom
-            // things that they care about but now magically in a published state its gone
-            site.manifest.metadata.node.dynamicElementLoader = HAXCMS.config.node.dynamicElementLoader;
             // set last published time to now
             if (!(site.manifest.metadata.site.static)) {
               site.manifest.metadata.site.static = {};
@@ -157,6 +152,9 @@ const strtr = require('locutus/php/strings/strtr');
                 }
                 if (fs.lstat(siteDirectoryPath + '/node_modules').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/node_modules');
+                }
+                if (fs.lstat(siteDirectoryPath + '/wc-registry.json').isSymbolicLink()) {
+                    fs.unlink(siteDirectoryPath + '/wc-registry.json');
                 }
                 if (fs.lstat(siteDirectoryPath + '/assets/babel-top.js').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/assets/babel-top.js');
@@ -428,6 +426,9 @@ const strtr = require('locutus/php/strings/strtr');
             }
             if (fs.lstatSync(siteDirectoryPath + '/assets/babel-bottom.js').isSymbolicLink()) {
                 fs.unlink(siteDirectoryPath + '/assets/babel-bottom.js');
+            }
+            if (fs.lstatSync(siteDirectoryPath + '/wc-registry.json').isSymbolicLink()) {
+                fs.unlink(siteDirectoryPath + '/wc-registry.json');
             }
             if (fs.lstatSync(siteDirectoryPath + '/build').isSymbolicLink()) {
                 fs.unlink(siteDirectoryPath + '/build');

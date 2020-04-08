@@ -72,6 +72,11 @@ class HAXCMSSite
         }
         // links babel files so that unification is easier
         @symlink(
+            '../../wc-registry.json',
+            $directory . '/' . $tmpname . '/wc-registry.json
+            '
+        );
+        @symlink(
             '../../../babel/babel-top.js',
             $directory . '/' . $tmpname . '/assets/babel-top.js'
         );
@@ -104,7 +109,6 @@ class HAXCMSSite
         $this->manifest->metadata->theme->variables = new stdClass();
         $this->manifest->metadata->node = new stdClass();
         $this->manifest->metadata->node->fields = new stdClass();
-        $this->manifest->metadata->node->dynamicElementLoader = new stdClass();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         $this->addPage(null, 'Welcome to a new HAXcms site!', 'init');
@@ -153,6 +157,7 @@ class HAXCMSSite
             'msbc' => 'browserconfig.xml',
             'dat' => 'dat.json',
             'build' => 'build.js',
+            'buildlegacy' => 'build-legacy.js',
             'buildhaxcms' => 'build-haxcms.js',
             'index' => 'index.html',
             'manifest' => 'manifest.json',
