@@ -45,7 +45,6 @@ if (!ancient) {
   defs.forEach(function(el) {
     sTag = document.createElement("script");
     sTag.src = cdn + el;
-    sTag.setAttribute('defer','defer');
     def.parentNode.insertBefore(sTag, def);
   });
 }
