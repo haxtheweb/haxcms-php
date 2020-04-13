@@ -703,8 +703,15 @@ class Operations {
         $schema = $this->params['node']['schema'];
       }
     }
+    $details = array();
+    // if we have details object then merge configure and advanced
     if (isset($this->params['node']['details'])) {
-      $details = $this->params['node']['details'];
+      foreach ($this->params['node']['details']['node']['configure'] as $key => $value) {
+        $details[$key] = $value;
+      }
+      foreach ($this->params['node']['details']['node']['advanced'] as $key => $value) {
+        $details[$key] = $value;
+      }
     }
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
@@ -814,7 +821,7 @@ class Operations {
             // sanitize both sides
             $key = filter_var($key, FILTER_SANITIZE_STRING);
             switch ($key) {
-                case 'location':
+                case 'node-configure-location':
                     // check on name
                     $value = filter_var($value, FILTER_SANITIZE_STRING);
                     $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($value);
@@ -846,26 +853,34 @@ class Operations {
                         $page->location = $location;
                     }
                     break;
-                case 'title':
-                case 'description':
+                case 'node-configure-title':
                     $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $page->{$key} = $value;
-                    break;
-                case 'created':
-                    $value = filter_var($value, FILTER_VALIDATE_INT);
-                    $page->metadata->created = $value;
-                    break;
-                case 'published':
+                    $page->title = $value;
+                break;
+                case 'node-configure-description':
+                    $value = filter_var($value, FILTER_SANITIZE_STRING);
+                    $page->description = $value;
+                break;
+                case 'node-configure-published':
                     $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
                     $page->metadata->published = $value;
-                case 'theme':
-                    $themes = $GLOBALS['HAXCMS']->getThemes();
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    if (isset($themes->{$value})) {
-                        $page->metadata->theme = $themes->{$value};
-                        $page->metadata->theme->key = $value;
-                    }
-                    break;
+                break;
+                case 'node-advanced-created':
+                    $value = filter_var($value, FILTER_VALIDATE_INT);
+                    $page->metadata->created = $value;
+                break;
+                case 'node-advanced-theme':
+                  $themes = $GLOBALS['HAXCMS']->getThemes();
+                  $value = filter_var($value, FILTER_SANITIZE_STRING);
+                  // support for removing the custom theme or applying none
+                  if ($value == '_none_') {
+                    unset($page->metadata->theme);
+                  }
+                  else if (isset($themes->{$value})) {
+                    $page->metadata->theme = $themes->{$value};
+                    $page->metadata->theme->key = $value;
+                  }
+                  break;
                 default:
                     // ensure ID is never changed
                     if ($key != 'id') {
@@ -920,6 +935,14 @@ class Operations {
         $site->gitCommit(
             'Page details updated: ' . $page->title . ' (' . $page->id . ')'
         );
+        // make sure we return the "theme" if set back to null
+        // we do this so that the front end can reset to the default theme
+        // but also so we don't save this data for no reason in the piecea above
+        if (!isset($page->metadata->theme)) {
+          $themes = $GLOBALS['HAXCMS']->getThemes();
+          $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
+          $page->metadata->theme->key = $site->manifest->metadata->theme->element;
+        }
         return $page;
       }
     }

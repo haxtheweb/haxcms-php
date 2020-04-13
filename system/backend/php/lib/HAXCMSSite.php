@@ -980,45 +980,27 @@ class HAXCMSSite
      */
     public function loadNodeFieldSchema($page)
     {
-        $fields = array(
-            'configure' => array(),
-            'advanced' => array()
-        );
+        $fields = null;
         // load core fields
         // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
         if (file_exists($GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json')) {
-            $coreFields = json_decode(
+            $fields = json_decode(
                 file_get_contents(
                     $GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json'
                 )
             );
-            $themes = array();
+            $themes = array('_none_' => '-- Site default --');
             foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
                 $themes[$key] = $item->name;
                 $themes['key'] = $key;
             }
-            // this needs to be set dynamically
-            foreach ($coreFields->advanced as $key => $item) {
-                if ($item->property === 'theme') {
-                    $coreFields->advanced[$key]->options = $themes;
-                }
-            }
-            // CORE fields
-            if (isset($coreFields->configure)) {
-                foreach ($coreFields->configure as $item) {
-                    // edge case for pathauto
-                    if ($item->property == 'location' && isset($this->manifest->metadata->site->settings->pathauto) && $this->manifest->metadata->site->settings->pathauto) {
-                        // skip this core field if we have pathauto on
-                        $item->required = false;
-                        $item->disabled = true;
-                    }
-                    $fields['configure'][] = $item;
-                }
-            }
-            if (isset($coreFields->advanced)) {
-                foreach ($coreFields->advanced as $item) {
-                    $fields['advanced'][] = $item;
-                }
+            // set themes dynamically
+            $fields->fields[0]->properties[1]->properties[1]->options = $themes;
+            // check for pathauto
+            if (isset($this->manifest->metadata->site->settings->pathauto) && $this->manifest->metadata->site->settings->pathauto) {
+                // skip this core field if we have pathauto on
+                $fields->fields[0]->properties[0]->properties[2]->required = false;
+                $fields->fields[0]->properties[0]->properties[2]->disabled = true;
             }
         }
         // fields can live globally in config
@@ -1028,7 +1010,7 @@ class HAXCMSSite
                     $GLOBALS['HAXCMS']->config->node->fields->configure
                     as $item
                 ) {
-                    $fields['configure'][] = $item;
+                    $fields->fields[0]->properties[0]->properties[] = $item;
                 }
             }
             if (isset($GLOBALS['HAXCMS']->config->node->fields->advanced)) {
@@ -1036,7 +1018,7 @@ class HAXCMSSite
                     $GLOBALS['HAXCMS']->config->node->fields->advanced
                     as $item
                 ) {
-                    $fields['advanced'][] = $item;
+                    $fields->fields[0]->properties[1]->properties[] = $item;
                 }
             }
         }
@@ -1060,12 +1042,12 @@ class HAXCMSSite
             );
             if (isset($themeFields->configure)) {
                 foreach ($themeFields->configure as $item) {
-                    $fields['configure'][] = $item;
+                    $fields->fields[0]->properties[0]->properties[] = $item;
                 }
             }
             if (isset($themeFields->advanced)) {
                 foreach ($themeFields->advanced as $item) {
-                    $fields['advanced'][] = $item;
+                    $fields->fields[0]->properties[1]->properties[] = $item;
                 }
             }
         }
@@ -1076,41 +1058,60 @@ class HAXCMSSite
                     $this->manifest->metadata->node->fields->configure
                     as $item
                 ) {
-                    $fields['configure'][] = $item;
+                    $fields->fields[0]->properties[0]->properties[] = $item;
                 }
             }
             if (isset($this->manifest->metadata->node->fields->advanced)) {
                 foreach ($this->manifest->metadata->node->fields->advanced as $item) {
-                    $fields['advanced'][] = $item;
+                    $fields->fields[0]->properties[1]->properties[] = $item;
                 }
             }
         }
         // core values that live outside of the fields area
         $values = array(
-            'title' => $page->title,
-            'location' => str_replace(
-                'pages/',
-                '',
-                str_replace('/index.html', '', $page->location)
-            ),
-            'description' => $page->description,
-            'created' => (isset($page->metadata->created) ? $page->metadata->created : 54),
-            'published' => (isset($page->metadata->published) ? $page->metadata->published : TRUE),
+            'node' => array(
+                'configure' => array(
+                    'node-configure-title' => $page->title,
+                    'node-configure-location' => str_replace(
+                        'pages/',
+                        '',
+                        str_replace('/index.html', '', $page->location)
+                    ),
+                    'node-configure-description' => $page->description,
+                    'node-configure-published' => (isset($page->metadata->published) ? $page->metadata->published : TRUE),
+                ),
+                'advanced' => array(
+                    'node-advanced-created' => (isset($page->metadata->created) ? $page->metadata->created : 54),
+                )
+            )
         );
         // now get the field data from the page
         if (isset($page->metadata->fields)) {
             foreach ($page->metadata->fields as $key => $item) {
-                if ($key == 'theme') {
-                    $values[$key] = $item['key'];
-                } else {
-                    $values[$key] = $item;
+                if (strpos($key, '-advanced-')) {
+                    $values['node']['advanced'][$key] = $item;
+                }
+                else if (strpos($key, '-configure-')) {
+                    $values['node']['configure'][$key] = $item;
+                }
+                else {
+                    $values['node']['configure']['node-configure-' . $key] = $item;
                 }
             }
         }
-        // response as schema and values
+        // test for custom theme
+        if (isset($page->metadata->theme)) {
+            $values['node']['advanced']['node-advanced-theme'] = $page->metadata->theme->key;
+        }
+        // response as form data
         $response = new stdClass();
-        $response->haxSchema = $fields;
-        $response->values = $values;
+        $response->status = 200;
+        $response->data = new stdClass();
+        $response->data->fields = $fields->fields;
+        $response->data->value = $values;
+        $form_id = 'getNodeFields';
+        $response->data->value['haxcms_form_id'] = $form_id;
+        $response->data->value['haxcms_form_token'] = $GLOBALS['HAXCMS']->getRequestToken($form_id);
         return $response;
     }
     /**
