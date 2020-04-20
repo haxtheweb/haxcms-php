@@ -2,6 +2,7 @@
   "entrypoint": "dist/build.html",
   "extraDependencies": [
     "manifest.json",
+    "node_modules/@material/*/*.js",
     "node_modules/@lrnwebcomponents/*/*.js",
     "node_modules/@lrnwebcomponents/*/lib/*",
     "node_modules/@lrnwebcomponents/*/lib/*/*.js",
