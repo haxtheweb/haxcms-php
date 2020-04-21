@@ -67,7 +67,7 @@
   ],
   "builds": [
     {
-      "name": "es8",
+      "name": "es6",
       "browserCapabilities": [
         "es2017",
         "modules"

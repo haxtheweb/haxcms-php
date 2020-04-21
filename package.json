@@ -46,7 +46,7 @@
   "scripts": {
     "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "build": "polymer build && mv build/es8 build/es6 && yarn run terser && yarn run wc-autoloader",
+    "build": "polymer build && yarn run terser && yarn run wc-autoloader",
     "terser": "gulp terser",
     "wc-autoloader": "gulp wc-autoloader",
     "start": "yarn run dev",
