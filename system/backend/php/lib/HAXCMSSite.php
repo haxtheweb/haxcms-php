@@ -841,12 +841,11 @@ class HAXCMSSite
       $preconnect = '';
       $base = './';
       if ($cdn == '' && $GLOBALS['HAXCMS']->cdn != './') {
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $GLOBALS['HAXCMS']->cdn . '">';
         $cdn = $GLOBALS['HAXCMS']->cdn;
       }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
+        $preconnect = '<link rel="preconnect" crossorigin href="' . str_replace('/cdn/', '', $cdn) . '">';
         // preload rewrite correctly
         $base = $cdn;
       }
@@ -870,13 +869,11 @@ class HAXCMSSite
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
   <link rel="preconnect" crossorigin href="https://licensebuttons.net">
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/mobx/lib/mobx.module.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="' . $base . 'build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build.js" as="script" />
+  <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
-  <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="./theme/theme.css" as="style" />  
   <meta name="generator" content="HAXcms">
   <link rel="manifest" href="manifest.json">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">

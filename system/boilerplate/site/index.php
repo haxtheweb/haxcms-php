@@ -115,7 +115,7 @@
     }
     </style>
     <script id="loadingscript">
-    window.addEventListener('load', function(e) {
+    window.addEventListener('haxcms-ready', function(e) {
       // give the web components a second to build
       setTimeout(function() {
         document.querySelector('#loading').classList.add('loaded');
@@ -124,33 +124,32 @@
           document.querySelector('#loadingstyles').parentNode.removeChild(document.querySelector('#loadingstyles'));
           document.querySelector('#loadingscript').parentNode.removeChild(document.querySelector('#loadingscript'));
         }, 600);
-      }, 1000)
+      }, 1000);
     });
   </script>
 </head>
 <body no-js <?php print $site->getSitePageAttributes();?>>
-  <haxcms-site-builder id="site" file="site.json<?php print $HAXCMS->cacheBusterHash();?>">
-    <?php print $site->getPageContent($page); ?>
-  </haxcms-site-builder>
-  <div id="haxcmsoutdatedfallback">
-    <haxcms-legacy-player file="site.json<?php print $HAXCMS->cacheBusterHash();?>"></haxcms-legacy-player>
-    <div id="haxcmsoutdatedfallbacksuperold"> 
-      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
-        src="legacy-outline.html"></iframe>
-      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src=""></iframe>
-      <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
-        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
-    </div>
-  </div>
   <div id="loading">
     <div class="messaging">
-      <img src="<?php print $site->manifest->metadata->site->logo;?>" alt="" />
+      <img src="<?php print $site->getLogoSize('300', '300');?>" alt="" loading="lazy" height="300px" width="300px" />
       <div class="progress-line"></div>
       <h1>Loading <?php print $site->name; ?>..</h1>
     </div>
   </div>
+  <haxcms-site-builder id="site" file="site.json<?php print $HAXCMS->cacheBusterHash();?>">
+    <?php print $site->getPageContent($page); ?>
+  </haxcms-site-builder>
+  <div id="haxcmsoutdatedfallback">
+    <div id="haxcmsoutdatedfallbacksuperold"> 
+      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
+        src="legacy-outline.html" loading="lazy"></iframe>
+      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
+      <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
+        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
+    </div>
+  </div>
   <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
-  <script src="./build.js<?php print $HAXCMS->cacheBusterHash();?>"></script>
-  <script src="./build-haxcms.js<?php print $HAXCMS->cacheBusterHash();?>"></script>
+  <script src="./build-haxcms.js"></script>
+  <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
 </body>
 </html>
