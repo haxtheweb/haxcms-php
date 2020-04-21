@@ -6,8 +6,9 @@ const path = require("path");
 gulp.task(
   "terser", () => {
     // now work on all the other files
-    return gulp.src('./build/es6/**/*.js')
-      .pipe(terser({
+    return gulp.src([
+      './build/es6/**/*.js'
+    ]).pipe(terser({
         ecma: 2017,
         keep_fnames: true,
         mangle: true,
