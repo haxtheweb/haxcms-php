@@ -13,6 +13,7 @@
   "license": "Apache-2.0",
   "flat": true,
   "dependencies": {
+    "@pwabuilder/pwaupdate": "0.1.0",
     "@lrnwebcomponents/baseline-build-hax": "^2.6.4",
     "@lrnwebcomponents/h-a-x": "^2.6.4",
     "@lrnwebcomponents/hax-body-behaviors": "^2.6.4",

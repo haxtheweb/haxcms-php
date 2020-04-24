@@ -645,7 +645,7 @@ class HAXCMS
             'cdn' => array(
                 'name' => 'CDN',
                 'description' => 'A CDN address that supports HAXCMS',
-                'value' => 'webcomponents.psu.edu'
+                'value' => 'cdn.webcomponents.psu.edu'
             )
         );
         // publishing

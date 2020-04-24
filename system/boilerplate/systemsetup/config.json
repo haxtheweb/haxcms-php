@@ -624,7 +624,7 @@
         "branch": "gh-pages"
     },
     "static": {
-        "cdn": "webcomponents.psu.edu"
+        "cdn": "cdn.webcomponents.psu.edu"
     }
   }
 }

@@ -871,8 +871,13 @@ class HAXCMSSite
   <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" />
+  <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
+
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms">
   <link rel="manifest" href="manifest.json">

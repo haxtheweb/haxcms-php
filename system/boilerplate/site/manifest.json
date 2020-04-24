@@ -46,8 +46,8 @@
             "density": "4.0"
         }
     ],
-    "scope": "{{ basePath }}",
-    "start_url": "{{ basePath }}",
+    "scope": "{{ domain }}",
+    "start_url": "{{ domain }}",
     "display": "standalone",
     "theme_color": "{{ hexCode }}",
     "background_color": "{{ hexCode }}"

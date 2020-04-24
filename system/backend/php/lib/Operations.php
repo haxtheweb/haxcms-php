@@ -2213,6 +2213,7 @@ class Operations {
                         '/' . $site->manifest->metadata->site->name . '/',
                     'title' => $site->manifest->title,
                     'short' => $site->manifest->metadata->site->name,
+                    'domain' => $site->manifest->metadata->site->domain,
                     'description' => $site->manifest->description,
                     'forceUpgrade' => $site->getForceUpgrade(),
                     'swhash' => array(),
@@ -2225,10 +2226,7 @@ class Operations {
                 // custom isn't a regex by design
                 if ($cdn != 'custom') {
                   // special fallback for HAXtheWeb since it cheats in order to demo the solution
-                  if ($cdn == 'haxtheweb.org') {
-                    $templateVars['cdn'] = 'cdn.waxam.io';
-                  }
-                  else if ($cdn == 'webcomponents.psu.edu') {
+                  if ($cdn == 'cdn.webcomponents.psu.edu') {
                     $templateVars['cdn'] = $cdn . 'cdn/';
                   }
                   else {

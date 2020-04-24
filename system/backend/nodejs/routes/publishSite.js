@@ -211,12 +211,7 @@ const strtr = require('locutus/php/strings/strtr');
                 // custom isn't a regex by design
                 if (cdn != 'custom') {
                   // special fallback for HAXtheWeb since it cheats in order to demo the solution
-                  if (cdn == 'haxtheweb.org') {
-                    templateVars['cdn'] = 'cdn.waxam.io';
-                  }
-                  else {
-                    templateVars['cdn'] = cdn;
-                  }
+                  templateVars['cdn'] = cdn;
                   templateVars['metadata'] = site.getSiteMetadata(NULL, domain, 'https://' + templateVars['cdn']);
                   // build a regex so that we can do fully offline sites and cache the cdn requests even
                   templateVars['cdnRegex'] =

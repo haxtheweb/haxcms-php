@@ -67,7 +67,7 @@
           "cdn": {
             "title": "CDN",
             "type": "string",
-            "value": "webcomponents.psu.edu",
+            "value": "cdn.webcomponents.psu.edu",
             "component": {
               "name": "paper-input",
               "valueProperty": "value",
@@ -206,7 +206,7 @@
         "url": "git@github.com:elmsln",
         "user": "",
         "email": "",
-        "cdn": "webcomponents.psu.edu"
+        "cdn": "cdn.webcomponents.psu.edu"
       }
     }
   }
