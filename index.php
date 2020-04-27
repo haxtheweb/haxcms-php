@@ -10,7 +10,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <base href="<?php print $HAXCMS->basePath;?>" />';
+    <base href="<?php print $HAXCMS->basePath;?>" />
     <link rel="preconnect" crossorigin href="<?php print $HAXCMS->getCDNForDynamic();?>">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
