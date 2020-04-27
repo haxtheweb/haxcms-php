@@ -2222,6 +2222,19 @@ class Operations {
                     'licenseName' => $licenseName,
                     'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
                     'bodyAttrs' => $site->getSitePageAttributes(),
+                    'metadata' => $site->getSiteMetadata(),
+                    'logo512x512' => $site->getLogoSize('512','512'),
+                    'logo310x310' => $site->getLogoSize('310','310'),
+                    'logo300x300' => $site->getLogoSize('300','300'),
+                    'logo192x192' => $site->getLogoSize('192','192'),
+                    'logo150x150' => $site->getLogoSize('150','150'),
+                    'logo144x144' => $site->getLogoSize('144','144'),
+                    'logo96x96' => $site->getLogoSize('96','96'),
+                    'logo72x72' => $site->getLogoSize('72','72'),
+                    'logo70x70' => $site->getLogoSize('70','70'),
+                    'logo48x48' => $site->getLogoSize('48','48'),
+                    'logo36x36' => $site->getLogoSize('36','36'),
+                    'favicon' => $site->getLogoSize('16','16'),
                 );
                 // custom isn't a regex by design
                 if ($cdn != 'custom') {

@@ -160,22 +160,21 @@
   </script>
 </head>
 <body no-js vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/">
-  <haxcms-site-builder id="site" file="site.json"></haxcms-site-builder>
-  <div id="haxcmsoutdatedfallback">
-    <haxcms-legacy-player file="site.json"></haxcms-legacy-player>
-    <div id="haxcmsoutdatedfallbacksuperold"> 
-      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
-        src="legacy-outline.html"></iframe>
-      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src=""></iframe>
-      <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
-        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
-    </div>
-  </div>
   <div id="loading">
     <div class="messaging">
-      <img src="assets/banner.jpg" alt="" />
+      <img src="assets/banner.jpg" alt="" loading="lazy" height="300px" width="300px" />
       <div class="progress-line"></div>
       <h1>Loading site..</h1>
+    </div>
+  </div>
+  <haxcms-site-builder id="site" file="site.json"></haxcms-site-builder>
+  <div id="haxcmsoutdatedfallback">
+    <div id="haxcmsoutdatedfallbacksuperold"> 
+      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
+        src="legacy-outline.html" loading="lazy"></iframe>
+      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
+      <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
+        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
   <script>document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>

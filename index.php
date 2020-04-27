@@ -11,17 +11,24 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
   <head>
     <meta charset="utf-8">
     <base href="<?php print $HAXCMS->basePath;?>" />';
-    <link rel="preload" href="./build/es6/dist/build.js" as="script">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js"
-      as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
+    <link rel="preconnect" crossorigin href="<?php print $HAXCMS->getCDNForDynamic();?>">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
-    <link rel="stylesheet" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
-    <meta name="generator" content="HAXCMS">
+    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
+    <link rel="preconnect" crossorigin href="https://licensebuttons.net">
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build.js" as="script" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>wc-registry.json" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" crossorigin="anonymous">
+    <link rel="stylesheet" href="<?php print $HAXCMS->getCDNForDynamic();?>/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
+    <meta name="generator" content="HAXcms">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>HAXCMS site list</title>
-    <meta name="description" content="My HAXCMS site description">
+    <meta name="description" content="My HAXCMS site list">
     
     <link rel="icon" href="assets/favicon.ico">
 
@@ -113,12 +120,12 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
         $appSettings
     ); ?>; </script>
     <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
-      <div>HAXcms</div><div>loading</div>
+      <div><hax-logo></hax-logo>loading</div>
       <?php print $HAXCMS->siteListing->slot; ?>
     </haxcms-site-listing>
     <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=true;</script>
-    <script src="./build.js"></script>
+    <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
   </body>
 </html>
