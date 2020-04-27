@@ -24,7 +24,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" crossorigin="anonymous">
-    <link rel="stylesheet" href="<?php print $HAXCMS->getCDNForDynamic();?>/build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
+    <link rel="stylesheet" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
     <meta name="generator" content="HAXcms">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>HAXCMS site list</title>
