@@ -1,3 +1,4 @@
+<hax-logo></hax-logo>
 # HAX Configuration UI
 
 This allows you to configure HAX and the available elements for your content contributors Select your CDN and enable the elements you'd like exposed to editors when they use HAX. You can also switch between CDNs or run your own copies of assets locally to include custom elements you've made!
