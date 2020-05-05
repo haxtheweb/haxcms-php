@@ -3,7 +3,7 @@
 This allows you to configure HAX and the available elements for your content contributors Select your CDN and enable the elements you'd like exposed to editors when they use HAX. You can also switch between CDNs or run your own copies of assets locally to include custom elements you've made!
 
 ## Getting help
-- [HAX Slack](https://join.slack.com/t/elmsln/shared_invite/enQtMjg2MzUxMTYyNjcyLWNhYzU1ODk0MjQ5MWZlNjVjNWJkMmZlODJiMGNmNDBjODk2NDc2MDUzNTZkODE4NTRiMjUzYzkzOTBkNjI4NGE) - where HAX core developers talk web components / all our projects
+- [HAX Slack](https://bit.ly/haxslack) - where HAX core developers talk web components / all our projects
 - [HAX Issue Queue](https://github.com/elmsln/issues/issues) - Unified issue queue for all of our projects
 - [HAXCamp: Uncode](http://bit.ly/haxuncode) - Friday 3-5pm EST weekly recorded hang out to discuss web components, hax and answer community questions. Join our slack to confirm air dates. [Watch past episodes here](https://www.youtube.com/channel/UCgcFR9ojBu9P7VNQjt0nqbA/videos)
 - [Web components Slack](https://www.polymer-project.org/slack-invite) - A very popular open hang out for web component developers. (Named polymer but not polymer specific)
