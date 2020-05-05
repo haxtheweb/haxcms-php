@@ -7,9 +7,9 @@ This allows you to configure HAX and the available elements for your content con
 - [HAX Slack](https://join.slack.com/t/elmsln/shared_invite/enQtMjg2MzUxMTYyNjcyLWNhYzU1ODk0MjQ5MWZlNjVjNWJkMmZlODJiMGNmNDBjODk2NDc2MDUzNTZkODE4NTRiMjUzYzkzOTBkNjI4NGE) - where HAX core developers talk web components / all our projects
 - [HAX Issue Queue](https://github.com/elmsln/issues/issues) - Unified issue queue for all of our projects
 - [HAXCamp: Uncode](http://bit.ly/haxuncode) - Friday 3-5pm EST weekly recorded hang out to discuss web components, hax and answer community questions. Join our slack to confirm air dates. [Watch past episodes here](https://www.youtube.com/channel/UCgcFR9ojBu9P7VNQjt0nqbA/videos)
-- [#HAXTheWeb on twitter](https://twitter.com/search?q=%23HAXTheWeb&src=typed_query&f=live) - 
 - [Web components Slack](https://www.polymer-project.org/slack-invite) - A very popular open hang out for web component developers. (Named polymer but not polymer specific)
-
+- [HAXTheWeb YouTube playlist](https://www.youtube.com/watch?v=f_tEA9O9pco&list=PLJQupiji7J5eTqv8JFiW8SZpSeKouZACH) - all things hax the web, presentations, development efforts, etc.
+- [#HAXTheWeb on twitter](https://twitter.com/search?q=%23HAXTheWeb&src=typed_query&f=live) - We microblog there a lot
 ## Developers
 You can run and build assets local to your project as opposed to using one of the zero-config CDNs (or use your own!). CDN providers are created using the following tools:
 - [Unbundled Webcomponents repo](https://github.com/elmsln/unbundled-webcomponents) - Using this can you can make your own build that works in HAX and any other website with relative ease. The tooling is all preconfigured, all you need to do is install new assets from NPM (use yarn to do this) and 
