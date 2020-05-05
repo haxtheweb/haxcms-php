@@ -68,6 +68,12 @@ To properly configure git endlines for Windows, run this configuration
 ```bash
 $ git config --global core.autocrlf true
 ```
-
+### Fedora (31/32) Troubleshooting
+Newer versions of Fedora use cgroupsv2 which is currently not supported by Docker. 
+To avoid a cgroup error before running HAX locally (e.g. before using "ddev start" or "fin init") run the following commands.
+```bash
+sudo mkdir /sys/fs/cgroup/systemd
+sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
+```
 ## License
 [Apache 2.0](LICENSE.md)
