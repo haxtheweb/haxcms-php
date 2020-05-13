@@ -116,9 +116,11 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     </style>
   </head>
   <body no-js>
+    
     <script>window.appSettings = <?php print json_encode(
         $appSettings
     ); ?>; </script>
+    <div id="visuallist"></div>
     <haxcms-site-listing create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" data-source="<?php print $HAXCMS->sitesJSON; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
       <div><hax-logo></hax-logo>loading</div>
       <?php print $HAXCMS->siteListing->slot; ?>

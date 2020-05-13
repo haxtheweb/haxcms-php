@@ -1589,6 +1589,9 @@ class Operations {
           $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
           $site = json_decode($json);
           if (isset($site->title)) {
+            $site->indent = 0;
+            $site->order = 0;
+            $site->parent = null;
             $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->metadata->pageCount = count($site->items);
             unset($site->items);
@@ -1627,6 +1630,7 @@ class Operations {
    *                 example={
    *                    "site": {
    *                      "name": "mynewsite",
+   *                      "description": "The description",
    *                      "domain": ""
    *                    },
    *                    "theme": {
@@ -1675,8 +1679,8 @@ class Operations {
       $schema->metadata->site = new stdClass();
       $schema->metadata->theme = new stdClass();
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
-      if (isset($this->params['theme']['name']) && is_string($this->params['theme']['name'])) {
-        $theme = $this->params['theme']['name'];
+      if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
+        $theme = $this->params['site']['theme'];
       }
       else {
         $theme = HAXCMS_DEFAULT_THEME;
@@ -1693,25 +1697,25 @@ class Operations {
           $schema->description = strip_tags($this->params['site']['description']);
       }
       // background image / banner
-      if (isset($this->params['theme']['variables']['image']) && $this->params['theme']['variables']['image'] != '' && $this->params['theme']['variables']['image'] != null) {
-          $schema->metadata->theme->variables->image = $this->params['theme']['variables']['image'];
+      if (isset($this->params['theme']['image']) && $this->params['theme']['image'] != '' && $this->params['theme']['image'] != null) {
+        $schema->metadata->site->logo = $this->params['theme']['image'];
       }
       else {
-        $schema->metadata->theme->variables->image = 'assets/banner.jpg';
+        $schema->metadata->site->logo = 'assets/banner.jpg';
       }
       // icon to express the concept / visually identify site
-      if (isset($this->params['theme']['variables']['icon']) && $this->params['theme']['variables']['icon'] != '' && $this->params['theme']['variables']['icon'] != null) {
-          $schema->metadata->theme->variables->icon = $this->params['theme']['variables']['icon'];
+      if (isset($this->params['theme']['icon']) && $this->params['theme']['icon'] != '' && $this->params['theme']['icon'] != null) {
+          $schema->metadata->theme->variables->icon = $this->params['theme']['icon'];
       }
       // slightly style the site based on css vars and hexcode
-      if (isset($this->params['theme']['variables']['hexCode']) && $this->params['theme']['variables']['hexCode'] != '' && $this->params['theme']['variables']['hexCode'] != null) {
-          $hex = $this->params['theme']['variables']['hexCode'];
+      if (isset($this->params['theme']['hexCode']) && $this->params['theme']['hexCode'] != '' && $this->params['theme']['hexCode'] != null) {
+          $hex = $this->params['theme']['hexCode'];
       } else {
           $hex = '#aeff00';
       }
       $schema->metadata->theme->variables->hexCode = $hex;
-      if (isset($this->params['theme']['variables']['cssVariable']) && $this->params['theme']['variables']['cssVariable'] != '' && $this->params['theme']['variables']['cssVariable'] != null) {
-          $cssvar = $this->params['theme']['variables']['cssVariable'];
+      if (isset($this->params['theme']['cssVariable']) && $this->params['theme']['cssVariable'] != '' && $this->params['theme']['cssVariable'] != null) {
+          $cssvar = $this->params['theme']['cssVariable'];
       } else {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
