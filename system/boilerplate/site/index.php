@@ -16,6 +16,14 @@
       margin: 0;
       min-height: 98vh;
     }
+    .use-modern-browser a {
+      font-size: 22px;
+    }
+    .use-modern-browser {
+      font-size: 22px;
+      text-align: center;
+      width: 100%;
+    }
   </style>
   <style id="loadingstyles">
     haxcms-site-builder {
@@ -141,10 +149,10 @@
   </haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
     <div id="haxcmsoutdatedfallbacksuperold"> 
-      <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
+      <iframe id="outline" style="width:18%;float:left;height:90vh;padding:0;margin:0;" name="outline" id="frame1"
         src="legacy-outline.html" loading="lazy"></iframe>
-      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
-      <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
+      <iframe id="content" style="width:80%;float:left;height:90vh;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
+      <div class="use-modern-browser">Please use a modern browser to
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>

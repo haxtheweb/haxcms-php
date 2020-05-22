@@ -531,6 +531,7 @@ class HAXCMSSite
                     <head>
                         <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
                         <meta content="utf-8" http-equiv="encoding">
+                        <link rel="stylesheet" type="text/css"href="assets/legacy-outline.css">
                     </head>
                     <body>' .
                     $this->treeToNodes($this->manifest->items) .

@@ -21,7 +21,17 @@ const HAXService = new class HAXService
           "author": "Google, Youtube LLC",
           "description": "The most popular online video sharing and remix site.",
           "status": "available",
-          "tags": ["video", "crowdsourced"]
+          "tags": ["video", "crowdsourced"],
+          "tos": [
+            {
+              title: "YouTube Terms of Service",
+              link: "https://www.youtube.com/t/terms"
+            },
+            {
+              title: "Google Privacy Policy",
+              link: "https://policies.google.com/privacy"
+            }
+          ]
         },
         "connection": {
             "protocol": "https",
