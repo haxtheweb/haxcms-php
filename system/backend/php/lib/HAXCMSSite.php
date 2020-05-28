@@ -428,14 +428,13 @@ class HAXCMSSite
         // set order to the page's count for default add to end ordering
         $page->order = count($this->manifest->items);
         // location is the html file we just copied and renamed
-        $page->location = 'pages/welcome/index.html';
+        $page->location = 'pages/' . $page->id . '/index.html';
+        $page->slug = 'welcome';
         $page->metadata->created = time();
         $page->metadata->updated = time();
-        $location =
-            $this->directory .
-            '/' .
+        $location = $this->directory . '/' .
             $this->manifest->metadata->site->name .
-            '/pages/welcome';
+            '/pages' . '/' . $page->id;
         // copy the page we use for simplicity (or later complexity if we want)
         switch ($template) {
             case 'init':
@@ -677,7 +676,7 @@ class HAXCMSSite
     public function loadNode($uuid)
     {
         foreach ($this->manifest->items as $item) {
-            if ($item->id == $uuid) {
+            if ($item->id == $uuid && $uuid != '') {
                 return $item;
             }
         }
@@ -1075,11 +1074,7 @@ class HAXCMSSite
             'node' => array(
                 'configure' => array(
                     'node-configure-title' => $page->title,
-                    'node-configure-location' => str_replace(
-                        'pages/',
-                        '',
-                        str_replace('/index.html', '', $page->location)
-                    ),
+                    'node-configure-slug' => $page->slug,
                     'node-configure-description' => $page->description,
                     'node-configure-published' => (isset($page->metadata->published) ? $page->metadata->published : TRUE),
                 ),
@@ -1215,33 +1210,47 @@ class HAXCMSSite
         }
     }
     /**
-     * Test and ensure the name being returned is a location currently unused
+     * Test and ensure the name being returned is a slug currently unused
      */
-    public function getUniqueLocationName($location, $page = null)
+    public function getUniqueSlugName($slug, $page = null, $pathAuto = false)
     {
-        $siteDirectory =
-            $this->directory . '/' . $this->manifest->metadata->site->name;
-        $loop = 0;
-        $original = $location;
-        if ($page != null && $page->parent != null && $page->parent != '') {
-            $item = $page;
-            $pieces = array($original);
-            while ($item = $this->manifest->getItemById($item->parent)) {
-                $tmp = explode('/', $item->location);
-                // drop index.html
-                array_pop($tmp);
-                array_unshift($pieces, array_pop($tmp));
+      $rSlug = $slug;
+      // check for pathauto setting and this having a parent
+      if ($page != null && $page->parent != null && $page->parent != '' && $pathAuto) {
+        $item = $page;
+        $pieces = array($slug);
+        while ($item = $this->manifest->getItemById($item->parent)) {
+            $tmp = explode('/', $item->slug);
+            array_unshift($pieces, array_pop($tmp));
+        }
+        $slug = implode('/', $pieces);
+        $rSlug = $slug;
+      }
+      $loop = 0;
+      $ready = false;
+      // while not ready, keep checking
+      while (!$ready) {
+        $ready = true;
+        // loop through items
+        foreach ($this->manifest->items as $key => $item) {
+          // if our slug matches an existing
+          if ($rSlug == $item->slug) {
+            // if we have a page, and it matches that, bail out cause we have it already
+            if ($page != null && $item->id == $page->id) {
+              return $rSlug;
             }
-            $original = implode('/', $pieces);
-            $location = $original;
+            else {
+              // increment the number
+              $loop++;
+              // append to the new slug
+              $rSlug = $slug . '-' . $loop;
+              // force a new test
+              $ready = false;
+            }
+          }
         }
-        while (
-            file_exists($siteDirectory . '/pages/' . $location . '/index.html')
-        ) {
-            $loop++;
-            $location = $original . '-' . $loop;
-        }
-        return $location;
+      }
+      return $rSlug;
     }
     /**
      * Recursive copy to rename high level but copy all files

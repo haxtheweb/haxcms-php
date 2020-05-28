@@ -142,7 +142,7 @@ const filter_var = require('../lib/filter_var.js');
                     value = filter_var(value, FILTER_SANITIZE_STRING);
                     let cleanTitle = HAXCMS.cleanTitle(value);
                     if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
-                        let newPath = 'pages/' + site.getUniqueLocationName(HAXCMS.cleanTitle(filter_var(details['title'], FILTER_SANITIZE_STRING)), page) + '/index.html';
+                        let newPath = 'pages/' + site.getUniqueSlugName(HAXCMS.cleanTitle(filter_var(details['title'], FILTER_SANITIZE_STRING)), page) + '/index.html';
                         site.renamePageLocation(
                             page.location,
                             newPath
@@ -157,7 +157,7 @@ const filter_var = require('../lib/filter_var.js');
                         ).replace('/index.html', '')
                         
                     ) {
-                        tmpTitle = site.getUniqueLocationName(
+                        tmpTitle = site.getUniqueSlugName(
                             cleanTitle, page
                         );
                         location = 'pages/' + tmpTitle + '/index.html';

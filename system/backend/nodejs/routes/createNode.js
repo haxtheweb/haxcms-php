@@ -82,7 +82,7 @@ async function createNode(req, res) {
   }
   // ensure this location doesn't exist already
   item.location =
-      'pages/' + site.getUniqueLocationName(cleanTitle) + '/index.html';
+      'pages/' + site.getUniqueSlugName(cleanTitle) + '/index.html';
 
   if ((req.body['indent']) && req.body['indent'] != '' && req.body['indent'] != null) {
       item.indent = req.body['indent'];

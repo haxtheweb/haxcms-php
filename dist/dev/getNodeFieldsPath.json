@@ -18,7 +18,7 @@
             "icon": "editor:title"
           },
           {
-            "property": "node-configure-location",
+            "property": "node-configure-slug",
             "description": "Location used in the URL",
             "inputMethod": "textfield",
             "required": true,
@@ -109,7 +109,7 @@
       "node": {
         "configure": {
             "node-configure-title": "Functions",
-            "node-configure-location": "functions",
+            "node-configure-slug": "functions",
             "node-configure-description": ""
         },
         "advanced": {

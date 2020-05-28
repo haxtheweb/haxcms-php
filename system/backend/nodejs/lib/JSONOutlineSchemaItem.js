@@ -13,6 +13,7 @@ class JSONOutlineSchemaItem
         this.id = 'item-' + uuidv4();
         this.indent = 0;
         this.location = '';
+        this.slug = '';
         this.order = 0;
         this.parent = '';
         this.title = 'New item';

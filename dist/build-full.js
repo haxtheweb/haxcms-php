@@ -3,7 +3,6 @@ import "./build.js";
 import "./app.js";
 import "./build-home.js";
 import "./build-install.js";
-import "./build-legacy.js";
 import "./build-haxcms.js";
 // we build elmsln dependency trees from here since there's so much overlap.
 import "./build-elmsln.js";

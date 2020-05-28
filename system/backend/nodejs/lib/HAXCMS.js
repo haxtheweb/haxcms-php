@@ -131,7 +131,7 @@ const HAXCMS = new class HAXCMS {
               .replace('/index.html', '');
       }
       cleanTitle = cleanTitle.replace(' ', '-').toLowerCase();
-      cleanTitle = cleanTitle.replace('/[^\w\-\/]+/u', '-');
+      cleanTitle = cleanTitle.replace('/[^\w\-\/\s]+/u', '-');
       cleanTitle = cleanTitle.replace('/--+/u', '-');
       // ensure we don't return an empty title or it could break downstream things
       if (cleanTitle == '') {

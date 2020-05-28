@@ -73,7 +73,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // if it doesn't exist currently make sure the name is unique
       if (!site.loadNode(page.id)) {
           // ensure this location doesn't exist already
-          tmpTitle = site.getUniqueLocationName(cleanTitle, page);
+          tmpTitle = site.getUniqueSlugName(cleanTitle, page);
           page.location = 'pages/' + tmpTitle + '/index.html';
           site.recurseCopy(
               HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
@@ -93,7 +93,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
                   // core support for automatically managing paths to make them nice
                   if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
                       moved = true;
-                      let newPath = 'pages/' + site.getUniqueLocationName(HAXCMS.cleanTitle(page.title), page) + '/index.html';
+                      let newPath = 'pages/' + site.getUniqueSlugName(HAXCMS.cleanTitle(page.title), page) + '/index.html';
                       site.renamePageLocation(
                           page.location,
                           newPath
@@ -117,7 +117,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
               !fs.lstatSync(siteDirectory + '/' + page.location).isFile()
           ) {
               // ensure this location doesn't exist already
-              let tmpTitle = site.getUniqueLocationName(cleanTitle, page);
+              let tmpTitle = site.getUniqueSlugName(cleanTitle, page);
               page.location = 'pages/' + tmpTitle + '/index.html';
               site.recurseCopy(
                   HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',

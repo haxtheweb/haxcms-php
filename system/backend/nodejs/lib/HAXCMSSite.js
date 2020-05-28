@@ -1206,33 +1206,37 @@ class HAXCMSSite
         }
     }
     /**
-     * Test and ensure the name being returned is a location currently unused
+     * Test and ensure the name being returned is a slug currently unused
      */
-    getUniqueLocationName(location, page = null)
+    getUniqueSlugName(slug, page = null)
     {
-        let siteDirectory =
-            this.directory + '/' + this.manifest.metadata.site.name;
-        let loop = 0;
-        let original = location;
-        if (page != null && page.parent != null && page.parent != '') {
-            item = page;
-            let pieces = [original];
-            while (item = this.manifest.getItemById(item.parent)) {
-                tmp = explode('/', item.location);
-                // drop index.html
-                tmp.pop();
-                array_unshift(pieces, tmp.pop());
+      let loop = 0;
+      let rSlug = slug;
+      let ready = false;
+      // while not ready, keep checking
+      while (ready) {
+        ready = true;
+        // loop through items
+        for (var key in this.manifest.items) {
+          let item = this.manifest.items[key];
+          // if our slug matches an existing
+          if (rSlug == item.slug) {
+            // if we have a page, and it matches that, bail out cause we have it already
+            if (page != null && item.id == page.id) {
+              return rSlug;
             }
-            original = implode('/', pieces);
-            location = original;
+            else {
+              // increment the number
+              loop++;
+              // append to the new slug
+              rSlug = slug + '-' + loop;
+              // force a new test
+              ready = false;
+            }
+          }
         }
-        while (
-          fs.lstatSync(siteDirectory + '/pages/' + location + '/index.html').isFile()
-        ) {
-            loop++;
-            location = original + '-' + loop;
-        }
-        return location;
+      }
+      return rSlug;
     }
     /**
      * Recursive copy to rename high level but copy all files

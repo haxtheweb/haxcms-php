@@ -439,55 +439,53 @@ class Operations {
     foreach ($items as $key => $item) {
       // get a fake item
       if (!($page = $site->loadNode($item->id))) {
-          $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
-          $itemMap[$item->id] = $page->id;
-      } else {
-          $page->id = $item->id;
+        $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+        $itemMap[$item->id] = $page->id;
       }
       // set a crappy default title
       $page->title = $item->title;
+      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
       if ($item->parent == null) {
-          $page->parent = null;
-          $page->indent = 0;
+        $page->parent = null;
+        $page->indent = 0;
       } else {
-          // check the item map as backend dictates unique ID
-          if (isset($itemMap[$item->parent])) {
-              $page->parent = $itemMap[$item->parent];
-          } else {
-              // set to the parent id
-              $page->parent = $item->parent;
-          }
-          // move it one indentation below the parent; this can be changed later if desired
-          $page->indent = $item->indent;
+        // check the item map as backend dictates unique ID
+        if (isset($itemMap[$item->parent])) {
+          $page->parent = $itemMap[$item->parent];
+        } else {
+          // set to the parent id
+          $page->parent = $item->parent;
+        }
+        // move it one indentation below the parent; this can be changed later if desired
+        $page->indent = $item->indent;
       }
       if (isset($item->order)) {
-          $page->order = $item->order;
+        $page->order = $item->order;
       } else {
-          $page->order = $key;
+        $page->order = $key;
       }
       // keep location if we get one already
       if (isset($item->location) && $item->location != '') {
-          // force location to be in the right place
-          $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->location);
-          $page->location = 'pages/' . $cleanTitle . '/index.html';
+        $page->location = $item->location;
       } else {
-          $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
-          // generate a logical page location
-          $page->location = 'pages/' . $cleanTitle . '/index.html';
+        // generate a logical page slug
+        $page->location = 'pages/' . $page->id . '/index.html';
+      }
+      // keep location if we get one already
+      if (isset($item->slug) && $item->slug != '') {
+      } else {
+          // generate a logical page slug
+          $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
       }
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
-      $siteDirectory =
-          $site->directory . '/' . $site->manifest->metadata->site->name;
+      $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       // if it doesn't exist currently make sure the name is unique
       if (!$site->loadNode($page->id)) {
-          // ensure this location doesn't exist already
-          $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
-          $page->location = 'pages/' . $tmpTitle . '/index.html';
-          $site->recurseCopy(
-              HAXCMS_ROOT . '/system/boilerplate/page/default',
-              $siteDirectory . '/pages/' . $tmpTitle
-          );
+        $site->recurseCopy(
+            HAXCMS_ROOT . '/system/boilerplate/page/default',
+            $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+        );
       }
       // this would imply existing item, lets see if it moved or needs moved
       else {
@@ -496,25 +494,16 @@ class Operations {
               // see if this is something moving as opposed to brand new
               if (
                   $tmpItem->id == $page->id &&
-                  $tmpItem->location != ''
+                  $tmpItem->slug != ''
               ) {
                   // core support for automatically managing paths to make them nice
                   if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
                       $moved = true;
-                      $new = 'pages/' . $site->getUniqueLocationName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page) . '/index.html';
-                      $site->renamePageLocation(
-                          $page->location,
-                          $new
-                      );
-                      $page->location = $new;
+                      $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page, true);
                   }
-                  else if ($tmpItem->location != $page->location) {
+                  else if ($tmpItem->slug != $page->slug) {
                       $moved = true;
-                      // @todo might want something to rebuild the path based on new parents
-                      $site->renamePageLocation(
-                          $tmpItem->location,
-                          $page->location
-                      );
+                      $page->slug = $tmpItem->slug;
                   }
               }
           }
@@ -524,12 +513,16 @@ class Operations {
               !$moved &&
               !file_exists($siteDirectory . '/' . $page->location)
           ) {
-              // ensure this location doesn't exist already
-              $tmpTitle = $site->getUniqueLocationName($cleanTitle, $page);
-              $page->location = 'pages/' . $tmpTitle . '/index.html';
+              $pAuto = false;
+              if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
+                $pAuto = true;
+              }
+              $tmpTitle = $site->getUniqueSlugName($cleanTitle, $page, $pAuto);
+              $page->location = 'pages/' . $page->id . '/index.html';
+              $page->slug = $tmpTitle;
               $site->recurseCopy(
                   HAXCMS_ROOT . '/system/boilerplate/page/default',
-                  $siteDirectory . '/pages/' . $tmpTitle
+                  $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
               );
           }
       }
@@ -631,15 +624,7 @@ class Operations {
     if (isset($this->params['node']['id']) && $this->params['node']['id'] != '' && $this->params['node']['id'] != null) {
         $item->id = $this->params['node']['id'];
     }
-    if (isset($this->params['node']['location']) && $this->params['node']['location'] != '' && $this->params['node']['location'] != null) {
-        $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($this->params['node']['location']);
-    } else {
-        $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
-    }
-    // ensure this location doesn't exist already
-    $item->location =
-        'pages/' . $site->getUniqueLocationName($cleanTitle) . '/index.html';
-
+    $item->location = 'pages/' . $item->id . '/index.html';
     if (isset($this->params['indent']) && $this->params['indent'] != '' && $this->params['indent'] != null) {
         $item->indent = $this->params['indent'];
     }
@@ -656,6 +641,13 @@ class Operations {
     }
     if (isset($this->params['order']) && $this->params['metadata'] != '' && $this->params['metadata'] != null) {
         $item->metadata = $this->params['metadata'];
+    }
+    if (isset($this->params['node']['location']) && $this->params['node']['location'] != '' && $this->params['node']['location'] != null) {
+      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($this->params['node']['location']);
+      $item->slug = $site->getUniqueSlugName($cleanTitle);
+    } else {
+      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+      $item->slug = $site->getUniqueSlugName($cleanTitle, $item, true);
     }
     $item->metadata->created = time();
     $item->metadata->updated = time();
@@ -821,38 +813,18 @@ class Operations {
             // sanitize both sides
             $key = filter_var($key, FILTER_SANITIZE_STRING);
             switch ($key) {
-                case 'node-configure-location':
-                    // check on name
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($value);
+                case 'node-configure-slug':
+                  // check on name
+                  $value = $GLOBALS['HAXCMS']->cleanTitle(filter_var($value, FILTER_SANITIZE_STRING));
+                  $page->slug = $value;
+                  if ($value == '') {
+                    $pAuto = false;
                     if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                        $new = 'pages/' . $site->getUniqueLocationName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details['title'], FILTER_SANITIZE_STRING)), $page) . '/index.html';
-                        $site->renamePageLocation(
-                            $page->location,
-                            $new
-                        );
-                        $page->location = $new;
+                      $pAuto = true;
                     }
-                    else if (
-                        $cleanTitle !=
-                        str_replace(
-                            'pages/',
-                            '',
-                            str_replace('/index.html', '', $page->location)
-                        )
-                    ) {
-                        $tmpTitle = $site->getUniqueLocationName(
-                            $cleanTitle, $page
-                        );
-                        $location = 'pages/' . $tmpTitle . '/index.html';
-                        // move the folder
-                        $site->renamePageLocation(
-                            $page->location,
-                            $location
-                        );
-                        $page->location = $location;
-                    }
-                    break;
+                    $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details['node-configure-title'], FILTER_SANITIZE_STRING)), $page, $pAuto);
+                  }
+                break;
                 case 'node-configure-title':
                     $value = filter_var($value, FILTER_SANITIZE_STRING);
                     $page->title = $value;
@@ -1593,6 +1565,7 @@ class Operations {
             $site->order = 0;
             $site->parent = null;
             $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
+            $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->metadata->pageCount = count($site->items);
             unset($site->items);
             $return['items'][] = $site;

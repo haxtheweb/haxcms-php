@@ -18,7 +18,7 @@ class HAXService
                 '{
         "details": {
           "title": "Youtube",
-          "icon": "av:play-arrow",
+          "icon": "mdi-action:youtube-play",
           "color": "red",
           "author": "Google, Youtube LLC",
           "description": "The most popular online video sharing and remix site.",

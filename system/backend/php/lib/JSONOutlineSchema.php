@@ -182,6 +182,7 @@ class JSONOutlineSchema
                     $newItem->id = $item->id;
                     $newItem->indent = $item->indent;
                     $newItem->location = $item->location;
+                    $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
                     $newItem->order = $item->order;
                     $newItem->parent = $item->parent;
                     $newItem->title = $item->title;
