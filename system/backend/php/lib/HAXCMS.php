@@ -874,7 +874,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/api/loadFiles",
+            "endPoint": "system/api/listFiles",
             "pagination": {
               "style": "link",
               "props": {
@@ -885,8 +885,14 @@ class HAXCMS
               }
             },
             "search": {
+              "filename": {
+                "title": "File name",
+                "type": "string"
+              }
             },
             "data": {
+              "__HAXJWT__": true,
+              "__HAXAPPENDUPLOADENDPOINT__": true
             },
             "resultMap": {
               "defaultGizmoType": "image",
@@ -901,7 +907,7 @@ class HAXCMS
                 "source": "url",
                 "id": "uuid",
                 "title": "name",
-                "type": "type"
+                "mimetype": "mimetype"
               }
             }
           },

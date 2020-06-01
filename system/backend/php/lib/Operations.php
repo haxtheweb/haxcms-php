@@ -1290,7 +1290,7 @@ class Operations {
   }
   /**
    * @OA\Post(
-   *    path="/loadFiles",
+   *    path="/listFiles",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
    *         name="jwt",
@@ -1305,9 +1305,42 @@ class Operations {
    *   )
    * )
    */
-  public function loadFiles() {
-    // @todo make this load the files out of the JSON outline schema and only return them
-    return array();
+  public function listFiles() {
+    $files = array();
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    $search = (isset($this->params['filename'])) ? $this->params['filename'] : '';
+    // build files directory path
+    $fileDir = $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
+    if ($handle = opendir($fileDir)) {
+      while (false !== ($file = readdir($handle))) {
+        // ignore system files
+          if (
+              $file != "." &&
+              $file != ".." &&
+              $file != '.gitkeep' &&
+              $file != '._.DS_Store' &&
+              $file != '.DS_Store'
+          ) {
+              // ensure this is a file and if we are searching for results then return only exact ones
+              if (is_file($fileDir . '/' . $file) && ($search == "" || strpos($file, $search) || strpos($file, $search) === 0)) {
+                // @todo thumbnail support for non image media / thumbnails in general via internal cache / file call
+                $files[] = array(
+                  'path' => 'files/' . $file,
+                  'fullUrl' =>
+                      $GLOBALS['HAXCMS']->basePath .
+                      $GLOBALS['HAXCMS']->sitesDirectory .
+                      $fileDir . '/' .
+                      $file,
+                  'url' => 'files/' . $file,
+                  'mimetype' => mime_content_type($fileDir . '/' . $file),
+                  'name' => $file
+                );
+              }
+          }
+      }
+      closedir($handle);
+  }
+    return $files;
   }
   /**
    * @OA\Post(
@@ -2281,6 +2314,7 @@ class Operations {
                             $file != "." &&
                             $file != ".." &&
                             $file != '.gitkeep' &&
+                            $file != '._.DS_Store' &&
                             $file != '.DS_Store'
                         ) {
                             // ensure this is a file

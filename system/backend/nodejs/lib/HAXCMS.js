@@ -189,7 +189,7 @@ const HAXCMS = new class HAXCMS {
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/api/loadFiles",
+            "endPoint": "system/api/listFiles",
             "pagination": {
               "style": "link",
               "props": {

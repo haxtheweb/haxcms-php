@@ -42,7 +42,7 @@ const routes = {
     siteUpdateAlternateFormats: require('./routes/siteUpdateAlternateFormats.js'),
     getUserData: require('./routes/getUserData.js'),
     gitImportSite: require('./routes/gitImportSite.js'),
-    loadFiles: require('./routes/loadFiles.js'),
+    listFiles: require('./routes/listFiles.js'),
     saveFile: require('./routes/saveFile.js'),
     saveOutline: require('./routes/saveOutline.js'),
     openapi: require('./routes/openapi.js'),

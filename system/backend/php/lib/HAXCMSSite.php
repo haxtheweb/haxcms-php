@@ -245,6 +245,7 @@ class HAXCMSSite
                   $file != "." &&
                   $file != ".." &&
                   $file != '.gitkeep' &&
+                  $file != '._.DS_Store' &&
                   $file != '.DS_Store'
               ) {
                   // ensure this is a file

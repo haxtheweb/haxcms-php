@@ -2,7 +2,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
 
 /**
    * @OA\Post(
-   *    path="/loadFiles",
+   *    path="/listFiles",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
    *         name="jwt",
@@ -17,8 +17,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *   )
    * )
    */
-  function loadFiles(req, res) {
+  function listFiles(req, res) {
     // @todo make this load the files out of the JSON outline schema and only return them
     return [];
   }
-  module.exports = loadFiles;
+  module.exports = listFiles;

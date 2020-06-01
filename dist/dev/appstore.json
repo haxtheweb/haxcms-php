@@ -957,7 +957,7 @@
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/loadFiles",
+            "endPoint": "system/listFiles",
             "pagination": {
               "style": "link",
               "props": {
@@ -967,8 +967,16 @@
                 "last": "page.last"
               }
             },
-            "search": {},
-            "data": {},
+            "search": {
+              "q": {
+                "title": "Search",
+                "type": "string"
+              }
+            },
+            "data": {
+              "__HAXJWT__": true,
+              "__HAXAPPENDUPLOADENDPOINT__": true
+            },
             "resultMap": {
               "defaultGizmoType": "image",
               "items": "list",
