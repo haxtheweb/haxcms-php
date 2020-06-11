@@ -54,76 +54,147 @@
   <style>
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 98vh;
     }
+  </style>
+  <style id="loadingstyles">
     haxcms-site-builder {
       display: block;
     }
-    haxcms-site-builder:not(:defined) div.loading {
-      width: 100vw;
-      display: block;
-      position: initial;
-      height: 100vh;
-      background: orange;
-    }
-    haxcms-site-builder:not(:defined) div {
-      font-size: 6vw;
-      line-height: 1;
-      margin: 0 auto;
-      top: calc(50vh - 8vw);
-      width: 100%;
-      justify-content: center;
-      display: grid;
-      text-align: center;
-      padding: 0;
-      position: relative;
-      font-family: "Courier New", Courier, monospace;
-      color: black;
-    }
-    body[no-js] haxcms-site-builder{
+    body[no-js] haxcms-site-builder {
       display: none !important;
     }
-  </style>
-</head>
+    #loading {
+      background-color: white;
+      bottom: 0px;
+      left: 0px;
+      opacity: 1;
+      position: absolute;
+      right: 0px;
+      top: 0px;
+      transition: all linear 300ms;
+      -webkit-transition: all linear 300ms;
+      z-index: 99999999;
+    }
 
-<body>
-  <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>Site</div><div>loading</div></div></haxcms-site-builder>
+    #loading.loaded {
+      animation: fade-out .7s ease-in-out;
+      animation-fill-mode: forwards;
+    }
+    #loading div.messaging {
+      color: rgba(255,255,255, 0.7);
+      font-family: Roboto;
+      left: 0px;
+      margin-top: -75px;
+      position: absolute;
+      right: 0px;
+      text-align: center;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    #loading div.messaging h1 {
+      color: white;
+      font-family: 'Open Sans', 'arial', 'serif';
+      font-size: 40px;
+      background-color: orange;
+      transition: .4s ease-in-out all;
+    }
+    #loading img {
+      transition: .4s all ease-in-out;
+      width: 300px;
+      height: 300px;
+      margin-bottom: 50px;
+      border-radius: 50%;
+      border: 8px solid orange;
+      box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
+      -moz-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
+	    -webkit-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
+      -ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#444444')";
+    }
+    .progress-line,
+    .progress-line:before {
+      height: 8px;
+      width: 100%;
+      margin: auto;
+    }
+    .progress-line {
+      background-color: rgba(0,0,0, 0.05);
+      display: -webkit-flex;
+      display: flex;
+      width: 300px;
+    }
+    .progress-line:before {
+      background-color: orange;
+      content: '';
+      animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes running-progress {
+      0% {
+        margin-left: 0px;
+        margin-right: 100%;
+      }
+      50% {
+        margin-left: 25%;
+        margin-right: 0%;
+      }
+      100% {
+        margin-left: 100%;
+        margin-right: 0;
+      }
+    }
+    @keyframes fade-out {
+      0% {
+        opacity: 1;
+      }
+      99% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    </style>
+    <script id="loadingscript">
+    window.addEventListener('load', function(e) {
+      // give the web components a second to build
+      setTimeout(function() {
+        document.querySelector('#loading').classList.add('loaded');
+        setTimeout(function() {
+          document.querySelector('#loading').parentNode.removeChild(document.querySelector('#loading'));
+          document.querySelector('#loadingstyles').parentNode.removeChild(document.querySelector('#loadingstyles'));
+          document.querySelector('#loadingscript').parentNode.removeChild(document.querySelector('#loadingscript'));
+        }, 600);
+      }, 1000)
+    });
+  </script>
+</head>
+<body no-js vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/">
+  <div id="loading">
+    <div class="messaging">
+      <img src="assets/banner.jpg" alt="" loading="lazy" height="300px" width="300px" />
+      <div class="progress-line"></div>
+      <h1>Loading site..</h1>
+    </div>
+  </div>
+  <haxcms-site-builder id="site" file="site.json"></haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
-    <haxcms-legacy-player file="site.json"></haxcms-legacy-player>
     <div id="haxcmsoutdatedfallbacksuperold"> 
       <iframe id="outline" style="width:18%;float:left;height:500px;padding:0;margin:0;" name="outline" id="frame1"
-        src="legacy-outline.html"></iframe>
-      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src=""></iframe>
+        src="legacy-outline.html" loading="lazy"></iframe>
+      <iframe id="content" style="width:80%;float:left;height:500px;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
       <div style="float:left;padding:16px 0;font-size:32px;text-align: center;width:100%;">Please use a modern browser to
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>document.body.removeAttribute('no-js'); var cdn = "./"; var forceUpgrade = false; var old = false; var ancient = false;
-    if (!old) {
-      // kill fallback methods if we aren't old
-      document.body.removeChild(
-        document.getElementById("haxcmsoutdatedfallback")
-      );
-    }
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = cdn + 'node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
-    link.type = 'text/css';
-    var def = document.getElementsByTagName('link')[0];
-    def.parentNode.insertBefore(link, def);
-    var link2 = document.createElement('link');
-    link2.rel = 'stylesheet';
-    link2.href = './theme/theme.css';
-    link2.type = 'text/css';
-    def.parentNode.insertBefore(link2, def);
-  </script>
+  <script>document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>
+  <!-- Reverse engineer of build.js based on what's needed to test locally -->
   <script type="module">
     import "@lrnwebcomponents/wc-autoload/wc-autoload.js";
     import "./custom/src/custom.js";
   </script>
   <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script async defer>
-    window.WCAutoloadRegistryFile = cdn + "wc-registry.json";
+    window.WCAutoloadRegistryFile = window.__appCDN + "wc-registry.json";
     // set this in order to simulate the published form of the site
     //window.__haxCMSContextPublished = true;
     // set the below to simulate running a demo / end points to load data
@@ -135,6 +206,7 @@
       "logout": "dist\/dev\/logout.json",
       "saveNodePath": "dist\/dev\/saveNode.json",
       "getUserDataPath": "dist\/dev\/userData.json",
+      "connectionSettings": "dist\/dev\/connectionSettings.json",
       "saveManifestPath": "dist\/dev\/saveManifestPath.json",
       "createNodePath": "dist\/dev\/saveNode.json",
       "deleteNodePath": "dist\/dev\/saveNode.json",
@@ -158,5 +230,6 @@
       }
     };
   </script>
+  <script src="./build-haxcms.js"></script>
 </body>
 </html>

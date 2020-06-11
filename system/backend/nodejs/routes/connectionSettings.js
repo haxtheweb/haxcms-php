@@ -22,6 +22,7 @@ function connectionSettings(req, res) {
       url: `${baseAPIPath}generateAppStore?app-store-token=${HAXCMS.getRequestToken('appstore')}`
     },
     themes: themes,
+    connectionSettings: `${baseAPIPath}connectionSettings`,
     login: `${baseAPIPath}login`,
     refreshUrl: `${baseAPIPath}refreshAccessToken`,
     logout: `${baseAPIPath}logout`,

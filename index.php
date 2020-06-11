@@ -59,16 +59,11 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <meta property="og:site_name" content="books-app">
     <meta property="og:image" content="assets/icon-144x144.png" />
     <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-      }
       body[data-logged-in] {
         background-color: #EEEEEE;
       }
       body {
         margin: 0;
-        min-height: 100vh;
         transition: .6s linear background;
         background-color: var(--haxcms-system-bg);
       }

@@ -107,7 +107,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/hax-camp/"
+	"location": "/sites/hax-camp/",
+	"slug": "/sites/hax-camp/"
 	},
 	{
 	"id": "eafdefa1-fc9a-4bde-baa8-58454a9c5b56",
@@ -213,7 +214,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/waxamio/"
+	"location": "/sites/waxamio/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "78aeb469-50c8-41c3-a018-1d910133aab4",
@@ -275,7 +277,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/tasks-recommendation/"
+	"location": "/sites/tasks-recommendation/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "0e28ad66-e00f-4033-ae3e-4692f6f5a73e",
@@ -376,7 +379,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/ist402/"
+	"location": "/sites/ist402/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "2a41988b-f670-47d0-ad12-36d944108145",
@@ -488,7 +492,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/apereo-haxcms-webinar/"
+	"location": "/sites/apereo-haxcms-webinar/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "2f8e931f-9af7-414a-a026-7079f70af361",
@@ -584,7 +589,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/geodz511/"
+	"location": "/sites/geodz511/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "83ba379b-b5a9-4180-b018-7b72735a8420",
@@ -687,7 +693,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/wcfactory/"
+	"location": "/sites/wcfactory/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "7a003206-4d64-47fb-8a44-d575d760cfab",
@@ -778,7 +785,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/wccourse/"
+	"location": "/sites/wccourse/",
+	"slug": "/sites/waxamio/"
 	},
 	{
 	"id": "95f2b045-cfdb-4e35-b29b-e7f71c859987",
@@ -881,7 +889,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/haxtheweb/"
+	"location": "/sites/haxtheweb/",
+	"slug": "/sites/haxtheweb/"
 	},
 	{
 	"id": "deea4d65-63cb-4e0d-8270-4beccd662063",
@@ -943,7 +952,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/btopro/"
+  "location": "/sites/btopro/",
+  "slug": "/sites/btopro/"
 	},
 	{
 	"id": "3474a06d-9d3b-4ec7-ba9b-0a448a6e685e",
@@ -1092,7 +1102,8 @@
 	"indent": 0,
 	"order": 0,
 	"parent": null,
-	"location": "/sites/haxcms-odl/"
+  "location": "/sites/haxcms-odl/",
+  "slug": "/sites/btopro/"
 	}
 	]
 	}
