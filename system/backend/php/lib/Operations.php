@@ -1095,7 +1095,7 @@ class Operations {
       isset($this->params['app-store-token']) &&
       $GLOBALS['HAXCMS']->validateRequestToken($this->params['app-store-token'], 'appstore')
     ) {
-      $haxService = new HAXService();
+      $haxService = new HAXAppStoreService();
       $apikeys = array();
       $baseApps = $haxService->baseSupportedApps();
       foreach ($baseApps as $key => $app) {
@@ -1551,7 +1551,7 @@ class Operations {
         return array(
           '__failed' => array(
             'status' => 500,
-            'message' => 'failed to write',
+            'message' => $fileResult['data'],
           )
         );
       }
@@ -1901,6 +1901,31 @@ class Operations {
         unset($response->values->appStore->{$key});
       }
     }
+    return $response;
+  }
+  /**
+   * Get configuration related to HAX appstore. This allows the user to set valid
+   * configuration via a front-end presented form.
+   */
+  /**
+   * @OA\Get(
+   *    path="/haxConfigurationSelectionData",
+   *    tags={"editor","authenticated","settings"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Get configuration for HAX in how appstore is constructed"
+   *   )
+   * )
+   */
+  public function haxConfigurationSelectionData() {
+    $response = new stdClass();
     return $response;
   }
   /**

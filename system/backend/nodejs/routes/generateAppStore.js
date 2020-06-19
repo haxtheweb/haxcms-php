@@ -1,5 +1,5 @@
 const HAXCMS = require('../lib/HAXCMS.js');
-const HAXService = require('../lib/HAXService.js');
+const HAXAppStoreService = require('../lib/HAXAppStoreService.js');
 /**
  * @OA\Get(
  *    path="/generateAppStore",
@@ -25,7 +25,7 @@ function generateAppStore(req, res) {
     HAXCMS.validateRequestToken(req.query['app-store-token'], 'appstore', req.query)
   ) {
     let apikeys = {};
-    let baseApps = HAXService.baseSupportedApps();
+    let baseApps = HAXAppStoreService.baseSupportedApps();
     for (var key in baseApps) {
       if (
         HAXCMS.config.appStore.apiKeys[key] &&
@@ -34,7 +34,7 @@ function generateAppStore(req, res) {
         apikeys[key] = HAXCMS.config.appStore.apiKeys[key];
       }
     }
-    let appStore = HAXService.loadBaseAppStore(apikeys);
+    let appStore = HAXAppStoreService.loadBaseAppStore(apikeys);
     // pull in the core one we supply, though only upload works currently
     tmp = HAXCMS.siteConnectionJSON();
     appStore.push(tmp);
@@ -42,12 +42,12 @@ function generateAppStore(req, res) {
     if (HAXCMS.config.appStore && HAXCMS.config.appStore.stax) {
         staxList = HAXCMS.config.appStore.stax;
     } else {
-        staxList = HAXService.loadBaseStax();
+        staxList = HAXAppStoreService.loadBaseStax();
     }
     if (HAXCMS.config.appStore && HAXCMS.config.appStore.blox) {
         bloxList = HAXCMS.config.appStore.blox;
     } else {
-        bloxList = HAXService.loadBaseBlox();
+        bloxList = HAXAppStoreService.loadBaseBlox();
     }
     if (HAXCMS.config.appStore && HAXCMS.config.appStore.autoloader) {
         autoloaderList = HAXCMS.config.appStore.autoloader;

@@ -12,10 +12,17 @@ class HAXCMSFIle
     {
         global $HAXCMS;
         global $fileSystem;
-        // check for a file upload
+        $size = false;
+        $status = 0;
+        $return = array();
+        // check for a file upload; we block a few formats by design
         if (
             isset($upload['tmp_name']) &&
-            is_uploaded_file($upload['tmp_name'])
+            is_uploaded_file($upload['tmp_name']) &&
+            strpos($upload['name'], '.php') === FALSE &&
+            strpos($upload['name'], '.sh') === FALSE &&
+            strpos($upload['name'], '.js') === FALSE &&
+            strpos($upload['name'], '.css') === FALSE
         ) {
             // get contents of the file if it was uploaded into a variable
             $filedata = file_get_contents($upload['tmp_name']);
@@ -116,7 +123,7 @@ class HAXCMSFIle
         }
         if ($size === false) {
             $status = 500;
-            $return = 'failed to write';
+            $return = 'failed to write ' . $upload['name'];
         }
         return array(
             'status' => $status,

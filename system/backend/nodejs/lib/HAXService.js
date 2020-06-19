@@ -1,4 +1,4 @@
-const HAXService = new class HAXService
+const HAXAppStoreService = new class HAXAppStoreService
 {
     /**
      * returns an array of app store definitions based
@@ -1258,4 +1258,4 @@ const HAXService = new class HAXService
     }
 }
 
-module.exports = HAXService;
+module.exports = HAXAppStoreService;

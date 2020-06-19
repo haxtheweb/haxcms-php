@@ -6,7 +6,7 @@
 // system constants
 include_once 'Variables.php';
 // service creation / HAX app store service abstraction
-include_once 'HAXService.php';
+include_once 'HAXAppStoreService.php';
 // working with sites
 include_once 'HAXCMSSite.php';
 // working with files
@@ -135,6 +135,7 @@ class HAXCMS
           "csv",
           "archive",
           "markdown",
+          "*",
           "html"
         );
         // end point to get the sites data
@@ -685,7 +686,7 @@ class HAXCMS
             }
         }
         // API keys
-        $hax = new HAXService();
+        $hax = new HAXAppStoreService();
         $apiDocs = $hax->baseSupportedApps();
         foreach ($apiDocs as $key => $value) {
             $props = new stdClass();

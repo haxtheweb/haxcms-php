@@ -1,6 +1,6 @@
 <?php
 
-class HAXService
+class HAXAppStoreService
 {
     /**
      * returns an array of app store definitions based
