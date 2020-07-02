@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const url = require('url');
 const JWT = require('jsonwebtoken');
 const HAXCMS_ROOT = process.env.HAXCMS_ROOT || __dirname + "/../../../../";
-const HAXCMS_DEFAULT_THEME = 'learn-two-theme';
+const HAXCMS_DEFAULT_THEME = 'clean-one';
 const HAXCMS_FALLBACK_HEX = '#3f51b5';
 // HAXcms core
 const HAXCMS = new class HAXCMS {

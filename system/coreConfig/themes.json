@@ -1,4 +1,9 @@
 {
+  "clean-one": {
+    "element": "clean-one",
+    "path": "@lrnwebcomponents/clean-one/clean-one.js",
+    "name": "Course theme one"
+  },
   "learn-two-theme": {
     "element": "learn-two-theme",
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",

@@ -1640,7 +1640,7 @@ class Operations {
    *                      "domain": ""
    *                    },
    *                    "theme": {
-   *                      "name": "learn-two-theme",
+   *                      "name": "clean-one",
    *                      "variables": {
    *                        "image":"",
    *                        "icon":"",
