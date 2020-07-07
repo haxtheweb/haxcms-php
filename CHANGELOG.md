@@ -1,5 +1,11 @@
 # HAXcms change log
 Full breakdown of changes are always available via our github milestones section
+## 1.2.0 - 2020-07-07
+New themes (clean-one, clean-two) as well as multiple a11y and ux issues cleaned up. Improved performance among different site- elements via dropping of the @apply legacy concept. HAXcms is just one of our build targets now so it's issue queue is being winded down in favor of the unified issue queue.
+
+- Milestone in HAXcms https://github.com/elmsln/HAXcms/milestone/5?closed=1
+- Closed issues tagged HAXcms https://github.com/elmsln/issues/issues?q=is%3Aissue+is%3Aclosed+label%3AHAXcms
+
 ## 1.0.0 - 2020-01-28
 LitElement is predominant in this release. This release has undergone a first round of user audit with a group of 30 providing feedback on HAXcms and HAX directly. This has drag and drop, click to build grids in the page, lots of stability and performance improvements to HAXcms itself, accurate JWT invalidation and securing with timing tokens, a CLI, improved support for HAXiam, a complete rewrite of the API to be a unified backend, Swagger documented, bette DX for theme developers, local developer experience via yarn for those working on HAXcms core, and a backend restructuring to support multiple backends in the future as well as initial work on an Express based backend.
 
