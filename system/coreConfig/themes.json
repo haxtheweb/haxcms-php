@@ -4,10 +4,15 @@
     "path": "@lrnwebcomponents/clean-one/clean-one.js",
     "name": "Course theme"
   },
+  "clean-two": {
+    "element": "clean-two",
+    "path": "@lrnwebcomponents/clean-one/clean-two.js",
+    "name": "Course theme two"
+  },
   "learn-two-theme": {
     "element": "learn-two-theme",
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
-    "name": "Course theme (alt 1)"
+    "name": "Course theme three"
   },
   "haxor-slevin": {
     "element": "haxor-slevin",
