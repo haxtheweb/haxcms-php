@@ -48,17 +48,11 @@
 					"required": false,
 					"icon": "editor:format-paint",
 					"options": {
-						"learn-two-theme": "Learn",
+						"clean-one": "Course theme",
+						"clean-two": "Course theme 2",
+						"learn-two-theme": "Course theme 3",
 						"haxor-slevin": "Coder blog",
-						"outline-player": "Documentation",
-						"simple-blog": "Simple blog",
-						"haxcms-basic-theme": "Basic site",
-						"haxcms-custom-theme": "Custom theme",
-						"haxcms-user-theme": "User theme",
-						"haxcms-minimalist-theme": "Minimalist site",
-						"haxcms-slide-theme": "Slide deck",
-						"haxcms-dev-theme": "DEVELOPER: Test theme",
-						"haxcms-theme-developer": "EXPERIMENTAL: HAX Theme Maker"
+						"outline-player": "Documentation"
 					}
 				}, {
 					"property": "manifest-metadata-theme-variables-image",

@@ -7,12 +7,12 @@
   "clean-two": {
     "element": "clean-two",
     "path": "@lrnwebcomponents/clean-one/clean-two.js",
-    "name": "Course theme two"
+    "name": "Course theme 2"
   },
   "learn-two-theme": {
     "element": "learn-two-theme",
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
-    "name": "Course theme three"
+    "name": "Course theme 3"
   },
   "haxor-slevin": {
     "element": "haxor-slevin",
@@ -23,10 +23,5 @@
     "element": "outline-player",
     "path": "@lrnwebcomponents/outline-player/outline-player.js",
     "name": "Documentation theme"
-  },
-  "haxcms-custom-theme": {
-    "element": "haxcms-custom-theme",
-    "path": "@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-custom-theme.js",
-    "name": "Custom theme (Developers)"
   }
 }
