@@ -846,9 +846,10 @@ class HAXCMSSite
       }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
+        // /cdn/ is a hack
         $preconnect = '<link rel="preconnect" crossorigin href="' . str_replace('/cdn/', '', $cdn) . '">';
         // preload rewrite correctly
-        $base = $cdn;
+        $base = $cdn . '/';
       }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
