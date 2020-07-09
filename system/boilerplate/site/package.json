@@ -64,7 +64,6 @@
     "@lrnwebcomponents/tab-list": "^2.0.1",
     "@lrnwebcomponents/task-list": "^2.0.1",
     "@lrnwebcomponents/video-player": "^2.0.1",
-    "@lrnwebcomponents/wave-player": "^2.0.1",
     "@lrnwebcomponents/wikipedia-query": "^2.0.1",
     "@polymer/app-localize-behavior": "^3.0.1",
     "@polymer/iron-a11y-keys": "^3.0.0",
