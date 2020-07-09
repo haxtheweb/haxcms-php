@@ -10,10 +10,12 @@ if (/^h/.test(document.location)) {
     if (document.getElementById("haxcmsoutdatedfallback")) {
       document.body.removeChild(document.getElementById("haxcmsoutdatedfallback"));
     }
-    var build2 = document.createElement('script');
-    build2.src = './custom/build/custom.es6.js';
-    build2.type = 'module';
-    def.parentNode.insertBefore(build2, def);
+    if (!window.__appCustomEnv) {
+        var build2 = document.createElement('script');
+        build2.src = './custom/build/custom.es6.js';
+        build2.type = 'module';
+        def.parentNode.insertBefore(build2, def);
+    }
   } catch (err) {
     var ancient=false;
     try {
@@ -58,8 +60,10 @@ link.rel = 'stylesheet';
 link.href = cdn + 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
 link.type = 'text/css';
 def.parentNode.insertBefore(link, def);
-var link2 = document.createElement('link');
-link2.rel = 'stylesheet';
-link2.href = './theme/theme.css';
-link2.type = 'text/css';
-def.parentNode.insertBefore(link2, def);
+if (!window.__appCustomEnv) {
+  var link2 = document.createElement('link');
+  link2.rel = 'stylesheet';
+  link2.href = './theme/theme.css';
+  link2.type = 'text/css';
+  def.parentNode.insertBefore(link2, def);
+}
