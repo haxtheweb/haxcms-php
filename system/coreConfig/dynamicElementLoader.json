@@ -1,4 +1,7 @@
 {
+  "a11y-figure": "@lrnwebcomponents/a11y-figure/a11y-figure.js",
+  "lrndesign-chart": "@lrnwebcomponents/lrndesign-chart/lrndesign-chart.js",
+  "accent-card": "@lrnwebcomponents/accent-card/accent-card.js",
   "h5p-element": "@lrnwebcomponents/h5p-element/h5p-element.js",
   "hax-logo": "@lrnwebcomponents/hax-logo/hax-logo.js",
   "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
@@ -26,7 +29,6 @@
   "q-r": "@lrnwebcomponents/q-r/q-r.js",
   "full-width-image": "@lrnwebcomponents/full-width-image/full-width-image.js",
   "self-check": "@lrnwebcomponents/self-check/self-check.js",
-  "simple-concept-network": "@lrnwebcomponents/simple-concept-network/simple-concept-network.js",
   "stop-note": "@lrnwebcomponents/stop-note/stop-note.js",
   "tab-list": "@lrnwebcomponents/tab-list/tab-list.js",
   "task-list": "@lrnwebcomponents/task-list/task-list.js",
