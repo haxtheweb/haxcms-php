@@ -1840,6 +1840,29 @@ class Operations {
           $repo = @$git->open($directory, true);
           @$repo->set_remote("origin", $repoUrl);
           @$repo->pull('origin', 'master');
+          
+          // this ensures that our repo doesn't get squashed by a sanitization
+          // check that's baked into site loading.
+          // This is safe / nessecary because the git repo url could be
+          // any name for the repo but we do a lot of security checks when
+          // user input is involved. As this is user input but from a valid git
+          // url (which would have failed above if it wasn't real)
+          // working with JSON Outline Schema instead of the extrapolations
+          include_once 'JSONOutlineSchema.php';
+          $manifest = new JSONOutlineSchema();
+          $manifest->load(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path . '/site.json');
+          // repo name matches site->manifest->site->name value as they don't
+          // have to be identical but also is a crud test for if this is a valid
+          // site.json format in the first place
+          if (isset($manifest->metadata) && $repo_path != $manifest->metadata->site->name) {
+            // move directory from the git repo based name to the folder name
+            // that the system will expect
+            rename(
+              HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $repo_path,
+              HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $manifest->metadata->site->name);
+            // update this to ensure it works when we do a full site load
+            $repo_path = $manifest->metadata->site->name;
+          }
           // load the site that we SHOULD have just pulled in
           if ($site = $GLOBALS['HAXCMS']->loadSite($repo_path)) {
             return array(
