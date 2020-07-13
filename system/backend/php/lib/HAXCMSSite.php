@@ -849,7 +849,7 @@ class HAXCMSSite
         // /cdn/ is a hack
         $preconnect = '<link rel="preconnect" crossorigin href="' . str_replace('/cdn/', '', $cdn) . '">';
         // preload rewrite correctly
-        $base = $cdn . '/';
+        $base = str_replace('/cdn/', '/cdn', $cdn) . '/';
       }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
