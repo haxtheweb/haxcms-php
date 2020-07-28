@@ -2251,6 +2251,12 @@ class Operations {
                 }
                 // additional files to move to ensure we don't screw things up
                 $templates = $site->getManagedTemplateFiles();
+                // overwrite these files with their boilerplate versions
+                // so that our templateVars can be relative to a published state
+                // as opposed to a local working state
+                foreach ($templates as $file) {
+                  copy(HAXCMS_ROOT . '/system/boilerplate/site/' . $file, $siteDirectoryPath . '/' . $file);
+                }
                 // support for index as that comes from a CDN defining what to do
                 // remove current index, then pull a new one
                 // this ensures that the php file won't be in the published copy while it is in master
@@ -2325,6 +2331,9 @@ class Operations {
                     $templateVars['basePath'] = '/';
                     if (isset($parts['base'])) {
                         $templateVars['basePath'] = $parts['base'];
+                    }
+                    if ($templateVars['basePath'] == null || $templateVars['basePath'] == '' || $templateVars['basePath'] == false) {
+                      $templateVars['basePath'] = "/";
                     }
                     if ($templateVars['basePath'] == '/') {
                         $templateVars['ghPagesURLParamCount'] = 0;

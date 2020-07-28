@@ -971,7 +971,8 @@ class HAXCMSSite
               $fileSystem->mkdir($path . 'files/haxcms-managed');
               $image = new ImageResize($path . $this->manifest->metadata->site->logo);
               $image->crop($height, $width)
-              ->save($path . $fileName);
+              ->resize($height, $width, TRUE)
+              ->save($path . $fileName, IMAGETYPE_PNG);
           }
         }
       }
