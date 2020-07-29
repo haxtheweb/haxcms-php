@@ -6,7 +6,7 @@
   },
   "clean-two": {
     "element": "clean-two",
-    "path": "@lrnwebcomponents/clean-one/clean-two.js",
+    "path": "@lrnwebcomponents/clean-two/clean-two.js",
     "name": "Course theme 2"
   },
   "learn-two-theme": {

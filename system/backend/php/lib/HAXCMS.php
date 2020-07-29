@@ -954,6 +954,29 @@ class HAXCMS
       }
     }
     /**
+     * Load wc-registry.json relative to the site in question
+     */
+    public function getWCRegistryJson($site, $base = './') {
+      $wcMap = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $site->manifest->metadata->site->name . $base);
+      if (!isset($wcMap)) {
+        // need to make the request relative to site
+        if ($base == './') {
+          // possible this comes up empty
+          if (file_exists($site->directory . '/' . $site->manifest->metadata->site->name . '/wc-registry.json')) {
+            $wcPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/wc-registry.json';
+          }
+          else {
+            $wcPath = HAXCMS_ROOT . '/wc-registry.json';            
+          }
+        }
+        else {
+          $wcPath = $base . 'wc-registry.json';
+        }
+        $wcMap = json_decode(file_get_contents($wcPath));
+      }
+      return $wcMap;
+    }
+    /**
      * Load a site off the file system with option to create
      */
     public function loadSite($name, $create = false, $domain = null)

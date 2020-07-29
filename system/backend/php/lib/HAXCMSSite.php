@@ -820,7 +820,11 @@ class HAXCMSSite
      */
     public function getPageContent($page) {
       if (isset($page->location) && $page->location != '') {
-        return filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location));
+        $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
+        if (!isset($content)) {
+          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location));
+        }
+        return $content;
       }
     }
     /**
@@ -830,8 +834,19 @@ class HAXCMSSite
      * @todo move this to a render function / section / engine
      */
     public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
+      $preloadTags = array();
       if (is_null($page)) {
         $page = new JSONOutlineSchemaItem();
+      }
+      else {
+        $content = $this->getPageContent($page);
+        preg_match_all("/<(?:\"-[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>/", $content, $matches);
+        foreach ($matches[0] as $match) {
+          if (strpos($match, '-')) {
+            $tag = str_replace('>', '', str_replace('</', '', $match));
+            $preloadTags[] = $tag;
+          }
+        }
       }
       // domain's need to inject their own full path for OG metadata (which is edge case)
       // most of the time this is the actual usecase so use the active path
@@ -851,10 +866,26 @@ class HAXCMSSite
         // preload rewrite correctly
         $base = str_replace('/cdn/', '/cdn', $cdn) . '/';
       }
+      $contentPreload = '';
+      $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
+      foreach ($preloadTags as $tag) {
+        // means the tag is known in our registry
+        if (isset($wcMap->{$tag})) {
+          $contentPreload .= '
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
+        }
+      }
       $title = $page->title;
       $siteTitle = $this->manifest->title . ' | ' . $page->title;
       $description = $page->description;
       $hexCode = HAXCMS_FALLBACK_HEX;
+      $themePreload = '';
+      // sanity check, then preload the theme
+      if (isset($this->manifest->metadata->theme->path)) {
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" />';
+      }
       if ($description == '') {
         $description = $this->manifest->description;
       }
@@ -865,8 +896,8 @@ class HAXCMSSite
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
           $hexCode = $this->manifest->metadata->theme->variables->hexCode;
       }
-      $metadata = '<meta charset="utf-8">
-  ' . $preconnect . '
+      $metadata = '
+  <meta charset="utf-8">' . $preconnect . '
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
@@ -879,7 +910,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
-
+' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms">
   <link rel="manifest" href="manifest.json">
@@ -890,21 +921,17 @@ class HAXCMSSite
   <meta name="robots" content="index, follow">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="' . $title . '">
-
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="' . $title . '">
-
   <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '">
   <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '">
   <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '">
   <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '">
   <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '">
-
   <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '">
   <meta name="msapplication-TileColor" content="' . $hexCode . '">
   <meta name="msapplication-tap-highlight" content="no">
-        
   <meta name="description" content="' . $description . '" />
   <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
@@ -924,7 +951,7 @@ class HAXCMSSite
       }
       // add in twitter link if they provided one
       if (isset($this->manifest->metadata->author->socialLink) && strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0) {
-          $metadata .= "\n" . '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
+          $metadata .= '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
       }
       $GLOBALS['HAXCMS']->dispatchEvent('haxcms-site-metadata', $metadata);
       return $metadata;
