@@ -963,8 +963,8 @@ class HAXCMSSite
      */
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
-        if (is_null($path) && isset($_SERVER['SCRIPT_URL'])) {
-          $path = str_replace('/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $_SERVER['SCRIPT_URL']);
+        if (is_null($path)) {
+          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /

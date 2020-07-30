@@ -29,8 +29,8 @@ $here = str_replace('/system/backend/php/bootstrapHAX.php', '', __FILE__);
 // this is needed because of how PHP resolves paths when in symlinked patterns
 // @todo need to support HAXiam in the CLI
 if (file_exists($here . '/_config/IAM')) {
-  if (isset($_SERVER['REQUEST_URI'])) {
-    $pieces = explode('/', $_SERVER['REQUEST_URI']);
+  if ($HAXCMS->request_uri() != '') {
+    $pieces = explode('/', $HAXCMS->request_uri());
     array_shift($pieces);
     $userDir = $pieces[0];
   }
