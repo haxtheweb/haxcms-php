@@ -590,6 +590,8 @@
         "media-image": "@lrnwebcomponents/media-image/media-image.js",
         "lrndesign-blockquote": "@lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js",
         "meme-maker": "@lrnwebcomponents/meme-maker/meme-maker.js",
+        "music-player": "@lrnwebcomponents/music-player/music-player.js",
+        "twitter-embed": "@lrnwebcomponents/twitter-embed/twitter-embed.js",
         "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
         "paper-audio-player": "@lrnwebcomponents/paper-audio-player/paper-audio-player.js",
         "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js",

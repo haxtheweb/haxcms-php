@@ -19,6 +19,8 @@
   "media-behaviors": "@lrnwebcomponents/media-behaviors/media-behaviors.js",
   "media-image": "@lrnwebcomponents/media-image/media-image.js",
   "meme-maker": "@lrnwebcomponents/meme-maker/meme-maker.js",
+  "music-player": "@lrnwebcomponents/music-player/music-player.js",
+  "twitter-embed": "@lrnwebcomponents/twitter-embed/twitter-embed.js",
   "grid-plate": "@lrnwebcomponents/grid-plate/grid-plate.js",
   "md-block": "@lrnwebcomponents/md-block/md-block.js",
   "multiple-choice": "@lrnwebcomponents/multiple-choice/multiple-choice.js",
