@@ -54,6 +54,13 @@
 
   <link rel="stylesheet" href="/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" />
   <link rel="stylesheet" href="./theme/theme.css" />
+  <script>
+    window.process = window.process || {
+      env: {
+        NODE_ENV: "development"
+      }
+    };
+  </script>
   <style>
     body {
       margin: 0;

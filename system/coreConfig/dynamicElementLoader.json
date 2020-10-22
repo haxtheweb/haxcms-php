@@ -1,6 +1,8 @@
 {
   "a11y-figure": "@lrnwebcomponents/a11y-figure/a11y-figure.js",
-  "lrndesign-chart": "@lrnwebcomponents/lrndesign-chart/lrndesign-chart.js",
+  "lrndesign-bar": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-bar.js",
+  "lrndesign-line": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-line.js",
+  "lrndesign-pie": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-pie.js",
   "accent-card": "@lrnwebcomponents/accent-card/accent-card.js",
   "h5p-element": "@lrnwebcomponents/h5p-element/h5p-element.js",
   "hax-logo": "@lrnwebcomponents/hax-logo/hax-logo.js",
@@ -16,7 +18,6 @@
   "lrn-vocab": "@lrnwebcomponents/lrn-vocab/lrn-vocab.js",
   "lrndesign-blockquote": "@lrnwebcomponents/lrndesign-blockquote/lrndesign-blockquote.js",
   "magazine-cover": "@lrnwebcomponents/magazine-cover/magazine-cover.js",
-  "media-behaviors": "@lrnwebcomponents/media-behaviors/media-behaviors.js",
   "media-image": "@lrnwebcomponents/media-image/media-image.js",
   "meme-maker": "@lrnwebcomponents/meme-maker/meme-maker.js",
   "music-player": "@lrnwebcomponents/music-player/music-player.js",

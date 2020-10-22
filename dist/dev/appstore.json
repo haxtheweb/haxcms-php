@@ -1626,6 +1626,9 @@
     "rss-items": "@lrnwebcomponents/rss-items/rss-items.js",
     "random-item": "@lrnwebcomponents/random-item/random-item.js",
     "date-card": "@lrnwebcomponents/date-card/date-card.js",
-    "service-card": "@lrnwebcomponents/service-card/service-card.js"
+    "service-card": "@lrnwebcomponents/service-card/service-card.js",
+    "twitter-embed": "@lrnwebcomponents/twitter-embed/twitter-embed.js",
+    "music-player": "@lrnwebcomponents/music-player/music-player.js",
+    "simple-cta": "@lrnwebcomponents/simple-cta/simple-cta.js"
   }
 }
