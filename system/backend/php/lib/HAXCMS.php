@@ -1401,8 +1401,13 @@ class HAXCMS
     }
     /**
      * Return the link to the cdn to use for serving dynamic pages
+     * if $site defines a dynamicCDN endpoint then this overrides
+     * any global setting. Useful for locally developed custom builds.
      */
-    public function getCDNForDynamic() {
+    public function getCDNForDynamic($site = null) {
+      if ($site && isset($site->manifest->metadata->site->dynamicCDN)) {
+        return $site->manifest->metadata->site->dynamicCDN;
+      }
       return $this->cdn;
     }
     /**
