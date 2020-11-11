@@ -97,6 +97,12 @@
   </head>
   <body>
     <script>
+      // local development and mobx
+      window.process = window.process || {
+        env: {
+          NODE_ENV: "development"
+        }
+      };
       window.WCAutoloadRegistryFile = "./wc-registry.json";
       // set this in order to simulate the published form of the site
       // window.HAXCMSContext="published";

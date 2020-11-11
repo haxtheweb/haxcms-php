@@ -24,7 +24,6 @@ import "@polymer/paper-spinner/paper-spinner.js";
 import "@polymer/paper-listbox/paper-listbox.js";
 import "@polymer/paper-item/paper-item.js";
 import "@lrnwebcomponents/lrnsys-layout/lib/lrnsys-drawer.js";
-import "@lrnwebcomponents/lrnsys-layout/lib/lrnsys-collapselist.js";
 import "@lrnwebcomponents/lrnsys-layout/lib/lrnsys-dialog.js";
 import "@lrnwebcomponents/lrnsys-button/lrnsys-button.js";
 import "@lrnwebcomponents/lrndesign-drawer/lrndesign-drawer.js";
