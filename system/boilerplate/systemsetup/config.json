@@ -578,6 +578,7 @@
         "grid-plate": "@lrnwebcomponents/grid-plate/grid-plate.js",
         "magazine-cover": "@lrnwebcomponents/magazine-cover/magazine-cover.js",
         "video-player": "@lrnwebcomponents/video-player/video-player.js",
+        "editable-table-display": "@lrnwebcomponents/editable-table/lib/editable-table-display.js",
         "image-compare-slider": "@lrnwebcomponents/image-compare-slider/image-compare-slider.js",
         "license-element": "@lrnwebcomponents/license-element/license-element.js",
         "self-check": "@lrnwebcomponents/self-check/self-check.js",
