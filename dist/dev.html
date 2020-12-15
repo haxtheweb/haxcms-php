@@ -199,11 +199,13 @@
   </div>
   <script>document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>
   <!-- Reverse engineer of build.js based on what's needed to test locally -->
+  <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js"></script>
+  <script src="node_modules/@lrnwebcomponents/deduping-fix/deduping-fix.js"></script>
+  <script src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script type="module">
     import "@lrnwebcomponents/wc-autoload/wc-autoload.js";
     import "./custom/src/custom.js";
   </script>
-  <script async src="node_modules/web-animations-js/web-animations-next-lite.min.js"></script>
   <script>
     window.WCAutoloadRegistryFile = window.__appCDN + "wc-registry.json";
     // set this in order to simulate the published form of the site
