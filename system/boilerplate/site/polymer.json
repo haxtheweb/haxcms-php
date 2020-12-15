@@ -53,24 +53,6 @@
       "bundle": false
     },
     {
-      "name": "es6-amd",
-      "browserCapabilities": [
-        "es2015",
-        "modules"
-      ],
-      "js": {
-        "minify": false,
-        "transformModulesToAmd": true
-      },
-      "css": {
-        "minify": true
-      },
-      "html": {
-        "minify": true
-      },
-      "bundle": false
-    },
-    {
       "name": "es5-amd",
       "js": {
         "minify": true,

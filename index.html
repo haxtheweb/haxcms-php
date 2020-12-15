@@ -143,10 +143,10 @@
           // FF 6x.x can be given ES6 compliant code safely
           if (/Firefox\/6/.test(navigator.userAgent) || window.customElements) {
             defs = [
-              cdn + "build/es6-amd/node_modules/web-animations-js/web-animations-next-lite.min.js",
+              cdn + "build/es5-amd/node_modules/web-animations-js/web-animations-next-lite.min.js",
               cdn + "assets/babel-top.js",
-              cdn + "build/es6-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js",
-              cdn + "build/es6-amd/dist/build-home.js",
+              cdn + "build/es5-amd/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js",
+              cdn + "build/es5-amd/dist/build-home.js",
             ];
           }
           else {
