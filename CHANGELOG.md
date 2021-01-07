@@ -1,5 +1,13 @@
 # HAXcms change log
-Full breakdown of changes are always available via our github milestones section
+
+## 2.0.0 - 2021-01-07
+All themes have received a11y and mobile clean up. Lots of performance timing updates as well as an enhanced build routine to improve performance and compatibility with older browsers (and Safari). In all there are over 100 documented issue improvements and far more than that beyond the HAX editor. The editor itself as well as all other elements are now at a 3.0.0 status to reflect their additional stability and performance gains. HAX now loads up (with some issues) on legacy browsers (previously only evergreen could load the editor itself). The UX has improved dramatically as far as accuracy, speed, typing experience, drag and drop, and user expectations when editing in all platforms. Special work was done to bring Firefox and Safari into functional alignment with Chrome/Edge and legacy browsers will even pick up a lot of the UX patterns because of enhanced polyfill support as required.
+
+While 2.0.0, this does not break changes from 1.4.0 released toward the end of 2020.
+A couple of the issues resolved though most are in our consolidated issue queue:
+main queue: https://github.com/elmsln/issues/issues?q=is%3Aissue+is%3Aclosed+haxcms
+haxcms queue: https://github.com/elmsln/HAXcms/milestone/7
+
 ## 1.2.0 - 2020-07-07
 New themes (clean-one, clean-two) as well as multiple a11y and ux issues cleaned up. Improved performance among different site- elements via dropping of the @apply legacy concept. HAXcms is just one of our build targets now so it's issue queue is being winded down in favor of the unified issue queue.
 
