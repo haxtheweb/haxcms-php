@@ -73,8 +73,7 @@ class HAXCMSSite
         // links babel files so that unification is easier
         @symlink(
             '../../wc-registry.json',
-            $directory . '/' . $tmpname . '/wc-registry.json
-            '
+            $directory . '/' . $tmpname . '/wc-registry.json'
         );
         @symlink(
             '../../../babel/babel-top.js',
