@@ -2287,7 +2287,6 @@ class Operations {
                     'metadata' => $site->getSiteMetadata(),
                     'logo512x512' => $site->getLogoSize('512','512'),
                     'logo310x310' => $site->getLogoSize('310','310'),
-                    'logo300x300' => $site->getLogoSize('300','300'),
                     'logo192x192' => $site->getLogoSize('192','192'),
                     'logo150x150' => $site->getLogoSize('150','150'),
                     'logo144x144' => $site->getLogoSize('144','144'),

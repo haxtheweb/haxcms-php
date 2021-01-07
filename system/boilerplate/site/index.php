@@ -139,7 +139,7 @@
 <body no-js <?php print $site->getSitePageAttributes();?>>
   <div id="loading">
     <div class="messaging">
-      <img src="<?php print $site->getLogoSize('300', '300');?>" alt="" loading="lazy" height="300px" width="300px" />
+      <img src="<?php print $site->getLogoSize('310', '310');?>" alt="" loading="lazy" height="310px" width="310px" />
       <div class="progress-line"></div>
       <h1>Loading <?php print $site->name; ?>..</h1>
     </div>

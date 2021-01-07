@@ -157,7 +157,7 @@ class HAXCMSSite
             'msbc' => 'browserconfig.xml',
             'dat' => 'dat.json',
             'build' => 'build.js',
-            'buildlegacy' => 'build-legacy.js',
+            'buildlegacy' => 'assets/build-legacy.js',
             'buildhaxcms' => 'build-haxcms.js',
             'index' => 'index.html',
             'manifest' => 'manifest.json',
