@@ -1591,6 +1591,7 @@
     }
   ],
   "autoloader": {
+    "course-intro": "@lrnwebcomponents/course-design/lib/course-intro.js",
     "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",
     "editable-table-display": "@lrnwebcomponents/editable-table/lib/editable-table-display.js",
     "md-block": "@lrnwebcomponents/md-block/md-block.js",
