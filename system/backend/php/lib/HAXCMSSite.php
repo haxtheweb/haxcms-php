@@ -157,6 +157,7 @@ class HAXCMSSite
             'dat' => 'dat.json',
             'build' => 'build.js',
             'buildlegacy' => 'assets/build-legacy.js',
+            'buildpolyfills' => 'assets/build-polyfills.js',
             'buildhaxcms' => 'build-haxcms.js',
             'index' => 'index.html',
             'manifest' => 'manifest.json',
