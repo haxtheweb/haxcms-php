@@ -954,7 +954,6 @@
 	"description": "",
 	"license": "by-sa",
 	"metadata": {
-	"siteName": "haxcms-odl",
 	"image": "assets/banner.jpg",
 	"theme": {
 	"element": "odl-haxtheme",
