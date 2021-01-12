@@ -29,6 +29,7 @@ class HAXCMSSite
     public function loadInDocker($directory)
     {
         $this->directory = $directory;
+        $this->basePath = "/";
         $this->manifest = new JSONOutlineSchema();
         // presumably this is /var/www/html
         $this->manifest->load($this->directory . '/site.json');
@@ -741,6 +742,9 @@ class HAXCMSSite
      * @return string HTML blob for hte <base> tag
      */
     public function getBaseTag() {
+      if (file_exists("/.dockerenv")) {
+        return '<base href="' . $this->basePath . '" />';
+      }
       return '<base href="' . $this->basePath . $this->name . '/" />';
     }
     /**
