@@ -34,6 +34,9 @@ gulp.task("wc-autoloader", async () => {
           contents
         );
         // basic
+        if (fLocation === "@lrnwebcomponents/lrn-math/lrn-math.js") {
+          console.log(defineStatements);
+        }
         if (defineStatements) {
           elements[defineStatements[1]] = fLocation;
         }
