@@ -1056,6 +1056,11 @@ class HAXCMS
         } elseif ($create) {
             // attempt to create site
             return $this->createSite($name, $domain);
+        } elseif (file_exists("/.dockerenv") && $name == "html") {
+          // we're in a docker container, howay!
+          $site = new HAXCMSSite();
+          $site->loadInDocker(HAXCMS_ROOT);
+          return $site;
         }
         return false;
     }

@@ -21,6 +21,9 @@
     else if (document.location.pathname.indexOf('/sites/') != -1) {
       document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
     }
+    else {
+      document.write("<base href='/' />");
+    }
   </script>
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
   <meta name="generator" content="HAXcms">

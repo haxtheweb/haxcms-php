@@ -24,6 +24,18 @@ class HAXCMSSite
         $this->manifest->load($this->directory . '/' . $tmpname . '/site.json');
     }
     /**
+     * Load a site based on being in a docker root which has the project as /var/www/html
+     */
+    public function loadInDocker($directory)
+    {
+        $this->directory = $directory;
+        $this->manifest = new JSONOutlineSchema();
+        // presumably this is /var/www/html
+        $this->manifest->load($this->directory . '/site.json');
+        // pull name out of site.json
+        $this->name = $this->manifest->metadata->site->name;
+    }
+    /**
      * Initialize a new site with a single page to start the outline
      * @var $directory string file system path
      * @var $siteBasePath string web based url / base_path

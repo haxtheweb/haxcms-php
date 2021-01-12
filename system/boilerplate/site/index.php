@@ -1,5 +1,9 @@
 <?php
-  include_once __DIR__ . '/../../system/backend/php/bootstrapHAX.php';
+  $bootstrapPath = "/../..";
+  if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
+    $bootstrap = "";
+  }
+  include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
   include_once $HAXCMS->configDirectory . '/config.php';
   $site = $HAXCMS->loadSite(basename(__DIR__));
   $page = $site->loadNodeByLocation();
