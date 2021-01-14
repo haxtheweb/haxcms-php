@@ -742,7 +742,7 @@ class HAXCMSSite
      * @return string HTML blob for hte <base> tag
      */
     public function getBaseTag() {
-      if (file_exists("/.dockerenv")) {
+      if (isset($GLOBALS["HAXcmsInDocker"])) {
         return '<base href="' . $this->basePath . '" />';
       }
       return '<base href="' . $this->basePath . $this->name . '/" />';

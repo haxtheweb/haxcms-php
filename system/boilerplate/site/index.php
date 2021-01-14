@@ -1,6 +1,7 @@
 <?php
   $bootstrapPath = "/../..";
   if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
+    $GLOBALS["HAXcmsInDocker"] = true;
     $bootstrapPath = "";
   }
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';

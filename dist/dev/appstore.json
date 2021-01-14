@@ -1592,6 +1592,9 @@
   ],
   "autoloader": {
     "course-intro": "@lrnwebcomponents/course-design/lib/course-intro.js",
+    "block-quote": "@lrnwebcomponents/course-design/lib/block-quote.js",
+    "ebook-button": "@lrnwebcomponents/course-design/lib/ebook-button.js",
+    "worksheet-download": "@lrnwebcomponents/course-design/lib/worksheet-download.js",
     "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",
     "editable-table-display": "@lrnwebcomponents/editable-table/lib/editable-table-display.js",
     "md-block": "@lrnwebcomponents/md-block/md-block.js",
