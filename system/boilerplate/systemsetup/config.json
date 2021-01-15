@@ -573,6 +573,11 @@
           }
       ],
       "autoloader": {
+        "block-quote":"@lrnwebcomponents/course-design/lib/block-quote.js",
+        "course-intro":"@lrnwebcomponents/course-design/lib/course-intro.js",
+        "ebook-button":"@lrnwebcomponents/course-design/lib/ebook-button.js",
+        "lrn-h5p":"@lrnwebcomponents/course-design/lib/lrn-h5p.js",
+        "worksheet-download":"@lrnwebcomponents/course-design/lib/worksheet-download.js",
         "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",
         "md-block": "@lrnwebcomponents/md-block/md-block.js",
         "grid-plate": "@lrnwebcomponents/grid-plate/grid-plate.js",
