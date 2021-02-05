@@ -95,6 +95,7 @@ foreach ($lessons as $key => $lesson) {
     $parent = $page->id;
     $cleanTitleParent = $lesson['@attributes']['directory'];
     $page->location = 'pages/' . $cleanTitleParent . '/index.html';
+    $page->slug = $cleanTitleParent;
     $site->recurseCopy(
         HAXCMS_ROOT . '/system/boilerplate/page/default',
         $siteDirectory . '/pages/' . $cleanTitleParent
