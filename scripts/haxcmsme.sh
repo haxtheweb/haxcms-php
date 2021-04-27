@@ -1,5 +1,4 @@
 #!/bin/bash
-
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)     machine=Linux;;
@@ -42,9 +41,19 @@ windows_ddev() {
 
 linux_ddev() {
 	if ! command -v ddev;then
+		curl -LO https://raw.githubusercontent.com/drud/ddev/master/scripts/install_ddev.sh && bash install_ddev.sh
 	fi
 }
 
 if [ "${machine}" == "Cygwin" ]; then
 	windows_ddev
+elif [ "${machine}" == "MinGw" ]; then
+	windows_ddev
+else
+	if ! command -v docker-compose;then
+		sudo curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+		sudo chmod +x /usr/local/bin/docker-compose
+		sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+	fi
+	linux_ddev
 fi

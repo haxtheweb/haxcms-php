@@ -25,6 +25,11 @@ HAXcms seeks to be the smallest possible back-end CMS to make HAX work and be ab
 cd system/backend/nodejs
 yarn run dev
 ```
+
+## Quick Install
+```bash
+$ curl -fsSL https://raw.githubusercontent.com/elmsln/HAXcms/master/scripts/haxcmsme.sh -o haxcmsme.sh && sh haxcmsme.sh
+```
 ## Installation Guides
 - There are full installation instructions available at https://haxtheweb.org/installation which details many different install routines.
 ### Containers
