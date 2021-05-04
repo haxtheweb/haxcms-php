@@ -14,6 +14,11 @@
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
     "name": "Course theme 3"
   },
+  "bootstrap-theme": {
+    "element": "bootstrap-theme",
+    "path": "@lrnwebcomponents/bootstrap-theme/bootstrap-theme.js",
+    "name": "Bootstrap theme"
+  },
   "haxor-slevin": {
     "element": "haxor-slevin",
     "path": "@lrnwebcomponents/haxor-slevin/haxor-slevin.js",
