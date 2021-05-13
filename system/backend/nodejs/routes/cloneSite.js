@@ -44,9 +44,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
         HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + cloneName
     );
     // we need to then load and rewrite the site name var or it will conflict given the name change
-    let site = HAXCMS.loadSite(cloneName);
-    site.manifest.metadata.site.name = cloneName;
-    site.save();
+    let newSite = HAXCMS.loadSite(cloneName);
+    newSite.manifest.metadata.site.name = cloneName;
+    newSite.save();
     return {
       'link':
         HAXCMS.basePath +

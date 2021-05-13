@@ -1,5 +1,5 @@
 const fs = require('fs-extra');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 /**
  * JSONOutlineSchemaItem - a single item without an outline of items.
  */
@@ -45,3 +45,4 @@ class JSONOutlineSchemaItem
         return false;
     }
 }
+module.exports = JSONOutlineSchemaItem;

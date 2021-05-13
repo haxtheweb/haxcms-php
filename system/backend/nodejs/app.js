@@ -10,18 +10,34 @@ const server = require('http').Server(app);
 const HAXCMS = require('./lib/HAXCMS.js');
 // app settings
 const port = 3000;
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
 app.use(cookieParser());
 app.use(fileUpload());
 app.use(express.static("public"))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+app.use('/', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
   res.setHeader('Content-Type', 'application/json');
   next();
+});
+// sites need rewriting to work with PWA routes without failing file location
+// similar to htaccess
+app.use('/sites/',(req, res) => {
+  // previous will catch as json, undo that
+  res.setHeader('Content-Type', 'text/html');
+  // send file for the index even tho route says it's a path not on our file system
+  // this way internal routing picks up and loads the correct content while
+  // at the same time express has delivered us SOMETHING as the path in the request
+  // url doesn't actually exist
+  res.sendFile(req.url.replace(/\/(.*?)\/(.*)/, "/sites/$1/index.html"),
+  {
+    root: __dirname + "/public"
+  });
 });
 //pre-flight requests
 app.options('*', function(req, res) {
@@ -88,7 +104,7 @@ for (var method in routes) {
     app[method](`${HAXCMS.basePath}${HAXCMS.apiBase}${route}`, (req, res) => {
       const op = req.route.path.replace(`${HAXCMS.basePath}${HAXCMS.apiBase}`, '');
       const rMethod = req.method.toLowerCase();
-      if (openRoutes.includes(op) || HAXCMS.validateJWT(req)) {
+      if (openRoutes.includes(op) || HAXCMS.validateJWT(req, res)) {
         // call the method
         routes[rMethod][op](req, res);
       }

@@ -144,22 +144,22 @@ const strtr = require('locutus/php/strings/strtr');
                 ).isFile()
             ) {
                 // move the index.html and fs.unlink the symlinks otherwise we'll get build failures
-                if (fs.lstat(siteDirectoryPath + '/build').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/build').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/build');
                 }
-                if (fs.lstat(siteDirectoryPath + '/dist').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/dist').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/dist');
                 }
-                if (fs.lstat(siteDirectoryPath + '/node_modules').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/node_modules').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/node_modules');
                 }
-                if (fs.lstat(siteDirectoryPath + '/wc-registry.json').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/wc-registry.json').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/wc-registry.json');
                 }
-                if (fs.lstat(siteDirectoryPath + '/assets/babel-top.js').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/assets/babel-top.js').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/assets/babel-top.js');
                 }
-                if (fs.lstat(siteDirectoryPath + '/assets/babel-bottom.js').isSymbolicLink()) {
+                if (fs.lstatSync(siteDirectoryPath + '/assets/babel-bottom.js').isSymbolicLink()) {
                     fs.unlink(siteDirectoryPath + '/assets/babel-bottom.js');
                 }
                 // copy these things because we have a local routine

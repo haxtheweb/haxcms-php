@@ -10,7 +10,7 @@ const HAXAppStoreService = new class HAXAppStoreService
     loadBaseAppStore(apikeys = {})
     {
         let json = [];
-        let jsonstring = '';
+        jsonstring = '';
         // youtube
         if (apikeys['youtube']) {
             jsonstring={
@@ -967,7 +967,7 @@ const HAXAppStoreService = new class HAXAppStoreService
      */
     loadBaseBlox()
     {
-        let jsonstring = [
+        jsonstring = [
     {
       "details": {
         "title": "50% columns",
@@ -1161,7 +1161,7 @@ const HAXAppStoreService = new class HAXAppStoreService
      */
     loadBaseStax()
     {
-        let jsonstring = [{
+        jsonstring = [{
       "details": {
         "title": "Example Lesson",
         "author": "ELMS:LN",

@@ -145,3 +145,4 @@ class FeedMe
         return output;
     }
 }
+module.exports = FeedMe;

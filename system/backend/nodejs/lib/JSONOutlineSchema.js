@@ -1,5 +1,5 @@
 const fs = require('fs-extra');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const JSONOutlineSchemaItem = require('./lib/JSONOutlineSchemaItem.js');
 const array_search = require('locutus/php/array/array_search');
 const usort = require('locutus/php/array/usort');
@@ -274,3 +274,4 @@ class JSONOutlineSchema
         }
     }
 }
+module.exports = JSONOutlineSchema;

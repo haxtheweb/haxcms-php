@@ -51,7 +51,7 @@ const Git = require("nodegit");
    * )
    */
 async function createSite(req, res) {
-if (HAXCMS.validateRequestToken('', null, req.body)) {
+if (HAXCMS.validateRequestToken(null, null, req.body)) {
     let domain = null;
     // woohoo we can edit this thing!
     if (req.body['site']['domain'] && req.body['site']['domain'] != null && req.body['site']['domain'] != '') {
@@ -59,6 +59,7 @@ if (HAXCMS.validateRequestToken('', null, req.body)) {
     }
     // sanitize name
     let name = HAXCMS.generateMachineName(req.body['site']['name']);
+    console.log(name);
     let site = HAXCMS.loadSite(
         name.toLowerCase(),
         true,
