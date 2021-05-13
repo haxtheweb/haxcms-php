@@ -397,7 +397,7 @@ class HAXCMSSite
             $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->add('.');
-        $repo->commit($msg);
+        $repo->commit("commit forced");
         return true;
     }
 

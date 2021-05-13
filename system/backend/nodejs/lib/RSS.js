@@ -7,7 +7,7 @@ class FeedMe
      */
     getRSSFeed(site)
     {
-        domain = "";
+        let domain = "";
         if ((site.manifest.metadata.site.domain)) {
             domain = site.manifest.metadata.site.domain;
         }
@@ -100,14 +100,14 @@ class FeedMe
      */
     atomItems(site, limit = 25)
     {
-        output = '';
-        domain = "";
-        count = 0;
+        let output = '';
+        let domain = "";
+        let count = 0;
         if ((site.manifest.metadata.site.domain)) {
             domain = site.manifest.metadata.site.domain;
         }
-        items = site.sortItems('created');
-        siteDirectory = site.directory + '/' + site.manifest.metadata.site.name;
+        let items = site.sortItems('created');
+        let siteDirectory = site.directory + '/' + site.manifest.metadata.site.name;
         for (var key in items) {
             let item = items[key];
             let tags = '';

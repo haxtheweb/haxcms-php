@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
-const JSONOutlineSchemaItem = require('./lib/JSONOutlineSchemaItem.js');
+const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
 const array_search = require('locutus/php/array/array_search');
 const usort = require('locutus/php/array/usort');
 
@@ -92,7 +92,7 @@ class JSONOutlineSchema
     addItem(item)
     {
         let safeItem = this.validateItem(item);
-        count = this.items.push(safeItem);
+        let count = this.items.push(safeItem);
         return count;
     }
     /**
@@ -105,7 +105,7 @@ class JSONOutlineSchema
         // create a generic schema item
         let tmp = new JSONOutlineSchemaItem();
         // crush the item given into a stdClass object
-        ary = get_object_vars(item);
+        let ary = (item);
         for (var key in ary) {
             // only set what the element from spec allows into a new object
             if ((tmp[key])) {
@@ -117,7 +117,7 @@ class JSONOutlineSchema
     /**
      * Remove an item from the outline if it exists
      * @var id an id that's in the array of items
-     * @return JSONOutlineSchemaItem or FALSE if not found
+     * @return JSONOutlineSchemaItem or false if not found
      */
     removeItem(id)
     {
@@ -133,7 +133,7 @@ class JSONOutlineSchema
     /**
      * Update an item in the outline
      * @var id an id that's in the array of items
-     * @return JSONOutlineSchemaItem or FALSE if not found
+     * @return JSONOutlineSchemaItem or false if not found
      */
     updateItem(item, save = false)
     {
@@ -163,7 +163,7 @@ class JSONOutlineSchema
         if (fs.lstatSync(location).isFile()) {
             this.file = location;
             let fileData = json_decode(fs.readFileSync(location));
-            let vars = get_object_vars(fileData);
+            let vars = (fileData);
             for (var key in vars) {
                 if ((this[key]) && key != 'items') {
                     this[key] = vars[key];
@@ -211,14 +211,15 @@ class JSONOutlineSchema
         if (reorder) {
             this.items = this.orderTree(this.items);
         }
-        let schema = get_object_vars(this);
+        let schema = (this);
         let file = schema['file'];
         delete schema['file'];
         schema['items'] = [];
         for (var key in this.items) {
-            let newItem = get_object_vars(this.items[key]);
+            let newItem = (this.items[key]);
             schema['items'].push(newItem)
         }
+        let output;
         // ensure we have valid json object
         if (output = JSON.stringify(schema, null, 2)) {
           return fs.writeFile(file, output);

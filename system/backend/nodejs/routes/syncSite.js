@@ -57,7 +57,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
           repo.checkout(gitSettings.branch);
           repo.pull('origin', gitSettings.branch);
           repo.push('origin', gitSettings.branch);
-          res.send(TRUE);
+          res.send(true);
       }
     } else {
       res.send(500);

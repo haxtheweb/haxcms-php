@@ -18,7 +18,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   function siteUpdateAlternateFormats(req, res) {
-    format = NULL;
+    let format = null;
     let site = HAXCMS.loadSite(req.body['site']['name']);
     if ((req.body['format'])) {
       format = req.body['format'];

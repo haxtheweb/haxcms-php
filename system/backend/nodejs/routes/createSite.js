@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const HAXCMS = require('../lib/HAXCMS.js');
-const Git = require("nodegit");
+const { Git } = require('git-interface');
 /**
    * @OA\Post(
    *    path="/createSite",
@@ -142,19 +142,22 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     site.manifest.save(false);
     // main site schema doesn't care about publishing settings
     delete schema.metadata.site.git;
-    let repo = Git.open(
-        site.directory + '/' + site.manifest.metadata.site.name
-    );
-    repo.add('.');
-    site.gitCommit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
+
+    const git = new Git({
+        dir: site.directory + '/' + site.manifest.metadata.site.name
+    });
+    git.setDir(site.directory + '/' + site.manifest.metadata.site.name);
+    git.init();
+    await git.add();
+    await git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
     // make a branch but dont use it
     if (site.manifest.metadata.site.git.staticBranch) {
-        repo.create_branch(
+        git.createBranch(
             site.manifest.metadata.site.git.staticBranch
         );
     }
     if (site.manifest.metadata.site.git.branch) {
-        repo.create_branch(
+        git.createBranch(
             site.manifest.metadata.site.git.branch
         );
     }

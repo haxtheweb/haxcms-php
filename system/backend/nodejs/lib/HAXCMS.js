@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const url = require('url');
 const JWT = require('jsonwebtoken');
 const utf8 = require('utf8');
+const Git = require("git-interface");
+const JSONOutlineSchema = require('./JSONOutlineSchema.js');
 const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
 const FeedMe = require('./RSS.js');
 const sharp = require('sharp');
@@ -12,6 +14,7 @@ const filter_var = require('./filter_var.js');
 const array_search = require('locutus/php/array/array_search');
 const array_unshift = require('locutus/php/array/array_unshift');
 const base64_encode = require('locutus/php/url/base64_encode');
+const json_encode = require('locutus/php/json/json_encode');
 const strtr = require('locutus/php/strings/strtr');
 const usort = require('locutus/php/array/usort');
 const HAXCMS_ROOT = process.env.HAXCMS_ROOT || __dirname + "/../../../../";
@@ -82,18 +85,24 @@ const HAXCMS = new class HAXCMSClass {
                 );
               }
               if (!fs.lstatSync(siteDirectoryPath + '/assets/babel-top.js').isSymbolicLink()) {
-                fs.unlink(siteDirectoryPath + '/assets/babel-top.js');
-                fs.symlink(
-                  '../../../babel/babel-top.js',
-                    siteDirectoryPath + '/assets/babel-top.js'
-                );
+                try {
+                  fs.unlink(siteDirectoryPath + '/assets/babel-top.js');
+                  fs.symlink(
+                    '../../../babel/babel-top.js',
+                      siteDirectoryPath + '/assets/babel-top.js'
+                  );
+                }
+                catch(e) {}
               }
               if (!fs.lstatSync(siteDirectoryPath + '/assets/babel-bottom.js').isSymbolicLink()) {
-                fs.unlink(siteDirectoryPath + '/assets/babel-bottom.js');
-                fs.symlink(
-                    '../../../babel/babel-bottom.js',
-                    siteDirectoryPath + '/assets/babel-bottom.js'
-                );
+                try {
+                  fs.unlink(siteDirectoryPath + '/assets/babel-bottom.js');
+                  fs.symlink(
+                      '../../../babel/babel-bottom.js',
+                      siteDirectoryPath + '/assets/babel-bottom.js'
+                  );
+                }
+                catch(e) {}
               }
             }
             return site;
@@ -574,9 +583,9 @@ class HAXCMSSite
             directory + '/' + tmpname + '/assets/babel-bottom.js'
         );
         // default support is for gh-pages
-        if (domain == null && (gitDetails.user)) {
+        if (domain == null && (gitDetails != null && gitDetails.user)) {
             domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
-        } else {
+        } else if (domain != null) {
             // put domain into CNAME not the github.io address if that exists
             fs.writeFile(directory + '/' + tmpname + '/CNAME', domain);
         }
@@ -598,12 +607,20 @@ class HAXCMSSite
         this.manifest.metadata.theme.variables = {};
         this.manifest.metadata.node = {};
         this.manifest.metadata.node.fields = {};
+        this.manifest.items = [];
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         this.addPage(null, 'Welcome to a new HAXcms site!', 'init');
         // put this in version control :) :) :)
-        git = new Git();
-        repo = git.create(directory + '/' + tmpname);
+
+        const git = new Git({
+          dir: directory + '/' + tmpname
+        });
+        git.setDir(directory + '/' + tmpname);
+        // initalize git repo
+        git.init();
+        git.add();
+        git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
         if (
             !(this.manifest.metadata.site.git.url) &&
             (gitDetails.url)
@@ -835,16 +852,17 @@ class HAXCMSSite
      */
     gitCommit(msg = 'Committed changes')
     {
-        git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
-        repo = git.open(
-            this.directory + '/' + this.manifest.metadata.site.name, true
-        );
-        repo.add('.');
-        repo.commit(msg);
+        const git = new Git({
+          dir: this.directory + '/' + this.manifest.metadata.site.name
+        });
+        git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
+        git.add();
+        git.commit(msg);
         // commit should execute the automatic push flag if it's on
         if ((this.manifest.metadata.site.git.autoPush) && this.manifest.metadata.site.git.autoPush && (this.manifest.metadata.site.git.branch)) {
-            repo.push('origin', this.manifest.metadata.site.git.branch);
+          git.checkout(this.manifest.metadata.site.git.branch);
+          git.push();
         }
         return true;
     }
@@ -853,25 +871,26 @@ class HAXCMSSite
      */
     gitRevert(count = 1)
     {
-        git = new Git();
-        repo = git.open(
-            this.directory + '/' + this.manifest.metadata.site.name, true
-        );
-        repo.revert(count);
-        return true;
+      //const git = new Git({
+      //  dir: this.directory + '/' + this.manifest.metadata.site.name
+      //});
+      //git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
+      //git.revert(count);
+      return true;
     }
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
     gitPush()
     {
-        git = new Git();
-        repo = git.open(
-            this.directory + '/' + this.manifest.metadata.site.name, true
-        );
-        repo.add('.');
-        repo.commit(msg);
-        return true;
+      const git = new Git({
+        dir: this.directory + '/' + this.manifest.metadata.site.name
+      });
+      git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
+      git.add();
+      git.commit("commit forced");
+      git.push();
+      return true;
     }
 
     /**
@@ -881,12 +900,12 @@ class HAXCMSSite
      */
     gitSetRemote(gitDetails)
     {
-        git = new Git();
-        repo = git.open(
-            this.directory + '/' + this.manifest.metadata.site.name, true
-        );
-        repo.set_remote("origin", gitDetails.url);
-        return true;
+      const git = new Git({
+        dir: this.directory + '/' + this.manifest.metadata.site.name
+      });
+      git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
+      repo.setRemote("origin", gitDetails.url);
+      return true;
     }
     /**
      * Add a page to the site's file system and reflect it in the outine schema.
@@ -916,9 +935,11 @@ class HAXCMSSite
         page.order = this.manifest.items.length;
         // location is the html file we just copied and renamed
         page.location = 'pages/welcome/index.html';
-        page.metadata.created = Date.now();
-        page.metadata.updated = Date.now();
-        location =
+        page.metadata = {
+          created: Date.now(),
+          updated: Date.now(),
+        }
+        var location =
             this.directory +
             '/' +
             this.manifest.metadata.site.name +
@@ -949,10 +970,10 @@ class HAXCMSSite
      */
     updateAlternateFormats(format = null)
     {
-        siteDirectory = this.directory + '/' + this.manifest.metadata.site.name + '/';
+        let siteDirectory = this.directory + '/' + this.manifest.metadata.site.name + '/';
         if (format == null || format == 'rss') {
             // rip changes to feed urls
-            rss = new FeedMe();
+            let rss = new FeedMe();
             siteDirectory =
                 this.directory + '/' + this.manifest.metadata.site.name + '/';
             fs.writeFile(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
@@ -962,14 +983,16 @@ class HAXCMSSite
             );
         }
         // build a sitemap if we have a domain, kinda required...
-        if (format == null || format == 'sitemap') {
-            if ((this.manifest.metadata.site.domain)) {
-                domain = this.manifest.metadata.site.domain;
-                // @todo sitemap generator needs an equivalent
+       /* if (format == null || format == 'sitemap') {
+                          // @todo sitemap generator needs an equivalent
+          
+          if ((this.manifest.metadata.site.domain)) {
+                let domain = this.manifest.metadata.site.domain;
                 //generator = new \Icamys\SitemapGenerator\SitemapGenerator(
                 //    domain,
                 //    siteDirectory
                 //);
+                let generator = {};
                 // will create also compressed (gzipped) sitemap
                 generator.createGZipFile = true;
                 // determine how many urls should be put into one file
@@ -989,7 +1012,7 @@ class HAXCMSSite
                     } else {
                         priority = '0.5';
                     }
-                    updatedTime = Date.now();
+                    let updatedTime = Date.now();
                     updatedTime.setTimestamp(item.metadata.updated);
                     let d = new Date();
                     updatedTime.format(d.toISOString());
@@ -1001,11 +1024,11 @@ class HAXCMSSite
                     );
                 }
                 // generating internally a sitemap
-                generator.createSitemap();
+                 generator.createSitemap();
                 // writing early generated sitemap to file
-                generator.writeSitemap();
+                 generator.writeSitemap();
             }
-        }
+        }*/
         if (format == null || format == 'legacy') {
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
             fs.writeFile(
@@ -1069,18 +1092,6 @@ class HAXCMSSite
       text = implode(' ', array_unique(explode(' ', text)));
       return text;
     }
-    compareItemKeys(a, b) {
-      let key = this.__compareItemKey;
-      let dir = this.__compareItemDir;
-      if (a.metadata[key]) {
-        if (dir == 'DESC') {
-          return a.metadata[key] > b.metadata[key];
-        }
-        else {
-          return a.metadata[key] < b.metadata[key];
-        }
-      }
-    }
     /**
      * Sort items by a certain key value. Must be in the included list for safety of the sort
      * @var string key - the key name to sort on, only some supported
@@ -1088,14 +1099,25 @@ class HAXCMSSite
      * @return array items - sorted items based on the key used
      */
     sortItems(key, dir = 'ASC') {
-        items = this.manifest.items;
+        let items = this.manifest.items;
         switch (key) {
             case 'created':
             case 'updated':
             case 'readtime':
               this.__compareItemKey = key;
               this.__compareItemDir = dir;
-              usort(items, [this, 'compareItemKeys']);
+              usort(items, function (a, b) {
+                let key = this.__compareItemKey;
+                let dir = this.__compareItemDir;
+                if (a.metadata[key]) {
+                  if (dir == 'DESC') {
+                    return a.metadata[key] > b.metadata[key];
+                  }
+                  else {
+                    return a.metadata[key] < b.metadata[key];
+                  }
+                }
+              });
             break;
             case 'id':
             case 'title':
@@ -1121,7 +1143,7 @@ class HAXCMSSite
      */
     treeToNodes(current, rendered = [], html = '')
     {
-        loc = '';
+        let loc = '';
         for (var key in current) {
             let item = this.manifest.items[key];
             if (!array_search(item.id, rendered)) {
@@ -1729,30 +1751,7 @@ class HAXCMSSite
      */
     recurseCopy(src, dst, skip = [])
     {
-      var dir = fs.readdirSync(src);
-      // see if we can make the directory to start off
-      if (typeof dir !== "Array") {
-        dir = [dir];
-      }
-      console.log(typeof dir);
-      dir.forEach((item) => {
-        if (item && !fs.existsSync(dst) && array_search(dst, skip) === false && fs.mkdir(dst)) {
-          console.log(item);
-            while (false !== (file = fs.readFileSync(item))) {
-                if (file != '.' && file != '..') {
-                    if (fs.existsSync(src + '/' + file) && fs.lstatSync(src + '/' + file).isDirectory() && array_search(file, skip) === false) {
-                        this.recurseCopy(
-                            src + '/' + file,
-                            dst + '/' + file
-                        );
-                    } else {
-                        fs.copy(src + '/' + file, dst + '/' + file);
-                    }
-                }
-            }
-        }
-      });
-      return false;
+      fs.copySync(src, dst);
     }
 }
 module.exports = HAXCMS;

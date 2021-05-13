@@ -205,14 +205,14 @@ const strtr = require('locutus/php/strings/strtr');
                     'ghPagesURLParamCount' : 1,
                     'licenseLink' : licenseLink,
                     'licenseName' : licenseName,
-                    'serviceWorkerScript' : site.getServiceWorkerScript('/' + site.manifest.metadata.site.name + '/', TRUE),
+                    'serviceWorkerScript' : site.getServiceWorkerScript('/' + site.manifest.metadata.site.name + '/', true),
                     'bodyAttrs' : site.getSitePageAttributes(),
                 };
                 // custom isn't a regex by design
                 if (cdn != 'custom') {
                   // special fallback for HAXtheWeb since it cheats in order to demo the solution
                   templateVars['cdn'] = cdn;
-                  templateVars['metadata'] = site.getSiteMetadata(NULL, domain, 'https://' + templateVars['cdn']);
+                  templateVars['metadata'] = site.getSiteMetadata(null, domain, 'https://' + templateVars['cdn']);
                   // build a regex so that we can do fully offline sites and cache the cdn requests even
                   templateVars['cdnRegex'] =
                     "(https?:\/\/" +    
@@ -239,7 +239,7 @@ const strtr = require('locutus/php/strings/strtr');
                         templateVars['ghPagesURLParamCount'] = 0;
                     }
                     // now we need to update the SW to match
-                    templateVars['serviceWorkerScript'] = site.getServiceWorkerScript(templateVars['basePath'], TRUE);
+                    templateVars['serviceWorkerScript'] = site.getServiceWorkerScript(templateVars['basePath'], true);
                 }
                 if ((site.manifest.metadata.theme.variables.hexCode)) {
                     templateVars['hexCode'] =

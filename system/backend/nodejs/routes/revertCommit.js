@@ -21,6 +21,6 @@ const HAXCMS = require('../lib/HAXCMS.js');
     let site = HAXCMS.loadSite(req.body['site']['name']);
     // this will revert the top commit
     site.gitRevert();
-    return TRUE;
+    return true;
   }
   module.exports = revertCommit;
