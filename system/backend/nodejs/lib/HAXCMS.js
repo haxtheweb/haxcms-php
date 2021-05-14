@@ -4,7 +4,22 @@ const crypto = require('crypto');
 const url = require('url');
 const JWT = require('jsonwebtoken');
 const utf8 = require('utf8');
-const Git = require("git-interface");
+const { Git } = require('git-interface');
+const substr = require('locutus/php/strings/substr')
+class GitPlus extends Git {
+  async revert(count) {
+    let counter = 0;
+    // sanity check
+    if (count < 1) {
+        count = 1;
+    }
+    while (counter != count) {
+        await this.gitExec("reset --hard HEAD~1");
+        counter++;
+    }
+    return true;
+  }
+}
 const JSONOutlineSchema = require('./JSONOutlineSchema.js');
 const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
 const FeedMe = require('./RSS.js');
@@ -46,7 +61,8 @@ const HAXCMS = new class HAXCMSClass {
       name: 'admin',
       password: 'admin',
     };
-
+    // makes it easier to request a new item from the schema factory
+    this.outlineSchema = new JSONOutlineSchema();
     this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"), 'utf8'));
     this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"), 'utf8'));
     this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"), 'utf8');
@@ -54,7 +70,7 @@ const HAXCMS = new class HAXCMSClass {
   /**
    * Load a site off the file system with option to create
    */
-  loadSite(name, create = false, domain = null)
+  async loadSite(name, create = false, domain = null)
     {
         let tmpname = decodeURIComponent(name);
         tmpname = this.cleanTitle(tmpname, false);
@@ -63,10 +79,10 @@ const HAXCMS = new class HAXCMSClass {
           fs.lstatSync(this.HAXCMS_ROOT + '/' + this.sitesDirectory + '/' + tmpname).isDirectory() && !create
         ) {
             let site = new HAXCMSSite();
-            site.load(this.HAXCMS_ROOT + '/' + this.sitesDirectory,
+            await site.load(this.HAXCMS_ROOT + '/' + this.sitesDirectory,
                 this.basePath + this.sitesDirectory + '/',
                 tmpname);
-            let siteDirectoryPath = site.directory + '/' + site.manifest.metadata.site.name;
+            let siteDirectoryPath = site.directory + '/' + site.name;
             // sanity checks to ensure we'll actually deliver a site
             if (!fs.lstatSync(siteDirectoryPath + '/build').isSymbolicLink()) {
               if (fs.lstatSync(siteDirectoryPath + '/build').isDirectory()
@@ -83,26 +99,6 @@ const HAXCMS = new class HAXCMSClass {
                     '../../node_modules',
                     siteDirectoryPath + '/node_modules'
                 );
-              }
-              if (!fs.lstatSync(siteDirectoryPath + '/assets/babel-top.js').isSymbolicLink()) {
-                try {
-                  fs.unlink(siteDirectoryPath + '/assets/babel-top.js');
-                  fs.symlink(
-                    '../../../babel/babel-top.js',
-                      siteDirectoryPath + '/assets/babel-top.js'
-                  );
-                }
-                catch(e) {}
-              }
-              if (!fs.lstatSync(siteDirectoryPath + '/assets/babel-bottom.js').isSymbolicLink()) {
-                try {
-                  fs.unlink(siteDirectoryPath + '/assets/babel-bottom.js');
-                  fs.symlink(
-                      '../../../babel/babel-bottom.js',
-                      siteDirectoryPath + '/assets/babel-bottom.js'
-                  );
-                }
-                catch(e) {}
               }
             }
             return site;
@@ -513,7 +509,7 @@ class HAXCMSSite
     /**
      * Load a site based on directory and name
      */
-    load(directory, siteBasePath, name)
+    async load(directory, siteBasePath, name)
     {
         this.name = name;
         let tmpname = decodeURIComponent(name);
@@ -521,7 +517,7 @@ class HAXCMSSite
         this.basePath = siteBasePath;
         this.directory = directory;
         this.manifest = new JSONOutlineSchema();
-        this.manifest.load(this.directory + '/' + tmpname + '/site.json');
+        await this.manifest.load(this.directory + '/' + tmpname + '/site.json');
     }
     /**
      * Initialize a new site with a single page to start the outline
@@ -533,7 +529,7 @@ class HAXCMSSite
      *
      * @return HAXCMSSite object
      */
-    newSite(
+    async newSite(
         directory,
         siteBasePath,
         name,
@@ -610,26 +606,28 @@ class HAXCMSSite
         this.manifest.items = [];
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
-        this.addPage(null, 'Welcome to a new HAXcms site!', 'init');
+        await this.addPage(null, 'Welcome to a new HAXcms site!', 'init');
         // put this in version control :) :) :)
 
-        const git = new Git({
+        const git = new GitPlus({
           dir: directory + '/' + tmpname
         });
-        git.setDir(directory + '/' + tmpname);
         // initalize git repo
         git.init();
-        git.add();
-        git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
-        if (
-            !(this.manifest.metadata.site.git.url) &&
-            (gitDetails.url)
-        ) {
-            this.gitSetRemote(gitDetails);
+        try {
+          await git.add();
+          await git.commit('A new journey begins: ' + this.manifest.title + ' (' + this.manifest.id + ')');
+          if (
+              !(this.manifest.metadata.site && this.manifest.metadata.site.git && this.manifest.metadata.site.git.url) &&
+              (gitDetails != null && gitDetails.url)
+          ) {
+              await this.gitSetRemote(gitDetails);
+          }
+          // write the managed files to ensure we get happy copies
+          await this.rebuildManagedFiles();
+          await this.gitCommit('Managed files updated');
         }
-        // write the managed files to ensure we get happy copies
-        this.rebuildManagedFiles();
-        this.gitCommit('Managed files updated');
+        catch(e){}
         return this;
     }
     /**
@@ -678,12 +676,12 @@ class HAXCMSSite
      * Reprocess the files that twig helps set in their static
      * form that the user is not in control of.
      */
-    rebuildManagedFiles() {
+    async rebuildManagedFiles() {
       let templates = this.getManagedTemplateFiles();
       // this can't be there by default since it's a dynamic file and we only
       // want to update this when we are refreshing the managed files directly
       templates['indexphp'] = 'index.php';
-      siteDirectoryPath = this.directory + '/' + this.manifest.metadata.site.name;
+      let siteDirectoryPath = this.directory + '/' + this.manifest.metadata.site.name;
       boilerPath = HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site/';
       for (var key in templates) {
         fs.copy(boilerPath + templates[key], siteDirectoryPath + '/' + templates[key]);
@@ -850,46 +848,52 @@ class HAXCMSSite
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
-    gitCommit(msg = 'Committed changes')
+    async gitCommit(msg = 'Committed changes')
     {
         // commit, true flag will attempt to make this a git repo if it currently isn't
-        const git = new Git({
+        const git = new GitPlus({
           dir: this.directory + '/' + this.manifest.metadata.site.name
         });
-        git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
-        git.add();
-        git.commit(msg);
-        // commit should execute the automatic push flag if it's on
-        if ((this.manifest.metadata.site.git.autoPush) && this.manifest.metadata.site.git.autoPush && (this.manifest.metadata.site.git.branch)) {
-          git.checkout(this.manifest.metadata.site.git.branch);
-          git.push();
+        try {
+          await git.add();
+          await git.commit(msg);
+          // commit should execute the automatic push flag if it's on
+          if ((this.manifest.metadata.site.git.autoPush) && this.manifest.metadata.site.git.autoPush && (this.manifest.metadata.site.git.branch)) {
+            await git.checkout(this.manifest.metadata.site.git.branch);
+            await git.push();
+          }
         }
+        catch(e){}
         return true;
     }
     /**
      * Basic wrapper to revert top commit of the site
      */
-    gitRevert(count = 1)
+    async gitRevert(count = 1)
     {
-      //const git = new Git({
-      //  dir: this.directory + '/' + this.manifest.metadata.site.name
-      //});
-      //git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
-      //git.revert(count);
+      const git = new GitPlus({
+        dir: this.directory + '/' + this.manifest.metadata.site.name
+      });
+      try {
+        await git.revert(count);
+      }
+      catch(e){}
       return true;
     }
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
-    gitPush()
+    async gitPush()
     {
-      const git = new Git({
+      const git = new GitPlus({
         dir: this.directory + '/' + this.manifest.metadata.site.name
       });
-      git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
-      git.add();
-      git.commit("commit forced");
-      git.push();
+      try {
+        await git.add();
+        await git.commit("commit forced");
+        await git.push();
+      }
+      catch(e){}
       return true;
     }
 
@@ -898,13 +902,15 @@ class HAXCMSSite
      *
      * @var git a stdClass containing repo details
      */
-    gitSetRemote(gitDetails)
+    async gitSetRemote(gitDetails)
     {
-      const git = new Git({
+      const git = new GitPlus({
         dir: this.directory + '/' + this.manifest.metadata.site.name
       });
-      git.setDir(this.directory + '/' + this.manifest.metadata.site.name);
-      repo.setRemote("origin", gitDetails.url);
+      try {
+        await repo.setRemote("origin", gitDetails.url);
+      }
+      catch(e){}
       return true;
     }
     /**
@@ -916,7 +922,7 @@ class HAXCMSSite
      *
      * @return page repesented as JSONOutlineSchemaItem
      */
-    addPage(parent = null, title = 'New page', template = "default")
+    async addPage(parent = null, title = 'New page', template = "default")
     {
         // draft an outline schema item
         let page = new JSONOutlineSchemaItem();
@@ -954,21 +960,21 @@ class HAXCMSSite
             break;
         }
         this.manifest.addItem(page);
-        this.manifest.save();
-        this.updateAlternateFormats();
+        await this.manifest.save();
+        await this.updateAlternateFormats();
         return page;
     }
     /**
      * Save the site, though this basically is just a mapping to the manifest site.json saving
      */
-    save() {
-      this.manifest.save();
+    async save() {
+      await this.manifest.save();
     }
     /**
      * Update RSS, Atom feeds, site map, legacy outline, search index
      * which are physical files and need rebuilt on chnages to data structure
      */
-    updateAlternateFormats(format = null)
+    async updateAlternateFormats(format = null)
     {
         let siteDirectory = this.directory + '/' + this.manifest.metadata.site.name + '/';
         if (format == null || format == 'rss') {
@@ -976,8 +982,8 @@ class HAXCMSSite
             let rss = new FeedMe();
             siteDirectory =
                 this.directory + '/' + this.manifest.metadata.site.name + '/';
-            fs.writeFile(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
-            fs.writeFile(
+            await fs.writeFile(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
+            await fs.writeFile(
                 siteDirectory + 'atom.xml',
                 rss.getAtomFeed(this)
             );
@@ -1031,7 +1037,7 @@ class HAXCMSSite
         }*/
         if (format == null || format == 'legacy') {
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-            fs.writeFile(
+            await fs.writeFile(
                 siteDirectory + 'legacy-outline.html',
                 `<!DOCTYPE html>
                 <html lang="en">
@@ -1046,16 +1052,16 @@ class HAXCMSSite
         }
         if (format == null || format == 'search') {
             // now generate the search index
-            fs.writeFile(
+            await fs.writeFile(
                 siteDirectory + 'lunrSearchIndex.json',
-                    json_encode(this.lunrSearchIndex(this.manifest.items))
+                    json_encode(await this.lunrSearchIndex(this.manifest.items))
             );
         }
     }
     /**
      * Create Lunr.js style search index
      */
-    lunrSearchIndex(items) {
+    async lunrSearchIndex(items) {
       let data = [];
       for (var key in items) {
         let item = items[key];
@@ -1070,7 +1076,7 @@ class HAXCMSSite
           "created":created,
           "location":item.location.replace('pages/', '').replace('/index.html', ''),
           "description":item.description,
-          "text":this.cleanSearchData(fs.readFileSync(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location)),
+          "text":this.cleanSearchData(await fs.readFileSync(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location)),
         });
       }
       return data;
@@ -1079,6 +1085,9 @@ class HAXCMSSite
      * Clean up data from a file and make it easy for us to index on the front end
      */
     cleanSearchData(text) {
+      if (text == '' || text == null || !text) {
+        return '';
+      }
       // clean up initial, small, trim, replace end lines, utf8 no tags
       text = utf8.encode(text.replace(/(<([^>]+)>)/ig,"")).replace("\n", ' ').toLowerCase().trim();
       // all weird chars
@@ -1671,14 +1680,14 @@ class HAXCMSSite
      * data about an existing entry.
      * @return JSONOutlineSchemaItem or false
      */
-    updateNode(page)
+    async updateNode(page)
     {
       for (var key in this.manifest.items) {
         let item = this.manifest.items[key];
         if (item.id === page.id) {
           this.manifest.items[key] = page;
-          this.manifest.save(false);
-          this.updateAlternateFormats();
+          await this.manifest.save(false);
+          await this.updateAlternateFormats();
           return page;
         }
       }
@@ -1688,14 +1697,14 @@ class HAXCMSSite
      * Delete a page from the manifest
      * @return JSONOutlineSchemaItem or false
      */
-    deleteNode(page)
+    async deleteNode(page)
     {
           for (var key in this.manifest.items) {
             let item = this.manifest.items[key];
             if (item.id === page.id) {
                 delete this.manifest.items[key];
-                this.manifest.save(false);
-                this.updateAlternateFormats();
+                await this.manifest.save(false);
+                await this.updateAlternateFormats();
                 return true;
             }
         }
@@ -1704,13 +1713,13 @@ class HAXCMSSite
     /**
      * Change the directory this site is located in
      */
-    changeName(newName)
+    async changeName(newName)
     {
         newName = newName.replace('./', '').replace('../', '');
         // attempt to shift it on the file system
         if (newName != this.manifest.metadata.site.name) {
             this.manifest.metadata.site.name = newName;
-            return fs.rename(this.manifest.metadata.site.name, newName);
+            return await fs.rename(this.manifest.metadata.site.name, newName);
         }
     }
     /**
@@ -1749,7 +1758,7 @@ class HAXCMSSite
     /**
      * Recursive copy to rename high level but copy all files
      */
-    recurseCopy(src, dst, skip = [])
+    async recurseCopy(src, dst, skip = [])
     {
       fs.copySync(src, dst);
     }

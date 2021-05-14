@@ -31,7 +31,7 @@ const json_decode = require('locutus/php/json/json_decode');
       return json_decode(openapi.toJson());
     }
     else {
-      req.send(openapi.toYaml());
+      res.send(openapi.toYaml());
     }
   }
   module.exports = openapi;

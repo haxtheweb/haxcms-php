@@ -32,9 +32,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *   )
    * )
    */
-  function setConfig(req, res) {
+  async function setConfig(req, res) {
     if (HAXCMS.validateRequestToken()) {
-      values = this.rawParams['values'];
+      values = req['body']['values'];
       val = {};
       if ((values.apis) && (values.appStore.apiKeys)) {
         val.apis = values.apis;
@@ -42,7 +42,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       if ((values.publishing)) {
         val.publishing = values.publishing;
       }
-      response = HAXCMS.setConfig(val);
+      response = await HAXCMS.setConfig(val);
       return response;
     } else {
         res.send(403);

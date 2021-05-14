@@ -8,7 +8,7 @@ class JSONOutlineSchemaItem
     /**
      * Establish defaults for a new item
      */
-    __construct()
+    constructor()
     {
         this.id = 'item-' + uuidv4();
         this.indent = 0;
@@ -23,7 +23,7 @@ class JSONOutlineSchemaItem
     /**
      * Load data from the location specified
      */
-    readLocation(basePath = '')
+    async readLocation(basePath = '')
     {
         if (fs.lstatSync(basePath + this.location).isFile()) {
             return fs.readFileSync(basePath + this.location);
@@ -33,7 +33,7 @@ class JSONOutlineSchemaItem
     /**
      * Load data from the location specified
      */
-    writeLocation(body, basePath = '')
+    async writeLocation(body, basePath = '')
     {
         // ensure we have a blank set
         if (body == '') {

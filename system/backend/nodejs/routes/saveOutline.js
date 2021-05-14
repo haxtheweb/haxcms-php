@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const HAXCMS = require('../lib/HAXCMS.js');
-
+const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
 /**
    * @OA\Post(
    *    path="/saveOutline",
@@ -19,9 +19,9 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   async function saveOutline(req, res) {
-    let site = HAXCMS.loadSite(req.body['site']['name']);
+    let site = await HAXCMS.loadSite(req.body['site']['name']);
     let original = site.manifest.items;
-    let items = this.rawParams['items'];
+    let items = req.body['items'];
     let itemMap = [];
     // items from the POST
     for (var key in items) {
@@ -29,7 +29,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // get a fake item
       let page = site.loadNode(item.id);
       if (!page) {
-          page = HAXCMS.outlineSchema.newItem();
+          page = new JSONOutlineSchemaItem();
           itemMap[item.id] = page.id;
       }
       else {
@@ -75,7 +75,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
           // ensure this location doesn't exist already
           tmpTitle = site.getUniqueSlugName(cleanTitle, page);
           page.location = 'pages/' + tmpTitle + '/index.html';
-          site.recurseCopy(
+          await site.recurseCopy(
               HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
               siteDirectory + '/pages/' + tmpTitle
           );
@@ -91,10 +91,10 @@ const HAXCMS = require('../lib/HAXCMS.js');
                   tmpItem.location != ''
               ) {
                   // core support for automatically managing paths to make them nice
-                  if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
+                  if ((site.manifest.metadata.site && site.manifest.metadata.site.settings && site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
                       moved = true;
                       let newPath = 'pages/' + site.getUniqueSlugName(HAXCMS.cleanTitle(page.title), page) + '/index.html';
-                      site.renamePageLocation(
+                      await site.renamePageLocation(
                           page.location,
                           newPath
                       );
@@ -103,7 +103,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
                   else if (tmpItem.location != page.location) {
                       moved = true;
                       // @todo might want something to rebuild the path based on new parents
-                      site.renamePageLocation(
+                      await site.renamePageLocation(
                           tmpItem.location,
                           page.location
                       );
@@ -119,7 +119,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
               // ensure this location doesn't exist already
               let tmpTitle = site.getUniqueSlugName(cleanTitle, page);
               page.location = 'pages/' + tmpTitle + '/index.html';
-              site.recurseCopy(
+              await site.recurseCopy(
                   HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
                   siteDirectory + '/pages/' + tmpTitle
               );
@@ -137,14 +137,14 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // always update at this time
       page.metadata.updated = Date.now();
       if (site.loadNode(page.id)) {
-          site.updateNode(page);
+          await site.updateNode(page);
       } else {
-          site.manifest.addItem(page);
+          await site.manifest.addItem(page);
       }
     }
     site.manifest.metadata.site.updated = Date.now();
-    site.manifest.save();
-    site.gitCommit('Outline updated in bulk');
+    await site.manifest.save();
+    await site.gitCommit('Outline updated in bulk');
     return site.manifest.items;
   }
   module.exports = saveOutline;

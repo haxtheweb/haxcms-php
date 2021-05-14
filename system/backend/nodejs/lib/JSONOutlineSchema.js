@@ -1,5 +1,6 @@
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
+const json_decode = require('locutus/php/json/json_decode');
 const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
 const array_search = require('locutus/php/array/array_search');
 const usort = require('locutus/php/array/usort');
@@ -17,7 +18,7 @@ class JSONOutlineSchema
     /**
      * Establish defaults
      */
-    __construct()
+     constructor()
     {
         this.file = null;
         this.id = uuidv4();
@@ -108,7 +109,7 @@ class JSONOutlineSchema
         let ary = (item);
         for (var key in ary) {
             // only set what the element from spec allows into a new object
-            if ((tmp[key])) {
+            if (tmp.hasOwnProperty(key)) {
                 tmp[key] = ary[key];
             }
         }
@@ -158,7 +159,7 @@ class JSONOutlineSchema
     /**
      * Load a schema from a file
      */
-    load(location)
+    async load(location)
     {
         if (fs.lstatSync(location).isFile()) {
             this.file = location;
@@ -178,6 +179,7 @@ class JSONOutlineSchema
                     newItem.id = item.id;
                     newItem.indent = item.indent;
                     newItem.location = item.location;
+                    newItem.slug = item.slug;
                     newItem.order = item.order;
                     newItem.parent = item.parent;
                     newItem.title = item.title;
@@ -205,7 +207,7 @@ class JSONOutlineSchema
     /**
      * Save data back to the file system location
      */
-    save(reorder = true)
+    async save(reorder = true)
     {
         // on every save we ensure it's sorted in the right order
         if (reorder) {
@@ -213,16 +215,14 @@ class JSONOutlineSchema
         }
         let schema = (this);
         let file = schema['file'];
+        // delete so it doesn't show up in the site.json file
         delete schema['file'];
-        schema['items'] = [];
-        for (var key in this.items) {
-            let newItem = (this.items[key]);
-            schema['items'].push(newItem)
-        }
         let output;
         // ensure we have valid json object
         if (output = JSON.stringify(schema, null, 2)) {
-          return fs.writeFile(file, output);
+          // reassign so we don't lose it in the transaction
+          this.file = file;
+          return fs.writeFileSync(file, output);
         }
     }
     /**

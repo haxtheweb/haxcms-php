@@ -2,6 +2,8 @@ const fs = require('fs-extra');
 const path = require('path');
 const HAXCMS = require('../lib/HAXCMS.js');
 const { Git } = require('git-interface');
+const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
+
 /**
    * @OA\Post(
    *    path="/createSite",
@@ -59,14 +61,13 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     }
     // sanitize name
     let name = HAXCMS.generateMachineName(req.body['site']['name']);
-    console.log(name);
-    let site = HAXCMS.loadSite(
+    let site = await HAXCMS.loadSite(
         name.toLowerCase(),
         true,
         domain
     );
     // now get a new item to reference this into the top level sites listing
-    let schema = HAXCMS.outlineSchema.newItem();
+    let schema = new JSONOutlineSchemaItem();
     schema.id = site.manifest.id;
     schema.title = name;
     schema.location =
@@ -75,8 +76,10 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
         '/' +
         site.manifest.metadata.site.name +
         '/index.html';
-    schema.metadata.site = {};
-    schema.metadata.theme = {};
+    schema.metadata = {
+        site: {},
+        theme: {}
+    }
     schema.metadata.site.name = site.manifest.metadata.site.name;
     let theme = HAXCMS.HAXCMS_DEFAULT_THEME;
     if (req.body['theme']['name'] && typeof req.body['theme']['name'] === "string") {
@@ -94,26 +97,18 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     if (req.body['site']['description'] && req.body['site']['description'] != '' && req.body['site']['description'] != null) {
         schema.description = req.body['site']['description'].replace(/<\/?[^>]+(>|$)/g, "");
     }
-    // background image / banner
-    if (req.body['theme']['variables']['image'] && req.body['theme']['variables']['image'] != '' && req.body['theme']['variables']['image'] != null) {
-        schema.metadata.theme.variables.image = req.body['theme']['variables']['image'];
-    }
-    else {
+
     schema.metadata.theme.variables.image = 'assets/banner.jpg';
-    }
     // icon to express the concept / visually identify site
-    if (req.body['theme']['variables']['icon'] && req.body['theme']['variables']['icon'] != '' && req.body['theme']['variables']['icon'] != null) {
-        schema.metadata.theme.variables.icon = req.body['theme']['variables']['icon'];
+    if (req.body['theme']['icon'] && req.body['theme']['icon'] != '' && req.body['theme']['icon'] != null) {
+        schema.metadata.theme.variables.icon = req.body['theme']['icon'];
     }
     // slightly style the site based on css vars and hexcode
     let hex = HAXCMS.HAXCMS_FALLBACK_HEX;
-    if (req.body['theme']['variables']['hexCode'] && req.body['theme']['variables']['hexCode'] != '' && req.body['theme']['variables']['hexCode'] != null) {
-        hex = req.body['theme']['variables']['hexCode'];
-    }
     schema.metadata.theme.variables.hexCode = hex;
     let cssvar = '--simple-colors-default-theme-light-blue-7';
-    if (req.body['theme']['variables']['cssVariable'] && req.body['theme']['variables']['cssVariable'] != '' && req.body['theme']['variables']['cssVariable'] != null) {
-        cssvar = req.body['theme']['variables']['cssVariable'];
+    if (req.body['theme']['color'] && req.body['theme']['color'] != '' && req.body['theme']['color'] != null) {
+        cssvar = '--simple-colors-default-theme-' + req.body['theme']['color'] + '-7';
     }
     schema.metadata.theme.variables.cssVariable = cssvar;
     schema.metadata.site.created = Date.now();
@@ -139,7 +134,7 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     site.manifest.metadata.node.fields = {};
     site.manifest.description = schema.description;
     // save the outline into the new site
-    site.manifest.save(false);
+    await site.manifest.save(false);
     // main site schema doesn't care about publishing settings
     delete schema.metadata.site.git;
 
@@ -148,19 +143,23 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     });
     git.setDir(site.directory + '/' + site.manifest.metadata.site.name);
     git.init();
-    await git.add();
-    await git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
-    // make a branch but dont use it
-    if (site.manifest.metadata.site.git.staticBranch) {
-        git.createBranch(
-            site.manifest.metadata.site.git.staticBranch
-        );
+    try {
+        await git.add();
+        await git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
+        // make a branch but dont use it
+        if (site.manifest.metadata.site.git.staticBranch) {
+            await git.createBranch(
+                site.manifest.metadata.site.git.staticBranch
+            );
+        }
+        if (site.manifest.metadata.site.git.branch) {
+            await git.createBranch(
+                site.manifest.metadata.site.git.branch
+            );
+        }
     }
-    if (site.manifest.metadata.site.git.branch) {
-        git.createBranch(
-            site.manifest.metadata.site.git.branch
-        );
-    }
+    catch(e) {}
+    
     return schema;
 }
 else {

@@ -36,9 +36,9 @@ const basename = require('locutus/php/filesystem/basename');
    *   )
    * )
    */
-  function downloadSite(req, res) {
+  async function downloadSite(req, res) {
     // load site
-    let site = HAXCMS.loadSite(req.body['site']['name']);
+    let site = await HAXCMS.loadSite(req.body['site']['name']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
     dir = HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + site.name;
     // form a basic name
@@ -50,7 +50,7 @@ const basename = require('locutus/php/filesystem/basename');
       site.name +
       '.zip';
     // Get real path for our folder
-    rootPath = fs.realpath(dir);
+    rootPath = await fs.realpath(dir);
     // Initialize archive object
     let zip = '';
     // @todo ZipArchive
@@ -69,7 +69,7 @@ const basename = require('locutus/php/filesystem/basename');
         relativePath = filePath.substr(strlen(rootPath) + 1);
         // Add current file to archive
         if (filePath != '' && relativePath != '') {
-          zip.addFile(filePath, relativePath);
+          await zip.addFile(filePath, relativePath);
         }
       }
     }

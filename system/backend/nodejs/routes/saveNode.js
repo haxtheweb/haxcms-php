@@ -18,8 +18,8 @@ const filter_var = require('../lib/filter_var.js');
    *   )
    * )
    */
-  function saveNode(req, res) {
-    let site = HAXCMS.loadSite(req.body['site']['name']);
+  async function saveNode(req, res) {
+    let site = await HAXCMS.loadSite(req.body['site']['name']);
     let schema = [];
     if ((req.body['node']['body'])) {
       var body = req.body['node']['body'];
@@ -38,7 +38,7 @@ const filter_var = require('../lib/filter_var.js');
     if (page) {
       // convert web location for loading into file location for writing
       if ((body)) {
-        let bytes = page.writeLocation(
+        let bytes = await page.writeLocation(
           body,
           HAXCMS.HAXCMS_ROOT +
           '/' +
@@ -48,7 +48,7 @@ const filter_var = require('../lib/filter_var.js');
           '/'
         );
         if (bytes === false) {
-            req.send(500);
+          res.send(500);
         } else {
             // sanity check
             if (!(page.metadata)) {

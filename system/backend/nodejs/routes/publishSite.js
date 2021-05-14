@@ -39,8 +39,8 @@ const strtr = require('locutus/php/strings/strtr');
    *   )
    * )
    */
-  function publishSite(req, res) {
-    let site = site = HAXCMS.loadSite(req.body['site']['name']);
+  async function publishSite(req, res) {
+    let site = await HAXCMS.loadSite(req.body['site']['name']);
     // ensure we have something we can load and ship back out the door
     if (site) {
         // local publishing options, then defer to system, then make some up...
@@ -61,7 +61,7 @@ const strtr = require('locutus/php/strings/strtr');
                 site.directory + '/' + site.manifest.metadata.site.name;
             repo = git.open(siteDirectoryPath, true);
             // ensure we're on master and everything is added
-            repo.checkout('master');
+            await repo.checkout('master');
             // Try to build a reasonable "domain" value
             if (
                 (gitSettings.url) &&
@@ -105,7 +105,7 @@ const strtr = require('locutus/php/strings/strtr');
             }
             site.manifest.metadata.site.static.lastPublished = Date.now();
             site.manifest.metadata.site.static.publishedLocation = domain;
-            site.manifest.save(false);
+            await site.manifest.save(false);
             // just to be safe in case the push isn't successful
             try {
                 repo.add('.');
