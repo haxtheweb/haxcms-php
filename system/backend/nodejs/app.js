@@ -120,6 +120,9 @@ server.listen(port, (err) => {
 	if (err) {
 		throw err;
 	}
+  const open = require('open');
+  // opens the url in the default browser 
+  open('http://localhost:3000');
 	/* eslint-disable no-console */
 	console.log('http://localhost:3000');
 });

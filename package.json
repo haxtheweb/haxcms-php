@@ -50,7 +50,8 @@
     "terser": "gulp terser",
     "wc-autoloader": "gulp wc-autoloader",
     "start": "yarn run dev",
-    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
+    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
+    "nodeapp": "cd system/backend/nodejs && code . && yarn start"
   },
   "private": false,
   "publishConfig": {
