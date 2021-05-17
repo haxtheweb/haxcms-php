@@ -22,7 +22,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       let site = await HAXCMS.loadSite(req.body['site']['name']);
       if (page = site.loadNode(req.body['node']['id'])) {
         schema = site.loadNodeFieldSchema(page);
-        return schema;
+        res.send(schema);
       }
     } else {
       res.send(403);

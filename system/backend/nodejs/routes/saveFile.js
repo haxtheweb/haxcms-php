@@ -55,15 +55,15 @@ const HAXCMS = require('../lib/HAXCMS.js');
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
-      page = site.loadNode(req.body['node']['id']);
-      upload = $_FILES['file-upload'];
-      file = new HAXCMSFile();
-      fileResult = await file.save(upload, site, page);
+      let page = site.loadNode(req.body['node']['id']);
+      let upload = $_FILES['file-upload'];
+      let file = new HAXCMSFile();
+      let fileResult = await file.save(upload, site, page);
       if (fileResult['status'] == 500) {
         res.send(500);
       }
       await site.gitCommit('File added: ' + upload['name']);
-      return fileResult;
+      res.send(fileResult);
     }
   }
   module.exports = saveFile;

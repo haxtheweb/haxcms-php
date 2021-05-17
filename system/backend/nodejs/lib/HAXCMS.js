@@ -583,7 +583,7 @@ class HAXCMSSite
             domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
         } else if (domain != null) {
             // put domain into CNAME not the github.io address if that exists
-            fs.writeFile(directory + '/' + tmpname + '/CNAME', domain);
+            fs.writeFileSync(directory + '/' + tmpname + '/CNAME', domain);
         }
         // load what we just created
         this.manifest = new JSONOutlineSchema();
@@ -818,7 +818,7 @@ class HAXCMSSite
       //let twig = new \Twig\Environment(loader);
       /*for (var key in templates) {
           if (fs.lstatSync(siteDirectoryPath + '/' + templates[key]).isFile()) {
-            fs.writeFile(
+            fs.writeFileSync(
                 siteDirectoryPath + '/' + templates[key],
                 twig.render(templates[key], templateVars)
             );
@@ -982,8 +982,8 @@ class HAXCMSSite
             let rss = new FeedMe();
             siteDirectory =
                 this.directory + '/' + this.manifest.metadata.site.name + '/';
-            await fs.writeFile(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
-            await fs.writeFile(
+            fs.writeFileSync(siteDirectory + 'rss.xml', rss.getRSSFeed(this));
+            fs.writeFileSync(
                 siteDirectory + 'atom.xml',
                 rss.getAtomFeed(this)
             );
@@ -1037,7 +1037,7 @@ class HAXCMSSite
         }*/
         if (format == null || format == 'legacy') {
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-            await fs.writeFile(
+            fs.writeFileSync(
                 siteDirectory + 'legacy-outline.html',
                 `<!DOCTYPE html>
                 <html lang="en">
@@ -1052,7 +1052,7 @@ class HAXCMSSite
         }
         if (format == null || format == 'search') {
             // now generate the search index
-            await fs.writeFile(
+            fs.writeFileSync(
                 siteDirectory + 'lunrSearchIndex.json',
                     json_encode(await this.lunrSearchIndex(this.manifest.items))
             );

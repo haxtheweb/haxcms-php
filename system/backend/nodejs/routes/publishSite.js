@@ -338,7 +338,7 @@ const strtr = require('locutus/php/strings/strtr');
                 for (var key in templates) {
                     let location = templates[key];
                   if (fs.lstatSync(siteDirectoryPath + '/' + location).isFile()) {
-                    fs.writeFile(
+                    fs.writeFileSync(
                         siteDirectoryPath + '/' + location,
                         twig.render(location, templateVars)
                     );
@@ -386,7 +386,7 @@ const strtr = require('locutus/php/strings/strtr');
                     '/"'
             );
             // rewrite the file
-            fs.writeFile(
+            fs.writeFileSync(
                 HAXCMS.configDirectory + '/../_published/' +
                     site.manifest.metadata.site.name +
                     '/index.html',

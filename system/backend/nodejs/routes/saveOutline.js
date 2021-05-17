@@ -145,6 +145,6 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
     site.manifest.metadata.site.updated = Date.now();
     await site.manifest.save();
     await site.gitCommit('Outline updated in bulk');
-    return site.manifest.items;
+    res.send(site.manifest.items);
   }
   module.exports = saveOutline;

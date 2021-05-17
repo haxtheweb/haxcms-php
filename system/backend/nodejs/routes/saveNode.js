@@ -30,7 +30,7 @@ const filter_var = require('../lib/filter_var.js');
     }
     if ((req.body['node']['details'])) {
       var details = req.body['node']['details'];
-    }
+    }    
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
@@ -38,7 +38,7 @@ const filter_var = require('../lib/filter_var.js');
     if (page) {
       // convert web location for loading into file location for writing
       if ((body)) {
-        let bytes = await page.writeLocation(
+        let writeSuccessful = await page.writeLocation(
           body,
           HAXCMS.HAXCMS_ROOT +
           '/' +
@@ -47,7 +47,7 @@ const filter_var = require('../lib/filter_var.js');
           site.name +
           '/'
         );
-        if (bytes === false) {
+        if (writeSuccessful === false) {
           res.send(500);
         } else {
             // sanity check
@@ -123,11 +123,11 @@ const filter_var = require('../lib/filter_var.js');
               }
             }
             page.metadata.contentDetails = contentDetails;
-            site.updateNode(page);
-            site.gitCommit(
+            await site.updateNode(page);
+            await site.gitCommit(
               'Page updated: ' + page.title + ' (' + page.id + ')'
             );
-            return bytes;
+            res.send(page);
         }
       } else if ((details)) {
         // update the updated timestamp
@@ -241,8 +241,8 @@ const filter_var = require('../lib/filter_var.js');
                     break;
             }
         }
-        site.updateNode(page);
-        site.gitCommit(
+        await site.updateNode(page);
+        await site.gitCommit(
             'Page details updated: ' + page.title + ' (' + page.id + ')'
         );
         res.send(page);

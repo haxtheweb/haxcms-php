@@ -81,7 +81,7 @@ const fs = require('fs-extra');
           // support updating the domain CNAME value
           if (site.manifest.metadata.site.domain != domain) {
               site.manifest.metadata.site.domain = domain;
-              fs.writeFile(
+              fs.writeFileSync(
                   site.directory +
                       '/' +
                       site.manifest.site.name +
@@ -230,7 +230,7 @@ const fs = require('fs-extra');
         await site.manifest.save(false);
         await site.gitCommit('origin updated');
       }
-      return site.manifest;
+      res.send(site.manifest);
     }
     else {
         res.send(403);

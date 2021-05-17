@@ -5,44 +5,46 @@ const { v4: uuidv4 } = require('uuid');
  */
 class JSONOutlineSchemaItem
 {
-    /**
-     * Establish defaults for a new item
-     */
-    constructor()
-    {
-        this.id = 'item-' + uuidv4();
-        this.indent = 0;
-        this.location = '';
-        this.slug = '';
-        this.order = 0;
-        this.parent = '';
-        this.title = 'New item';
-        this.description = '';
-        this.metadata = {};
+  /**
+   * Establish defaults for a new item
+   */
+  constructor() {
+    this.id = 'item-' + uuidv4();
+    this.indent = 0;
+    this.location = '';
+    this.slug = '';
+    this.order = 0;
+    this.parent = '';
+    this.title = 'New item';
+    this.description = '';
+    this.metadata = {};
+  }
+  /**
+   * Load data from the location specified
+   */
+  async readLocation(basePath = '') {
+    if (fs.lstatSync(basePath + this.location).isFile()) {
+      return fs.readFileSync(basePath + this.location);
     }
-    /**
-     * Load data from the location specified
-     */
-    async readLocation(basePath = '')
-    {
-        if (fs.lstatSync(basePath + this.location).isFile()) {
-            return fs.readFileSync(basePath + this.location);
-        }
-        return false;
+    return false;
+  }
+  /**
+   * Load data from the location specified
+   */
+  async writeLocation(body, basePath = '') {
+    // ensure we have a blank set
+    if (body == '') {
+      body = '<p></p>';
     }
-    /**
-     * Load data from the location specified
-     */
-    async writeLocation(body, basePath = '')
-    {
-        // ensure we have a blank set
-        if (body == '') {
-            body = '<p></p>';
-        }
-        if (fs.lstatSync(basePath + this.location).isFile()) {
-            return fs.writeFile(basePath + this.location, body);
-        }
-        return false;
+    try {
+      if (fs.lstatSync(basePath + this.location).isFile()) {
+        fs.writeFileSync(basePath + this.location, body);
+      }
+      return true;
     }
+    catch(e) {
+      return false;
+    }
+  }
 }
 module.exports = JSONOutlineSchemaItem;

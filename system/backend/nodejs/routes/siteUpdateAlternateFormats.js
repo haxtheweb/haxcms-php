@@ -24,5 +24,6 @@ const HAXCMS = require('../lib/HAXCMS.js');
       format = req.body['format'];
     }
     await site.updateAlternateFormats(format);
+    res.send(true);
   }
   module.exports = siteUpdateAlternateFormats;

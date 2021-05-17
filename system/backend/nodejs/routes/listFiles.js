@@ -19,6 +19,6 @@ const HAXCMS = require('../lib/HAXCMS.js');
    */
   function listFiles(req, res) {
     // @todo make this load the files out of the JSON outline schema and only return them
-    return [];
+    res.send([]);
   }
   module.exports = listFiles;

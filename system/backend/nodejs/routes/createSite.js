@@ -160,7 +160,7 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     }
     catch(e) {}
     
-    return schema;
+    res.send(schema);
 }
 else {
     res.send(403);

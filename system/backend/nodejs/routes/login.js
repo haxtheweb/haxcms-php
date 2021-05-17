@@ -25,7 +25,7 @@ function loginRoute(req, res)  {
   }
   // login end point requested yet a jwt already exists
   // this is something of a revalidate case
-  else if (req.body['jwt'] || res.query['jwt']) {
+  else if ((req.body && req.body != {} && req.body['jwt'] && req.body['jwt'] != null) || (res.query && res.query != {} && res.query['jwt'] && res.query['jwt'] != null)) {
     res.send('"' + HAXCMS.validateJWT(req, res) + '"');
   }
   else {

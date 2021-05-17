@@ -47,7 +47,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       });
     }
     else {
-        res.send(500);
+      res.send(500);
     }
   }
   module.exports = deleteSite;

@@ -43,7 +43,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
         val.publishing = values.publishing;
       }
       response = await HAXCMS.setConfig(val);
-      return response;
+      res.send(response);
     } else {
         res.send(403);
     }
