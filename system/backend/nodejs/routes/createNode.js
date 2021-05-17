@@ -119,9 +119,7 @@ async function createNode(req, res) {
           item.location.replace('/index.html', '')
   );
   site.manifest.addItem(item);
-  console.log(site.manifest);
   await site.manifest.save();
-  console.log(site.manifest);
   await site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
   res.send(item);
 }
