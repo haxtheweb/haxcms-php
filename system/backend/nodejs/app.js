@@ -47,6 +47,7 @@ app.options('*', function(req, res) {
 const routes = {
   post: {
     login: require('./routes/login.js'),
+    logout: require('./routes/logout.js'),
     revertCommit: require('./routes/revertCommit.js'),
 
     formLoad: require('./routes/formLoad.js'),
