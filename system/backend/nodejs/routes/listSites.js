@@ -31,7 +31,7 @@ async function listSites (req, res) {
       const stat = fs.statSync(HAXCMS.HAXCMS_ROOT + 'sites/' + item)
       if (stat.isDirectory() && item != '.git') {
         try {
-          let site = JSON.parse(await fs.readFileSync(path.join(HAXCMS.HAXCMS_ROOT, `${HAXCMS.sitesDirectory}/${item}/site.json`), 'utf8'));
+          let site = JSON.parse(await fs.readFileSync(path.join(HAXCMS.HAXCMS_ROOT, `${HAXCMS.sitesDirectory}/${item}/site.json`),'utf8'));
           site.location = `${HAXCMS.basePath}${HAXCMS.sitesDirectory}/${item}/`;
           site.slug = `${HAXCMS.basePath}${HAXCMS.sitesDirectory}/${item}/`;
           site.metadata.pageCount = site.items.length;

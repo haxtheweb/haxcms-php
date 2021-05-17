@@ -60,7 +60,8 @@ class FeedMe
     ${domain + '/' + item.location.replace('pages/','').replace('/index.html', '')}
     </link>
     <description>
-        <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location)} ]]>
+        <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location,
+        {encoding:'utf8', flag:'r'})} ]]>
     </description>
     <category>${tags}</category>
     <guid>
@@ -98,7 +99,7 @@ class FeedMe
     /**
      * Generate Atom items.
      */
-    atomItems(site, limit = 25)
+    async atomItems(site, limit = 25)
     {
         let output = '';
         let domain = "";
@@ -136,7 +137,8 @@ class FeedMe
     <link href="${domain}/${item.location.replace('pages/','').replace('/index.html', '')}"/>
     ${tags}]
     <content type="html">
-      <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location)} ]]>
+      <![CDATA[ ${fs.readFileSync(siteDirectory + '/' + item.location,
+      {encoding:'utf8', flag:'r'})} ]]>
     </content>
   </entry>`;
             }

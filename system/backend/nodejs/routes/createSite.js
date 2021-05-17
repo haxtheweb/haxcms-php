@@ -142,23 +142,25 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
         dir: site.directory + '/' + site.manifest.metadata.site.name
     });
     git.setDir(site.directory + '/' + site.manifest.metadata.site.name);
-    git.init();
+    await git.init();
     try {
         await git.add();
         await git.commit('A new journey begins: ' + site.manifest.title + ' (' + site.manifest.id + ')');
         // make a branch but dont use it
-        if (site.manifest.metadata.site.git.staticBranch) {
+        if (site.manifest.metadata.site.git && site.manifest.metadata.site.git.staticBranch) {
             await git.createBranch(
                 site.manifest.metadata.site.git.staticBranch
             );
         }
-        if (site.manifest.metadata.site.git.branch) {
+        if (site.manifest.metadata.site.git && site.manifest.metadata.site.git.branch) {
             await git.createBranch(
                 site.manifest.metadata.site.git.branch
             );
         }
     }
-    catch(e) {}
+    catch(e) {
+        console.log(e);
+    }
     
     res.send(schema);
 }

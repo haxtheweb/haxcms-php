@@ -163,7 +163,8 @@ class JSONOutlineSchema
     {
         if (fs.lstatSync(location).isFile()) {
             this.file = location;
-            let fileData = json_decode(fs.readFileSync(location));
+            let fileData = json_decode(await fs.readFileSync(location,
+                {encoding:'utf8', flag:'r'}));
             let vars = (fileData);
             for (var key in vars) {
                 if ((this[key]) && key != 'items') {

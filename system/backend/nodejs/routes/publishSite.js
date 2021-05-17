@@ -366,10 +366,11 @@ const strtr = require('locutus/php/strings/strtr');
                 HAXCMS.configDirectory + '/../_published/' + site.manifest.metadata.site.name + '/.git'
             );
             // rewrite the base path to ensure it is accurate based on a local build publish vs web
-            let index = fs.readFileSync(
+            let index = await fs.readFileSync(
                 HAXCMS.configDirectory + '/../_published/' +
                     site.manifest.metadata.site.name +
-                    '/index.html'
+                    '/index.html',
+                    {encoding:'utf8', flag:'r'}
             );
             // replace if it was publishing with the name in it
             index = index.replace(

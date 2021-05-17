@@ -24,7 +24,8 @@ class JSONOutlineSchemaItem
    */
   async readLocation(basePath = '') {
     if (fs.lstatSync(basePath + this.location).isFile()) {
-      return fs.readFileSync(basePath + this.location);
+      return await fs.readFileSync(basePath + this.location,
+        {encoding:'utf8', flag:'r'});
     }
     return false;
   }

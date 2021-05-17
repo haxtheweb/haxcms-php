@@ -6,6 +6,7 @@ const JWT = require('jsonwebtoken');
 const utf8 = require('utf8');
 const { Git } = require('git-interface');
 const substr = require('locutus/php/strings/substr')
+
 class GitPlus extends Git {
   async revert(count) {
     let counter = 0;
@@ -28,6 +29,9 @@ const Twig = require('twig');
 const filter_var = require('./filter_var.js');
 const array_search = require('locutus/php/array/array_search');
 const array_unshift = require('locutus/php/array/array_unshift');
+const implode = require('locutus/php/strings/implode');
+const explode = require('locutus/php/strings/explode');
+const array_unique = require("locutus/php/array/array_unique");
 const base64_encode = require('locutus/php/url/base64_encode');
 const json_encode = require('locutus/php/json/json_encode');
 const strtr = require('locutus/php/strings/strtr');
@@ -63,9 +67,12 @@ const HAXCMS = new class HAXCMSClass {
     };
     // makes it easier to request a new item from the schema factory
     this.outlineSchema = new JSONOutlineSchema();
-    this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"), 'utf8'));
-    this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"), 'utf8'));
-    this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"), 'utf8');
+    this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"),
+    {encoding:'utf8', flag:'r'}, 'utf8'));
+    this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"),
+    {encoding:'utf8', flag:'r'}, 'utf8'));
+    this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"),
+    {encoding:'utf8', flag:'r'}, 'utf8');
   }
   /**
    * Load a site off the file system with option to create
@@ -105,7 +112,7 @@ const HAXCMS = new class HAXCMSClass {
         }
         else if (create) {
             // attempt to create site
-            return this.createSite(name, domain);
+            return await this.createSite(name, domain);
         }
         return false;
   }
@@ -118,7 +125,7 @@ const HAXCMS = new class HAXCMSClass {
      *
      * @return boolean true for success, false for failed
      */
-   createSite(name, domain = null, git = null)
+   async createSite(name, domain = null, git = null)
    {
        // try and make the folder
        var site = new HAXCMSSite();
@@ -132,7 +139,7 @@ const HAXCMS = new class HAXCMSClass {
        }
 
        if (
-           site.newSite(
+           await site.newSite(
                HAXCMS_ROOT + this.sitesDirectory,
                this.basePath + this.sitesDirectory + '/',
                name,
@@ -553,28 +560,28 @@ class HAXCMSSite
         }
         tmpname = newName;
         // attempt to shift it on the file system
-        this.recurseCopy(
+        await this.recurseCopy(
             HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site',
             directory + '/' + tmpname
         );
         // create symlink to make it easier to resolve things to single built asset buckets
-        fs.symlink('../../wc-registry.json', directory + '/' + tmpname + '/wc-registry.json');
-        fs.symlink('../../build', directory + '/' + tmpname + '/build');
+        await fs.symlink('../../wc-registry.json', directory + '/' + tmpname + '/wc-registry.json');
+        await fs.symlink('../../build', directory + '/' + tmpname + '/build');
         // symlink to do local development if needed
-        fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
+        await fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
         // symlink to do project development if needed
         if (fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isSymbolicLink() || fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isDirectory()) {
-            fs.symlink(
+          await fs.symlink(
             '../../node_modules',
             directory + '/' + tmpname + '/node_modules'
             );
         }
         // links babel files so that unification is easier
-        fs.symlink(
+        await fs.symlink(
             '../../../babel/babel-top.js',
             directory + '/' + tmpname + '/assets/babel-top.js'
         );
-        fs.symlink(
+        await fs.symlink(
             '../../../babel/babel-bottom.js',
             directory + '/' + tmpname + '/assets/babel-bottom.js'
         );
@@ -583,7 +590,7 @@ class HAXCMSSite
             domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
         } else if (domain != null) {
             // put domain into CNAME not the github.io address if that exists
-            fs.writeFileSync(directory + '/' + tmpname + '/CNAME', domain);
+            await fs.writeFileSync(directory + '/' + tmpname + '/CNAME', domain);
         }
         // load what we just created
         this.manifest = new JSONOutlineSchema();
@@ -613,7 +620,7 @@ class HAXCMSSite
           dir: directory + '/' + tmpname
         });
         // initalize git repo
-        git.init();
+        await git.init();
         try {
           await git.add();
           await git.commit('A new journey begins: ' + this.manifest.title + ' (' + this.manifest.id + ')');
@@ -743,7 +750,8 @@ class HAXCMSSite
       ];
       // loop through files directory so we can cache those things too
       if (handle = fs.readdirSync(siteDirectoryPath + '/files')) {
-          while (false !== (file = fs.readFileSync(handle))) {
+          while (false !== (file = await fs.readFileSync(handle,
+            {encoding:'utf8', flag:'r'}))) {
               if (
                   file != "." &&
                   file != ".." &&
@@ -953,10 +961,10 @@ class HAXCMSSite
         // copy the page we use for simplicity (or later complexity if we want)
         switch (template) {
             case 'init':
-                this.recurseCopy(HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/init', location);
+                await this.recurseCopy(HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/init', location);
             break;
             default:
-                this.recurseCopy(HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default', location);
+                await this.recurseCopy(HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default', location);
             break;
         }
         this.manifest.addItem(page);
@@ -1052,7 +1060,7 @@ class HAXCMSSite
         }
         if (format == null || format == 'search') {
             // now generate the search index
-            fs.writeFileSync(
+            await fs.writeFileSync(
                 siteDirectory + 'lunrSearchIndex.json',
                     json_encode(await this.lunrSearchIndex(this.manifest.items))
             );
@@ -1063,21 +1071,32 @@ class HAXCMSSite
      */
     async lunrSearchIndex(items) {
       let data = [];
+      let textData;
       for (var key in items) {
         let item = items[key];
         let created = Date.now();
         if ((item.metadata) && (item.metadata.created)) {
           created = item.metadata.created;
         }
-        // may seem silly but IDs in lunr have a size limit for some reason in our context..
-        data.push({
-          "id":substr(item.id.replace('-', '').replace('item-', ''), 0, 29),
-          "title":item.title,
-          "created":created,
-          "location":item.location.replace('pages/', '').replace('/index.html', ''),
-          "description":item.description,
-          "text":this.cleanSearchData(await fs.readFileSync(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location)),
-        });
+        textData = '';
+        try {
+          textData = await fs.readFileSync(this.directory + '/' + this.manifest.metadata.site.name + '/' + item.location,
+          {encoding:'utf8', flag:'r'});
+          textData = this.cleanSearchData(textData);
+          // may seem silly but IDs in lunr have a size limit for some reason in our context..
+          data.push({
+            "id":substr(item.id.replace('-', '').replace('item-', ''), 0, 29),
+            "title":item.title,
+            "created":created,
+            "location":item.location.replace('pages/', '').replace('/index.html', ''),
+            "description":item.description,
+            "text":textData,
+          });
+        }
+        catch(e) {
+          // if that failed, not concerned as it's just an index
+          console.log(e);
+        }
       }
       return data;
     }
@@ -1089,7 +1108,7 @@ class HAXCMSSite
         return '';
       }
       // clean up initial, small, trim, replace end lines, utf8 no tags
-      text = utf8.encode(text.replace(/(<([^>]+)>)/ig,"")).replace("\n", ' ').toLowerCase().trim();
+      text = utf8.encode(text.replace(/(<([^>]+)>)/ig,"").replace("\n", ' ').toLowerCase().trim());
       // all weird chars
       text = text.replace('/[^a-z0-9\']/', ' ');
       text = text.replace("'", '');
@@ -1328,9 +1347,10 @@ class HAXCMSSite
      * @var JSONOutlineSchemaItem page - a loaded page object
      * @return string HTML / contents of the page object
      */
-    getPageContent(page) {
+    async getPageContent(page) {
       if ((page.location) && page.location != '') {
-        return filter_var(fs.readFileSync(HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/' + page.location));
+        return filter_var(await fs.readFileSync(HAXCMS.HAXCMS_ROOT + '/' + HAXCMS.sitesDirectory + '/' + this.name + '/' + page.location,
+        {encoding:'utf8', flag:'r'}));
       }
     }
     /**
@@ -1491,7 +1511,7 @@ class HAXCMSSite
      * Field cascade always follows Core + Deploy + Theme + Site
      * Anything downstream can always override upstream but no one can remove fields
      */
-    loadNodeFieldSchema(page)
+    async loadNodeFieldSchema(page)
     {
         let fields = {
             'configure':{},
@@ -1502,8 +1522,9 @@ class HAXCMSSite
         if (fs.pathExistsSync(HAXCMS.coreConfigPath + 'nodeFields.json') &&
             fs.lstatSync(HAXCMS.coreConfigPath + 'nodeFields.json').isFile()) {
             let coreFields = json_decode(
-                fs.readFileSync(
-                    HAXCMS.coreConfigPath + 'nodeFields.json'
+              await fs.readFileSync(
+                    HAXCMS.coreConfigPath + 'nodeFields.json',
+                    {encoding:'utf8', flag:'r'}
                 )
             );
             let themes = {};
@@ -1568,10 +1589,11 @@ class HAXCMSSite
             // @todo think of how to make this less brittle
             // not a fan of pegging loading this definition to our file system's publishing structure
             themeFields = json_decode(
-                fs.readFileSync(
+              await fs.readFileSync(
                     HAXCMS.HAXCMS_ROOT +
                         '/build/es6/node_modules/' +
-                        this.manifest.metadata.theme.fields
+                        this.manifest.metadata.theme.fields,
+                        {encoding:'utf8', flag:'r'}
                 )
             );
             if ((themeFields.configure)) {
@@ -1760,7 +1782,7 @@ class HAXCMSSite
      */
     async recurseCopy(src, dst, skip = [])
     {
-      fs.copySync(src, dst);
+      await fs.copySync(src, dst);
     }
 }
 module.exports = HAXCMS;

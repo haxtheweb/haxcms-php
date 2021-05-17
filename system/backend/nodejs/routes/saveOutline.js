@@ -61,10 +61,12 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
           // force location to be in the right place
           cleanTitle = HAXCMS.cleanTitle(item.location);
           page.location = 'pages/' + cleanTitle + '/index.html';
+          page.slug = cleanTitle;
       } else {
           cleanTitle = HAXCMS.cleanTitle(page.title);
           // generate a logical page location
           page.location = 'pages/' + cleanTitle + '/index.html';
+          page.slug = cleanTitle;
       }
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
@@ -75,6 +77,7 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
           // ensure this location doesn't exist already
           tmpTitle = site.getUniqueSlugName(cleanTitle, page);
           page.location = 'pages/' + tmpTitle + '/index.html';
+          page.slug = tmpTitle;
           await site.recurseCopy(
               HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
               siteDirectory + '/pages/' + tmpTitle
@@ -119,6 +122,7 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
               // ensure this location doesn't exist already
               let tmpTitle = site.getUniqueSlugName(cleanTitle, page);
               page.location = 'pages/' + tmpTitle + '/index.html';
+              page.slug = tmpTitle;
               await site.recurseCopy(
                   HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
                   siteDirectory + '/pages/' + tmpTitle
