@@ -1,8 +1,7 @@
 language: php
 
 php:
-  - 7.2
-  - 7.3
+  - 7.4
 dist: bionic
 os:
   - linux
@@ -22,6 +21,6 @@ before_install:
 
   - sudo apt-get update > /dev/null
   # install base requirements
-  - sudo bash scripts/ubuntu18.04.sh
+  - sudo bash scripts/install/ubuntu20.04.sh
 script:
   - bash scripts/haxtheweb.sh admin admin
