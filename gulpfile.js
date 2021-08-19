@@ -17,7 +17,48 @@ gulp.task(
       .pipe(gulp.dest('./build/es6/'));
   }
 );
+// https://html.spec.whatwg.org/multipage/scripting.html#valid-custom-element-name
+const reservedNames = new Set([
+	'annotation-xml',
+	'color-profile',
+	'font-face',
+	'font-face-src',
+	'font-face-uri',
+	'font-face-format',
+	'font-face-name',
+	'missing-glyph'
+]);
 
+function hasError(name) {
+	if (!name) {
+		return 'Missing element name.';
+	}
+
+	if (/[A-Z]/.test(name)) {
+		return 'Custom element names must not contain uppercase ASCII characters.';
+	}
+
+	if (!name.includes('-')) {
+		return 'Custom element names must contain a hyphen. Example: unicorn-cake';
+	}
+
+	if (/^\d/i.test(name)) {
+		return 'Custom element names must not start with a digit.';
+	}
+
+	if (/^-/i.test(name)) {
+		return 'Custom element names must not start with a hyphen.';
+	}
+
+	if (reservedNames.has(name)) {
+		return 'The supplied element name is reserved and can\'t be used.\nSee: https://html.spec.whatwg.org/multipage/scripting.html#valid-custom-element-name';
+	}
+}
+
+function validateElementName(name) {
+	const errorMessage = hasError(name);
+	return !errorMessage;
+}
 gulp.task("wc-autoloader", async () => {
   glob(path.join("./build/es6/node_modules/**/*.js"), (er, files) => {
     let elements = {};
@@ -34,7 +75,7 @@ gulp.task("wc-autoloader", async () => {
           contents
         );
         // basic
-        if (defineStatements) {
+        if (defineStatements && validateElementName(defineStatements[1])) {
           elements[defineStatements[1]] = fLocation;
         }
         // .tag calls
@@ -47,7 +88,7 @@ gulp.task("wc-autoloader", async () => {
             const tagStatements = /static get tag\(\){return"(.*?)"}/gm.exec(
               contents
             );
-            if (tagStatements) {
+            if (tagStatements && validateElementName(tagStatements[1])) {
               elements[tagStatements[1]] = fLocation;
             }
           }
@@ -55,17 +96,17 @@ gulp.task("wc-autoloader", async () => {
             const tagStatements = /static get is\(\){return"(.*?)"}/gm.exec(
               contents
             );
-            if (tagStatements) {
+            if (tagStatements && validateElementName(tagStatements[1])) {
               elements[tagStatements[1]] = fLocation;
             }
           }
           else {
             if (!hasDefine) {
               // support for polymer legacy class housing
-              const PolymerLegacy = /\,is\:\"(.*?)\",/gm.exec(
+              const PolymerLegacy = /is\:\"(.*?)\"/gm.exec(
                 contents
               );
-              if (PolymerLegacy && PolymerLegacy[1]) {
+              if (PolymerLegacy && PolymerLegacy[1] && validateElementName(PolymerLegacy[1])) {
                 elements[PolymerLegacy[1]] = fLocation;
               }
               else {
