@@ -9,11 +9,14 @@ import "./build-elmsln.js";
 // important in smaller builds
 import "@lrnwebcomponents/baseline-build-hax/baseline-build-hax.js";
 window.process = { env: { NODE_ENV: 'production' } };
+// just make it work
+import "web-dialog/index.js";
 // supported backends
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-beaker.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-demo.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/backends/haxcms-backend-php.js";
 // core HAXcms
+import "@lrnwebcomponents/haxcms-elements/haxcms-elements.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-editor-builder.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-outline-editor-dialog.js";
 import "@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js";

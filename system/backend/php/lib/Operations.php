@@ -616,45 +616,11 @@ class Operations {
    * )
    */
   public function createNode() {
-    $site = $GLOBALS['HAXCMS']->loadSite(strtolower($this->params['site']['name']));
-    // get a new item prototype
-    $item = $GLOBALS['HAXCMS']->outlineSchema->newItem();
-    // set the title
-    $item->title = str_replace("\n", '', $this->params['node']['title']);
-    if (isset($this->params['node']['id']) && $this->params['node']['id'] != '' && $this->params['node']['id'] != null) {
-        $item->id = $this->params['node']['id'];
-    }
-    $item->location = 'pages/' . $item->id . '/index.html';
-    if (isset($this->params['indent']) && $this->params['indent'] != '' && $this->params['indent'] != null) {
-        $item->indent = $this->params['indent'];
-    }
-    if (isset($this->params['order']) && $this->params['order'] != '' && $this->params['order'] != null) {
-        $item->order = $this->params['order'];
-    }
-    if (isset($this->params['parent']) && $this->params['parent'] != '' && $this->params['parent'] != null) {
-        $item->parent = $this->params['parent'];
-    } else {
-        $item->parent = null;
-    }
-    if (isset($this->params['description']) && $this->params['description'] != '' && $this->params['description'] != null) {
-        $item->description = str_replace("\n", '', $this->params['description']);
-    }
-    if (isset($this->params['order']) && $this->params['metadata'] != '' && $this->params['metadata'] != null) {
-        $item->metadata = $this->params['metadata'];
-    }
-    if (isset($this->params['node']['location']) && $this->params['node']['location'] != '' && $this->params['node']['location'] != null) {
-      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($this->params['node']['location']);
-      $item->slug = $site->getUniqueSlugName($cleanTitle);
-    } else {
-      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
-      $item->slug = $site->getUniqueSlugName($cleanTitle, $item, true);
-    }
-    $item->metadata->created = time();
-    $item->metadata->updated = time();
-    // add the item back into the outline schema
-    // @todo fix logic here to actually create the page based on 1 call
-    // this logic should be cleaned up in addPage to allow for
-    // passing in arguments
+    $nodeParams = $this->params;
+    $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
+    // generate a new item based on the site
+    $item = $site->itemFromParams($nodeParams);
+    // generate the boilerplate to fill this page
     $site->recurseCopy(
         HAXCMS_ROOT . '/system/boilerplate/page/default',
         $site->directory .
@@ -663,6 +629,7 @@ class Operations {
             '/' .
             str_replace('/index.html', '', $item->location)
     );
+    // add the item back into the outline schema
     $site->manifest->addItem($item);
     $site->manifest->save();
     $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
@@ -711,101 +678,143 @@ class Operations {
     if ($page = $site->loadNode($this->params['node']['id'])) {
       // convert web location for loading into file location for writing
       if (isset($body)) {
-        $bytes = $page->writeLocation(
-          $body,
-          HAXCMS_ROOT .
-          '/' .
-          $GLOBALS['HAXCMS']->sitesDirectory .
-          '/' .
-          $site->name .
-          '/'
-        );
-        if ($bytes === false) {
-          return array(
-            '__failed' => array(
-              'status' => 500,
-              'message' => 'failed to write',
-            )
+        // see if we have multiple pages
+        $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
+        foreach($pageData as $data) {
+          // verify this pages does not exist
+          if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
+            // generate a new item based on the site
+            $nodeParams = array(
+              "node" => array(
+                "title" => $data["attributes"]["title"],
+                "id" => $data["attributes"]["item-id"],
+                "location" => $data["attributes"]["path"],
+              )
+            );
+            $item = $site->itemFromParams($nodeParams);
+            // generate the boilerplate to fill this page
+            $site->recurseCopy(
+                HAXCMS_ROOT . '/system/boilerplate/page/default',
+                $site->directory .
+                    '/' .
+                    $site->manifest->metadata->site->name .
+                    '/' .
+                    str_replace('/index.html', '', $item->location)
+            );
+            // add the item back into the outline schema
+            $site->manifest->addItem($item);
+            $site->manifest->save();
+            $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
+          }
+          // now this should exist if it didn't a minute ago
+          $page = $site->loadNode($data["attributes"]["item-id"]);
+          // @todo make sure that we stripped off page-break
+          // and now save WITHOUT the top level page-break
+          // to avoid duplication issues
+          $bytes = $page->writeLocation(
+            $data['content'],
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->name .
+            '/'
           );
-        } else {
-            // sanity check
-            if (!isset($page->metadata)) {
-              $page->metadata = new stdClass();
-            }
-            // update the updated timestamp
-            $page->metadata->updated = time();
-            // auto generate a text only description from first 200 chars
-            $clean = strip_tags($body);
-            $page->description = str_replace(
-                "\n",
-                '',
-                substr($clean, 0, 200)
+          if ($bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
             );
-            $readtime = round(str_word_count($clean) / 200);
-            // account for uber small body
-            if ($readtime == 0) {
-              $readtime = 1;
-            }
-            $page->metadata->readtime = $readtime;
-            // assemble other relevent content detail by skimming it off
-            $contentDetails = new stdClass();
-            $contentDetails->headings = 0;
-            $contentDetails->paragraphs = 0;
-            $contentDetails->schema = array();
-            $contentDetails->tags = array();
-            $contentDetails->elements = count($schema);
-            // pull schema apart and store the relevent pieces
-            foreach ($schema as $element) {
-              switch($element['tag']) {
-                case 'h1':
-                case 'h2':
-                case 'h3':
-                case 'h4':
-                case 'h5':
-                case 'h6':
-                    $contentDetails->headings++;
-                break;
-                case 'p':
-                    $contentDetails->paragraphs++;
-                break;
+          } else {
+              // sanity check
+              if (!isset($page->metadata)) {
+                $page->metadata = new stdClass();
               }
-              if (!isset($contentDetails->tags[$element['tag']])) {
-                  $contentDetails->tags[$element['tag']] = 0;
+              // update attributes in the page
+              $page->title = $data["attributes"]["title"];
+              $page->slug = $data["attributes"]["slug"];
+              $page->metadata->locked = $data["attributes"]["locked"];
+              $page->metadata->published = $data["attributes"]["published"];
+              // @todo review if we want or need this setting
+              $page->metadata->pathauto = $data["attributes"]["pathauto"];
+              // update the updated timestamp
+              $page->metadata->updated = time();
+              // auto generate a text only description from first 200 chars
+              $clean = strip_tags($body);
+              $page->description = str_replace(
+                  "\n",
+                  '',
+                  substr($clean, 0, 200)
+              );
+              $readtime = round(str_word_count($clean) / 200);
+              // account for uber small body
+              if ($readtime == 0) {
+                $readtime = 1;
               }
-              $contentDetails->tags[$element['tag']]++;
-              $newItem = new stdClass();
-              $hasSchema = false;
-              if (isset($element['properties']['property'])) {
-                $hasSchema = true;
-                $newItem->property = $element['properties']['property'];
+              $page->metadata->readtime = $readtime;
+              // assemble other relevent content detail by skimming it off
+              $contentDetails = new stdClass();
+              $contentDetails->headings = 0;
+              $contentDetails->paragraphs = 0;
+              $contentDetails->schema = array();
+              $contentDetails->tags = array();
+              $contentDetails->elements = count($schema);
+              // pull schema apart and store the relevent pieces
+              foreach ($schema as $element) {
+                switch($element['tag']) {
+                  case 'h1':
+                  case 'h2':
+                  case 'h3':
+                  case 'h4':
+                  case 'h5':
+                  case 'h6':
+                      $contentDetails->headings++;
+                  break;
+                  case 'p':
+                      $contentDetails->paragraphs++;
+                  break;
+                }
+                if (!isset($contentDetails->tags[$element['tag']])) {
+                    $contentDetails->tags[$element['tag']] = 0;
+                }
+                $contentDetails->tags[$element['tag']]++;
+                $newItem = new stdClass();
+                $hasSchema = false;
+                if (isset($element['properties']['property'])) {
+                  $hasSchema = true;
+                  $newItem->property = $element['properties']['property'];
+                }
+                if (isset($element['properties']['typeof'])) {
+                  $hasSchema = true;
+                  $newItem->typeof = $element['properties']['typeof'];
+                }
+                if (isset($element['properties']['resource'])) {
+                  $hasSchema = true;
+                  $newItem->resource = $element['properties']['resource'];
+                }
+                if (isset($element['properties']['prefix'])) {
+                  $hasSchema = true;
+                  $newItem->prefix = $element['properties']['prefix'];
+                }
+                if (isset($element['properties']['vocab'])) {
+                  $hasSchema = true;
+                  $newItem->vocab = $element['properties']['vocab'];
+                }
+                if ($hasSchema) {
+                  $contentDetails->schema[] = $newItem;
+                }
               }
-              if (isset($element['properties']['typeof'])) {
-                $hasSchema = true;
-                $newItem->typeof = $element['properties']['typeof'];
-              }
-              if (isset($element['properties']['resource'])) {
-                $hasSchema = true;
-                $newItem->resource = $element['properties']['resource'];
-              }
-              if (isset($element['properties']['prefix'])) {
-                $hasSchema = true;
-                $newItem->prefix = $element['properties']['prefix'];
-              }
-              if (isset($element['properties']['vocab'])) {
-                $hasSchema = true;
-                $newItem->vocab = $element['properties']['vocab'];
-              }
-              if ($hasSchema) {
-                $contentDetails->schema[] = $newItem;
-              }
-            }
-            $page->metadata->contentDetails = $contentDetails;
-            $site->updateNode($page);
-            $site->gitCommit(
-              'Page updated: ' . $page->title . ' (' . $page->id . ')'
-            );
-            return $bytes;
+              $page->metadata->contentDetails = $contentDetails;
+              $site->updateNode($page);
+              $site->gitCommit(
+                'Page updated: ' . $page->title . ' (' . $page->id . ')'
+              );
+          }
         }
+        // this will be the size of the last file which is fine
+        return $bytes;
       } elseif (isset($details)) {
         // update the updated timestamp
         $page->metadata->updated = time();

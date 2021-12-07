@@ -1,11 +1,7 @@
 {
   "a11y-figure": "@lrnwebcomponents/a11y-figure/a11y-figure.js",
-  "lrndesign-bar": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-bar.js",
-  "lrndesign-line": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-line.js",
-  "lrndesign-pie": "@lrnwebcomponents/lrndesign-chart/lib/lrndesign-pie.js",
   "accent-card": "@lrnwebcomponents/accent-card/accent-card.js",
   "h5p-element": "@lrnwebcomponents/h5p-element/h5p-element.js",
-  "hax-logo": "@lrnwebcomponents/hax-logo/hax-logo.js",
   "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
   "code-sample": "@lrnwebcomponents/code-sample/code-sample.js",
   "citation-element": "@lrnwebcomponents/citation-element/citation-element.js",
@@ -40,5 +36,6 @@
   "user-action": "@lrnwebcomponents\/user-action\/user-action.js",
   "rss-items": "@lrnwebcomponents/rss-items/rss-items.js",
   "date-card": "@lrnwebcomponents/date-card/date-card.js",
-  "service-card": "@lrnwebcomponents/service-card/service-card.js"
+  "service-card": "@lrnwebcomponents/service-card/service-card.js",
+  "page-break": "@lrnwebcomponents/page-break/page-break.js"
 }

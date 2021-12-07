@@ -1747,10 +1747,21 @@ class HAXCMSSite
     /**
      * Test and ensure the name being returned is a slug currently unused
      */
-    getUniqueSlugName(slug, page = null)
+    getUniqueSlugName(slug, page = null, pathAuto = false)
     {
-      let loop = 0;
       let rSlug = slug;
+      // check for pathauto setting and this having a parent
+      if (page != null && page.parent != null && page.parent != '' && pathAuto) {
+        let item = page;
+        let pieces = [slug];
+        while (item = this.manifest.getItemById(item.parent)) {
+            tmp = explode('/', item.slug);
+            array_unshift(pieces, tmp.pop());
+        }
+        slug = implode('/', pieces);
+        rSlug = slug;
+      }
+      let loop = 0;
       let ready = false;
       // while not ready, keep checking
       while (ready) {

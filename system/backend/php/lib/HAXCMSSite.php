@@ -829,6 +829,47 @@ class HAXCMSSite
     }
   </script>";
     }
+        /**
+     * Generate the stub of a well formed site.json item
+     * based on parameters
+     */
+    public function itemFromParams($params) {
+        // get a new item prototype
+        $item = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+        // set the title
+        $item->title = str_replace("\n", '', $params['node']['title']);
+        if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
+            $item->id = $params['node']['id'];
+        }
+        $item->location = 'pages/' . $item->id . '/index.html';
+        if (isset($params['indent']) && $params['indent'] != '' && $params['indent'] != null) {
+            $item->indent = $params['indent'];
+        }
+        if (isset($params['order']) && $params['order'] != '' && $params['order'] != null) {
+            $item->order = $params['order'];
+        }
+        if (isset($params['parent']) && $params['parent'] != '' && $params['parent'] != null) {
+            $item->parent = $params['parent'];
+        } else {
+            $item->parent = null;
+        }
+        if (isset($params['description']) && $params['description'] != '' && $params['description'] != null) {
+            $item->description = str_replace("\n", '', $params['description']);
+        }
+        if (isset($params['order']) && $params['metadata'] != '' && $params['metadata'] != null) {
+            $item->metadata = $params['metadata'];
+        }
+        if (isset($params['node']['location']) && $params['node']['location'] != '' && $params['node']['location'] != null) {
+          $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($params['node']['location']);
+          $item->slug = $this->getUniqueSlugName($cleanTitle);
+        } else {
+          $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+          $item->slug = $this->getUniqueSlugName($cleanTitle, $item, true);
+        }
+        $item->metadata->created = time();
+        $item->metadata->updated = time();
+        return $item;
+      }
     /**
      * Load content of this page
      * @var JSONOutlineSchemaItem $page - a loaded page object

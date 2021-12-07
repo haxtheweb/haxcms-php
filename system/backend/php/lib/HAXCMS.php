@@ -856,6 +856,32 @@ class HAXCMS
         return false;
     }
     /**
+     * Helper for parsing out and returning page-break's in a body of content
+     * to help support HAX multi-page editing / outlining capabilities
+     */
+    public function pageBreakParser($body = '<page-break></page-break>') {
+      $body .= '<page-break FAKEENDCAP></page-break>';
+      $pageData = [];
+      // match all pages + content
+      preg_match_all("/(<page-break(.*?)><\/page-break>)((?:.|\n)*?)(?=<page-break)/", $body, $matches);
+      foreach($matches[0] as $i => $match) {
+        $content = "<div " . str_replace('published ', 'published="published" ', str_replace('path-auto ', 'path-auto="path-auto" ', $matches[2][$i])) . "></div>";
+        try {
+          $attrs = current((array) new SimpleXMLElement($content));
+        }
+        catch(Exception $e) {
+          $attrs = array();
+        }
+        $pageData[$i] = array(
+            "content" => $matches[3][$i],
+            // this assumes that the attributes are well formed; make sure front end did this
+            // even for boolean attributes
+            "attributes" => $attrs
+        );
+      }
+      return $pageData;
+    }
+    /**
      * Generate a valid HAX App store specification schema for connecting to this site via JSON.
      */
     public function siteConnectionJSON()
