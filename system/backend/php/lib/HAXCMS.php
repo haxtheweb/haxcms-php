@@ -865,7 +865,7 @@ class HAXCMS
       // match all pages + content
       preg_match_all("/(<page-break(.*?)><\/page-break>)((?:.|\n)*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
-        $content = "<div " . str_replace('published ', 'published="published" ', str_replace('path-auto ', 'path-auto="path-auto" ', $matches[2][$i])) . "></div>";
+        $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
         try {
           $attrs = current((array) new SimpleXMLElement($content));
         }

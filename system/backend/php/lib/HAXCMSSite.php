@@ -113,6 +113,7 @@ class HAXCMSSite
         $this->manifest->metadata = new stdClass();
         $this->manifest->metadata->author = new stdClass();
         $this->manifest->metadata->site = new stdClass();
+        $this->manifest->metadata->site->lang = 'en';
         $this->manifest->metadata->site->name = $tmpname;
         $this->manifest->metadata->site->domain = $domain;
         $this->manifest->metadata->site->created = time();

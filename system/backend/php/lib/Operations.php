@@ -678,9 +678,20 @@ class Operations {
     if ($page = $site->loadNode($this->params['node']['id'])) {
       // convert web location for loading into file location for writing
       if (isset($body)) {
+        $bytes = 0;
         // see if we have multiple pages
         $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
         foreach($pageData as $data) {
+          // trap to ensure if front-end didnt send a UUID for id then we make it
+          if (!isset($data["attributes"]["title"])) {
+            $data["attributes"]["title"] = 'New page';
+          }
+          if (!isset($data["attributes"]["item-id"])) {
+            $data["attributes"]["item-id"] = '';
+          }
+          if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
+            $data["attributes"]["path"] = $data["attributes"]["title"];
+          }
           // verify this pages does not exist
           if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
             // generate a new item based on the site
@@ -705,6 +716,8 @@ class Operations {
             $site->manifest->addItem($item);
             $site->manifest->save();
             $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
+            // possible the item-id had to be made by back end
+            $data["attributes"]["item-id"] = $item->id;
           }
           // now this should exist if it didn't a minute ago
           $page = $site->loadNode($data["attributes"]["item-id"]);
@@ -733,12 +746,40 @@ class Operations {
                 $page->metadata = new stdClass();
               }
               // update attributes in the page
-              $page->title = $data["attributes"]["title"];
-              $page->slug = $data["attributes"]["slug"];
-              $page->metadata->locked = $data["attributes"]["locked"];
-              $page->metadata->published = $data["attributes"]["published"];
-              // @todo review if we want or need this setting
-              $page->metadata->pathauto = $data["attributes"]["pathauto"];
+              if (isset($data["attributes"]["title"])) {
+                $page->title = $data["attributes"]["title"];
+              }
+              if (isset($data["attributes"]["slug"])) {
+                $page->slug = $data["attributes"]["slug"];
+              }
+              if (isset($data["attributes"]["parent"])) {
+                $page->parent = $data["attributes"]["parent"];
+              }
+              else {
+                $page->parent = null;
+              }
+              if (isset($data["attributes"]["depth"])) {
+                $page->indent = (int)$data["attributes"]["depth"];
+              }
+              if (isset($data["attributes"]["order"])) {
+                $page->order = (int)$data["attributes"]["order"];
+              }
+              // boolean so these are either there or not
+              // historically we are published if this value is not set
+              // and that will remain true however as we save / update pages
+              // this will ensure that we set things to published
+              if (isset($data["attributes"]["published"])) {
+                $page->metadata->published = true;
+              }
+              else {
+                $page->metadata->published = false;
+              }
+              if (!isset($data["attributes"]["locked"])) {
+                $page->metadata->locked = false;
+              }
+              else {
+                $page->metadata->locked = true;
+              }
               // update the updated timestamp
               $page->metadata->updated = time();
               // auto generate a text only description from first 200 chars
@@ -1733,6 +1774,7 @@ class Operations {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
+      $schema->metadata->site->lang = 'en';
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

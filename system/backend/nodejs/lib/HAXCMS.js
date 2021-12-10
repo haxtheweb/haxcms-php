@@ -288,7 +288,11 @@ const HAXCMS = new class HAXCMSClass {
               "pdf",
               "svg",
               "document",
-              "csv"
+              "csv",
+              "archive",
+              "markdown",
+              "*",
+              "html"
             ],
             "resultMap": {
               "item": "data.file",
