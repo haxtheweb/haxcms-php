@@ -633,7 +633,10 @@ class Operations {
     $site->manifest->addItem($item);
     $site->manifest->save();
     $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
-    return $item;
+    return array(
+      'status' => 200,
+      'data' => $item
+    );
   }
   /**
    * @OA\Post(
@@ -854,8 +857,12 @@ class Operations {
               );
           }
         }
-        // this will be the size of the last file which is fine
-        return $bytes;
+        // this returns te page result as the slug and other values
+        // may have changed via page-break attributes
+        return array(
+          'status' => 200,
+          'data' => $page
+        );
       } elseif (isset($details)) {
         // update the updated timestamp
         $page->metadata->updated = time();
@@ -965,7 +972,10 @@ class Operations {
           $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
           $page->metadata->theme->key = $site->manifest->metadata->theme->element;
         }
-        return $page;
+        return array(
+          'status' => 200,
+          'data' => $page
+        );
       }
     }
   }
@@ -1003,7 +1013,10 @@ class Operations {
           $site->gitCommit(
             'Page deleted: ' . $page->title . ' (' . $page->id . ')'
           );
-          return $page;
+          return array(
+            'status' => 200,
+            'data' => $page
+          );
         }
         exit();
     } else {
