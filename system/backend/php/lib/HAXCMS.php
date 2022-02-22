@@ -860,7 +860,7 @@ class HAXCMS
      * to help support HAX multi-page editing / outlining capabilities
      */
     public function pageBreakParser($body = '<page-break></page-break>') {
-      $body .= '<page-break FAKEENDCAP></page-break>';
+      $body .= '<page-break fakeendcap="fakeendcap"></page-break>';
       $pageData = [];
       // match all pages + content
       preg_match_all("/(<page-break(.*?)><\/page-break>)((?:.|\n)*?)(?=<page-break)/", $body, $matches);
