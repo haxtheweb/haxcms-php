@@ -598,7 +598,8 @@ class Operations {
    *                    "node": {
    *                      "id": null,
    *                      "title": "Cool post",
-   *                      "location": null
+   *                      "location": null,
+   *                      "duplicate": "item-123-ddd-333"
    *                    },
    *                    "indent": null,
    *                    "order": null,
@@ -632,6 +633,27 @@ class Operations {
     // add the item back into the outline schema
     $site->manifest->addItem($item);
     $site->manifest->save();
+    // support for duplicating the content of another item
+    if (isset($nodeParams['node']['duplicate'])) {
+      // verify we can load this id
+      if ($nodeToDuplicate = $site->loadNode($nodeParams['node']['duplicate'])) {
+        $content = $site->getPageContent($nodeToDuplicate);
+        // verify we actually have the id of an item that we just created
+        if ($page = $site->loadNode($item->id)) {
+          // write it to the file system
+          // this all seems round about but it's more secure
+          $bytes = $page->writeLocation(
+            $content,
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->name .
+            '/'
+          );
+        }
+      }
+    }
     $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
     return array(
       'status' => 200,

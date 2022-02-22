@@ -857,7 +857,7 @@ class HAXCMSSite
         if (isset($params['description']) && $params['description'] != '' && $params['description'] != null) {
             $item->description = str_replace("\n", '', $params['description']);
         }
-        if (isset($params['order']) && $params['metadata'] != '' && $params['metadata'] != null) {
+        if (isset($params['metadata']) && $params['metadata'] != '' && $params['metadata'] != null) {
             $item->metadata = $params['metadata'];
         }
         if (isset($params['node']['location']) && $params['node']['location'] != '' && $params['node']['location'] != null) {
