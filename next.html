@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="HAXCMS" />
+    <meta
+      name="viewport"
+      content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes"
+    />
+    <title>HAXCMS site list</title>
+    <meta name="description" content="My HAXCMS site description" />
+    <base href="/" />
+    <link rel="icon" href="assets/favicon.ico" />
+
+    <link rel="manifest" href="manifest.json" />
+
+    <meta name="theme-color" content="#37474f" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="My site" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="My App" />
+
+    <link rel="apple-touch-icon" href="assets/icon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="144x144"
+      href="assets/icon-144x144.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="192x192"
+      href="assets/icon-192x192.png"
+    />
+
+    <meta name="msapplication-TileImage" content="assets/icon-144x144.png" />
+    <meta name="msapplication-TileColor" content="#37474f" />
+    <meta name="msapplication-tap-highlight" content="no" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@elmsln" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="books-app" />
+    <meta property="og:image" content="assets/icon-144x144.png" />
+
+    <link rel="preconnect" crossorigin href="https://fonts.googleapis.com" />
+    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        height: 100vh;
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        font-family: 'Press Start 2P', sans-serif;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      :root {
+        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Light Mode Left.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Light Mode Right.svg');
+        background-repeat: repeat, repeat-y, repeat-y;
+        background-position: center center, top left, top right;
+        background-size: auto, 20% auto, 20% auto;
+        --accent-color: black;
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background-color: black;
+          background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/v1/DMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Dark Mode Left.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Dark Mode Right.svg');
+          background-repeat: repeat, repeat-y, repeat-y;
+          background-position: center center, top left, top right;
+          background-size: auto, 20% auto, 20% auto;
+          --accent-color: white;
+        }
+
+        .welcome {
+          -webkit-text-stroke: 0px var(--accent-color);
+          -webkit-text-fill-color: white;
+        }
+      }
+
+      @media (min-width: 721px) {
+        :root {
+          background-size: auto, 23% auto, 23% auto;
+        }
+      }
+
+      @media (min-width: 601px) and (max-width: 720px) {
+        :root {
+          background-size: auto, 26% auto, 26% auto;
+        }
+      }
+
+      @media (min-width: 481px) and (max-width: 600px) {
+        :root {
+          background-size: auto, 30% auto, 30% auto;
+        }
+      }
+
+      @media (min-width: 371px) and (max-width: 480px) {
+        :root {
+          background-size: auto, 35% auto, 35% auto;
+        }
+      }
+
+      @media (max-width: 370px) {
+        :root {
+          background-size: auto, 37% auto, 37% auto;
+        }
+      }
+
+      .welcomeBox {
+        text-align: center;
+        margin: 0;
+        font-size: 60px;
+        
+      }
+
+      .welcome {
+        -webkit-text-stroke: 1px var(--accent-color);
+	      -webkit-text-fill-color: white;
+      }
+
+      .bracket {
+        font-size: 100px;
+        vertical-align: middle;
+        -webkit-text-stroke: 0px;
+        -webkit-text-fill-color: var(--accent-color);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // local development and mobx
+      window.process = window.process || {
+        env: {
+          NODE_ENV: "development"
+        }
+      };
+      window.WCAutoloadRegistryFile = "./wc-registry.json";
+      // set this in order to simulate the published form of the site
+      // window.HAXCMSContext="published";
+      // set the below to simulate running a demo / end points to load data
+      // this will let you simulate more operations without having a backend
+      window.HAXCMSContext="demo";
+      window.appSettings = {
+        login: "dist\/dev\/login.json",
+        connectionSettings: "dist\/dev\/connectionSettings.json",
+        refreshUrl: "dist\/dev\/refreshUrl.json",
+        logout: "dist\/dev\/logout.json",
+        saveNodePath: "dist\/dev\/saveNode.json",
+        getConfigPath: "dist\/dev\/getConfigPath.json",
+        saveManifestPath: "dist\/dev\/saveNode.json",
+        setConfigPath: "dist\/dev\/saveNode.json",
+        getUserDataPath: "dist\/dev\/userData.json",
+        setUserPhotoPath: "dist\/dev\/setUserPhotoPath.json",
+        downloadSitePath: "dist\/dev\/saveNode.json",
+        createNodePath: "dist\/dev\/saveNode.json",
+        createNewSitePath: "dist\/dev\/saveNode.json",
+        deleteNodePath: "dist\/dev\/saveNode.json",
+        saveOutlinePath: "dist\/dev\/saveNode.json",
+        publishSitePath: "dist\/dev\/saveNode.json",
+        deleteSitePath: "dist\/dev\/saveNode.json",
+        cloneSitePath: "dist\/dev\/saveNode.json",
+        archiveSitePath: "dist\/dev\/saveNode.json",
+        appStore: {
+          url: "dist\/dev\/appstore.json"
+        }
+      };
+      // need to fetch theme config dynamically...
+      var configJson, themeCoreJson;
+      fetch("_config/config.json")
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(myJson) {
+          configJson = myJson;
+          return myJson;
+        });
+      // core location
+      fetch("system/coreConfig/themes.json")
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(myJson) {
+          themeCoreJson = myJson;
+          return myJson;
+        });
+      // fake an async
+      setTimeout(() => {
+        // combine so they are there for review just like a real backend would present
+        window.appSettings.themes = Object.assign(
+          {},
+          themeCoreJson,
+          configJson.themes
+        );
+      }, 500);
+      // append global base styles
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css";
+      link.type = "text/css";
+      var def = document.getElementsByTagName("link")[0];
+      def.parentNode.insertBefore(link, def);
+    </script>
+    <div class="welcomeBox">
+      <p class="welcome"><span class="bracket">&#60;</span>Welcome<span class="bracket">&#62;</span></p>
+    </div>
+    <haxcms-app demo></haxcms-app>
+    <noscript>Please enable JavaScript to view this website.</noscript>
+    <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <script
+      async
+      src="node_modules/web-animations-js/web-animations-next-lite.min.js"
+    ></script>
+    <script type="module">
+      import '@lrnwebcomponents/app-hax/app-hax.js';
+    </script>
+  </body>
+</html>
