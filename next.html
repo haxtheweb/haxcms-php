@@ -57,43 +57,87 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
-
+    <script>
+      // local development and mobx
+      window.process = window.process || {
+        env: {
+          NODE_ENV: "development"
+        }
+      };
+    </script>
     <style>
       body {
-        height: 100vh;
-        width: 100vw;
         margin: 0;
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        overflow-x: hidden;
+        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-repeat: repeat;
+        background-position: center center;
+        background-size: auto, 20% auto, 20% auto;
+        --app-hax-accent-color: black;
+        --app-hax-background-color: white;
       }
-
-      :root {
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Light Mode Left.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Light Mode Right.svg');
+      body.app-hax-create {
+        overflow: hidden;
+      }
+      body.dark-mode {
+        background-color: black;
+        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
+        --app-hax-accent-color: white;
+        --app-hax-background-color: black;
+      }
+      body.app-loaded {
+        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
-        --accent-color: black;
       }
-      
-      @media (prefers-color-scheme: dark) {
-        :root {
-          background-color: black;
-          background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/v1/DMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Dark Mode Left.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/v1/lib/Design Dark Mode Right.svg');
-          background-repeat: repeat, repeat-y, repeat-y;
-          background-position: center center, top left, top right;
-          background-size: auto, 20% auto, 20% auto;
-          --accent-color: white;
-        }
+      div[slot="externalproviders"] {
+        display: none;
+      }
+      body.app-loaded div[slot="externalproviders"] {
+        display: unset;
+      }
+      body.app-loaded.dark-mode {
+        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+      }
 
-        .welcome {
-          -webkit-text-stroke: 0px var(--accent-color);
-          -webkit-text-fill-color: white;
-        }
+      #loading {
+        font-family: 'Press Start 2P', sans-serif;
+        text-align: center;
+        margin-top: 100px;
+      }
+
+      #loading .title {
+        -webkit-text-stroke: 1px
+          var(--app-hax-accent-color, var(--accent-color));
+        -webkit-text-fill-color: var(
+          --app-hax-background-color,
+          var(--background-color)
+        );
+        font-weight: normal;
+        font-size: 4vw;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      #loading .subtitle {
+        color: var(--app-hax-accent-color, var(--accent-color));
+        font-weight: normal;
+        margin-top: 2.5px;
+        font-size: 2vw;
+      }
+
+      #loading .bracket {
+        font-size: 10vw;
+        font-weight: normal;
+        vertical-align: middle;
+        -webkit-text-stroke: 0px;
+        -webkit-text-fill-color: var(
+          --app-hax-accent-color,
+          var(--accent-color)
+        );
       }
 
       @media (min-width: 721px) {
@@ -126,34 +170,19 @@
         }
       }
 
-      .welcomeBox {
-        text-align: center;
-        margin: 0;
-        font-size: 60px;
-        
-      }
-
-      .welcome {
-        -webkit-text-stroke: 1px var(--accent-color);
-	      -webkit-text-fill-color: white;
-      }
-
-      .bracket {
-        font-size: 100px;
-        vertical-align: middle;
-        -webkit-text-stroke: 0px;
-        -webkit-text-fill-color: var(--accent-color);
-      }
     </style>
   </head>
   <body>
     <script>
-      // local development and mobx
-      window.process = window.process || {
-        env: {
-          NODE_ENV: "development"
+      // reduce FOUC for dark mode so it starts in dark rapidly if selected
+      if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
+        if (window.localStorage.getItem('app-hax-darkMode') == 'true') {
+          document.body.classList.add('dark-mode');
         }
-      };
+        else {
+          document.body.classList.remove('dark-mode');
+        }
+      }
       window.WCAutoloadRegistryFile = "./wc-registry.json";
       // set this in order to simulate the published form of the site
       // window.HAXCMSContext="published";
@@ -161,6 +190,9 @@
       // this will let you simulate more operations without having a backend
       window.HAXCMSContext="demo";
       window.appSettings = {
+        demo: true,
+        getSitesList: 'dist\/sites.json',
+        createSite: "dist\/dev\/createSite.json",
         login: "dist\/dev\/login.json",
         connectionSettings: "dist\/dev\/connectionSettings.json",
         refreshUrl: "dist\/dev\/refreshUrl.json",
@@ -173,13 +205,13 @@
         setUserPhotoPath: "dist\/dev\/setUserPhotoPath.json",
         downloadSitePath: "dist\/dev\/saveNode.json",
         createNodePath: "dist\/dev\/saveNode.json",
-        createNewSitePath: "dist\/dev\/saveNode.json",
+        createNewSitePath: "dist\/dev\/createSite.json",
         deleteNodePath: "dist\/dev\/saveNode.json",
         saveOutlinePath: "dist\/dev\/saveNode.json",
-        publishSitePath: "dist\/dev\/saveNode.json",
-        deleteSitePath: "dist\/dev\/saveNode.json",
-        cloneSitePath: "dist\/dev\/saveNode.json",
-        archiveSitePath: "dist\/dev\/saveNode.json",
+        publishSite: "dist\/dev\/saveNode.json",
+        deleteSite: "dist\/dev\/saveNode.json",
+        copySite: "dist\/dev\/saveNode.json",
+        archiveSite: "dist\/dev\/saveNode.json",
         appStore: {
           url: "dist\/dev\/appstore.json"
         }
@@ -203,27 +235,98 @@
           themeCoreJson = myJson;
           return myJson;
         });
+        //Function to make it easier
+        Array.prototype.random = function() {
+            return this[Math.floor((Math.random() * this.length))];
+        };
       // fake an async
       setTimeout(() => {
         // combine so they are there for review just like a real backend would present
-        window.appSettings.themes = Object.assign(
+        const blueStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/BlueStyle.svg';
+        const greyStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg';
+        const partyStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg';
+        const themes = Object.assign(
           {},
           themeCoreJson,
           configJson.themes
         );
-      }, 500);
-      // append global base styles
-      var link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css";
-      link.type = "text/css";
-      var def = document.getElementsByTagName("link")[0];
-      def.parentNode.insertBefore(link, def);
+        Object.keys(themes).forEach((index) => {
+          themes[index].thumbnail = [partyStyle,greyStyle,blueStyle].random();
+        });
+        window.appSettings.themes = themes;
+      }, 100);
     </script>
-    <div class="welcomeBox">
-      <p class="welcome"><span class="bracket">&#60;</span>Welcome<span class="bracket">&#62;</span></p>
+    <div id="loading">
+      <div class="title">
+        <span class="bracket">&#60;</span>Loading..<span class="bracket">&#62;</span>
+      </div>
+      <div class="subtitle">HAX is loading</div>
     </div>
-    <haxcms-app demo></haxcms-app>
+  <app-hax>
+    <div slot="externalproviders">
+      <a href="https://login.microsoftonline.com/">
+        <button style="background-color: darkblue;"><img src="https://sites.psu.edu/psucanvas/files/2016/12/newlogosm-1y04ysv.png" width="93" height="43" alt="Canvas" id="logo" data-height-percentage="100" data-actual-width="648" data-actual-height="300"></button>
+      </a>
+    </div>
+  </app-hax>
+  <div id="demo">
+    <style>
+      #demobtns {
+        bottom: 0;
+        left: 0;
+        position: fixed;
+      }
+      #demobtns button {
+        font-size: 30px;
+        border: 2px solid black;
+        margin: 2px;
+        background-color: orange;
+        cursor: pointer;
+        color: black;
+        display: block;
+      }
+      #demobtns button:hover {
+        background-color: red;
+      }
+    </style>
+    <div id="demobtns">
+      <button id="loginbtn">Login</button>
+      <button id="nosites">Test new user</button>
+      <button id="test404">Test 404</button>
+      <button id="resetbtn">reset app</button>
+    </div>
+    <script>
+      // reduce FOUC for dark mode so it starts in dark rapidly if selected
+      if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
+        if (window.localStorage.getItem('app-hax-darkMode') == 'true') {
+          document.body.classList.add('dark-mode');
+        }
+        else {
+          document.body.classList.remove('dark-mode');
+        }
+      }
+      // remove loading text
+    window.addEventListener('app-hax-loaded',(e) => {
+      dqs("#loading").remove();
+    });
+      function dqs(sel) { return document.querySelector(sel)}
+      dqs("#loginbtn").addEventListener("click", (e) => {
+        dqs("app-hax").login();
+      });
+      dqs("#nosites").addEventListener("click", (e) => {
+        // reset to clear internal state
+        dqs("app-hax").reset(false);
+        // fake injection of a new site listing location
+        window.AppHax.requestAvailability().store.appSettings.getSitesList = 'demo/sitesEmpty.json';
+      });
+      dqs("#test404").addEventListener("click", (e) => {
+        window.location = "nothin9383832";
+      });
+      dqs("#resetbtn").addEventListener("click", (e) => {
+        dqs("app-hax").reset();
+      });
+    </script>
+  </div>
     <noscript>Please enable JavaScript to view this website.</noscript>
     <script src="node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
     <script

@@ -1341,9 +1341,9 @@ class HAXCMS
     /**
      * Get Front end JWT based connection settings
      */
-    public function appJWTConnectionSettings()
+    public function appJWTConnectionSettings($base = '/')
     {
-        $path = $this->basePath . $this->systemRequestBase . '/';
+        $path = $base . $this->systemRequestBase . '/';
         $settings = new stdClass();
         $settings->login = $path . 'login';
         $settings->refreshUrl = $path . 'refreshAccessToken';
@@ -1367,12 +1367,13 @@ class HAXCMS
         $settings->getUserDataPath = $path . 'getUserData';
         $settings->setUserPhotoPath = $path . 'setUserPhoto';
         $settings->deleteNodePath = $path . 'deleteNode';
-        $settings->createNewSitePath = $path . 'createSite';
-        $settings->gitImportSitePath = $path . 'gitImportSite';
-        $settings->downloadSitePath = $path . 'downloadSite';
-        $settings->archiveSitePath = $path . 'archiveSite';
-        $settings->cloneSitePath = $path . 'cloneSite';
-        $settings->deleteSitePath = $path . 'deleteSite';
+        $settings->createSite = $path . 'createSite';
+        $settings->gitImportSite = $path . 'gitImportSite';
+        $settings->downloadSite = $path . 'downloadSite';
+        $settings->archiveSite = $path . 'archiveSite';
+        $settings->copySite = $path . 'cloneSite';
+        $settings->deleteSite = $path . 'deleteSite';
+        $settings->getSitesList = $path . 'listSites';
         $settings->appStore = $this->appStoreConnection();
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
@@ -1509,7 +1510,7 @@ class HAXCMS
       // allow for rewriting this
       if ($code == 403 && $endOnInvalid) {
         header('Status: 403');
-        print 'Invalid token';
+        print '{"status": 403, "data": "Invalid token"}';
         exit();
       }
       return FALSE;

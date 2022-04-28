@@ -1458,11 +1458,11 @@ class Operations {
    */
   public function login() {
     // if we don't have a user and the don't answer, bail
-    if (isset($this->params['u']) && isset($this->params['p'])) {
+    if (isset($this->params['username']) && isset($this->params['password'])) {
       // _ paranoia
-      $u = $this->params['u'];
+      $u = $this->params['username'];
       // driving me insane
-      $p = $this->params['p'];
+      $p = $this->params['password'];
       // _ paranoia ripping up my brain
       // test if this is a valid user login
       if (!$GLOBALS['HAXCMS']->testLogin($u, $p, true)) {
@@ -1475,13 +1475,19 @@ class Operations {
       } else {
           // set a refresh_token COOKIE that will ship w/ all calls automatically
           setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
-          return $GLOBALS['HAXCMS']->getJWT($u);
+          return array(
+            "status" => 200,
+            "jwt" => $GLOBALS['HAXCMS']->getJWT($u),
+          );
       }
     }
     // login end point requested yet a jwt already exists
     // this is something of a revalidate case
     else if (isset($this->params['jwt'])) {
-      return $GLOBALS['HAXCMS']->validateJWT();
+      return array(
+        "status" => 200,
+        "jwt" => $GLOBALS['HAXCMS']->validateJWT(),
+      );
     }
     else {
       return array(
@@ -1503,7 +1509,10 @@ class Operations {
    * )
    */
   public function logout() {
-    return 'loggedout';
+    return array(
+      "status" => 200,
+      "data" => 'loggedout',
+    );
   }
   /**
    * @OA\Post(
@@ -1690,7 +1699,10 @@ class Operations {
       }
       closedir($handle);
     }
-    return $return;
+    return array(
+      "status" => 200,
+      "data" => $return
+    );
   }
   /**
    * @OA\Post(

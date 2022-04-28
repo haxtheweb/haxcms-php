@@ -41,11 +41,11 @@ async function connectionSettings(req, res) {
     getUserDataPath: `${baseAPIPath}getUserData`,
     setUserPhotoPath: `${baseAPIPath}setUserPhoto`,
     deleteNodePath: `${baseAPIPath}deleteNode`,
-    createNewSitePath: `${baseAPIPath}createSite`,
-    gitImportSitePath: `${baseAPIPath}gitImportSite`,
-    downloadSitePath: `${baseAPIPath}downloadSite`,
-    archiveSitePath: `${baseAPIPath}archiveSite`,
-    cloneSitePath: `${baseAPIPath}cloneSite`,
+    createNewSite: `${baseAPIPath}createSite`,
+    gitImportSite: `${baseAPIPath}gitImportSite`,
+    downloadSite: `${baseAPIPath}downloadSite`,
+    archiveSite: `${baseAPIPath}archiveSite`,
+    copySite: `${baseAPIPath}cloneSite`,
   });
   res.send(`window.appSettings =${returnData};`);
 }
