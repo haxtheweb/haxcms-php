@@ -1481,6 +1481,28 @@ class Operations {
           );
       }
     }
+    //old way
+    // if we don't have a user and the don't answer, bail
+    else if (isset($this->params['u']) && isset($this->params['p'])) {
+      // _ paranoia
+      $u = $this->params['u'];
+      // driving me insane
+      $p = $this->params['p'];
+      // _ paranoia ripping up my brain
+      // test if this is a valid user login
+      if (!$GLOBALS['HAXCMS']->testLogin($u, $p, true)) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Access denied',
+          )
+        );
+      } else {
+          // set a refresh_token COOKIE that will ship w/ all calls automatically
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
+          return $GLOBALS['HAXCMS']->getJWT($u);
+      }
+    }
     // login end point requested yet a jwt already exists
     // this is something of a revalidate case
     else if (isset($this->params['jwt'])) {
@@ -1529,7 +1551,10 @@ class Operations {
     $validRefresh = $GLOBALS['HAXCMS']->validateRefreshToken(FALSE);
     // if we have a valid refresh token then issue a new access token
     if ($validRefresh) {
-      return $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
+      return array(
+        "status" => 200,
+        "jwt" => $GLOBALS['HAXCMS']->getJWT($validRefresh->user),
+      );
     }
     else {
       // this failed so unset the cookie
@@ -2161,7 +2186,10 @@ class Operations {
           $repo->checkout($gitSettings->branch);
           $repo->pull('origin', $gitSettings->branch);
           $repo->push('origin', $gitSettings->branch);
-          return TRUE;
+          return array(
+            'status' => 200,
+            'detail' => true
+          );
       }
     } else {
       return array(
@@ -2649,10 +2677,12 @@ class Operations {
             copy(HAXCMS_ROOT . '/system/boilerplate/site/index.php', $siteDirectoryPath . '/index.php');
             return array(
                 'status' => 200,
-                'url' => $domain,
-                'label' => 'Click to access ' . $site->manifest->title,
-                'response' => 'Site published!',
-                'output' => 'Site published successfully if no errors!'
+                'data' => array(
+                  'url' => $domain,
+                  'label' => 'Click to access ' . $site->manifest->title,
+                  'response' => 'Site published!',
+                  'output' => 'Site published successfully if no errors!'
+                )
             );
         }
     } else {
@@ -2710,14 +2740,18 @@ class Operations {
     // we need to then load and rewrite the site name var or it will conflict given the name change
     $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
     $site->manifest->metadata->site->name = $cloneName;
+    $site->manifest->id = $site->manifest->generateUUID();
     $site->save();
     return array(
-      'link' =>
-        $GLOBALS['HAXCMS']->basePath .
-        $GLOBALS['HAXCMS']->sitesDirectory .
-        '/' .
-        $cloneName,
-      'name' => $cloneName
+      'status' => 200,
+      'data' => array(
+        'detail' =>
+          $GLOBALS['HAXCMS']->basePath .
+          $GLOBALS['HAXCMS']->sitesDirectory .
+          '/' .
+          $cloneName,
+        'name' => $cloneName
+      ),
     );
   }
   /**
@@ -2761,8 +2795,11 @@ class Operations {
         $site->directory . '/' . $site->manifest->metadata->site->name
       ]);
       return array(
-        'name' => $site->name,
-        'detail' => 'Site deleted',
+        'status' => 200,
+        'data' => array(
+          'name' => $site->name,
+          'detail' => 'Site deleted',
+        )
       );
     }
     else {
@@ -2845,12 +2882,15 @@ class Operations {
     // Zip archive will be created only after closing object
     $zip->close();
     return array(
-      'link' =>
-        $GLOBALS['HAXCMS']->basePath .
-        $GLOBALS['HAXCMS']->publishedDirectory .
-        '/' .
-        basename($zip_file),
-      'name' => basename($zip_file)
+      'status' => 200,
+      'data' => array(
+        'link' =>
+          $GLOBALS['HAXCMS']->basePath .
+          $GLOBALS['HAXCMS']->publishedDirectory .
+          '/' .
+          basename($zip_file),
+        'name' => basename($zip_file)
+      )
     );
   }
   /**
@@ -2894,8 +2934,11 @@ class Operations {
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory . '/' . $site->manifest->metadata->site->name);
       return array(
-        'name' => $site->name,
-        'detail' => 'Site archived',
+        'status' => 200,
+        'data' => array(
+          'name' => $site->name,
+          'detail' => 'Site archived',
+        )
       );
     }
     else {

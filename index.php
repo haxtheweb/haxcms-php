@@ -23,11 +23,9 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
-    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
-    <link rel="stylesheet" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
     <meta name="generator" content="HAXcms">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
-    <title>HAXCMS site list</title>
+    <title>Welcome to HAX</title>
     <meta name="description" content="My HAXCMS site list">
     
     <link rel="icon" href="assets/favicon.ico">
@@ -193,6 +191,39 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         color: var(--simple-colors-default-theme-grey-1);
         border-right: 3px solid var(--simple-colors-default-theme-grey-1);
         border-top: 3px solid  var(--simple-colors-default-theme-grey-1);
+      }
+
+      simple-modal::part(title) {
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        font-size: 28px;
+        color: black;
+      }
+      simple-modal button.hax-modal-btn {
+        font-size: 30px;
+        padding: 8px;
+        margin: 4px;
+        color: white;
+        background-color: green;
+        border: 4px solid black;
+        border-radius: 8px;
+        width: 40%;
+        font-family: 'Press Start 2P', sans-serif;
+      }
+      simple-modal button.hax-modal-btn.cancel {
+        background-color: red;
+      }
+      simple-modal button.hax-modal-btn:hover,
+      simple-modal button.hax-modal-btn:focus {
+        outline: 2px solid black;
+        cursor: pointer;
+        background-color: darkgreen;
+      }
+      simple-modal button.hax-modal-btn.cancel:hover,
+      simple-modal button.hax-modal-btn.cancel:focus {
+        background-color: darkred;
       }
 
     </style>
