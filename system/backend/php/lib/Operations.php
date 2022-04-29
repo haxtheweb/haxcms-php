@@ -1777,6 +1777,7 @@ class Operations {
           '/' .
           $site->manifest->metadata->site->name .
           '/index.html';
+      $schema->slug = $schema->location;
       $schema->metadata->site = new stdClass();
       $schema->metadata->theme = new stdClass();
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
@@ -1872,7 +1873,10 @@ class Operations {
               $site->manifest->metadata->site->git->branch
           );
       }
-      return $schema;
+      return array(
+        "status" => 200,
+        "data" => $schema
+      );
     }
     else {
       return array(

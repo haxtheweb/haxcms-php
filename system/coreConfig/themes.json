@@ -2,31 +2,37 @@
   "clean-one": {
     "element": "clean-one",
     "path": "@lrnwebcomponents/clean-one/clean-one.js",
-    "name": "Course theme"
+    "name": "Course theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/BlueStyle.svg"
   },
   "clean-two": {
     "element": "clean-two",
     "path": "@lrnwebcomponents/clean-two/clean-two.js",
-    "name": "Course theme 2"
+    "name": "Course theme 2",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
   },
   "learn-two-theme": {
     "element": "learn-two-theme",
     "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
-    "name": "Course theme 3"
+    "name": "Course theme 3",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg"
   },
   "bootstrap-theme": {
     "element": "bootstrap-theme",
     "path": "@lrnwebcomponents/bootstrap-theme/bootstrap-theme.js",
-    "name": "Bootstrap theme"
+    "name": "Bootstrap theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/BlueStyle.svg"
   },
   "haxor-slevin": {
     "element": "haxor-slevin",
     "path": "@lrnwebcomponents/haxor-slevin/haxor-slevin.js",
-    "name": "Blog theme"
+    "name": "Blog theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
   },
   "outline-player": {
     "element": "outline-player",
     "path": "@lrnwebcomponents/outline-player/outline-player.js",
-    "name": "Documentation theme"
+    "name": "Documentation theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg"
   }
 }

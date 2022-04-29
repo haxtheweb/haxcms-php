@@ -236,7 +236,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     });
     </script>
     <div id="visuallist"></div>
-    <app-hax create-params='{"token":"<?php print $HAXCMS->getRequestToken(); ?>"}' base-path="<?php print $HAXCMS->basePath; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
+    <app-hax token="<?php print $HAXCMS->getRequestToken(); ?>" base-path="<?php print $HAXCMS->basePath; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
       <?php print $HAXCMS->siteListing->slot; ?>
     </app-hax>
     <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
