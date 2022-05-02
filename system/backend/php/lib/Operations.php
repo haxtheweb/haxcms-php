@@ -2740,7 +2740,7 @@ class Operations {
     // we need to then load and rewrite the site name var or it will conflict given the name change
     $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
     $site->manifest->metadata->site->name = $cloneName;
-    $site->manifest->id = $site->manifest->generateUUID();
+    $site->manifest->id = $GLOBALS['HAXCMS']->generateUUID();
     $site->save();
     return array(
       'status' => 200,

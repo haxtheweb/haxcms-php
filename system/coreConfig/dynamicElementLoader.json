@@ -37,5 +37,6 @@
   "rss-items": "@lrnwebcomponents/rss-items/rss-items.js",
   "date-card": "@lrnwebcomponents/date-card/date-card.js",
   "service-card": "@lrnwebcomponents/service-card/service-card.js",
+  "rpg-character": "@lrnwebcomponents/rpg-character/rpg-character.js",
   "page-break": "@lrnwebcomponents/page-break/page-break.js"
 }
