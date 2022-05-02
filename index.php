@@ -198,7 +198,8 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         margin: 0;
         padding: 0;
         text-align: center;
-        font-size: 28px;
+        font-size: 20px;
+        line-height: 20px;
         color: black;
       }
       simple-modal button.hax-modal-btn {
@@ -209,7 +210,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         background-color: green;
         border: 4px solid black;
         border-radius: 8px;
-        width: 40%;
         font-family: 'Press Start 2P', sans-serif;
       }
       simple-modal button.hax-modal-btn.cancel {
