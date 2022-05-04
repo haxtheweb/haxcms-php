@@ -1023,7 +1023,10 @@ class HAXCMS
         else {
           $wcPath = $base . 'wc-registry.json';
         }
-        $wcMap = json_decode(file_get_contents($wcPath));
+        // support private IP space which will block this ever going through
+        if (!defined('IAM_PRIVATE_ADDRESS_SPACE')) {
+          $wcMap = json_decode(file_get_contents($wcPath));
+        }
       }
       return $wcMap;
     }
