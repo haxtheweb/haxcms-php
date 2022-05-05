@@ -62,7 +62,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -82,14 +82,14 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
         --simple-tooltip-background: #ffffff;
         --simple-tooltip-text-color: #000000;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -101,7 +101,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         display: unset;
       }
       body.app-loaded.dark-mode:not(.bad-device) {
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
 
       #loading {
