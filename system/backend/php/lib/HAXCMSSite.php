@@ -927,10 +927,9 @@ class HAXCMSSite
       }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
-        // /cdn/ is a hack
-        $preconnect = '<link rel="preconnect" crossorigin href="' . str_replace('/cdn/', '', $cdn) . '">';
-        // preload rewrite correctly
-        $base = str_replace('/cdn/', '/cdn', $cdn) . '/';
+        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
+        // base is preload for the calls below
+        $base = $cdn;
       }
       $contentPreload = '';
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
