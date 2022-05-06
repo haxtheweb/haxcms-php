@@ -1147,7 +1147,7 @@ class Operations {
       '__noencode' => array(
         'status' => 200,
         'contentType' => 'application/javascript',
-        'message' => 'window.appSettings = ' . json_encode($GLOBALS['HAXCMS']->appJWTConnectionSettings()) . ';',
+        'message' => 'window.appSettings = ' . json_encode($GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath)) . ';',
       )
     );
   }
