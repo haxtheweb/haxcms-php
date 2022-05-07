@@ -888,7 +888,7 @@ class HAXCMS
       $body .= '<page-break fakeendcap="fakeendcap"></page-break>';
       $pageData = [];
       // match all pages + content
-      preg_match_all("/(<page-break(.*?)><\/page-break>)((?:.|\n)*?)(?=<page-break)/", $body, $matches);
+      preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
         $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
         try {
@@ -898,7 +898,7 @@ class HAXCMS
           $attrs = array();
         }
         $pageData[$i] = array(
-            "content" => $matches[3][$i],
+            "content" => $matches[4][$i],
             // this assumes that the attributes are well formed; make sure front end did this
             // even for boolean attributes
             "attributes" => $attrs

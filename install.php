@@ -14,44 +14,86 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     <meta charset="utf-8">
     <title>HAXcms Installation</title>
     <link rel="preload" href="./build/es6/dist/build-install.js" as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js"
+    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/app-hax/app-hax.js"
       as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
-    <link rel="stylesheet" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" />
     <style>
       body {
-        color: #222222;
-        background-color: var(--haxcms-system-bg, #888888);
-        --haxcms-base-styles-list-font-size: 18px;
-        font-size: 18px;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-repeat: repeat;
+        background-position: center center;
+        background-size: auto, 20% auto, 20% auto;
+        --app-hax-accent-color: black;
+        --app-hax-background-color: white;
+        --simple-tooltip-background: #000000;
+        --simple-tooltip-opacity: 1;
+        --simple-tooltip-text-color: #ffffff;
+        --simple-tooltip-delay-in: 0;
+        --simple-tooltip-duration-in: 200ms;
+        --simple-tooltip-duration-out: 0;
+        --simple-tooltip-border-radius: 0;
+        --simple-tooltip-font-size: 14px;
+      }
+      body {
+        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-repeat: repeat, repeat-y, repeat-y;
+        background-position: center center, top left, top right;
+        background-size: auto, 20% auto, 20% auto;
       }
       pre {
         background-color: #333333;
         color: yellow;
         padding: 8px;
       }
-      paper-button {
-        background-color: var(--haxcms-system-action-color, blue);
+      .version {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        background-color:  yellow;
+        display: inline-block;
+        padding: 8px;
+        font-family: 'Press Start 2P', sans-serif;
+        color: black;
+        border-right: 3px solid black;
+        border-top: 3px solid black;
       }
-      paper-button, a {
-        color: #FFFFFF;
-        text-decoration: none;
+      button.hax-btn {
+        font-size: 40px;
+        transition: .2s all ease-in-out;
+        padding: 8px;
+        margin: 4px;
+        color: white;
+        background-color: darkblue;
+        border: 4px solid black;
+        border-radius: 8px;
+        font-family: 'Press Start 2P', sans-serif;
       }
-      paper-button:focus,
-      paper-button:hover,
-      a:focus,
-      a:hover {
-        color: yellow;
+      button.hax-btn.smaller {
+        font-size: 20px;
       }
+      button.hax-btn:focus,
+      button.hax-btn:hover {
+        cursor: pointer;
+        background-color: green;
+      }
+
+      button.hax-btn:active {
+        background-color: blue;
+        border: 6px solid blue;
+      }
+
       p,ul,li {
-        font-size: 18px;
+        font-size: 24px;
       }
       hax-logo {
         --hax-logo-letter-spacing: 1px;
         text-align: center;
-        --hax-logo-font-size: 40px;
+        --hax-logo-font-size: 60px;
+        margin: 16px 0 50px;
       }
       @media screen and (max-width: 600px) {
         hax-logo {
@@ -65,12 +107,21 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       ul li {
         padding: 4px;
       }
+      ul li strong {
+        font-family: 'Press Start 2P', sans-serif;
+        padding: 8px;
+        font-size: 40px;
+        line-height: 1.5;
+        background-color: rgba(12,12,12,.05);
+        margin-left: 16px;
+      }
       .wrapper {
+        padding: 16px;
         margin: 5vh 15vw;
         display: flex;
         justify-content: center;
       }
-      paper-card {
+      .card {
         width: 60vw;
         background-color: white;
         padding: 0 16px;
@@ -80,20 +131,23 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         top: 0;
         position: fixed;
       }
-      paper-button {
+      button {
         text-transform: none;
       }
       h1 {
-        margin: 0;
+        margin: 16px;
         padding: 0;
-        font-size: 32px;
+        font-size: 30px;
+        text-align: center;
+        font-family: 'Press Start 2P', sans-serif;
+
       }
     </style>
   </head>
   <body no-js>
-    <git-corner alt="Join HAXcms on Github!" source="https://github.com/elmsln/haxcms"></git-corner>
+    <git-corner alt="Join HAX on Github!" source="https://github.com/elmsln/haxcms"></git-corner>
     <div class="wrapper">
-      <paper-card elevation="5">
+      <div class="card">
 <?php
   include_once 'system/backend/php/lib/Git.php';
   // add git library
@@ -231,22 +285,22 @@ if ($failed) { ?>
           <pre><?php print "bash " . __DIR__ . "/scripts/haxtheweb.sh"; ?></pre>
           A complete installation guide can be read on 
           <a href="https://haxtheweb.org/installation" target="_blank"  rel="noopener noreferrer">
-          <paper-button raised><iron-icon icon="icons:build"></iron-icon> HAXTheWeb</paper-button></a>.
+          <button raised><iron-icon icon="icons:build"></iron-icon> HAXTheWeb</simple-button></a>.
         </p>
 <?php } else { ?>
-        <hax-logo hide-hax>HAXcms</hax-logo><div class="version">V<?php print $version;?></div>
-        <h1>Install successful!</h1>
+        <hax-logo hide-hax>HAX</hax-logo><div class="version">V<?php print $version;?></div>
+        <h1>Install successful</h1>
         <p>If you don' see any errors then that means HAXcms has been successfully installed!
         Configuration settings were saved to <strong>_config/config.php</strong></p>
         <ul>
           <li>Username: <strong>admin</strong></li>
           <li>Password: <strong><?php print $pass; ?></strong></li>
         </ul>
-        <a href="index.php" tabindex="-1"><paper-button raised><iron-icon icon="icons:touch-app"></iron-icon>Access HAXcms!</paper-button></a>
-        <p>Ideas to share or experiencing issues? <a href="http://github.com/elmsln/haxcms/issues" target="_blank" rel="noopener noreferrer" tabindex="-1">
-        <paper-button raised><iron-icon icon="icons:stars"></iron-icon>Join our open community!</paper-button></a></p>
+        <a href="index.php" tabindex="-1"><button class="hax-btn">Access HAXcms</button></a>
+        <p>Ideas to share or experiencing issues? <a href="http://github.com/elmsln/issues/issues" target="_blank" rel="noopener noreferrer" tabindex="-1">
+        <button class="hax-btn smaller">Join our community</button></a></p>
 <?php } ?>
-      </paper-card>
+</div>
     </div>
     <noscript>Enable JavaScript to experience HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');var cdn="";var old=false;var ancient=false;

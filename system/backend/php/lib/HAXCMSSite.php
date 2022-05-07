@@ -579,12 +579,17 @@ class HAXCMSSite
         if (isset($item->metadata) && isset($item->metadata->created)) {
           $created = $item->metadata->created;
         }
+        // slug is now the URL canonical
+        $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
+        if (isset($item->slug)) {
+          $slug = $item->slug;
+        }
         // may seem silly but IDs in lunr have a size limit for some reason in our context..
         $data[] = array(
           "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
           "title" => $item->title,
           "created" => $created,
-          "location" => str_replace('pages/', '', str_replace('/index.html', '', $item->location)),
+          "location" => $slug,
           "description" => $item->description,
           "text" => $this->cleanSearchData(@file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location)),
         );
