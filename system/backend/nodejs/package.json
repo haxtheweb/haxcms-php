@@ -12,7 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "fs-extra": "10.0.0",
-    "locutus": "2.0.14",
+    "locutus": "2.0.15",
     "helmet": "4.6.0",
     "express-fileupload": "1.2.1",
     "express": "4.17.1",
