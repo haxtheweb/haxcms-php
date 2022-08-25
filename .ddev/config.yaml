@@ -19,7 +19,7 @@ hooks:
   - exec: sudo a2enconf http2
   - exec: bash scripts/haxtheweb.sh 'admin' 'admin'
   - exec: bash scripts/github-publishing-ssh.sh
-  - exec: echo 'go to http://haxcms.ddev.local - click the top right power button
+  - exec: echo 'go to https://haxcms.ddev.site - click the top right power button
       and enter admin / admin to get started!'
 use_dns_when_possible: true
 timezone: ""
