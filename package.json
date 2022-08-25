@@ -51,7 +51,6 @@
     "wc-autoloader": "gulp wc-autoloader",
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
-    "next": "polymer serve --open --entrypoint next.html --allow-origin --open-path=/",
     "nodeapp": "cd system/backend/nodejs && code . && yarn start"
   },
   "private": false,
