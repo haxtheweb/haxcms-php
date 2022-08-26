@@ -51,7 +51,8 @@ class HAXCMSSite
         $siteBasePath,
         $name,
         $gitDetails,
-        $domain = null
+        $domain = null,
+        $pageSchema = null
     ) {
         // calls must set basePath internally to avoid page association issues
         $this->basePath = $siteBasePath;
@@ -124,7 +125,36 @@ class HAXCMSSite
         $this->manifest->metadata->node->fields = new stdClass();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
-        $this->addPage(null, 'Welcome to a new HAXcms site!', 'init');
+        // accept a schema which can generate an array of pages to start
+        if ($pageSchema == null) {
+            $this->addPage(null, 'Welcome to a new HAXcms site!', 'init');
+        }
+        else {
+            // loop through an array and make multiple pages
+            /*$pageSchema = array(
+                array(
+                    "parent" => null,
+                    "title" => "Lesson 1",
+                    "template" => "init",
+                    "slug" => "lesson-1"
+                ),
+                array(
+                    "parent" => null,
+                    "title" => "Lesson 2",
+                    "template" => "default",
+                    "slug" => "lesson-2"
+                ),
+                array(
+                    "parent" => null,
+                    "title" => "Glossary",
+                    "template" => "glossary",
+                    "slug" => "glossary"
+                ),
+            );*/
+            for ($i=0; $i < count($pageSchema); $i++) {
+                $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
+            }
+        }
         // put this in version control :) :) :)
         $git = new Git();
         $repo = $git->create($directory . '/' . $tmpname);
@@ -425,7 +455,7 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default")
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome')
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
@@ -444,7 +474,7 @@ class HAXCMSSite
         $page->order = count($this->manifest->items);
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
-        $page->slug = 'welcome';
+        $page->slug = $slug;
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location = $this->directory . '/' .
@@ -454,6 +484,12 @@ class HAXCMSSite
         switch ($template) {
             case 'init':
                 $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/init', $location);
+            break;
+            case 'lesson':
+                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/lesson', $location);
+            break;
+            case 'glossary':
+                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/glossary', $location);
             break;
             default:
                 $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
