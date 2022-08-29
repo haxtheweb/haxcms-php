@@ -1054,7 +1054,7 @@ class HAXCMS
     /**
      * Load a site off the file system with option to create
      */
-    public function loadSite($name, $create = false, $domain = null)
+    public function loadSite($name, $create = false, $domain = null, $build = null)
     {
         $tmpname = urldecode($name);
         $tmpname = $this->cleanTitle($tmpname, false);
@@ -1109,7 +1109,7 @@ class HAXCMS
             return $site;
         } elseif ($create) {
             // attempt to create site
-            return $this->createSite($name, $domain);
+            return $this->createSite($name, $domain, null, $build);
         } elseif (isset($GLOBALS["HAXcmsInDocker"]) && $name == "html") {
           // we're in a docker container, howay!
           $site = new HAXCMSSite();
@@ -1127,7 +1127,7 @@ class HAXCMS
      *
      * @return boolean true for success, false for failed
      */
-    private function createSite($name, $domain = null, $git = null)
+    private function createSite($name, $domain = null, $git = null, $build = null)
     {
         // try and make the folder
         $site = new HAXCMSSite();
@@ -1146,7 +1146,8 @@ class HAXCMS
                 $this->basePath . $this->sitesDirectory . '/',
                 $name,
                 $git,
-                $domain
+                $domain,
+                $build
             )
         ) {
             return $site;

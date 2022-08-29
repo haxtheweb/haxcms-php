@@ -52,7 +52,7 @@ class HAXCMSSite
         $name,
         $gitDetails,
         $domain = null,
-        $pageSchema = null
+        $build = null
     ) {
         // calls must set basePath internally to avoid page association issues
         $this->basePath = $siteBasePath;
@@ -126,34 +126,90 @@ class HAXCMSSite
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         // accept a schema which can generate an array of pages to start
-        if ($pageSchema == null) {
-            $this->addPage(null, 'Welcome to a new HAXcms site!', 'init');
+        if ($build == null) {
+          $this->addPage(null, 'Welcome', 'init', 'welcome');
         }
         else {
-            // loop through an array and make multiple pages
-            /*$pageSchema = array(
+          switch ($build->structure) {
+            case 'course':
+              $pageSchema = array(
                 array(
-                    "parent" => null,
-                    "title" => "Lesson 1",
-                    "template" => "init",
-                    "slug" => "lesson-1"
-                ),
-                array(
-                    "parent" => null,
-                    "title" => "Lesson 2",
-                    "template" => "default",
-                    "slug" => "lesson-2"
-                ),
-                array(
-                    "parent" => null,
-                    "title" => "Glossary",
-                    "template" => "glossary",
-                    "slug" => "glossary"
-                ),
-            );*/
-            for ($i=0; $i < count($pageSchema); $i++) {
+                  "parent" => null,
+                  "title" => "Welcome to " . $name,
+                  "template" => "course",
+                  "slug" => "welcome"
+                )
+              );
+              switch ($build->type) {
+                  case '6w':
+                    for ($i=0; $i < 6; $i++) {
+                      array_push($pageSchema, array(
+                        "parent" => null,
+                        "title" => "Lesson " . ($i+1),
+                        "template" => "lesson",
+                        "slug" => "lesson-" . ($i+1)
+                      ));
+                    }
+                  break;
+                  case '15w':
+                    for ($i=0; $i < 15; $i++) {
+                      array_push($pageSchema, array(
+                        "parent" => null,
+                        "title" => "Lesson " . ($i+1),
+                        "template" => "lesson",
+                        "slug" => "lesson-" . ($i+1)
+                      ));
+                    }
+                  break;
+                  case 'training':
+                  default:
+                    array_push($pageSchema, array(
+                      "parent" => null,
+                      "title" => "Lessons",
+                      "template" => "default",
+                      "slug" => "lessons"
+                    ));
+                  break;
+              }
+              array_push($pageSchema, array(
+                "parent" => null,
+                "title" => "Glossary",
+                "template" => "glossary",
+                "slug" => "glossary"
+              ));
+              for ($i=0; $i < count($pageSchema); $i++) {
                 $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
-            }
+              }
+            break;
+            case 'website':
+              switch ($build->type) {
+                case 'blog':
+                  $this->addPage(null, 'Article 1', 'init', 'article-1');
+                  $this->addPage(null, 'Article 2', 'init', 'article-2');
+                  $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
+                break;
+                default:
+                  $this->addPage(null, 'Home', 'init', 'home');
+                break;
+              }
+            break;
+            case 'portfolio':
+              switch ($build->type) {
+                case 'art':
+                  $this->addPage(null, 'Gallery 1', 'init', 'gallery-1');
+                  $this->addPage(null, 'Gallery 2', 'init', 'gallery-2');
+                  $this->addPage(null, 'Meet the artist', 'init', 'meet-the-artist');
+                break;
+                case 'business':
+                case 'technology':
+                default:
+                  $this->addPage(null, 'Article 1', 'init', 'article-1');
+                  $this->addPage(null, 'Article 2', 'init', 'article-2');
+                  $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
+                break;
+              }
+            break;
+          }
         }
         // put this in version control :) :) :)
         $git = new Git();
@@ -482,17 +538,16 @@ class HAXCMSSite
             '/pages' . '/' . $page->id;
         // copy the page we use for simplicity (or later complexity if we want)
         switch ($template) {
-            case 'init':
-                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/init', $location);
-            break;
-            case 'lesson':
-                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/lesson', $location);
-            break;
+            case 'course':
             case 'glossary':
-                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/glossary', $location);
+            case 'init':
+            case 'lesson':
+            case 'default':
+              $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/' . $template, $location);
             break;
+            // didn't understand it, just go default
             default:
-                $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
+              $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
             break;
         }
         $this->manifest->addItem($page);

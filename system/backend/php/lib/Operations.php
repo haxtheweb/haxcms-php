@@ -224,7 +224,7 @@ class Operations {
       $site->manifest->description = strip_tags(
           $this->params['manifest']['site']['manifest-description']
       );
-      // store some version data here just so we can find it later
+      // store version data here so we know where we were when last globally saved
       $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
       $site->manifest->metadata->site->domain = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-domain'],
@@ -1785,12 +1785,25 @@ class Operations {
       if (isset($this->params['site']['domain']) && $this->params['site']['domain'] != null && $this->params['site']['domain'] != '') {
         $domain = $this->params['site']['domain'];
       }
+      // null in the event we get hits that don't have this
+      $build = null;
+      // support for build info. the details used to actually create this site originally
+      if (isset($this->params['build'])) {
+        $build = new stdClass();
+        // version of the platform used when originally created
+        $build->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+        // course, website, portfolio, etc
+        $build->structure = $this->params['build']['structure'];
+        // type of structure
+        $build->type = $this->params['build']['type'];
+      }
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
       $site = $GLOBALS['HAXCMS']->loadSite(
           strtolower($name),
           true,
-          $domain
+          $domain,
+          $build
       );
       // now get a new item to reference this into the top level sites listing
       $schema = $GLOBALS['HAXCMS']->outlineSchema->newItem();
@@ -1805,6 +1818,8 @@ class Operations {
       $schema->slug = $schema->location;
       $schema->metadata->site = new stdClass();
       $schema->metadata->theme = new stdClass();
+      // store build data in case we need it down the road
+      $schema->metadata->build = $build;
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
       if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
         $theme = $this->params['site']['theme'];
