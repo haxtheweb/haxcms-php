@@ -1109,6 +1109,8 @@
         }
     ],
     "autoloader": {
+        "lesson-overview": "@lrnwebcomponents/lesson-overview/lesson-overview.js",
+        "lesson-highlight": "@lrnwebcomponents/lesson-overview/lib/lesson-highlight.js",
         "rpg-character": "@lrnwebcomponents/rpg-character/rpg-character.js",
         "page-break": "@lrnwebcomponents/page-break/page-break.js",
         "a11y-figure": "@lrnwebcomponents/a11y-figure/a11y-figure.js",

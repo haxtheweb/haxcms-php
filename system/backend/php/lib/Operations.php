@@ -1210,6 +1210,8 @@ class Operations {
       } else {
           $autoloaderList = json_decode('
         [
+          "lesson-overview",
+          "lesson-highlight",
           "video-player",
           "meme-maker",
           "lrn-aside",
