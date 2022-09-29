@@ -131,24 +131,6 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
-            case 'docx import':
-              // ensure we have items
-              if ($build->items) {
-                for ($i=0; $i < count($build->items); $i++) {
-                  $this->addPage(
-                    $build->items[$i]['parent'],
-                    $build->items[$i]['title'],
-                    'html',
-                    $build->items[$i]['slug'],
-                    $build->items[$i]['id'],
-                    $build->items[$i]['indent'],
-                    $build->items[$i]['contents']
-                  );
-                }
-                // tack a glossary on as well for this form
-                $this->addPage(null, "Glossary", "glossary", "glossary");
-              }
-            break;
             case 'course':
               $pageSchema = array(
                 array(
@@ -159,35 +141,51 @@ class HAXCMSSite
                 )
               );
               switch ($build->type) {
-                  case '6w':
-                    for ($i=0; $i < 6; $i++) {
-                      array_push($pageSchema, array(
-                        "parent" => null,
-                        "title" => "Lesson " . ($i+1),
-                        "template" => "lesson",
-                        "slug" => "lesson-" . ($i+1)
-                      ));
+                case 'docx import':
+                  // ensure we have items
+                  if ($build->items) {
+                    for ($i=0; $i < count($build->items); $i++) {
+                      $this->addPage(
+                        $build->items[$i]['parent'],
+                        $build->items[$i]['title'],
+                        'html',
+                        $build->items[$i]['slug'],
+                        $build->items[$i]['id'],
+                        $build->items[$i]['indent'],
+                        $build->items[$i]['contents']
+                      );
                     }
-                  break;
-                  case '15w':
-                    for ($i=0; $i < 15; $i++) {
-                      array_push($pageSchema, array(
-                        "parent" => null,
-                        "title" => "Lesson " . ($i+1),
-                        "template" => "lesson",
-                        "slug" => "lesson-" . ($i+1)
-                      ));
-                    }
-                  break;
-                  case 'training':
-                  default:
+                  }
+                break;
+                case '6w':
+                  for ($i=0; $i < 6; $i++) {
                     array_push($pageSchema, array(
                       "parent" => null,
-                      "title" => "Lessons",
-                      "template" => "default",
-                      "slug" => "lessons"
+                      "title" => "Lesson " . ($i+1),
+                      "template" => "lesson",
+                      "slug" => "lesson-" . ($i+1)
                     ));
-                  break;
+                  }
+                break;
+                case '15w':
+                  for ($i=0; $i < 15; $i++) {
+                    array_push($pageSchema, array(
+                      "parent" => null,
+                      "title" => "Lesson " . ($i+1),
+                      "template" => "lesson",
+                      "slug" => "lesson-" . ($i+1)
+                    ));
+                  }
+                break;
+                case 'training':
+                default:
+                  array_push($pageSchema, array(
+                    "parent" => null,
+                    "title" => "Lessons",
+                    "template" => "default",
+                    "slug" => "lessons"
+                  ));
+                break;
               }
               array_push($pageSchema, array(
                 "parent" => null,
