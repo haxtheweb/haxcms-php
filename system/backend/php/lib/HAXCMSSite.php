@@ -569,7 +569,8 @@ class HAXCMSSite
         $page->order = count($this->manifest->items);
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
-        $page->slug = $slug;
+        // sanitize slug just to be safe
+        $page->slug = $GLOBALS['HAXCMS']->cleanTitle($slug);
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location = $this->directory . '/' .

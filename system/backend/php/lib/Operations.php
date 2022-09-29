@@ -567,6 +567,10 @@ class Operations {
    *                     type="object"
    *                 ),
    *                 @OA\Property(
+   *                     property="items",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
    *                     property="node",
    *                     type="object"
    *                 ),
@@ -595,6 +599,7 @@ class Operations {
    *                    "site": {
    *                      "name": "mysite"
    *                    },
+   *                    "items": [{},{}],
    *                    "node": {
    *                      "id": null,
    *                      "title": "Cool post",
@@ -619,42 +624,61 @@ class Operations {
   public function createNode() {
     $nodeParams = $this->params;
     $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
-    // generate a new item based on the site
-    $item = $site->itemFromParams($nodeParams);
-    // generate the boilerplate to fill this page
-    $site->recurseCopy(
-        HAXCMS_ROOT . '/system/boilerplate/page/default',
-        $site->directory .
-            '/' .
-            $site->manifest->metadata->site->name .
-            '/' .
-            str_replace('/index.html', '', $item->location)
-    );
-    // add the item back into the outline schema
-    $site->manifest->addItem($item);
-    $site->manifest->save();
-    // support for duplicating the content of another item
-    if (isset($nodeParams['node']['duplicate'])) {
-      // verify we can load this id
-      if ($nodeToDuplicate = $site->loadNode($nodeParams['node']['duplicate'])) {
-        $content = $site->getPageContent($nodeToDuplicate);
-        // verify we actually have the id of an item that we just created
-        if ($page = $site->loadNode($item->id)) {
-          // write it to the file system
-          // this all seems round about but it's more secure
-          $bytes = $page->writeLocation(
-            $content,
-            HAXCMS_ROOT .
-            '/' .
-            $GLOBALS['HAXCMS']->sitesDirectory .
-            '/' .
-            $site->name .
-            '/'
-          );
+    // implies we've been TOLD to create nodes
+    // this is typically from a docx import
+    if (isset($nodeParams['items'])) {
+      // create pages
+      for ($i=0; $i < count($nodeParams['items']); $i++) {
+        $item = $this->addPage(
+          $nodeParams['items'][$i]['parent'], 
+          $nodeParams['items'][$i]['title'], 
+          'html', 
+          $nodeParams['items'][$i]['slug'],
+          $nodeParams['items'][$i]['id'],
+          $nodeParams['items'][$i]['indent'],
+          $nodeParams['items'][$i]['contents']
+        );
+      }
+      $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
+    }
+    else {
+      // generate a new item based on the site
+      $item = $site->itemFromParams($nodeParams);
+      // generate the boilerplate to fill this page
+      $site->recurseCopy(
+          HAXCMS_ROOT . '/system/boilerplate/page/default',
+          $site->directory .
+              '/' .
+              $site->manifest->metadata->site->name .
+              '/' .
+              str_replace('/index.html', '', $item->location)
+      );
+      // add the item back into the outline schema
+      $site->manifest->addItem($item);
+      $site->manifest->save();
+      // support for duplicating the content of another item
+      if (isset($nodeParams['node']['duplicate'])) {
+        // verify we can load this id
+        if ($nodeToDuplicate = $site->loadNode($nodeParams['node']['duplicate'])) {
+          $content = $site->getPageContent($nodeToDuplicate);
+          // verify we actually have the id of an item that we just created
+          if ($page = $site->loadNode($item->id)) {
+            // write it to the file system
+            // this all seems round about but it's more secure
+            $bytes = $page->writeLocation(
+              $content,
+              HAXCMS_ROOT .
+              '/' .
+              $GLOBALS['HAXCMS']->sitesDirectory .
+              '/' .
+              $site->name .
+              '/'
+            );
+          }
         }
       }
+    $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
     }
-    $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
     return array(
       'status' => 200,
       'data' => $item
@@ -1800,12 +1824,12 @@ class Operations {
         $build->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
         // course, website, portfolio, etc
         $build->structure = $this->params['build']['structure'];
-        if ($build->structure == 'docx import') {
+        // TYPE of structure we are creating
+        $build->type = $this->params['build']['type'];
+        if ($build->type == 'docx import') {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
         }
-        // type of structure
-        $build->type = $this->params['build']['type'];
       }
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
