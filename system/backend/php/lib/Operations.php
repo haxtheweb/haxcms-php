@@ -1751,6 +1751,10 @@ class Operations {
    *                     type="object"
    *                 ),
    *                 @OA\Property(
+   *                     property="build",
+   *                     type="object"
+   *                 ),
+   *                 @OA\Property(
    *                     property="theme",
    *                     type="object"
    *                 ),
@@ -1759,16 +1763,16 @@ class Operations {
    *                    "site": {
    *                      "name": "mynewsite",
    *                      "description": "The description",
-   *                      "domain": ""
+   *                      "theme": "theme name"
+   *                    },
+   *                    "build": {
+   *                      "type": "course",
+   *                      "structure": "docx",
+   *                      "items": [{},{}]
    *                    },
    *                    "theme": {
-   *                      "name": "clean-one",
-   *                      "variables": {
-   *                        "image":"",
-   *                        "icon":"",
-   *                        "hexCode":"",
-   *                        "cssVariable":"",
-   *                        }                   
+   *                      "color": "blue",
+   *                      "icon": "icons:save"
    *                    }
    *                 }
    *             )
@@ -1796,6 +1800,10 @@ class Operations {
         $build->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
         // course, website, portfolio, etc
         $build->structure = $this->params['build']['structure'];
+        if ($build->structure == 'docx') {
+          // JSONOutlineSchemaItem Array
+          $build->items = $this->params['build']['items'];
+        }
         // type of structure
         $build->type = $this->params['build']['type'];
       }

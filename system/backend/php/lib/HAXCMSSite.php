@@ -131,6 +131,24 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
+            case 'docx':
+              // ensure we have items
+              if ($build->items) {
+                for ($i=0; $i < count($build->items); $i++) {
+                  $this->addPage(
+                    $build->items[$i]['parent'],
+                    $build->items[$i]['title'],
+                    'html',
+                    $build->items[$i]['slug'],
+                    $build->items[$i]['id'],
+                    $build->items[$i]['indent'],
+                    $build->items[$i]['contents']
+                  );
+                }
+                // tack a glossary on as well for this form
+                $this->addPage(null, "Glossary", "glossary", "glossary");
+              }
+            break;
             case 'course':
               $pageSchema = array(
                 array(
@@ -511,20 +529,30 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome')
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>')
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
+        // support direct ID setting, useful for parent associations calculated ahead of time
+        if (!is_null($id)) {
+          $page->id = $id;
+        }
         // set a crappy default title
         $page->title = $title;
         if ($parent == null) {
-            $page->parent = null;
-            $page->indent = 0;
+          $page->parent = null;
+          $page->indent = 0;
+        }
+        else if (is_string($parent)) {
+          // set to the parent id
+          $page->parent = $parent;
+          // move it one indentation below the parent; this can be changed later if desired
+          $page->indent = $indent;
         } else {
-            // set to the parent id
-            $page->parent = $parent->id;
-            // move it one indentation below the parent; this can be changed later if desired
-            $page->indent = $parent->indent + 1;
+          // set to the parent id
+          $page->parent = $parent->id;
+          // move it one indentation below the parent; this can be changed later if desired
+          $page->indent = $parent->indent + 1;
         }
         // set order to the page's count for default add to end ordering
         $page->order = count($this->manifest->items);
@@ -545,6 +573,8 @@ class HAXCMSSite
             case 'default':
               $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/' . $template, $location);
             break;
+            // allow direct HTML setting
+            case 'html':
             // didn't understand it, just go default
             default:
               $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
@@ -552,6 +582,20 @@ class HAXCMSSite
         }
         $this->manifest->addItem($page);
         $this->manifest->save();
+        // support direct HTML setting
+        if ($template == 'html') {
+          // now this should exist if it didn't a minute ago
+          $page = $this->loadNode($id);
+          $bytes = $page->writeLocation(
+            $html,
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $this->name .
+            '/'
+          );
+        }
         $this->updateAlternateFormats();
         return $page;
     }
