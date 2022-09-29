@@ -1767,7 +1767,7 @@ class Operations {
    *                    },
    *                    "build": {
    *                      "type": "course",
-   *                      "structure": "docx",
+   *                      "structure": "docx import",
    *                      "items": [{},{}]
    *                    },
    *                    "theme": {
@@ -1800,7 +1800,7 @@ class Operations {
         $build->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
         // course, website, portfolio, etc
         $build->structure = $this->params['build']['structure'];
-        if ($build->structure == 'docx') {
+        if ($build->structure == 'docx import') {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
         }

@@ -131,7 +131,7 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
-            case 'docx':
+            case 'docx import':
               // ensure we have items
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
