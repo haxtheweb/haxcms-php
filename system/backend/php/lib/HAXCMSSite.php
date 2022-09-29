@@ -145,15 +145,15 @@ class HAXCMSSite
                   // ensure we have items
                   if ($build->items) {
                     for ($i=0; $i < count($build->items); $i++) {
-                      $this->addPage(
-                        $build->items[$i]['parent'],
-                        $build->items[$i]['title'],
-                        'html',
-                        $build->items[$i]['slug'],
-                        $build->items[$i]['id'],
-                        $build->items[$i]['indent'],
-                        $build->items[$i]['contents']
-                      );
+                      array_push($pageSchema, array(
+                        "parent" => $build->items[$i]['parent'],
+                        "title" => $build->items[$i]['title'],
+                        "template" => "html",
+                        "slug" => $build->items[$i]['slug'],
+                        "id" => $build->items[$i]['id'],
+                        "indent" => $build->items[$i]['indent'],
+                        "contents" => $build->items[$i]['contents'],
+                      ));
                     }
                   }
                 break;
@@ -194,7 +194,20 @@ class HAXCMSSite
                 "slug" => "glossary"
               ));
               for ($i=0; $i < count($pageSchema); $i++) {
-                $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
+                if ($pageSchema[$i]['template'] == 'html') {
+                  $this->addPage(
+                    $pageSchema[$i]['parent'], 
+                    $pageSchema[$i]['title'], 
+                    $pageSchema[$i]['template'], 
+                    $pageSchema[$i]['slug'],
+                    $pageSchema[$i]['id'],
+                    $pageSchema[$i]['indent'],
+                    $pageSchema[$i]['contents']
+                  );
+                }
+                else {
+                  $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
+                }
               }
             break;
             case 'website':
@@ -571,8 +584,6 @@ class HAXCMSSite
             case 'default':
               $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/' . $template, $location);
             break;
-            // allow direct HTML setting
-            case 'html':
             // didn't understand it, just go default
             default:
               $this->recurseCopy(HAXCMS_ROOT . '/system/boilerplate/page/default', $location);
@@ -583,7 +594,6 @@ class HAXCMSSite
         // support direct HTML setting
         if ($template == 'html') {
           // now this should exist if it didn't a minute ago
-          $page = $this->loadNode($id);
           $bytes = $page->writeLocation(
             $html,
             HAXCMS_ROOT .
