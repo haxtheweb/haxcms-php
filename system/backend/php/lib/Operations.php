@@ -629,7 +629,7 @@ class Operations {
     if (isset($nodeParams['items'])) {
       // create pages
       for ($i=0; $i < count($nodeParams['items']); $i++) {
-        $item = $this->addPage(
+        $item = $site->addPage(
           $nodeParams['items'][$i]['parent'], 
           $nodeParams['items'][$i]['title'], 
           'html', 
