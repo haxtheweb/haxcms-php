@@ -573,6 +573,7 @@
           }
       ],
       "autoloader": {
+        "site-uuid-link": "@lrnwebcomponents/haxcms-elements/lib/ui-components/site/site-uuid-link.js",
         "lesson-overview": "@lrnwebcomponents/lesson-overview/lesson-overview.js",
         "lesson-highlight": "@lrnwebcomponents/lesson-overview/lib/lesson-highlight.js",
         "a11y-collapse": "@lrnwebcomponents/a11y-collapse/a11y-collapse.js",
