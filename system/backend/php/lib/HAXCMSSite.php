@@ -569,8 +569,11 @@ class HAXCMSSite
         $page->order = count($this->manifest->items);
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
-        // sanitize slug just to be safe
-        $page->slug = $GLOBALS['HAXCMS']->cleanTitle($slug);
+        // sanitize slug but dont trust it was anything
+        if ($slug == '') {
+          $slug = $title;
+        }
+        $page->slug = $this->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($slug));
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location = $this->directory . '/' .
@@ -1469,6 +1472,10 @@ class HAXCMSSite
         }
         $slug = implode('/', $pieces);
         $rSlug = $slug;
+      }
+      // trap for a / as 1st character if we had empty pieces
+      while (substr($rSlug, 0, 1) == "/") {
+        $rSlug = substr($rSlug, 1);
       }
       $loop = 0;
       $ready = false;

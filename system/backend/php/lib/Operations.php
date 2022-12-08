@@ -432,18 +432,22 @@ class Operations {
    */
   public function saveOutline() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
     $original = $site->manifest->items;
     $items = $this->rawParams['items'];
     $itemMap = array();
     // items from the POST
     foreach ($items as $key => $item) {
-      // get a fake item
+      // get a fake item of the existing
       if (!($page = $site->loadNode($item->id))) {
         $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+        // we don't trust the front end UUID if it wasn't existing already
         $itemMap[$item->id] = $page->id;
       }
-      // set a crappy default title
-      $page->title = $item->title;
+      // set a title if we have one
+      if ($item->title != '' && $item->title) {
+        $page->title = $item->title;
+      }
       $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
       if ($item->parent == null) {
         $page->parent = null;
@@ -479,7 +483,6 @@ class Operations {
       }
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
-      $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       // if it doesn't exist currently make sure the name is unique
       if (!$site->loadNode($page->id)) {
         $site->recurseCopy(
@@ -542,8 +545,82 @@ class Operations {
           $site->manifest->addItem($page);
       }
     }
+    // process any duplicate / contents requests we had now that structure is sane
+    // including potentially duplication of material from something
+    // we are about to act on and now that we have the map
+    $items = $this->rawParams['items'];
+    foreach ($items as $key => $item) {
+      // load the item, or the item as built out of the itemMap
+      // since we reset the UUID on creation
+      if (!($page = $site->loadNode($item->id))) {
+        $page = $site->loadNode($itemMap[$item->id]);
+      }
+      if (isset($item->duplicate)) {
+        // load the node we are duplicating with support for the same map needed for page loading
+        if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
+          $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+        }
+        $content = $site->getPageContent($nodeToDuplicate);
+        // write it to the file system
+        $bytes = $page->writeLocation(
+          $content,
+          HAXCMS_ROOT .
+          '/' .
+          $GLOBALS['HAXCMS']->sitesDirectory .
+          '/' .
+          $site->name .
+          '/'
+        );
+      }
+      // contents that were shipped across, and not null, take priority over a dup request
+      if (isset($item->contents) && $item->contents && $item->contents != '') {
+        // write it to the file system
+        $bytes = $page->writeLocation(
+          $item->contents,
+          HAXCMS_ROOT .
+          '/' .
+          $GLOBALS['HAXCMS']->sitesDirectory .
+          '/' .
+          $site->name .
+          '/'
+        );
+      }
+    }
+    $items = $this->rawParams['items'];
+    // now, we can finally delete as content operations have finished
+    foreach ($items as $key => $item) {
+      // verify if we were told to delete this item via flag not in the real spec
+      if (isset($item->delete) && $item->delete == TRUE) {
+        // load the item, or the item as built out of the itemMap
+        // since we reset the UUID on creation
+        if (!($page = $site->loadNode($item->id))) {
+          $page = $site->loadNode($itemMap[$item->id]);
+        }
+        $site->deleteNode($page);
+        $site->gitCommit(
+          'Page deleted: ' . $page->title . ' (' . $page->id . ')'
+        );
+      }
+    }
+    $site->manifest->save();
+    // now, we need to look for orphans if we deleted anything
+    $orphanCheck = $site->manifest->items;
+    foreach ($orphanCheck as $key => $item) {
+      // just to be safe..
+      if ($page = $site->loadNode($item->id)) {
+        // ensure that parent is valid to rescue orphan items
+        if (!($parentPage = $site->loadNode($page->parent))) {
+          $page->parent = null;
+          // rough math, force to bottom of things while still being in old order if lots of things got axed
+          $page->order = $page->order + 15;
+          $site->updateNode($page);
+        }
+      }
+    }
     $site->manifest->metadata->site->updated = time();
     $site->manifest->save();
+    // update alt formats like rss as we did massive changes
+    $site->updateAlternateFormats();
     $site->gitCommit('Outline updated in bulk');
     return $site->manifest->items;
   }
@@ -629,15 +706,22 @@ class Operations {
     if (isset($nodeParams['items'])) {
       // create pages
       for ($i=0; $i < count($nodeParams['items']); $i++) {
-        $item = $site->addPage(
-          $nodeParams['items'][$i]['parent'], 
-          $nodeParams['items'][$i]['title'], 
-          'html', 
-          $nodeParams['items'][$i]['slug'],
-          $nodeParams['items'][$i]['id'],
-          $nodeParams['items'][$i]['indent'],
-          $nodeParams['items'][$i]['contents']
-        );
+        // outline-designer allows delete + confirmation but we don't have anything
+        // so instead, just don't process the thing in question if asked to delete it
+        if (isset($nodeParams['items'][$i]['delete']) && $nodeParams['items'][$i]['delete'] == TRUE) {
+          // do nothing
+        }
+        else {
+          $item = $site->addPage(
+            $nodeParams['items'][$i]['parent'], 
+            $nodeParams['items'][$i]['title'], 
+            'html', 
+            $nodeParams['items'][$i]['slug'],
+            $nodeParams['items'][$i]['id'],
+            $nodeParams['items'][$i]['indent'],
+            $nodeParams['items'][$i]['contents']
+          );  
+        }
       }
       $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
     }
@@ -1056,6 +1140,20 @@ class Operations {
             )
           );
         } else {
+          // now, we need to look for orphans if we deleted anything
+          $orphanCheck = $site->manifest->items;
+          foreach ($orphanCheck as $key => $item) {
+            // just to be safe..
+            if ($page = $site->loadNode($item->id)) {
+              // ensure that parent is valid to rescue orphan items
+              if (!($parentPage = $site->loadNode($page->parent))) {
+                $page->parent = null;
+                // rough math, force to bottom of things while still being in old order if lots of things got axed
+                $page->order = $page->order + 15;
+                $site->updateNode($page);
+              }
+            }
+          }
           $site->gitCommit(
             'Page deleted: ' . $page->title . ' (' . $page->id . ')'
           );
