@@ -1,5 +1,19 @@
 # HAXcms change log
 
+## 6.0.0 - 2022-12-20
+Features as related from our new Request Intake process
+- [video-player] full-screen / sticky corner bugs #1063
+- Full featured, reimagined Outline Designer!!! - This is the 1st major rewrite of Outline Designer in 10 years and now has come to HAXcms and ELMS
+- Smart Lesson and Insights capabilities - Authors can now gain insights into material as they write it
+- Ability to easily internally link content - Links can now easily leverage the internal linkage to the site structure!
+- Block level operation panel - Ability to have an overview of the content tree in HAX and modify through this outline
+- Table's can now be edited in context with a full featured table editor!
+- New courses can be generated fom .DOCX heading and content structure!
+- Outline designer now supports importing, reviewing, and modifying content from .DOCX headings and content structure!
+- Ability to remote / by reference content - a new tag that can render content in HAX that's coming from a remote HAXcms site!
+
+Additional issues resolved can be viewed in our issue queue https://github.com/elmsln/issues/issues?q=is%3Aissue+is%3Aclosed
+
 ## 2.0.0 - 2021-01-07
 All themes have received a11y and mobile clean up. Lots of performance timing updates as well as an enhanced build routine to improve performance and compatibility with older browsers (and Safari). In all there are over 100 documented issue improvements and far more than that beyond the HAX editor. The editor itself as well as all other elements are now at a 3.0.0 status to reflect their additional stability and performance gains. HAX now loads up (with some issues) on legacy browsers (previously only evergreen could load the editor itself). The UX has improved dramatically as far as accuracy, speed, typing experience, drag and drop, and user expectations when editing in all platforms. Special work was done to bring Firefox and Safari into functional alignment with Chrome/Edge and legacy browsers will even pick up a lot of the UX patterns because of enhanced polyfill support as required.
 
