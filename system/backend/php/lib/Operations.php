@@ -464,9 +464,9 @@ class Operations {
         $page->indent = $item->indent;
       }
       if (isset($item->order)) {
-        $page->order = $item->order;
+        $page->order = (int)$item->order;
       } else {
-        $page->order = $key;
+        $page->order = (int)$key;
       }
       // keep location if we get one already
       if (isset($item->location) && $item->location != '') {
@@ -609,10 +609,10 @@ class Operations {
       // just to be safe..
       if ($page = $site->loadNode($item->id)) {
         // ensure that parent is valid to rescue orphan items
-        if (!($parentPage = $site->loadNode($page->parent))) {
+        if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
           $page->parent = null;
           // rough math, force to bottom of things while still being in old order if lots of things got axed
-          $page->order = $page->order + 15;
+          $page->order = $page->order + 100;
           $site->updateNode($page);
         }
       }
@@ -1146,10 +1146,10 @@ class Operations {
             // just to be safe..
             if ($page = $site->loadNode($item->id)) {
               // ensure that parent is valid to rescue orphan items
-              if (!($parentPage = $site->loadNode($page->parent))) {
+              if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
                 $page->parent = null;
                 // rough math, force to bottom of things while still being in old order if lots of things got axed
-                $page->order = $page->order + 15;
+                $page->order = $page->order + 100;
                 $site->updateNode($page);
               }
             }
