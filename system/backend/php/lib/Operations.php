@@ -611,8 +611,8 @@ class Operations {
         // ensure that parent is valid to rescue orphan items
         if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
           $page->parent = null;
-          // rough math, force to bottom of things while still being in old order if lots of things got axed
-          $page->order = $page->order + 100;
+          // force to bottom of things while still being in old order if lots of things got axed
+          $page->order = (int)$page->order + count($site->manifest->items) - 1;
           $site->updateNode($page);
         }
       }
@@ -1148,8 +1148,8 @@ class Operations {
               // ensure that parent is valid to rescue orphan items
               if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
                 $page->parent = null;
-                // rough math, force to bottom of things while still being in old order if lots of things got axed
-                $page->order = $page->order + 100;
+                // force to bottom of things while still being in old order if lots of things got axed
+                $page->order = (int)$page->order + count($site->manifest->items) - 1;
                 $site->updateNode($page);
               }
             }
