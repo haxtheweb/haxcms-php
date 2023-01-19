@@ -1059,7 +1059,7 @@ class HAXCMSSite
             $item->indent = $params['indent'];
         }
         if (isset($params['order']) && $params['order'] != '' && $params['order'] != null) {
-            $item->order = (int)$params['order'];
+            $item->order = $params['order'];
         }
         if (isset($params['parent']) && $params['parent'] != '' && $params['parent'] != null) {
             $item->parent = $params['parent'];
