@@ -34,5 +34,11 @@
     "path": "@lrnwebcomponents/outline-player/outline-player.js",
     "name": "Documentation theme",
     "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg"
+  },
+  "haxcms-blank-theme": {
+    "element": "haxcms-blank-theme",
+    "path": "lrnwebcomponents/elements/haxcms-elements/lib/core/themes/haxcms-blank-theme.js",
+    "name": "Blank theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg"
   }
 }
