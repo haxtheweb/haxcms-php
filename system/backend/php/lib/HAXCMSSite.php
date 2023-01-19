@@ -1241,7 +1241,6 @@ class HAXCMSSite
             $themes = array('_none_' => '-- Site default --');
             foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
                 $themes[$key] = $item->name;
-                $themes['key'] = $key;
             }
             // set themes dynamically
             $fields->fields[0]->properties[1]->properties[1]->options = $themes;
