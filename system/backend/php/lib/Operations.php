@@ -1841,7 +1841,19 @@ class Operations {
             $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->metadata->pageCount = count($site->items);
+            // we don't need all items stored here
             unset($site->items);
+            // unset other things we don't need to send across in this meta site.json response
+            if (isset($site->metadata->dynamicElementLoader)) {
+              unset($site->metadata->dynamicElementLoader);
+            }
+            
+            if (isset($site->metadata->node)) {
+              unset($site->metadata->node);
+            }
+            if (isset($site->metadata->build->items)) {
+              unset($site->metadata->build->items);
+            }
             $return['items'][] = $site;
           }
         }
@@ -1952,6 +1964,10 @@ class Operations {
       $schema->metadata->theme = new stdClass();
       // store build data in case we need it down the road
       $schema->metadata->build = $build;
+      // we don't need to store replication of all items imported on site creation
+      if (isset($schema->metadata->build->items)) {
+        unset($schema->metadata->build->items);
+      }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
       if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
         $theme = $this->params['site']['theme'];
