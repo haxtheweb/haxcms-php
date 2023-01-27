@@ -49,6 +49,10 @@ class HAXCMSFIle
                 $actual_name = (string)$original_name . $i;
                 $i++;
             }
+            // sanitization for the file name
+            $actual_name = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $actual_name);
+            // Remove any runs of periods (thanks falstro!)
+            $actual_name = mb_ereg_replace("([\.]{2,})", '', $actual_name);
             $name = $actual_name . "." . $extension;
             $fullpath = $path . $name;
             if ($size = @file_put_contents($fullpath, $filedata)) {

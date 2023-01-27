@@ -377,6 +377,9 @@ class HAXCMS
       if ($this->isCLI()) {
         $rawParams = $this->safeCLI;
       }
+      else if (is_array($_FILES) && count($_FILES)) {
+        $rawParams = $_FILES;
+      }
       else if (is_array($_POST) && count($_POST)) {
         $rawParams = $_POST;
       }

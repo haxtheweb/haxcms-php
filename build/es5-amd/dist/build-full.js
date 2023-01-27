@@ -2,11 +2,15 @@ define(["./build.js", "./app.js", "./build-home.js", "./build-install.js", "./bu
   "use strict";
 
   // the base line build that's used to setup everything in a production environment
+
   // we build elmsln dependency trees from here since there's so much overlap.
+
   // important in smaller builds
+
   window.process = {
     env: {
       NODE_ENV: 'production'
     }
-  }; // just make it work
+  };
+  // just make it work
 });

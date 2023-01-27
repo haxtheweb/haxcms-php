@@ -7,7 +7,6 @@ var cdn = "./";
 window.WCGlobalCDNPath && (cdn = window.WCGlobalCDNPath), window.__appCDN && (cdn = window.__appCDN);
 var fname = "wc-registry.json";
 window.WCGlobalRegistryFileName && (fname = window.WCGlobalRegistryFileName), window.WCAutoloadRegistryFile = cdn + fname;
-
 try {
   var def = document.getElementsByTagName("script")[0];
   new Function("import('');");

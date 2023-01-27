@@ -131,6 +131,51 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
+            case 'import':
+              $pageSchema = array(
+                array(
+                  "parent" => null,
+                  "title" => "Welcome to " . $name,
+                  "template" => "course",
+                  "slug" => "welcome"
+                )
+              );
+              if ($build->items) {
+                for ($i=0; $i < count($build->items); $i++) {
+                  array_push($pageSchema, array(
+                    "parent" => $build->items[$i]['parent'],
+                    "title" => $build->items[$i]['title'],
+                    "template" => "html",
+                    "slug" => $build->items[$i]['slug'],
+                    "id" => $build->items[$i]['id'],
+                    "indent" => $build->items[$i]['indent'],
+                    "contents" => $build->items[$i]['contents'],
+                  ));
+                }
+              }
+              array_push($pageSchema, array(
+                "parent" => null,
+                "title" => "Glossary",
+                "template" => "glossary",
+                "slug" => "glossary"
+              ));
+              for ($i=0; $i < count($pageSchema); $i++) {
+                if ($pageSchema[$i]['template'] == 'html') {
+                  $this->addPage(
+                    $pageSchema[$i]['parent'], 
+                    $pageSchema[$i]['title'], 
+                    $pageSchema[$i]['template'], 
+                    $pageSchema[$i]['slug'],
+                    $pageSchema[$i]['id'],
+                    $pageSchema[$i]['indent'],
+                    $pageSchema[$i]['contents']
+                  );
+                }
+                else {
+                  $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
+                }
+              }
+            break;
             case 'course':
               $pageSchema = array(
                 array(
@@ -142,7 +187,7 @@ class HAXCMSSite
               );
               switch ($build->type) {
                 case 'docx import':
-                  // ensure we have items
+                    // ensure we have items
                   if ($build->items) {
                     for ($i=0; $i < count($build->items); $i++) {
                       array_push($pageSchema, array(
