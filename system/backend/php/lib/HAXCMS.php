@@ -208,7 +208,7 @@ class HAXCMS
                 foreach ($themeData as $name => $data) {
                     $this->config->themes->{$name} = $data;
                 }
-                // dynamicImporter
+                // node
                 if (!isset($this->config->node)) {
                     $this->config->node = new stdClass();
                     $this->config->node->fields = new stdClass();
@@ -232,24 +232,10 @@ class HAXCMS
                 foreach ($publishingData as $name => $data) {
                     $this->config->site->publishers->{$name} = $data;
                 }
-                // importer formats to ingest
-                if (!isset($this->config->site->importers)) {
-                    $this->config->site->importers = new stdClass();
-                }
-                // load in core importers data
-                $importersData = json_decode(
-                    file_get_contents(
-                      $this->coreConfigPath . 'importers.json'
-                    )
-                );
-                foreach ($importersData as $name => $data) {
-                    $this->config->site->importers->{$name} = $data;
-                }
                 // site fields in HAXschema format
                 if (!isset($this->config->site->fields)) {
                     $this->config->site->fields = array(new stdClass());
                 }
-                // load in core importers data
                 $fieldsData = json_decode(
                     file_get_contents(
                       $this->coreConfigPath . 'siteFields.json'
