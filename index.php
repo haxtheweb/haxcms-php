@@ -262,7 +262,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         link.setAttribute("rel", "stylesheet");
         link.setAttribute("fetchpriority", "low");
         document.head.appendChild(link);
-      }        
+      }
       }, 50);
     });
     </script>
@@ -274,5 +274,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=true;</script>
     <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
+    <?php $bottom = ''; $HAXCMS->dispatchEvent('haxcms-app-bottom', $bottom); print $bottom;?>
   </body>
 </html>
