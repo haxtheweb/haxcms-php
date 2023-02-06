@@ -18,7 +18,7 @@ class HAXAppStoreService
                 '{
         "details": {
           "title": "Youtube",
-          "icon": "mdi-action:youtube-play",
+          "icon": "mdi-social:youtube",
           "color": "red",
           "author": "Google, Youtube LLC",
           "description": "The most popular online video sharing and remix site.",
