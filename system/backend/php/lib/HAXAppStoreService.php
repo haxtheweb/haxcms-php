@@ -290,7 +290,7 @@ class HAXAppStoreService
                 "lang": "en"
               },
               "resultMap": {
-                "defaultGizmoType": "image",
+                "defaultGizmoType": "gif",
                 "items": "data",
                 "preview": {
                   "title": "title",
