@@ -345,35 +345,34 @@ class HAXCMS
     }
     public function executeRequest($op = null) {
       $usedGet = FALSE;
+      // merge all possible inputs together as sanitized params
+      $params = array();
       // calculate the correct params to use
       if ($this->isCLI()) {
-        $params = $this->safeCLI;
+        $params = array_merge($params, $this->safeCLI);
       }
-      else if (is_array($this->safePost) && count($this->safePost)) {
-        $params = $this->safePost;
+      if (is_array($this->safePost) && count($this->safePost)) {
+        $params = array_merge($params, $this->safePost);
       }
-      else if (is_array($this->safeGet) && count($this->safeGet)) {
+      if (is_array($this->safeGet) && count($this->safeGet)) {
         $usedGet = TRUE;
-        $params = $this->safeGet;
+        $params = array_merge($params, $this->safeGet);
       }
-      else {
-        $params = array();
-      }
+      // merge all possible inputs together as GET params can come across as part
+      // of a POST or FILES form upload
+      $rawParams = array();
       // raw params too incase the request needs them
       if ($this->isCLI()) {
         $rawParams = $this->safeCLI;
       }
-      else if (is_array($_FILES) && count($_FILES)) {
-        $rawParams = $_FILES;
+      if (is_array($_FILES) && count($_FILES)) {
+        $rawParams = array_merge($rawParams, $_FILES);
       }
-      else if (is_array($_POST) && count($_POST)) {
-        $rawParams = $_POST;
+      if (is_array($_POST) && count($_POST)) {
+        $rawParams = array_merge($rawParams, $_POST);
       }
-      else if (is_array($_GET) && count($_GET)) {
-        $rawParams = $_GET;
-      }
-      else {
-        $rawParams = array();
+      if (is_array($_GET) && count($_GET)) {
+        $rawParams = array_merge($rawParams, $_GET);
       }
       // support parameters setting the operation
       if ($op == null) {
