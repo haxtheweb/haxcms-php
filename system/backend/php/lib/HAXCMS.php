@@ -126,17 +126,18 @@ class HAXCMS
         $this->systemRequestBase = 'system/api';
         $this->coreConfigPath = HAXCMS_ROOT . '/system/coreConfig/';
         $this->acceptedHAXFileTypes = array(
-          "image",
-          "video",
           "audio",
+          "image",
+          "gif",
+          "video",
           "pdf",
-          "svg",
-          "document",
           "csv",
-          "archive",
+          "svg",
           "markdown",
+          "html",
+          "document",
+          "archive",
           "*",
-          "html"
         );
         // end point to get the sites data
         $this->sitesJSON = $this->systemRequestBase . '/listSites';
