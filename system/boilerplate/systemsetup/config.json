@@ -576,6 +576,8 @@
         "page-break": "@lrnwebcomponents/page-break/page-break.js",
         "accent-card": "@lrnwebcomponents/accent-card/accent-card.js",
         "a11y-gif-player": "@lrnwebcomponents/a11y-gif-player/a11y-gif-player.js",
+        "a11y-collapse-group": "@lrnwebcomponents/a11y-collapse/lib/a11y-collapse-group.js",
+        "a11y-collapse": "@lrnwebcomponents/a11y-collapse/a11y-collapse.js",    
         "code-sample": "@lrnwebcomponents/code-sample/code-sample.js",
         "image-compare-slider": "@lrnwebcomponents/image-compare-slider/image-compare-slider.js",
         "license-element": "@lrnwebcomponents/license-element/license-element.js",
