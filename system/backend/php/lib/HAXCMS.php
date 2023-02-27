@@ -1302,7 +1302,7 @@ class HAXCMS
       $token = array();
       $token['user'] = $name;
       $token['iat'] = time();
-      $token['exp'] = time() + (7 * 24 * 60 * 60);
+      $token['exp'] = time() + (24 * 60 * 60);
       $this->dispatchEvent('haxcms-refresh-token-get', $token);
       return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }

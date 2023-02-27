@@ -374,7 +374,7 @@ const HAXCMS = new class HAXCMSClass {
       token['user'] = name;
       let n = Math.floor(Date.now() / 1000);
       token['iat'] = n;
-      token['exp'] = n + (7 * 24 * 60 * 60);
+      token['exp'] = n + (24 * 60 * 60);
       return JWT.sign(token, this.refreshPrivateKey + this.salt);
     }
     /**
