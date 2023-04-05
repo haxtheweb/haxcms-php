@@ -1076,6 +1076,14 @@ class Operations {
               else {
                 $page->metadata->published = false;
               }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["page-type"]) && $data["attributes"]["page-type"] != '') {
+                $page->metadata->pageType = $data["attributes"]["page-type"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->pageType)) {
+                unset($page->metadata->pageType);
+              }
               if (!isset($data["attributes"]["locked"])) {
                 $page->metadata->locked = false;
               }

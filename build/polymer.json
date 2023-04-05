@@ -30,6 +30,7 @@
     "node_modules/@lrnwebcomponents/*/lib/*",
     "node_modules/@lrnwebcomponents/*/lib/**",
     "node_modules/@lrnwebcomponents/*/locales/*.json",
+    "node_modules/@lrnwebcomponents/haxcms-elements/package.json",
     "node_modules/@lrnwebcomponents/haxcms-elements/**",
     "node_modules/@lrnwebcomponents/*/lib/*/*.js",
     "node_modules/@lrnwebcomponents/*/lib/*/*",

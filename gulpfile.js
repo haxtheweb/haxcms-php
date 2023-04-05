@@ -9,7 +9,7 @@ gulp.task(
     return gulp.src([
       './build/es6/**/*.js'
     ]).pipe(terser({
-        ecma: 2017,
+        ecma: 2018,
         keep_fnames: true,
         mangle: true,
         module: true,
