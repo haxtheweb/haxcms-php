@@ -1084,6 +1084,14 @@ class Operations {
               else if (isset($page->metadata->pageType)) {
                 unset($page->metadata->pageType);
               }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
+                $page->metadata->tags = $data["attributes"]["tags"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->tags)) {
+                unset($page->metadata->tags);
+              }
               if (!isset($data["attributes"]["locked"])) {
                 $page->metadata->locked = false;
               }
