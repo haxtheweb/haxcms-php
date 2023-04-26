@@ -2115,6 +2115,7 @@ class Operations {
       }
       // null in the event we get hits that don't have this
       $build = null;
+      $filesToDownload = Array();
       // support for build info. the details used to actually create this site originally
       if (isset($this->params['build'])) {
         $build = new stdClass();
@@ -2127,6 +2128,9 @@ class Operations {
         if ($build->type == 'docx import' || $build->structure == "import") {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
+        }
+        if (isset($this->params['build']['files'])) {
+          $filesToDownload = $this->params['build']['files'];
         }
       }
       // sanitize name
@@ -2224,6 +2228,15 @@ class Operations {
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
+      // @todo walk through files if any came across and save each of them
+      foreach ($filesToDownload as $locationName => $downloadLocation) {
+        $file = new HAXCMSFile();
+        // check for a file upload; we block a few formats by design
+        $fileResult = $file->save(Array(
+          "name" => $locationName,
+          "tmp_name" => $downloadLocation,
+        ), $site);
+      }
       // main site schema doesn't care about publishing settings
       unset($schema->metadata->site->git);
       $git = new Git();
