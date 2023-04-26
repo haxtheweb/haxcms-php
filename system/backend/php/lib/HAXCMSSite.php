@@ -140,6 +140,7 @@ class HAXCMSSite
                   "slug" => "welcome"
                 )
               );
+              // implies we had a backend service process much of what we are to build for an import
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
                   array_push($pageSchema, array(
@@ -150,6 +151,7 @@ class HAXCMSSite
                     "id" => $build->items[$i]['id'],
                     "indent" => $build->items[$i]['indent'],
                     "contents" => $build->items[$i]['contents'],
+                    "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                   ));
                 }
               }
@@ -168,7 +170,8 @@ class HAXCMSSite
                     $pageSchema[$i]['slug'],
                     $pageSchema[$i]['id'],
                     $pageSchema[$i]['indent'],
-                    $pageSchema[$i]['contents']
+                    $pageSchema[$i]['contents'],
+                    $pageSchema[$i]['metadata']
                   );
                 }
                 else {
@@ -198,6 +201,7 @@ class HAXCMSSite
                         "id" => $build->items[$i]['id'],
                         "indent" => $build->items[$i]['indent'],
                         "contents" => $build->items[$i]['contents'],
+                        "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                       ));
                     }
                   }
@@ -247,7 +251,8 @@ class HAXCMSSite
                     $pageSchema[$i]['slug'],
                     $pageSchema[$i]['id'],
                     $pageSchema[$i]['indent'],
-                    $pageSchema[$i]['contents']
+                    $pageSchema[$i]['contents'],
+                    $pageSchema[$i]['metadata'],
                   );
                 }
                 else {
@@ -585,7 +590,7 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>')
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $metadata = null)
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
@@ -619,6 +624,12 @@ class HAXCMSSite
           $slug = $title;
         }
         $page->slug = $this->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($slug));
+        // support presetting multiple metadata attributes like tags, pageType, etc
+        if (!is_null($metadata)) {
+          foreach ($metadata as $key => $value) {
+            $page->metadata->{$key} = $value;
+          }
+        }
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location = $this->directory . '/' .

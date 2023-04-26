@@ -250,6 +250,10 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     }
     // remove loading text
     window.addEventListener('app-hax-loaded',() => {
+      // support for overriding values in the registry via config object
+      // fire testing in local dev
+      window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
+      window.MicroFrontendRegistryConfig.base = "http://localhost:3000";
       document.querySelector("#loading").remove();
       // make sure we load the font if we have a good device
       setTimeout(() => {

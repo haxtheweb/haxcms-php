@@ -2228,13 +2228,14 @@ class Operations {
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
-      // @todo walk through files if any came across and save each of them
+      // walk through files if any came across and save each of them
       foreach ($filesToDownload as $locationName => $downloadLocation) {
         $file = new HAXCMSFile();
         // check for a file upload; we block a few formats by design
         $fileResult = $file->save(Array(
           "name" => $locationName,
           "tmp_name" => $downloadLocation,
+          "bulk-import" => TRUE
         ), $site);
       }
       // main site schema doesn't care about publishing settings

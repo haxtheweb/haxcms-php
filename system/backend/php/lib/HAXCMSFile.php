@@ -19,7 +19,7 @@ class HAXCMSFIle
         // check for a file upload; we block a few formats by design
         if (
             isset($upload['tmp_name']) &&
-            is_uploaded_file($upload['tmp_name']) &&
+            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) &&
             strpos($name, '.php') === FALSE &&
             strpos($name, '.sh') === FALSE &&
             strpos($name, '.js') === FALSE &&
@@ -54,7 +54,17 @@ class HAXCMSFIle
             // Remove any runs of periods (thanks falstro!)
             $actual_name = mb_ereg_replace("([\.]{2,})", '', $actual_name);
             $name = $actual_name . "." . $extension;
-            $fullpath = $path . $name;
+            // on bulk import we keep directory tree and apply changes to the name itself
+            if (isset($upload['bulk-import'])) {
+                // make path relative to the file
+                $namePathTest = pathinfo(str_replace('files/', '', $upload['name']));
+                $fileSystem->mkdir($path . $namePathTest['dirname'], 0775, true);
+                // full path needs to include the cleaned up file name + the actual directory
+                $fullpath = $path . $namePathTest['dirname']  . '/' . $name;
+            }
+            else {
+                $fullpath = $path . $name;
+            }            
             if ($size = @file_put_contents($fullpath, $filedata)) {
                 //@todo make a way of defining these as returns as well as number to take
                 // specialized support for images to do scale and crop stuff automatically
