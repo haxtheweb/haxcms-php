@@ -252,11 +252,12 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     window.addEventListener('app-hax-loaded',() => {
       // support for overriding values in the registry via config object
       // fire testing in local dev
-      //window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
-      // local dev
-      //window.MicroFrontendRegistryConfig.base = "http://localhost:3000";
-      // fire branch testing
-      //window.MicroFrontendRegistryConfig.base = "https://lrnwebcomponents-git-fire-elmsln.vercel.app";
+      <?php 
+        // support for local dev overrides of where microservices / other JS comes from
+        if (file_exists('_config/.local.microservice.config.php')) {
+          include_once '_config/.local.microservice.config.php';
+        }
+      ?>
       document.querySelector("#loading").remove();
       // make sure we load the font if we have a good device
       setTimeout(() => {

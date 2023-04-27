@@ -128,7 +128,16 @@ class HAXCMSFIle
                     if (!isset($page->metadata->files)) {
                         $page->metadata->files = array();
                     }
-                    $page->metadata->files[] = $return['file'];
+                    $page->metadata->files[] = array(
+                        'fullUrl' =>
+                            $HAXCMS->basePath .
+                            $pathPart .
+                            $name,
+                        'url' => 'files/' . $name,
+                        'type' => mime_content_type($fullpath),
+                        'name' => $name,
+                        'size' => $size
+                    );
                     $site->updateNode($page);
                 }
                 // perform scale / crop operations if requested
