@@ -737,7 +737,7 @@ class Operations {
           '/' .
           $GLOBALS['HAXCMS']->sitesDirectory .
           '/' .
-          $site->name .
+          $site->manifest->metadata->site->name .
           '/'
         );
       }
@@ -750,7 +750,7 @@ class Operations {
           '/' .
           $GLOBALS['HAXCMS']->sitesDirectory .
           '/' .
-          $site->name .
+          $site->manifest->metadata->site->name .
           '/'
         );
       }
@@ -924,7 +924,7 @@ class Operations {
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
               '/' .
-              $site->name .
+              $site->manifest->metadata->site->name .
               '/'
             );
           }
@@ -1032,7 +1032,7 @@ class Operations {
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
             '/' .
-            $site->name .
+            $site->manifest->metadata->site->name .
             '/'
           );
           if ($bytes === false) {
@@ -3099,7 +3099,7 @@ class Operations {
     $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
     // ensure the path to the new folder is valid
     $GLOBALS['fileSystem']->mirror(
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->name,
+        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $cloneName
     );
     // we need to then load and rewrite the site name var or it will conflict given the name change
@@ -3155,7 +3155,7 @@ class Operations {
    */
   public function deleteSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->name) {
+    if ($site->manifest->metadata->site->name) {
       $GLOBALS['fileSystem']->remove([
         $site->directory . '/' . $site->manifest->metadata->site->name
       ]);
@@ -3214,14 +3214,14 @@ class Operations {
     // load site
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
-    $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->name;
+    $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name;
     // form a basic name
     $zip_file =
       HAXCMS_ROOT .
       '/' .
       $GLOBALS['HAXCMS']->publishedDirectory .
       '/' .
-      $site->name .
+      $site->manifest->metadata->site->name .
       '.zip';
     // Get real path for our folder
     $rootPath = realpath($dir);
@@ -3294,7 +3294,7 @@ class Operations {
    */
   public function archiveSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->name) {
+    if ($site->manifest->metadata->site->name) {
       rename(
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory . '/' . $site->manifest->metadata->site->name);

@@ -35,7 +35,7 @@ class HAXCMSFIle
               $pathPart = str_replace(HAXCMS_ROOT . '/', '', $HAXCMS->configDirectory) . '/tmp/';
             }
             else {
-              $pathPart = $HAXCMS->sitesDirectory . '/' . $site->name . '/files/';
+              $pathPart = $HAXCMS->sitesDirectory . '/' . $site->manifest->metadata->site->name . '/files/';
             }
             $path = HAXCMS_ROOT . '/' . $pathPart;
             // ensure this path exists

@@ -252,8 +252,11 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     window.addEventListener('app-hax-loaded',() => {
       // support for overriding values in the registry via config object
       // fire testing in local dev
-      window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
-      window.MicroFrontendRegistryConfig.base = "http://localhost:3000";
+      //window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
+      // local dev
+      //window.MicroFrontendRegistryConfig.base = "http://localhost:3000";
+      // fire branch testing
+      //window.MicroFrontendRegistryConfig.base = "https://lrnwebcomponents-git-fire-elmsln.vercel.app";
       document.querySelector("#loading").remove();
       // make sure we load the font if we have a good device
       setTimeout(() => {
