@@ -2141,6 +2141,8 @@ class Operations {
           $domain,
           $build
       );
+      // this could have changed after creation because of on file system
+      $name = $site->manifest->metadata->site->name;
       // now get a new item to reference this into the top level sites listing
       $schema = $GLOBALS['HAXCMS']->outlineSchema->newItem();
       $schema->id = $site->manifest->id;
@@ -2229,14 +2231,16 @@ class Operations {
       // save the outline into the new site
       $site->manifest->save(false);
       // walk through files if any came across and save each of them
-      foreach ($filesToDownload as $locationName => $downloadLocation) {
-        $file = new HAXCMSFile();
-        // check for a file upload; we block a few formats by design
-        $fileResult = $file->save(Array(
-          "name" => $locationName,
-          "tmp_name" => $downloadLocation,
-          "bulk-import" => TRUE
-        ), $site);
+      if (is_array($filesToDownload)) {
+        foreach ($filesToDownload as $locationName => $downloadLocation) {
+          $file = new HAXCMSFile();
+          // check for a file upload; we block a few formats by design
+          $fileResult = $file->save(Array(
+            "name" => $locationName,
+            "tmp_name" => $downloadLocation,
+            "bulk-import" => TRUE
+          ), $site);
+        }
       }
       // main site schema doesn't care about publishing settings
       unset($schema->metadata->site->git);

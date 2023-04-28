@@ -660,7 +660,7 @@ class HAXCMSSite
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
             '/' .
-            $this->name .
+            $this->manifest->metadata->site->name .
             '/'
           );
         }
@@ -962,7 +962,7 @@ class HAXCMSSite
       if (isset($GLOBALS["HAXcmsInDocker"])) {
         return '<base href="' . $this->basePath . '" />';
       }
-      return '<base href="' . $this->basePath . $this->name . '/" />';
+      return '<base href="' . $this->basePath . $this->manifest->metadata->site->name . '/" />';
     }
     /**
      * Return a standard service worker that takes into account
@@ -978,7 +978,7 @@ class HAXCMSSite
       }
       // support dynamic calculation
       if (is_null($basePath)) {
-        $basePath = $this->basePath . $this->name . '/';
+        $basePath = $this->basePath . $this->manifest->metadata->site->name . '/';
       }
       return "
   <script>
@@ -1096,7 +1096,7 @@ class HAXCMSSite
       if (isset($page->location) && $page->location != '') {
         $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location));
+          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/' . $page->location));
         }
         return $content;
       }
@@ -1237,7 +1237,7 @@ class HAXCMSSite
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
         if (is_null($path)) {
-          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
@@ -1264,7 +1264,7 @@ class HAXCMSSite
         }
         else {
           // ensure this path exists otherwise let's create it on the fly
-          $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
+          $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/';
           $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
           if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
               global $fileSystem;
