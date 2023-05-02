@@ -13,8 +13,8 @@ namespace Symfony\Bridge\Twig\Tests\Extension;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\DumpExtension;
-use Symfony\Component\VarDumper\VarDumper;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
+use Symfony\Component\VarDumper\VarDumper;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -75,7 +75,7 @@ class DumpExtensionTest extends TestCase
         array_unshift($args, $context);
         array_unshift($args, $twig);
 
-        $dump = call_user_func_array(array($extension, 'dump'), $args);
+        $dump = \call_user_func_array(array($extension, 'dump'), $args);
 
         if ($debug) {
             $this->assertStringStartsWith('<script>', $dump);

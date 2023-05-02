@@ -1,0 +1,9 @@
+build/
+vendor/
+.DS_Store
+.Spotlight-V100
+.Trashes
+.idea
+phpunit.xml
+.phpunit.result.cache
+composer.lock

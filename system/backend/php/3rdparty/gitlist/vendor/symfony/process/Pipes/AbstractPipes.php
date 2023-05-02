@@ -23,15 +23,16 @@ abstract class AbstractPipes implements PipesInterface
     private $inputBuffer = '';
     private $input;
     private $blocked = true;
+    private $lastError;
 
     /**
      * @param resource|null $input
      */
     public function __construct($input)
     {
-        if (is_resource($input)) {
+        if (\is_resource($input)) {
             $this->input = $input;
-        } elseif (is_string($input)) {
+        } elseif (\is_string($input)) {
             $this->inputBuffer = $input;
         } else {
             $this->inputBuffer = (string) $input;
@@ -56,10 +57,11 @@ abstract class AbstractPipes implements PipesInterface
      */
     protected function hasSystemCallBeenInterrupted()
     {
-        $lastError = error_get_last();
+        $lastError = $this->lastError;
+        $this->lastError = null;
 
         // stream_select returns false when the `select` system call is interrupted by an incoming signal
-        return isset($lastError['message']) && false !== stripos($lastError['message'], 'interrupted system call');
+        return null !== $lastError && false !== stripos($lastError, 'interrupted system call');
     }
 
     /**
@@ -136,5 +138,13 @@ abstract class AbstractPipes implements PipesInterface
         } elseif (!$w) {
             return array($this->pipes[0]);
         }
+    }
+
+    /**
+     * @internal
+     */
+    public function handleError($type, $msg)
+    {
+        $this->lastError = $msg;
     }
 }

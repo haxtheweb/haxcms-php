@@ -45,8 +45,12 @@ class LockHandlerTest extends TestCase
     public function testErrorHandlingInLockIfLockPathBecomesUnwritable()
     {
         // skip test on Windows; PHP can't easily set file as unreadable on Windows
-        if ('\\' === DIRECTORY_SEPARATOR) {
+        if ('\\' === \DIRECTORY_SEPARATOR) {
             $this->markTestSkipped('This test cannot run on Windows.');
+        }
+
+        if (!getenv('USER') || 'root' === getenv('USER')) {
+            $this->markTestSkipped('This test will fail if run under superuser');
         }
 
         $lockPath = sys_get_temp_dir().'/'.uniqid('', true);
@@ -76,7 +80,7 @@ class LockHandlerTest extends TestCase
             $fs->remove($lockPath);
         }
 
-        $this->assertInstanceOf('Symfony\Component\Filesystem\Exception\IOException', $e, sprintf('Expected IOException to be thrown, got %s instead.', get_class($e)));
+        $this->assertInstanceOf('Symfony\Component\Filesystem\Exception\IOException', $e, sprintf('Expected IOException to be thrown, got %s instead.', \get_class($e)));
         $this->assertNull($wrongMessage, sprintf('Expected exception message to contain "Permission denied", got "%s" instead.', $wrongMessage));
     }
 

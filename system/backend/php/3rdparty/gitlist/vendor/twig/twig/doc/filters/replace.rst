@@ -4,7 +4,7 @@
 The ``replace`` filter formats a given string by replacing the placeholders
 (placeholders are free-form):
 
-.. code-block:: jinja
+.. code-block:: twig
 
     {{ "I like %this% and %that%."|replace({'%this%': foo, '%that%': "bar"}) }}
 
@@ -22,4 +22,6 @@ Arguments
 
 * ``from``: The placeholder values
 
-.. seealso:: :doc:`format<format>`
+.. seealso::
+
+    :doc:`format<format>`

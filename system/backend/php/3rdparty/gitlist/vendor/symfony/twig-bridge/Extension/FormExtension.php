@@ -11,8 +11,8 @@
 
 namespace Symfony\Bridge\Twig\Extension;
 
-use Symfony\Bridge\Twig\TokenParser\FormThemeTokenParser;
 use Symfony\Bridge\Twig\Form\TwigRendererInterface;
+use Symfony\Bridge\Twig\TokenParser\FormThemeTokenParser;
 use Symfony\Component\Form\Extension\Core\View\ChoiceView;
 use Symfony\Component\Form\FormView;
 use Twig\Environment;
@@ -152,8 +152,8 @@ class FormExtension extends AbstractExtension implements InitRuntimeInterface
      */
     public function isSelectedChoice(ChoiceView $choice, $selectedValue)
     {
-        if (is_array($selectedValue)) {
-            return in_array($choice->value, $selectedValue, true);
+        if (\is_array($selectedValue)) {
+            return \in_array($choice->value, $selectedValue, true);
         }
 
         return $choice->value === $selectedValue;

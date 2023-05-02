@@ -13,9 +13,9 @@ namespace Symfony\Bridge\Twig\Tests\Extension;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
-use Symfony\Component\Translation\Translator;
-use Symfony\Component\Translation\MessageSelector;
 use Symfony\Component\Translation\Loader\ArrayLoader;
+use Symfony\Component\Translation\MessageSelector;
+use Symfony\Component\Translation\Translator;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader as TwigArrayLoader;
 
@@ -207,7 +207,7 @@ class TranslationExtensionTest extends TestCase
             $translator = new Translator('en', new MessageSelector());
         }
 
-        if (is_array($template)) {
+        if (\is_array($template)) {
             $loader = new TwigArrayLoader($template);
         } else {
             $loader = new TwigArrayLoader(array('index' => $template));

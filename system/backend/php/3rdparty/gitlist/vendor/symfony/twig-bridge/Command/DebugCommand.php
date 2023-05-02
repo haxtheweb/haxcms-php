@@ -13,8 +13,8 @@ namespace Symfony\Bridge\Twig\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Twig\Environment;
@@ -139,16 +139,16 @@ EOF
             if (null === $cb) {
                 return;
             }
-            if (is_array($cb)) {
+            if (\is_array($cb)) {
                 if (!method_exists($cb[0], $cb[1])) {
                     return;
                 }
                 $refl = new \ReflectionMethod($cb[0], $cb[1]);
-            } elseif (is_object($cb) && method_exists($cb, '__invoke')) {
+            } elseif (\is_object($cb) && method_exists($cb, '__invoke')) {
                 $refl = new \ReflectionMethod($cb, '__invoke');
-            } elseif (function_exists($cb)) {
+            } elseif (\function_exists($cb)) {
                 $refl = new \ReflectionFunction($cb);
-            } elseif (is_string($cb) && preg_match('{^(.+)::(.+)$}', $cb, $m) && method_exists($m[1], $m[2])) {
+            } elseif (\is_string($cb) && preg_match('{^(.+)::(.+)$}', $cb, $m) && method_exists($m[1], $m[2])) {
                 $refl = new \ReflectionMethod($m[1], $m[2]);
             } else {
                 throw new \UnexpectedValueException('Unsupported callback type');
@@ -198,8 +198,8 @@ EOF
         }
 
         if ('globals' === $type) {
-            if (is_object($meta)) {
-                return ' = object('.get_class($meta).')';
+            if (\is_object($meta)) {
+                return ' = object('.\get_class($meta).')';
             }
 
             return ' = '.substr(@json_encode($meta), 0, 50);
