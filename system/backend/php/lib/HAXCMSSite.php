@@ -1046,7 +1046,7 @@ class HAXCMSSite
     }
   </script>";
     }
-        /**
+    /**
      * Generate the stub of a well formed site.json item
      * based on parameters
      */

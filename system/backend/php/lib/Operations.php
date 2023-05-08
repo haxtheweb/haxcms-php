@@ -266,6 +266,8 @@ class Operations {
           $page->slug = $cleanTitleParent;
           $page->metadata->created = time();
           $page->metadata->updated = time();
+          $page->metadata->images = array();
+          $page->metadata->videos = array();
           array_push($response['data']['items'], $page);
           // look for child pages
           if (isset($lesson['page'])) {
@@ -328,6 +330,8 @@ class Operations {
                           '/index.html';
                       $page->metadata->created = time();
                       $page->metadata->updated = time();
+                      $page->metadata->images = array();
+                      $page->metadata->videos = array();
                       array_push($response['data']['items'], $page);
                   }
               }
@@ -705,6 +709,8 @@ class Operations {
       // safety check for new things
       if (!isset($page->metadata->created)) {
           $page->metadata->created = time();
+          $page->metadata->images = array();
+          $page->metadata->videos = array();
       }
       // always update at this time
       $page->metadata->updated = time();
@@ -897,6 +903,8 @@ class Operations {
     else {
       // generate a new item based on the site
       $item = $site->itemFromParams($nodeParams);
+      $item->metadata->images = array();
+      $item->metadata->videos = array();
       // generate the boilerplate to fill this page
       $site->recurseCopy(
           HAXCMS_ROOT . '/system/boilerplate/page/default',
@@ -1113,59 +1121,35 @@ class Operations {
                 $readtime = 1;
               }
               $page->metadata->readtime = $readtime;
-              // assemble other relevent content detail by skimming it off
-              $contentDetails = new stdClass();
-              $contentDetails->headings = 0;
-              $contentDetails->paragraphs = 0;
-              $contentDetails->schema = array();
-              $contentDetails->tags = array();
-              $contentDetails->elements = count($schema);
-              // pull schema apart and store the relevent pieces
+              // reset bc we rebuild this each page save
+              $page->metadata->videos = array();
+              $page->metadata->images = array();
+              // pull schema apart and seee if we have any images
+              // that other things could use for metadata / theming purposes
               foreach ($schema as $element) {
                 switch($element['tag']) {
-                  case 'h1':
-                  case 'h2':
-                  case 'h3':
-                  case 'h4':
-                  case 'h5':
-                  case 'h6':
-                      $contentDetails->headings++;
+                  case 'img':
+                    if (isset($element['properties']['src'])) {
+                      array_push($page->metadata->images, $element['properties']['src']);
+                    }
                   break;
-                  case 'p':
-                      $contentDetails->paragraphs++;
+                  case 'a11y-gif-player':
+                    if (isset($element['properties']['src'])) {
+                      array_push($page->metadata->images, $element['properties']['src']);
+                    }
                   break;
-                }
-                if (!isset($contentDetails->tags[$element['tag']])) {
-                    $contentDetails->tags[$element['tag']] = 0;
-                }
-                $contentDetails->tags[$element['tag']]++;
-                $newItem = new stdClass();
-                $hasSchema = false;
-                if (isset($element['properties']['property'])) {
-                  $hasSchema = true;
-                  $newItem->property = $element['properties']['property'];
-                }
-                if (isset($element['properties']['typeof'])) {
-                  $hasSchema = true;
-                  $newItem->typeof = $element['properties']['typeof'];
-                }
-                if (isset($element['properties']['resource'])) {
-                  $hasSchema = true;
-                  $newItem->resource = $element['properties']['resource'];
-                }
-                if (isset($element['properties']['prefix'])) {
-                  $hasSchema = true;
-                  $newItem->prefix = $element['properties']['prefix'];
-                }
-                if (isset($element['properties']['vocab'])) {
-                  $hasSchema = true;
-                  $newItem->vocab = $element['properties']['vocab'];
-                }
-                if ($hasSchema) {
-                  $contentDetails->schema[] = $newItem;
+                  case 'media-image':
+                    if (isset($element['properties']['source'])) {
+                      array_push($page->metadata->images, $element['properties']['source']);
+                    }
+                  break;
+                  case 'video-player':
+                    if (isset($element['properties']['source'])) {
+                      array_push($page->metadata->videos, $element['properties']['source']);
+                    }
+                  break;
                 }
               }
-              $page->metadata->contentDetails = $contentDetails;
               $site->updateNode($page);
               $site->gitCommit(
                 'Page updated: ' . $page->title . ' (' . $page->id . ')'
