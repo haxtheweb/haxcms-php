@@ -3,6 +3,14 @@ const terser = require("gulp-terser");
 const glob = require("glob");
 const fs = require("fs");
 const path = require("path");
+// mirror version numbers
+gulp.task(
+  "version-match", async () => {
+    const package = require("./node_modules/@lrnwebcomponents/haxcms-elements/package.json");
+    fs.writeFileSync('./VERSION.txt', package.version , {encoding:'utf8',flag:'w'});
+    console.log(`${package.version} written to VERSION.txt`);
+  }
+);
 gulp.task(
   "terser", () => {
     // now work on all the other files
@@ -123,7 +131,13 @@ gulp.task("wc-autoloader", async () => {
     fs.writeFileSync(
       path.join(__dirname, "wc-registry.json"),
       JSON.stringify(elements),
-      "utf8"
+      {encoding:'utf8',flag:'w'}
+    );
+    // write entries to demo for local work
+    fs.writeFileSync(
+      "./dist/wc-registry.json",
+      JSON.stringify(elements),
+      {encoding:'utf8',flag:'w'}
     );
   });
 });

@@ -14,15 +14,12 @@ $appSettings = $HAXCMS->appJWTConnectionSettings();
     <link rel="preconnect" crossorigin href="<?php print $HAXCMS->getCDNForDynamic();?>">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
-    <link rel="preconnect" crossorigin href="https://licensebuttons.net">
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build.js" as="script" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>wc-registry.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
-    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
     <link rel="stylesheet" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
     <meta name="generator" content="HAXcms">

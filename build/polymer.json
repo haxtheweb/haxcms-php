@@ -117,22 +117,6 @@
         "minify": false
       },
       "bundle": false
-    },
-    {
-      "name": "es5-amd",
-      "js": {
-        "compile": "es5",
-        "minify": false,
-        "transformModulesToAmd": true,
-        "transformImportMeta": true
-      },
-      "css": {
-        "minify": false
-      },
-      "html": {
-        "minify": false
-      },
-      "bundle": false
     }
   ],
   "lint": {
