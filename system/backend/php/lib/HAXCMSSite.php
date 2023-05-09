@@ -1253,9 +1253,10 @@ class HAXCMSSite
      * Generate or load the path to variations on the logo
      * @var string $height height of the icon as a string
      * @var string $width width of the icon as a string
+     * @var string $format (optional) png or jpeg format to return image as
      * @return string path to the image (web visible) that was created or pulled together
      */
-    public function getLogoSize($height, $width) {
+    public function getLogoSize($height, $width, $format = "png") {
       $fileName = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $height . $width);
       if (!isset($fileName)) {
         // if no logo, just bail with an easy standard one
@@ -1270,9 +1271,16 @@ class HAXCMSSite
               global $fileSystem;
               $fileSystem->mkdir($path . 'files/haxcms-managed');
               $image = new ImageResize($path . $this->manifest->metadata->site->logo);
-              $image->crop($height, $width)
-              ->resize($height, $width, TRUE)
-              ->save($path . $fileName, IMAGETYPE_PNG);
+              if ($format == "png") {
+                $image->crop($height, $width)
+                ->resize($height, $width, TRUE)
+                ->save($path . $fileName, IMAGETYPE_PNG, 9); // 9 is max compression on images
+              }
+              else if ($format == "jpg") {
+                $image->crop($height, $width)
+                ->resize($height, $width, TRUE)
+                ->save($path . $fileName, IMAGETYPE_JPEG, 45); // jpeg compression
+              }
           }
         }
       }
