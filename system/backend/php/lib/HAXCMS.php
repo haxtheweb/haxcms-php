@@ -341,7 +341,7 @@ class HAXCMS
     /**
      * If we are a cli
      */
-    private function isCLI() {
+    public function isCLI() {
         return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
     }
     public function executeRequest($op = null) {
@@ -1058,41 +1058,43 @@ class HAXCMS
             $site->load(HAXCMS_ROOT . '/' . $this->sitesDirectory,
                 $this->basePath . $this->sitesDirectory . '/',
                 $tmpname);
-            $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
-            // sanity checks to ensure we'll actually deliver a site
-            if (!is_link($siteDirectoryPath . '/wc-registry.json')) {
-              @symlink(
-                  '../../wc-registry.json',
-                  $siteDirectoryPath . '/wc-registry.json'
-              );
-            }
-            if (!is_link($siteDirectoryPath . '/build')) {
-              if (is_dir($siteDirectoryPath . '/build')) {
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
-              }
-              @symlink('../../build', $siteDirectoryPath . '/build');
-              if (!is_link($siteDirectoryPath . '/dist')) {
-                  @symlink('../../dist', $siteDirectoryPath . '/dist');
-              }
-              if (!is_link($siteDirectoryPath . '/node_modules')) {
+            if ($site && isset($site->manifest->metadata->site->name)) {
+              $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
+              // sanity checks to ensure we'll actually deliver a site
+              if (!is_link($siteDirectoryPath . '/wc-registry.json')) {
                 @symlink(
-                    '../../node_modules',
-                    $siteDirectoryPath . '/node_modules'
+                    '../../wc-registry.json',
+                    $siteDirectoryPath . '/wc-registry.json'
                 );
               }
-              if (!is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-top.js');
-                @symlink(
-                  '../../../babel/babel-top.js',
-                    $siteDirectoryPath . '/assets/babel-top.js'
-                );
-              }
-              if (!is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-                @symlink(
-                    '../../../babel/babel-bottom.js',
-                    $siteDirectoryPath . '/assets/babel-bottom.js'
-                );
+              if (!is_link($siteDirectoryPath . '/build')) {
+                if (is_dir($siteDirectoryPath . '/build')) {
+                  $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
+                }
+                @symlink('../../build', $siteDirectoryPath . '/build');
+                if (!is_link($siteDirectoryPath . '/dist')) {
+                    @symlink('../../dist', $siteDirectoryPath . '/dist');
+                }
+                if (!is_link($siteDirectoryPath . '/node_modules')) {
+                  @symlink(
+                      '../../node_modules',
+                      $siteDirectoryPath . '/node_modules'
+                  );
+                }
+                if (!is_link($siteDirectoryPath . '/assets/babel-top.js')) {
+                  @unlink($siteDirectoryPath . '/assets/babel-top.js');
+                  @symlink(
+                    '../../../babel/babel-top.js',
+                      $siteDirectoryPath . '/assets/babel-top.js'
+                  );
+                }
+                if (!is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
+                  @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+                  @symlink(
+                      '../../../babel/babel-bottom.js',
+                      $siteDirectoryPath . '/assets/babel-bottom.js'
+                  );
+                }
               }
             }
             return $site;
