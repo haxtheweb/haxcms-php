@@ -161,7 +161,14 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic($site);?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
+  <script>
+    <?php 
+      // support for local dev overrides of where microservices / other JS comes from
+      if (file_exists('../../_config/.local.microservice.config.php')) {
+        include_once '../../_config/.local.microservice.config.php';
+      }
+    ?>
+    window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic($site);?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
   <script src="./build-haxcms.js"></script>
   <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build.js"></script>
 </body>
