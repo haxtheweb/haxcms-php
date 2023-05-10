@@ -1263,21 +1263,35 @@ class HAXCMSSite
         else {
           // ensure this path exists otherwise let's create it on the fly
           $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/';
-          $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          // support for default so we compress it using same engine
+          if ($this->manifest->metadata->site->logo == 'assets/banner.jpg') {
+            $fileName = str_replace('assets/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          }
+          else {
+            $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          }
+          // always replace this terrible name
+          $fileName = str_replace('.jpeg', '.jpg', $fileName);
+          if ($format == "jpg") {
+            $fileName = str_replace('.png', '.jpg', $fileName);
+          }
+          else {
+            $fileName = str_replace('.jpg', '.png', $fileName);
+          }
           if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
-              global $fileSystem;
-              $fileSystem->mkdir($path . 'files/haxcms-managed');
-              $image = new ImageResize($path . $this->manifest->metadata->site->logo);
-              if ($format == "png") {
-                $image->crop($height, $width)
-                ->resize($height, $width, TRUE)
-                ->save($path . $fileName, IMAGETYPE_PNG, 9); // 9 is max compression on images
-              }
-              else if ($format == "jpg") {
-                $image->crop($height, $width)
-                ->resize($height, $width, TRUE)
-                ->save($path . $fileName, IMAGETYPE_JPEG, 45); // jpeg compression
-              }
+            global $fileSystem;
+            $fileSystem->mkdir($path . 'files/haxcms-managed');
+            $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+            if ($format == "png") {
+              $image->resizeToBestFit($height, $width)
+              ->crop($height, $width, TRUE)
+              ->save($path . $fileName, IMAGETYPE_PNG, 9); // 9 is max compression on images
+            }
+            else if ($format == "jpg") {
+              $image->resizeToBestFit($height, $width)
+              ->crop($height, $width, TRUE)
+              ->save($path . $fileName, IMAGETYPE_JPEG, 70); // jpeg compression
+            }
           }
         }
       }
