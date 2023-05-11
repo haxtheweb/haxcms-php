@@ -1360,7 +1360,6 @@ class HAXCMS
         $settings->syncSitePath = $path . 'syncSite';
         $settings->setConfigPath = $path . 'setConfig';
         $settings->getConfigPath = $path . 'getConfig';
-        $settings->getNodeFieldsPath = $path . 'getNodeFields';
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->revertSitePath = $path . 'revertCommit';
         // form token to validate form submissions as unique to the session

@@ -1075,7 +1075,7 @@ class Operations {
                 $themes = $GLOBALS['HAXCMS']->getThemes();
                 $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
                 // support for removing the custom theme or applying none
-                if ($value == '_none_' || $value == '' || !$value) {
+                if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
                   unset($page->metadata->theme);
                 }
                 // ensure it exists
@@ -1083,7 +1083,6 @@ class Operations {
                   $page->metadata->theme = $themes->{$value};
                   $page->metadata->theme->key = $value;
                 }
-                break;
               }
               else if (isset($page->metadata->theme)) {
                 unset($page->metadata->theme);
@@ -1175,129 +1174,6 @@ class Operations {
                 'Page updated: ' . $page->title . ' (' . $page->id . ')'
               );
           }
-        }
-        // this returns te page result as the slug and other values
-        // may have changed via page-break attributes
-        // make sure we return the "theme" if set back to null
-        // we do this so that the front end can reset to the default theme
-        // but also so we don't save this data for no reason in the piecea above
-        if (!isset($page->metadata->theme)) {
-          $themes = $GLOBALS['HAXCMS']->getThemes();
-          $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
-          $page->metadata->theme->key = $site->manifest->metadata->theme->element;
-        }
-        return array(
-          'status' => 200,
-          'data' => $page
-        );
-      } elseif (isset($details)) {
-        // update the updated timestamp
-        $page->metadata->updated = time();
-        foreach ($details as $key => $value) {
-            // sanitize both sides
-            $key = filter_var($key, FILTER_SANITIZE_STRING);
-            switch ($key) {
-                case 'node-configure-slug':
-                  // check on name
-                  $value = $GLOBALS['HAXCMS']->cleanTitle(filter_var($value, FILTER_SANITIZE_STRING));
-                  $page->slug = $value;
-                  if ($value == '') {
-                    $pAuto = false;
-                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                      $pAuto = true;
-                    }
-                    $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details['node-configure-title'], FILTER_SANITIZE_STRING)), $page, $pAuto);
-                  }
-                break;
-                case 'node-configure-title':
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $page->title = $value;
-                break;
-                case 'node-configure-description':
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $page->description = $value;
-                break;
-                case 'node-configure-published':
-                    $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
-                    $page->metadata->published = $value;
-                break;
-                case 'node-advanced-created':
-                    $value = filter_var($value, FILTER_VALIDATE_INT);
-                    $page->metadata->created = $value;
-                break;
-                case 'node-advanced-theme':
-                  $themes = $GLOBALS['HAXCMS']->getThemes();
-                  $value = filter_var($value, FILTER_SANITIZE_STRING);
-                  // support for removing the custom theme or applying none
-                  if ($value == '_none_') {
-                    unset($page->metadata->theme);
-                  }
-                  else if (isset($themes->{$value})) {
-                    $page->metadata->theme = $themes->{$value};
-                    $page->metadata->theme->key = $value;
-                  }
-                  break;
-                default:
-                    // ensure ID is never changed
-                    if ($key != 'id') {
-                        // support for saving fields
-                        if (!isset($page->metadata->fields)) {
-                            $page->metadata->fields = new stdClass();
-                        }
-                        switch (gettype($value)) {
-                            case 'array':
-                            case 'object':
-                                $page->metadata->fields->{$key} = new stdClass();
-                                foreach ($value as $key2 => $val) {
-                                    $page->metadata->fields->{$key}->{$key2} = new stdClass();
-                                    $key2 = filter_var(
-                                        $key2,
-                                        FILTER_VALIDATE_INT
-                                    );
-                                    foreach ($val as $key3 => $deepVal) {
-                                        $key3 = filter_var(
-                                            $key3,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        $deepVal = filter_var(
-                                            $deepVal,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        $page->metadata->fields->{$key}->{$key2}->{$key3} = $deepVal;
-                                    }
-                                }
-                                break;
-                            case 'integer':
-                            case 'double':
-                                $value = filter_var(
-                                    $value,
-                                    FILTER_VALIDATE_INT
-                                );
-                                $page->metadata->fields->{$key} = $value;
-                                break;
-                            default:
-                                $value = filter_var(
-                                    $value,
-                                    FILTER_SANITIZE_STRING
-                                );
-                                $page->metadata->fields->{$key} = $value;
-                                break;
-                        }
-                    }
-                    break;
-            }
-        }
-        $site->updateNode($page);
-        $site->gitCommit(
-            'Page details updated: ' . $page->title . ' (' . $page->id . ')'
-        );
-        // make sure we return the "theme" if set back to null
-        // we do this so that the front end can reset to the default theme
-        // but also so we don't save this data for no reason in the piecea above
-        if (!isset($page->metadata->theme)) {
-          $themes = $GLOBALS['HAXCMS']->getThemes();
-          $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
-          $page->metadata->theme->key = $site->manifest->metadata->theme->element;
         }
         return array(
           'status' => 200,
@@ -1416,39 +1292,6 @@ class Operations {
     // this will revert the top commit
     $site->gitRevert();
     return TRUE;
-  }
-  /**
-   * @OA\Post(
-   *    path="/getNodeFields",
-   *    tags={"cms","authenticated","node","form"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Update the alternative formats surrounding a site"
-   *   )
-   * )
-   */
-  public function getNodeFields() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      if ($page = $site->loadNode($this->params['node']['id'])) {
-        $schema = $site->loadNodeFieldSchema($page);
-        return $schema;
-      }
-    } else {
-      return array(
-        '__failed' => array(
-          'status' => 403,
-          'message' => 'invalid request token',
-        )
-      );
-    }
   }
   /**
    * @OA\Get(
