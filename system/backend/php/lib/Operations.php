@@ -478,14 +478,6 @@ class Operations {
       if (!isset($site->manifest->metadata->site->settings)) {
         $site->manifest->metadata->site->settings = new stdClass();
       }
-      $site->manifest->metadata->site->static->cdn = filter_var(
-          $this->params['manifest']['static']['manifest-metadata-site-static-cdn'],
-          FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->static->offline = filter_var(
-          $this->params['manifest']['static']['manifest-metadata-site-static-offline'],
-          FILTER_VALIDATE_BOOLEAN
-      );
       if (isset($this->params['manifest']['site']['manifest-domain'])) {
           $domain = filter_var(
               $this->params['manifest']['site']['manifest-domain'],
@@ -578,38 +570,6 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
         );
       }
-      // more importantly, this is where the field UI stuff is...
-      if (isset($this->params['manifest']['fields']['manifest-metadata-node-fields'])) {
-          $fields = array();
-          // establish a fields block, replacing with whatever is there now
-          $site->manifest->metadata->node->fields = new stdClass();
-          foreach ($this->params['manifest']['fields']['manifest-metadata-node-fields'] as $key => $field) {
-              array_push($fields, $field);
-          }
-          if (count($fields) > 0) {
-              $site->manifest->metadata->node->fields = $fields;
-          }
-      }
-      $site->manifest->metadata->site->git->autoPush = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-autoPush'],
-        FILTER_VALIDATE_BOOLEAN
-      );
-      $site->manifest->metadata->site->git->branch = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-branch'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->staticBranch = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-staticBranch'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->vendor = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-vendor'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->publicRepoUrl = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-publicRepoUrl'],
-        FILTER_SANITIZE_STRING
-      );
       $site->manifest->metadata->site->updated = time();
       // don't reorganize the structure
       $site->manifest->save(false);
@@ -617,29 +577,6 @@ class Operations {
       // rebuild the files that twig processes
       $site->rebuildManagedFiles();
       $site->gitCommit('Managed files updated');
-      // check git remote if it came across as a possible setting
-      if (isset($this->params['manifest']['git']['manifest-metadata-site-git-url'])) {
-        if (
-          filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING) &&
-          (!isset($site->manifest->metadata->site->git->url) ||
-            $site->manifest->metadata->site->git->url !=
-              filter_var(
-                $this->params['manifest']['git']['manifest-metadata-site-git-url'],
-                FILTER_SANITIZE_STRING
-              ))
-        ) {
-          $site->gitSetRemote(
-              filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING)
-          );
-        }
-        $site->manifest->metadata->site->git->url =
-        filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-url'],
-          FILTER_SANITIZE_STRING
-        );
-        $site->manifest->save(false);
-        $site->gitCommit('origin updated');
-      }
       return $site->manifest;
     }
     else {
@@ -1133,6 +1070,24 @@ class Operations {
               else {
                 $page->parent = null;
               }
+              // allow setting theme via page break
+              if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
+                $themes = $GLOBALS['HAXCMS']->getThemes();
+                $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                // support for removing the custom theme or applying none
+                if ($value == '_none_' || $value == '' || !$value) {
+                  unset($page->metadata->theme);
+                }
+                // ensure it exists
+                else if (isset($themes->{$value})) {
+                  $page->metadata->theme = $themes->{$value};
+                  $page->metadata->theme->key = $value;
+                }
+                break;
+              }
+              else if (isset($page->metadata->theme)) {
+                unset($page->metadata->theme);
+              }
               if (isset($data["attributes"]["depth"])) {
                 $page->indent = (int)$data["attributes"]["depth"];
               }
@@ -1223,6 +1178,14 @@ class Operations {
         }
         // this returns te page result as the slug and other values
         // may have changed via page-break attributes
+        // make sure we return the "theme" if set back to null
+        // we do this so that the front end can reset to the default theme
+        // but also so we don't save this data for no reason in the piecea above
+        if (!isset($page->metadata->theme)) {
+          $themes = $GLOBALS['HAXCMS']->getThemes();
+          $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
+          $page->metadata->theme->key = $site->manifest->metadata->theme->element;
+        }
         return array(
           'status' => 200,
           'data' => $page
@@ -2616,500 +2579,6 @@ class Operations {
           'message' => 'Unable to load site',
         )
       );
-    }
-  }
-  /**
-   * @OA\Post(
-   *    path="/publishSite",
-   *    tags={"cms","authenticated","git","site"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\RequestBody(
-   *        @OA\MediaType(
-   *             mediaType="application/json",
-   *             @OA\Schema(
-   *                 @OA\Property(
-   *                     property="site",
-   *                     type="object"
-   *                 ),
-   *                 required={"site"},
-   *                 example={
-   *                    "site": {
-   *                      "name": "mynewsite"
-   *                    },
-   *                 }
-   *             )
-   *         )
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Publishes the site to a remote source using git settings from site.json for details "
-   *   )
-   * )
-   */
-  public function publishSite() {
-    // ensure we have something we can load and ship back out the door
-    if ($site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name'])) {
-        // local publishing options, then defer to system, then make some up...
-        if (isset($site->manifest->metadata->site->git)) {
-            $gitSettings = $site->manifest->metadata->site->git;
-        } elseif (isset($GLOBALS['HAXCMS']->config->site->git)) {
-            $gitSettings = $GLOBALS['HAXCMS']->config->site->git;
-        } else {
-            $gitSettings = new stdClass();
-            $gitSettings->vendor = 'github';
-            $gitSettings->branch = 'master';
-            $gitSettings->staticBranch = 'gh-pages';
-            $gitSettings->url = '';
-        }
-        if (isset($gitSettings)) {
-            $git = new Git();
-            $siteDirectoryPath =
-                $site->directory . '/' . $site->manifest->metadata->site->name;
-            $repo = $git->open($siteDirectoryPath, true);
-            // ensure we're on master and everything is added
-            $repo->checkout('master');
-            // Try to build a reasonable "domain" value
-            if (
-                isset($gitSettings->url) &&
-                $gitSettings->url != '' &&
-                $gitSettings->url != false &&
-                $gitSettings->url !=
-                    '/' . $site->manifest->metadata->site->name . '.git'
-            ) {
-                $domain = $gitSettings->url;
-                if (
-                    isset($site->manifest->metadata->site->domain) &&
-                    $site->manifest->metadata->site->domain != ''
-                ) {
-                    $domain = $site->manifest->metadata->site->domain;
-                } else {
-                    // support blowing up github addresses correctly
-                    $parts = explode(
-                        '/',
-                        str_replace(
-                            'git@github.com:',
-                            '',
-                            str_replace('.git', '', $domain)
-                        )
-                    );
-                    if (count($parts) === 2) {
-                        $domain =
-                            'https://' . $parts[0] . '.github.io/' . $parts[1];
-                    }
-                }
-            }
-            // implies the domain is actually on the system locally
-            else {
-                $domain =
-                    $GLOBALS['HAXCMS']->basePath .
-                    $GLOBALS['HAXCMS']->publishedDirectory .
-                    '/' .
-                    $site->manifest->metadata->site->name .
-                    '/';
-            }
-            // ensure we have the latest dynamic element loader since it may have improved from
-            // when we first launched this site, HAX would have these definitions as well but
-            // when in production, appstore isn't around so the user may have added custom
-            // things that they care about but now magically in a published state its gone
-            // set last published time to now
-            if (!isset($site->manifest->metadata->site->static)) {
-              $site->manifest->metadata->site->static = new stdClass();
-            }
-            $site->manifest->metadata->site->static->lastPublished = time();
-            $site->manifest->metadata->site->static->publishedLocation = $domain;
-            $site->manifest->save(false);
-            // just to be safe in case the push isn't successful
-            try {
-                $repo->add('.');
-                $repo->commit('Clean up pre-publishing..');
-                @$repo->push('origin', 'master');
-            } catch (Exception $e) {
-                // do nothing, we might be offline or something
-                // @tood when we get into logging this would be worth logging
-            }
-            // now check out the publishing branch, it can't be master or our file will get mixed up
-            // rather rapidly..
-            if ($gitSettings->staticBranch != 'master') {
-                // try to check it out, if not then we need to create it
-                try {
-                    $repo->checkout($gitSettings->staticBranch);
-                    // on that branch now we need to forcibly get the master branch over top of this
-                    $repo->reset($gitSettings->branch, 'origin');
-                    // now we can merge safely because we've already got the files over top
-                    // as if they originated here
-                    $repo->merge($gitSettings->branch);
-                } catch (Exception $e) {
-                    $repo->create_branch($gitSettings->staticBranch);
-                    $repo->checkout($gitSettings->staticBranch);
-                }
-            }
-            // werid looking I know but if we have a CDN then we need to "rewrite" this file
-            if (isset($site->manifest->metadata->site->static->cdn)) {
-                $cdn = $site->manifest->metadata->site->static->cdn;
-            } else {
-                $cdn = 'custom';
-            }
-            // sanity check
-            if (
-                file_exists(
-                    HAXCMS_ROOT . '/system/boilerplate/cdns/' . $cdn . '.html'
-                )
-            ) {
-                // move the index.html and unlink the symlinks otherwise we'll get build failures
-                if (is_link($siteDirectoryPath . '/build')) {
-                    @unlink($siteDirectoryPath . '/build');
-                }
-                if (is_link($siteDirectoryPath . '/dist')) {
-                    @unlink($siteDirectoryPath . '/dist');
-                }
-                if (is_link($siteDirectoryPath . '/node_modules')) {
-                    @unlink($siteDirectoryPath . '/node_modules');
-                }
-                if (is_link($siteDirectoryPath . '/wc-registry.json')) {
-                  @unlink($siteDirectoryPath . '/wc-registry.json');
-                }
-                if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                    @unlink($siteDirectoryPath . '/assets/babel-top.js');
-                }
-                if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                    @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-                }
-                // copy these things because we have a local routine
-                if ($cdn == 'custom') {
-                    @copy(
-                        HAXCMS_ROOT . '/babel/babel-top.js',
-                        $siteDirectoryPath . '/assets/babel-top.js'
-                    );
-                    @copy(
-                        HAXCMS_ROOT . '/babel/babel-bottom.js',
-                        $siteDirectoryPath . '/assets/babel-bottom.js'
-                    );
-                    $GLOBALS['fileSystem']->mirror(
-                        HAXCMS_ROOT . '/build',
-                        $siteDirectoryPath . '/build'
-                    );
-                }
-                // additional files to move to ensure we don't screw things up
-                $templates = $site->getManagedTemplateFiles();
-                // overwrite these files with their boilerplate versions
-                // so that our templateVars can be relative to a published state
-                // as opposed to a local working state
-                foreach ($templates as $file) {
-                  copy(HAXCMS_ROOT . '/system/boilerplate/site/' . $file, $siteDirectoryPath . '/' . $file);
-                }
-                // support for index as that comes from a CDN defining what to do
-                // remove current index, then pull a new one
-                // this ensures that the php file won't be in the published copy while it is in master
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html', $siteDirectoryPath . '/index.php']);
-                copy(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $cdn . '.html', $siteDirectoryPath . '/index.html');
-                // process twig variables for static publishing
-                $licenseData = $site->getLicenseData('all');
-                $licenseLink = '';
-                $licenseName = '';
-                if (isset($site->manifest->license) && isset($licenseData[$site->manifest->license])) {
-                  $licenseLink = $licenseData[$site->manifest->license]['link'];
-                  $licenseName = 'License: ' . $licenseData[$site->manifest->license]['name'];
-                }
-                $templateVars = array(
-                    'hexCode' => HAXCMS_FALLBACK_HEX,
-                    'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
-                    'basePath' =>
-                        '/' . $site->manifest->metadata->site->name . '/',
-                    'title' => $site->manifest->title,
-                    'short' => $site->manifest->metadata->site->name,
-                    'domain' => $site->manifest->metadata->site->domain,
-                    'description' => $site->manifest->description,
-                    'forceUpgrade' => $site->getForceUpgrade(),
-                    'swhash' => array(),
-                    'ghPagesURLParamCount' => 1,
-                    'licenseLink' => $licenseLink,
-                    'licenseName' => $licenseName,
-                    'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
-                    'bodyAttrs' => $site->getSitePageAttributes(),
-                    'metadata' => $site->getSiteMetadata(),
-                    'logo512x512' => $site->getLogoSize('512','512'),
-                    'logo310x310' => $site->getLogoSize('310','310'),
-                    'logo192x192' => $site->getLogoSize('192','192'),
-                    'logo150x150' => $site->getLogoSize('150','150'),
-                    'logo144x144' => $site->getLogoSize('144','144'),
-                    'logo96x96' => $site->getLogoSize('96','96'),
-                    'logo72x72' => $site->getLogoSize('72','72'),
-                    'logo70x70' => $site->getLogoSize('70','70'),
-                    'logo48x48' => $site->getLogoSize('48','48'),
-                    'logo36x36' => $site->getLogoSize('36','36'),
-                    'favicon' => $site->getLogoSize('16','16'),
-                );
-                // custom isn't a regex by design
-                if ($cdn != 'custom') {
-                  // special fallback for HAXtheWeb since it cheats in order to demo the solution
-                  if ($cdn == 'cdn.webcomponents.psu.edu') {
-                    $templateVars['cdn'] = $cdn . 'cdn/';
-                  }
-                  else {
-                    $templateVars['cdn'] = $cdn;
-                  }
-                  $templateVars['metadata'] = $site->getSiteMetadata(NULL, $domain, 'https://' . $templateVars['cdn']);
-                  // build a regex so that we can do fully offline sites and cache the cdn requests even
-                  $templateVars['cdnRegex'] =
-                    "(https?:\/\/" .
-                    str_replace('.', '\.', $templateVars['cdn']) .
-                    "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
-                  // support for disabling regex via offline setting
-                  if (isset($site->manifest->metadata->site->static->offline) && !$site->manifest->metadata->site->static->offline) {
-                    unset($templateVars['cdnRegex']);
-                  }
-                }
-                // if we have a custom domain, try and engineer the base path
-                // correctly for the manifest / service worker
-                // @todo need to support domains that have subdomains in them
-                if (
-                    isset($site->manifest->metadata->site->domain) &&
-                    $site->manifest->metadata->site->domain != ''
-                ) {
-                    $parts = parse_url($site->manifest->metadata->site->domain);
-                    $templateVars['basePath'] = '/';
-                    if (isset($parts['base'])) {
-                        $templateVars['basePath'] = $parts['base'];
-                    }
-                    if ($templateVars['basePath'] == null || $templateVars['basePath'] == '' || $templateVars['basePath'] == false) {
-                      $templateVars['basePath'] = "/";
-                    }
-                    if ($templateVars['basePath'] == '/') {
-                        $templateVars['ghPagesURLParamCount'] = 0;
-                    }
-                    // now we need to update the SW to match
-                    $templateVars['serviceWorkerScript'] = $site->getServiceWorkerScript($templateVars['basePath'], TRUE);
-                }
-                if (isset($site->manifest->metadata->theme->variables->hexCode)) {
-                    $templateVars['hexCode'] =
-                        $site->manifest->metadata->theme->variables->hexCode;
-                }
-                $swItems = $site->manifest->items;
-                // the core files you need in every SW manifest
-                $coreFiles = array(
-                    'index.html',
-                    'manifest.json',
-                    'site.json',
-                    $site->getLogoSize('512','512'),
-                    $site->getLogoSize('310','310'),
-                    $site->getLogoSize('192','192'),
-                    $site->getLogoSize('150','150'),
-                    $site->getLogoSize('144','144'),
-                    $site->getLogoSize('96','96'),
-                    $site->getLogoSize('72','72'),
-                    $site->getLogoSize('70','70'),
-                    $site->getLogoSize('48','48'),
-                    $site->getLogoSize('36','36'),
-                    $site->getLogoSize('16','16'),
-                    '404.html',
-                );
-                // loop through files directory so we can cache those things too
-                if ($handle = opendir($siteDirectoryPath . '/files')) {
-                    while (false !== ($file = readdir($handle))) {
-                        if (
-                            $file != "." &&
-                            $file != ".." &&
-                            $file != '.gitkeep' &&
-                            $file != '._.DS_Store' &&
-                            $file != '.DS_Store'
-                        ) {
-                            // ensure this is a file
-                            if (
-                                is_file($siteDirectoryPath . '/files/' . $file)
-                            ) {
-                                $coreFiles[] = 'files/' . $file;
-                            } else {
-                                // @todo maybe step into directories?
-                            }
-                        }
-                    }
-                    closedir($handle);
-                }
-                foreach ($coreFiles as $itemLocation) {
-                    $coreItem = new stdClass();
-                    $coreItem->location = $itemLocation;
-                    $swItems[] = $coreItem;
-                }
-                // generate a legit hash value that's the same for each file name + file size
-                foreach ($swItems as $item) {
-                    if (
-                        $item->location === '' ||
-                        $item->location === $templateVars['basePath']
-                    ) {
-                        $filesize = filesize(
-                            $siteDirectoryPath . '/index.html'
-                        );
-                    } elseif (
-                        file_exists($siteDirectoryPath . '/' . $item->location)
-                    ) {
-                        $filesize = filesize(
-                            $siteDirectoryPath . '/' . $item->location
-                        );
-                    } else {
-                        // ?? file referenced but doesn't exist
-                        $filesize = 0;
-                    }
-                    if ($filesize !== 0) {
-                        $templateVars['swhash'][] = array(
-                            $item->location,
-                            strtr(
-                                base64_encode(
-                                    hash_hmac(
-                                        'md5',
-                                        (string) $item->location . $filesize,
-                                        (string) 'haxcmsswhash',
-                                        true
-                                    )
-                                ),
-                                array(
-                                    '+' => '',
-                                    '/' => '',
-                                    '=' => '',
-                                    '-' => ''
-                                )
-                            )
-                        );
-                    }
-                }
-                // put the twig written output into the file
-                $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
-                $twig = new \Twig\Environment($loader);
-                foreach ($templates as $location) {
-                  if (file_exists($siteDirectoryPath . '/' . $location)) {
-                    @file_put_contents(
-                        $siteDirectoryPath . '/' . $location,
-                        $twig->render($location, $templateVars)
-                    );
-                  }
-                }
-                try {
-                    $repo->add('.');
-                    $repo->commit('Published using CDN: ' . $cdn);
-                } catch (Exception $e) {
-                    // do nothing, maybe there was nothing to commit
-                }
-            }
-            // mirror over to the publishing directory
-            // @todo need to make a way of doing this in a variable fashion
-            // this way we could publish to multiple locations or intentionally to a location
-            // which will be important when allowing for open, closed, or other server level configurations
-            // that happen automatically as opposed to when the user hits publish
-            // also for delivery of the "click to access site" link
-            $GLOBALS['fileSystem']->mirror(
-                $siteDirectoryPath,
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' . $site->manifest->metadata->site->name
-            );
-            // remove the .git version control from this, it's not needed
-            $GLOBALS['fileSystem']->remove([
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' . $site->manifest->metadata->site->name . '/.git'
-            ]);
-            // rewrite the base path to ensure it is accurate based on a local build publish vs web
-            $index = file_get_contents(
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/index.html'
-            );
-            // replace if it was publishing with the name in it
-            $index = str_replace(
-                '<base href="/' . $site->manifest->metadata->site->name . '/"',
-                '<base href="' . $GLOBALS['HAXCMS']->basePath . '_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/"',
-                $index
-            );
-            // replace if it has a vanity domain
-            $index = str_replace(
-                '<base href="/"',
-                '<base href="' . $GLOBALS['HAXCMS']->basePath . '_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/"',
-                $index
-            );
-            // rewrite the file
-            @file_put_contents(
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/index.html',
-                $index
-            );
-            // tag, attempt to push, and set things up for next time
-            $repo->add_tag(
-                'version-' . $site->manifest->metadata->site->static->lastPublished
-            );
-            @$repo->push(
-                'origin',
-                'version-' . $site->manifest->metadata->site->static->lastPublished,
-                "--force"
-            );
-            if ($gitSettings->staticBranch != 'master') {
-                @$repo->push('origin', $gitSettings->staticBranch, "--force");
-                // now put it back plz... and master shouldn't notice any source changes
-                $repo->checkout($gitSettings->branch);
-            }
-            // restore these silly things if we need to
-            if (!is_link($siteDirectoryPath . '/dist')) {
-                @symlink('../../dist', $siteDirectoryPath . '/dist');
-            }
-            if (!is_link($siteDirectoryPath . '/node_modules')) {
-                @symlink(
-                    '../../node_modules',
-                    $siteDirectoryPath . '/node_modules'
-                );
-            }
-            if (is_link($siteDirectoryPath . '/wc-registry.json')) {
-              @unlink($siteDirectoryPath . '/wc-registry.json');
-            }
-            if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-top.js');
-            }
-            if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-            }
-            if (is_link($siteDirectoryPath . '/build')) {
-                @unlink($siteDirectoryPath . '/build');
-            }
-            else {
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
-            }
-            @symlink('../../wc-registry.json', $siteDirectoryPath . '/wc-registry.json');
-            @symlink(
-                '../../../babel/babel-top.js',
-                $siteDirectoryPath . '/assets/babel-top.js'
-            );
-            @symlink(
-                '../../../babel/babel-bottom.js',
-                $siteDirectoryPath . '/assets/babel-bottom.js'
-            );
-            @symlink('../../build', $siteDirectoryPath . '/build');
-            // reset the templated file for the index.html
-            // since the "CDN" cleaned up how this worked most likely at run time
-            $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html']);
-            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.html', $siteDirectoryPath . '/index.html');
-            // this ensures that the php file wasn't in version control for the published copy
-            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.php', $siteDirectoryPath . '/index.php');
-            return array(
-                'status' => 200,
-                'data' => array(
-                  'url' => $domain,
-                  'label' => 'Click to access ' . $site->manifest->title,
-                  'response' => 'Site published!',
-                  'output' => 'Site published successfully if no errors!'
-                )
-            );
-        }
-    } else {
-      return array(
-            '__failed' => array(
-              'status' => 500,
-              'message' => 'Unable to load site',
-            )
-          );
     }
   }
   /**
