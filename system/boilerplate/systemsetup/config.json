@@ -604,6 +604,7 @@
         "learning-component": "@lrnwebcomponents/course-design/lib/learning-component.js",
         "mark-the-words": "@lrnwebcomponents/mark-the-words/mark-the-words.js",
         "twitter-embed": "@lrnwebcomponents/twitter-embed/twitter-embed.js",
+        "spotify-embed": "@lrnwebcomponents/spotify-embed/spotify-embed.js",
         "video-player": "@lrnwebcomponents/video-player/video-player.js",
         "wikipedia-query": "@lrnwebcomponents/wikipedia-query/wikipedia-query.js",
         "date-card": "@lrnwebcomponents/date-card/date-card.js"

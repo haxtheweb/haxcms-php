@@ -1399,6 +1399,7 @@ class Operations {
           "learning-component",
           "mark-the-words",
           "twitter-embed",
+          "spotify-embed",
           "place-holder",
           "lrn-math",
           "q-r",
