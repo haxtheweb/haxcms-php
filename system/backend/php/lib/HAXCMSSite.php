@@ -132,14 +132,7 @@ class HAXCMSSite
         else {
           switch ($build->structure) {
             case 'import':
-              $pageSchema = array(
-                array(
-                  "parent" => null,
-                  "title" => "Welcome to " . $name,
-                  "template" => "course",
-                  "slug" => "welcome"
-                )
-              );
+              $pageSchema = array();
               // implies we had a backend service process much of what we are to build for an import
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
@@ -151,16 +144,11 @@ class HAXCMSSite
                     "id" => $build->items[$i]['id'],
                     "indent" => $build->items[$i]['indent'],
                     "contents" => $build->items[$i]['contents'],
+                    "order" => $build->items[$i]['order'],
                     "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                   ));
                 }
               }
-              array_push($pageSchema, array(
-                "parent" => null,
-                "title" => "Glossary",
-                "template" => "glossary",
-                "slug" => "glossary"
-              ));
               for ($i=0; $i < count($pageSchema); $i++) {
                 if ($pageSchema[$i]['template'] == 'html') {
                   $this->addPage(
@@ -171,7 +159,8 @@ class HAXCMSSite
                     $pageSchema[$i]['id'],
                     $pageSchema[$i]['indent'],
                     $pageSchema[$i]['contents'],
-                    $pageSchema[$i]['metadata']
+                    $pageSchema[$i]['order'],
+                    $pageSchema[$i]['metadata'],
                   );
                 }
                 else {
@@ -201,6 +190,7 @@ class HAXCMSSite
                         "id" => $build->items[$i]['id'],
                         "indent" => $build->items[$i]['indent'],
                         "contents" => $build->items[$i]['contents'],
+                        "order" => $build->items[$i]['order'],
                         "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                       ));
                     }
@@ -252,6 +242,7 @@ class HAXCMSSite
                     $pageSchema[$i]['id'],
                     $pageSchema[$i]['indent'],
                     $pageSchema[$i]['contents'],
+                    $pageSchema[$i]['order'],
                     $pageSchema[$i]['metadata'],
                   );
                 }
@@ -590,7 +581,7 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $metadata = null)
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null)
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
@@ -616,7 +607,12 @@ class HAXCMSSite
           $page->indent = $parent->indent + 1;
         }
         // set order to the page's count for default add to end ordering
-        $page->order = count($this->manifest->items);
+        if (!is_null($order)) {
+          $page->order = $order;
+        }
+        else {
+          $page->order = count($this->manifest->items);
+        }
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
         // sanitize slug but dont trust it was anything
