@@ -131,6 +131,43 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
+            case 'import':
+              $pageSchema = array();
+              // implies we had a backend service process much of what we are to build for an import
+              if ($build->items) {
+                for ($i=0; $i < count($build->items); $i++) {
+                  array_push($pageSchema, array(
+                    "parent" => $build->items[$i]['parent'],
+                    "title" => $build->items[$i]['title'],
+                    "template" => "html",
+                    "slug" => $build->items[$i]['slug'],
+                    "id" => $build->items[$i]['id'],
+                    "indent" => $build->items[$i]['indent'],
+                    "contents" => $build->items[$i]['contents'],
+                    "order" => $build->items[$i]['order'],
+                    "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
+                  ));
+                }
+              }
+              for ($i=0; $i < count($pageSchema); $i++) {
+                if ($pageSchema[$i]['template'] == 'html') {
+                  $this->addPage(
+                    $pageSchema[$i]['parent'], 
+                    $pageSchema[$i]['title'], 
+                    $pageSchema[$i]['template'], 
+                    $pageSchema[$i]['slug'],
+                    $pageSchema[$i]['id'],
+                    $pageSchema[$i]['indent'],
+                    $pageSchema[$i]['contents'],
+                    $pageSchema[$i]['order'],
+                    $pageSchema[$i]['metadata'],
+                  );
+                }
+                else {
+                  $this->addPage($pageSchema[$i]['parent'], $pageSchema[$i]['title'], $pageSchema[$i]['template'], $pageSchema[$i]['slug']);
+                }
+              }
+            break;
             case 'course':
               $pageSchema = array(
                 array(
@@ -142,7 +179,7 @@ class HAXCMSSite
               );
               switch ($build->type) {
                 case 'docx import':
-                  // ensure we have items
+                    // ensure we have items
                   if ($build->items) {
                     for ($i=0; $i < count($build->items); $i++) {
                       array_push($pageSchema, array(
@@ -153,6 +190,8 @@ class HAXCMSSite
                         "id" => $build->items[$i]['id'],
                         "indent" => $build->items[$i]['indent'],
                         "contents" => $build->items[$i]['contents'],
+                        "order" => $build->items[$i]['order'],
+                        "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                       ));
                     }
                   }
@@ -202,7 +241,9 @@ class HAXCMSSite
                     $pageSchema[$i]['slug'],
                     $pageSchema[$i]['id'],
                     $pageSchema[$i]['indent'],
-                    $pageSchema[$i]['contents']
+                    $pageSchema[$i]['contents'],
+                    $pageSchema[$i]['order'],
+                    $pageSchema[$i]['metadata'],
                   );
                 }
                 else {
@@ -540,7 +581,7 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>')
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null)
     {
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
@@ -566,7 +607,12 @@ class HAXCMSSite
           $page->indent = $parent->indent + 1;
         }
         // set order to the page's count for default add to end ordering
-        $page->order = count($this->manifest->items);
+        if (!is_null($order)) {
+          $page->order = $order;
+        }
+        else {
+          $page->order = count($this->manifest->items);
+        }
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
         // sanitize slug but dont trust it was anything
@@ -574,6 +620,12 @@ class HAXCMSSite
           $slug = $title;
         }
         $page->slug = $this->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($slug));
+        // support presetting multiple metadata attributes like tags, pageType, etc
+        if (!is_null($metadata)) {
+          foreach ($metadata as $key => $value) {
+            $page->metadata->{$key} = $value;
+          }
+        }
         $page->metadata->created = time();
         $page->metadata->updated = time();
         $location = $this->directory . '/' .
@@ -604,7 +656,7 @@ class HAXCMSSite
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
             '/' .
-            $this->name .
+            $this->manifest->metadata->site->name .
             '/'
           );
         }
@@ -906,7 +958,7 @@ class HAXCMSSite
       if (isset($GLOBALS["HAXcmsInDocker"])) {
         return '<base href="' . $this->basePath . '" />';
       }
-      return '<base href="' . $this->basePath . $this->name . '/" />';
+      return '<base href="' . $this->basePath . $this->manifest->metadata->site->name . '/" />';
     }
     /**
      * Return a standard service worker that takes into account
@@ -922,7 +974,7 @@ class HAXCMSSite
       }
       // support dynamic calculation
       if (is_null($basePath)) {
-        $basePath = $this->basePath . $this->name . '/';
+        $basePath = $this->basePath . $this->manifest->metadata->site->name . '/';
       }
       return "
   <script>
@@ -990,7 +1042,7 @@ class HAXCMSSite
     }
   </script>";
     }
-        /**
+    /**
      * Generate the stub of a well formed site.json item
      * based on parameters
      */
@@ -1040,7 +1092,7 @@ class HAXCMSSite
       if (isset($page->location) && $page->location != '') {
         $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/' . $page->location));
+          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/' . $page->location));
         }
         return $content;
       }
@@ -1117,8 +1169,6 @@ class HAXCMSSite
   <meta charset="utf-8">' . $preconnect . '
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-  <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
-  <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" />
@@ -1126,7 +1176,6 @@ class HAXCMSSite
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/web-animations-js/web-animations-next-lite.min.js" as="script" />
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms">
@@ -1181,7 +1230,7 @@ class HAXCMSSite
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
         if (is_null($path)) {
-          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
@@ -1197,9 +1246,10 @@ class HAXCMSSite
      * Generate or load the path to variations on the logo
      * @var string $height height of the icon as a string
      * @var string $width width of the icon as a string
+     * @var string $format (optional) png or jpeg format to return image as
      * @return string path to the image (web visible) that was created or pulled together
      */
-    public function getLogoSize($height, $width) {
+    public function getLogoSize($height, $width, $format = "png") {
       $fileName = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $height . $width);
       if (!isset($fileName)) {
         // if no logo, just bail with an easy standard one
@@ -1208,156 +1258,40 @@ class HAXCMSSite
         }
         else {
           // ensure this path exists otherwise let's create it on the fly
-          $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->name . '/';
-          $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/';
+          // support for default so we compress it using same engine
+          if ($this->manifest->metadata->site->logo == 'assets/banner.jpg') {
+            $fileName = str_replace('assets/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          }
+          else {
+            $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+          }
+          // always replace this terrible name
+          $fileName = str_replace('.jpeg', '.jpg', $fileName);
+          if ($format == "jpg") {
+            $fileName = str_replace('.png', '.jpg', $fileName);
+          }
+          else {
+            $fileName = str_replace('.jpg', '.png', $fileName);
+          }
           if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
-              global $fileSystem;
-              $fileSystem->mkdir($path . 'files/haxcms-managed');
-              $image = new ImageResize($path . $this->manifest->metadata->site->logo);
-              $image->crop($height, $width)
-              ->resize($height, $width, TRUE)
-              ->save($path . $fileName, IMAGETYPE_PNG);
+            global $fileSystem;
+            $fileSystem->mkdir($path . 'files/haxcms-managed');
+            $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+            if ($format == "png") {
+              $image->resizeToBestFit($height, $width)
+              ->crop($height, $width, TRUE)
+              ->save($path . $fileName, IMAGETYPE_PNG, 9); // 9 is max compression on images
+            }
+            else if ($format == "jpg") {
+              $image->resizeToBestFit($height, $width)
+              ->crop($height, $width, TRUE)
+              ->save($path . $fileName, IMAGETYPE_JPEG, 70); // jpeg compression
+            }
           }
         }
       }
       return $fileName;
-    }
-    /**
-     * Load field schema for a page
-     * Field cascade always follows Core -> Deploy -> Theme -> Site
-     * Anything downstream can always override upstream but no one can remove fields
-     */
-    public function loadNodeFieldSchema($page)
-    {
-        $fields = null;
-        // load core fields
-        // it may seem silly but we seek to not brick any usecase so if this file is gone.. don't die
-        if (file_exists($GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json')) {
-            $fields = json_decode(
-                file_get_contents(
-                    $GLOBALS['HAXCMS']->coreConfigPath . 'nodeFields.json'
-                )
-            );
-            $themes = array('_none_' => '-- Site default --');
-            foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $item) {
-                $themes[$key] = $item->name;
-                $themes['key'] = $key;
-            }
-            // set themes dynamically
-            $fields->fields[0]->properties[1]->properties[1]->options = $themes;
-            // check for pathauto
-            if (isset($this->manifest->metadata->site->settings->pathauto) && $this->manifest->metadata->site->settings->pathauto) {
-                // skip this core field if we have pathauto on
-                $fields->fields[0]->properties[0]->properties[2]->required = false;
-                $fields->fields[0]->properties[0]->properties[2]->disabled = true;
-            }
-        }
-        // fields can live globally in config
-        if (isset($GLOBALS['HAXCMS']->config->node->fields)) {
-            if (isset($GLOBALS['HAXCMS']->config->node->fields->configure)) {
-                foreach (
-                    $GLOBALS['HAXCMS']->config->node->fields->configure
-                    as $item
-                ) {
-                    $fields->fields[0]->properties[0]->properties[] = $item;
-                }
-            }
-            if (isset($GLOBALS['HAXCMS']->config->node->fields->advanced)) {
-                foreach (
-                    $GLOBALS['HAXCMS']->config->node->fields->advanced
-                    as $item
-                ) {
-                    $fields->fields[0]->properties[1]->properties[] = $item;
-                }
-            }
-        }
-        // fields can live in the theme
-        if (
-            isset($this->manifest->metadata->theme->fields) &&
-            file_exists(
-                HAXCMS_ROOT .
-                    '/build/es6/node_modules/' .
-                    $this->manifest->metadata->theme->fields
-            )
-        ) {
-            // @todo think of how to make this less brittle
-            // not a fan of pegging loading this definition to our file system's publishing structure
-            $themeFields = json_decode(
-                file_get_contents(
-                    HAXCMS_ROOT .
-                        '/build/es6/node_modules/' .
-                        $this->manifest->metadata->theme->fields
-                )
-            );
-            if (isset($themeFields->configure)) {
-                foreach ($themeFields->configure as $item) {
-                    $fields->fields[0]->properties[0]->properties[] = $item;
-                }
-            }
-            if (isset($themeFields->advanced)) {
-                foreach ($themeFields->advanced as $item) {
-                    $fields->fields[0]->properties[1]->properties[] = $item;
-                }
-            }
-        }
-        // fields can live in the site itself
-        if (isset($this->manifest->metadata->node->fields)) {
-            if (isset($this->manifest->metadata->node->fields->configure)) {
-                foreach (
-                    $this->manifest->metadata->node->fields->configure
-                    as $item
-                ) {
-                    $fields->fields[0]->properties[0]->properties[] = $item;
-                }
-            }
-            if (isset($this->manifest->metadata->node->fields->advanced)) {
-                foreach ($this->manifest->metadata->node->fields->advanced as $item) {
-                    $fields->fields[0]->properties[1]->properties[] = $item;
-                }
-            }
-        }
-        // core values that live outside of the fields area
-        $values = array(
-            'node' => array(
-                'configure' => array(
-                    'node-configure-title' => $page->title,
-                    'node-configure-slug' => $page->slug,
-                    'node-configure-description' => $page->description,
-                    'node-configure-published' => (isset($page->metadata->published) ? $page->metadata->published : TRUE),
-                ),
-                'advanced' => array(
-                    'node-advanced-created' => (isset($page->metadata->created) ? $page->metadata->created : 54),
-                )
-            )
-        );
-        // now get the field data from the page
-        if (isset($page->metadata->fields)) {
-            foreach ($page->metadata->fields as $key => $item) {
-                if (strpos($key, '-advanced-')) {
-                    $values['node']['advanced'][$key] = $item;
-                }
-                else if (strpos($key, '-configure-')) {
-                    $values['node']['configure'][$key] = $item;
-                }
-                else {
-                    $values['node']['configure']['node-configure-' . $key] = $item;
-                }
-            }
-        }
-        // test for custom theme
-        if (isset($page->metadata->theme)) {
-            $values['node']['advanced']['node-advanced-theme'] = $page->metadata->theme->key;
-        }
-        // response as form data
-        $response = new stdClass();
-        $response->status = 200;
-        $response->data = new stdClass();
-        $response->data->fields = $fields->fields;
-        $response->data->value = $values;
-        $form_id = 'getNodeFields';
-        $response->data->value['haxcms_form_id'] = $form_id;
-        $response->data->value['haxcms_form_token'] = $GLOBALS['HAXCMS']->getRequestToken($form_id);
-        return $response;
     }
     /**
      * License data for common open license

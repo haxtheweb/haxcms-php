@@ -19,7 +19,7 @@ class HAXCMSFIle
         // check for a file upload; we block a few formats by design
         if (
             isset($upload['tmp_name']) &&
-            is_uploaded_file($upload['tmp_name']) &&
+            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) &&
             strpos($name, '.php') === FALSE &&
             strpos($name, '.sh') === FALSE &&
             strpos($name, '.js') === FALSE &&
@@ -35,7 +35,7 @@ class HAXCMSFIle
               $pathPart = str_replace(HAXCMS_ROOT . '/', '', $HAXCMS->configDirectory) . '/tmp/';
             }
             else {
-              $pathPart = $HAXCMS->sitesDirectory . '/' . $site->name . '/files/';
+              $pathPart = $HAXCMS->sitesDirectory . '/' . $site->manifest->metadata->site->name . '/files/';
             }
             $path = HAXCMS_ROOT . '/' . $pathPart;
             // ensure this path exists
@@ -49,8 +49,22 @@ class HAXCMSFIle
                 $actual_name = (string)$original_name . $i;
                 $i++;
             }
+            // sanitization for the file name
+            $actual_name = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $actual_name);
+            // Remove any runs of periods (thanks falstro!)
+            $actual_name = mb_ereg_replace("([\.]{2,})", '', $actual_name);
             $name = $actual_name . "." . $extension;
-            $fullpath = $path . $name;
+            // on bulk import we keep directory tree and apply changes to the name itself
+            if (isset($upload['bulk-import'])) {
+                // make path relative to the file
+                $namePathTest = pathinfo(str_replace('files/', '', $upload['name']));
+                $fileSystem->mkdir($path . $namePathTest['dirname'], 0775, true);
+                // full path needs to include the cleaned up file name + the actual directory
+                $fullpath = $path . $namePathTest['dirname']  . '/' . $name;
+            }
+            else {
+                $fullpath = $path . $name;
+            }            
             if ($size = @file_put_contents($fullpath, $filedata)) {
                 //@todo make a way of defining these as returns as well as number to take
                 // specialized support for images to do scale and crop stuff automatically
@@ -114,7 +128,16 @@ class HAXCMSFIle
                     if (!isset($page->metadata->files)) {
                         $page->metadata->files = array();
                     }
-                    $page->metadata->files[] = $return['file'];
+                    $page->metadata->files[] = array(
+                        'fullUrl' =>
+                            $HAXCMS->basePath .
+                            $pathPart .
+                            $name,
+                        'url' => 'files/' . $name,
+                        'type' => mime_content_type($fullpath),
+                        'name' => $name,
+                        'size' => $size
+                    );
                     $site->updateNode($page);
                 }
                 // perform scale / crop operations if requested

@@ -13,8 +13,8 @@ namespace Symfony\Component\Debug\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LogLevel;
-use Symfony\Component\Debug\ErrorHandler;
 use Symfony\Component\Debug\BufferingLogger;
+use Symfony\Component\Debug\ErrorHandler;
 use Symfony\Component\Debug\Exception\ContextErrorException;
 
 /**
@@ -61,6 +61,30 @@ class ErrorHandlerTest extends TestCase
         restore_exception_handler();
 
         if (isset($e)) {
+            throw $e;
+        }
+    }
+
+    public function testErrorGetLast()
+    {
+        $handler = ErrorHandler::register();
+        $logger = $this->getMockBuilder('Psr\Log\LoggerInterface')->getMock();
+        $handler->setDefaultLogger($logger);
+        $handler->screamAt(E_ALL);
+
+        try {
+            @trigger_error('Hello', E_USER_WARNING);
+            $expected = array(
+                'type' => E_USER_WARNING,
+                'message' => 'Hello',
+                'file' => __FILE__,
+                'line' => __LINE__ - 5,
+            );
+            $this->assertSame($expected, error_get_last());
+        } catch (\Exception $e) {
+            restore_error_handler();
+            restore_exception_handler();
+
             throw $e;
         }
     }
@@ -502,7 +526,7 @@ class ErrorHandlerTest extends TestCase
 
         $handler = new ErrorHandler();
         $handler->setExceptionHandler(function () use (&$args) {
-            $args = func_get_args();
+            $args = \func_get_args();
         });
 
         $handler->handleException($exception);
@@ -547,7 +571,7 @@ class ErrorHandlerTest extends TestCase
                 'backtrace' => array(456),
             );
 
-            call_user_func_array(array($handler, 'handleError'), $error);
+            \call_user_func_array(array($handler, 'handleError'), $error);
             $handler->handleFatalError($error);
 
             restore_error_handler();

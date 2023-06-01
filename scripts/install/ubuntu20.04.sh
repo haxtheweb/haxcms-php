@@ -31,7 +31,7 @@ apt-get -y install apache2
 # using apt-get to install the main packages
 sudo apt-get install -y sendmail uuid uuid-runtime curl policycoreutils unzip patch git nano gcc make autoconf libc-dev pkg-config
 # install php and other important things
-sudo apt-get install -y php7.4-fpm php7.4-zip php7.4-gd php7.4-xml
+sudo apt-get install -y php7.4-fpm php7.4-zip php7.4-gd php7.4-xml php7.4-mbstring
 # optional for development
 # sudo apt-get install -y composer nodejs
 sudo a2enmod proxy_fcgi

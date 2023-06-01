@@ -126,17 +126,18 @@ class HAXCMS
         $this->systemRequestBase = 'system/api';
         $this->coreConfigPath = HAXCMS_ROOT . '/system/coreConfig/';
         $this->acceptedHAXFileTypes = array(
-          "image",
-          "video",
           "audio",
+          "image",
+          "gif",
+          "video",
           "pdf",
-          "svg",
-          "document",
           "csv",
-          "archive",
+          "svg",
           "markdown",
+          "html",
+          "document",
+          "archive",
           "*",
-          "html"
         );
         // end point to get the sites data
         $this->sitesJSON = $this->systemRequestBase . '/listSites';
@@ -208,7 +209,7 @@ class HAXCMS
                 foreach ($themeData as $name => $data) {
                     $this->config->themes->{$name} = $data;
                 }
-                // dynamicImporter
+                // node
                 if (!isset($this->config->node)) {
                     $this->config->node = new stdClass();
                     $this->config->node->fields = new stdClass();
@@ -232,24 +233,10 @@ class HAXCMS
                 foreach ($publishingData as $name => $data) {
                     $this->config->site->publishers->{$name} = $data;
                 }
-                // importer formats to ingest
-                if (!isset($this->config->site->importers)) {
-                    $this->config->site->importers = new stdClass();
-                }
-                // load in core importers data
-                $importersData = json_decode(
-                    file_get_contents(
-                      $this->coreConfigPath . 'importers.json'
-                    )
-                );
-                foreach ($importersData as $name => $data) {
-                    $this->config->site->importers->{$name} = $data;
-                }
                 // site fields in HAXschema format
                 if (!isset($this->config->site->fields)) {
                     $this->config->site->fields = array(new stdClass());
                 }
-                // load in core importers data
                 $fieldsData = json_decode(
                     file_get_contents(
                       $this->coreConfigPath . 'siteFields.json'
@@ -354,37 +341,39 @@ class HAXCMS
     /**
      * If we are a cli
      */
-    private function isCLI() {
+    public function isCLI() {
         return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
     }
     public function executeRequest($op = null) {
       $usedGet = FALSE;
+      // merge all possible inputs together as sanitized params
+      $params = array();
       // calculate the correct params to use
       if ($this->isCLI()) {
-        $params = $this->safeCLI;
+        $params = array_merge($params, $this->safeCLI);
       }
-      else if (is_array($this->safePost) && count($this->safePost)) {
-        $params = $this->safePost;
+      if (is_array($this->safePost) && count($this->safePost)) {
+        $params = array_merge($params, $this->safePost);
       }
-      else if (is_array($this->safeGet) && count($this->safeGet)) {
+      if (is_array($this->safeGet) && count($this->safeGet)) {
         $usedGet = TRUE;
-        $params = $this->safeGet;
+        $params = array_merge($params, $this->safeGet);
       }
-      else {
-        $params = array();
-      }
+      // merge all possible inputs together as GET params can come across as part
+      // of a POST or FILES form upload
+      $rawParams = array();
       // raw params too incase the request needs them
       if ($this->isCLI()) {
         $rawParams = $this->safeCLI;
       }
-      else if (is_array($_POST) && count($_POST)) {
-        $rawParams = $_POST;
+      if (is_array($_FILES) && count($_FILES)) {
+        $rawParams = array_merge($rawParams, $_FILES);
       }
-      else if (is_array($_GET) && count($_GET)) {
-        $rawParams = $_GET;
+      if (is_array($_POST) && count($_POST)) {
+        $rawParams = array_merge($rawParams, $_POST);
       }
-      else {
-        $rawParams = array();
+      if (is_array($_GET) && count($_GET)) {
+        $rawParams = array_merge($rawParams, $_GET);
       }
       // support parameters setting the operation
       if ($op == null) {
@@ -499,13 +488,6 @@ class HAXCMS
             "manifest-metadata-site-domain": null,
             "manifest-metadata-site-logo": null
           },
-          "author": {
-            "manifest-license": null,
-            "manifest-metadata-author-image": null,
-            "manifest-metadata-author-name": null,
-            "manifest-metadata-author-email": null,
-            "manifest-metadata-author-socialLink": null
-          },
           "theme": {
             "manifest-metadata-theme-element": null,
             "manifest-metadata-theme-variables-image": null,
@@ -513,28 +495,18 @@ class HAXCMS
             "manifest-metadata-theme-variables-cssVariable": null,
             "manifest-metadata-theme-variables-icon": null
           },
-         "fields": {
-            "manifest-metadata-node-fields": []
+          "author": {
+            "manifest-license": null,
+            "manifest-metadata-author-image": null,
+            "manifest-metadata-author-name": null,
+            "manifest-metadata-author-email": null,
+            "manifest-metadata-author-socialLink": null
           },
           "seo": {
             "manifest-metadata-site-settings-pathauto": null,
             "manifest-metadata-site-settings-publishPagesOn": null,
             "manifest-metadata-site-settings-sw": null,
             "manifest-metadata-site-settings-forceUpgrade": null
-          },
-          "static": {
-            "manifest-metadata-site-static-cdn": null,
-            "manifest-metadata-site-static-offline": null,
-            "publishacopy": "<h2>Publish a copy</h2><div style=\"border: solid 1px #cb2431; padding:16px;\"><p>This will publish your site, overwriting the previous copy living in your \"published\" storage location.</p><user-action track=\"click\" every eventname=\"haxcms-publish-site\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"icons:cloud-upload\"></iron-icon> Publish</paper-button></user-action></div>"
-          },
-          "git": {
-            "manifest-metadata-site-git-vendor": null,
-            "manifest-metadata-site-git-branch": null,
-            "manifest-metadata-site-git-staticBranch": null,
-            "manifest-metadata-site-git-autoPush": null,
-            "manifest-metadata-site-git-url": null,
-            "manifest-metadata-site-git-publicRepoUrl": null,
-            "dangerzone": "<h2>Danger zone</h2><div style=\"border: solid 1px #cb2431; padding:16px;\"><p>This will sync the local copy of the site with the git repository is backing it</p><user-action track=\"click\" every eventname=\"haxcms-sync-site\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"notification:sync\"></iron-icon> Sync git origin</paper-button></user-action><p>This wil revert the git history powering the site by 1 commit. This is a destructive command, only use this if you just saved something you didn\'t mean to.</p><user-action track=\"click\" every eventname=\"haxcms-git-revert-last-commit\"><paper-button style=\"color:#cb2431;\" class=\"full warning\" raised role=\"button\" tabindex=\"0\" animated elevation=\"1\" aria-disabled=\"false\"><iron-icon icon=\"icons:cloud-upload\"></iron-icon> Revert last commit</paper-button></user-action></div>"
           }
         }
       }');
@@ -1069,41 +1041,43 @@ class HAXCMS
             $site->load(HAXCMS_ROOT . '/' . $this->sitesDirectory,
                 $this->basePath . $this->sitesDirectory . '/',
                 $tmpname);
-            $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
-            // sanity checks to ensure we'll actually deliver a site
-            if (!is_link($siteDirectoryPath . '/wc-registry.json')) {
-              @symlink(
-                  '../../wc-registry.json',
-                  $siteDirectoryPath . '/wc-registry.json'
-              );
-            }
-            if (!is_link($siteDirectoryPath . '/build')) {
-              if (is_dir($siteDirectoryPath . '/build')) {
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
-              }
-              @symlink('../../build', $siteDirectoryPath . '/build');
-              if (!is_link($siteDirectoryPath . '/dist')) {
-                  @symlink('../../dist', $siteDirectoryPath . '/dist');
-              }
-              if (!is_link($siteDirectoryPath . '/node_modules')) {
+            if ($site && isset($site->manifest->metadata->site->name)) {
+              $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
+              // sanity checks to ensure we'll actually deliver a site
+              if (!is_link($siteDirectoryPath . '/wc-registry.json')) {
                 @symlink(
-                    '../../node_modules',
-                    $siteDirectoryPath . '/node_modules'
+                    '../../wc-registry.json',
+                    $siteDirectoryPath . '/wc-registry.json'
                 );
               }
-              if (!is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-top.js');
-                @symlink(
-                  '../../../babel/babel-top.js',
-                    $siteDirectoryPath . '/assets/babel-top.js'
-                );
-              }
-              if (!is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-                @symlink(
-                    '../../../babel/babel-bottom.js',
-                    $siteDirectoryPath . '/assets/babel-bottom.js'
-                );
+              if (!is_link($siteDirectoryPath . '/build')) {
+                if (is_dir($siteDirectoryPath . '/build')) {
+                  $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
+                }
+                @symlink('../../build', $siteDirectoryPath . '/build');
+                if (!is_link($siteDirectoryPath . '/dist')) {
+                    @symlink('../../dist', $siteDirectoryPath . '/dist');
+                }
+                if (!is_link($siteDirectoryPath . '/node_modules')) {
+                  @symlink(
+                      '../../node_modules',
+                      $siteDirectoryPath . '/node_modules'
+                  );
+                }
+                if (!is_link($siteDirectoryPath . '/assets/babel-top.js')) {
+                  @unlink($siteDirectoryPath . '/assets/babel-top.js');
+                  @symlink(
+                    '../../../babel/babel-top.js',
+                      $siteDirectoryPath . '/assets/babel-top.js'
+                  );
+                }
+                if (!is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
+                  @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
+                  @symlink(
+                      '../../../babel/babel-bottom.js',
+                      $siteDirectoryPath . '/assets/babel-bottom.js'
+                  );
+                }
               }
             }
             return $site;
@@ -1313,7 +1287,7 @@ class HAXCMS
       $token = array();
       $token['user'] = $name;
       $token['iat'] = time();
-      $token['exp'] = time() + (7 * 24 * 60 * 60);
+      $token['exp'] = time() + (24 * 60 * 60);
       $this->dispatchEvent('haxcms-refresh-token-get', $token);
       return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }
@@ -1383,11 +1357,9 @@ class HAXCMS
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
         $settings->saveOutlinePath = $path . 'saveOutline';
-        $settings->publishSitePath = $path . 'publishSite';
         $settings->syncSitePath = $path . 'syncSite';
         $settings->setConfigPath = $path . 'setConfig';
         $settings->getConfigPath = $path . 'getConfig';
-        $settings->getNodeFieldsPath = $path . 'getNodeFields';
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->revertSitePath = $path . 'revertCommit';
         // form token to validate form submissions as unique to the session

@@ -23,6 +23,26 @@ DirectoryIndex index.php index.html
   php_value mbstring.http_output            pass
   php_flag mbstring.encoding_translation    off
 </IfModule>
+# fix for wasm
+<IfModule mod_mime.c>
+  RemoveType .gz
+  AddEncoding gzip .gz
+  # The correct MIME type for .data.gz would be application/octet-stream, but due to Safari bug https://bugs.webkit.org/show_bug.cgi?id=247421, it is preferable to use MIME Type application/gzip instead.
+  #AddType application/octet-stream .data.gz
+  AddType application/wasm .wasm
+
+  AddType application/gzip .data.gz
+  AddType application/wasm .wasm.gz
+  AddType application/javascript .js.gz
+  AddType application/octet-stream .symbols.json.gz
+
+  RemoveType .br
+  AddEncoding br .br
+  AddType application/octet-stream .data.br
+  AddType application/wasm .wasm.br
+  AddType application/javascript .js.br
+  AddType application/octet-stream .symbols.json.br
+</IfModule>
 # Requires mod_expires to be enabled.
 <IfModule mod_expires.c>
   # Enable expirations.

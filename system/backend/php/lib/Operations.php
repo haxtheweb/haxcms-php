@@ -1,4 +1,5 @@
 <?php
+include_once "JSONOutlineSchemaItem.php";
 /**
  * @OA\Info(
  *     title="HAXcms API",
@@ -171,6 +172,243 @@ class Operations {
   }
   /**
    * @OA\Post(
+   *    path="/importEvolution",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="upload",
+   *         description="zip file via POST to a valid evolution zip format",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="array of items that are valid JSONOutlineSchemaItem with contents included"
+   *   )
+   * )
+   */
+  public function importEvolution() {
+    $response = array(
+      "data" => array(
+          "filename" => "",
+          "items" => array(),
+      ),
+      "status" => 400,
+  );
+  // verify this was uploaded with a name of some kind
+  if (isset($_FILES["upload"]["name"])) {
+      $filename = strtolower($_FILES["upload"]["name"]);
+      $source = $_FILES["upload"]["tmp_name"];
+      $type = $_FILES["upload"]["type"];
+  
+      $name = explode(".", $filename);
+      // sanitization for the file name
+      $actual_name = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $name[0]);
+      // Remove any runs of periods (thanks falstro!)
+      $actual_name = mb_ereg_replace("([\.]{2,})", '', $actual_name);
+      $accepted_types = array('application/zip', 'application/x-zip-compressed', 'multipart/x-zip', 'application/x-compressed');
+      foreach($accepted_types as $mime_type) {
+          if($mime_type == $type) {
+              $okay = true;
+              break;
+          }
+      }
+  
+      $continue = strtolower($name[1]) == 'zip' ? true : false;
+      if(!$continue) {
+          $message = "The file you are trying to upload is not a .zip file. Please try again.";
+      }
+  
+      $path = $GLOBALS['HAXCMS']->configDirectory . '/tmp/';  // path to tmp directory
+      $filenoext = basename ($filename, '.zip');  // absolute path to the directory
+  
+      $targetdir = $path . $filenoext; // target directory
+      $targetzip = $path . $filename; // target zip file
+      $response['data']['filename'] = $filename;
+      $zip = new ZipArchive;
+      $res = $zip->open($source);
+      if ($res === TRUE) {
+          // extract it to the path we determined above
+          $zip->extractTo($path);
+          $zip->close();
+          //echo "WOOT! $targetzip extracted to $path";
+      } else {
+          //echo "Doh! I couldn't open $targetzip";
+      }
+      // now let's work against the XML structure
+      $source = $targetdir . '/e_data/content.xml';
+      $name = $actual_name;
+      // parse the file
+      $xmlfile = file_get_contents($source);
+      $ob = simplexml_load_string($xmlfile);
+      $json = json_encode($ob);
+      $configData = json_decode($json, true);
+      // load lessons
+      $lessons = $configData['courseContent']['lesson'];
+      foreach ($lessons as $key => $lesson) {
+          $page = new JSONOutlineSchemaItem();
+          $page->title = $lesson['@attributes']['title'];
+          $body = "<p><br/></p>";
+          $page->contents = $body;
+          $page->parent = null;
+          $page->indent = 0;
+          $page->order = $key;
+          $parent = $page->id;
+          $cleanTitleParent = $lesson['@attributes']['directory'];
+          $page->location = 'pages/' . $cleanTitleParent . '/index.html';
+          $page->slug = $cleanTitleParent;
+          $page->metadata->created = time();
+          $page->metadata->updated = time();
+          $page->metadata->images = array();
+          $page->metadata->videos = array();
+          array_push($response['data']['items'], $page);
+          // look for child pages
+          if (isset($lesson['page'])) {
+              foreach ($lesson['page'] as $key2 => $item) {
+                  if (isset($item['title'])) {
+                      // get a fake item
+                      $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+                      $page->title = $item['title'];
+                      if (isset($item['pagecontent'])) {
+                          $body = html_entity_decode($item['pagecontent']);
+                          $body = str_replace(
+                              ' src="./images/',
+                              ' src="files/' . $cleanTitleParent . '/images/',
+                              $body
+                          );
+                          $body = str_replace(
+                              ' src="./corefiles/',
+                              ' src="files/' . $cleanTitleParent . '/corefiles/',
+                              $body
+                          );
+                          $body = str_replace(
+                              ' href="./corefiles/',
+                              ' href="files/' . $cleanTitleParent . '/corefiles/',
+                              $body
+                          );
+                          $body = str_replace(
+                              ' src="images/',
+                              ' src="files/' . $cleanTitleParent . '/images/',
+                              $body
+                          );
+                          $body = str_replace(
+                              ' src="corefiles/',
+                              ' src="files/' . $cleanTitleParent . '/corefiles/',
+                              $body
+                          );
+                          $body = str_replace(
+                              ' href="corefiles/',
+                              ' href="files/' . $cleanTitleParent . '/corefiles/',
+                              $body
+                          );
+                      } else {
+                          $body = "<p><br/></p>";
+                      }
+                      $page->contents = $body;
+                      $page->parent = $parent;
+                      $page->indent = 1;
+                      $page->order = $key2;
+                      // ensure this location doesn't exist already
+                      $loop = 0;
+                      $cleanTitle = str_replace(
+                          '.html',
+                          '',
+                          $item['@attributes']['filename']
+                      );
+                      $page->location =
+                          'pages/' .
+                          $cleanTitleParent .
+                          '/' .
+                          $cleanTitle .
+                          '/index.html';
+                      $page->metadata->created = time();
+                      $page->metadata->updated = time();
+                      $page->metadata->images = array();
+                      $page->metadata->videos = array();
+                      array_push($response['data']['items'], $page);
+                  }
+              }
+          }
+          $response["status"] = 200;
+      }
+  }
+  return $response;
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/rebuildManagedFiles",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="name",
+   *         description="machine name of the site to rebuild managed files for",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Rebuild managed files for the site"
+   *   )
+   * )
+   */
+  public function rebuildManagedFiles() {
+    $status = 200;
+    // only allow * on CLI for safety reasons
+    if ($GLOBALS['HAXCMS']->isCLI() && isset($this->params['site']['name']) && $this->params['site']['name'] === "__ALL__") {
+      // parameter requested but without name
+      if ($handle = opendir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory)) {
+        while (false !== ($item = readdir($handle))) {
+          if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
+            $site = $GLOBALS['HAXCMS']->loadSite($item);
+            // MUST have this value to ensure it's the right site
+            if (isset($site->manifest->metadata->site->name)) {
+              $site->rebuildManagedFiles();
+              $return['managedFilesRebuilt'][] = $item;  
+            }
+          }
+        }
+        closedir($handle);
+      }
+    }
+    else if (isset($this->params['site']['name'])) {
+      // rebuild a single site
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if ($site === false) {
+        $status = 400;
+      }
+      else {
+        $site->rebuildManagedFiles();
+        $return['managedFilesRebuilt'][] = $this->params['site']['name'];  
+      }
+    }
+    else {
+      $return = array();
+      $status = 400;
+    }
+    
+    return array(
+      "status" => $status,
+      "data" => $return
+    );
+  }
+
+  /**
+   * @OA\Post(
    *    path="/saveManifest",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
@@ -240,14 +478,6 @@ class Operations {
       if (!isset($site->manifest->metadata->site->settings)) {
         $site->manifest->metadata->site->settings = new stdClass();
       }
-      $site->manifest->metadata->site->static->cdn = filter_var(
-          $this->params['manifest']['static']['manifest-metadata-site-static-cdn'],
-          FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->static->offline = filter_var(
-          $this->params['manifest']['static']['manifest-metadata-site-static-offline'],
-          FILTER_VALIDATE_BOOLEAN
-      );
       if (isset($this->params['manifest']['site']['manifest-domain'])) {
           $domain = filter_var(
               $this->params['manifest']['site']['manifest-domain'],
@@ -340,38 +570,6 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
         );
       }
-      // more importantly, this is where the field UI stuff is...
-      if (isset($this->params['manifest']['fields']['manifest-metadata-node-fields'])) {
-          $fields = array();
-          // establish a fields block, replacing with whatever is there now
-          $site->manifest->metadata->node->fields = new stdClass();
-          foreach ($this->params['manifest']['fields']['manifest-metadata-node-fields'] as $key => $field) {
-              array_push($fields, $field);
-          }
-          if (count($fields) > 0) {
-              $site->manifest->metadata->node->fields = $fields;
-          }
-      }
-      $site->manifest->metadata->site->git->autoPush = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-autoPush'],
-        FILTER_VALIDATE_BOOLEAN
-      );
-      $site->manifest->metadata->site->git->branch = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-branch'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->staticBranch = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-staticBranch'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->vendor = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-vendor'],
-        FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->site->git->publicRepoUrl = filter_var(
-        $this->params['manifest']['git']['manifest-metadata-site-git-publicRepoUrl'],
-        FILTER_SANITIZE_STRING
-      );
       $site->manifest->metadata->site->updated = time();
       // don't reorganize the structure
       $site->manifest->save(false);
@@ -379,29 +577,6 @@ class Operations {
       // rebuild the files that twig processes
       $site->rebuildManagedFiles();
       $site->gitCommit('Managed files updated');
-      // check git remote if it came across as a possible setting
-      if (isset($this->params['manifest']['git']['manifest-metadata-site-git-url'])) {
-        if (
-          filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING) &&
-          (!isset($site->manifest->metadata->site->git->url) ||
-            $site->manifest->metadata->site->git->url !=
-              filter_var(
-                $this->params['manifest']['git']['manifest-metadata-site-git-url'],
-                FILTER_SANITIZE_STRING
-              ))
-        ) {
-          $site->gitSetRemote(
-              filter_var($this->params['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING)
-          );
-        }
-        $site->manifest->metadata->site->git->url =
-        filter_var(
-          $this->params['manifest']['git']['manifest-metadata-site-git-url'],
-          FILTER_SANITIZE_STRING
-        );
-        $site->manifest->save(false);
-        $site->gitCommit('origin updated');
-      }
       return $site->manifest;
     }
     else {
@@ -536,6 +711,8 @@ class Operations {
       // safety check for new things
       if (!isset($page->metadata->created)) {
           $page->metadata->created = time();
+          $page->metadata->images = array();
+          $page->metadata->videos = array();
       }
       // always update at this time
       $page->metadata->updated = time();
@@ -568,7 +745,7 @@ class Operations {
           '/' .
           $GLOBALS['HAXCMS']->sitesDirectory .
           '/' .
-          $site->name .
+          $site->manifest->metadata->site->name .
           '/'
         );
       }
@@ -581,7 +758,7 @@ class Operations {
           '/' .
           $GLOBALS['HAXCMS']->sitesDirectory .
           '/' .
-          $site->name .
+          $site->manifest->metadata->site->name .
           '/'
         );
       }
@@ -728,6 +905,8 @@ class Operations {
     else {
       // generate a new item based on the site
       $item = $site->itemFromParams($nodeParams);
+      $item->metadata->images = array();
+      $item->metadata->videos = array();
       // generate the boilerplate to fill this page
       $site->recurseCopy(
           HAXCMS_ROOT . '/system/boilerplate/page/default',
@@ -755,7 +934,7 @@ class Operations {
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
               '/' .
-              $site->name .
+              $site->manifest->metadata->site->name .
               '/'
             );
           }
@@ -863,7 +1042,7 @@ class Operations {
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
             '/' .
-            $site->name .
+            $site->manifest->metadata->site->name .
             '/'
           );
           if ($bytes === false) {
@@ -891,6 +1070,23 @@ class Operations {
               else {
                 $page->parent = null;
               }
+              // allow setting theme via page break
+              if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
+                $themes = $GLOBALS['HAXCMS']->getThemes();
+                $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                // support for removing the custom theme or applying none
+                if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
+                  unset($page->metadata->theme);
+                }
+                // ensure it exists
+                else if (isset($themes->{$value})) {
+                  $page->metadata->theme = $themes->{$value};
+                  $page->metadata->theme->key = $value;
+                }
+              }
+              else if (isset($page->metadata->theme)) {
+                unset($page->metadata->theme);
+              }
               if (isset($data["attributes"]["depth"])) {
                 $page->indent = (int)$data["attributes"]["depth"];
               }
@@ -906,6 +1102,22 @@ class Operations {
               }
               else {
                 $page->metadata->published = false;
+              }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["page-type"]) && $data["attributes"]["page-type"] != '') {
+                $page->metadata->pageType = $data["attributes"]["page-type"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->pageType)) {
+                unset($page->metadata->pageType);
+              }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
+                $page->metadata->tags = $data["attributes"]["tags"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->tags)) {
+                unset($page->metadata->tags);
               }
               if (!isset($data["attributes"]["locked"])) {
                 $page->metadata->locked = false;
@@ -928,179 +1140,40 @@ class Operations {
                 $readtime = 1;
               }
               $page->metadata->readtime = $readtime;
-              // assemble other relevent content detail by skimming it off
-              $contentDetails = new stdClass();
-              $contentDetails->headings = 0;
-              $contentDetails->paragraphs = 0;
-              $contentDetails->schema = array();
-              $contentDetails->tags = array();
-              $contentDetails->elements = count($schema);
-              // pull schema apart and store the relevent pieces
+              // reset bc we rebuild this each page save
+              $page->metadata->videos = array();
+              $page->metadata->images = array();
+              // pull schema apart and seee if we have any images
+              // that other things could use for metadata / theming purposes
               foreach ($schema as $element) {
                 switch($element['tag']) {
-                  case 'h1':
-                  case 'h2':
-                  case 'h3':
-                  case 'h4':
-                  case 'h5':
-                  case 'h6':
-                      $contentDetails->headings++;
+                  case 'img':
+                    if (isset($element['properties']['src'])) {
+                      array_push($page->metadata->images, $element['properties']['src']);
+                    }
                   break;
-                  case 'p':
-                      $contentDetails->paragraphs++;
+                  case 'a11y-gif-player':
+                    if (isset($element['properties']['src'])) {
+                      array_push($page->metadata->images, $element['properties']['src']);
+                    }
                   break;
-                }
-                if (!isset($contentDetails->tags[$element['tag']])) {
-                    $contentDetails->tags[$element['tag']] = 0;
-                }
-                $contentDetails->tags[$element['tag']]++;
-                $newItem = new stdClass();
-                $hasSchema = false;
-                if (isset($element['properties']['property'])) {
-                  $hasSchema = true;
-                  $newItem->property = $element['properties']['property'];
-                }
-                if (isset($element['properties']['typeof'])) {
-                  $hasSchema = true;
-                  $newItem->typeof = $element['properties']['typeof'];
-                }
-                if (isset($element['properties']['resource'])) {
-                  $hasSchema = true;
-                  $newItem->resource = $element['properties']['resource'];
-                }
-                if (isset($element['properties']['prefix'])) {
-                  $hasSchema = true;
-                  $newItem->prefix = $element['properties']['prefix'];
-                }
-                if (isset($element['properties']['vocab'])) {
-                  $hasSchema = true;
-                  $newItem->vocab = $element['properties']['vocab'];
-                }
-                if ($hasSchema) {
-                  $contentDetails->schema[] = $newItem;
+                  case 'media-image':
+                    if (isset($element['properties']['source'])) {
+                      array_push($page->metadata->images, $element['properties']['source']);
+                    }
+                  break;
+                  case 'video-player':
+                    if (isset($element['properties']['source'])) {
+                      array_push($page->metadata->videos, $element['properties']['source']);
+                    }
+                  break;
                 }
               }
-              $page->metadata->contentDetails = $contentDetails;
               $site->updateNode($page);
               $site->gitCommit(
                 'Page updated: ' . $page->title . ' (' . $page->id . ')'
               );
           }
-        }
-        // this returns te page result as the slug and other values
-        // may have changed via page-break attributes
-        return array(
-          'status' => 200,
-          'data' => $page
-        );
-      } elseif (isset($details)) {
-        // update the updated timestamp
-        $page->metadata->updated = time();
-        foreach ($details as $key => $value) {
-            // sanitize both sides
-            $key = filter_var($key, FILTER_SANITIZE_STRING);
-            switch ($key) {
-                case 'node-configure-slug':
-                  // check on name
-                  $value = $GLOBALS['HAXCMS']->cleanTitle(filter_var($value, FILTER_SANITIZE_STRING));
-                  $page->slug = $value;
-                  if ($value == '') {
-                    $pAuto = false;
-                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                      $pAuto = true;
-                    }
-                    $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle(filter_var($details['node-configure-title'], FILTER_SANITIZE_STRING)), $page, $pAuto);
-                  }
-                break;
-                case 'node-configure-title':
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $page->title = $value;
-                break;
-                case 'node-configure-description':
-                    $value = filter_var($value, FILTER_SANITIZE_STRING);
-                    $page->description = $value;
-                break;
-                case 'node-configure-published':
-                    $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
-                    $page->metadata->published = $value;
-                break;
-                case 'node-advanced-created':
-                    $value = filter_var($value, FILTER_VALIDATE_INT);
-                    $page->metadata->created = $value;
-                break;
-                case 'node-advanced-theme':
-                  $themes = $GLOBALS['HAXCMS']->getThemes();
-                  $value = filter_var($value, FILTER_SANITIZE_STRING);
-                  // support for removing the custom theme or applying none
-                  if ($value == '_none_') {
-                    unset($page->metadata->theme);
-                  }
-                  else if (isset($themes->{$value})) {
-                    $page->metadata->theme = $themes->{$value};
-                    $page->metadata->theme->key = $value;
-                  }
-                  break;
-                default:
-                    // ensure ID is never changed
-                    if ($key != 'id') {
-                        // support for saving fields
-                        if (!isset($page->metadata->fields)) {
-                            $page->metadata->fields = new stdClass();
-                        }
-                        switch (gettype($value)) {
-                            case 'array':
-                            case 'object':
-                                $page->metadata->fields->{$key} = new stdClass();
-                                foreach ($value as $key2 => $val) {
-                                    $page->metadata->fields->{$key}->{$key2} = new stdClass();
-                                    $key2 = filter_var(
-                                        $key2,
-                                        FILTER_VALIDATE_INT
-                                    );
-                                    foreach ($val as $key3 => $deepVal) {
-                                        $key3 = filter_var(
-                                            $key3,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        $deepVal = filter_var(
-                                            $deepVal,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        $page->metadata->fields->{$key}->{$key2}->{$key3} = $deepVal;
-                                    }
-                                }
-                                break;
-                            case 'integer':
-                            case 'double':
-                                $value = filter_var(
-                                    $value,
-                                    FILTER_VALIDATE_INT
-                                );
-                                $page->metadata->fields->{$key} = $value;
-                                break;
-                            default:
-                                $value = filter_var(
-                                    $value,
-                                    FILTER_SANITIZE_STRING
-                                );
-                                $page->metadata->fields->{$key} = $value;
-                                break;
-                        }
-                    }
-                    break;
-            }
-        }
-        $site->updateNode($page);
-        $site->gitCommit(
-            'Page details updated: ' . $page->title . ' (' . $page->id . ')'
-        );
-        // make sure we return the "theme" if set back to null
-        // we do this so that the front end can reset to the default theme
-        // but also so we don't save this data for no reason in the piecea above
-        if (!isset($page->metadata->theme)) {
-          $themes = $GLOBALS['HAXCMS']->getThemes();
-          $page->metadata->theme = $themes->{$site->manifest->metadata->theme->element};
-          $page->metadata->theme->key = $site->manifest->metadata->theme->element;
         }
         return array(
           'status' => 200,
@@ -1221,39 +1294,6 @@ class Operations {
     return TRUE;
   }
   /**
-   * @OA\Post(
-   *    path="/getNodeFields",
-   *    tags={"cms","authenticated","node","form"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Update the alternative formats surrounding a site"
-   *   )
-   * )
-   */
-  public function getNodeFields() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      if ($page = $site->loadNode($this->params['node']['id'])) {
-        $schema = $site->loadNodeFieldSchema($page);
-        return $schema;
-      }
-    } else {
-      return array(
-        '__failed' => array(
-          'status' => 403,
-          'message' => 'invalid request token',
-        )
-      );
-    }
-  }
-  /**
    * @OA\Get(
    *    path="/connectionSettings",
    *    tags={"cms"},
@@ -1356,6 +1396,10 @@ class Operations {
           "person-testimonial",
           "citation-element",
           "stop-note",
+          "learning-component",
+          "mark-the-words",
+          "twitter-embed",
+          "spotify-embed",
           "place-holder",
           "lrn-math",
           "q-r",
@@ -1841,7 +1885,19 @@ class Operations {
             $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
             $site->metadata->pageCount = count($site->items);
+            // we don't need all items stored here
             unset($site->items);
+            // unset other things we don't need to send across in this meta site.json response
+            if (isset($site->metadata->dynamicElementLoader)) {
+              unset($site->metadata->dynamicElementLoader);
+            }
+            
+            if (isset($site->metadata->node)) {
+              unset($site->metadata->node);
+            }
+            if (isset($site->metadata->build->items)) {
+              unset($site->metadata->build->items);
+            }
             $return['items'][] = $site;
           }
         }
@@ -1915,6 +1971,7 @@ class Operations {
       }
       // null in the event we get hits that don't have this
       $build = null;
+      $filesToDownload = Array();
       // support for build info. the details used to actually create this site originally
       if (isset($this->params['build'])) {
         $build = new stdClass();
@@ -1924,9 +1981,12 @@ class Operations {
         $build->structure = $this->params['build']['structure'];
         // TYPE of structure we are creating
         $build->type = $this->params['build']['type'];
-        if ($build->type == 'docx import') {
+        if ($build->type == 'docx import' || $build->structure == "import") {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
+        }
+        if (isset($this->params['build']['files'])) {
+          $filesToDownload = $this->params['build']['files'];
         }
       }
       // sanitize name
@@ -1937,6 +1997,8 @@ class Operations {
           $domain,
           $build
       );
+      // this could have changed after creation because of on file system
+      $name = $site->manifest->metadata->site->name;
       // now get a new item to reference this into the top level sites listing
       $schema = $GLOBALS['HAXCMS']->outlineSchema->newItem();
       $schema->id = $site->manifest->id;
@@ -1952,6 +2014,10 @@ class Operations {
       $schema->metadata->theme = new stdClass();
       // store build data in case we need it down the road
       $schema->metadata->build = $build;
+      // we don't need to store replication of all items imported on site creation
+      if (isset($schema->metadata->build->items)) {
+        unset($schema->metadata->build->items);
+      }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
       if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
         $theme = $this->params['site']['theme'];
@@ -2020,6 +2086,18 @@ class Operations {
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
+      // walk through files if any came across and save each of them
+      if (is_array($filesToDownload)) {
+        foreach ($filesToDownload as $locationName => $downloadLocation) {
+          $file = new HAXCMSFile();
+          // check for a file upload; we block a few formats by design
+          $fileResult = $file->save(Array(
+            "name" => $locationName,
+            "tmp_name" => $downloadLocation,
+            "bulk-import" => TRUE
+          ), $site);
+        }
+      }
       // main site schema doesn't care about publishing settings
       unset($schema->metadata->site->git);
       $git = new Git();
@@ -2349,500 +2427,6 @@ class Operations {
   }
   /**
    * @OA\Post(
-   *    path="/publishSite",
-   *    tags={"cms","authenticated","git","site"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\RequestBody(
-   *        @OA\MediaType(
-   *             mediaType="application/json",
-   *             @OA\Schema(
-   *                 @OA\Property(
-   *                     property="site",
-   *                     type="object"
-   *                 ),
-   *                 required={"site"},
-   *                 example={
-   *                    "site": {
-   *                      "name": "mynewsite"
-   *                    },
-   *                 }
-   *             )
-   *         )
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Publishes the site to a remote source using git settings from site.json for details "
-   *   )
-   * )
-   */
-  public function publishSite() {
-    // ensure we have something we can load and ship back out the door
-    if ($site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name'])) {
-        // local publishing options, then defer to system, then make some up...
-        if (isset($site->manifest->metadata->site->git)) {
-            $gitSettings = $site->manifest->metadata->site->git;
-        } elseif (isset($GLOBALS['HAXCMS']->config->site->git)) {
-            $gitSettings = $GLOBALS['HAXCMS']->config->site->git;
-        } else {
-            $gitSettings = new stdClass();
-            $gitSettings->vendor = 'github';
-            $gitSettings->branch = 'master';
-            $gitSettings->staticBranch = 'gh-pages';
-            $gitSettings->url = '';
-        }
-        if (isset($gitSettings)) {
-            $git = new Git();
-            $siteDirectoryPath =
-                $site->directory . '/' . $site->manifest->metadata->site->name;
-            $repo = $git->open($siteDirectoryPath, true);
-            // ensure we're on master and everything is added
-            $repo->checkout('master');
-            // Try to build a reasonable "domain" value
-            if (
-                isset($gitSettings->url) &&
-                $gitSettings->url != '' &&
-                $gitSettings->url != false &&
-                $gitSettings->url !=
-                    '/' . $site->manifest->metadata->site->name . '.git'
-            ) {
-                $domain = $gitSettings->url;
-                if (
-                    isset($site->manifest->metadata->site->domain) &&
-                    $site->manifest->metadata->site->domain != ''
-                ) {
-                    $domain = $site->manifest->metadata->site->domain;
-                } else {
-                    // support blowing up github addresses correctly
-                    $parts = explode(
-                        '/',
-                        str_replace(
-                            'git@github.com:',
-                            '',
-                            str_replace('.git', '', $domain)
-                        )
-                    );
-                    if (count($parts) === 2) {
-                        $domain =
-                            'https://' . $parts[0] . '.github.io/' . $parts[1];
-                    }
-                }
-            }
-            // implies the domain is actually on the system locally
-            else {
-                $domain =
-                    $GLOBALS['HAXCMS']->basePath .
-                    $GLOBALS['HAXCMS']->publishedDirectory .
-                    '/' .
-                    $site->manifest->metadata->site->name .
-                    '/';
-            }
-            // ensure we have the latest dynamic element loader since it may have improved from
-            // when we first launched this site, HAX would have these definitions as well but
-            // when in production, appstore isn't around so the user may have added custom
-            // things that they care about but now magically in a published state its gone
-            // set last published time to now
-            if (!isset($site->manifest->metadata->site->static)) {
-              $site->manifest->metadata->site->static = new stdClass();
-            }
-            $site->manifest->metadata->site->static->lastPublished = time();
-            $site->manifest->metadata->site->static->publishedLocation = $domain;
-            $site->manifest->save(false);
-            // just to be safe in case the push isn't successful
-            try {
-                $repo->add('.');
-                $repo->commit('Clean up pre-publishing..');
-                @$repo->push('origin', 'master');
-            } catch (Exception $e) {
-                // do nothing, we might be offline or something
-                // @tood when we get into logging this would be worth logging
-            }
-            // now check out the publishing branch, it can't be master or our file will get mixed up
-            // rather rapidly..
-            if ($gitSettings->staticBranch != 'master') {
-                // try to check it out, if not then we need to create it
-                try {
-                    $repo->checkout($gitSettings->staticBranch);
-                    // on that branch now we need to forcibly get the master branch over top of this
-                    $repo->reset($gitSettings->branch, 'origin');
-                    // now we can merge safely because we've already got the files over top
-                    // as if they originated here
-                    $repo->merge($gitSettings->branch);
-                } catch (Exception $e) {
-                    $repo->create_branch($gitSettings->staticBranch);
-                    $repo->checkout($gitSettings->staticBranch);
-                }
-            }
-            // werid looking I know but if we have a CDN then we need to "rewrite" this file
-            if (isset($site->manifest->metadata->site->static->cdn)) {
-                $cdn = $site->manifest->metadata->site->static->cdn;
-            } else {
-                $cdn = 'custom';
-            }
-            // sanity check
-            if (
-                file_exists(
-                    HAXCMS_ROOT . '/system/boilerplate/cdns/' . $cdn . '.html'
-                )
-            ) {
-                // move the index.html and unlink the symlinks otherwise we'll get build failures
-                if (is_link($siteDirectoryPath . '/build')) {
-                    @unlink($siteDirectoryPath . '/build');
-                }
-                if (is_link($siteDirectoryPath . '/dist')) {
-                    @unlink($siteDirectoryPath . '/dist');
-                }
-                if (is_link($siteDirectoryPath . '/node_modules')) {
-                    @unlink($siteDirectoryPath . '/node_modules');
-                }
-                if (is_link($siteDirectoryPath . '/wc-registry.json')) {
-                  @unlink($siteDirectoryPath . '/wc-registry.json');
-                }
-                if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                    @unlink($siteDirectoryPath . '/assets/babel-top.js');
-                }
-                if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                    @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-                }
-                // copy these things because we have a local routine
-                if ($cdn == 'custom') {
-                    @copy(
-                        HAXCMS_ROOT . '/babel/babel-top.js',
-                        $siteDirectoryPath . '/assets/babel-top.js'
-                    );
-                    @copy(
-                        HAXCMS_ROOT . '/babel/babel-bottom.js',
-                        $siteDirectoryPath . '/assets/babel-bottom.js'
-                    );
-                    $GLOBALS['fileSystem']->mirror(
-                        HAXCMS_ROOT . '/build',
-                        $siteDirectoryPath . '/build'
-                    );
-                }
-                // additional files to move to ensure we don't screw things up
-                $templates = $site->getManagedTemplateFiles();
-                // overwrite these files with their boilerplate versions
-                // so that our templateVars can be relative to a published state
-                // as opposed to a local working state
-                foreach ($templates as $file) {
-                  copy(HAXCMS_ROOT . '/system/boilerplate/site/' . $file, $siteDirectoryPath . '/' . $file);
-                }
-                // support for index as that comes from a CDN defining what to do
-                // remove current index, then pull a new one
-                // this ensures that the php file won't be in the published copy while it is in master
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html', $siteDirectoryPath . '/index.php']);
-                copy(HAXCMS_ROOT . '/system/boilerplate/cdns/' . $cdn . '.html', $siteDirectoryPath . '/index.html');
-                // process twig variables for static publishing
-                $licenseData = $site->getLicenseData('all');
-                $licenseLink = '';
-                $licenseName = '';
-                if (isset($site->manifest->license) && isset($licenseData[$site->manifest->license])) {
-                  $licenseLink = $licenseData[$site->manifest->license]['link'];
-                  $licenseName = 'License: ' . $licenseData[$site->manifest->license]['name'];
-                }
-                $templateVars = array(
-                    'hexCode' => HAXCMS_FALLBACK_HEX,
-                    'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
-                    'basePath' =>
-                        '/' . $site->manifest->metadata->site->name . '/',
-                    'title' => $site->manifest->title,
-                    'short' => $site->manifest->metadata->site->name,
-                    'domain' => $site->manifest->metadata->site->domain,
-                    'description' => $site->manifest->description,
-                    'forceUpgrade' => $site->getForceUpgrade(),
-                    'swhash' => array(),
-                    'ghPagesURLParamCount' => 1,
-                    'licenseLink' => $licenseLink,
-                    'licenseName' => $licenseName,
-                    'serviceWorkerScript' => $site->getServiceWorkerScript('/' . $site->manifest->metadata->site->name . '/', TRUE),
-                    'bodyAttrs' => $site->getSitePageAttributes(),
-                    'metadata' => $site->getSiteMetadata(),
-                    'logo512x512' => $site->getLogoSize('512','512'),
-                    'logo310x310' => $site->getLogoSize('310','310'),
-                    'logo192x192' => $site->getLogoSize('192','192'),
-                    'logo150x150' => $site->getLogoSize('150','150'),
-                    'logo144x144' => $site->getLogoSize('144','144'),
-                    'logo96x96' => $site->getLogoSize('96','96'),
-                    'logo72x72' => $site->getLogoSize('72','72'),
-                    'logo70x70' => $site->getLogoSize('70','70'),
-                    'logo48x48' => $site->getLogoSize('48','48'),
-                    'logo36x36' => $site->getLogoSize('36','36'),
-                    'favicon' => $site->getLogoSize('16','16'),
-                );
-                // custom isn't a regex by design
-                if ($cdn != 'custom') {
-                  // special fallback for HAXtheWeb since it cheats in order to demo the solution
-                  if ($cdn == 'cdn.webcomponents.psu.edu') {
-                    $templateVars['cdn'] = $cdn . 'cdn/';
-                  }
-                  else {
-                    $templateVars['cdn'] = $cdn;
-                  }
-                  $templateVars['metadata'] = $site->getSiteMetadata(NULL, $domain, 'https://' . $templateVars['cdn']);
-                  // build a regex so that we can do fully offline sites and cache the cdn requests even
-                  $templateVars['cdnRegex'] =
-                    "(https?:\/\/" .
-                    str_replace('.', '\.', $templateVars['cdn']) .
-                    "(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)";
-                  // support for disabling regex via offline setting
-                  if (isset($site->manifest->metadata->site->static->offline) && !$site->manifest->metadata->site->static->offline) {
-                    unset($templateVars['cdnRegex']);
-                  }
-                }
-                // if we have a custom domain, try and engineer the base path
-                // correctly for the manifest / service worker
-                // @todo need to support domains that have subdomains in them
-                if (
-                    isset($site->manifest->metadata->site->domain) &&
-                    $site->manifest->metadata->site->domain != ''
-                ) {
-                    $parts = parse_url($site->manifest->metadata->site->domain);
-                    $templateVars['basePath'] = '/';
-                    if (isset($parts['base'])) {
-                        $templateVars['basePath'] = $parts['base'];
-                    }
-                    if ($templateVars['basePath'] == null || $templateVars['basePath'] == '' || $templateVars['basePath'] == false) {
-                      $templateVars['basePath'] = "/";
-                    }
-                    if ($templateVars['basePath'] == '/') {
-                        $templateVars['ghPagesURLParamCount'] = 0;
-                    }
-                    // now we need to update the SW to match
-                    $templateVars['serviceWorkerScript'] = $site->getServiceWorkerScript($templateVars['basePath'], TRUE);
-                }
-                if (isset($site->manifest->metadata->theme->variables->hexCode)) {
-                    $templateVars['hexCode'] =
-                        $site->manifest->metadata->theme->variables->hexCode;
-                }
-                $swItems = $site->manifest->items;
-                // the core files you need in every SW manifest
-                $coreFiles = array(
-                    'index.html',
-                    'manifest.json',
-                    'site.json',
-                    $site->getLogoSize('512','512'),
-                    $site->getLogoSize('310','310'),
-                    $site->getLogoSize('192','192'),
-                    $site->getLogoSize('150','150'),
-                    $site->getLogoSize('144','144'),
-                    $site->getLogoSize('96','96'),
-                    $site->getLogoSize('72','72'),
-                    $site->getLogoSize('70','70'),
-                    $site->getLogoSize('48','48'),
-                    $site->getLogoSize('36','36'),
-                    $site->getLogoSize('16','16'),
-                    '404.html',
-                );
-                // loop through files directory so we can cache those things too
-                if ($handle = opendir($siteDirectoryPath . '/files')) {
-                    while (false !== ($file = readdir($handle))) {
-                        if (
-                            $file != "." &&
-                            $file != ".." &&
-                            $file != '.gitkeep' &&
-                            $file != '._.DS_Store' &&
-                            $file != '.DS_Store'
-                        ) {
-                            // ensure this is a file
-                            if (
-                                is_file($siteDirectoryPath . '/files/' . $file)
-                            ) {
-                                $coreFiles[] = 'files/' . $file;
-                            } else {
-                                // @todo maybe step into directories?
-                            }
-                        }
-                    }
-                    closedir($handle);
-                }
-                foreach ($coreFiles as $itemLocation) {
-                    $coreItem = new stdClass();
-                    $coreItem->location = $itemLocation;
-                    $swItems[] = $coreItem;
-                }
-                // generate a legit hash value that's the same for each file name + file size
-                foreach ($swItems as $item) {
-                    if (
-                        $item->location === '' ||
-                        $item->location === $templateVars['basePath']
-                    ) {
-                        $filesize = filesize(
-                            $siteDirectoryPath . '/index.html'
-                        );
-                    } elseif (
-                        file_exists($siteDirectoryPath . '/' . $item->location)
-                    ) {
-                        $filesize = filesize(
-                            $siteDirectoryPath . '/' . $item->location
-                        );
-                    } else {
-                        // ?? file referenced but doesn't exist
-                        $filesize = 0;
-                    }
-                    if ($filesize !== 0) {
-                        $templateVars['swhash'][] = array(
-                            $item->location,
-                            strtr(
-                                base64_encode(
-                                    hash_hmac(
-                                        'md5',
-                                        (string) $item->location . $filesize,
-                                        (string) 'haxcmsswhash',
-                                        true
-                                    )
-                                ),
-                                array(
-                                    '+' => '',
-                                    '/' => '',
-                                    '=' => '',
-                                    '-' => ''
-                                )
-                            )
-                        );
-                    }
-                }
-                // put the twig written output into the file
-                $loader = new \Twig\Loader\FilesystemLoader($siteDirectoryPath);
-                $twig = new \Twig\Environment($loader);
-                foreach ($templates as $location) {
-                  if (file_exists($siteDirectoryPath . '/' . $location)) {
-                    @file_put_contents(
-                        $siteDirectoryPath . '/' . $location,
-                        $twig->render($location, $templateVars)
-                    );
-                  }
-                }
-                try {
-                    $repo->add('.');
-                    $repo->commit('Published using CDN: ' . $cdn);
-                } catch (Exception $e) {
-                    // do nothing, maybe there was nothing to commit
-                }
-            }
-            // mirror over to the publishing directory
-            // @todo need to make a way of doing this in a variable fashion
-            // this way we could publish to multiple locations or intentionally to a location
-            // which will be important when allowing for open, closed, or other server level configurations
-            // that happen automatically as opposed to when the user hits publish
-            // also for delivery of the "click to access site" link
-            $GLOBALS['fileSystem']->mirror(
-                $siteDirectoryPath,
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' . $site->manifest->metadata->site->name
-            );
-            // remove the .git version control from this, it's not needed
-            $GLOBALS['fileSystem']->remove([
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' . $site->manifest->metadata->site->name . '/.git'
-            ]);
-            // rewrite the base path to ensure it is accurate based on a local build publish vs web
-            $index = file_get_contents(
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/index.html'
-            );
-            // replace if it was publishing with the name in it
-            $index = str_replace(
-                '<base href="/' . $site->manifest->metadata->site->name . '/"',
-                '<base href="' . $GLOBALS['HAXCMS']->basePath . '_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/"',
-                $index
-            );
-            // replace if it has a vanity domain
-            $index = str_replace(
-                '<base href="/"',
-                '<base href="' . $GLOBALS['HAXCMS']->basePath . '_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/"',
-                $index
-            );
-            // rewrite the file
-            @file_put_contents(
-                $GLOBALS['HAXCMS']->configDirectory . '/../_published/' .
-                    $site->manifest->metadata->site->name .
-                    '/index.html',
-                $index
-            );
-            // tag, attempt to push, and set things up for next time
-            $repo->add_tag(
-                'version-' . $site->manifest->metadata->site->static->lastPublished
-            );
-            @$repo->push(
-                'origin',
-                'version-' . $site->manifest->metadata->site->static->lastPublished,
-                "--force"
-            );
-            if ($gitSettings->staticBranch != 'master') {
-                @$repo->push('origin', $gitSettings->staticBranch, "--force");
-                // now put it back plz... and master shouldn't notice any source changes
-                $repo->checkout($gitSettings->branch);
-            }
-            // restore these silly things if we need to
-            if (!is_link($siteDirectoryPath . '/dist')) {
-                @symlink('../../dist', $siteDirectoryPath . '/dist');
-            }
-            if (!is_link($siteDirectoryPath . '/node_modules')) {
-                @symlink(
-                    '../../node_modules',
-                    $siteDirectoryPath . '/node_modules'
-                );
-            }
-            if (is_link($siteDirectoryPath . '/wc-registry.json')) {
-              @unlink($siteDirectoryPath . '/wc-registry.json');
-            }
-            if (is_link($siteDirectoryPath . '/assets/babel-top.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-top.js');
-            }
-            if (is_link($siteDirectoryPath . '/assets/babel-bottom.js')) {
-                @unlink($siteDirectoryPath . '/assets/babel-bottom.js');
-            }
-            if (is_link($siteDirectoryPath . '/build')) {
-                @unlink($siteDirectoryPath . '/build');
-            }
-            else {
-                $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/build']);
-            }
-            @symlink('../../wc-registry.json', $siteDirectoryPath . '/wc-registry.json');
-            @symlink(
-                '../../../babel/babel-top.js',
-                $siteDirectoryPath . '/assets/babel-top.js'
-            );
-            @symlink(
-                '../../../babel/babel-bottom.js',
-                $siteDirectoryPath . '/assets/babel-bottom.js'
-            );
-            @symlink('../../build', $siteDirectoryPath . '/build');
-            // reset the templated file for the index.html
-            // since the "CDN" cleaned up how this worked most likely at run time
-            $GLOBALS['fileSystem']->remove([$siteDirectoryPath . '/index.html']);
-            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.html', $siteDirectoryPath . '/index.html');
-            // this ensures that the php file wasn't in version control for the published copy
-            copy(HAXCMS_ROOT . '/system/boilerplate/site/index.php', $siteDirectoryPath . '/index.php');
-            return array(
-                'status' => 200,
-                'data' => array(
-                  'url' => $domain,
-                  'label' => 'Click to access ' . $site->manifest->title,
-                  'response' => 'Site published!',
-                  'output' => 'Site published successfully if no errors!'
-                )
-            );
-        }
-    } else {
-      return array(
-            '__failed' => array(
-              'status' => 500,
-              'message' => 'Unable to load site',
-            )
-          );
-    }
-  }
-  /**
-   * @OA\Post(
    *    path="/cloneSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
@@ -2878,16 +2462,34 @@ class Operations {
   public function cloneSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
+    $originalPathForReplacement = "/sites/" . $site->manifest->metadata->site->name . "/files/";
     $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
     // ensure the path to the new folder is valid
     $GLOBALS['fileSystem']->mirror(
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->name,
+        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $cloneName
     );
     // we need to then load and rewrite the site name var or it will conflict given the name change
     $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
     $site->manifest->metadata->site->name = $cloneName;
     $site->manifest->id = $GLOBALS['HAXCMS']->generateUUID();
+    // loop through all items and rewrite the path to files as we cloned it
+    foreach ($site->manifest->items as $delta => $item) {
+      if (isset($item->metadata->files)) {
+        foreach ($item->metadata->files as $delta2 => $file) {
+          $site->manifest->items[$delta]->metadata->files[$delta2]->path = str_replace(
+            $originalPathForReplacement,
+            '/sites/' . $cloneName . '/files/',
+            $site->manifest->items[$delta]->metadata->files[$delta2]->path
+          );
+          $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl = str_replace(
+            $originalPathForReplacement,
+            '/sites/' . $cloneName . '/files/',
+            $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl
+          );
+        }
+      }
+    }
     $site->save();
     return array(
       'status' => 200,
@@ -2937,7 +2539,7 @@ class Operations {
    */
   public function deleteSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->name) {
+    if ($site->manifest->metadata->site->name) {
       $GLOBALS['fileSystem']->remove([
         $site->directory . '/' . $site->manifest->metadata->site->name
       ]);
@@ -2996,14 +2598,14 @@ class Operations {
     // load site
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
-    $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->name;
+    $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name;
     // form a basic name
     $zip_file =
       HAXCMS_ROOT .
       '/' .
       $GLOBALS['HAXCMS']->publishedDirectory .
       '/' .
-      $site->name .
+      $site->manifest->metadata->site->name .
       '.zip';
     // Get real path for our folder
     $rootPath = realpath($dir);
@@ -3076,7 +2678,7 @@ class Operations {
    */
   public function archiveSite() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->name) {
+    if ($site->manifest->metadata->site->name) {
       rename(
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
         HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory . '/' . $site->manifest->metadata->site->name);
