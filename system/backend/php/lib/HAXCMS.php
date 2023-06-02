@@ -101,8 +101,17 @@ class HAXCMS
             !in_array(strtolower($_SERVER['HTTPS']), array('off', 'no'))
                 ? 'https'
                 : 'http';
-        // fallback test for https
+        // fallback test for https, reclaim / docker envs can identify this differently
         if ($this->protocol == 'http' && isset($_SERVER["HTTP_USESSL"]) && $_SERVER["HTTP_USESSL"]) {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["protossl"])) {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_X_FORWARDED_PROTO"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"] == 'https') {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_HTTPS_ENABLED"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"]) {
           $this->protocol = 'https';
         }
         // CLIs dont have a domain argument
