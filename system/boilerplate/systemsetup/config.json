@@ -613,13 +613,10 @@
     },
       "apiKeys": {
           "youtube": "",
-          "googlepoly": "",
-          "memegenerator": "",
           "vimeo": "",
           "giphy": "",
           "unsplash": "",
-          "flickr": "",
-          "pixabay": ""
+          "flickr": ""
       }
   },
   "site": {
