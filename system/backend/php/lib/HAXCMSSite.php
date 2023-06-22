@@ -218,20 +218,20 @@ class HAXCMSSite
                 break;
                 case 'training':
                 default:
-                  array_push($pageSchema, array(
+                  /*array_push($pageSchema, array(
                     "parent" => null,
                     "title" => "Lessons",
                     "template" => "default",
                     "slug" => "lessons"
-                  ));
+                  ));*/
                 break;
               }
-              array_push($pageSchema, array(
+              /*array_push($pageSchema, array(
                 "parent" => null,
                 "title" => "Glossary",
                 "template" => "glossary",
                 "slug" => "glossary"
-              ));
+              ));*/
               for ($i=0; $i < count($pageSchema); $i++) {
                 if ($pageSchema[$i]['template'] == 'html') {
                   $this->addPage(
