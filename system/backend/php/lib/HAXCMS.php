@@ -894,7 +894,7 @@ class HAXCMS
     {
         return '{
       "details": {
-        "title": "Local files",
+        "title": "Local uploads",
         "icon": "perm-media",
         "color": "light-blue",
         "author": "HAXCMS",
