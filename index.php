@@ -90,6 +90,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
+        background-attachment: fixed, fixed, fixed;
       }
       div[slot="externalproviders"] {
         display: none;
