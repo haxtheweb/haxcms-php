@@ -1114,7 +1114,7 @@ class HAXCMSSite
         foreach ($matches[0] as $match) {
           if (strpos($match, '-')) {
             $tag = str_replace('>', '', str_replace('</', '', $match));
-            $preloadTags[] = $tag;
+            $preloadTags[$tag] = $tag;
           }
         }
       }
