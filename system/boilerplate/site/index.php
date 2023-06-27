@@ -169,7 +169,7 @@
       }
     ?>
     window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic($site);?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
-  <script src="./build-haxcms.js"></script>
+  <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build-haxcms.js"></script>
   <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build.js"></script>
 </body>
 </html>
