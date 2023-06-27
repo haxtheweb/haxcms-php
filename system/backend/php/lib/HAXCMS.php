@@ -861,6 +861,27 @@ class HAXCMS
         }
         return false;
     }
+
+    public function html_to_obj($html) {
+      $dom = new DOMDocument();
+      $dom->loadHTML($html);
+      return $this->element_to_obj($dom->documentElement);
+    }
+    public function element_to_obj($element) {
+      $obj = array( "tag" => $element->tagName );
+      foreach ($element->attributes as $attribute) {
+          $obj[$attribute->name] = $attribute->value;
+      }
+      foreach ($element->childNodes as $subElement) {
+          if ($subElement->nodeType == XML_TEXT_NODE) {
+              $obj["html"] = $subElement->wholeText;
+          }
+          else {
+              $obj["children"][] = $this->element_to_obj($subElement);
+          }
+      }
+      return $obj;
+  }
     /**
      * Helper for parsing out and returning page-break's in a body of content
      * to help support HAX multi-page editing / outlining capabilities
@@ -871,9 +892,13 @@ class HAXCMS
       // match all pages + content
       preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
+        // replace & to avoid XML parsing issues
         $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
         try {
-          $attrs = current((array) new SimpleXMLElement($content));
+          $docStructure = $this->html_to_obj($content);
+          if (isset($docStructure['children'][0]['children'][0])) {
+            $attrs = $docStructure['children'][0]['children'][0];
+          }
         }
         catch(Exception $e) {
           $attrs = array();

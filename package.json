@@ -31,7 +31,7 @@
   "scripts": {
     "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "build": "polymer build && yarn run terser && yarn run wc-autoloader && yarn run version-match",
+    "build": "ddev rm --all && polymer build && yarn run terser && yarn run wc-autoloader && yarn run version-match && ddev start",
     "postinstall": "./node_modules/.bin/patch-package",
     "terser": "gulp terser --gulpfile=gulpfile.cjs",
     "wc-autoloader": "gulp wc-autoloader --gulpfile=gulpfile.cjs",
