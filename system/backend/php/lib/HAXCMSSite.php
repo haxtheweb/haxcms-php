@@ -1230,13 +1230,14 @@ class HAXCMSSite
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
         if (is_null($path)) {
-          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $opPath = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $path = $opPath;
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
         $path = 'pages/' . str_replace('//', '/', $path);
         foreach ($this->manifest->items as $item) {
-            if ($item->location == $path) {
+            if ($item->location == $path || $item->slug == $opPath) {
                 return $item;
             }
         }
