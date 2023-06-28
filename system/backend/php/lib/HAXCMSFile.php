@@ -58,7 +58,7 @@ class HAXCMSFIle
             if (isset($upload['bulk-import'])) {
                 // make path relative to the file
                 $namePathTest = pathinfo(str_replace('files/', '', $upload['name']));
-                $fileSystem->mkdir($path . $namePathTest['dirname'], 0775, true);
+                $fileSystem->mkdir($path . $namePathTest['dirname'], 0755, true);
                 // full path needs to include the cleaned up file name + the actual directory
                 $fullpath = $path . $namePathTest['dirname']  . '/' . $name;
             }

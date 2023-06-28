@@ -240,10 +240,10 @@ class Cache {
    * @return boolean
    */
   private function _checkCacheDir() {
-    if (!is_dir($this->getCachePath()) && !mkdir($this->getCachePath(), 0775, true)) {
+    if (!is_dir($this->getCachePath()) && !mkdir($this->getCachePath(), 0755, true)) {
       throw new Exception('Unable to create cache directory ' . $this->getCachePath());
     } elseif (!is_readable($this->getCachePath()) || !is_writable($this->getCachePath())) {
-      if (!chmod($this->getCachePath(), 0775)) {
+      if (!chmod($this->getCachePath(), 0755)) {
         throw new Exception($this->getCachePath() . ' must be readable and writeable');
       }
     }

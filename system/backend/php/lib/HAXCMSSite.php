@@ -1445,7 +1445,7 @@ class HAXCMSSite
     {
         $dir = opendir($src);
         // see if we can make the directory to start off
-        if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0777, true)) {
+        if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0755, true)) {
             while (false !== ($file = readdir($dir))) {
                 if ($file != '.' && $file != '..') {
                     if (is_dir($src . '/' . $file) && array_search($file, $skip) === FALSE) {
