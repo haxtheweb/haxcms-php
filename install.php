@@ -187,9 +187,9 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     copy('system/boilerplate/systemsetup/.user-files-htaccess', '_config/user/files/.htaccess');
     // set permissions
     chmod("_config", 0755);
-    chmod("_config/tmp", 0777);
-    chmod("_config/config.json", 0777);
-    chmod("_config/userData.json", 0777);
+    chmod("_config/tmp", 0755);
+    chmod("_config/config.json", 0644);
+    chmod("_config/userData.json", 0644);
     // set SALT
     file_put_contents(
       '_config/SALT.txt',
@@ -248,7 +248,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
   if (!is_dir('_sites')) {
     // make sites directory
     mkdir('_sites');
-    chmod("_sites", 0777);
+    chmod("_sites", 0755);
     // attempt to set the user / group on sites
     // these probaly won't work
     @chown('_sites', get_current_user());
@@ -259,7 +259,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
   if (!is_dir('_published')) {
     // make published directory so you can have a copy of these files
     mkdir('_published');
-    chmod("_published", 0775);
+    chmod("_published", 0755);
     // attempt to set the user / group on sites
     // these probaly won't work
     @chown('_published', get_current_user());
@@ -268,7 +268,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
   if (!is_dir('_archived')) {
     // make published directory so you can have a copy of these files
     mkdir('_archived');
-    chmod("_archived", 0775);
+    chmod("_archived", 0755);
     // attempt to set the user / group on sites
     // these probaly won't work
     @chown('_archived', get_current_user());
@@ -280,7 +280,7 @@ if ($failed) { ?>
         <h1>HAXcms folder needs to be writeable</h1>
         <p>
           You can modify permissions in order to achieve this
-          <pre>chmod 0777 <?php print __DIR__; ?></pre>
+          <pre>chmod 0755 <?php print __DIR__; ?></pre>
           Or the prefered method is to run:
           <pre><?php print "bash " . __DIR__ . "/scripts/haxtheweb.sh"; ?></pre>
           A complete installation guide can be read on 
