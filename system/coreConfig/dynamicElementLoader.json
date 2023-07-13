@@ -25,6 +25,7 @@
   "place-holder": "@lrnwebcomponents/place-holder/place-holder.js",
   "q-r": "@lrnwebcomponents/q-r/q-r.js",
   "inline-audio": "@lrnwebcomponents/inline-audio/inline-audio.js",
+  "course-model": "@lrnwebcomponents/course-model/course-model.js",
   "self-check": "@lrnwebcomponents/self-check/self-check.js",
   "stop-note": "@lrnwebcomponents/stop-note/stop-note.js",
   "learning-component": "@lrnwebcomponents/course-design/lib/learning-component.js",
