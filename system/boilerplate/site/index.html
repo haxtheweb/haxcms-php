@@ -19,6 +19,9 @@
     else if (document.location.pathname.indexOf('/sites/') != -1) {
       document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
     }
+    else if (document.location.pathname.indexOf('/index.html')) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/index.html')) + "/' />");
+    }
     else {
       document.write("<base href='/' />");
     }

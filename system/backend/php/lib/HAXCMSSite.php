@@ -337,6 +337,11 @@ class HAXCMSSite
             'robots' => 'robots.txt',
             'sw' => 'service-worker.js',
             'outdated' => 'assets/upgrade-browser.html',
+            'imsmdrootv1p2p1' => 'imsmd_rootv1p2p1.xsd',
+            'imscprootv1p1p2' => 'imscp_rootv1p1p2.xsd',
+            'adlcprootv1p2' => 'adlcp_rootv1p2.xsd',
+            'imsxml' => 'ims_xml.xsd',
+            'imsmanifest' => 'imsmanifest.xml',
         );
     }
     /**
