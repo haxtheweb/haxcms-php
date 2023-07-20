@@ -861,9 +861,11 @@ class HAXCMS
         }
         return false;
     }
-
+    // russia strikes again
+    // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
     public function html_to_obj($html) {
       $dom = new DOMDocument();
+      $html = mb_convert_encoding($html, 'HTML-ENTITIES', "UTF-8");
       $dom->loadHTML($html);
       return $this->element_to_obj($dom->documentElement);
     }
