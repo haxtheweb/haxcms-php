@@ -320,23 +320,29 @@ class HAXCMSSite
      * @return array keyed array of files we wish to pull from the boilerplate and keep in sync
      */
     public function getManagedTemplateFiles() {
+      // not everything is templated but ensures self refreshing if we need to bulk tweak / enhance
         return array(
-            'htaccess' => '.htaccess', // not templated (yet) but ensures self refreshing if we tweak it
-            '404' => '404.html',
-            'msbc' => 'browserconfig.xml',
-            'dat' => 'dat.json',
+          // HAX core / application / PWA requirements
+            'htaccess' => '.htaccess',
             'build' => 'build.js',
             'buildlegacy' => 'assets/build-legacy.js',
             'buildpolyfills' => 'assets/build-polyfills.js',
             'buildhaxcms' => 'build-haxcms.js',
             'index' => 'index.html',
             'manifest' => 'manifest.json',
-            'package' => 'package.json',
-            'polymer' => 'polymer.json',
             'push' => 'push-manifest.json',
             'robots' => 'robots.txt',
             'sw' => 'service-worker.js',
             'outdated' => 'assets/upgrade-browser.html',
+            '404' => '404.html',
+            'msbc' => 'browserconfig.xml',
+            // local development tooling
+            'webdevserverhaxcmsconfigcjs' => 'web-dev-server.haxcms.config.cjs',
+            'package' => 'package.json',
+            'polymer' => 'polymer.json',
+            // Beaker browser
+            'dat' => 'dat.json',
+            // SCORM 1.2
             'imsmdrootv1p2p1' => 'imsmd_rootv1p2p1.xsd',
             'imscprootv1p1p2' => 'imscp_rootv1p1p2.xsd',
             'adlcprootv1p2' => 'adlcp_rootv1p2.xsd',
