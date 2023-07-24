@@ -396,9 +396,10 @@ class Operations {
         $return['managedFilesRebuilt'][] = $this->params['site']['name'];  
       }
     }
-    else {
-      $return = array();
+
+    if (!isset($return)) {
       $status = 400;
+      $return = array();
     }
     
     return array(
