@@ -252,16 +252,13 @@ const strtr = require('locutus/php/strings/strtr');
                     'manifest.json',
                     'site.json',
                     site.getLogoSize('512','512'),
-                    site.getLogoSize('310','310'),
+                    site.getLogoSize('256','256'),
                     site.getLogoSize('192','192'),
-                    site.getLogoSize('150','150'),
                     site.getLogoSize('144','144'),
                     site.getLogoSize('96','96'),
                     site.getLogoSize('72','72'),
-                    site.getLogoSize('70','70'),
                     site.getLogoSize('48','48'),
                     site.getLogoSize('36','36'),
-                    site.getLogoSize('16','16'),
                     '404.html',
                 ];
                 // loop through files directory so we can cache those things too

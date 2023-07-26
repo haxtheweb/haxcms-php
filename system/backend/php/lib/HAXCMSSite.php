@@ -388,33 +388,27 @@ class HAXCMSSite
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
+          'lang' => "en", // @todo need to support language setting in site.json
           'logo512x512' => $this->getLogoSize('512','512'),
-          'logo310x310' => $this->getLogoSize('310','310'),
+          'logo256x256' => $this->getLogoSize('256','256'),
           'logo192x192' => $this->getLogoSize('192','192'),
-          'logo150x150' => $this->getLogoSize('150','150'),
           'logo144x144' => $this->getLogoSize('144','144'),
           'logo96x96' => $this->getLogoSize('96','96'),
           'logo72x72' => $this->getLogoSize('72','72'),
-          'logo70x70' => $this->getLogoSize('70','70'),
           'logo48x48' => $this->getLogoSize('48','48'),
-          'logo36x36' => $this->getLogoSize('36','36'),
-          'favicon' => $this->getLogoSize('16','16'),
+          'favicon' => $this->getLogoSize('32','32'),
       );
       $swItems = $this->manifest->items;
       // the core files you need in every SW manifest
       $coreFiles = array(
           'index.html',
           $this->getLogoSize('512','512'),
-          $this->getLogoSize('310','310'),
+          $this->getLogoSize('256','256'),
           $this->getLogoSize('192','192'),
-          $this->getLogoSize('150','150'),
           $this->getLogoSize('144','144'),
           $this->getLogoSize('96','96'),
           $this->getLogoSize('72','72'),
-          $this->getLogoSize('70','70'),
           $this->getLogoSize('48','48'),
-          $this->getLogoSize('36','36'),
-          $this->getLogoSize('16','16'),
           'manifest.json',
           'site.json',
           '404.html',
@@ -1008,12 +1002,12 @@ class HAXCMSSite
               switch (installingWorker.state) {
                 case 'installed':
                   if (!navigator.serviceWorker.controller) {
-                    window.dispatchEvent(new CustomEvent('simple-toast-show', {
+                    window.dispatchEvent(new CustomEvent('haxcms-toast-show', {
                       bubbles: true,
                       cancelable: false,
                       detail: {
                         text: 'Pages you view are cached for offline use.',
-                        duration: 8000
+                        duration: 4000
                       }
                     }));
                   }
@@ -1036,12 +1030,12 @@ class HAXCMSSite
               b.appendChild(document.createTextNode('Reload'));
               b.raised = true;
               b.addEventListener('click', function(e){ window.location.reload(true); });
-              window.dispatchEvent(new CustomEvent('simple-toast-show', {
+              window.dispatchEvent(new CustomEvent('haxcms-toast-show', {
                 bubbles: true,
                 cancelable: false,
                 detail: {
                   text: 'A site update is available. Reload for latest content.',
-                  duration: 12000,
+                  duration: 8000,
                   slot: b,
                   clone: false
                 }
