@@ -950,7 +950,9 @@ class Operations {
           }
         }
       }
-    $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
+      $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
+      // update the alternate formats as a new page exists
+      $site->updateAlternateFormats();
     }
     return array(
       'status' => 200,
@@ -2070,7 +2072,9 @@ class Operations {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
-      $schema->metadata->site->settings->lang = 'en';
+      $schema->metadata->site->settings = new stdClass();
+      $schema->metadata->site->settings->lang = 'en-US';
+      $schema->metadata->site->settings->publishPagesOn = true;
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

@@ -150,7 +150,7 @@
         {
           "property": "manifest-metadata-site-settings-publishPagesOn",
           "title": "Hide unpublished pages",
-          "description": "Check the box to hide unpublished pages",
+          "description": "Uncheck this box if you want to show unpublished pages to the public",
           "inputMethod": "boolean",
           "icon": "icons:link"
         },
@@ -164,7 +164,7 @@
         {
           "property": "manifest-metadata-site-settings-forceUpgrade",
           "title": "Force browser upgrade",
-          "description": "Force users viewing the site to have evergreen browsers (not recommended)",
+          "description": "Force users viewing the site to have evergreen browsers and ask to upgrade if they don't",
           "inputMethod": "boolean",
           "icon": "icons:link"
         }
