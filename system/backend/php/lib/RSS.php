@@ -29,7 +29,7 @@ class FeedMe
             $domain .
             '</copyright>
     <language>' .
-            $site->language .
+           $site->getLanguage() .
             '</language>
     <lastBuildDate>' .
             date(\DateTime::RSS, $site->manifest->metadata->site->updated) .

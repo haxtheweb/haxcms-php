@@ -512,6 +512,7 @@ class HAXCMS
             "manifest-metadata-author-socialLink": null
           },
           "seo": {
+            "manifest-metadata-site-settings-lang": null,
             "manifest-metadata-site-settings-pathauto": null,
             "manifest-metadata-site-settings-publishPagesOn": null,
             "manifest-metadata-site-settings-sw": null,

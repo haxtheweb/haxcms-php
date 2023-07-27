@@ -378,6 +378,7 @@ class Operations {
             // MUST have this value to ensure it's the right site
             if (isset($site->manifest->metadata->site->name)) {
               $site->rebuildManagedFiles();
+              $site->updateAlternateFormats();
               $return['managedFilesRebuilt'][] = $item;  
             }
           }
@@ -393,6 +394,7 @@ class Operations {
       }
       else {
         $site->rebuildManagedFiles();
+        $site->updateAlternateFormats();
         $return['managedFilesRebuilt'][] = $this->params['site']['name'];  
       }
     }
@@ -547,6 +549,12 @@ class Operations {
               FILTER_SANITIZE_STRING
           );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
+        $site->manifest->metadata->site->settings->lang = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
+        FILTER_SANITIZE_STRING
+        );
+    }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
           $site->manifest->metadata->site->settings->pathauto = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
@@ -577,6 +585,7 @@ class Operations {
       $site->gitCommit('Manifest updated');
       // rebuild the files that twig processes
       $site->rebuildManagedFiles();
+      $site->updateAlternateFormats();
       $site->gitCommit('Managed files updated');
       return $site->manifest;
     }
@@ -2061,7 +2070,7 @@ class Operations {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
-      $schema->metadata->site->lang = 'en';
+      $schema->metadata->site->settings->lang = 'en';
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

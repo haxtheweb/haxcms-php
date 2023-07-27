@@ -135,6 +135,12 @@
       "description": "Search engine and detailed internal path handling",
       "properties": [
         {
+          "property": "manifest-metadata-site-settings-lang",
+          "title": "Language",
+          "description": "https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes for acceptable language codes.",
+          "inputMethod": "textfield"
+        },
+        {
           "property": "manifest-metadata-site-settings-pathauto",
           "title": "Pathauto",
           "description": "Automatically maintain and update page paths",

@@ -9,7 +9,6 @@ class HAXCMSSite
     public $manifest;
     public $directory;
     public $basePath = '/';
-    public $language = 'en-us';
     /**
      * Load a site based on directory and name
      */
@@ -114,7 +113,8 @@ class HAXCMSSite
         $this->manifest->metadata = new stdClass();
         $this->manifest->metadata->author = new stdClass();
         $this->manifest->metadata->site = new stdClass();
-        $this->manifest->metadata->site->lang = 'en';
+        $this->manifest->metadata->site->settings = new stdClass();
+        $this->manifest->metadata->site->settings->lang = 'en'; // default but changed via settings
         $this->manifest->metadata->site->name = $tmpname;
         $this->manifest->metadata->site->domain = $domain;
         $this->manifest->metadata->site->created = time();
@@ -292,6 +292,7 @@ class HAXCMSSite
         }
         // write the managed files to ensure we get happy copies
         $this->rebuildManagedFiles();
+        $this->updateAlternateFormats();
         $this->gitCommit('Managed files updated');
         return $this;
     }
@@ -389,7 +390,7 @@ class HAXCMSSite
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
-          'lang' => "en", // @todo need to support language setting in site.json
+          'lang' => $this->getLanguage(),
           'logo512x512' => $this->getLogoSize('512','512'),
           'logo256x256' => $this->getLogoSize('256','256'),
           'logo192x192' => $this->getLogoSize('192','192'),
@@ -754,7 +755,7 @@ class HAXCMSSite
                 @file_put_contents(
                     $siteDirectory . 'legacy-outline.html',
                     '<!DOCTYPE html>
-                    <html lang="en">
+                    <html lang="' . $this->getLanguage() . '">
                         <head>
                             <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
                             <meta content="utf-8" http-equiv="encoding">
@@ -955,6 +956,12 @@ class HAXCMSSite
      */
     public function getSitePageAttributes() {
       return 'vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/"';
+    }
+    public function getLanguage() {
+      if (isset($this->manifest->metadata->site->settings->lang) && $this->manifest->metadata->site->settings->lang != "" && $this->manifest->metadata->site->settings->lang != null) {
+        return $this->manifest->metadata->site->settings->lang;
+      }
+      return "en-US";
     }
     /**
      * Return the base tag accurately which helps with the PWA / SW side of things

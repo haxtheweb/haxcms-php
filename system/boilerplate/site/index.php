@@ -11,7 +11,7 @@
   $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php print $site->getLanguage(); ?>">
 <head>
   <?php print $site->getBaseTag(); ?>
   <?php print $site->getSiteMetadata($page); ?>
