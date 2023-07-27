@@ -670,7 +670,6 @@ class HAXCMSSite
             'htaccess':'.htaccess', // not templated (yet) but ensures self refreshing if we tweak it
             '404':'404.html',
             'msbc':'browserconfig.xml',
-            'dat':'dat.json',
             'build':'build.js',
             'buildhaxcms':'build-haxcms.js',
             'index':'index.html',

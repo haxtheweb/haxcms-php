@@ -328,20 +328,21 @@ class HAXCMSSite
             'buildlegacy' => 'assets/build-legacy.js',
             'buildpolyfills' => 'assets/build-polyfills.js',
             'buildhaxcms' => 'build-haxcms.js',
-            'index' => 'index.html',
-            'manifest' => 'manifest.json',
+            'outdated' => 'assets/upgrade-browser.html',
+            'index' => 'index.html', // static published fallback
+            '404' => '404.html', // github / static published redirect appropriately
+            // seo / performance
             'push' => 'push-manifest.json',
             'robots' => 'robots.txt',
-            'sw' => 'service-worker.js',
-            'outdated' => 'assets/upgrade-browser.html',
-            '404' => '404.html',
+            // pwa related files
             'msbc' => 'browserconfig.xml',
+            'manifest' => 'manifest.json',
+            'sw' => 'service-worker.js',
+            'offline' => 'offline.html', // pwa offline page
             // local development tooling
             'webdevserverhaxcmsconfigcjs' => 'web-dev-server.haxcms.config.cjs',
             'package' => 'package.json',
             'polymer' => 'polymer.json',
-            // Beaker browser
-            'dat' => 'dat.json',
             // SCORM 1.2
             'imsmdrootv1p2p1' => 'imsmd_rootv1p2p1.xsd',
             'imscprootv1p1p2' => 'imscp_rootv1p1p2.xsd',
