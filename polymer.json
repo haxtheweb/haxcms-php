@@ -17,6 +17,8 @@
     "node_modules/@shoelace-style/shoelace/dist/*/*.js",
     "node_modules/@shoelace-style/shoelace/dist/*.js",
     "node_modules/@shoelace-style/localize/dist/*.js",
+    "node_modules/@shoelace-style/shoelace/dist/themes/*.css",
+    "node_modules/@shoelace-style/shoelace/dist/themes/*.*.js",
     "node_modules/@shoelace-style/animations/dist/*.js",
     "node_modules/@shoelace-style/animations/dist/*/*.js",
     "node_modules/@lit-labs/motion/*.js",
