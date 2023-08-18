@@ -45,8 +45,8 @@ use Twig\Node\Node;
  */
 class ExpressionParser
 {
-    const OPERATOR_LEFT = 1;
-    const OPERATOR_RIGHT = 2;
+    public const OPERATOR_LEFT = 1;
+    public const OPERATOR_RIGHT = 2;
 
     private $parser;
     private $env;
@@ -366,7 +366,16 @@ class ExpressionParser
             //  * a string -- 'a'
             //  * a name, which is equivalent to a string -- a
             //  * an expression, which must be enclosed in parentheses -- (1 + 2)
-            if (($token = $stream->nextIf(/* Token::STRING_TYPE */ 7)) || ($token = $stream->nextIf(/* Token::NAME_TYPE */ 5)) || $token = $stream->nextIf(/* Token::NUMBER_TYPE */ 6)) {
+            if ($token = $stream->nextIf(/* Token::NAME_TYPE */ 5)) {
+                $key = new ConstantExpression($token->getValue(), $token->getLine());
+
+                // {a} is a shortcut for {a:a}
+                if ($stream->test(Token::PUNCTUATION_TYPE, [',', '}'])) {
+                    $value = new NameExpression($key->getAttribute('value'), $key->getTemplateLine());
+                    $node->addElement($value, $key);
+                    continue;
+                }
+            } elseif (($token = $stream->nextIf(/* Token::STRING_TYPE */ 7)) || $token = $stream->nextIf(/* Token::NUMBER_TYPE */ 6)) {
                 $key = new ConstantExpression($token->getValue(), $token->getLine());
             } elseif ($stream->test(/* Token::PUNCTUATION_TYPE */ 9, '(')) {
                 $key = $this->parseExpression();
@@ -479,7 +488,7 @@ class ExpressionParser
                     }
                 }
             } else {
-                throw new SyntaxError('Expected name or number.', $lineno, $stream->getSourceContext());
+                throw new SyntaxError(sprintf('Expected name or number, got value "%s" of type %s.', $token->getValue(), Token::typeToEnglish($token->getType())), $lineno, $stream->getSourceContext());
             }
 
             if ($node instanceof NameExpression && null !== $this->parser->getImportedSymbol('template', $node->getAttribute('name'))) {
@@ -584,6 +593,11 @@ class ExpressionParser
         while (!$stream->test(/* Token::PUNCTUATION_TYPE */ 9, ')')) {
             if (!empty($args)) {
                 $stream->expect(/* Token::PUNCTUATION_TYPE */ 9, ',', 'Arguments must be separated by a comma');
+
+                // if the comma above was a trailing comma, early exit the argument parse loop
+                if ($stream->test(/* Token::PUNCTUATION_TYPE */ 9, ')')) {
+                    break;
+                }
             }
 
             if ($definition) {
@@ -604,7 +618,7 @@ class ExpressionParser
                     $value = $this->parsePrimaryExpression();
 
                     if (!$this->checkConstantExpression($value)) {
-                        throw new SyntaxError(sprintf('A default value for an argument must be a constant (a boolean, a string, a number, or an array).'), $token->getLine(), $stream->getSourceContext());
+                        throw new SyntaxError('A default value for an argument must be a constant (a boolean, a string, a number, or an array).', $token->getLine(), $stream->getSourceContext());
                     }
                 } else {
                     $value = $this->parseExpression(0, $allowArrow);
@@ -643,7 +657,7 @@ class ExpressionParser
                 $stream->expect(/* Token::NAME_TYPE */ 5, null, 'Only variables can be assigned to');
             }
             $value = $token->getValue();
-            if (\in_array(strtolower($value), ['true', 'false', 'none', 'null'])) {
+            if (\in_array(strtr($value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), ['true', 'false', 'none', 'null'])) {
                 throw new SyntaxError(sprintf('You cannot assign a value to "%s".', $value), $token->getLine(), $stream->getSourceContext());
             }
             $targets[] = new AssignNameExpression($value, $token->getLine());
@@ -683,6 +697,8 @@ class ExpressionParser
         $arguments = null;
         if ($stream->test(/* Token::PUNCTUATION_TYPE */ 9, '(')) {
             $arguments = $this->parseArguments(true);
+        } elseif ($test->hasOneMandatoryArgument()) {
+            $arguments = new Node([0 => $this->parsePrimaryExpression()]);
         }
 
         if ('defined' === $name && $node instanceof NameExpression && null !== $alias = $this->parser->getImportedSymbol('function', $node->getAttribute('name'))) {
@@ -734,7 +750,7 @@ class ExpressionParser
             $src = $stream->getSourceContext();
             $message .= sprintf(' in %s at line %d.', $src->getPath() ?: $src->getName(), $stream->getCurrent()->getLine());
 
-            @trigger_error($message, E_USER_DEPRECATED);
+            @trigger_error($message, \E_USER_DEPRECATED);
         }
 
         return $test->getNodeClass();
@@ -760,7 +776,7 @@ class ExpressionParser
             $src = $this->parser->getStream()->getSourceContext();
             $message .= sprintf(' in %s at line %d.', $src->getPath() ?: $src->getName(), $line);
 
-            @trigger_error($message, E_USER_DEPRECATED);
+            @trigger_error($message, \E_USER_DEPRECATED);
         }
 
         return $function->getNodeClass();
@@ -786,7 +802,7 @@ class ExpressionParser
             $src = $this->parser->getStream()->getSourceContext();
             $message .= sprintf(' in %s at line %d.', $src->getPath() ?: $src->getName(), $line);
 
-            @trigger_error($message, E_USER_DEPRECATED);
+            @trigger_error($message, \E_USER_DEPRECATED);
         }
 
         return $filter->getNodeClass();

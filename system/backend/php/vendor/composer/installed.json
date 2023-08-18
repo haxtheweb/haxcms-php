@@ -792,40 +792,47 @@
     },
     {
         "name": "symfony/polyfill-ctype",
-        "version": "v1.11.0",
-        "version_normalized": "1.11.0.0",
+        "version": "v1.27.0",
+        "version_normalized": "1.27.0.0",
         "source": {
             "type": "git",
             "url": "https://github.com/symfony/polyfill-ctype.git",
-            "reference": "82ebae02209c21113908c229e9883c419720738a"
+            "reference": "5bbc823adecdae860bb64756d639ecfec17b050a"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/symfony/polyfill-ctype/zipball/82ebae02209c21113908c229e9883c419720738a",
-            "reference": "82ebae02209c21113908c229e9883c419720738a",
+            "url": "https://api.github.com/repos/symfony/polyfill-ctype/zipball/5bbc823adecdae860bb64756d639ecfec17b050a",
+            "reference": "5bbc823adecdae860bb64756d639ecfec17b050a",
             "shasum": ""
         },
         "require": {
-            "php": ">=5.3.3"
+            "php": ">=7.1"
+        },
+        "provide": {
+            "ext-ctype": "*"
         },
         "suggest": {
             "ext-ctype": "For best performance"
         },
-        "time": "2019-02-06T07:57:58+00:00",
+        "time": "2022-11-03T14:55:06+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
-                "dev-master": "1.11-dev"
+                "dev-main": "1.27-dev"
+            },
+            "thanks": {
+                "name": "symfony/polyfill",
+                "url": "https://github.com/symfony/polyfill"
             }
         },
         "installation-source": "dist",
         "autoload": {
-            "psr-4": {
-                "Symfony\\Polyfill\\Ctype\\": ""
-            },
             "files": [
                 "bootstrap.php"
-            ]
+            ],
+            "psr-4": {
+                "Symfony\\Polyfill\\Ctype\\": ""
+            }
         },
         "notification-url": "https://packagist.org/downloads/",
         "license": [
@@ -833,12 +840,12 @@
         ],
         "authors": [
             {
-                "name": "Symfony Community",
-                "homepage": "https://symfony.com/contributors"
-            },
-            {
                 "name": "Gert de Pagter",
                 "email": "BackEndTea@gmail.com"
+            },
+            {
+                "name": "Symfony Community",
+                "homepage": "https://symfony.com/contributors"
             }
         ],
         "description": "Symfony polyfill for ctype functions",
@@ -848,6 +855,20 @@
             "ctype",
             "polyfill",
             "portable"
+        ],
+        "funding": [
+            {
+                "url": "https://symfony.com/sponsor",
+                "type": "custom"
+            },
+            {
+                "url": "https://github.com/fabpot",
+                "type": "github"
+            },
+            {
+                "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                "type": "tidelift"
+            }
         ]
     },
     {
@@ -1021,40 +1042,47 @@
     },
     {
         "name": "symfony/polyfill-mbstring",
-        "version": "v1.11.0",
-        "version_normalized": "1.11.0.0",
+        "version": "v1.27.0",
+        "version_normalized": "1.27.0.0",
         "source": {
             "type": "git",
             "url": "https://github.com/symfony/polyfill-mbstring.git",
-            "reference": "fe5e94c604826c35a32fa832f35bd036b6799609"
+            "reference": "8ad114f6b39e2c98a8b0e3bd907732c207c2b534"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/fe5e94c604826c35a32fa832f35bd036b6799609",
-            "reference": "fe5e94c604826c35a32fa832f35bd036b6799609",
+            "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/8ad114f6b39e2c98a8b0e3bd907732c207c2b534",
+            "reference": "8ad114f6b39e2c98a8b0e3bd907732c207c2b534",
             "shasum": ""
         },
         "require": {
-            "php": ">=5.3.3"
+            "php": ">=7.1"
+        },
+        "provide": {
+            "ext-mbstring": "*"
         },
         "suggest": {
             "ext-mbstring": "For best performance"
         },
-        "time": "2019-02-06T07:57:58+00:00",
+        "time": "2022-11-03T14:55:06+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
-                "dev-master": "1.11-dev"
+                "dev-main": "1.27-dev"
+            },
+            "thanks": {
+                "name": "symfony/polyfill",
+                "url": "https://github.com/symfony/polyfill"
             }
         },
         "installation-source": "dist",
         "autoload": {
-            "psr-4": {
-                "Symfony\\Polyfill\\Mbstring\\": ""
-            },
             "files": [
                 "bootstrap.php"
-            ]
+            ],
+            "psr-4": {
+                "Symfony\\Polyfill\\Mbstring\\": ""
+            }
         },
         "notification-url": "https://packagist.org/downloads/",
         "license": [
@@ -1078,6 +1106,20 @@
             "polyfill",
             "portable",
             "shim"
+        ],
+        "funding": [
+            {
+                "url": "https://symfony.com/sponsor",
+                "type": "custom"
+            },
+            {
+                "url": "https://github.com/fabpot",
+                "type": "github"
+            },
+            {
+                "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                "type": "tidelift"
+            }
         ]
     },
     {
@@ -1218,34 +1260,34 @@
     },
     {
         "name": "twig/twig",
-        "version": "v2.11.2",
-        "version_normalized": "2.11.2.0",
+        "version": "v2.15.5",
+        "version_normalized": "2.15.5.0",
         "source": {
             "type": "git",
             "url": "https://github.com/twigphp/Twig.git",
-            "reference": "84a463403da1c81afbcedda8f0e788c78bd25a79"
+            "reference": "fc02a6af3eeb97c4bf5650debc76c2eda85ac22e"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/twigphp/Twig/zipball/84a463403da1c81afbcedda8f0e788c78bd25a79",
-            "reference": "84a463403da1c81afbcedda8f0e788c78bd25a79",
+            "url": "https://api.github.com/repos/twigphp/Twig/zipball/fc02a6af3eeb97c4bf5650debc76c2eda85ac22e",
+            "reference": "fc02a6af3eeb97c4bf5650debc76c2eda85ac22e",
             "shasum": ""
         },
         "require": {
-            "php": "^7.0",
+            "php": ">=7.1.3",
             "symfony/polyfill-ctype": "^1.8",
-            "symfony/polyfill-mbstring": "^1.3"
+            "symfony/polyfill-mbstring": "^1.3",
+            "symfony/polyfill-php72": "^1.8"
         },
         "require-dev": {
             "psr/container": "^1.0",
-            "symfony/debug": "^2.7",
-            "symfony/phpunit-bridge": "^3.4.19|^4.1.8|^5.0"
+            "symfony/phpunit-bridge": "^4.4.9|^5.0.9|^6.0"
         },
-        "time": "2019-06-05T11:17:07+00:00",
+        "time": "2023-05-03T17:49:41+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
-                "dev-master": "2.11-dev"
+                "dev-master": "2.15-dev"
             }
         },
         "installation-source": "dist",
@@ -1269,20 +1311,29 @@
                 "role": "Lead Developer"
             },
             {
+                "name": "Twig Team",
+                "role": "Contributors"
+            },
+            {
                 "name": "Armin Ronacher",
                 "email": "armin.ronacher@active-4.com",
                 "role": "Project Founder"
-            },
-            {
-                "name": "Twig Team",
-                "homepage": "https://twig.symfony.com/contributors",
-                "role": "Contributors"
             }
         ],
         "description": "Twig, the flexible, fast, and secure template language for PHP",
         "homepage": "https://twig.symfony.com",
         "keywords": [
             "templating"
+        ],
+        "funding": [
+            {
+                "url": "https://github.com/fabpot",
+                "type": "github"
+            },
+            {
+                "url": "https://tidelift.com/funding/github/packagist/twig/twig",
+                "type": "tidelift"
+            }
         ]
     },
     {
