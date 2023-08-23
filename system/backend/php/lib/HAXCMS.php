@@ -514,9 +514,9 @@ class HAXCMS
           "seo": {
             "manifest-metadata-site-settings-lang": null,
             "manifest-metadata-site-settings-pathauto": null,
-            "manifest-metadata-site-settings-publishPagesOn": null,
+            "manifest-metadata-site-settings-publishPagesOn": true,
             "manifest-metadata-site-settings-sw": null,
-            "manifest-metadata-site-settings-forceUpgrade": null
+            "manifest-metadata-site-settings-forceUpgrade": true
           }
         }
       }');
@@ -538,7 +538,7 @@ class HAXCMS
         // while still being presented in a visually agnostic manner
         // this is some crazy S..
         // test if we have deeper items to traverse at this level
-        if (!is_string($value) && count((array)$value) > 0) {
+        if (!is_string($value) && count((array)$value) > 0 && !is_bool($value)) {
           $manifestKeys->{$key} = $this->populateManifestValues($site, $value);
         }
         else if (is_string($key) && $lookup = $this->deepObjectLookUp($site, $key)) {
