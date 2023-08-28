@@ -5,24 +5,14 @@ class FeedMe
     /**
      * Generate the RSS 2.0 header
      */
-    public function getRSSFeed($site)
+    public function getRSSFeed($site, $domain = "")
     {
-        $domain = "";
-        if (isset($site->manifest->metadata->site->domain)) {
-            $domain = $site->manifest->metadata->site->domain;
-        }
         return '<?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
   <channel>
-    <title>' .
-            $site->manifest->title .
-            '</title>
-    <link>' .
-            $domain .
-            '/rss.xml</link>
-    <description>' .
-            $site->manifest->description .
-            '</description>
+    <title>' . $site->manifest->title . '</title>
+    <link>' . $domain . '</link>
+    <description>' . $site->manifest->description . '</description>
     <copyright>Copyright (C) ' .
             date('Y') .
             ' ' .
@@ -35,9 +25,8 @@ class FeedMe
             date(\DateTime::RSS, $site->manifest->metadata->site->updated) .
             '</lastBuildDate>
     <atom:link href="' .
-            $domain .
-            '/rss.xml" rel="self" type="application/rss+xml"/>' .
-            $this->rssItems($site) .
+            $domain .'" rel="self" type="application/rss+xml"/>' .
+            $this->rssItems($site, $domain) .
             '
   </channel>
 </rss>';
@@ -45,14 +34,10 @@ class FeedMe
     /**
      * Generate RSS items.
      */
-    public function rssItems($site, $limit = 25)
+    public function rssItems($site, $domain, $limit = 25)
     {
         $output = '';
-        $domain = "";
         $count = 0;
-        if (isset($site->manifest->metadata->site->domain)) {
-            $domain = $site->manifest->metadata->site->domain;
-        }
         $items = $site->sortItems('created');
         $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
         foreach ($items as $key => $item) {
@@ -76,13 +61,7 @@ class FeedMe
                 $item->title .
                 '</title>
       <link>' .
-                $domain .
-                '/' .
-                str_replace(
-                    'pages/',
-                    '',
-                    str_replace('/index.html', '', $item->location)
-                ) .
+                $domain . $item->slug .
                 '</link>
       <description>
           <![CDATA[ ' .
@@ -92,15 +71,7 @@ class FeedMe
       <category>' .
                 $tags .
                 '</category>
-      <guid>' .
-                $domain .
-                '/' .
-                str_replace(
-                    'pages/',
-                    '',
-                    str_replace('/index.html', '', $item->location)
-                ) .
-                '</guid>
+      <guid>' . $item->id . '</guid>
       <pubDate>' .
                 date(\DateTime::RSS, $item->metadata->created) .
                 '</pubDate>
@@ -113,20 +84,15 @@ class FeedMe
     /**
      * Generate the atom feed
      */
-    public function getAtomFeed($site)
+    public function getAtomFeed($site, $domain = "")
     {
-        $domain = "";
-        if (isset($site->manifest->metadata->site->domain)) {
-            $domain = $site->manifest->metadata->site->domain;
-        }
         return '<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>' .
             $site->manifest->title .
             '</title>
   <link href="' .
-            $domain .
-            '/atom.xml" rel="self" />
+            $domain . '" rel="self" />
   <subtitle>' .
             $site->manifest->description .
             '</subtitle>
@@ -139,23 +105,18 @@ class FeedMe
             '</name>
   </author>
   <id>' .
-            $domain .
-            '/feed</id>' .
-            $this->atomItems($site) .
+            $domain . '</id>' .
+            $this->atomItems($site, $domain) .
             '
 </feed>';
     }
     /**
      * Generate Atom items.
      */
-    public function atomItems($site, $limit = 25)
+    public function atomItems($site, $domain, $limit = 25)
     {
         $output = '';
-        $domain = "";
         $count = 0;
-        if (isset($site->manifest->metadata->site->domain)) {
-            $domain = $site->manifest->metadata->site->domain;
-        }
         $items = $site->sortItems('created');
         $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
         foreach ($items as $key => $item) {
@@ -182,13 +143,7 @@ class FeedMe
                 $item->title .
                 '</title>
     <id>' .
-                $domain .
-                '/' .
-                str_replace(
-                    'pages/',
-                    '',
-                    str_replace('/index.html', '', $item->location)
-                ) .
+                $item->id .
                 '</id>
     <updated>' .
                 date(\DateTime::ATOM, $item->metadata->updated) .
@@ -200,13 +155,7 @@ class FeedMe
                 $item->description .
                 '</summary>
     <link href="' .
-                $domain .
-                '/' .
-                str_replace(
-                    'pages/',
-                    '',
-                    str_replace('/index.html', '', $item->location)
-                ) .
+                $domain . $item->slug .
                 '"/>
     ' .
                 $tags .

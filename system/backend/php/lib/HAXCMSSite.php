@@ -692,63 +692,74 @@ class HAXCMSSite
               $rss = new FeedMe();
               $siteDirectory =
                   $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+              $domain = NULL;
+              if (isset($this->manifest->metadata->site->domain)) {
+                $domain = $this->manifest->metadata->site->domain;                
+              }
+              if (is_null($domain) || $domain == "") {
+                $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+              }
+              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this, $domain));
               @file_put_contents(
                   $siteDirectory . 'atom.xml',
-                  $rss->getAtomFeed($this)
+                  $rss->getAtomFeed($this, $domain)
               );
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
           }
       }
+      if (is_null($format) || $format == 'jsonfeed') {
+        // now generate the search index
+        @file_put_contents(
+            $siteDirectory . 'jsonfeed.json',
+                json_encode($this->jsonFeedFormat())
+        );
+      }
       // build a sitemap if we have a domain, kinda required...
       if (is_null($format) || $format == 'sitemap') {
           try {
-              if (isset($this->manifest->metadata->site->domain)) {
-                  $domain = $this->manifest->metadata->site->domain;
-                  $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                      $domain,
-                      $siteDirectory
-                  );
-                  // will create also compressed (gzipped) sitemap
-                  $generator->createGZipFile = true;
-                  // determine how many urls should be put into one file
-                  // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-                  $generator->maxURLsPerSitemap = 50000;
-                  // sitemap file name
-                  $generator->sitemapFileName = "sitemap.xml";
-                  // sitemap index file name
-                  $generator->sitemapIndexFileName = "sitemap-index.xml";
-                  // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-                  foreach ($this->manifest->items as $key => $item) {
-                      if ($item->parent == null) {
-                          $priority = '1.0';
-                      } elseif ($item->indent == 2) {
-                          $priority = '0.7';
-                      } else {
-                          $priority = '0.5';
-                      }
-                      $updatedTime = new DateTime();
-                      $updatedTime->setTimestamp($item->metadata->updated);
-                      $updatedTime->format(DateTime::ATOM);
-                      $generator->addUrl(
-                          $domain .
-                              '/' .
-                              str_replace(
-                                  'pages/',
-                                  '',
-                                  str_replace('/index.html', '', $item->location)
-                              ),
-                          $updatedTime,
-                          'daily',
-                          $priority
-                      );
-                  }
-                  // generating internally a sitemap
-                  $generator->createSitemap();
-                  // writing early generated sitemap to file
-                  $generator->writeSitemap();
-              }
+            if (isset($this->manifest->metadata->site->domain)) {
+              $domain = $this->manifest->metadata->site->domain;                
+            }
+            if (is_null($domain) || $domain == "") {
+              $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+            }
+            $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                $domain,
+                $siteDirectory
+            );
+            // will create also compressed (gzipped) sitemap
+            $generator->createGZipFile = true;
+            // determine how many urls should be put into one file
+            // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+            $generator->maxURLsPerSitemap = 50000;
+            // sitemap file name
+            $generator->sitemapFileName = "sitemap.xml";
+            // sitemap index file name
+            $generator->sitemapIndexFileName = "sitemap-index.xml";
+            // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+            foreach ($this->manifest->items as $key => $item) {
+                if ($item->parent == null) {
+                    $priority = '1.0';
+                } elseif ($item->indent == 2) {
+                    $priority = '0.7';
+                } else {
+                    $priority = '0.5';
+                }
+                $updatedTime = new DateTime();
+                $updatedTime->setTimestamp($item->metadata->updated);
+                $updatedTime->format(DateTime::ATOM);
+                $generator->addUrl(
+                    $item->slug,
+                    $updatedTime,
+                    'daily',
+                    $priority
+                );
+            }
+            // generating internally a sitemap
+            $generator->createSitemap();
+            // writing early generated sitemap to file
+            $generator->writeSitemap();
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
           }
@@ -783,6 +794,54 @@ class HAXCMSSite
       if (is_null($format) || $format == 'service-worker') {
         $this->rebuildManagedFiles(array('sw' => 'service-worker.js'));
       }
+    }
+    /**
+     * Create Lunr.js style search index
+     */
+    public function jsonFeedFormat($limit = 25) {
+      $domain = NULL;
+      if (isset($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;                
+      }
+      if (is_null($domain) || $domain == "") {
+        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
+        $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+      }
+      $data = array(
+        "version" => "https://jsonfeed.org/version/1.1",
+        "title" => $this->manifest->title,
+        "home_page_url" => $domain,
+        "feed_url" => $domain . 'jsonfeed.json',
+        "description" => $this->manifest->description,
+        "items" => array(),
+      );
+      $count = 0;
+      foreach ($this->manifest->items as $item) {
+        if ($count < $limit) {
+          $created = time();
+          if (isset($item->metadata) && isset($item->metadata->created)) {
+            $created = $item->metadata->created;
+          }
+          if (isset($item->slug)) {
+            $slug = $item->slug;
+          }
+          else {
+            // slug is now the URL canonical
+            $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
+          }
+          // may seem silly but IDs in lunr have a size limit for some reason in our context..
+          $data["items"][] = array(
+            "guid" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
+            "url" => $domain . $slug,
+            "title" => $item->title,
+            "summary" => $item->description,
+            "content_html" => @file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location),
+            "date_published" => date('c', $created),
+          );
+        }
+        $count++;
+      }
+      return $data;
     }
     /**
      * Create Lunr.js style search index

@@ -1014,6 +1014,14 @@ class HAXCMS
       }
     }
     /**
+     * Return the active domain if it exists
+     */
+    public function getDomain() {
+      if (isset($_SERVER['SERVER_NAME'])) {
+        return 'https://' . $_SERVER['SERVER_NAME'];
+      }
+    }
+    /**
      * Load wc-registry.json relative to the site in question
      */
     public function getWCRegistryJson($site, $base = './') {
