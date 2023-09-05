@@ -11,6 +11,12 @@
         "name": "Clean two theme",
         "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
     },
+    "app-hax-theme": {
+        "element": "app-hax-theme",
+        "path": "@lrnwebcomponents/app-hax/lib/app-hax-theme.js",
+        "name": "8-bit theme",
+        "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
+    },
     "learn-two-theme": {
         "element": "learn-two-theme",
         "path": "@lrnwebcomponents/learn-two-theme/learn-two-theme.js",
