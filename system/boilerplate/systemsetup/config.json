@@ -573,6 +573,8 @@
           }
       ],
       "autoloader": {
+        "simple-cta": "@lrnwebcomponents/simple-cta/simple-cta.js",
+        "page-section": "@lrnwebcomponents/page-section/page-section.js",
         "spotify-embed": "@lrnwebcomponents/spotify-embed/spotify-embed.js",
         "media-image": "@lrnwebcomponents/media-image/media-image.js",
         "inline-audio": "@lrnwebcomponents/inline-audio/inline-audio.js",

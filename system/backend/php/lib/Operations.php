@@ -1123,6 +1123,29 @@ class Operations {
               else if (isset($page->metadata->pageType)) {
                 unset($page->metadata->pageType);
               }
+              // support for defining and updating hideInMenu
+              if (isset($data["attributes"]["hide-in-menu"])) {
+                $page->metadata->hideInMenu = true;
+              }
+              else {
+                $page->metadata->hideInMenu = false;
+              }
+              // support for defining and updating related-items
+              if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
+                $page->metadata->relatedItems = $data["attributes"]["related-items"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->relatedItems)) {
+                unset($page->metadata->relatedItems);
+              }
+              // support for defining and updating image
+              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                $page->metadata->image = $data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->image)) {
+                unset($page->metadata->image);
+              }
               // support for defining and updating page type
               if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
                 $page->metadata->tags = $data["attributes"]["tags"];
