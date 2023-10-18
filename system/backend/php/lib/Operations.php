@@ -511,8 +511,40 @@ class Operations {
         $site->manifest->metadata->theme->variables = new stdClass();
       }
       $site->manifest->metadata->theme->variables->image = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'], FILTER_SANITIZE_STRING
       );
+      $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
+      );
+      $site->manifest->metadata->theme->variables->imageLink = filter_var(
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_STRING
+      );
+      // REGIONS SUPPORT
+      if (!isset($site->manifest->metadata->theme->regions)) {
+        $site->manifest->metadata->theme->regions = new stdClass();
+      }
+      // look for a match so we can set the correct data
+      foreach ($site->manifest->items as $key => $item) {
+        if (
+            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-header'], FILTER_SANITIZE_STRING) ==
+            $item->id
+        ) {
+            $site->manifest->metadata->theme->regions->header = $item->id;
+        }
+        if (
+          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerPrimary'], FILTER_SANITIZE_STRING) ==
+          $item->id
+        ) {
+            $site->manifest->metadata->theme->regions->footerPrimary = $item->id;
+        }
+        if (
+          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerSecondary'], FILTER_SANITIZE_STRING) ==
+          $item->id
+        ) {
+            $site->manifest->metadata->theme->regions->footerSecondary = $item->id;
+        }
+      }
+
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
         $site->manifest->metadata->theme->variables->hexCode = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING

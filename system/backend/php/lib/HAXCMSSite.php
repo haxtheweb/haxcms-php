@@ -892,10 +892,16 @@ class HAXCMSSite
       $dir = $this->__compareItemDir;
       if (isset($a->metadata->{$key})) {
         if ($dir == 'DESC') {
-          return $a->metadata->{$key} > $b->metadata->{$key};
+          if ($a->metadata->{$key} == $b->metadata->{$key}) {
+            return 0;
+          }
+          return ($a->metadata->{$key} > $b->metadata->{$key}) ? -1 : 1;
         }
         else {
-          return $a->metadata->{$key} < $b->metadata->{$key};
+          if ($a->metadata->{$key} == $b->metadata->{$key}) {
+            return 0;
+          }
+          return ($a->metadata->{$key} < $b->metadata->{$key}) ? -1 : 1;
         }
       }
     }
@@ -924,10 +930,16 @@ class HAXCMSSite
             case 'description':
                 usort($items, function ($a, $b) {
                   if ($dir == 'ASC') {
-                    return $a->{$key} > $b->{$key};
+                    if ($a->{$key} == $b->{$key}) {
+                      return 0;
+                    }
+                    return ($a->{$key} > $b->{$key}) ? -1 : 1;
                   }
                   else {
-                    return $a->{$key} < $b->{$key};
+                    if ($a->{$key} == $b->{$key}) {
+                      return 0;
+                    }
+                    return ($a->{$key} < $b->{$key}) ? -1 : 1;
                   }
                 });
             break;
@@ -957,7 +969,10 @@ class HAXCMSSite
                 }
                 // sort the kids
                 usort($children, function ($a, $b) {
-                    return $a->order > $b->order;
+                  if ($a->order == $b->order) {
+                    return 0;
+                  }
+                  return ($a->order < $b->order) ? -1 : 1;
                 });
                 // only walk deeper if there were children for this page
                 if (count($children) > 0) {

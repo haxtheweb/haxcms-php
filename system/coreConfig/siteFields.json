@@ -52,17 +52,55 @@
           "description": "Design and presentation layer for your site",
           "inputMethod": "select",
           "required": false,
-          "icon": "editor:format-paint",
           "options": {}
         },
         {
+          "property": "manifest-metadata-theme-regions-header",
+          "title": "Header",
+          "description": "Page to use for the content of the header region",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
+          "property": "manifest-metadata-theme-regions-footerPrimary",
+          "title": "Footer primary",
+          "description": "Primary footer content supplied by this page",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
+          "property": "manifest-metadata-theme-regions-footerSecondary",
+          "title": "Footer secondary",
+          "description": "Secondary footer content supplied by this page",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
           "property": "manifest-metadata-theme-variables-image",
-          "title": "Banner",
-          "description": "Banner image aplied to themes that implement one",
+          "title": "Image",
+          "description": "Image aplied to themes that implement one",
           "inputMethod": "haxupload",
           "required": false,
-          "icon": "image:image",
           "noVoiceRecord": true
+        },
+        {
+          "property": "manifest-metadata-theme-variables-imageAlt",
+          "title": "Image alt",
+          "description": "Image alt info aplied to themes that implement one",
+          "inputMethod": "textfield",
+          "required": false,
+          "icon": "image:image"
+        },
+        {
+          "property": "manifest-metadata-theme-variables-imageLink",
+          "title": "Image link",
+          "description": "URL to link image in themes that implement it",
+          "inputMethod": "textfield",
+          "required": false,
+          "icon": "image:image"
         },
         {
           "property": "manifest-metadata-theme-variables-cssVariable",
