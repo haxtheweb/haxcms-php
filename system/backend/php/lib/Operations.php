@@ -510,8 +510,6 @@ class Operations {
       $site->manifest->metadata->theme->variables->image = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
       );
-<<<<<<< Updated upstream
-=======
       $site->manifest->metadata->theme->variables->imageAlt = filter_var(
         $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
       );
@@ -543,8 +541,6 @@ class Operations {
             $site->manifest->metadata->theme->regions->footerSecondary = array($item->id);
         }
       }
-
->>>>>>> Stashed changes
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
         $site->manifest->metadata->theme->variables->hexCode = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
