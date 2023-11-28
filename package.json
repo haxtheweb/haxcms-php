@@ -25,8 +25,14 @@
     "glob": "^7.1.6",
     "gulp": "4.0.2",
     "gulp-minify-html-literals": "1.1.7",
+<<<<<<< Updated upstream
     "gulp-terser": "1.2.0",
     "polymer-build": "3.1.4",
+=======
+    "gulp-terser": "2.1.0",
+    "patch-package": "6.4.7",
+    "polymer-build": "https://github.com/KatapultDevelopment/tools/raw/serve-es-next/packages/build/polymer-build-3.1.6.tgz",
+>>>>>>> Stashed changes
     "polymer-cli": "1.9.11",
     "prettier": "1.16.4"
   },
