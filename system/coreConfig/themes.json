@@ -23,6 +23,18 @@
     "name": "BootstrapCSS theme",
     "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/BlueStyle.svg"
   },
+  "polaris-theme": {
+    "element": "polaris-theme",
+    "path": "@lrnwebcomponents/polaris-theme/polaris-theme.js",
+    "name": "Polaris Website theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
+  },
+  "collections-theme": {
+    "element": "collections-theme",
+    "path": "@lrnwebcomponents/collection-list/lib/collections-theme.js",
+    "name": "Collections theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
+  },
   "haxor-slevin": {
     "element": "haxor-slevin",
     "path": "@lrnwebcomponents/haxor-slevin/haxor-slevin.js",

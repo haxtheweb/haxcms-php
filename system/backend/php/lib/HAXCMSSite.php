@@ -263,6 +263,9 @@ class HAXCMSSite
                 break;
               }
             break;
+            case 'collection':
+              $this->addPage(null, 'Home', 'collection', 'home');
+            break;
             case 'portfolio':
               switch ($build->type) {
                 case 'art':
@@ -635,6 +638,7 @@ class HAXCMSSite
         switch ($template) {
             case 'course':
             case 'glossary':
+            case 'collection':
             case 'init':
             case 'lesson':
             case 'default':

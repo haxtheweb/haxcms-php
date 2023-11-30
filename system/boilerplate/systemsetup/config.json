@@ -573,6 +573,8 @@
           }
       ],
       "autoloader": {
+        "collection-item": "@lrnwebcomponents/collection-list/lib/collection-item.js",
+        "collection-list": "@lrnwebcomponents/collection-list/collection-list.js",
         "block-quote": "@lrnwebcomponents/course-design/lib/block-quote.js",
         "ebook-button": "@lrnwebcomponents/course-design/lib/ebook-button.js",
         "lrn-h5p": "@lrnwebcomponents/course-design/lib/lrn-h5p.js",
