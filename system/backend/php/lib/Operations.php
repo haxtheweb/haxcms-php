@@ -1150,6 +1150,22 @@ class Operations {
               else if (isset($page->metadata->tags)) {
                 unset($page->metadata->tags);
               }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
+                $page->metadata->icon = $data["attributes"]["icon"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->icon)) {
+                unset($page->metadata->icon);
+              }
+              // support for defining an image to represent the page
+              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                $page->metadata->image = $data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->image)) {
+                unset($page->metadata->image);
+              }
               if (!isset($data["attributes"]["locked"])) {
                 $page->metadata->locked = false;
               }
@@ -1158,13 +1174,19 @@ class Operations {
               }
               // update the updated timestamp
               $page->metadata->updated = time();
-              // auto generate a text only description from first 200 chars
               $clean = strip_tags($body);
-              $page->description = str_replace(
+              // auto generate a text only description from first 200 chars
+              // unless we were sent one to use
+              if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
+                $page->description = $data["attributes"]["description"];
+              }
+              else {
+                $page->description = str_replace(
                   "\n",
                   '',
                   substr($clean, 0, 200)
               );
+              }
               $readtime = round(str_word_count($clean) / 200);
               // account for uber small body
               if ($readtime == 0) {
