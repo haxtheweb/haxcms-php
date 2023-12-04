@@ -601,6 +601,12 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
         );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
+        $site->manifest->metadata->site->settings->gaID = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
+        FILTER_SANITIZE_STRING
+        );
+      }
       $site->manifest->metadata->site->updated = time();
       // don't reorganize the structure
       $site->manifest->save(false);

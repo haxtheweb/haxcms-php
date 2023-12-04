@@ -126,8 +126,8 @@
         opacity: 0;
       }
     }
-    </style>
-    <script id="loadingscript">
+  </style>
+  <script id="loadingscript">
     window.addEventListener('haxcms-ready', function(e) {
       // give the web components a second to build
       setTimeout(function() {
@@ -171,5 +171,15 @@
     window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic($site);?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
   <script src="./build-haxcms.js"></script>
   <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build.js"></script>
+<?php if ($site->getGaID()) { ?>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=<?php print $site->getGaID();?>"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', '<?php print $site->getGaID();?>');
+  </script>
+<?php } ?>
 </body>
 </html>

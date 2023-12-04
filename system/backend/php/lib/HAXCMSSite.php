@@ -309,6 +309,16 @@ class HAXCMSSite
         return "false";
     }
     /**
+     * Return the gaID which is the (optional) Google Analytics ID
+     * @return string gaID the user put in
+     */
+    public function getGaID() {
+      if (isset($this->manifest->metadata->site->settings->gaID) && $this->manifest->metadata->site->settings->gaID) {
+          return $this->manifest->metadata->site->settings->gaID;
+      }
+      return null;
+    }
+    /**
      * Return the sw status
      * @return string status of forced upgrade, string as boolean since it'll get written into a JS file
      */
@@ -373,6 +383,7 @@ class HAXCMSSite
           'short' => $this->manifest->metadata->site->name,
           'description' => $this->manifest->description,
           'forceUpgrade' => $this->getForceUpgrade(),
+          'getGaID' => $this->getGaID(),
           'swhash' => array(),
           'ghPagesURLParamCount' => 0,
           'licenseLink' => $licenseLink,
