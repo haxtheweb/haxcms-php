@@ -9,7 +9,6 @@ class HAXCMSSite
     public $manifest;
     public $directory;
     public $basePath = '/';
-    public $language = 'en-us';
     /**
      * Load a site based on directory and name
      */
@@ -391,6 +390,7 @@ class HAXCMSSite
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
+          'lang' => $this->getLanguage(),
           'logo512x512' => $this->getLogoSize('512','512'),
           'logo310x310' => $this->getLogoSize('310','310'),
           'logo192x192' => $this->getLogoSize('192','192'),
@@ -763,8 +763,8 @@ class HAXCMSSite
                 @file_put_contents(
                     $siteDirectory . 'legacy-outline.html',
                     '<!DOCTYPE html>
-                    <html lang="en">
-                        <head>
+                    <html lang="' . $this->getLanguage() . '">
+                      <head>
                             <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
                             <meta content="utf-8" http-equiv="encoding">
                             <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
@@ -964,6 +964,12 @@ class HAXCMSSite
      */
     public function getSitePageAttributes() {
       return 'vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/"';
+    }
+    public function getLanguage() {
+      if (isset($this->manifest->metadata->site->settings->lang) && $this->manifest->metadata->site->settings->lang != "" && $this->manifest->metadata->site->settings->lang != null) {
+        return $this->manifest->metadata->site->settings->lang;
+      }
+      return "en-US";
     }
     /**
      * Return the base tag accurately which helps with the PWA / SW side of things
