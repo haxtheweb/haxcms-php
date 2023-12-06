@@ -35,6 +35,12 @@
     "name": "Collections theme",
     "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
   },
+  "training-theme": {
+    "element": "training-theme",
+    "path": "@lrnwebcomponents/training-list/training-theme.js",
+    "name": "Training theme",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
+  },
   "haxor-slevin": {
     "element": "haxor-slevin",
     "path": "@lrnwebcomponents/haxor-slevin/haxor-slevin.js",

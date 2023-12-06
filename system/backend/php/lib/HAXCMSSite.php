@@ -215,7 +215,6 @@ class HAXCMSSite
                     ));
                   }
                 break;
-                case 'training':
                 default:
                   array_push($pageSchema, array(
                     "parent" => null,
@@ -265,6 +264,9 @@ class HAXCMSSite
             case 'collection':
               $this->addPage(null, 'Home', 'collection', 'home');
             break;
+            case 'training':
+              $this->addPage(null, 'Start', 'init', 'start');
+              break;
             case 'portfolio':
               switch ($build->type) {
                 case 'art':
