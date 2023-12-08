@@ -718,7 +718,7 @@ class Operations {
                   }
                   else if ($tmpItem->slug != $page->slug) {
                       $moved = true;
-                      $page->slug = $tmpItem->slug;
+                      $page->slug = $GLOBALS['HAXCMS']->generateMachineName($tmpItem->slug);
                   }
               }
           }
@@ -1099,7 +1099,16 @@ class Operations {
                 $page->title = $data["attributes"]["title"];
               }
               if (isset($data["attributes"]["slug"])) {
-                $page->slug = $data["attributes"]["slug"];
+                // account for x being the only front end reserved route
+                if ($data["attributes"]["slug"] == "x") {
+                  $data["attributes"]["slug"] = "x-x";
+                }
+                // same but trying to force a sub-route; paths cannot conflict with front end
+                if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
+                  $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
+                }
+                // machine name should more aggressively scrub the slug than clean title
+                $page->slug = $GLOBALS['HAXCMS']->generateMachineName($data["attributes"]["slug"]);
               }
               if (isset($data["attributes"]["parent"])) {
                 $page->parent = $data["attributes"]["parent"];
