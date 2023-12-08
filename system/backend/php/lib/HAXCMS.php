@@ -854,6 +854,21 @@ class HAXCMS
         return false;
     }
     /**
+     * parse attributes out of an HTML tag in a safer manner
+     */
+    public function parse_attributes($attr) {
+      $atList = [];
+      if (preg_match_all('/\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/i', $attr, $m)) {
+        for ($i = 0; $i < count($m[0]); $i++) {
+          if ($m[3][$i])
+            $atList[$m[3][$i]] = null;
+          else
+            $atList[$m[1][$i]] = $m[2][$i];
+        }
+      }
+      return $atList;
+    }
+    /**
      * Helper for parsing out and returning page-break's in a body of content
      * to help support HAX multi-page editing / outlining capabilities
      */
@@ -864,12 +879,7 @@ class HAXCMS
       preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
         $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
-        try {
-          $attrs = current((array) new SimpleXMLElement($content));
-        }
-        catch(Exception $e) {
-          $attrs = array();
-        }
+        $attrs = @$this->parse_attributes($content);
         $pageData[$i] = array(
             "content" => $matches[4][$i],
             // this assumes that the attributes are well formed; make sure front end did this

@@ -1024,6 +1024,7 @@ class Operations {
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
+    // @todo review this step by step
     if ($page = $site->loadNode($this->params['node']['id'])) {
       // convert web location for loading into file location for writing
       if (isset($body)) {
@@ -1035,8 +1036,9 @@ class Operations {
           if (!isset($data["attributes"]["title"])) {
             $data["attributes"]["title"] = 'New page';
           }
+          // to avoid critical error in parsing, we defer to the POST's ID always
           if (!isset($data["attributes"]["item-id"])) {
-            $data["attributes"]["item-id"] = '';
+            $data["attributes"]["item-id"] = $this->params['node']['id'];
           }
           if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
             $data["attributes"]["path"] = $data["attributes"]["title"];
