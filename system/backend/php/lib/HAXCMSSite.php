@@ -738,7 +738,7 @@ class HAXCMSSite
                             $updatedTime = new DateTime();
                             $updatedTime->setTimestamp($item->metadata->updated);
                             $updatedTime->format(DateTime::ATOM);
-                            $generator->addUrl(
+                            @$generator->addUrl(
                                 $domain .
                                     '/' .
                                     str_replace(
