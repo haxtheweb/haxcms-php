@@ -493,7 +493,18 @@ class HAXCMS
             "manifest-metadata-theme-variables-image": null,
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
-            "manifest-metadata-theme-variables-icon": null
+            "manifest-metadata-theme-variables-icon": null,
+            "manifest-metadata-theme-variables-imageLink": null,
+            "manifest-metadata-theme-variables-imageAlt": null,
+            "regions": {
+              "manifest-metadata-theme-regions-header": null,
+              "manifest-metadata-theme-regions-sidebarFirst": null,
+              "manifest-metadata-theme-regions-sidebarSecond": null,
+              "manifest-metadata-theme-regions-contentTop": null,
+              "manifest-metadata-theme-regions-contentBottom": null,
+              "manifest-metadata-theme-regions-footerPrimary": null,
+              "manifest-metadata-theme-regions-footerSecondary": null
+            }
           },
           "author": {
             "manifest-license": null,
@@ -533,7 +544,21 @@ class HAXCMS
           $manifestKeys->{$key} = $this->populateManifestValues($site, $value);
         }
         else if (is_string($key) && $lookup = $this->deepObjectLookUp($site, $key)) {
-          $manifestKeys->{$key} = $lookup;
+          // special support for regions as front end form structure differs slightly from backend
+          // to support multiple attributes on a single object on front end
+          // even when it's a 1 to 1
+          if (is_array($lookup) && strpos($key, '-regions-')) {
+            $tmp = array();
+            foreach ($lookup as $rkey => $regionId) {
+              array_push($tmp, array(
+                "node" => $regionId
+              ));
+            }
+            $manifestKeys->{$key} = $tmp;
+          }
+          else {
+            $manifestKeys->{$key} = $lookup;
+          }          
         }
       }
       // @todo needs to not be a hack :p

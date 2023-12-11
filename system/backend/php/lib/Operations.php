@@ -507,38 +507,41 @@ class Operations {
       if (!isset($site->manifest->metadata->theme->variables)) {
         $site->manifest->metadata->theme->variables = new stdClass();
       }
-      $site->manifest->metadata->theme->variables->image = filter_var(
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
+        $site->manifest->metadata->theme->variables->image = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->theme->variables->imageLink = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_STRING
-      );
+        );
+      }
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
+        $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
+        );
+      }
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
+        $site->manifest->metadata->theme->variables->imageLink = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_STRING
+        );
+      }
       // REGIONS SUPPORT
       if (!isset($site->manifest->metadata->theme->regions)) {
         $site->manifest->metadata->theme->regions = new stdClass();
       }
       // look for a match so we can set the correct data
-      foreach ($site->manifest->items as $key => $item) {
-        if (
-            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-header'], FILTER_SANITIZE_STRING) ==
-            $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->header = array($item->id);
-        }
-        if (
-          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerPrimary'], FILTER_SANITIZE_STRING) ==
-          $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->footerPrimary = array($item->id);
-        }
-        if (
-          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerSecondary'], FILTER_SANITIZE_STRING) ==
-          $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->footerSecondary = array($item->id);
+      $validRegions = array(
+        "header",
+        "sidebarFirst",
+        "sidebarSecond",
+        "contentTop",
+        "contentBottom",
+        "footerPrimary",
+        "footerSecondary"
+      );
+      foreach ($validRegions as $i => $value) {
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
+          foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
+            $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
+          }
+          $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
         }
       }
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {

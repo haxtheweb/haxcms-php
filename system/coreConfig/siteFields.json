@@ -58,6 +58,20 @@
           "required": false
         },
         {
+          "property": "manifest-metadata-theme-variables-imageLink",
+          "title": "Banner link",
+          "description": "Optional banner image link",
+          "inputMethod": "textfield",
+          "required": false
+        },
+        {
+          "property": "manifest-metadata-theme-variables-imageAlt",
+          "title": "Banner alt",
+          "description": "Alternative text for the banner image",
+          "inputMethod": "textfield",
+          "required": false
+        },
+        {
           "property": "manifest-metadata-theme-variables-cssVariable",
           "title": "Accent color",
           "description": "Accent color applied to themes that implement it",
@@ -70,6 +84,140 @@
           "description": "Icon to represent the site in themes that implement it",
           "inputMethod": "iconpicker",
           "required": false
+        },
+        {
+          "property": "regions",
+          "inputMethod": "fieldset",
+          "title": "Regions",
+          "description": "Settings related to themes that leverage content for pervasive display in their layout",    
+          "properties": [
+            {
+              "property": "manifest-metadata-theme-regions-header",
+              "title": "Header",
+              "description": "Page to use for the content of the 'header' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-sidebarFirst",
+              "title": "Sidebar first",
+              "description": "Page to use for the content of the 'sidebar first' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-sidebarSecond",
+              "title": "Sidebar second",
+              "description": "Page to use for the content of the 'sidebar second' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-contentTop",
+              "title": "Content top",
+              "description": "Page to use for the content of the 'content top' region'",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-contentBottom",
+              "title": "Content bottom",
+              "description": "Page to use for the content of the 'content bottom' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-footerPrimary",
+              "title": "Footer primary",
+              "description": "Page to use for the content of the 'footer primary' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            },
+            {
+              "property": "manifest-metadata-theme-regions-footerSecondary",
+              "title": "Footer secondary",
+              "description": "Page to use for the content of the 'footer secondary' region",
+              "inputMethod": "array",
+              "required": false,
+              "itemLabel": "item",
+              "hideReorder": true,
+              "expanded": false,
+              "hideDuplicate": true,
+              "properties": [
+                {
+                  "property": "node",
+                  "title": "Page",
+                  "inputMethod": "select"
+                }
+              ]
+            }
+          ]
         }
       ]
     },

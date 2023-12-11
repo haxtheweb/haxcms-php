@@ -66,7 +66,12 @@ class FeedMe
               $item->metadata->updated = time();
             }
             if (isset($item->metadata->tags)) {
-                $tags = implode(',', $item->metadata->tags);
+                if (is_array($item->metadata->tags)) {
+                    $tags = implode(',', $item->metadata->tags);
+                }
+                else {
+                    $tags = $item->metadata->tags;
+                }
             }
             if ($count < $limit) {
             $output .=
