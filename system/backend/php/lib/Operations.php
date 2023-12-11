@@ -1032,7 +1032,7 @@ class Operations {
       // convert web location for loading into file location for writing
       if (isset($body)) {
         $bytes = 0;
-        // see if we have multiple pages
+        // see if we have multiple pages / this page has been told to split into multiple
         $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
         foreach($pageData as $data) {
           // trap to ensure if front-end didnt send a UUID for id then we make it
@@ -1040,13 +1040,16 @@ class Operations {
             $data["attributes"]["title"] = 'New page';
           }
           // to avoid critical error in parsing, we defer to the POST's ID always
+          // this also blocks multiple page breaks if it doesn't exist as we don't allow
+          // the front end to dictate what gets created here
           if (!isset($data["attributes"]["item-id"])) {
             $data["attributes"]["item-id"] = $this->params['node']['id'];
           }
           if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
             $data["attributes"]["path"] = $data["attributes"]["title"];
           }
-          // verify this pages does not exist
+          // verify this pages does not exist; this is only possible if we parse multiple page-break
+          // a capability that is not supported currently beyond experiments
           if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
             // generate a new item based on the site
             $nodeParams = array(
