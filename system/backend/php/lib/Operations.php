@@ -980,6 +980,23 @@ class Operations {
           }
         }
       }
+      // implies front end was told to generate a page with set content
+      // this is possible when importing and processing a file to generate
+      // html which becomes the boilerplated content in effect
+      else if (isset($nodeParams['node']['contents'])) {
+        if ($page = $site->loadNode($item->id)) {
+          // write it to the file system
+          $bytes = $page->writeLocation(
+            $nodeParams['node']['contents'],
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->manifest->metadata->site->name .
+            '/'
+          );
+        }
+      }
     $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
     }
     return array(
