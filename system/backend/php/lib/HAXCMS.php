@@ -548,7 +548,18 @@ class HAXCMS
             "manifest-metadata-theme-variables-imageLink": null,
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
-            "manifest-metadata-theme-variables-icon": null
+            "manifest-metadata-theme-variables-icon": null,
+            "manifest-metadata-theme-variables-imageLink": null,
+            "manifest-metadata-theme-variables-imageAlt": null,
+            "regions": {
+              "manifest-metadata-theme-regions-header": null,
+              "manifest-metadata-theme-regions-sidebarFirst": null,
+              "manifest-metadata-theme-regions-sidebarSecond": null,
+              "manifest-metadata-theme-regions-contentTop": null,
+              "manifest-metadata-theme-regions-contentBottom": null,
+              "manifest-metadata-theme-regions-footerPrimary": null,
+              "manifest-metadata-theme-regions-footerSecondary": null
+            }
           },
           "author": {
             "manifest-license": null,
@@ -562,7 +573,8 @@ class HAXCMS
             "manifest-metadata-site-settings-pathauto": null,
             "manifest-metadata-site-settings-publishPagesOn": true,
             "manifest-metadata-site-settings-sw": null,
-            "manifest-metadata-site-settings-forceUpgrade": true
+            "manifest-metadata-site-settings-forceUpgrade": null,
+            "manifest-metadata-site-settings-gaID": null
           }
         }
       }');
@@ -588,7 +600,21 @@ class HAXCMS
           $manifestKeys->{$key} = $this->populateManifestValues($site, $value);
         }
         else if (is_string($key) && $lookup = $this->deepObjectLookUp($site, $key)) {
-          $manifestKeys->{$key} = $lookup;
+          // special support for regions as front end form structure differs slightly from backend
+          // to support multiple attributes on a single object on front end
+          // even when it's a 1 to 1
+          if (is_array($lookup) && strpos($key, '-regions-')) {
+            $tmp = array();
+            foreach ($lookup as $rkey => $regionId) {
+              array_push($tmp, array(
+                "node" => $regionId
+              ));
+            }
+            $manifestKeys->{$key} = $tmp;
+          }
+          else {
+            $manifestKeys->{$key} = $lookup;
+          }          
         }
       }
       // @todo needs to not be a hack :p
@@ -932,6 +958,21 @@ class HAXCMS
       return $obj;
   }
     /**
+     * parse attributes out of an HTML tag in a safer manner
+     */
+    public function parse_attributes($attr) {
+      $atList = [];
+      if (preg_match_all('/\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/i', $attr, $m)) {
+        for ($i = 0; $i < count($m[0]); $i++) {
+          if ($m[3][$i])
+            $atList[$m[3][$i]] = null;
+          else
+            $atList[$m[1][$i]] = $m[2][$i];
+        }
+      }
+      return $atList;
+    }
+    /**
      * Helper for parsing out and returning page-break's in a body of content
      * to help support HAX multi-page editing / outlining capabilities
      */
@@ -943,15 +984,7 @@ class HAXCMS
       foreach($matches[0] as $i => $match) {
         // replace & to avoid XML parsing issues
         $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
-        try {
-          $docStructure = $this->html_to_obj($content);
-          if (isset($docStructure['children'][0]['children'][0])) {
-            $attrs = $docStructure['children'][0]['children'][0];
-          }
-        }
-        catch(Exception $e) {
-          $attrs = array();
-        }
+        $attrs = @$this->parse_attributes($content);
         $pageData[$i] = array(
             "content" => $matches[4][$i],
             // this assumes that the attributes are well formed; make sure front end did this

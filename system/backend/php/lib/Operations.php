@@ -510,41 +510,43 @@ class Operations {
       if (!isset($site->manifest->metadata->theme->variables)) {
         $site->manifest->metadata->theme->variables = new stdClass();
       }
-      $site->manifest->metadata->theme->variables->image = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'], FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
-      );
-      $site->manifest->metadata->theme->variables->imageLink = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_STRING
-      );
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
+        $site->manifest->metadata->theme->variables->image = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
+        );
+      }
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
+        $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
+        );
+      }
+      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
+        $site->manifest->metadata->theme->variables->imageLink = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_STRING
+        );
+      }
       // REGIONS SUPPORT
       if (!isset($site->manifest->metadata->theme->regions)) {
         $site->manifest->metadata->theme->regions = new stdClass();
       }
       // look for a match so we can set the correct data
-      foreach ($site->manifest->items as $key => $item) {
-        if (
-            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-header'], FILTER_SANITIZE_STRING) ==
-            $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->header = $item->id;
-        }
-        if (
-          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerPrimary'], FILTER_SANITIZE_STRING) ==
-          $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->footerPrimary = $item->id;
-        }
-        if (
-          filter_var($this->params['manifest']['theme']['manifest-metadata-theme-regions-footerSecondary'], FILTER_SANITIZE_STRING) ==
-          $item->id
-        ) {
-            $site->manifest->metadata->theme->regions->footerSecondary = $item->id;
+      $validRegions = array(
+        "header",
+        "sidebarFirst",
+        "sidebarSecond",
+        "contentTop",
+        "contentBottom",
+        "footerPrimary",
+        "footerSecondary"
+      );
+      foreach ($validRegions as $i => $value) {
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
+          foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
+            $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
+          }
+          $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
         }
       }
-
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
         $site->manifest->metadata->theme->variables->hexCode = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
@@ -609,6 +611,12 @@ class Operations {
         $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
         $this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
         FILTER_VALIDATE_BOOLEAN
+        );
+      }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
+        $site->manifest->metadata->site->settings->gaID = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
+        FILTER_SANITIZE_STRING
         );
       }
       $site->manifest->metadata->site->updated = time();
@@ -723,7 +731,7 @@ class Operations {
                   }
                   else if ($tmpItem->slug != $page->slug) {
                       $moved = true;
-                      $page->slug = $tmpItem->slug;
+                      $page->slug = $GLOBALS['HAXCMS']->generateMachineName($tmpItem->slug);
                   }
               }
           }
@@ -982,7 +990,24 @@ class Operations {
           }
         }
       }
-      $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
+      // implies front end was told to generate a page with set content
+      // this is possible when importing and processing a file to generate
+      // html which becomes the boilerplated content in effect
+      else if (isset($nodeParams['node']['contents'])) {
+        if ($page = $site->loadNode($item->id)) {
+          // write it to the file system
+          $bytes = $page->writeLocation(
+            $nodeParams['node']['contents'],
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->manifest->metadata->site->name .
+            '/'
+          );
+        }
+      }
+      $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
       // update the alternate formats as a new page exists
       $site->updateAlternateFormats();
     }
@@ -1031,24 +1056,29 @@ class Operations {
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
+    // @todo review this step by step
     if ($page = $site->loadNode($this->params['node']['id'])) {
       // convert web location for loading into file location for writing
       if (isset($body)) {
         $bytes = 0;
-        // see if we have multiple pages
+        // see if we have multiple pages / this page has been told to split into multiple
         $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
         foreach($pageData as $data) {
           // trap to ensure if front-end didnt send a UUID for id then we make it
           if (!isset($data["attributes"]["title"])) {
             $data["attributes"]["title"] = 'New page';
           }
+          // to avoid critical error in parsing, we defer to the POST's ID always
+          // this also blocks multiple page breaks if it doesn't exist as we don't allow
+          // the front end to dictate what gets created here
           if (!isset($data["attributes"]["item-id"])) {
-            $data["attributes"]["item-id"] = '';
+            $data["attributes"]["item-id"] = $this->params['node']['id'];
           }
           if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
             $data["attributes"]["path"] = $data["attributes"]["title"];
           }
-          // verify this pages does not exist
+          // verify this pages does not exist; this is only possible if we parse multiple page-break
+          // a capability that is not supported currently beyond experiments
           if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
             // generate a new item based on the site
             $nodeParams = array(
@@ -1106,7 +1136,16 @@ class Operations {
                 $page->title = $data["attributes"]["title"];
               }
               if (isset($data["attributes"]["slug"])) {
-                $page->slug = $data["attributes"]["slug"];
+                // account for x being the only front end reserved route
+                if ($data["attributes"]["slug"] == "x") {
+                  $data["attributes"]["slug"] = "x-x";
+                }
+                // same but trying to force a sub-route; paths cannot conflict with front end
+                if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
+                  $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
+                }
+                // machine name should more aggressively scrub the slug than clean title
+                $page->slug = $GLOBALS['HAXCMS']->generateMachineName($data["attributes"]["slug"]);
               }
               if (isset($data["attributes"]["parent"])) {
                 $page->parent = $data["attributes"]["parent"];
@@ -1186,6 +1225,22 @@ class Operations {
               else if (isset($page->metadata->tags)) {
                 unset($page->metadata->tags);
               }
+              // support for defining and updating page type
+              if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
+                $page->metadata->icon = $data["attributes"]["icon"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->icon)) {
+                unset($page->metadata->icon);
+              }
+              // support for defining an image to represent the page
+              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                $page->metadata->image = $data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->image)) {
+                unset($page->metadata->image);
+              }
               if (!isset($data["attributes"]["locked"])) {
                 $page->metadata->locked = false;
               }
@@ -1194,13 +1249,19 @@ class Operations {
               }
               // update the updated timestamp
               $page->metadata->updated = time();
-              // auto generate a text only description from first 200 chars
               $clean = strip_tags($body);
-              $page->description = str_replace(
+              // auto generate a text only description from first 200 chars
+              // unless we were sent one to use
+              if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
+                $page->description = $data["attributes"]["description"];
+              }
+              else {
+                $page->description = str_replace(
                   "\n",
                   '',
                   substr($clean, 0, 200)
               );
+              }
               $readtime = round(str_word_count($clean) / 200);
               // account for uber small body
               if ($readtime == 0) {

@@ -216,7 +216,6 @@ class HAXCMSSite
                     ));
                   }
                 break;
-                case 'training':
                 default:
                   /*array_push($pageSchema, array(
                     "parent" => null,
@@ -263,6 +262,12 @@ class HAXCMSSite
                 break;
               }
             break;
+            case 'collection':
+              $this->addPage(null, 'Home', 'collection', 'home');
+            break;
+            case 'training':
+              $this->addPage(null, 'Start', 'init', 'start');
+              break;
             case 'portfolio':
               switch ($build->type) {
                 case 'art':
@@ -305,6 +310,16 @@ class HAXCMSSite
             return "true";
         }
         return "false";
+    }
+    /**
+     * Return the gaID which is the (optional) Google Analytics ID
+     * @return string gaID the user put in
+     */
+    public function getGaID() {
+      if (isset($this->manifest->metadata->site->settings->gaID) && $this->manifest->metadata->site->settings->gaID) {
+          return $this->manifest->metadata->site->settings->gaID;
+      }
+      return null;
     }
     /**
      * Return the sw status
@@ -386,6 +401,7 @@ class HAXCMSSite
           'short' => $this->manifest->metadata->site->name,
           'description' => $this->manifest->description,
           'forceUpgrade' => $this->getForceUpgrade(),
+          'getGaID' => $this->getGaID(),
           'swhash' => array(),
           'ghPagesURLParamCount' => 0,
           'licenseLink' => $licenseLink,
@@ -645,6 +661,7 @@ class HAXCMSSite
         switch ($template) {
             case 'course':
             case 'glossary':
+            case 'collection':
             case 'init':
             case 'lesson':
             case 'default':
@@ -685,44 +702,90 @@ class HAXCMSSite
      */
     public function updateAlternateFormats($format = NULL)
     {
-      $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-      if (is_null($format) || $format == 'rss') {
-          try {
-              // rip changes to feed urls
-              $rss = new FeedMe();
-              $siteDirectory =
-                  $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-              $domain = NULL;
-              if (isset($this->manifest->metadata->site->domain)) {
-                $domain = $this->manifest->metadata->site->domain;                
-              }
-              if (is_null($domain) || $domain == "") {
-                $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
-              }
-              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this, $domain));
-              @file_put_contents(
-                  $siteDirectory . 'atom.xml',
-                  $rss->getAtomFeed($this, $domain)
-              );
-          } catch (Exception $e) {
-              // some of these XML parsers are a bit unstable
-          }
-      }
-      if (is_null($format) || $format == 'jsonfeed') {
-        // now generate the search index
-        @file_put_contents(
-            $siteDirectory . 'jsonfeed.json',
-                json_encode($this->jsonFeedFormat())
-        );
-      }
-      // build a sitemap if we have a domain, kinda required...
-      if (is_null($format) || $format == 'sitemap') {
-          try {
-            if (isset($this->manifest->metadata->site->domain)) {
-              $domain = $this->manifest->metadata->site->domain;                
+            $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+            if (is_null($format) || $format == 'rss') {
+                try {
+                    // rip changes to feed urls
+                    $rss = new FeedMe();
+                    $siteDirectory =
+                        $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+                    @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+                    @file_put_contents(
+                        $siteDirectory . 'atom.xml',
+                        $rss->getAtomFeed($this)
+                    );
+                } catch (Exception $e) {
+                    // some of these XML parsers are a bit unstable
+                }
             }
-            if (is_null($domain) || $domain == "") {
-              $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+            // build a sitemap if we have a domain, kinda required...
+            if (is_null($format) || $format == 'sitemap') {
+                try {
+                    if (isset($this->manifest->metadata->site->domain)) {
+                        $domain = $this->manifest->metadata->site->domain;
+                        $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                            $domain,
+                            $siteDirectory
+                        );
+                        // will create also compressed (gzipped) sitemap
+                        $generator->createGZipFile = true;
+                        // determine how many urls should be put into one file
+                        // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+                        $generator->maxURLsPerSitemap = 50000;
+                        // sitemap file name
+                        $generator->sitemapFileName = "sitemap.xml";
+                        // sitemap index file name
+                        $generator->sitemapIndexFileName = "sitemap-index.xml";
+                        // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+                        foreach ($this->manifest->items as $key => $item) {
+                            if ($item->parent == null) {
+                                $priority = '1.0';
+                            } elseif ($item->indent == 2) {
+                                $priority = '0.7';
+                            } else {
+                                $priority = '0.5';
+                            }
+                            $updatedTime = new DateTime();
+                            $updatedTime->setTimestamp($item->metadata->updated);
+                            $updatedTime->format(DateTime::ATOM);
+                            @$generator->addUrl(
+                                $domain .
+                                    '/' .
+                                    str_replace(
+                                        'pages/',
+                                        '',
+                                        str_replace('/index.html', '', $item->location)
+                                    ),
+                                $updatedTime,
+                                'daily',
+                                $priority
+                            );
+                        }
+                        // generating internally a sitemap
+                        $generator->createSitemap();
+                        // writing early generated sitemap to file
+                        $generator->writeSitemap();
+                    }
+                } catch (Exception $e) {
+                    // some of these XML parsers are a bit unstable
+                }
+            }
+            if (is_null($format) || $format == 'legacy') {
+                // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
+                @file_put_contents(
+                    $siteDirectory . 'legacy-outline.html',
+                    '<!DOCTYPE html>
+                    <html lang="' . $this->getLanguage() . '">
+                      <head>
+                            <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+                            <meta content="utf-8" http-equiv="encoding">
+                            <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
+                        </head>
+                        <body>' .
+                        $this->treeToNodes($this->manifest->items) .
+                        '</body>
+                    </html>'
+                );
             }
             $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
                 $domain,

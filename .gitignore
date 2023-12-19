@@ -13,3 +13,4 @@ arth111
 ubuntu-bionic-18.04-cloudimg-console.log
 yarn-error.log
 .local.microservice.config.php
+dist/wc-registry.json

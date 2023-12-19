@@ -1,4 +1,6 @@
 {
+  "collection-item": "@lrnwebcomponents/collection-list/lib/collection-item.js",
+  "collection-list": "@lrnwebcomponents/collection-list/collection-list.js",
   "simple-cta": "@lrnwebcomponents/simple-cta/simple-cta.js",
   "page-section": "@lrnwebcomponents/page-section/page-section.js",
   "block-quote": "@lrnwebcomponents/course-design/lib/block-quote.js",
