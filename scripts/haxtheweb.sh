@@ -78,15 +78,15 @@ if [ ! -f "_config/user/files/.htaccess" ]; then
   cp system/boilerplate/systemsetup/.user-files-htaccess _config/user/files/.htaccess
 fi
 # may need to revisit this at some point
-chmod 775 _config
-chmod 777 _config/tmp
-chmod 777 _config/cache
-chmod 777 _config/user/files
-chmod 777 _config/config.json
-chmod 777 _config/userData.json
-chmod 777 _sites
-chmod 775 _published
-chmod 775 _archived
+chmod 755 _config
+chmod 755 _config/tmp
+chmod 755 _config/cache
+chmod 755 _config/user/files
+chmod 755 _sites
+chmod 755 _published
+chmod 755 _archived
+chmod 644 _config/config.json
+chmod 644 _config/userData.json
 
 # place this in VC just so it COULD be tracked by the user
 cd _sites

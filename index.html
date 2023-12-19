@@ -75,11 +75,12 @@
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
       }
-      body.app-loaded {
+      body.app-loaded:not(.bad-device) {
         background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
+        background-attachment: fixed, fixed, fixed;
       }
       div[slot="externalproviders"] {
         display: none;

@@ -113,7 +113,8 @@ class HAXCMSSite
         $this->manifest->metadata = new stdClass();
         $this->manifest->metadata->author = new stdClass();
         $this->manifest->metadata->site = new stdClass();
-        $this->manifest->metadata->site->lang = 'en';
+        $this->manifest->metadata->site->settings = new stdClass();
+        $this->manifest->metadata->site->settings->lang = 'en'; // default but changed via settings
         $this->manifest->metadata->site->name = $tmpname;
         $this->manifest->metadata->site->domain = $domain;
         $this->manifest->metadata->site->created = time();
@@ -216,20 +217,20 @@ class HAXCMSSite
                   }
                 break;
                 default:
-                  array_push($pageSchema, array(
+                  /*array_push($pageSchema, array(
                     "parent" => null,
                     "title" => "Lessons",
                     "template" => "default",
                     "slug" => "lessons"
-                  ));
+                  ));*/
                 break;
               }
-              array_push($pageSchema, array(
+              /*array_push($pageSchema, array(
                 "parent" => null,
                 "title" => "Glossary",
                 "template" => "glossary",
                 "slug" => "glossary"
-              ));
+              ));*/
               for ($i=0; $i < count($pageSchema); $i++) {
                 if ($pageSchema[$i]['template'] == 'html') {
                   $this->addPage(
@@ -296,6 +297,7 @@ class HAXCMSSite
         }
         // write the managed files to ensure we get happy copies
         $this->rebuildManagedFiles();
+        $this->updateAlternateFormats();
         $this->gitCommit('Managed files updated');
         return $this;
     }
@@ -334,34 +336,49 @@ class HAXCMSSite
      * @return array keyed array of files we wish to pull from the boilerplate and keep in sync
      */
     public function getManagedTemplateFiles() {
+      // not everything is templated but ensures self refreshing if we need to bulk tweak / enhance
         return array(
-            'htaccess' => '.htaccess', // not templated (yet) but ensures self refreshing if we tweak it
-            '404' => '404.html',
-            'msbc' => 'browserconfig.xml',
-            'dat' => 'dat.json',
+          // HAX core / application / PWA requirements
+            'htaccess' => '.htaccess',
             'build' => 'build.js',
             'buildlegacy' => 'assets/build-legacy.js',
             'buildpolyfills' => 'assets/build-polyfills.js',
             'buildhaxcms' => 'build-haxcms.js',
-            'index' => 'index.html',
-            'manifest' => 'manifest.json',
-            'package' => 'package.json',
-            'polymer' => 'polymer.json',
+            'outdated' => 'assets/upgrade-browser.html',
+            'index' => 'index.html', // static published fallback
+            '404' => '404.html', // github / static published redirect appropriately
+            // seo / performance
             'push' => 'push-manifest.json',
             'robots' => 'robots.txt',
+            // pwa related files
+            'msbc' => 'browserconfig.xml',
+            'manifest' => 'manifest.json',
             'sw' => 'service-worker.js',
-            'outdated' => 'assets/upgrade-browser.html',
+            'offline' => 'offline.html', // pwa offline page
+            // local development tooling
+            'webdevserverhaxcmsconfigcjs' => 'web-dev-server.haxcms.config.cjs',
+            'package' => 'package.json',
+            'polymer' => 'polymer.json',
+            // SCORM 1.2
+            'imsmdrootv1p2p1' => 'imsmd_rootv1p2p1.xsd',
+            'imscprootv1p1p2' => 'imscp_rootv1p1p2.xsd',
+            'adlcprootv1p2' => 'adlcp_rootv1p2.xsd',
+            'imsxml' => 'ims_xml.xsd',
+            'imsmanifest' => 'imsmanifest.xml',
         );
     }
     /**
      * Reprocess the files that twig helps set in their static
      * form that the user is not in control of.
      */
-    public function rebuildManagedFiles() {
-      $templates = $this->getManagedTemplateFiles();
-      // this can't be there by default since it's a dynamic file and we only
-      // want to update this when we are refreshing the managed files directly
-      $templates['indexphp'] = 'index.php';
+    public function rebuildManagedFiles($templates = array()) {
+      // support for calling with a set of predefined templates
+      if (count($templates) === 0) {
+        $templates = $this->getManagedTemplateFiles();
+        // this can't be there by default since it's a dynamic file and we only
+        // want to update this when we are refreshing the managed files directly
+        $templates['indexphp'] = 'index.php';
+      }
       $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
       $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
       foreach ($templates as $file) {
@@ -394,32 +411,25 @@ class HAXCMSSite
           'metadata' => $this->getSiteMetadata(),
           'lang' => $this->getLanguage(),
           'logo512x512' => $this->getLogoSize('512','512'),
-          'logo310x310' => $this->getLogoSize('310','310'),
+          'logo256x256' => $this->getLogoSize('256','256'),
           'logo192x192' => $this->getLogoSize('192','192'),
-          'logo150x150' => $this->getLogoSize('150','150'),
           'logo144x144' => $this->getLogoSize('144','144'),
           'logo96x96' => $this->getLogoSize('96','96'),
           'logo72x72' => $this->getLogoSize('72','72'),
-          'logo70x70' => $this->getLogoSize('70','70'),
           'logo48x48' => $this->getLogoSize('48','48'),
-          'logo36x36' => $this->getLogoSize('36','36'),
-          'favicon' => $this->getLogoSize('16','16'),
+          'favicon' => $this->getLogoSize('32','32'),
       );
       $swItems = $this->manifest->items;
       // the core files you need in every SW manifest
       $coreFiles = array(
           'index.html',
           $this->getLogoSize('512','512'),
-          $this->getLogoSize('310','310'),
+          $this->getLogoSize('256','256'),
           $this->getLogoSize('192','192'),
-          $this->getLogoSize('150','150'),
           $this->getLogoSize('144','144'),
           $this->getLogoSize('96','96'),
           $this->getLogoSize('72','72'),
-          $this->getLogoSize('70','70'),
           $this->getLogoSize('48','48'),
-          $this->getLogoSize('36','36'),
-          $this->getLogoSize('16','16'),
           'manifest.json',
           'site.json',
           '404.html',
@@ -777,13 +787,124 @@ class HAXCMSSite
                     </html>'
                 );
             }
-            if (is_null($format) || $format == 'search') {
-                // now generate the search index
-                @file_put_contents(
-                    $siteDirectory . 'lunrSearchIndex.json',
-                        json_encode($this->lunrSearchIndex($this->manifest->items))
+            $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                $domain,
+                $siteDirectory
+            );
+            // will create also compressed (gzipped) sitemap
+            $generator->createGZipFile = true;
+            // determine how many urls should be put into one file
+            // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+            $generator->maxURLsPerSitemap = 50000;
+            // sitemap file name
+            $generator->sitemapFileName = "sitemap.xml";
+            // sitemap index file name
+            $generator->sitemapIndexFileName = "sitemap-index.xml";
+            // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+            foreach ($this->manifest->items as $key => $item) {
+                if ($item->parent == null) {
+                    $priority = '1.0';
+                } elseif ($item->indent == 2) {
+                    $priority = '0.7';
+                } else {
+                    $priority = '0.5';
+                }
+                $updatedTime = new DateTime();
+                $updatedTime->setTimestamp($item->metadata->updated);
+                $updatedTime->format(DateTime::ATOM);
+                $generator->addUrl(
+                    $item->slug,
+                    $updatedTime,
+                    'daily',
+                    $priority
                 );
             }
+            // generating internally a sitemap
+            $generator->createSitemap();
+            // writing early generated sitemap to file
+            $generator->writeSitemap();
+          } catch (Exception $e) {
+              // some of these XML parsers are a bit unstable
+          }
+      }
+      if (is_null($format) || $format == 'legacy') {
+          // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
+          @file_put_contents(
+              $siteDirectory . 'legacy-outline.html',
+              '<!DOCTYPE html>
+              <html lang="' . $this->getLanguage() . '">
+                  <head>
+                      <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+                      <meta content="utf-8" http-equiv="encoding">
+                      <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
+                  </head>
+                  <body>' .
+                  $this->treeToNodes($this->manifest->items) .
+                  '</body>
+              </html>'
+          );
+      }
+      if (is_null($format) || $format == 'search') {
+          // now generate the search index
+          @file_put_contents(
+              $siteDirectory . 'lunrSearchIndex.json',
+                  json_encode($this->lunrSearchIndex($this->manifest->items))
+          );
+      }
+      // rebuild the service worker's hashed cache index because this file updated
+      // this way users getting cached copies from local device will be informed
+      // that this page updated since their last visit
+      if (is_null($format) || $format == 'service-worker') {
+        $this->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+      }
+    }
+    /**
+     * Create Lunr.js style search index
+     */
+    public function jsonFeedFormat($limit = 25) {
+      $domain = NULL;
+      if (isset($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;                
+      }
+      if (is_null($domain) || $domain == "") {
+        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
+        $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+      }
+      $data = array(
+        "version" => "https://jsonfeed.org/version/1.1",
+        "title" => $this->manifest->title,
+        "home_page_url" => $domain,
+        "feed_url" => $domain . 'jsonfeed.json',
+        "description" => $this->manifest->description,
+        "items" => array(),
+      );
+      $count = 0;
+      foreach ($this->manifest->items as $item) {
+        if ($count < $limit) {
+          $created = time();
+          if (isset($item->metadata) && isset($item->metadata->created)) {
+            $created = $item->metadata->created;
+          }
+          if (isset($item->slug)) {
+            $slug = $item->slug;
+          }
+          else {
+            // slug is now the URL canonical
+            $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
+          }
+          // may seem silly but IDs in lunr have a size limit for some reason in our context..
+          $data["items"][] = array(
+            "guid" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
+            "url" => $domain . $slug,
+            "title" => $item->title,
+            "summary" => $item->description,
+            "content_html" => @file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location),
+            "date_published" => date('c', $created),
+          );
+        }
+        $count++;
+      }
+      return $data;
     }
     /**
      * Create Lunr.js style search index
@@ -834,10 +955,16 @@ class HAXCMSSite
       $dir = $this->__compareItemDir;
       if (isset($a->metadata->{$key})) {
         if ($dir == 'DESC') {
-          return $a->metadata->{$key} > $b->metadata->{$key};
+          if ($a->metadata->{$key} == $b->metadata->{$key}) {
+            return 0;
+          }
+          return ($a->metadata->{$key} > $b->metadata->{$key}) ? -1 : 1;
         }
         else {
-          return $a->metadata->{$key} < $b->metadata->{$key};
+          if ($a->metadata->{$key} == $b->metadata->{$key}) {
+            return 0;
+          }
+          return ($a->metadata->{$key} < $b->metadata->{$key}) ? -1 : 1;
         }
       }
     }
@@ -866,10 +993,16 @@ class HAXCMSSite
             case 'description':
                 usort($items, function ($a, $b) {
                   if ($dir == 'ASC') {
-                    return $a->{$key} > $b->{$key};
+                    if ($a->{$key} == $b->{$key}) {
+                      return 0;
+                    }
+                    return ($a->{$key} > $b->{$key}) ? -1 : 1;
                   }
                   else {
-                    return $a->{$key} < $b->{$key};
+                    if ($a->{$key} == $b->{$key}) {
+                      return 0;
+                    }
+                    return ($a->{$key} < $b->{$key}) ? -1 : 1;
                   }
                 });
             break;
@@ -899,7 +1032,10 @@ class HAXCMSSite
                 }
                 // sort the kids
                 usort($children, function ($a, $b) {
-                    return $a->order > $b->order;
+                  if ($a->order == $b->order) {
+                    return 0;
+                  }
+                  return ($a->order < $b->order) ? -1 : 1;
                 });
                 // only walk deeper if there were children for this page
                 if (count($children) > 0) {
@@ -1020,12 +1156,12 @@ class HAXCMSSite
               switch (installingWorker.state) {
                 case 'installed':
                   if (!navigator.serviceWorker.controller) {
-                    window.dispatchEvent(new CustomEvent('simple-toast-show', {
+                    window.dispatchEvent(new CustomEvent('haxcms-toast-show', {
                       bubbles: true,
                       cancelable: false,
                       detail: {
                         text: 'Pages you view are cached for offline use.',
-                        duration: 8000
+                        duration: 4000
                       }
                     }));
                   }
@@ -1048,12 +1184,12 @@ class HAXCMSSite
               b.appendChild(document.createTextNode('Reload'));
               b.raised = true;
               b.addEventListener('click', function(e){ window.location.reload(true); });
-              window.dispatchEvent(new CustomEvent('simple-toast-show', {
+              window.dispatchEvent(new CustomEvent('haxcms-toast-show', {
                 bubbles: true,
                 cancelable: false,
                 detail: {
                   text: 'A site update is available. Reload for latest content.',
-                  duration: 12000,
+                  duration: 8000,
                   slot: b,
                   clone: false
                 }
@@ -1082,7 +1218,7 @@ class HAXCMSSite
             $item->indent = $params['indent'];
         }
         if (isset($params['order']) && $params['order'] != '' && $params['order'] != null) {
-            $item->order = (int)$params['order'];
+            $item->order = $params['order'];
         }
         if (isset($params['parent']) && $params['parent'] != '' && $params['parent'] != null) {
             $item->parent = $params['parent'];
@@ -1137,7 +1273,7 @@ class HAXCMSSite
         foreach ($matches[0] as $match) {
           if (strpos($match, '-')) {
             $tag = str_replace('>', '', str_replace('</', '', $match));
-            $preloadTags[] = $tag;
+            $preloadTags[$tag] = $tag;
           }
         }
       }
@@ -1253,13 +1389,14 @@ class HAXCMSSite
     public function loadNodeByLocation($path = NULL) {
         // load from the active address if we have one
         if (is_null($path)) {
-          $path = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $opPath = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $path = $opPath;
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
         $path = 'pages/' . str_replace('//', '/', $path);
         foreach ($this->manifest->items as $item) {
-            if ($item->location == $path) {
+            if ($item->location == $path || $item->slug == $opPath) {
                 return $item;
             }
         }
@@ -1467,7 +1604,7 @@ class HAXCMSSite
     {
         $dir = opendir($src);
         // see if we can make the directory to start off
-        if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0777, true)) {
+        if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0755, true)) {
             while (false !== ($file = readdir($dir))) {
                 if ($file != '.' && $file != '..') {
                     if (is_dir($src . '/' . $file) && array_search($file, $skip) === FALSE) {

@@ -1,14 +1,14 @@
 const gulp = require("gulp");
 const terser = require("gulp-terser");
-const glob = require("glob");
+const { glob } = require("glob");
 const fs = require("fs");
 const path = require("path");
 // mirror version numbers
 gulp.task(
   "version-match", async () => {
-    const package = require("./node_modules/@lrnwebcomponents/haxcms-elements/package.json");
-    fs.writeFileSync('./VERSION.txt', package.version , {encoding:'utf8',flag:'w'});
-    console.log(`${package.version} written to VERSION.txt`);
+    const packageVm = require("./node_modules/@lrnwebcomponents/haxcms-elements/package.json");
+    fs.writeFileSync('./VERSION.txt', packageVm.version , {encoding:'utf8',flag:'w'});
+    console.log(`${packageVm.version} written to VERSION.txt`);
   }
 );
 gulp.task(

@@ -101,8 +101,17 @@ class HAXCMS
             !in_array(strtolower($_SERVER['HTTPS']), array('off', 'no'))
                 ? 'https'
                 : 'http';
-        // fallback test for https
+        // fallback test for https, reclaim / docker envs can identify this differently
         if ($this->protocol == 'http' && isset($_SERVER["HTTP_USESSL"]) && $_SERVER["HTTP_USESSL"]) {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["protossl"])) {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_X_FORWARDED_PROTO"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"] == 'https') {
+          $this->protocol = 'https';
+        }
+        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_HTTPS_ENABLED"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"]) {
           $this->protocol = 'https';
         }
         // CLIs dont have a domain argument
@@ -472,7 +481,48 @@ class HAXCMS
      * Return the form for the siteSettings
      */
     private function siteSettingsForm($context) {
+      $site = $this->loadSite($context['site']['name']);
+      $items = $site->manifest->orderTree($site->manifest->items);
+      $itemValues = array(
+        array(
+          "text" => "-- No page --",
+          "value" => null,
+        )
+      );
+      foreach ($items as $key => $item) {
+        // calculate -- depth so it looks like a tree
+        $itemBuilder = $item;
+        // walk back through parent tree
+        $distance = "- ";
+        while ($itemBuilder && $itemBuilder->parent != null) {
+          $itemBuilder = $this->findParent($items, $itemBuilder);
+          // double check structure is sound
+          if ($itemBuilder) {
+            $distance = "--" . $distance;
+          }
+        }
+        array_push($itemValues, array(
+          "text" => $distance . $item->title,
+          "value" => $item->id,
+        ));
+      }
+      // @note this is brittle if we adjust the props loading from siteFields.json
+      // but this will allow our regions to get the manifest items
+      // dynamically while still storing this configuration in a
+      // static json file
+      $this->config->site->fields[0]->properties[1]->properties[1]->itemsList = $itemValues;
+      $this->config->site->fields[0]->properties[1]->properties[2]->itemsList = $itemValues;
+      $this->config->site->fields[0]->properties[1]->properties[3]->itemsList = $itemValues;
       return $this->config->site->fields;
+    }
+    // find parent of an item
+    private function findParent($items, $item) {
+      foreach ($items as $key => $value) {
+        if ($value->id == $item->parent) {
+          return $value;
+        }
+      }
+      return null;
     }
     /**
      * Return the form for the siteSettings
@@ -490,7 +540,12 @@ class HAXCMS
           },
           "theme": {
             "manifest-metadata-theme-element": null,
+            "manifest-metadata-theme-regions-header": null,
+            "manifest-metadata-theme-regions-footerPrimary": null,
+            "manifest-metadata-theme-regions-footerSecondary": null,
             "manifest-metadata-theme-variables-image": null,
+            "manifest-metadata-theme-variables-imageAlt": null,
+            "manifest-metadata-theme-variables-imageLink": null,
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
             "manifest-metadata-theme-variables-icon": null,
@@ -514,8 +569,9 @@ class HAXCMS
             "manifest-metadata-author-socialLink": null
           },
           "seo": {
+            "manifest-metadata-site-settings-lang": null,
             "manifest-metadata-site-settings-pathauto": null,
-            "manifest-metadata-site-settings-publishPagesOn": null,
+            "manifest-metadata-site-settings-publishPagesOn": true,
             "manifest-metadata-site-settings-sw": null,
             "manifest-metadata-site-settings-forceUpgrade": null,
             "manifest-metadata-site-settings-gaID": null
@@ -540,7 +596,7 @@ class HAXCMS
         // while still being presented in a visually agnostic manner
         // this is some crazy S..
         // test if we have deeper items to traverse at this level
-        if (!is_string($value) && count((array)$value) > 0) {
+        if (!is_string($value) && count((array)$value) > 0 && !is_bool($value)) {
           $manifestKeys->{$key} = $this->populateManifestValues($site, $value);
         }
         else if (is_string($key) && $lookup = $this->deepObjectLookUp($site, $key)) {
@@ -878,6 +934,29 @@ class HAXCMS
         }
         return false;
     }
+    // russia strikes again
+    // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
+    public function html_to_obj($html) {
+      $dom = new DOMDocument();
+      $html = mb_convert_encoding($html, 'HTML-ENTITIES', "UTF-8");
+      $dom->loadHTML($html);
+      return $this->element_to_obj($dom->documentElement);
+    }
+    public function element_to_obj($element) {
+      $obj = array( "tag" => $element->tagName );
+      foreach ($element->attributes as $attribute) {
+          $obj[$attribute->name] = $attribute->value;
+      }
+      foreach ($element->childNodes as $subElement) {
+          if ($subElement->nodeType == XML_TEXT_NODE) {
+              $obj["html"] = $subElement->wholeText;
+          }
+          else {
+              $obj["children"][] = $this->element_to_obj($subElement);
+          }
+      }
+      return $obj;
+  }
     /**
      * parse attributes out of an HTML tag in a safer manner
      */
@@ -903,6 +982,7 @@ class HAXCMS
       // match all pages + content
       preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
+        // replace & to avoid XML parsing issues
         $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
         $attrs = @$this->parse_attributes($content);
         $pageData[$i] = array(
@@ -921,7 +1001,7 @@ class HAXCMS
     {
         return '{
       "details": {
-        "title": "Local files",
+        "title": "Local uploads",
         "icon": "perm-media",
         "color": "light-blue",
         "author": "HAXCMS",
@@ -1010,6 +1090,14 @@ class HAXCMS
     public function getURI() {
       if (isset($_SERVER['SCRIPT_URI'])) {
         return $_SERVER['SCRIPT_URI'];
+      }
+    }
+    /**
+     * Return the active domain if it exists
+     */
+    public function getDomain() {
+      if (isset($_SERVER['SERVER_NAME'])) {
+        return 'https://' . $_SERVER['SERVER_NAME'];
       }
     }
     /**

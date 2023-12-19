@@ -378,6 +378,7 @@ class Operations {
             // MUST have this value to ensure it's the right site
             if (isset($site->manifest->metadata->site->name)) {
               $site->rebuildManagedFiles();
+              $site->updateAlternateFormats();
               $return['managedFilesRebuilt'][] = $item;  
             }
           }
@@ -393,12 +394,14 @@ class Operations {
       }
       else {
         $site->rebuildManagedFiles();
+        $site->updateAlternateFormats();
         $return['managedFilesRebuilt'][] = $this->params['site']['name'];  
       }
     }
-    else {
-      $return = array();
+
+    if (!isset($return)) {
       $status = 400;
+      $return = array();
     }
     
     return array(
@@ -580,6 +583,12 @@ class Operations {
               FILTER_SANITIZE_STRING
           );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
+        $site->manifest->metadata->site->settings->lang = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
+        FILTER_SANITIZE_STRING
+        );
+    }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
           $site->manifest->metadata->site->settings->pathauto = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
@@ -616,6 +625,7 @@ class Operations {
       $site->gitCommit('Manifest updated');
       // rebuild the files that twig processes
       $site->rebuildManagedFiles();
+      $site->updateAlternateFormats();
       $site->gitCommit('Managed files updated');
       return $site->manifest;
     }
@@ -997,7 +1007,9 @@ class Operations {
           );
         }
       }
-    $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
+      $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
+      // update the alternate formats as a new page exists
+      $site->updateAlternateFormats();
     }
     return array(
       'status' => 200,
@@ -1181,6 +1193,29 @@ class Operations {
               // they sent across nothing but we had something previously
               else if (isset($page->metadata->pageType)) {
                 unset($page->metadata->pageType);
+              }
+              // support for defining and updating hideInMenu
+              if (isset($data["attributes"]["hide-in-menu"])) {
+                $page->metadata->hideInMenu = true;
+              }
+              else {
+                $page->metadata->hideInMenu = false;
+              }
+              // support for defining and updating related-items
+              if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
+                $page->metadata->relatedItems = $data["attributes"]["related-items"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->relatedItems)) {
+                unset($page->metadata->relatedItems);
+              }
+              // support for defining and updating image
+              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                $page->metadata->image = $data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->image)) {
+                unset($page->metadata->image);
               }
               // support for defining and updating page type
               if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
@@ -2153,7 +2188,9 @@ class Operations {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
-      $schema->metadata->site->lang = 'en';
+      $schema->metadata->site->settings = new stdClass();
+      $schema->metadata->site->settings->lang = 'en-US';
+      $schema->metadata->site->settings->publishPagesOn = true;
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

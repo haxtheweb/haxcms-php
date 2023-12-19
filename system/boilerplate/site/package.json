@@ -12,40 +12,20 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@lrnwebcomponents/haxcms-elements": "^7.0.0"
+    "@lrnwebcomponents/haxcms-elements": "^7.0.15"
   },
   "private": false,
   "publishConfig": {
     "access": "public"
   },
   "resolutions": {
-    "object-assign": "4.1.1",
-    "commander": "2.19.0",
-    "readable-stream": "1.1.14",
-    "isarray": "1.0.0",
-    "source-map": "0.5.7",
-    "kind-of": "6.0.2",
-    "is-number": "4.0.0",
-    "once": "1.4.0",
-    "minimist": "1.2.0",
-    "ajv": "6.5.5",
-    "fast-deep-equal": "2.0.1",
-    "json-schema-traverse": "0.4.1",
-    "@polymer/app-layout": "3.0.2"
   },
   "devDependencies": {
-    "@prettier/plugin-php": "^0.11.0",
-    "prettier": "^1.16.4",
-    "gulp": "^4.0.2",
-    "gulp-terser": "^1.2.0",
-    "rollup-plugin-terser": "5.2.0"
+    "@web/dev-server": "0.3.0"
   },
   "scripts": {
-    "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
-    "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "terser": "gulp",
     "start": "yarn run dev",
-    "dev": "polymer serve --open --entrypoint dist/dev.html --allow-origin --open-path=/",
+    "dev": "web-dev-server -c web-dev-server.haxcms.config.cjs",
     "dev-theme": "cd custom && yarn start"
   }
 }

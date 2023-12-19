@@ -240,7 +240,10 @@ class JSONOutlineSchema
         $sorted = array();
         // do an initial by order
         usort($items, function ($a, $b) {
-            return $a->order > $b->order;
+            if ($a->order == $b->order) {
+                return 0;
+            }
+            return ($a->order < $b->order) ? -1 : 1;
         });
         $this->orderRecurse($items, $sorted);
         // sanity check, should always be equal
@@ -270,8 +273,12 @@ class JSONOutlineSchema
                 }
                 // sort the kids
                 usort($children, function ($a, $b) {
-                    return $a->order > $b->order;
+                    if ($a->order == $b->order) {
+                        return 0;
+                    }
+                    return ($a->order < $b->order) ? -1 : 1;
                 });
+                
                 // only walk deeper if there were children for this page
                 if (count($children) > 0) {
                     $this->orderRecurse($children, $sorted, $idList);

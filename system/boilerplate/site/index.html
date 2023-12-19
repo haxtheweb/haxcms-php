@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 <head>
   <meta charset="utf-8">
-  <link rel="preload" href="./build.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js"
-    as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
-  <link rel="preload" href="./theme/theme.css" as="style">
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <title>HAXcms</title>
+  <meta name="application-name" content="HAXcms" />
+  <meta name="apple-mobile-web-app-title" content="HAXcms" />
+  <meta name="og:sitename" property="og:sitename" content="HAXcms" />
+  <meta name="og:title" property="og:title" content="HAXcms" />
+  <meta name="twitter:title" property="twitter:title" content="HAXcms" />
+  <meta name="og:url" property="og:url" content="/" data-managed-seo />
+  <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <script>
     // attempt to correctly set the base without knowing where we're installed fully...
     if (document.location.pathname.indexOf('/_sites/') != -1) {
@@ -22,27 +23,49 @@
     else {
       document.write("<base href='/' />");
     }
+    var mangedSEO = document.querySelectorAll('[data-managed-seo]');
+    for (var i = 0; i < mangedSEO.length; i++) {
+      var seoTag = mangedSEO[i];
+      seoTag.setAttribute('content', document.location.href);
+    }
   </script>
-  <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1,user-scalable=yes">
+  <link rel="preload" href="./build.js" as="script" />
+  <link rel="preload" href="./build-haxcms.js" as="script" />
+  <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" />
+  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
+  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
+  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/themes/haxcms-basic-theme.js" />
+  <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms">
-  <meta name="description" content="A HAXCMS site">
-  <meta name="theme-color" content="#3f51b5">
-  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <link rel="icon" href="files/haxcms-managed/16x16-odl-logo.png">
+  <meta name="theme-color" content="">
   <meta name="robots" content="index, follow">
-  <meta name="application-name" content="My site">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="My App">
-  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
-  <meta name="msapplication-TileColor" content="#3f51b5">
+  <link rel="apple-touch-icon" sizes="48x48" href="files/haxcms-managed/48x48-odl-logo.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="files/haxcms-managed/72x72-odl-logo.png">
+  <link rel="apple-touch-icon" sizes="96x96" href="files/haxcms-managed/96x96-odl-logo.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="files/haxcms-managed/144x144-odl-logo.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="files/haxcms-managed/192x192-odl-logo.png">
+  <meta name="msapplication-TileImage" content="files/haxcms-managed/144x144-odl-logo.png">
+  <meta name="msapplication-TileColor" content="">
   <meta name="msapplication-tap-highlight" content="no">
-  <link rel="icon" href="assets/favicon.ico">
-  <link rel="apple-touch-icon" href="assets/icon-48x48.png">
-  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
-  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
-  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
-  <title>My site</title>
+  <meta name="description" content="" />
+  <meta name="og:type" property="og:type" content="article" />
+  <meta name="og:description" property="og:description" content="" />
+  <meta name="og:image" property="og:image" content="" />
+  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+  <meta name="twitter:description" property="twitter:description" content="" />
+  <meta name="twitter:image" property="twitter:image" content="" />
+  <meta rel="cc:license" href="https://creativecommons.org/licenses/by-sa/4.0/" content="License: Creative Commons: Attribution Share a like"/>
+  
+  <!-- Service worker disabled via settings -->
   <style>
     body {
       margin: 0;
@@ -92,25 +115,7 @@
       top: 50%;
       transform: translateY(-50%);
     }
-    #loading div.messaging h1 {
-      color: white;
-      font-family: 'Open Sans', 'arial', 'serif';
-      font-size: 40px;
-      background-color: orange;
-      transition: .4s ease-in-out all;
-    }
-    #loading img {
-      transition: .4s all ease-in-out;
-      width: 300px;
-      height: 300px;
-      margin-bottom: 50px;
-      border-radius: 50%;
-      border: 8px solid orange;
-      box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
-      -moz-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
-	    -webkit-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
-      -ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#444444')";
-    }
+
     .progress-line,
     .progress-line:before {
       height: 8px;
@@ -121,10 +126,10 @@
       background-color: rgba(0,0,0, 0.05);
       display: -webkit-flex;
       display: flex;
-      width: 300px;
+      width: 30vw;
     }
     .progress-line:before {
-      background-color: orange;
+      background-color: var(--simple-colors-default-theme--7, #FF2222);
       content: '';
       animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
@@ -139,7 +144,7 @@
       }
       100% {
         margin-left: 100%;
-        margin-right: 0;
+        margin-right: 0;HAXCMS
       }
     }
     @keyframes fade-out {
@@ -183,14 +188,13 @@
 <body no-js vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/">
   <div id="loading">
     <div class="messaging">
-      <img src="assets/banner.jpg" alt="" loading="lazy" height="300px" width="300px" />
       <div class="progress-line"></div>
-      <h1>Loading site..</h1>
+      <h1 role="alert" aria-busy="true">Loading..</h1>
     </div>
   </div>
-  <haxcms-site-builder id="site" file="site.json"></haxcms-site-builder>
+  <haxcms-site-builder id="site" file="site.json?2GQKWcJ3ni0xrL2X4_Dw_Sr9SeXqY2Sk3XblmvHVArA"></haxcms-site-builder>
   <div id="haxcmsoutdatedfallback">
-    <div id="haxcmsoutdatedfallbacksuperold"> 
+    <div id="haxcmsoutdatedfallbacksuperold">
       <iframe id="outline" style="width:18%;float:left;height:90vh;padding:0;margin:0;" name="outline" id="frame1"
         src="legacy-outline.html" loading="lazy"></iframe>
       <iframe id="content" style="width:80%;float:left;height:90vh;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
@@ -198,7 +202,9 @@
         view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
     </div>
   </div>
-  <script>window.HAXCMSContext="nodejs";document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>
+  <script>
+    window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
+    window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>
   <script src="./build-haxcms.js"></script>
   <script src="./build.js"></script>
 </body>

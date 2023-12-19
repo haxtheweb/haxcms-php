@@ -33,7 +33,8 @@
           "title": "Logo",
           "description": "Logo for thumbnails, browser tabs and used on phones",
           "inputMethod": "haxupload",
-          "required": false
+          "required": false,
+          "noVoiceRecord": true
         }
       ]
     },
@@ -51,9 +52,33 @@
           "options": {}
         },
         {
+          "property": "manifest-metadata-theme-regions-header",
+          "title": "Header",
+          "description": "Page to use for the content of the header region",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
+          "property": "manifest-metadata-theme-regions-footerPrimary",
+          "title": "Footer primary",
+          "description": "Primary footer content supplied by this page",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
+          "property": "manifest-metadata-theme-regions-footerSecondary",
+          "title": "Footer secondary",
+          "description": "Secondary footer content supplied by this page",
+          "inputMethod": "select",
+          "required": false,
+          "listItems": {}
+        },
+        {
           "property": "manifest-metadata-theme-variables-image",
-          "title": "Banner",
-          "description": "Banner image aplied to themes that implement one",
+          "title": "Image",
+          "description": "Image aplied to themes that implement one",
           "inputMethod": "haxupload",
           "required": false
         },
@@ -69,7 +94,8 @@
           "title": "Banner alt",
           "description": "Alternative text for the banner image",
           "inputMethod": "textfield",
-          "required": false
+          "required": false,
+          "noVoiceRecord": true
         },
         {
           "property": "manifest-metadata-theme-variables-cssVariable",
@@ -245,7 +271,8 @@
           "property": "manifest-metadata-author-image",
           "title": "Image",
           "description": "Photo",
-          "inputMethod": "haxupload"
+          "inputMethod": "haxupload",
+          "noVoiceRecord": true
         },
         {
           "property": "manifest-metadata-author-name",
@@ -272,6 +299,12 @@
       "title": "SEO",
       "description": "Search engine and detailed internal path handling",
       "properties": [
+        {
+          "property": "manifest-metadata-site-settings-lang",
+          "title": "Language",
+          "description": "https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes for acceptable language codes.",
+          "inputMethod": "textfield"
+        },
         {
           "property": "manifest-metadata-site-settings-pathauto",
           "title": "Pathauto",
