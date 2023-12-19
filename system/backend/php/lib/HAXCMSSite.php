@@ -702,131 +702,136 @@ class HAXCMSSite
      */
     public function updateAlternateFormats($format = NULL)
     {
-            $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-            if (is_null($format) || $format == 'rss') {
-                try {
-                    // rip changes to feed urls
-                    $rss = new FeedMe();
-                    $siteDirectory =
-                        $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-                    @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
-                    @file_put_contents(
-                        $siteDirectory . 'atom.xml',
-                        $rss->getAtomFeed($this)
-                    );
-                } catch (Exception $e) {
-                    // some of these XML parsers are a bit unstable
-                }
-            }
-            // build a sitemap if we have a domain, kinda required...
-            if (is_null($format) || $format == 'sitemap') {
-                try {
-                    if (isset($this->manifest->metadata->site->domain)) {
-                        $domain = $this->manifest->metadata->site->domain;
-                        $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                            $domain,
-                            $siteDirectory
-                        );
-                        // will create also compressed (gzipped) sitemap
-                        $generator->createGZipFile = true;
-                        // determine how many urls should be put into one file
-                        // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-                        $generator->maxURLsPerSitemap = 50000;
-                        // sitemap file name
-                        $generator->sitemapFileName = "sitemap.xml";
-                        // sitemap index file name
-                        $generator->sitemapIndexFileName = "sitemap-index.xml";
-                        // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-                        foreach ($this->manifest->items as $key => $item) {
-                            if ($item->parent == null) {
-                                $priority = '1.0';
-                            } elseif ($item->indent == 2) {
-                                $priority = '0.7';
-                            } else {
-                                $priority = '0.5';
-                            }
-                            $updatedTime = new DateTime();
-                            $updatedTime->setTimestamp($item->metadata->updated);
-                            $updatedTime->format(DateTime::ATOM);
-                            @$generator->addUrl(
-                                $domain .
-                                    '/' .
-                                    str_replace(
-                                        'pages/',
-                                        '',
-                                        str_replace('/index.html', '', $item->location)
-                                    ),
-                                $updatedTime,
-                                'daily',
-                                $priority
-                            );
-                        }
-                        // generating internally a sitemap
-                        $generator->createSitemap();
-                        // writing early generated sitemap to file
-                        $generator->writeSitemap();
-                    }
-                } catch (Exception $e) {
-                    // some of these XML parsers are a bit unstable
-                }
-            }
-            if (is_null($format) || $format == 'legacy') {
-                // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-                @file_put_contents(
-                    $siteDirectory . 'legacy-outline.html',
-                    '<!DOCTYPE html>
-                    <html lang="' . $this->getLanguage() . '">
-                      <head>
-                            <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-                            <meta content="utf-8" http-equiv="encoding">
-                            <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
-                        </head>
-                        <body>' .
-                        $this->treeToNodes($this->manifest->items) .
-                        '</body>
-                    </html>'
-                );
-            }
-            $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                $domain,
-                $siteDirectory
-            );
-            // will create also compressed (gzipped) sitemap
-            $generator->createGZipFile = true;
-            // determine how many urls should be put into one file
-            // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-            $generator->maxURLsPerSitemap = 50000;
-            // sitemap file name
-            $generator->sitemapFileName = "sitemap.xml";
-            // sitemap index file name
-            $generator->sitemapIndexFileName = "sitemap-index.xml";
-            // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-            foreach ($this->manifest->items as $key => $item) {
-                if ($item->parent == null) {
-                    $priority = '1.0';
-                } elseif ($item->indent == 2) {
-                    $priority = '0.7';
-                } else {
-                    $priority = '0.5';
-                }
-                $updatedTime = new DateTime();
-                $updatedTime->setTimestamp($item->metadata->updated);
-                $updatedTime->format(DateTime::ATOM);
-                $generator->addUrl(
-                    $item->slug,
-                    $updatedTime,
-                    'daily',
-                    $priority
-                );
-            }
-            // generating internally a sitemap
-            $generator->createSitemap();
-            // writing early generated sitemap to file
-            $generator->writeSitemap();
+      $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      if (is_null($format) || $format == 'rss') {
+          try {
+              // rip changes to feed urls
+              $rss = new FeedMe();
+              $siteDirectory =
+                  $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+              @file_put_contents(
+                  $siteDirectory . 'atom.xml',
+                  $rss->getAtomFeed($this)
+              );
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
           }
       }
+      // build a sitemap if we have a domain, kinda required...
+      if (is_null($format) || $format == 'sitemap') {
+          try {
+              if (isset($this->manifest->metadata->site->domain)) {
+                  $domain = $this->manifest->metadata->site->domain;
+                  $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+                      $domain,
+                      $siteDirectory
+                  );
+                  // will create also compressed (gzipped) sitemap
+                  $generator->createGZipFile = true;
+                  // determine how many urls should be put into one file
+                  // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+                  $generator->maxURLsPerSitemap = 50000;
+                  // sitemap file name
+                  $generator->sitemapFileName = "sitemap.xml";
+                  // sitemap index file name
+                  $generator->sitemapIndexFileName = "sitemap-index.xml";
+                  // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+                  foreach ($this->manifest->items as $key => $item) {
+                      if ($item->parent == null) {
+                          $priority = '1.0';
+                      } elseif ($item->indent == 2) {
+                          $priority = '0.7';
+                      } else {
+                          $priority = '0.5';
+                      }
+                      $updatedTime = new DateTime();
+                      $updatedTime->setTimestamp($item->metadata->updated);
+                      $updatedTime->format(DateTime::ATOM);
+                      @$generator->addUrl(
+                          $domain .
+                              '/' .
+                              str_replace(
+                                  'pages/',
+                                  '',
+                                  str_replace('/index.html', '', $item->location)
+                              ),
+                          $updatedTime,
+                          'daily',
+                          $priority
+                      );
+                  }
+                  // generating internally a sitemap
+                  $generator->createSitemap();
+                  // writing early generated sitemap to file
+                  $generator->writeSitemap();
+              }
+          } catch (Exception $e) {
+              // some of these XML parsers are a bit unstable
+          }
+      }
+      if (is_null($format) || $format == 'legacy') {
+          // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
+          @file_put_contents(
+              $siteDirectory . 'legacy-outline.html',
+              '<!DOCTYPE html>
+              <html lang="' . $this->getLanguage() . '">
+                <head>
+                      <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+                      <meta content="utf-8" http-equiv="encoding">
+                      <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
+                  </head>
+                  <body>' .
+                  $this->treeToNodes($this->manifest->items) .
+                  '</body>
+              </html>'
+          );
+      }
+      $domain = NULL;
+      if (isset($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;
+      }
+      if (is_null($domain) || $domain == "") {
+        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
+        $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+      }
+
+      $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
+          $domain,
+          $siteDirectory
+      );
+      // will create also compressed (gzipped) sitemap
+      $generator->createGZipFile = true;
+      // determine how many urls should be put into one file
+      // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
+      $generator->maxURLsPerSitemap = 50000;
+      // sitemap file name
+      $generator->sitemapFileName = "sitemap.xml";
+      // sitemap index file name
+      $generator->sitemapIndexFileName = "sitemap-index.xml";
+      // adding url `loc`, `lastmodified`, `changefreq`, `priority`
+      foreach ($this->manifest->items as $key => $item) {
+          if ($item->parent == null) {
+              $priority = '1.0';
+          } elseif ($item->indent == 2) {
+              $priority = '0.7';
+          } else {
+              $priority = '0.5';
+          }
+          $updatedTime = new DateTime();
+          $updatedTime->setTimestamp($item->metadata->updated);
+          $updatedTime->format(DateTime::ATOM);
+          $generator->addUrl(
+              $item->slug,
+              $updatedTime,
+              'daily',
+              $priority
+          );
+      }
+      // generating internally a sitemap
+      $generator->createSitemap();
+      // writing early generated sitemap to file
+      $generator->writeSitemap();
       if (is_null($format) || $format == 'legacy') {
           // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
           @file_put_contents(
