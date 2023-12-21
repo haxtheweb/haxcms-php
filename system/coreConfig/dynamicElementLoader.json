@@ -1,11 +1,12 @@
 {
   "collection-item": "@lrnwebcomponents/collection-list/lib/collection-item.js",
   "collection-list": "@lrnwebcomponents/collection-list/collection-list.js",
+  "site-collection-list": "@lrnwebcomponents/haxcms-elements/lib/ui-components/magic/site-collection-list.js",
+  "play-list": "@lrnwebcomponents/play-list/play-list.js",
   "simple-cta": "@lrnwebcomponents/simple-cta/simple-cta.js",
   "page-section": "@lrnwebcomponents/page-section/page-section.js",
   "block-quote": "@lrnwebcomponents/course-design/lib/block-quote.js",
   "ebook-button": "@lrnwebcomponents/course-design/lib/ebook-button.js",
-  "lrn-h5p": "@lrnwebcomponents/course-design/lib/lrn-h5p.js",
   "worksheet-download": "@lrnwebcomponents/course-design/lib/worksheet-download.js",
   "h5p-element": "@lrnwebcomponents/h5p-element/h5p-element.js",
   "lrn-aside": "@lrnwebcomponents/lrn-aside/lrn-aside.js",

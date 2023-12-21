@@ -250,13 +250,13 @@ class HAXCMSSite
                 }
               }
             break;
+            case 'blog':
+              $this->addPage(null, 'Article 1', 'init', 'article-1');
+              $this->addPage(null, 'Article 2', 'init', 'article-2');
+              $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
+            break;
             case 'website':
               switch ($build->type) {
-                case 'blog':
-                  $this->addPage(null, 'Article 1', 'init', 'article-1');
-                  $this->addPage(null, 'Article 2', 'init', 'article-2');
-                  $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
-                break;
                 default:
                   $this->addPage(null, 'Home', 'init', 'home');
                 break;
@@ -762,9 +762,9 @@ class HAXCMSSite
                       );
                   }
                   // generating internally a sitemap
-                  $generator->createSitemap();
+                  @$generator->createSitemap();
                   // writing early generated sitemap to file
-                  $generator->writeSitemap();
+                  @$generator->writeSitemap();
               }
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
@@ -829,9 +829,9 @@ class HAXCMSSite
           );
       }
       // generating internally a sitemap
-      $generator->createSitemap();
+      @$generator->createSitemap();
       // writing early generated sitemap to file
-      $generator->writeSitemap();
+      @$generator->writeSitemap();
       if (is_null($format) || $format == 'legacy') {
           // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
           @file_put_contents(
