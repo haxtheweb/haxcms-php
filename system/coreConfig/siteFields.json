@@ -52,30 +52,6 @@
           "options": {}
         },
         {
-          "property": "manifest-metadata-theme-regions-header",
-          "title": "Header",
-          "description": "Page to use for the content of the header region",
-          "inputMethod": "select",
-          "required": false,
-          "listItems": {}
-        },
-        {
-          "property": "manifest-metadata-theme-regions-footerPrimary",
-          "title": "Footer primary",
-          "description": "Primary footer content supplied by this page",
-          "inputMethod": "select",
-          "required": false,
-          "listItems": {}
-        },
-        {
-          "property": "manifest-metadata-theme-regions-footerSecondary",
-          "title": "Footer secondary",
-          "description": "Secondary footer content supplied by this page",
-          "inputMethod": "select",
-          "required": false,
-          "listItems": {}
-        },
-        {
           "property": "manifest-metadata-theme-variables-image",
           "title": "Image",
           "description": "Image aplied to themes that implement one",

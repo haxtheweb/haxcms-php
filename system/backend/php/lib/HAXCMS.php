@@ -540,9 +540,6 @@ class HAXCMS
           },
           "theme": {
             "manifest-metadata-theme-element": null,
-            "manifest-metadata-theme-regions-header": null,
-            "manifest-metadata-theme-regions-footerPrimary": null,
-            "manifest-metadata-theme-regions-footerSecondary": null,
             "manifest-metadata-theme-variables-image": null,
             "manifest-metadata-theme-variables-imageAlt": null,
             "manifest-metadata-theme-variables-imageLink": null,
