@@ -145,5 +145,11 @@ gulp.task("wc-autoloader", async () => {
       JSON.stringify(elements),
       {encoding:'utf8',flag:'w'}
     );
+    // write entries for other things to leverage
+    fs.writeFileSync(
+      "../lrnwebcomponents/wc-registry.json",
+      JSON.stringify(elements),
+      {encoding:'utf8',flag:'w'}
+    );
   });
 });
