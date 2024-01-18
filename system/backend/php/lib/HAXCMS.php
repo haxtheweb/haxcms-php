@@ -1273,6 +1273,17 @@ class HAXCMS
      */
     public function generateMachineName($name) {
         return strtolower(preg_replace(array(
+        '/[^\w\-\/]+/',
+        '/-+/',
+        '/^-+/',
+        '/-+$/',
+        ), array('-', '-', '', ''), $name));
+    }
+    /**
+     * Generate slug name
+     */
+    public function generateSlugName($name) {
+      return strtolower(preg_replace(array(
         '/[^a-zA-Z0-9]+/',
         '/-+/',
         '/^-+/',

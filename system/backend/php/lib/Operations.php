@@ -731,7 +731,7 @@ class Operations {
                   }
                   else if ($tmpItem->slug != $page->slug) {
                       $moved = true;
-                      $page->slug = $GLOBALS['HAXCMS']->generateMachineName($tmpItem->slug);
+                      $page->slug = $GLOBALS['HAXCMS']->generateSlugName($tmpItem->slug);
                   }
               }
           }
@@ -1145,7 +1145,8 @@ class Operations {
                   $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
                 }
                 // machine name should more aggressively scrub the slug than clean title
-                $page->slug = $GLOBALS['HAXCMS']->generateMachineName($data["attributes"]["slug"]);
+                // @todo need to verify this doesn't already exist
+                $page->slug = $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"]);
               }
               if (isset($data["attributes"]["parent"])) {
                 $page->parent = $data["attributes"]["parent"];
