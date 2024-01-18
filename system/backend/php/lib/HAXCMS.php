@@ -1273,7 +1273,7 @@ class HAXCMS
      */
     public function generateMachineName($name) {
         return strtolower(preg_replace(array(
-        '/[^\w\-\/]+/',
+        '/[^a-zA-Z0-9]+/',
         '/-+/',
         '/^-+/',
         '/-+$/',
@@ -1283,12 +1283,22 @@ class HAXCMS
      * Generate slug name
      */
     public function generateSlugName($name) {
-      return strtolower(preg_replace(array(
-        '/[^a-zA-Z0-9]+/',
+      $slug = strtolower(preg_replace(array(
+        '/[^\w\-\/]+/',
         '/-+/',
         '/^-+/',
         '/-+$/',
         ), array('-', '-', '', ''), $name));
+      // '//' needs removed
+      $slug = str_replace('////','/',$slug);
+      $slug = str_replace('///','/',$slug);
+      $slug = str_replace('//','/',$slug);
+      $slug = str_replace('//','/',$slug);
+      // slugs CAN NOT start with / but otherwise it should be allowed
+      while (substr($slug, 0, 1) == "/") {
+        $slug = substr($slug, 1);
+      }
+      return $slug;
     }
     /**
      * Clean up a title / sanitize the input string for file system usage
