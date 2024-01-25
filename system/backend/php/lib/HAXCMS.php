@@ -482,7 +482,7 @@ class HAXCMS
      */
     private function siteSettingsForm($context) {
       $site = $this->loadSite($context['site']['name']);
-      $items = $site->manifest->orderTree($site->manifest->items);
+      /*$items = $site->manifest->orderTree($site->manifest->items);
       $itemValues = array(
         array(
           "text" => "-- No page --",
@@ -510,9 +510,9 @@ class HAXCMS
       // but this will allow our regions to get the manifest items
       // dynamically while still storing this configuration in a
       // static json file
-      $this->config->site->fields[0]->properties[1]->properties[1]->itemsList = $itemValues;
-      $this->config->site->fields[0]->properties[1]->properties[2]->itemsList = $itemValues;
-      $this->config->site->fields[0]->properties[1]->properties[3]->itemsList = $itemValues;
+      //$this->config->site->fields[0]->properties[1]->properties[1]->itemsList = $itemValues;
+      //$this->config->site->fields[0]->properties[1]->properties[2]->itemsList = $itemValues;
+      //$this->config->site->fields[0]->properties[1]->properties[3]->itemsList = $itemValues;*/
       return $this->config->site->fields;
     }
     // find parent of an item
@@ -546,8 +546,6 @@ class HAXCMS
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
             "manifest-metadata-theme-variables-icon": null,
-            "manifest-metadata-theme-variables-imageLink": null,
-            "manifest-metadata-theme-variables-imageAlt": null,
             "regions": {
               "manifest-metadata-theme-regions-header": null,
               "manifest-metadata-theme-regions-sidebarFirst": null,
