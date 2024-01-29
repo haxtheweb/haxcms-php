@@ -482,7 +482,15 @@ class HAXCMS
      */
     private function siteSettingsForm($context) {
       $site = $this->loadSite($context['site']['name']);
-      /*$items = $site->manifest->orderTree($site->manifest->items);
+      return $this->config->site->fields;
+    }
+    /**
+     * Build a selectorList for the front-end that has all values
+     * for selection keyed by item id => title, ordered based on
+     * hierarchy with -- for each level down
+     */
+    private function itemSelectorList() {
+      $items = $site->manifest->orderTree($site->manifest->items);
       $itemValues = array(
         array(
           "text" => "-- No page --",
@@ -506,23 +514,7 @@ class HAXCMS
           "value" => $item->id,
         ));
       }
-      // @note this is brittle if we adjust the props loading from siteFields.json
-      // but this will allow our regions to get the manifest items
-      // dynamically while still storing this configuration in a
-      // static json file
-      //$this->config->site->fields[0]->properties[1]->properties[1]->itemsList = $itemValues;
-      //$this->config->site->fields[0]->properties[1]->properties[2]->itemsList = $itemValues;
-      //$this->config->site->fields[0]->properties[1]->properties[3]->itemsList = $itemValues;*/
-      return $this->config->site->fields;
-    }
-    // find parent of an item
-    private function findParent($items, $item) {
-      foreach ($items as $key => $value) {
-        if ($value->id == $item->parent) {
-          return $value;
-        }
-      }
-      return null;
+      return $itemValues;
     }
     /**
      * Return the form for the siteSettings

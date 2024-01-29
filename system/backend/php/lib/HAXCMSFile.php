@@ -26,7 +26,7 @@ class HAXCMSFIle
             strpos($name, '.css') === FALSE
         ) {
             // get contents of the file if it was uploaded into a variable
-            $filedata = file_get_contents($upload['tmp_name']);
+            $filedata = @file_get_contents($upload['tmp_name']);
             // attempt to save the file either to site or system level
             if ($site == 'system/user/files') {
               $pathPart = str_replace(HAXCMS_ROOT . '/', '', $HAXCMS->configDirectory) . '/user/files/';
