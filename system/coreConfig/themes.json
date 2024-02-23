@@ -29,6 +29,12 @@
     "name": "Polaris - Basic site",
     "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
   },
+  "ddd-brochure-theme": {
+    "element": "ddd-brochure-theme",
+    "path": "@lrnwebcomponents/d-d-d/lib/ddd-brochure-theme.js",
+    "name": "Brochure",
+    "thumbnail": "build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg"
+  },
   "polaris-invent-theme": {
     "element": "polaris-invent-theme",
     "path": "@lrnwebcomponents/polaris-theme/lib/polaris-invent-theme.js",
