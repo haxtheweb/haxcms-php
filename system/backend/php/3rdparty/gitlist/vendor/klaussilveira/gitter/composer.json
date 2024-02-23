@@ -15,12 +15,12 @@
     ],
     "require": {
         "php": ">=5.3",
-        "symfony/process": "^2.8"
+        "symfony/process": "^7.0"
     },
     "require-dev": {
-        "symfony/filesystem": "^2.8",
-        "phpunit/phpunit": "~8",
-        "mockery/mockery": "0.9.1"
+        "symfony/filesystem": "^7.0",
+        "phpunit/phpunit": "~11",
+        "mockery/mockery": "1.6.7"
     },
     "scripts": {
         "test": [

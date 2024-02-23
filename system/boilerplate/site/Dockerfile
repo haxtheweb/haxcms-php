@@ -1,6 +1,6 @@
 FROM elmsln/haxcms:2.0.9 as haxcms
 
-FROM php:7.3-apache
+FROM php:8.3-apache
 
 RUN a2enmod rewrite
 COPY ./services/haxcms/apache2.conf /etc/apache2/apache2.conf
