@@ -1,4 +1,4 @@
-FROM php:7.4-apache
+FROM php:8.3-apache
 # Adds jpeg-support for gd
 RUN apt-get update && apt-get install -y \
         libfreetype6-dev \

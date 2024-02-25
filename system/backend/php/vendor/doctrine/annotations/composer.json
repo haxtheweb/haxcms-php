@@ -13,12 +13,12 @@
         {"name": "Johannes Schmitt", "email": "schmittjoh@gmail.com"}
     ],
     "require": {
-        "php": "^7.1",
-        "doctrine/lexer": "1.*"
+        "php": "^8.0",
+        "doctrine/lexer": "3.*"
     },
     "require-dev": {
-        "doctrine/cache": "1.*",
-        "phpunit/phpunit": "^7.5"
+        "doctrine/cache": "2.*",
+        "phpunit/phpunit": "^11.0"
     },
     "config": {
         "sort-packages": true

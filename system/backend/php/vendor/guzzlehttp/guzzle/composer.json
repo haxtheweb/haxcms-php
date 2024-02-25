@@ -54,13 +54,13 @@
         "php": ">=5.5",
         "ext-json": "*",
         "symfony/polyfill-intl-idn": "^1.17",
-        "guzzlehttp/promises": "^1.0",
-        "guzzlehttp/psr7": "^1.9"
+        "guzzlehttp/promises": "^2.0",
+        "guzzlehttp/psr7": "^2.0"
     },
     "require-dev": {
         "ext-curl": "*",
-        "phpunit/phpunit": "^4.8.35 || ^5.7 || ^6.4 || ^7.0",
-        "psr/log": "^1.1"
+        "phpunit/phpunit": "^11.0",
+        "psr/log": "^3.0"
     },
     "suggest": {
         "psr/log": "Required for using the Log middleware"
