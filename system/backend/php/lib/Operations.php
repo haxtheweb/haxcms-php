@@ -1226,6 +1226,14 @@ class Operations {
               else if (isset($page->metadata->tags)) {
                 unset($page->metadata->tags);
               }
+              // support for defining and updating page accentColor
+              if (isset($data["attributes"]["accent-color"]) && $data["attributes"]["accent-color"] != '') {
+                $page->metadata->accentColor = $data["attributes"]["accent-color"];
+              }
+              // they sent across nothing but we had something previously
+              else if (isset($page->metadata->accentColor)) {
+                unset($page->metadata->accentColor);
+              }
               // support for defining and updating page type
               if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
                 $page->metadata->icon = $data["attributes"]["icon"];
