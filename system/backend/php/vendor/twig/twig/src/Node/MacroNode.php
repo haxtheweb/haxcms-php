@@ -21,7 +21,7 @@ use Twig\Error\SyntaxError;
  */
 class MacroNode extends Node
 {
-    const VARARGS_NAME = 'varargs';
+    public const VARARGS_NAME = 'varargs';
 
     public function __construct(string $name, Node $body, Node $arguments, int $lineno, string $tag = null)
     {
@@ -88,7 +88,13 @@ class MacroNode extends Node
             ->outdent()
             ->write("]);\n\n")
             ->write("\$blocks = [];\n\n")
-            ->write("ob_start(function () { return ''; });\n")
+        ;
+        if ($compiler->getEnvironment()->isDebug()) {
+            $compiler->write("ob_start();\n");
+        } else {
+            $compiler->write("ob_start(function () { return ''; });\n");
+        }
+        $compiler
             ->write("try {\n")
             ->indent()
             ->subcompile($this->getNode('body'))

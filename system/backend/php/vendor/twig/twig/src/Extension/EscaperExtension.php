@@ -211,7 +211,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
 
     switch ($strategy) {
         case 'html':
-            // see https://secure.php.net/htmlspecialchars
+            // see https://www.php.net/htmlspecialchars
 
             // Using a static variable to avoid initializing the array
             // each time the function is called. Moving the declaration on the
@@ -234,18 +234,18 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
             ];
 
             if (isset($htmlspecialcharsCharsets[$charset])) {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, $charset);
             }
 
             if (isset($htmlspecialcharsCharsets[strtoupper($charset)])) {
                 // cache the lowercase variant for future iterations
                 $htmlspecialcharsCharsets[$charset] = true;
 
-                return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, $charset);
             }
 
-            $string = iconv($charset, 'UTF-8', $string);
-            $string = htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $string = twig_convert_encoding($string, 'UTF-8', $charset);
+            $string = htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
 
             return iconv('UTF-8', $charset, $string);
 
@@ -253,7 +253,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
             // escape all non-alphanumeric characters
             // into their \x or \uHHHH representations
             if ('UTF-8' !== $charset) {
-                $string = iconv($charset, 'UTF-8', $string);
+                $string = twig_convert_encoding($string, 'UTF-8', $charset);
             }
 
             if (!preg_match('//u', $string)) {
@@ -265,7 +265,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
 
                 /*
                  * A few characters have short escape sequences in JSON and JavaScript.
-                 * Escape sequences supported only by JavaScript, not JSON, are ommitted.
+                 * Escape sequences supported only by JavaScript, not JSON, are omitted.
                  * \" is also supported but omitted, because the resulting string is not HTML safe.
                  */
                 static $shortMap = [
@@ -282,15 +282,18 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
                     return $shortMap[$char];
                 }
 
-                // \uHHHH
-                $char = twig_convert_encoding($char, 'UTF-16BE', 'UTF-8');
-                $char = strtoupper(bin2hex($char));
-
-                if (4 >= \strlen($char)) {
-                    return sprintf('\u%04s', $char);
+                $codepoint = mb_ord($char, 'UTF-8');
+                if (0x10000 > $codepoint) {
+                    return sprintf('\u%04X', $codepoint);
                 }
 
-                return sprintf('\u%04s\u%04s', substr($char, 0, -4), substr($char, -4));
+                // Split characters outside the BMP into surrogate pairs
+                // https://tools.ietf.org/html/rfc2781.html#section-2.1
+                $u = $codepoint - 0x10000;
+                $high = 0xD800 | ($u >> 10);
+                $low = 0xDC00 | ($u & 0x3FF);
+
+                return sprintf('\u%04X\u%04X', $high, $low);
             }, $string);
 
             if ('UTF-8' !== $charset) {
@@ -301,7 +304,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
 
         case 'css':
             if ('UTF-8' !== $charset) {
-                $string = iconv($charset, 'UTF-8', $string);
+                $string = twig_convert_encoding($string, 'UTF-8', $charset);
             }
 
             if (!preg_match('//u', $string)) {
@@ -322,7 +325,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
 
         case 'html_attr':
             if ('UTF-8' !== $charset) {
-                $string = iconv($charset, 'UTF-8', $string);
+                $string = twig_convert_encoding($string, 'UTF-8', $charset);
             }
 
             if (!preg_match('//u', $string)) {
@@ -389,20 +392,18 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
             return rawurlencode($string);
 
         default:
-            static $escapers;
-
-            if (null === $escapers) {
-                // merge the ones set on CoreExtension for BC (to be removed in 3.0)
-                $escapers = array_merge(
-                    $env->getExtension(CoreExtension::class)->getEscapers(false),
-                    $env->getExtension(EscaperExtension::class)->getEscapers()
-                );
+            // check the ones set on CoreExtension for BC (to be removed in 3.0)
+            $legacyEscapers = $env->getExtension(CoreExtension::class)->getEscapers(false);
+            if (array_key_exists($strategy, $legacyEscapers)) {
+                return $legacyEscapers[$strategy]($env, $string, $charset);
             }
 
-            if (isset($escapers[$strategy])) {
+            $escapers = $env->getExtension(EscaperExtension::class)->getEscapers();
+            if (array_key_exists($strategy, $escapers)) {
                 return $escapers[$strategy]($env, $string, $charset);
             }
 
+            $escapers = array_merge($legacyEscapers, $escapers);
             $validStrategies = implode(', ', array_merge(['html', 'js', 'url', 'css', 'html_attr'], array_keys($escapers)));
 
             throw new RuntimeError(sprintf('Invalid escaping strategy "%s" (valid ones: %s).', $strategy, $validStrategies));
