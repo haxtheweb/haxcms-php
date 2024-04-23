@@ -601,55 +601,29 @@ class HAXAppStoreService
      */
     public function loadBaseStax()
     {
-        $jsonstring = '[{
-      "details": {
-        "title": "Example Lesson",
-        "author": "ELMS:LN",
-        "description": "An example of what HAX can do",
-        "status": "available",
-        "rating": "0",
-        "tags": ["example"]
-      },
-      "stax": [
-        {
-          "tag": "h2",
-          "properties": {},
-          "content": "Introduction to ELMS: Learning Network"
-        },
-        {
-          "tag": "p",
-          "properties": {},
-          "content": "What is ELMS: Learning Network? How is it fundamentally different from other learning technologies? Why is it your reading this when it\'s example text that you\'ve just added to see how to make a really solid introduction to a new unit of instruction? Let\'s keep reading to find out!"
-        },
-        {
-          "tag": "video-player",
-          "properties": {
-            "style": "width: 75%; margin: 0px auto; display: block;",
-            "source": "https://www.youtube.com/watch?v=pKLPQ4ufo64",
-            "src": "https://www.youtube-nocookie.com/embed/pKLPQ4ufo64?showinfo=0&controls=1&rel=0",
-            "iframed": true,
-            "sandboxed": false,
-            "width": "560",
-            "height": "315",
-            "responsive": true,
-            "caption": "What is ELMS:LN? Why is it fundamentally different from any other educational technology that\'s ever existed? What is sustainable innovation? Why is this so ...",
-            "secondaryColor": "#fff9c4",
-            "textColor": "#000000",
-            "secondaryColorClass": "yellow lighten-4",
-            "textColorClass": "black-text",
-            "ytNocookie": true,
-            "ytSuggested": false,
-            "ytControls": true,
-            "ytTitle": false,
-            "vimeoTitle": false,
-            "vimeoByline": false,
-            "vimeoPortrait": false,
-            "videoColor": "FF031D"
-          },
-          "content": ""
-        }
-      ]
-    }]';
+        $jsonstring = '[
+          {
+            "details": {
+              "title": "Two column Article",
+              "image": "",
+              "author": "HAXTheWeb core team",
+              "description": "Content with media to right",
+              "status": "available",
+              "rating": "0",
+              "tags": ["media"]
+            },
+            "stax": [
+              {
+                "tag": "grid-plate",
+                "properties": {
+                  "disableResponsive": true,
+                  "layout": "2-1"
+                },
+                "content": "<h2 data-design-treatment=\"vert\" data-primary=\"15\" slot=\"col-1\">Scanning Process / Software</h2><p slot=\"col-1\">The following stages of the process involves aligning the various scans to create\n    a coherent, detailed 3D model using Artec Studio 17 software. The point cloud is\n    converted into a mesh, which is a solid 3D model, and the texture data captured by\n    the scanner is mapped back onto the mesh to add color, markings, and other details.\n    The final 3D model can be exported into other software platforms, such as Blender\n    and Instant Mesh, both of which are open-source.</p>\n\n    <p data-hax-layout=\"true\" =\"true\"=\"\" slot=\"col-1\">To optimize the model for web use, it must be reduced significantly in size. To\n    achieve this, the polygon count is reduced using Instant Mesh, and the resulting\n    low-polygon model is unwrapped, and the texture and additional details are added\n    through a process called “baking” onto the model using normal mapping. This is a\n    commonly used technique in film and video game production to reduce file sizes, processing\n    power, and other resources required.</p>\n\n <media-image citation=\"3D scanner and software shown scanning an ODL coffee mug.\" accent-color=\"grey\" size=\"wide\" offset=\"none\" slot=\"col-2\" source=\"https://bones.courses.science.psu.edu/assets/images/scanning-page-images/scanner-odl.jpg\" card box></media-image>"
+              }
+            ]
+          }
+        ]';
         return json_decode($jsonstring);
     }
 
