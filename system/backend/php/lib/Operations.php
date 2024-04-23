@@ -1499,11 +1499,6 @@ class Operations {
       } else {
           $staxList = $haxService->loadBaseStax();
       }
-      if (isset($GLOBALS['HAXCMS']->config->appStore->blox)) {
-          $bloxList = $GLOBALS['HAXCMS']->config->appStore->blox;
-      } else {
-          $bloxList = $haxService->loadBaseBlox();
-      }
       if (isset($GLOBALS['HAXCMS']->config->appStore->autoloader)) {
           $autoloaderList = $GLOBALS['HAXCMS']->config->appStore->autoloader;
       } else {
@@ -1549,7 +1544,6 @@ class Operations {
           'status' => 200,
           'apps' => $appStore,
           'stax' => $staxList,
-          'blox' => $bloxList,
           'autoloader' => $autoloaderList
       );
     }
