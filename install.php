@@ -211,7 +211,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     );
     // user
     if(isset($_POST['user'])){
-      $configFile = str_replace('jeff', $_POST['user'], $configFile);
+      $configFile = str_replace('jeff', filter_var($_POST['user'], FILTER_SANITIZE_STRING), $configFile);
     }
     else{
       $configFile = str_replace('jeff', 'admin', $configFile);
@@ -221,7 +221,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     // to see the login details ahead of time in order
     // to set things up correctly
     if(isset($_POST['pass'])){
-      $pass = $_POST['pass'];
+      $pass = filter_var($_POST['pass'], FILTER_SANITIZE_STRING);
     }
     else {
       // pass
