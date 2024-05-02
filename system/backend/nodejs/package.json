@@ -20,7 +20,7 @@
     "openapi-enforcer-middleware": "1.2.4",
     "openapi-enforcer": "1.14.1",
     "body-parser": "1.19.0",
-    "sharp": "0.30.5",
+    "sharp": "0.32.6",
     "uuid": "8.3.2",
     "twig": "1.15.4",
     "crypto": "1.0.1",
