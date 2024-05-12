@@ -1,6 +1,6 @@
 FROM elmsln/haxcms:2.0.9 as haxcms
 
-FROM node:12
+FROM node:22
 
 COPY --from=haxcms /var/www/html/build /haxcms/build
 COPY --from=haxcms /var/www/html/dist /haxcms/dist
