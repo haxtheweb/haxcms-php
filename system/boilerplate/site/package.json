@@ -12,7 +12,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@lrnwebcomponents/haxcms-elements": "^7.0.15"
+    "@lrnwebcomponents/haxcms-elements": "^8.0.0"
   },
   "private": false,
   "publishConfig": {
@@ -21,7 +21,7 @@
   "resolutions": {
   },
   "devDependencies": {
-    "@web/dev-server": "0.3.0"
+    "@web/dev-server": "0.4.4"
   },
   "scripts": {
     "start": "yarn run dev",
