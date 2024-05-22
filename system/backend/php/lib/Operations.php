@@ -475,6 +475,10 @@ class Operations {
           $this->params['manifest']['site']['manifest-metadata-site-logo'],
           FILTER_SANITIZE_STRING
       );
+      $site->manifest->metadata->site->tags = filter_var(
+        $this->params['manifest']['site']['manifest-metadata-site-tags'],
+        FILTER_SANITIZE_STRING
+      );
       if (!isset($site->manifest->metadata->site->static)) {
         $site->manifest->metadata->site->static = new stdClass();
       }

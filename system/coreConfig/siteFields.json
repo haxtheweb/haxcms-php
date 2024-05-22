@@ -29,6 +29,13 @@
           "required": false
         },
         {
+          "property": "manifest-metadata-site-tags",
+          "title": "Tags",
+          "description": "Comma separated list for tagging this site",
+          "inputMethod": "textfield",
+          "required": false
+        },
+        {
           "property": "manifest-metadata-site-logo",
           "title": "Logo",
           "description": "Logo for thumbnails, browser tabs and used on phones",

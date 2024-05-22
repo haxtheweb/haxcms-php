@@ -528,6 +528,7 @@ class HAXCMS
             "manifest-title": null,
             "manifest-description": null,
             "manifest-metadata-site-domain": null,
+            "manifest-metadata-site-tags": null,
             "manifest-metadata-site-logo": null
           },
           "theme": {
