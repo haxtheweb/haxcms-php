@@ -67,7 +67,7 @@ if (window.__appCDN) {
 }
 // reset styles that we apply to all hax sites for some level of normalization
 // across base HTML tags as well as css vars for styling system wide things from 1 place
-var baseResetStyles = 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css';
+var baseResetStyles = 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css';
 // css files load faster when implemented this way
 var link = document.createElement('link');
 link.rel = 'stylesheet';

@@ -1398,10 +1398,10 @@ class HAXCMSSite
   <link rel="preconnect" crossorigin href="https://i.creativecommons.org">
   <link rel="preconnect" crossorigin href="https://licensebuttons.net">
   <link rel="preload" href="${base}build/es6/node_modules/mobx/dist/mobx.esm.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="${base}build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="${base}build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="${base}build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" as="script" crossorigin="anonymous" />
+  <link rel="preload" href="${base}build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="${base}build/es6/dist/my-custom-elements.js" as="script" crossorigin="anonymous" />
-  <link rel="preload" href="${base}build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
+  <link rel="preload" href="${base}build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous" />
   <link rel="preload" href="./theme/theme.css" as="style" />  
   <meta name="generator" content="HAXcms">

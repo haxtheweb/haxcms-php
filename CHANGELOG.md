@@ -67,12 +67,12 @@ All themes have received a11y and mobile clean up. Lots of performance timing up
 While 2.0.0, this does not break changes from 1.4.0 released toward the end of 2020.
 A couple of the issues resolved though most are in our consolidated issue queue:
 main queue: https://github.com/elmsln/issues/issues?q=is%3Aissue+is%3Aclosed+haxcms
-haxcms queue: https://github.com/elmsln/HAXcms/milestone/7
+haxcms queue: https://github.com/haxtheweb/haxcms/milestone/7
 
 ## 1.2.0 - 2020-07-07
 New themes (clean-one, clean-two) as well as multiple a11y and ux issues cleaned up. Improved performance among different site- elements via dropping of the @apply legacy concept. HAXcms is just one of our build targets now so it's issue queue is being winded down in favor of the unified issue queue.
 
-- Milestone in HAXcms https://github.com/elmsln/HAXcms/milestone/5?closed=1
+- Milestone in HAXcms https://github.com/haxtheweb/haxcms/milestone/5?closed=1
 - Closed issues tagged HAXcms https://github.com/elmsln/issues/issues?q=is%3Aissue+is%3Aclosed+label%3AHAXcms
 
 ## 1.0.0 - 2020-01-28
@@ -80,16 +80,16 @@ LitElement is predominant in this release. This release has undergone a first ro
 
 All in all, this is a massive release with lots of sticky issues resolved that were blocking a full stable release. And so, with those removed, we have arrived at 1.0.0.
 
-Full breakdown of the 85 issues resolved in this release: https://github.com/elmsln/HAXcms/milestone/3?closed=1
+Full breakdown of the 85 issues resolved in this release: https://github.com/haxtheweb/haxcms/milestone/3?closed=1
 
 ## 0.12.0 - 2019-10-01
 This release provides dramatically better user experience and is the culmination of months of bug fixing across the many systems that HAX is deployed. Most notably is the user experience unification between sites, dashboard, HAX styles meshign with HAXcms, HAX and HAX capable element data binding and accessibilit fixes, a full headless Form API on the backend with front-end tag to render and validate, and better data integrity and experience in using the site outline tool.
 
-Full breakdown of the 86 issues resolved in this release: https://github.com/elmsln/HAXcms/milestone/2?closed=1
+Full breakdown of the 86 issues resolved in this release: https://github.com/haxtheweb/haxcms/milestone/2?closed=1
 
 ## 0.11.0 - 2019-08-02
 This release is to hit a common release point with ELMS:LN. As they both implement HAX and HAXcms
 actually sits inside of ELMSLN for future integrations. This provides lots of performance, accessibility
 and cross browser support.
 
-To read about the changes in this release see: https://github.com/elmsln/HAXcms/milestone/1?closed=1
+To read about the changes in this release see: https://github.com/haxtheweb/haxcms/milestone/1?closed=1

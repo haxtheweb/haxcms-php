@@ -6,7 +6,7 @@ const path = require("path");
 // mirror version numbers
 gulp.task(
   "version-match", async () => {
-    const packageVm = require("./node_modules/@lrnwebcomponents/haxcms-elements/package.json");
+    const packageVm = require("./node_modules/@haxtheweb/haxcms-elements/package.json");
     fs.writeFileSync('./VERSION.txt', packageVm.version , {encoding:'utf8',flag:'w'});
     console.log(`${packageVm.version} written to VERSION.txt`);
   }
@@ -141,13 +141,13 @@ gulp.task("wc-autoloader", async () => {
     );
     // write entries to demo for local work
     fs.writeFileSync(
-      "../lrnwebcomponents/elements/haxcms-elements/demo/wc-registry.json",
+      "../webcomponents/elements/haxcms-elements/demo/wc-registry.json",
       JSON.stringify(elements),
       {encoding:'utf8',flag:'w'}
     );
     // write entries for other things to leverage
     fs.writeFileSync(
-      "../lrnwebcomponents/wc-registry.json",
+      "../webcomponents/wc-registry.json",
       JSON.stringify(elements),
       {encoding:'utf8',flag:'w'}
     );

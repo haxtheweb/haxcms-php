@@ -26,7 +26,7 @@ HAX seeks to be the smallest possible back-end CMS to make HAX work and be able 
 - https://reclaim.cloud/ - 1 click install for a high scale / dedicated resources
 
 # HAXiam
-- HAX can also be installed in a "[HAXiam](https://github.com/elmsln/HAXiam)" configuration where institutional users automatically get their own HAX spaces to work in by logging in.
+- HAX can also be installed in a "[HAXiam](https://github.com/haxtheweb/haxiam)" configuration where institutional users automatically get their own HAX spaces to work in by logging in.
 - Contact via issue queue if interested in this solution and collaborating to improve it's deployment methodology
 
 # Requirements (PHP)
@@ -41,13 +41,13 @@ yarn run dev
 
 ## Quick Install
 ```bash
-$ curl -fsSL https://raw.githubusercontent.com/elmsln/HAXcms/master/scripts/haxcmsme.sh -o haxcmsme.sh && sh haxcmsme.sh
+$ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms/master/scripts/haxcmsme.sh -o haxcmsme.sh && sh haxcmsme.sh
 ```
 ## Installation Guides
 - There are full installation instructions available at https://haxtheweb.org/installation which details many different install routines.
 
 ### Containers
-- Clone this repo: `git clone https://github.com/elmsln/haxcms.git`
+- Clone this repo: `git clone https://github.com/haxtheweb/haxcms.git`
 - Install a server container (recommended). Here are some options (We support 'em all!):  
   - [docker](https://store.docker.com/search?type=edition&offering=community)
   - [ddev](https://ddev.readthedocs.io/en/latest/#installation)
@@ -60,7 +60,7 @@ $ curl -fsSL https://raw.githubusercontent.com/elmsln/HAXcms/master/scripts/haxc
 - Click the icon in the top-right and you're off and running!
 ### MAMP
 - Download [MAMP](https://www.mamp.info/)
-- Download this repo https://github.com/elmsln/HAXcms/archive/master.zip
+- Download this repo https://github.com/haxtheweb/haxcms/archive/master.zip
 - Place HAXcms files in the htdocs folder of MAMP.
 - Turn MAMP on and click "My website"
 - Copy the password it gives you, click to access HAX and then HAX YOUR WEB!

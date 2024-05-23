@@ -71,7 +71,7 @@
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -91,12 +91,12 @@
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -109,7 +109,7 @@
         display: unset;
       }
       body.app-loaded.dark-mode {
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
 
       #loading {
@@ -299,9 +299,9 @@
       // fake an async
       setTimeout(() => {
         // combine so they are there for review just like a real backend would present
-        const blueStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/BlueStyle.svg';
-        const greyStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/GreyStyle.svg';
-        const partyStyle = 'node_modules/@lrnwebcomponents/app-hax/lib/assets/images/PartyStyle.svg';
+        const blueStyle = 'node_modules/@haxtheweb/app-hax/lib/assets/images/BlueStyle.svg';
+        const greyStyle = 'node_modules/@haxtheweb/app-hax/lib/assets/images/GreyStyle.svg';
+        const partyStyle = 'node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg';
         const themes = Object.assign(
           {},
           themeCoreJson,
@@ -383,7 +383,7 @@
       src="node_modules/web-animations-js/web-animations-next-lite.min.js"
     ></script>
     <script type="module">
-      import '@lrnwebcomponents/app-hax/app-hax.js';
+      import '@haxtheweb/app-hax/app-hax.js';
     </script>
   </body>
 </html>

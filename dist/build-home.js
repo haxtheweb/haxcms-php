@@ -1,1 +1,1 @@
-import "@lrnwebcomponents/app-hax/app-hax.js";
+import "@haxtheweb/app-hax/app-hax.js";

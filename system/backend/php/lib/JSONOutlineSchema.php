@@ -1,7 +1,7 @@
 <?php
 /**
  * JSONOutlineSchema - An object for interfacing with the JSON Outline schema
- * specification. @see https://github.com/LRNWebComponents/json-outline-schema
+ * specification. @see https://github.com/haxtheweb/json-outline-schema
  * for more details. This provides a simple way of loading outlines, parsing
  * and working with the items in them while writing back to the specification
  * accurately.

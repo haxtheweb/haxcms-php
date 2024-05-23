@@ -20,7 +20,7 @@ if ! command -v yarn;then
 	npm -g install yarn
 fi
 
-git clone https://github.com/elmsln/HAXcms.git
+git clone https://github.com/haxtheweb/haxcms.git
 cd HAXcms/
 
 # install docker if not installed

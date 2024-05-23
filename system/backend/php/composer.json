@@ -1,5 +1,5 @@
 {
-    "name": "elmsln/haxcms",
+    "name": "haxtheweb/haxcms",
     "description": "Headless CMS for managing and publishing hybrid static, web component driven sites.",
     "license": "Apache-2.0",
     "require": {
