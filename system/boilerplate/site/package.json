@@ -5,14 +5,14 @@
   "main": "index.html",
   "repository": {
     "type": "git",
-    "url": "git@github.com/elmsln/haxtheweb.git"
+    "url": "git@github.com/haxtheweb/haxcms.git"
   },
   "author": {
     "name": "btopro"
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@lrnwebcomponents/haxcms-elements": "^7.0.15"
+    "@haxtheweb/haxcms-elements": "^8.0.0"
   },
   "private": false,
   "publishConfig": {

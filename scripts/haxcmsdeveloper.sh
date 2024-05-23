@@ -5,8 +5,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 # move back to install root
 cd ../
-# make node modules linked to the location of lrnwebcomponents
-ln -s ~/company/factories/lrnwebcomponents/node_modules/ node_modules
+# make node modules linked to the location of haxtheweb
+ln -s ~/company/factories/haxtheweb/node_modules/ node_modules
 cd _sites
 # walk each directory and update it's demo automatically
 for project in */ ; do

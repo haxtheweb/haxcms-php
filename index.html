@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <link rel="preload" href="./build/es6/dist/build-home.js" as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/core/site-list/haxcms-site-listing.js"
+    <link rel="preload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/site-list/haxcms-site-listing.js"
       as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style">
+    <link rel="preload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
-    <link rel="stylesheet" href="build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" /> 
+    <link rel="stylesheet" href="build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" /> 
     <script type="text/javascript">
       document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
     </script>
@@ -51,7 +51,7 @@
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -71,12 +71,12 @@
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -89,7 +89,7 @@
         display: unset;
       }
       body.app-loaded.dark-mode {
-        background-image: url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+        background-image: url('node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
 
       #loading {

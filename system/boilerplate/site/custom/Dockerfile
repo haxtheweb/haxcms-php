@@ -1,4 +1,4 @@
-FROM elmsln/haxcms:2.0.9 as haxcms
+FROM haxtheweb/haxcms:2.0.9 as haxcms
 
 FROM node:12
 

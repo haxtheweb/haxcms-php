@@ -14,7 +14,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     <meta charset="utf-8">
     <title>HAXcms Installation</title>
     <link rel="preload" href="./build/es6/dist/build-install.js" as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@lrnwebcomponents/app-hax/app-hax.js"
+    <link rel="preload" href="./build/es6/node_modules/@haxtheweb/app-hax/app-hax.js"
       as="script" crossorigin="anonymous">
     <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">   
@@ -23,7 +23,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         margin: 0;
         padding: 0;
         overflow-x: hidden;
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('/build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -39,7 +39,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         --simple-tooltip-font-size: 14px;
       }
       body {
-        background-image: url('/build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('/build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -145,7 +145,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     </style>
   </head>
   <body no-js>
-    <git-corner alt="Join HAX on Github!" source="https://github.com/elmsln/haxcms"></git-corner>
+    <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms"></git-corner>
     <div class="wrapper">
       <div class="card">
 <?php

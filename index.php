@@ -16,10 +16,10 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build.js" as="script" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>wc-registry.json" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
-    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
-    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
-    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />
+    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
     <meta name="generator" content="HAXcms">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>Welcome to HAX</title>
@@ -59,7 +59,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -79,14 +79,14 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
         --simple-tooltip-background: #ffffff;
         --simple-tooltip-text-color: #000000;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/LMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -99,7 +99,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         display: unset;
       }
       body.app-loaded.dark-mode:not(.bad-device) {
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@lrnwebcomponents/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
 
       #loading {
