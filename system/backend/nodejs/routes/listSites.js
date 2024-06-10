@@ -44,6 +44,9 @@ async function listSites (req, res) {
         }
       }
     }
-    res.send(returnData);
+    res.send({
+      status: 200,
+      data: returnData
+    });
 }
 module.exports = listSites;

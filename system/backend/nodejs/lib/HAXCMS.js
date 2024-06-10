@@ -57,6 +57,7 @@ const HAXCMS = new class HAXCMSClass {
     this.domain = url.hostname;
     // @todo these need to be read in from a file
     this.privateKey = 'NEEDTOGETTHIS'; // @todo need to set this
+    this.refreshPrivateKey = 'NEEDTOGETTHIS';
     this.superUser = {
       name: 'admin',
       password: 'admin',
@@ -419,8 +420,11 @@ const HAXCMS = new class HAXCMSClass {
       }
       // kick back the end if its invalid
       if (endOnInvalid) {
-        res.cookie('haxcms_refresh_token', '', { 
-          expires:1,     
+        res.cookie('jwt', '', {
+          expires:1,
+        });
+        res.cookie('haxcms_refresh_token', '', {
+          expires:1,
         });
         res.send(401);
       }
@@ -1720,7 +1724,7 @@ class HAXCMSSite
           for (var key in this.manifest.items) {
             let item = this.manifest.items[key];
             if (item.id === page.id) {
-                delete this.manifest.items[key];
+                this.manifest.items.splice(key, 1);
                 await this.manifest.save(false);
                 await this.updateAlternateFormats();
                 return true;

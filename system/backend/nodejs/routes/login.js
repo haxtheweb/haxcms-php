@@ -1,11 +1,11 @@
 const HAXCMS = require('../lib/HAXCMS.js');
 function loginRoute(req, res)  {
   // if we don't have a user and the don't answer, bail
-  if (req.body && req.body.u && req.body.p) {
+  if (req.body && req.body.username && req.body.password) {
     // _ paranoia
-    var u = req.body.u;
+    var u = req.body.username;
     // driving me insane  
-    var p = req.body.p;
+    var p = req.body.password;
     // _ paranoia ripping up my brain
     // test if this is a valid user login
     if (!HAXCMS.testLogin(u, p, true)) {

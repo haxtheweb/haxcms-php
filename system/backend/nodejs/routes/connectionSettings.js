@@ -46,6 +46,7 @@ async function connectionSettings(req, res) {
     downloadSite: `${baseAPIPath}downloadSite`,
     archiveSite: `${baseAPIPath}archiveSite`,
     copySite: `${baseAPIPath}cloneSite`,
+    getSitesList: `${baseAPIPath}getSitesList`,
   });
   res.send(`window.appSettings =${returnData};`);
 }

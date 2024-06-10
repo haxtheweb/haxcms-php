@@ -1,6 +1,5 @@
 // lib dependencies
 const express = require('express');
-const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
@@ -10,14 +9,17 @@ const server = require('http').Server(app);
 const HAXCMS = require('./lib/HAXCMS.js');
 // app settings
 const port = 3000;
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json({
+  type: "*/*",
+}))
 app.use(helmet({
   contentSecurityPolicy: false
 }));
 app.use(cookieParser());
 app.use(fileUpload());
-app.use(express.static("public"))
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
 app.use('/', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -49,6 +51,7 @@ const routes = {
     login: require('./routes/login.js'),
     logout: require('./routes/logout.js'),
     revertCommit: require('./routes/revertCommit.js'),
+    refreshAccessToken: require('./routes/refreshAccessToken.js'),
 
     formLoad: require('./routes/formLoad.js'),
     formProcess: require('./routes/formProcess.js'),
@@ -75,11 +78,10 @@ const routes = {
     createNode: require('./routes/createNode.js'),
     saveNode: require('./routes/saveNode.js'),
     deleteNode: require('./routes/deleteNode.js'),
+    getSitesList: require('./routes/listSites.js'),
   },
   get: {
     logout: require('./routes/logout.js'),
-    refreshAccessToken: require('./routes/refreshAccessToken.js'),
-    listSites: require('./routes/listSites.js'),
     connectionSettings: require('./routes/connectionSettings.js'),
     generateAppStore: require('./routes/generateAppStore.js'),
   },
@@ -88,7 +90,7 @@ const routes = {
 const openRoutes = [
   'generateAppStore',
   'connectionSettings',
-  'listSites',
+  'getSitesList',
   'login',
   'logout',
   'api',
@@ -124,5 +126,5 @@ server.listen(port, (err) => {
   // opens the url in the default browser 
   open('http://localhost:3000');
 	/* eslint-disable no-console */
-	console.log('http://localhost:3000');
+	console.log('open: http://localhost:3000');
 });

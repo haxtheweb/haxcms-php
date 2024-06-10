@@ -1736,7 +1736,7 @@ class Operations {
    *    @OA\Parameter(
    *     description="User name",
    *     example="admin",
-   *     name="u",
+   *     name="username",
    *     in="query",
    *     required=true,
    *     @OA\Schema(type="string")
@@ -1744,7 +1744,7 @@ class Operations {
    *   @OA\Parameter(
    *     description="Password",
    *     example="admin",
-   *     name="p",
+   *     name="password",
    *     in="query",
    *     required=true,
    *     @OA\Schema(type="string")
