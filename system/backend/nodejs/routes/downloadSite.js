@@ -66,7 +66,7 @@ const basename = require('locutus/php/filesystem/basename');
       if (!file.isDir()) {
         // Get real and relative path for current file
         let filePath = file.getRealPath();
-        let relativePath = filePath.substr(strlen(rootPath) + 1);
+        let relativePath = filePath.substring(strlen(rootPath) + 1);
         // Add current file to archive
         if (filePath != '' && relativePath != '') {
           await zip.addFile(filePath, relativePath);

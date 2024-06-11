@@ -1,6 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
-const gettype = require('locutus/php/var/gettype');
 const filter_var = require('../lib/filter_var.js');
+const strip_tags = require("locutus/php/strings/strip_tags");
 /**
    * @OA\Post(
    *    path="/saveNode",
@@ -19,36 +19,40 @@ const filter_var = require('../lib/filter_var.js');
    * )
    */
   async function saveNode(req, res) {
+    let bodyParams = req.body;
     let site = await HAXCMS.loadSite(req.body['site']['name']);
     let schema = [];
-    if ((this.params['node']['body'])) {
-      body = this.params['node']['body'];
+    let body;
+    if ((bodyParams['node']['body'])) {
+      body = bodyParams['node']['body'];
       // we ship the schema with the body
-      if ((this.params['node']['schema'])) {
-        schema = this.params['node']['schema'];
+      if ((bodyParams['node']['schema'])) {
+        schema = bodyParams['node']['schema'];
       }
     }
-    details = array();
+    let details = {};
     // if we have details object then merge configure and advanced
-    if ((this.params['node']['details'])) {
-      foreach (this.params['node']['details']['node']['configure'] as key => value) {
-        details[key] = value;
+    if ((bodyParams['node']['details'])) {
+      for (var key in bodyParams['node']['details']['node']['configure']) {
+        details[key] = bodyParams['node']['details']['node']['configure'][key];
       }
-      foreach (this.params['node']['details']['node']['advanced'] as key => value) {
-        details[key] = value;
+      for (var key in bodyParams['node']['details']['node']['advanced']) {
+        details[key] = bodyParams['node']['details']['node']['advanced'][key];
       }
     }
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
     // @todo review this step by step
-    if (page = site.loadNode(this.params['node']['id'])) {
+    let page = site.loadNode(bodyParams['node']['id'])
+    if (page) {
       // convert web location for loading into file location for writing
       if ((body)) {
         bytes = 0;
         // see if we have multiple pages / this page has been told to split into multiple
-        pageData = GLOBALS['HAXCMS'].pageBreakParser(body);
-        foreach(pageData as data) {
+        let pageData = HAXCMS.pageBreakParser(body);
+        for (var i in pageData) {
+          let data = pageData[i];
           // trap to ensure if front-end didnt send a UUID for id then we make it
           if (!(data["attributes"]["title"])) {
             data["attributes"]["title"] = 'New page';
@@ -57,31 +61,32 @@ const filter_var = require('../lib/filter_var.js');
           // this also blocks multiple page breaks if it doesn't exist as we don't allow
           // the front end to dictate what gets created here
           if (!(data["attributes"]["item-id"])) {
-            data["attributes"]["item-id"] = this.params['node']['id'];
+            data["attributes"]["item-id"] = bodyParams['node']['id'];
           }
           if (!(data["attributes"]["path"]) || data["attributes"]["path"] == '#') {
             data["attributes"]["path"] = data["attributes"]["title"];
           }
           // verify this pages does not exist; this is only possible if we parse multiple page-break
           // a capability that is not supported currently beyond experiments
-          if (!page = site.loadNode(data["attributes"]["item-id"])) {
+          page = site.loadNode(data["attributes"]["item-id"]);
+          if (!page) {
             // generate a new item based on the site
-            nodeParams = array(
-              "node" => array(
-                "title" => data["attributes"]["title"],
-                "id" => data["attributes"]["item-id"],
-                "location" => data["attributes"]["path"],
-              )
-            );
+            let nodeParams = {
+              "node" : {
+                "title" : data["attributes"]["title"],
+                "id" : data["attributes"]["item-id"],
+                "location" : data["attributes"]["path"],
+              }
+            };
             item = site.itemFromParams(nodeParams);
             // generate the boilerplate to fill this page
             site.recurseCopy(
-                HAXCMS_ROOT + '/system/boilerplate/page/default',
-                site.directory .
-                    '/' .
-                    site.manifest.metadata.site.name .
-                    '/' .
-                    str_replace('/index.html', '', item.location)
+              HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
+                site.directory +
+                    '/' +
+                    site.manifest.metadata.site.name +
+                    '/' +
+                    item.location.replace('/index.html', '')
             );
             // add the item back into the outline schema
             site.manifest.addItem(item);
@@ -97,24 +102,24 @@ const filter_var = require('../lib/filter_var.js');
           // to avoid duplication issues
           bytes = page.writeLocation(
             data['content'],
-            HAXCMS_ROOT .
-            '/' .
-            GLOBALS['HAXCMS'].sitesDirectory .
-            '/' .
-            site.manifest.metadata.site.name .
+            HAXCMS.HAXCMS_ROOT +
+            '/' +
+            HAXCMS.sitesDirectory +
+            '/' +
+            site.manifest.metadata.site.name +
             '/'
           );
           if (bytes === false) {
-            return array(
-              '__failed' => array(
-                'status' => 500,
-                'message' => 'failed to write',
-              )
-            );
+            return {
+              '__failed' : {
+                'status' : 500,
+                'message' : 'failed to write',
+              }
+            };
           } else {
               // sanity check
               if (!(page.metadata)) {
-                page.metadata = new stdClass();
+                page.metadata = {};
               }
               // update attributes in the page
               if ((data["attributes"]["title"])) {
@@ -126,12 +131,13 @@ const filter_var = require('../lib/filter_var.js');
                   data["attributes"]["slug"] = "x-x";
                 }
                 // same but trying to force a sub-route; paths cannot conflict with front end
-                if (substr( data["attributes"]["slug"], 0, 2 ) == "x/") {
-                  data["attributes"]["slug"] = str_replace('x/', 'x-x/', data["attributes"]["slug"]);
+                if (data["attributes"]["slug"].substring(0, 2) == "x/") {
+                  data["attributes"]["slug"] = data["attributes"]["slug"].replace('x/', 'x-x/')
                 }
                 // machine name should more aggressively scrub the slug than clean title
                 // @todo need to verify this doesn't already exist
-                page.slug = GLOBALS['HAXCMS'].generateSlugName(data["attributes"]["slug"]);
+                page.slug = HAXCMS.generateSlugName(data["attributes"]["slug"]);
+                console.log(page.slug);
               }
               if ((data["attributes"]["parent"])) {
                 page.parent = data["attributes"]["parent"];
@@ -141,7 +147,7 @@ const filter_var = require('../lib/filter_var.js');
               }
               // allow setting theme via page break
               if ((data["attributes"]["developer-theme"]) && data["attributes"]["developer-theme"] != '') {
-                themes = GLOBALS['HAXCMS'].getThemes();
+                themes = HAXCMS.getThemes();
                 value = filter_var(data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
                 // support for removing the custom theme or applying none
                 if (value == '_none_' || value == '' || !value || !themes[value]) {
@@ -242,7 +248,7 @@ const filter_var = require('../lib/filter_var.js');
                 page.metadata.locked = true;
               }
               // update the updated timestamp
-              page.metadata.updated = time();
+              page.metadata.updated = Date.now();
               clean = strip_tags(body);
               // auto generate a text only description from first 200 chars
               // unless we were sent one to use
@@ -250,43 +256,39 @@ const filter_var = require('../lib/filter_var.js');
                 page.description = data["attributes"]["description"];
               }
               else {
-                page.description = str_replace(
-                  "\n",
-                  '',
-                  substr(clean, 0, 200)
-              );
+                page.description = clean.substring(0, 200).replace("\n", '');
               }
-              readtime = round(str_word_count(clean) / 200);
+              let readtime = Math.round(countWords(clean) / 200);
               // account for uber small body
               if (readtime == 0) {
                 readtime = 1;
               }
               page.metadata.readtime = readtime;
               // reset bc we rebuild this each page save
-              page.metadata.videos = array();
-              page.metadata.images = array();
+              page.metadata.videos = {};
+              page.metadata.images = {};
               // pull schema apart and seee if we have any images
               // that other things could use for metadata / theming purposes
-              foreach (schema as element) {
+              for (var element in schema) {
                 switch(element['tag']) {
                   case 'img':
                     if ((element['properties']['src'])) {
-                      array_push(page.metadata.images, element['properties']['src']);
+                      page.metadata.images.push(element['properties']['src']);
                     }
                   break;
                   case 'a11y-gif-player':
                     if ((element['properties']['src'])) {
-                      array_push(page.metadata.images, element['properties']['src']);
+                      page.metadata.images.push(element['properties']['src']);
                     }
                   break;
                   case 'media-image':
                     if ((element['properties']['source'])) {
-                      array_push(page.metadata.images, element['properties']['source']);
+                      page.metadata.images.push(element['properties']['source']);
                     }
                   break;
                   case 'video-player':
                     if ((element['properties']['source'])) {
-                      array_push(page.metadata.videos, element['properties']['source']);
+                      page.metadata.videos.push(element['properties']['source']);
                     }
                   break;
                 }
@@ -300,6 +302,7 @@ const filter_var = require('../lib/filter_var.js');
         res.send(page);
       }
     }
+  }
   function countWords(str) {
     return str.trim().split(/\s+/).length;
   }

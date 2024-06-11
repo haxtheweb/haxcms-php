@@ -5,7 +5,6 @@ const url = require('url');
 const JWT = require('jsonwebtoken');
 const utf8 = require('utf8');
 const { Git } = require('git-interface');
-const substr = require('locutus/php/strings/substr')
 const { v4: uuidv4 } = require('uuid');
 
 class GitPlus extends Git {
@@ -33,6 +32,7 @@ const array_unshift = require('locutus/php/array/array_unshift');
 const implode = require('locutus/php/strings/implode');
 const explode = require('locutus/php/strings/explode');
 const array_unique = require("locutus/php/array/array_unique");
+const array_reduce = require("locutus/php/array/array_reduce");
 const base64_encode = require('locutus/php/url/base64_encode');
 const json_encode = require('locutus/php/json/json_encode');
 const strtr = require('locutus/php/strings/strtr');
@@ -60,6 +60,8 @@ const HAXCMS = new class HAXCMSClass {
     this.outlineSchema = new JSONOutlineSchema();
     this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"),
     {encoding:'utf8', flag:'r'}, 'utf8'));
+    // @todo siteFields.json needs to be incorporated here so we have a standard set of site fields
+    // so you can modify them via the UI
     this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"),
     {encoding:'utf8', flag:'r'}, 'utf8'));
     this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"),
@@ -176,9 +178,7 @@ const HAXCMS = new class HAXCMSClass {
    * @todo Need to support CLI
    */
   isCLI() {
-    var runningAsScript = !module.parent;
-    console.log(runningAsScript);
-    return false;
+    return !module.parent;
   }
 
   /**
@@ -198,6 +198,28 @@ const HAXCMS = new class HAXCMSClass {
       '/^-+/',
       '/-+/',
       ], ['-', '-', '', '']).toLowerCase();
+  }
+
+  /**
+   * Generate slug name
+   */
+  generateSlugName(name) {
+    let slug = name.replace([
+      '/[^\w\-\/]+/',
+      '/-+/',
+      '/^-+/',
+      '/-+$/',
+      ], ['-', '-', '', '']).toLowerCase();
+    // '//' needs removed
+    slug = slug.replace('////','/');
+    slug = slug.replace('///','/');
+    slug = slug.replace('//','/');
+    slug = slug.replace('//','/');
+    // slugs CAN NOT start with / but otherwise it should be allowed
+    while (slug.substring(0, 1) == "/") {
+      slug = slug.substring(1)
+    }
+    return slug;
   }
   /**
    * Clean up a title / sanitize the input string for file system usage
@@ -253,10 +275,11 @@ const HAXCMS = new class HAXCMSClass {
      */
         loadForm(form_id, context = []) {
           let fields = [];
-          value = new stdClass();
+          let value = {};
           // @todo add future support for dependency injection as far as allowed forms
-          if (method_exists(this, form_id + "Form")) {
+          if (typeof this[form_id + "Form"] === "function") {
             fields = this[form_id + "Form"](context);
+            console.log(fields);
           }
           else {
             fields = {
@@ -266,7 +289,7 @@ const HAXCMS = new class HAXCMSClass {
               }
             };
           }
-          if (method_exists(this, form_id + "Value")) {
+          if (typeof this[form_id + "Value"] === "function") {
             value = this[form_id + "Value"](context);
           }
           // ensure values are set for the hidden internal fields
@@ -282,7 +305,7 @@ const HAXCMS = new class HAXCMSClass {
          */
         processForm(form_id, params, context = []) {
           // make sure we have the original value / key pairs for the form
-          if (method_exists(this, form_id + "Value")) {
+          if (this[form_id + "Value"]) {
             value = this[form_id + "Value"](context);
     
           }
@@ -299,14 +322,15 @@ const HAXCMS = new class HAXCMSClass {
          * Magic function that will convert foo.bar.zzz into obj.foo.bar.zzz with look up.
          */
         deepObjectLookUp(obj, path) {
-          return array_reduce(explode('-', path), function (o, p) { return is_numeric(p) ? (o[p] ?? null) : (o.p ?? null); }, obj);
+          return array_reduce(explode('-', path), function (o, p) { return !isNaN(p) ? (o[p] ?? null) : (o.p ?? null); }, obj);
         }
     
         /**
          * Return the form for the siteSettings
          */
         siteSettingsForm(context) {
-          site = this.loadSite(context['site']['name']);
+          let site = this.loadSite(context['site']['name']);
+          console.log(site);
           return this.config.site.fields;
         }
         /**
@@ -315,7 +339,7 @@ const HAXCMS = new class HAXCMSClass {
          * hierarchy with -- for each level down
          */
         itemSelectorList() {
-          items = site.manifest.orderTree(site.manifest.items);
+          let items = site.manifest.orderTree(site.manifest.items);
           itemValues = [
             {
               "text": "-- No page --",
@@ -346,9 +370,9 @@ const HAXCMS = new class HAXCMSClass {
          * Return the form for the siteSettings
          */
         siteSettingsValue(context) {
-          site = this.loadSite(context['site']['name']);
+          let site = this.loadSite(context['site']['name']);
           // passing in as JSON for sanity
-          jsonResponse = JSON.parse('{
+          let jsonResponse = JSON.parse(`{
             "manifest": {
               "site": {
                 "manifest-title": null,
@@ -391,7 +415,7 @@ const HAXCMS = new class HAXCMSClass {
                 "manifest-metadata-site-settings-gaID": null
               }
             }
-          }');
+          }`);
           // this will process the form values and engineer them out of
           // the manifest based on key location to value found there (if any)
           return this.populateManifestValues(site, jsonResponse);
@@ -406,6 +430,7 @@ const HAXCMS = new class HAXCMSClass {
         populateManifestValues(site, manifestKeys) {
           for (var key in manifestKeys) {
             let value = manifestKeys[key];
+            let lookup = this.deepObjectLookUp(site, key);
             // cascade of our methodology for building out forms
             // which peg to the internal workings of JSON outline schema
             // while still being presented in a visually agnostic manner
@@ -414,11 +439,11 @@ const HAXCMS = new class HAXCMSClass {
             if (typeof value !== "string" && value.length > 0 && typeof value !== "boolean") {
               manifestKeys[key] = this.populateManifestValues(site, value);
             }
-            else if (typeof key === "string" && lookup = this.deepObjectLookUp(site, key)) {
+            else if (typeof key === "string" && lookup) {
               // special support for regions as front end form structure differs slightly from backend
               // to support multiple attributes on a single object on front end
               // even when it's a 1 to 1
-              if (is_array(lookup) && strpos(key, '-regions-')) {
+              if (lookup.isArray && lookup.isArray() && key.indexOf('-regions-') !== -1) {
                 tmp = [];
                 for (var rkey in lookup) {
                   let regionId = lookup[rkey];
@@ -435,7 +460,7 @@ const HAXCMS = new class HAXCMSClass {
           }
           // @todo needs to not be a hack :p
           if ((manifestKeys["manifest-metadata-theme-variables-cssVariable"])) {
-            manifestKeys["manifest-metadata-theme-variables-cssVariable"] = str_replace("-7", "", str_replace("--simple-colors-default-theme-", "", manifestKeys["manifest-metadata-theme-variables-cssVariable"]));
+            manifestKeys["manifest-metadata-theme-variables-cssVariable"] = manifestKeys["manifest-metadata-theme-variables-cssVariable"].replace('-7', '').replace("-simple-colors-default-theme-", "", );
           }
           return manifestKeys;
         }
@@ -467,7 +492,7 @@ const HAXCMS = new class HAXCMSClass {
          */
         getHAXCMSVersion()
         {
-          version = &this.staticCache(__FUNCTION__);
+          let version;
           if (!(version)) {
             // sanity
             vFile = HAXCMS_ROOT + '/VERSION.txt';
@@ -489,64 +514,65 @@ const HAXCMS = new class HAXCMSClass {
          */
         getConfigSchema()
         {
-            schema = new stdClass();
+            schema = {};
             schema['schema'] = "http://json-schema.org/schema#";
             schema.title = "HAXCMS Config";
             schema.type = "object";
-            schema.properties = new stdClass();
-            schema.properties.publishing = new stdClass();
+            schema.properties = {};
+            schema.properties.publishing = {};
             schema.properties.publishing.title = "Publishing settings";
             schema.properties.publishing.type = "object";
-            schema.properties.publishing.properties = new stdClass();
-            schema.properties.apis = new stdClass();
+            schema.properties.publishing.properties = {};
+            schema.properties.apis = {};
             schema.properties.apis.title = "API Connectivity";
             schema.properties.apis.type = "object";
-            schema.properties.apis.properties = new stdClass();
+            schema.properties.apis.properties = {};
             // establish some defaults if nothing set internally
-            publishing = array(
-                'vendor': array(
+            publishing = {
+                'vendor': {
                     'name': 'Vendor',
-                    'description' =>
+                    'description' :
                         'Name for this provided (github currently supported)',
                     'value': 'github'
-                ),
-                'branch': array(
+                },
+                'branch': {
                     'name': 'Branch',
-                    'description' =>
+                    'description' :
                         'Project code branch (like master or gh-pages)',
                     'value': 'gh-pages'
-                ),
-                'url': array(
+                },
+                'url': {
                     'name': 'Repo url',
-                    'description' =>
+                    'description' :
                         'Base address / organization that new sites will be saved under',
                     'value': 'git@github.com:elmsln'
-                ),
-                'user': array(
+                },
+                'user': {
                     'name': 'User / Org',
                     'description': 'User name or organization to publish to',
                     'value': ''
-                ),
-                'email': array(
+                },
+                'email': {
                     'name': 'Email',
                     'description': 'Email address of your github account',
                     'value': ''
-                ),
-                'pass': array(
+                },
+                'pass': {
                     'name': 'Password',
-                    'description' =>
+                    'description' :
                         'Only use this if you want to automate SSH key setup. This is not stored',
                     'value': ''
-                ),
-                'cdn': array(
+                },
+                'cdn': {
                     'name': 'CDN',
                     'description': 'A CDN address that supports HAXCMS',
                     'value': 'cdn.webcomponents.psu.edu'
-                )
-            );
+                }
+            };
             // publishing
-            foreach (publishing as key: value) {
-                props = new stdClass();
+            for (var key in publishing) {
+              let value = publishing[key];
+                props = {};
                 props.title = value['name'];
                 props.type = 'string';
                 if ((this.config.site.git[key])) {
@@ -554,13 +580,13 @@ const HAXCMS = new class HAXCMSClass {
                 } else {
                     props.value = value['value'];
                 }
-                props.component = new stdClass();
+                props.component = {};
                 props.component.name = "paper-input";
                 props.component.valueProperty = "value";
                 props.component.slot =
                     '<div slot="suffix">' + value['description'] + '</div>';
                 if (key == 'pass') {
-                    props.component.attributes = new stdClass();
+                    props.component.attributes = {};
                     props.component.attributes.type = 'password';
                 }
                 if (key == 'pass' && (this.config.site.git.user)) {
@@ -568,10 +594,10 @@ const HAXCMS = new class HAXCMSClass {
                     // we only ask for a password on the very first run through
                     schema.properties.publishing.properties.user.component.slot =
                         '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
-                    schema.properties.publishing.properties.user.component.attributes = new stdClass();
+                    schema.properties.publishing.properties.user.component.attributes = {};
                     schema.properties.publishing.properties.user.component.attributes.disabled =
                         'disabled';
-                    schema.properties.publishing.properties.email.component.attributes = new stdClass();
+                    schema.properties.publishing.properties.email.component.attributes = {};
                     schema.properties.publishing.properties.email.component.attributes.disabled =
                         'disabled';
                     schema.properties.publishing.properties.email.component.slot =
@@ -583,23 +609,23 @@ const HAXCMS = new class HAXCMSClass {
             // API keys
             hax = new HAXAppStoreService();
             apiDocs = hax.baseSupportedApps();
-            foreach (apiDocs as key: value) {
-                props = new stdClass();
+            for (var key in apiDocs) {
+                props = {};
                 props.title = key;
                 props.type = 'string';
                 // if we have this value loaded internally then set it
                 if ((this.config.appStore.apiKeys[key])) {
                     props.value = this.config.appStore.apiKeys[key];
                 }
-                props.component = new stdClass();
+                props.component = {};
                 // look for our documentation object name
                 if ((apiDocs[key])) {
                     props.title = apiDocs[key]['name'];
                     props.component.slot =
-                        '<div slot="suffix"><a href="' .
-                        apiDocs[key]['docs'] .
-                        '" target="_blank">See ' .
-                        props.title .
+                        '<div slot="suffix"><a href="' +
+                        apiDocs[key]['docs'] +
+                        '" target="_blank">See ' +
+                        props.title +
                         ' developer docs.</a></div>';
                 }
                 props.component.name = "paper-input";
@@ -625,15 +651,16 @@ const HAXCMS = new class HAXCMSClass {
         setConfig(values)
         {
             if ((values.apis)) {
-              foreach (values.apis as key: val) {
+              for (var key in values.apis) {
+                let val = values.apis[key];
                 this.config.appStore.apiKeys[key] = val;
               }
             }
             if (!(this.config.site)) {
-              this.config.site = new stdClass();
+              this.config.site = {};
             }
             if (!(this.config.site.git)) {
-              this.config.site.git = new stdClass();
+              this.config.site.git = {};
             }
             if (values.publishing) {
               for (var key in values.publishing) {
@@ -662,33 +689,35 @@ const HAXCMS = new class HAXCMSClass {
               (this.config.site.git.vendor) &&
               this.config.site.git.vendor == 'github'
             ) {
-                json = new stdClass();
+                let json = {};
                 json.title = 'HAXCMS Publishing key';
-                json.key = this.getSSHKey();
-                client = new GuzzleHttp\Client();
-                body = json_encode(json);
-                response = client.request(
-                    'POST',
-                    'https://api.github.com/user/keys',
-                    [
-                        'auth': [email, pass],
-                        'body': body
-                    ]
+                json.key = this.getSSHKey();                
+                let response = fetch('https://api.github.com/user/keys',
+                  {
+                    method: "POST",
+                    body: {
+                    'auth': [email, pass],
+                    'body': JSON.stringify(json)
+                    },
+                  }
                 );
                 // we did it, now store that it worked so we can skip all this setup in the future
                 if (response.getStatusCode() == 201) {
                     this.config.site.git.keySet = true;
                     this.saveConfigFile();
                     // set global config for username / email if we can
-                    gitRepo = new GitRepo();
-                    gitRepo.run(
-                        'config --global user.name "' .
-                            this.config.site.git.user .
+                    const gitRepo = new GitPlus({
+                      dir: this.directory + '/' + this.manifest.metadata.site.name
+                    });
+                    new GitPlus({});
+                    gitRepo.gitExec(
+                        'config --global user.name "' +
+                            this.config.site.git.user +
                             '"'
                     );
-                    gitRepo.run(
-                        'config --global user.email "' .
-                            this.config.site.git.email .
+                    gitRepo.gitExec(
+                        'config --global user.email "' +
+                            this.config.site.git.email +
                             '"'
                     );
                 }
@@ -700,22 +729,20 @@ const HAXCMS = new class HAXCMSClass {
         /**
          * Write configuration to the config file
          */
-        saveUserDataFile()
+        async saveUserDataFile()
         {
-            return @file_put_contents(
-                this.configDirectory + '/userData.json',
-                json_encode(this.userData, JSON_PRETTY_PRINT)
-            );
+          return await fs.writeFileSync(this.configDirectory + '/userData.json',
+            JSON.stringify(this.userData, null, 2)
+          );
         }
         /**
          * Write configuration to the config file
          */
-        saveConfigFile()
+        async saveConfigFile()
         {
-            return @file_put_contents(
-                this.configDirectory + '/config.json',
-                json_encode(this.config, JSON_PRETTY_PRINT)
-            );
+          return await fs.writeFileSync(this.configDirectory + '/config.json',
+            JSON.stringify(this.config, null, 2)
+          );
         }
         /**
          * get SSH Key that was created during install
@@ -733,16 +760,16 @@ const HAXCMS = new class HAXCMSClass {
           return this.element_to_obj(dom.documentElement);
         }
         element_to_obj(element) {
-          obj = array( "tag": element.tagName );
-          foreach (element.attributes as attribute) {
+          obj = { "tag": element.tagName };
+          for (var attribute in element.attributes) {
               obj[attribute.name] = attribute.value;
           }
-          foreach (element.childNodes as subElement) {
+          for (var subElement in element.childNodes) {
               if (subElement.nodeType == XML_TEXT_NODE) {
                   obj["html"] = subElement.wholeText;
               }
               else {
-                  obj["children"][] = this.element_to_obj(subElement);
+                  obj["children"].push(this.element_to_obj(subElement));
               }
           }
           return obj;
@@ -751,14 +778,14 @@ const HAXCMS = new class HAXCMSClass {
          * parse attributes out of an HTML tag in a safer manner
          */
         parse_attributes(attr) {
-          atList = [];
-          if (preg_match_all('/\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/i', attr, m)) {
-            for (i = 0; i < count(m[0]); i++) {
-              if (m[3][i])
-                atList[m[3][i]] = null;
-              else
-                atList[m[1][i]] = m[2][i];
-            }
+          let atList = [];
+          const regexp = /\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/ig;
+          const matches = [...attr.matchAll(regexp)];
+          for (var i in matches) {
+            if (matches[i][3])
+              atList[matches[i][3]] = null;
+            else
+              atList[matches[i][1]] = matches[i][2];
           }
           return atList;
         }
@@ -768,15 +795,16 @@ const HAXCMS = new class HAXCMSClass {
          */
         pageBreakParser(body = '<page-break></page-break>') {
           body += '<page-break fakeendcap="fakeendcap"></page-break>';
-          pageData = [];
+          let pageData = [];
           // match all pages + content
-          preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", body, matches);
-          for(matches[0] as i match) {
+          const regexp = /(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/g;
+          const matches = [...body.matchAll(regexp)];
+          for (var i in matches) {
             // replace & to avoid XML parsing issues
-            content = "<div " + str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', matches[2][i])) + "></div>";
-            attrs = this.parse_attributes(content);
+            let content = "<div " + matches[i][2].replace('published ', 'published="published" ').replace('locked ', 'locked="locked" ') + "></div>";
+            let attrs = this.parse_attributes(content);
             pageData[i] = {
-                "content": matches[4][i],
+                "content": matches[i][4],
                 // this assumes that the attributes are well formed; make sure front end did this
                 // even for boolean attributes
                 "attributes": attrs
@@ -1682,7 +1710,7 @@ class HAXCMSSite
           textData = this.cleanSearchData(textData);
           // may seem silly but IDs in lunr have a size limit for some reason in our context..
           data.push({
-            "id":substr(item.id.replace('-', '').replace('item-', ''), 0, 29),
+            "id":item.id.replace('-', '').replace('item-', '').substring(0, 29),
             "title":item.title,
             "created":created,
             "location":item.location.replace('pages/', '').replace('/index.html', ''),
@@ -1822,7 +1850,7 @@ class HAXCMSSite
       if (page != null) {
         id = page.id;
       }
-      let fileName = HAXCMS.staticCache(__FUNCTION__ + id);
+      let fileName;
       if (!(fileName)) {
         if (page == null) {
           page = this.loadNodeByLocation();
@@ -2123,7 +2151,7 @@ class HAXCMSSite
      * @return string path to the image (web visible) that was created or pulled together
      */
     getLogoSize(height, width) {
-      let fileName = HAXCMS.staticCache(__FUNCTION__ + height + width);
+      let fileName;
       if (!(fileName)) {
         // if no logo, just bail with an easy standard one
         if (!(this.manifest.metadata.site.logo) || ((this.manifest.metadata.site) && (this.manifest.metadata.site.logo == '' || this.manifest.metadata.site.logo == null || this.manifest.metadata.site.logo == "null"))) {
@@ -2402,8 +2430,8 @@ class HAXCMSSite
         rSlug = slug;
       }
       // trap for a / as 1st character if we had empty pieces
-      while (substr(rSlug, 0, 1) == "/") {
-        rSlug = substr(rSlug, 1);
+      while (rSlug.substring(0, 1) == "/") {
+        rSlug = rSlug.substring(1);
       }
       let loop = 0;
       let ready = false;

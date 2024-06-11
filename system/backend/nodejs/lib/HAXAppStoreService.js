@@ -1,4 +1,3 @@
-const array_push = require('locutus/php/array/array_push');
 class HAXAppStoreService
 {
     /**
@@ -90,7 +89,7 @@ class HAXAppStoreService
         }
       }`;
             tmp = JSON.parse(jsonstring);
-            array_push(jsonData, tmp);
+            jsonData.push(tmp);
         }
         // vimeo
         if (apikeys['vimeo']) {
@@ -158,7 +157,7 @@ class HAXAppStoreService
         }
       }`;
             tmp = JSON.parse(jsonstring);
-            array_push(jsonData, tmp);
+            jsonData.push(tmp);
         }
         // giphy
         if (apikeys['giphy']) {
@@ -240,7 +239,7 @@ class HAXAppStoreService
         }
       }`;
             tmp = JSON.parse(jsonstring);
-            array_push(jsonData, tmp);
+            jsonData.push(tmp);
         }
         // unsplash
         if (apikeys['unsplash']) {
@@ -303,7 +302,7 @@ class HAXAppStoreService
         }
       }`;
             tmp = JSON.parse(jsonstring);
-            array_push(jsonData, tmp);
+            jsonData.push(tmp);
         }
         // flickr
         if (apikeys['flickr']) {
@@ -390,7 +389,7 @@ class HAXAppStoreService
         }
       }`;
             tmp = JSON.parse(jsonstring);
-            array_push(jsonData, tmp);
+            jsonData.push(tmp);
         }
         // nasa
         jsonstring = `{
@@ -449,7 +448,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
         // sketchfab
         jsonstring = `{
       "details": {
@@ -516,7 +515,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
         // dailymotion
         jsonstring = `{
       "details": {
@@ -578,7 +577,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
         // wikipedia
         jsonstring = `{
       "details": {
@@ -638,7 +637,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
         // cc-mixter
         jsonstring = `{
       "details": {
@@ -706,7 +705,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
         // codepen
         jsonstring = `{
       "details": {
@@ -763,7 +762,7 @@ class HAXAppStoreService
       }
     }`;
         tmp = JSON.parse(jsonstring);
-        array_push(jsonData, tmp);
+        jsonData.push(tmp);
 
         return jsonData;
     }
