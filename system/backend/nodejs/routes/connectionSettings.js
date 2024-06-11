@@ -15,7 +15,12 @@ const HAXCMS = require('../lib/HAXCMS.js');
 async function connectionSettings(req, res) {
   res.setHeader('Content-Type', 'application/javascript');
   const themes = JSON.parse(await fs.readFileSync(path.join(HAXCMS.coreConfigPath, "themes.json"), 'utf8'));
-  const baseAPIPath = HAXCMS.basePath + HAXCMS.apiBase;
+  // this is the correct base if we're being called for connection from inside a site
+  let baseAPIPath = HAXCMS.basePath + HAXCMS.apiBase;
+  // top level haxcms listing can't include basePath as it's the root already
+  if (req.headers && req.headers.referer && !req.headers.referer.includes('/sites/')) {
+    baseAPIPath = HAXCMS.apiBase;
+  }
   const returnData = JSON.stringify({
     getFormToken: HAXCMS.getRequestToken('form'),
     appStore: { 

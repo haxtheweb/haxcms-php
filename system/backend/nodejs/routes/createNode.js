@@ -69,58 +69,91 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
  * )
  */
 async function createNode(req, res) {
+  let nodeParams = req.body;
   let site = await HAXCMS.loadSite(req.body['site']['name'].toLowerCase());
-  // get a new item prototype
-  let item = new JSONOutlineSchemaItem();
-  // set the title
-  item['title'] = req.body['node']['title'].replace("\n", '');
-  if ((req.body['node']['id']) && req.body['node']['id'] != '' && req.body['node']['id'] != null) {
-      item.id = req.body['node']['id'];
+  // implies we've been TOLD to create nodes
+  // this is typically from a docx import
+  if (nodeParams['items']) {
+    // create pages
+    for (i=0; i < nodeParams['items'].length; i++) {
+      // outline-designer allows delete + confirmation but we don't have anything
+      // so instead, just don't process the thing in question if asked to delete it
+      if (nodeParams['items'][i]['delete'] && nodeParams['items'][i]['delete'] == TRUE) {
+        // do nothing
+      }
+      else {
+        item = site.addPage(
+        nodeParams['items'][i]['parent'], 
+        nodeParams['items'][i]['title'], 
+        'html', 
+        nodeParams['items'][i]['slug'],
+        nodeParams['items'][i]['id'],
+        nodeParams['items'][i]['indent'],
+        nodeParams['items'][i]['contents']
+        );  
+      }
+    }
+    site.gitCommit(count(nodeParams['items']) + ' pages added'); 
   }
-  let cleanTitle = HAXCMS.cleanTitle(item['title']);
-  if ((req.body['node']['location']) && req.body['node']['location'] != '' && req.body['node']['location'] != null) {
-    cleanTitle = HAXCMS.cleanTitle(req.body['node']['location']);
-  }
-  let slug = site.getUniqueSlugName(cleanTitle);
-  // ensure this location doesn't exist already
-  item['location'] =
-      'pages/' + slug + '/index.html';
-      item['slug'] = slug;
-  if ((req.body['indent']) && req.body['indent'] != '' && req.body['indent'] != null) {
-      item['indent'] = req.body['indent'];
-  }
-  if ((req.body['order']) && req.body['order'] != '' && req.body['order'] != null) {
-      item['order'] = req.body['order'];
-  }
-  if ((req.body['parent']) && req.body['parent'] != '' && req.body['parent'] != null) {
-      item['parent'] = req.body['parent'];
-  } else {
-      item['parent'] = null;
-  }
-  if ((req.body['description']) && req.body['description'] != '' && req.body['description'] != null) {
-      item['description'] = req.body['description'].replace("\n", '');
-  }
-  item['metadata'] = {};
-  if ((req.body['order']) && req.body['metadata'] != '' && req.body['metadata'] != null) {
-      item['metadata'] = req.body['metadata'];
-  }
-  item.metadata.created = Date.now();
-  item.metadata.updated = Date.now();
-  // add the item back into the outline schema
-  // @todo fix logic here to actually create the page based on 1 call
-  // this logic should be cleaned up in addPage to allow for
-  // passing in arguments
-  await site.recurseCopy(
+  else {
+    // generate a new item based on the site
+    item = site.itemFromParams(nodeParams);
+    item.metadata.images = [];
+    item.metadata.videos = [];
+    // generate the boilerplate to fill this page
+    site.recurseCopy(
       HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
-      site.directory +
+        site.directory +
+            '/' +
+            site.manifest.metadata.site.name +
+            '/' +
+            item.location.replace('/index.html', '')
+    );
+    // add the item back into the outline schema
+    site.manifest.addItem(item);
+    site.manifest.save();
+    // support for duplicating the content of another item
+    if (nodeParams['node']['duplicate']) {
+      // verify we can load this id
+      if (nodeToDuplicate = site.loadNode(nodeParams['node']['duplicate'])) {
+          content = site.getPageContent(nodeToDuplicate);
+          // verify we actually have the id of an item that we just created
+          if (page = site.loadNode(item.id)) {
+          // write it to the file system
+          // this all seems round about but it's more secure
+          bytes = page.writeLocation(
+              content,
+              HAXCMS.HAXCMS_ROOT +
+              '/' +
+              HAXCMS.sitesDirectory +
+              '/' +
+              site.manifest.metadata.site.name +
+              '/'
+          );
+          }
+      }
+    }
+    // implies front end was told to generate a page with set content
+    // this is possible when importing and processing a file to generate
+    // html which becomes the boilerplated content in effect
+    else if (nodeParams['node']['contents']) {
+      if (page = site.loadNode(item.id)) {
+          // write it to the file system
+          bytes = page.writeLocation(
+          nodeParams['node']['contents'],
+          HAXCMS.HAXCMS_ROOT +
+          '/' +
+          HAXCMS.sitesDirectory +
           '/' +
           site.manifest.metadata.site.name +
-          '/' +
-          item.location.replace('/index.html', '')
-  );
-  site.manifest.addItem(item);
-  await site.manifest.save();
-  await site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
+          '/'
+          );
+      }
+    }
+    await site.gitCommit('Page added:' + item.title + ' (' + item.id + ')'); 
+    // update the alternate formats as a new page exists
+    await site.updateAlternateFormats();
+  }
   res.send(item);
 }
 module.exports = createNode;

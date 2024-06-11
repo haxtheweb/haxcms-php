@@ -18,7 +18,7 @@ function refreshAccessToken(req, res) {
   }
   else {
     res.cookie('haxcms_refresh_token', '');
-    res.send(401);
+    res.sendStatus(401);
   }
 }
 module.exports = refreshAccessToken;

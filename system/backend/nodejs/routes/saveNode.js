@@ -21,234 +21,285 @@ const filter_var = require('../lib/filter_var.js');
   async function saveNode(req, res) {
     let site = await HAXCMS.loadSite(req.body['site']['name']);
     let schema = [];
-    if ((req.body['node']['body'])) {
-      var body = req.body['node']['body'];
+    if ((this.params['node']['body'])) {
+      body = this.params['node']['body'];
       // we ship the schema with the body
-      if ((req.body['node']['schema'])) {
-        schema = req.body['node']['schema'];
+      if ((this.params['node']['schema'])) {
+        schema = this.params['node']['schema'];
       }
     }
-    if ((req.body['node']['details'])) {
-      var details = req.body['node']['details'];
-    }    
+    details = array();
+    // if we have details object then merge configure and advanced
+    if ((this.params['node']['details'])) {
+      foreach (this.params['node']['details']['node']['configure'] as key => value) {
+        details[key] = value;
+      }
+      foreach (this.params['node']['details']['node']['advanced'] as key => value) {
+        details[key] = value;
+      }
+    }
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
-    var page = site.loadNode(req.body['node']['id']);
-    if (page) {
+    // @todo review this step by step
+    if (page = site.loadNode(this.params['node']['id'])) {
       // convert web location for loading into file location for writing
       if ((body)) {
-        let writeSuccessful = await page.writeLocation(
-          body,
-          HAXCMS.HAXCMS_ROOT +
-          '/' +
-          HAXCMS.sitesDirectory +
-          '/' +
-          site.name +
-          '/'
-        );
-        if (writeSuccessful === false) {
-          res.send(500);
-        } else {
-            // sanity check
-            if (!(page.metadata)) {
-              page.metadata = {};
-            }
-            // update the updated timestamp
-            page.metadata.updated = Date.now();
-            // auto generate a text only description from first 200 chars
-            let clean = body.replace(/<\/?[^>]+(>|$)/g, "");
-            page.description = clean.substr(0, 200).replace(
-                "\n",
-                ''
+        bytes = 0;
+        // see if we have multiple pages / this page has been told to split into multiple
+        pageData = GLOBALS['HAXCMS'].pageBreakParser(body);
+        foreach(pageData as data) {
+          // trap to ensure if front-end didnt send a UUID for id then we make it
+          if (!(data["attributes"]["title"])) {
+            data["attributes"]["title"] = 'New page';
+          }
+          // to avoid critical error in parsing, we defer to the POST's ID always
+          // this also blocks multiple page breaks if it doesn't exist as we don't allow
+          // the front end to dictate what gets created here
+          if (!(data["attributes"]["item-id"])) {
+            data["attributes"]["item-id"] = this.params['node']['id'];
+          }
+          if (!(data["attributes"]["path"]) || data["attributes"]["path"] == '#') {
+            data["attributes"]["path"] = data["attributes"]["title"];
+          }
+          // verify this pages does not exist; this is only possible if we parse multiple page-break
+          // a capability that is not supported currently beyond experiments
+          if (!page = site.loadNode(data["attributes"]["item-id"])) {
+            // generate a new item based on the site
+            nodeParams = array(
+              "node" => array(
+                "title" => data["attributes"]["title"],
+                "id" => data["attributes"]["item-id"],
+                "location" => data["attributes"]["path"],
+              )
             );
-            
-            let readtime = Math.round(countWords(clean) / 200);
-            // account for uber small body
-            if (readtime == 0) {
-              readtime = 1;
-            }
-            page.metadata.readtime = readtime;
-            // assemble other relevent content detail by skimming it off
-            let contentDetails = {};
-            contentDetails.headings = 0;
-            contentDetails.paragraphs = 0;
-            contentDetails.schema = [];
-            contentDetails.tags = [];
-            contentDetails.elements = schema.length;
-            // pull schema apart and store the relevent pieces
-            for(var key in schema) {
-              let element = schema[key];
-              switch(element['tag']) {
-                case 'h1':
-                case 'h2':
-                case 'h3':
-                case 'h4':
-                case 'h5':
-                case 'h6':
-                    contentDetails.headings++;
-                break;
-                case 'p':
-                    contentDetails.paragraphs++;
-                break;
-              }
-              if (!(contentDetails.tags[element['tag']])) {
-                  contentDetails.tags[element['tag']] = 0;
-              }
-              contentDetails.tags[element['tag']]++;
-              let newItem = {};
-              let hasSchema = false;
-              if ((element['properties']['property'])) {
-                hasSchema = true;
-                newItem.property = element['properties']['property'];
-              }
-              if ((element['properties']['typeof'])) {
-                hasSchema = true;
-                newItem.typeof = element['properties']['typeof'];
-              }
-              if ((element['properties']['resource'])) {
-                hasSchema = true;
-                newItem.resource = element['properties']['resource'];
-              }
-              if ((element['properties']['prefix'])) {
-                hasSchema = true;
-                newItem.prefix = element['properties']['prefix'];
-              }
-              if ((element['properties']['vocab'])) {
-                hasSchema = true;
-                newItem.vocab = element['properties']['vocab'];
-              }
-              if (hasSchema) {
-                contentDetails.schema.push(newItem);
-              }
-            }
-            page.metadata.contentDetails = contentDetails;
-            await site.updateNode(page);
-            await site.gitCommit(
-              'Page updated: ' + page.title + ' (' + page.id + ')'
+            item = site.itemFromParams(nodeParams);
+            // generate the boilerplate to fill this page
+            site.recurseCopy(
+                HAXCMS_ROOT + '/system/boilerplate/page/default',
+                site.directory .
+                    '/' .
+                    site.manifest.metadata.site.name .
+                    '/' .
+                    str_replace('/index.html', '', item.location)
             );
-            res.send(page);
+            // add the item back into the outline schema
+            site.manifest.addItem(item);
+            site.manifest.save();
+            site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
+            // possible the item-id had to be made by back end
+            data["attributes"]["item-id"] = item.id;
+          }
+          // now this should exist if it didn't a minute ago
+          page = site.loadNode(data["attributes"]["item-id"]);
+          // @todo make sure that we stripped off page-break
+          // and now save WITHOUT the top level page-break
+          // to avoid duplication issues
+          bytes = page.writeLocation(
+            data['content'],
+            HAXCMS_ROOT .
+            '/' .
+            GLOBALS['HAXCMS'].sitesDirectory .
+            '/' .
+            site.manifest.metadata.site.name .
+            '/'
+          );
+          if (bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
+            );
+          } else {
+              // sanity check
+              if (!(page.metadata)) {
+                page.metadata = new stdClass();
+              }
+              // update attributes in the page
+              if ((data["attributes"]["title"])) {
+                page.title = data["attributes"]["title"];
+              }
+              if ((data["attributes"]["slug"])) {
+                // account for x being the only front end reserved route
+                if (data["attributes"]["slug"] == "x") {
+                  data["attributes"]["slug"] = "x-x";
+                }
+                // same but trying to force a sub-route; paths cannot conflict with front end
+                if (substr( data["attributes"]["slug"], 0, 2 ) == "x/") {
+                  data["attributes"]["slug"] = str_replace('x/', 'x-x/', data["attributes"]["slug"]);
+                }
+                // machine name should more aggressively scrub the slug than clean title
+                // @todo need to verify this doesn't already exist
+                page.slug = GLOBALS['HAXCMS'].generateSlugName(data["attributes"]["slug"]);
+              }
+              if ((data["attributes"]["parent"])) {
+                page.parent = data["attributes"]["parent"];
+              }
+              else {
+                page.parent = null;
+              }
+              // allow setting theme via page break
+              if ((data["attributes"]["developer-theme"]) && data["attributes"]["developer-theme"] != '') {
+                themes = GLOBALS['HAXCMS'].getThemes();
+                value = filter_var(data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                // support for removing the custom theme or applying none
+                if (value == '_none_' || value == '' || !value || !themes[value]) {
+                  delete page.metadata.theme;
+                }
+                // ensure it exists
+                else if (themes[value]) {
+                  page.metadata.theme = themes[value];
+                  page.metadata.theme.key = value;
+                }
+              }
+              else if ((page.metadata.theme)) {
+                delete page.metadata.theme;
+              }
+              if ((data["attributes"]["depth"])) {
+                page.indent = parseInt(data["attributes"]["depth"]);
+              }
+              if ((data["attributes"]["order"])) {
+                page.order = parseInt(data["attributes"]["order"]);
+              }
+              // boolean so these are either there or not
+              // historically we are published if this value is not set
+              // and that will remain true however as we save / update pages
+              // this will ensure that we set things to published
+              if ((data["attributes"]["published"])) {
+                page.metadata.published = true;
+              }
+              else {
+                page.metadata.published = false;
+              }
+              // support for defining and updating page type
+              if ((data["attributes"]["page-type"]) && data["attributes"]["page-type"] != '') {
+                page.metadata.pageType = data["attributes"]["page-type"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.pageType)) {
+                delete page.metadata.pageType;
+              }
+              // support for defining and updating hideInMenu
+              if ((data["attributes"]["hide-in-menu"])) {
+                page.metadata.hideInMenu = true;
+              }
+              else {
+                page.metadata.hideInMenu = false;
+              }
+              // support for defining and updating related-items
+              if ((data["attributes"]["related-items"]) && data["attributes"]["related-items"] != '') {
+                page.metadata.relatedItems = data["attributes"]["related-items"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.relatedItems)) {
+                delete page.metadata.relatedItems;
+              }
+              // support for defining and updating image
+              if ((data["attributes"]["image"]) && data["attributes"]["image"] != '') {
+                page.metadata.image = data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.image)) {
+                delete page.metadata.image;
+              }
+              // support for defining and updating page type
+              if ((data["attributes"]["tags"]) && data["attributes"]["tags"] != '') {
+                page.metadata.tags = data["attributes"]["tags"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.tags)) {
+                delete page.metadata.tags;
+              }
+              // support for defining and updating page accentColor
+              if ((data["attributes"]["accent-color"]) && data["attributes"]["accent-color"] != '') {
+                page.metadata.accentColor = data["attributes"]["accent-color"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.accentColor)) {
+                delete page.metadata.accentColor;
+              }
+              // support for defining and updating page type
+              if ((data["attributes"]["icon"]) && data["attributes"]["icon"] != '') {
+                page.metadata.icon = data["attributes"]["icon"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.icon)) {
+                delete page.metadata.icon;
+              }
+              // support for defining an image to represent the page
+              if ((data["attributes"]["image"]) && data["attributes"]["image"] != '') {
+                page.metadata.image = data["attributes"]["image"];
+              }
+              // they sent across nothing but we had something previously
+              else if ((page.metadata.image)) {
+                delete page.metadata.image;
+              }
+              if (!(data["attributes"]["locked"])) {
+                page.metadata.locked = false;
+              }
+              else {
+                page.metadata.locked = true;
+              }
+              // update the updated timestamp
+              page.metadata.updated = time();
+              clean = strip_tags(body);
+              // auto generate a text only description from first 200 chars
+              // unless we were sent one to use
+              if ((data["attributes"]["description"]) && data["attributes"]["description"] != '') {
+                page.description = data["attributes"]["description"];
+              }
+              else {
+                page.description = str_replace(
+                  "\n",
+                  '',
+                  substr(clean, 0, 200)
+              );
+              }
+              readtime = round(str_word_count(clean) / 200);
+              // account for uber small body
+              if (readtime == 0) {
+                readtime = 1;
+              }
+              page.metadata.readtime = readtime;
+              // reset bc we rebuild this each page save
+              page.metadata.videos = array();
+              page.metadata.images = array();
+              // pull schema apart and seee if we have any images
+              // that other things could use for metadata / theming purposes
+              foreach (schema as element) {
+                switch(element['tag']) {
+                  case 'img':
+                    if ((element['properties']['src'])) {
+                      array_push(page.metadata.images, element['properties']['src']);
+                    }
+                  break;
+                  case 'a11y-gif-player':
+                    if ((element['properties']['src'])) {
+                      array_push(page.metadata.images, element['properties']['src']);
+                    }
+                  break;
+                  case 'media-image':
+                    if ((element['properties']['source'])) {
+                      array_push(page.metadata.images, element['properties']['source']);
+                    }
+                  break;
+                  case 'video-player':
+                    if ((element['properties']['source'])) {
+                      array_push(page.metadata.videos, element['properties']['source']);
+                    }
+                  break;
+                }
+              }
+              await site.updateNode(page);
+              await site.gitCommit(
+                'Page details updated: ' + page.title + ' (' + page.id + ')'
+              );
+          }
         }
-      } else if ((details)) {
-        // update the updated timestamp
-        page.metadata.updated = Date.now();
-        for (var key in details) {
-            let value = details[key];
-            // sanitize both sides
-            key = filter_var(key, FILTER_SANITIZE_STRING);
-            switch (key) {
-                case 'location':
-                    // check on name
-                    value = filter_var(value, FILTER_SANITIZE_STRING);
-                    let cleanTitle = HAXCMS.cleanTitle(value);
-                    if ((site.manifest.metadata.site.settings.pathauto) && site.manifest.metadata.site.settings.pathauto) {
-                        let newPath = 'pages/' + site.getUniqueSlugName(HAXCMS.cleanTitle(filter_var(details['title'], FILTER_SANITIZE_STRING)), page) + '/index.html';
-                        site.renamePageLocation(
-                            page.location,
-                            newPath
-                        );
-                        page.location = newPath;
-                    }
-                    else if (
-                        cleanTitle !=
-                        page.location.replace(
-                            'pages/',
-                            '',
-                        ).replace('/index.html', '')
-                        
-                    ) {
-                        tmpTitle = site.getUniqueSlugName(
-                            cleanTitle, page
-                        );
-                        location = 'pages/' + tmpTitle + '/index.html';
-                        // move the folder
-                        site.renamePageLocation(
-                            page.location,
-                            location
-                        );
-                        page.location = location;
-                    }
-                    break;
-                case 'title':
-                case 'description':
-                    value = filter_var(value, FILTER_SANITIZE_STRING);
-                    page[key] = value;
-                    break;
-                case 'created':
-                    value = filter_var(value, FILTER_VALIDATE_INT);
-                    page.metadata.created = value;
-                    break;
-                case 'published':
-                    value = filter_var(value, FILTER_VALIDATE_BOOLEAN);
-                    page.metadata.published = value;
-                case 'theme':
-                    themes = HAXCMS.getThemes();
-                    value = filter_var(value, FILTER_SANITIZE_STRING);
-                    if ((themes[value])) {
-                        page.metadata.theme = themes[value];
-                        page.metadata.theme.key = value;
-                    }
-                    break;
-                default:
-                    // ensure ID is never changed
-                    if (key != 'id') {
-                        // support for saving fields
-                        if (!(page.metadata.fields)) {
-                            page.metadata.fields = {};
-                        }
-                        switch (gettype(value)) {
-                            case 'array':
-                            case 'object':
-                                page.metadata.fields[key] = {};
-                                for(var key2 in value) {
-                                  let val = value[key2];
-                                    page.metadata.fields[key][key2] = {};
-                                    key2 = filter_var(
-                                        key2,
-                                        FILTER_VALIDATE_INT
-                                    );
-                                    for (var key3 in val) {
-                                      let deepVal = val[key3];
-                                        key3 = filter_var(
-                                            key3,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        deepVal = filter_var(
-                                            deepVal,
-                                            FILTER_SANITIZE_STRING
-                                        );
-                                        page.metadata.fields[key][key2][key3] = deepVal;
-                                    }
-                                }
-                                break;
-                            case 'integer':
-                            case 'double':
-                                value = filter_var(
-                                    value,
-                                    FILTER_VALIDATE_INT
-                                );
-                                page.metadata.fields[key] = value;
-                                break;
-                            default:
-                                value = filter_var(
-                                    value,
-                                    FILTER_SANITIZE_STRING
-                                );
-                                page.metadata.fields[key] = value;
-                                break;
-                        }
-                    }
-                    break;
-            }
-        }
-        await site.updateNode(page);
-        await site.gitCommit(
-            'Page details updated: ' + page.title + ' (' + page.id + ')'
-        );
         res.send(page);
       }
     }
-  }
   function countWords(str) {
     return str.trim().split(/\s+/).length;
   }

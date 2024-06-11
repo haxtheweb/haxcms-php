@@ -89,67 +89,6 @@ const HAXAppStoreService = new class HAXAppStoreService
             };
             json.push(jsonstring);
         }
-        // memegenerator
-        if (apikeys['memegenerator']) {
-          jsonstring = {
-              "details": {
-              "title": "Meme generator",
-              "icon": "android",
-              "color": "blue",
-              "author": "Meme generator",
-              "description": "A search engine of popular memes.",
-              "status": "available",
-              "tags": ["picture", "crowdsourced", "image", "meme"]
-              },
-              "connection": {
-              "protocol": "http",
-              "url": "version1.api.memegenerator.net",
-              "data": {
-                  "apiKey": apikeys['memegenerator']
-              },
-              "operations": {
-                  "browse": {
-                  "method": "GET",
-                  "endPoint": "Generators_Search",
-                  "pagination": {
-                      "style": "page",
-                      "props": {
-                      "previous": "prevPageToken",
-                      "next": "nextPageToken",
-                      "total_items": "pageInfo.totalResults"
-                      }
-                  },
-                  "search": {
-                      "q": {
-                      "title": "Search",
-                      "type": "string"
-                      }
-                  },
-                  "data": {
-                      "pageIndex":"0",
-                      "pageSize":"20"
-                  },
-                  "resultMap": {
-                      "defaultGizmoType": "image",
-                      "items": "result",
-                      "preview": {
-                      "title": "displayName",
-                      "details": "",
-                      "image": "imageUrl",
-                      "id": "imageID"
-                      },
-                      "gizmo": {
-                      "title": "displayName",
-                      "id": "imageID",
-                      "source": "imageUrl"
-                      }
-                  }
-                  }
-              }
-              }
-          };
-          json.push(jsonstring);
-        }
         // vimeo
         if (apikeys['vimeo']) {
           jsonstring = {
@@ -438,147 +377,6 @@ const HAXAppStoreService = new class HAXAppStoreService
                         "title": "title",
                         "source": "url_l",
                         "alt": "description._content"
-                      }
-                    }
-                  }
-                }
-              }
-            };
-            json.push(jsonstring);
-        }
-        // pixabay
-        if (apikeys['pixabay']) {
-            jsonstring = {
-              "details": {
-                "title": "Pixabay images",
-                "icon": "places:all-inclusive",
-                "color": "orange",
-                "author": "Pixabay",
-                "description": "Pixabay open image community",
-                "status": "available",
-                "tags": ["images", "crowdsourced"]
-              },
-              "connection": {
-                "protocol": "https",
-                "url": "pixabay.com",
-                "data": {
-                  "key": apikeys['pixabay'],
-                },
-                "operations": {
-                  "browse": {
-                    "method": "GET",
-                    "endPoint": "api",
-                    "pagination": {
-                      "style": "page",
-                      "props": {
-                        "total_items": "totalHits",
-                        "page": "page"
-                      }
-                    },
-                    "search": {
-                      "q": {
-                        "title": "Search",
-                        "type": "string"
-                      }
-                    },
-                    "data": {
-                      "image_type": "photo"
-                    },
-                    "resultMap": {
-                      "defaultGizmoType": "image",
-                      "items": "hits",
-                      "preview": {
-                        "title": "tags",
-                        "details": "user",
-                        "image": "previewURL",
-                        "id": "id"
-                      },
-                      "gizmo": {
-                        "source": "webformatURL",
-                        "id": "uri",
-                        "title": "tags",
-                        "caption": "tags",
-                        "citation": "user.name"
-                      }
-                    }
-                  }
-                }
-              }
-            };
-            json.push(jsonstring);
-        }
-        // Google Poly
-        if (apikeys['googlepoly']) {
-            jsonstring = {
-              "details": {
-                "title": "Google Poly",
-                "icon": "icons:3d-rotation",
-                "color": "red",
-                "author": "Google",
-                "description": "Google 3D object sharing service",
-                "status": "available",
-                "tags": ["3D", "creative commons", "crowdsourced"]
-              },
-              "connection": {
-                "protocol": "https",
-                "url": "poly.googleapis.com/v1",
-                "data": {
-                  "key": apikeys['googlepoly'],
-                },
-                "operations": {
-                  "browse": {
-                    "method": "GET",
-                    "endPoint": "assets",
-                    "pagination": {
-                      "style": "page",
-                      "props": {
-                        "previous": "prevPageToken",
-                        "next": "nextPageToken",
-                        "total_items": "pageInfo.totalResults"
-                      }
-                    },
-                    "search": {
-                      "keywords": {
-                        "title": "Search",
-                        "type": "string"
-                      },
-                      "category": {
-                        "title": "Category",
-                        "type": "string",
-                        "value": "",
-                        "component": {
-                          "name": "dropdown-select",
-                          "valueProperty": "value",
-                          "slot": "<paper-item value=\'\'>Any</paper-item><paper-item value=\'animals\'>Animals</paper-item><paper-item value=\'architecture\'>Architecture</paper-item><paper-item value=\'art\'>Art</paper-item><paper-item value=\'food\'>Food</paper-item><paper-item value=\'nature\'>Nature</paper-item><paper-item value=\'objects\'>Objects</paper-item><paper-item value=\'people\'>People</paper-item><paper-item value=\'scenes\'>Scenes</paper-item><paper-item value=\'technology\'>Technology</paper-item><paper-item value=\'transport\'>Transport</paper-item>"
-                        }
-                      }
-                    },
-                    "data": {
-                      "pageSize": "20"
-                    },
-                    "resultMap": {
-                      "defaultGizmoType": "video",
-                      "items": "assets",
-                      "preview": {
-                        "title": "displayName",
-                        "details": "description",
-                        "image": "thumbnail.url",
-                        "id": "name"
-                      },
-                      "gizmo": {
-                        "title": "displayName",
-                        "description": "description",
-                        "id": {
-                          "property": "name",
-                          "op": "split",
-                          "delimiter": "/",
-                          "position": "1"
-                        },
-                        "image": "thumbnail.url",
-                        "_url_source": "https://poly.google.com/view/<%= id %>/embed",
-                        "caption": "description",
-                        "citation": "authorName",
-                        "license": "license"
                       }
                     }
                   }
@@ -1226,14 +1024,6 @@ const HAXAppStoreService = new class HAXAppStoreService
                 'docs':
                     'https://developers.google.com/youtube/v3/getting-started'
             },
-            'googlepoly':{
-                'name': 'Google Poly',
-                'docs': 'https://developers.google.com/poly/develop/api'
-            },
-            'memegenerator':{
-                'name': 'Meme generator',
-                'docs': 'https://memegenerator.net/Api'
-            },
             'vimeo':{
                 'name': 'Vimeo',
                 'docs': 'https://developer.vimeo.com/'
@@ -1250,10 +1040,6 @@ const HAXAppStoreService = new class HAXAppStoreService
                 'name': 'Flickr',
                 'docs': 'https://www.flickr.com/services/developer/api/'
             },
-            'pixabay':{
-                'name': 'Pixabay',
-                'docs': 'https://pixabay.com/api/docs/'
-            }
         };
     }
 }

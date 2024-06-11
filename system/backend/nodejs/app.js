@@ -14,7 +14,10 @@ app.use(express.json({
   type: "*/*",
 }))
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  referrerPolicy: {
+    policy: ["origin", "unsafe-url"],
+  },
 }));
 app.use(cookieParser());
 app.use(fileUpload());

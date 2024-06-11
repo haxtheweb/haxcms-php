@@ -1,6 +1,5 @@
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
-const json_decode = require('locutus/php/json/json_decode');
 const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
 const array_search = require('locutus/php/array/array_search');
 const usort = require('locutus/php/array/usort');
@@ -163,7 +162,7 @@ class JSONOutlineSchema
     {
         if (fs.lstatSync(location).isFile()) {
             this.file = location;
-            let fileData = json_decode(await fs.readFileSync(location,
+            let fileData = JSON.parse(await fs.readFileSync(location,
                 {encoding:'utf8', flag:'r'}));
             let vars = (fileData);
             for (var key in vars) {
@@ -198,9 +197,9 @@ class JSONOutlineSchema
      * Get an item by ID
      */
     getItemById(id) {
-        for (var id in this.items) {
-            if (this.items[id].id === id) {
-                return this.items[id];
+        for (var i in this.items) {
+            if (this.items[i].id === id) {
+                return this.items[i];
             }
         }
         return false;

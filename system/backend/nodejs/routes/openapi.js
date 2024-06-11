@@ -1,5 +1,4 @@
 const HAXCMS = require('../lib/HAXCMS.js');
-const json_decode = require('locutus/php/json/json_decode');
 
 /**
    * Generate the swagger API documentation for this site
@@ -28,7 +27,7 @@ const json_decode = require('locutus/php/json/json_decode');
     openapi.servers[0].description = "Site list / dashboard for administrator user";
     // output, yaml we have to exit early or we'll get encapsulation
     if ((req.body['args']) && req.body['args'][1] == 'json') {
-      res.send(json_decode(openapi.toJson()));
+      res.send(JSON.parse(openapi.toJson()));
     }
     else {
       res.send(openapi.toYaml());

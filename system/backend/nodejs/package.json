@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "dev": "nodemon app.js",
-    "start": "yarn run dev"
+    "start": "npm run dev"
   },
   "keywords": [],
   "author": "",
