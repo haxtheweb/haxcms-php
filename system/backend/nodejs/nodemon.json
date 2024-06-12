@@ -1,3 +1,8 @@
 {
-  "ignore": ["package.json", "public/sites/*/**", "public/sites/*/pages/**", "public/sites/*/site.json"]
+  "ignore": [
+    "package.json",
+    "public/system",
+    "public/sites/*/**",
+    "public/sites/*/pages/**",
+    "public/sites/*/site.json"]
 }

@@ -137,7 +137,6 @@ const strip_tags = require("locutus/php/strings/strip_tags");
                 // machine name should more aggressively scrub the slug than clean title
                 // @todo need to verify this doesn't already exist
                 page.slug = HAXCMS.generateSlugName(data["attributes"]["slug"]);
-                console.log(page.slug);
               }
               if ((data["attributes"]["parent"])) {
                 page.parent = data["attributes"]["parent"];
@@ -148,7 +147,7 @@ const strip_tags = require("locutus/php/strings/strip_tags");
               // allow setting theme via page break
               if ((data["attributes"]["developer-theme"]) && data["attributes"]["developer-theme"] != '') {
                 themes = HAXCMS.getThemes();
-                value = filter_var(data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                value = filter_var(data["attributes"]["developer-theme"], "FILTER_SANITIZE_STRING");
                 // support for removing the custom theme or applying none
                 if (value == '_none_' || value == '' || !value || !themes[value]) {
                   delete page.metadata.theme;

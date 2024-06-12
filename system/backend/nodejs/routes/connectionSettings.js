@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const HAXCMS = require('../lib/HAXCMS.js');
+const url = require('url');
 
 /**
  * @OA\Get(
@@ -16,14 +17,22 @@ async function connectionSettings(req, res) {
   res.setHeader('Content-Type', 'application/javascript');
   const themes = JSON.parse(await fs.readFileSync(path.join(HAXCMS.coreConfigPath, "themes.json"), 'utf8'));
   // this is the correct base if we're being called for connection from inside a site
-  let baseAPIPath = HAXCMS.basePath + HAXCMS.apiBase;
+  let baseAPIPath = HAXCMS.basePath + HAXCMS.systemRequestBase;
   // top level haxcms listing can't include basePath as it's the root already
   if (req.headers && req.headers.referer && !req.headers.referer.includes('/sites/')) {
-    baseAPIPath = HAXCMS.apiBase;
+    baseAPIPath = HAXCMS.systemRequestBase;
+  }
+  // express gives this up on requests but doesn't know it ahead of time
+  if (req.headers && req.headers.referer) {
+    let details = new url.URL(req.headers.referer);
+    HAXCMS.protocol = details.protocol;
+    HAXCMS.domain = details.host;
+    HAXCMS.request_url = details;
   }
   const returnData = JSON.stringify({
+    token: HAXCMS.getRequestToken(),
     getFormToken: HAXCMS.getRequestToken('form'),
-    appStore: { 
+    appStore: {
       url: `${baseAPIPath}generateAppStore?app-store-token=${HAXCMS.getRequestToken('appstore')}`
     },
     themes: themes,
@@ -46,7 +55,7 @@ async function connectionSettings(req, res) {
     getUserDataPath: `${baseAPIPath}getUserData`,
     setUserPhotoPath: `${baseAPIPath}setUserPhoto`,
     deleteNodePath: `${baseAPIPath}deleteNode`,
-    createNewSite: `${baseAPIPath}createSite`,
+    createSite: `${baseAPIPath}createSite`,
     gitImportSite: `${baseAPIPath}gitImportSite`,
     downloadSite: `${baseAPIPath}downloadSite`,
     archiveSite: `${baseAPIPath}archiveSite`,

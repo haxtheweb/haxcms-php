@@ -78,7 +78,7 @@ async function createNode(req, res) {
     for (i=0; i < nodeParams['items'].length; i++) {
       // outline-designer allows delete + confirmation but we don't have anything
       // so instead, just don't process the thing in question if asked to delete it
-      if (nodeParams['items'][i]['delete'] && nodeParams['items'][i]['delete'] == TRUE) {
+      if (nodeParams['items'][i]['delete'] && nodeParams['items'][i]['delete'] == true) {
         // do nothing
       }
       else {
@@ -111,7 +111,7 @@ async function createNode(req, res) {
     );
     // add the item back into the outline schema
     site.manifest.addItem(item);
-    site.manifest.save();
+    await site.manifest.save();
     // support for duplicating the content of another item
     if (nodeParams['node']['duplicate']) {
       // verify we can load this id

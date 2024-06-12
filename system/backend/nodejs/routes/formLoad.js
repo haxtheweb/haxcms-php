@@ -17,7 +17,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *   )
    * )
    */
-  function formLoad(req, res) {
+  async function formLoad(req, res) {
     if (HAXCMS.validateRequestToken(null, 'form')) {
       let context = {
         'site':[],
@@ -34,8 +34,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
       if (!id) {
         id = req.body['haxcms_form_id'];
       }
-      let form = HAXCMS.loadForm(id, context);
-      console.log(form);
+      let form = await HAXCMS.loadForm(id, context);
       if (form.fields['__failed']) {
         res.send(
           form.fields

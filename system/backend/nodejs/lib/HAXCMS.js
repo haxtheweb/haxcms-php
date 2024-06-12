@@ -1,90 +1,33 @@
 const fs = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');
-const url = require('url');
 const JWT = require('jsonwebtoken');
-const utf8 = require('utf8');
-const { Git } = require('git-interface');
 const { v4: uuidv4 } = require('uuid');
-
-class GitPlus extends Git {
-  async revert(count) {
-    let counter = 0;
-    // sanity check
-    if (count < 1) {
-        count = 1;
-    }
-    while (counter != count) {
-        await this.gitExec("reset --hard HEAD~1");
-        counter++;
-    }
-    return true;
-  }
-}
+const GitPlus = require('./GitPlus.js');
 const JSONOutlineSchema = require('./JSONOutlineSchema.js');
-const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
-const FeedMe = require('./RSS.js');
-const sharp = require('sharp');
-const Twig = require('twig');
 const filter_var = require('./filter_var.js');
-const array_search = require('locutus/php/array/array_search');
-const array_unshift = require('locutus/php/array/array_unshift');
-const implode = require('locutus/php/strings/implode');
+const is_numeric = require('locutus/php/var/is_numeric');
 const explode = require('locutus/php/strings/explode');
-const array_unique = require("locutus/php/array/array_unique");
 const array_reduce = require("locutus/php/array/array_reduce");
-const base64_encode = require('locutus/php/url/base64_encode');
-const json_encode = require('locutus/php/json/json_encode');
-const strtr = require('locutus/php/strings/strtr');
-const usort = require('locutus/php/array/usort');
+
 const HAXCMS_ROOT = process.env.HAXCMS_ROOT || __dirname + "/../../../../";
-const HAXCMS_DEFAULT_THEME = 'clean-one';
+const HAXCMS_DEFAULT_THEME = 'clean-two';
 const HAXCMS_FALLBACK_HEX = '#3f51b5';
 // HAXcms core
 const HAXCMS = new class HAXCMSClass {
   constructor() {
-    this.HAXCMS_ROOT = HAXCMS_ROOT;
-    this.HAXCMS_DEFAULT_THEME = HAXCMS_DEFAULT_THEME;
-    this.HAXCMS_FALLBACK_HEX = HAXCMS_FALLBACK_HEX;
-    this.configDirectory = this.HAXCMS_ROOT + '_config/';
-    this.apiBase = 'system/api/';
-    this.coreConfigPath = this.HAXCMS_ROOT + 'system/coreConfig/';
-    this.sitesDirectory = 'sites';
-    this.archivedDirectory = 'archived';
-    this.publishedDirectory = 'published';
-    this.basePath = '/';
+    this.developerMode = false;
+    this.developerModeAdminOnly = false;
+    this.cdn = './';
     this.sessionJwt = null;
-    this.protocol = url.protocol;
-    this.domain = url.hostname;
-    // makes it easier to request a new item from the schema factory
-    this.outlineSchema = new JSONOutlineSchema();
-    this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"),
-    {encoding:'utf8', flag:'r'}, 'utf8'));
-    // @todo siteFields.json needs to be incorporated here so we have a standard set of site fields
-    // so you can modify them via the UI
-    this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"),
-    {encoding:'utf8', flag:'r'}, 'utf8'));
-    this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"),
-    {encoding:'utf8', flag:'r'}, 'utf8');
-    // pk/rpk test for files that can contain these
-    try {
-      this.privateKey = fs.readFileSync(path.join(this.configDirectory, ".pk"),
-      {encoding:'utf8', flag:'r'}, 'utf8');
-    }
-    catch (e) {
-      console.warn("NOPK, wrote one");
-      this.privateKey = uuidv4();
-      fs.writeFileSync(path.join(this.configDirectory, ".pk"), this.privateKey);
-    }
-    try {
-      this.refreshPrivateKey = fs.readFileSync(path.join(this.configDirectory, ".rpk"),
-      {encoding:'utf8', flag:'r'}, 'utf8');
-    }
-    catch (e) {
-      console.warn("NORPK, wrote one");
-      this.refreshPrivateKey = uuidv4();
-      fs.writeFileSync(path.join(this.configDirectory, ".rpk"), this.refreshPrivateKey);
-    }
+    this.protocol = 'http';
+    this.domain = 'localhost';
+    this.siteListing = {
+      attr: '',
+      slot: '',
+    };
+    this.basePath = '/';
+    this.config = {};
     /**
      * @todo need a way to define these without skimming a PHP file
      */
@@ -96,6 +39,107 @@ const HAXCMS = new class HAXCMSClass {
       name: 'admin',
       password: 'admin',
     };
+    this.HAXCMS_ROOT = HAXCMS_ROOT;
+    this.HAXCMS_DEFAULT_THEME = HAXCMS_DEFAULT_THEME;
+    this.HAXCMS_FALLBACK_HEX = HAXCMS_FALLBACK_HEX;
+    this.systemRequestBase = 'system/api/';
+    this.coreConfigPath = this.HAXCMS_ROOT + 'system/coreConfig/';
+    this.acceptedHAXFileTypes = [
+      "audio",
+      "image",
+      "gif",
+      "video",
+      "pdf",
+      "csv",
+      "svg",
+      "markdown",
+      "html",
+      "document",
+      "archive",
+      "*",
+    ];
+    this.sitesDirectory = 'sites';
+    this.archivedDirectory = 'archived';
+    this.publishedDirectory = 'published';
+    this.configDirectory = this.HAXCMS_ROOT + '_config/';
+    
+    // makes it easier to request a new item from the schema factory
+    this.outlineSchema = new JSONOutlineSchema();
+    this.config = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "config.json"),
+      {encoding:'utf8', flag:'r'}, 'utf8'));
+    if (!this.config.appJWTConnectionSettings) {
+      this.config.appJWTConnectionSettings = {};
+    }
+    // load in core theme data
+    let themeData = JSON.parse(fs.readFileSync(path.join(this.coreConfigPath, "themes.json"),
+      {encoding:'utf8', flag:'r'}, 'utf8'));
+    for (var name in themeData) {
+      this.config.themes[name] = themeData[name];
+    }
+    // node
+    if (!this.config.node) {
+      this.config.node = {
+        fields: {}
+      };
+    }
+    // publishing endpoints
+    if (!this.config.site) {
+      this.config.site = {
+        settings: {},
+        git: {},
+        static: {},
+      }
+    }
+    if (!this.config.site.publishers) {
+      this.config.site.publishers = {};
+    }
+    // load in core publishing data
+    let publishingData = JSON.parse(fs.readFileSync(path.join(this.coreConfigPath, "publishers.json"),
+      {encoding:'utf8', flag:'r'}, 'utf8'));
+    for (var name in publishingData) {
+      this.config.site.publishers[name] = publishingData[name];
+    }
+    // site fields in HAXschema format
+    if (!this.config.site.fields) {
+      this.config.site.fields = [{}];
+    }
+    let fieldsData = JSON.parse(fs.readFileSync(path.join(this.coreConfigPath, "siteFields.json"),
+      {encoding:'utf8', flag:'r'}, 'utf8'));
+    for (var name in fieldsData) {
+      this.config.site.fields[0][name] = fieldsData[name];
+    }
+    let themeSelect = {};
+    // ensure field schema has correct theme options
+    for (var name in this.config.themes) {
+      themeSelect[name] = this.config.themes[name].name;
+    }
+    // @todo this is VERY hacky specific placement of the theme options
+    this.config.site.fields[0].properties[1].properties[0].options = themeSelect;
+
+    // @todo siteFields.json needs to be incorporated here so we have a standard set of site fields
+    
+    // so you can modify them via the UI
+    this.userData = JSON.parse(fs.readFileSync(path.join(this.configDirectory, "userData.json"),
+    {encoding:'utf8', flag:'r'}, 'utf8'));
+    this.salt = fs.readFileSync(path.join(this.configDirectory, "SALT.txt"),
+    {encoding:'utf8', flag:'r'}, 'utf8');
+    // pk/rpk test for files that can contain these
+    try {
+      this.privateKey = fs.readFileSync(path.join(this.configDirectory, ".pk"),
+      {encoding:'utf8', flag:'r'}, 'utf8');
+    }
+    catch (e) {
+      this.privateKey = uuidv4();
+      fs.writeFileSync(path.join(this.configDirectory, ".pk"), this.privateKey);
+    }
+    try {
+      this.refreshPrivateKey = fs.readFileSync(path.join(this.configDirectory, ".rpk"),
+      {encoding:'utf8', flag:'r'}, 'utf8');
+    }
+    catch (e) {
+      this.refreshPrivateKey = uuidv4();
+      fs.writeFileSync(path.join(this.configDirectory, ".rpk"), this.refreshPrivateKey);
+    }
   }
   /**
    * Load a site off the file system with option to create
@@ -182,13 +226,6 @@ const HAXCMS = new class HAXCMSClass {
   }
 
   /**
-   * Load theme location data as mix of config and system
-   */
-  getThemes()
-  {
-      return this.config.themes;
-  }
-  /**
    * Generate machine name
    */
   generateMachineName(name) {
@@ -270,548 +307,558 @@ const HAXCMS = new class HAXCMSClass {
       // generate the hash
       return Buffer.concat([buf1, buf2]).toString('base64');
     }
-        /**
+    /**
      * load form and spitting out HAXschema + values in our standard transmission method
      */
-        loadForm(form_id, context = []) {
-          let fields = [];
-          let value = {};
-          // @todo add future support for dependency injection as far as allowed forms
-          if (typeof this[form_id + "Form"] === "function") {
-            fields = this[form_id + "Form"](context);
-            console.log(fields);
-          }
-          else {
-            fields = {
-              '__failed': {
-                'status': 500,
-                'message': form_id + ' does not exist',
-              }
-            };
-          }
-          if (typeof this[form_id + "Value"] === "function") {
-            value = this[form_id + "Value"](context);
-          }
-          // ensure values are set for the hidden internal fields
-          value.haxcms_form_id = form_id;
-          value.haxcms_form_token = this.getRequestToken(form_id);
-          return {
-            'fields': fields,
-            'value': value,
-          };
-        }
-        /**
-         * Process the form submission data
-         */
-        processForm(form_id, params, context = []) {
-          // make sure we have the original value / key pairs for the form
-          if (this[form_id + "Value"]) {
-            value = this[form_id + "Value"](context);
-    
-          }
-          else {
-            fields = {
-              '__failed': {
-                'status': 500,
-                'message': form_id + ' does not exist',
-              }
-            };
-          }
-        }
-        /**
-         * Magic function that will convert foo.bar.zzz into obj.foo.bar.zzz with look up.
-         */
-        deepObjectLookUp(obj, path) {
-          return array_reduce(explode('-', path), function (o, p) { return !isNaN(p) ? (o[p] ?? null) : (o.p ?? null); }, obj);
-        }
-    
-        /**
-         * Return the form for the siteSettings
-         */
-        siteSettingsForm(context) {
-          let site = this.loadSite(context['site']['name']);
-          console.log(site);
-          return this.config.site.fields;
-        }
-        /**
-         * Build a selectorList for the front-end that has all values
-         * for selection keyed by item id: title, ordered based on
-         * hierarchy with -- for each level down
-         */
-        itemSelectorList() {
-          let items = site.manifest.orderTree(site.manifest.items);
-          itemValues = [
-            {
-              "text": "-- No page --",
-              "value": null,
-            }
-          ];
-          for (var key in items) {
-            let item = items[key];
-            // calculate -- depth so it looks like a tree
-            itemBuilder = item;
-            // walk back through parent tree
-            distance = "- ";
-            while (itemBuilder && itemBuilder.parent != null) {
-              itemBuilder = this.findParent(items, itemBuilder);
-              // double check structure is sound
-              if (itemBuilder) {
-                distance = "--" + distance;
-              }
-            }
-            itemValues.push({
-              "text": distance + item.title,
-              "value": item.id,
-            })
-          }
-          return itemValues;
-        }
-        /**
-         * Return the form for the siteSettings
-         */
-        siteSettingsValue(context) {
-          let site = this.loadSite(context['site']['name']);
-          // passing in as JSON for sanity
-          let jsonResponse = JSON.parse(`{
-            "manifest": {
-              "site": {
-                "manifest-title": null,
-                "manifest-description": null,
-                "manifest-metadata-site-domain": null,
-                "manifest-metadata-site-tags": null,
-                "manifest-metadata-site-logo": null
-              },
-              "theme": {
-                "manifest-metadata-theme-element": null,
-                "manifest-metadata-theme-variables-image": null,
-                "manifest-metadata-theme-variables-imageAlt": null,
-                "manifest-metadata-theme-variables-imageLink": null,
-                "manifest-metadata-theme-variables-hexCode": null,
-                "manifest-metadata-theme-variables-cssVariable": null,
-                "manifest-metadata-theme-variables-icon": null,
-                "regions": {
-                  "manifest-metadata-theme-regions-header": null,
-                  "manifest-metadata-theme-regions-sidebarFirst": null,
-                  "manifest-metadata-theme-regions-sidebarSecond": null,
-                  "manifest-metadata-theme-regions-contentTop": null,
-                  "manifest-metadata-theme-regions-contentBottom": null,
-                  "manifest-metadata-theme-regions-footerPrimary": null,
-                  "manifest-metadata-theme-regions-footerSecondary": null
-                }
-              },
-              "author": {
-                "manifest-license": null,
-                "manifest-metadata-author-image": null,
-                "manifest-metadata-author-name": null,
-                "manifest-metadata-author-email": null,
-                "manifest-metadata-author-socialLink": null
-              },
-              "seo": {
-                "manifest-metadata-site-settings-lang": null,
-                "manifest-metadata-site-settings-pathauto": null,
-                "manifest-metadata-site-settings-publishPagesOn": true,
-                "manifest-metadata-site-settings-sw": null,
-                "manifest-metadata-site-settings-forceUpgrade": null,
-                "manifest-metadata-site-settings-gaID": null
-              }
-            }
-          }`);
-          // this will process the form values and engineer them out of
-          // the manifest based on key location to value found there (if any)
-          return this.populateManifestValues(site, jsonResponse);
-        }
-        /**
-         * Populate values based on the structure of the form schema values
-         * established previously. This REQUIRES that the key in the end
-         * is a string in the form of "manifest-what-ever-value-this-needs"
-         * which it then takes ANY structure and recursively populates it
-         * with the appropriate values to match
-         */
-        populateManifestValues(site, manifestKeys) {
-          for (var key in manifestKeys) {
-            let value = manifestKeys[key];
-            let lookup = this.deepObjectLookUp(site, key);
-            // cascade of our methodology for building out forms
-            // which peg to the internal workings of JSON outline schema
-            // while still being presented in a visually agnostic manner
-            // this is some crazy S..
-            // test if we have deeper items to traverse at this level
-            if (typeof value !== "string" && value.length > 0 && typeof value !== "boolean") {
-              manifestKeys[key] = this.populateManifestValues(site, value);
-            }
-            else if (typeof key === "string" && lookup) {
-              // special support for regions as front end form structure differs slightly from backend
-              // to support multiple attributes on a single object on front end
-              // even when it's a 1 to 1
-              if (lookup.isArray && lookup.isArray() && key.indexOf('-regions-') !== -1) {
-                tmp = [];
-                for (var rkey in lookup) {
-                  let regionId = lookup[rkey];
-                  tmp.push({
-                    node: regionId
-                  })
-                }
-                manifestKeys[key] = tmp;
-              }
-              else {
-                manifestKeys[key] = lookup;
-              }          
-            }
-          }
-          // @todo needs to not be a hack :p
-          if ((manifestKeys["manifest-metadata-theme-variables-cssVariable"])) {
-            manifestKeys["manifest-metadata-theme-variables-cssVariable"] = manifestKeys["manifest-metadata-theme-variables-cssVariable"].replace('-7', '').replace("-simple-colors-default-theme-", "", );
-          }
-          return manifestKeys;
-        }
-        /**
-         * Get input method for HAXSchema based on a data type
-         * @var type [string]
-         */
-        getInputMethod(type = null) {
-          switch (type) {
-            case 'string':
-              return 'textfield';
-            break;
-            case 'number':
-              return 'number';
-            break;
-            case 'date':
-              return 'datepicker';
-            break;
-            case 'boolean':
-              return 'boolean';
-            break;
-            default:
-              return 'textfield';
-            break;
-          }
-        }
-        /**
-         * Get the current version number
-         */
-        getHAXCMSVersion()
-        {
-          let version;
-          if (!(version)) {
-            // sanity
-            vFile = HAXCMS_ROOT + '/VERSION.txt';
-            if (file_exists(vFile)) {
-              version = filter_var(file_get_contents(vFile));
-            }
-          }
-          return version;
-        }
-        /**
-         * Load theme location data as mix of config and system
-         */
-        getThemes()
-        {
-            return this.config.themes;
-        }
-        /**
-         * Build valid JSON Schema for the config we have knowledge of
-         */
-        getConfigSchema()
-        {
-            schema = {};
-            schema['schema'] = "http://json-schema.org/schema#";
-            schema.title = "HAXCMS Config";
-            schema.type = "object";
-            schema.properties = {};
-            schema.properties.publishing = {};
-            schema.properties.publishing.title = "Publishing settings";
-            schema.properties.publishing.type = "object";
-            schema.properties.publishing.properties = {};
-            schema.properties.apis = {};
-            schema.properties.apis.title = "API Connectivity";
-            schema.properties.apis.type = "object";
-            schema.properties.apis.properties = {};
-            // establish some defaults if nothing set internally
-            publishing = {
-                'vendor': {
-                    'name': 'Vendor',
-                    'description' :
-                        'Name for this provided (github currently supported)',
-                    'value': 'github'
-                },
-                'branch': {
-                    'name': 'Branch',
-                    'description' :
-                        'Project code branch (like master or gh-pages)',
-                    'value': 'gh-pages'
-                },
-                'url': {
-                    'name': 'Repo url',
-                    'description' :
-                        'Base address / organization that new sites will be saved under',
-                    'value': 'git@github.com:elmsln'
-                },
-                'user': {
-                    'name': 'User / Org',
-                    'description': 'User name or organization to publish to',
-                    'value': ''
-                },
-                'email': {
-                    'name': 'Email',
-                    'description': 'Email address of your github account',
-                    'value': ''
-                },
-                'pass': {
-                    'name': 'Password',
-                    'description' :
-                        'Only use this if you want to automate SSH key setup. This is not stored',
-                    'value': ''
-                },
-                'cdn': {
-                    'name': 'CDN',
-                    'description': 'A CDN address that supports HAXCMS',
-                    'value': 'cdn.webcomponents.psu.edu'
-                }
-            };
-            // publishing
-            for (var key in publishing) {
-              let value = publishing[key];
-                props = {};
-                props.title = value['name'];
-                props.type = 'string';
-                if ((this.config.site.git[key])) {
-                    props.value = this.config.site.git[key];
-                } else {
-                    props.value = value['value'];
-                }
-                props.component = {};
-                props.component.name = "paper-input";
-                props.component.valueProperty = "value";
-                props.component.slot =
-                    '<div slot="suffix">' + value['description'] + '</div>';
-                if (key == 'pass') {
-                    props.component.attributes = {};
-                    props.component.attributes.type = 'password';
-                }
-                if (key == 'pass' && (this.config.site.git.user)) {
-                    // keep moving but if we already have a user name we don't need this
-                    // we only ask for a password on the very first run through
-                    schema.properties.publishing.properties.user.component.slot =
-                        '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
-                    schema.properties.publishing.properties.user.component.attributes = {};
-                    schema.properties.publishing.properties.user.component.attributes.disabled =
-                        'disabled';
-                    schema.properties.publishing.properties.email.component.attributes = {};
-                    schema.properties.publishing.properties.email.component.attributes.disabled =
-                        'disabled';
-                    schema.properties.publishing.properties.email.component.slot =
-                        '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
-                } else {
-                    schema.properties.publishing.properties[key] = props;
-                }
-            }
-            // API keys
-            hax = new HAXAppStoreService();
-            apiDocs = hax.baseSupportedApps();
-            for (var key in apiDocs) {
-                props = {};
-                props.title = key;
-                props.type = 'string';
-                // if we have this value loaded internally then set it
-                if ((this.config.appStore.apiKeys[key])) {
-                    props.value = this.config.appStore.apiKeys[key];
-                }
-                props.component = {};
-                // look for our documentation object name
-                if ((apiDocs[key])) {
-                    props.title = apiDocs[key]['name'];
-                    props.component.slot =
-                        '<div slot="suffix"><a href="' +
-                        apiDocs[key]['docs'] +
-                        '" target="_blank">See ' +
-                        props.title +
-                        ' developer docs.</a></div>';
-                }
-                props.component.name = "paper-input";
-                props.component.valueProperty = "value";
-                schema.properties.apis.properties[key] = props;
-            }
-            return schema;
-        }
-        /**
-         * Set and validate config
-         */
-        setUserData(values)
-        {
-          // only support user picture for the moment
-          if ((values.userPicture)) {
-            this.userData.userPicture = values.userPicture;
-          }
-          this.saveUserDataFile();
-        }
-        /**
-         * Set and validate config
-         */
-        setConfig(values)
-        {
-            if ((values.apis)) {
-              for (var key in values.apis) {
-                let val = values.apis[key];
-                this.config.appStore.apiKeys[key] = val;
-              }
-            }
-            if (!(this.config.site)) {
-              this.config.site = {};
-            }
-            if (!(this.config.site.git)) {
-              this.config.site.git = {};
-            }
-            if (values.publishing) {
-              for (var key in values.publishing) {
-                let val = values.publishing[key];
-                this.config.site.git[key] = val;
-              }
-            }
-            // test for a password in order to do the git hook up this one time
-            if (
-              (this.config.site.git.email) &&
-              (this.config.site.git.pass)
-            ) {
-              email = this.config.site.git.email;
-              pass = this.config.site.git.pass;
-              // ensure we never save the password, this is just a 1 time pass through
-              delete this.config.site.git.pass;
-            }
-            // save config to the file
-            this.saveConfigFile();
-            // see if we need to set a github key for publishing
-            // this is a one time thing that helps with the workflow
-            if (
-              (email) &&
-              (pass) &&
-              !(this.config.site.git.keySet) &&
-              (this.config.site.git.vendor) &&
-              this.config.site.git.vendor == 'github'
-            ) {
-                let json = {};
-                json.title = 'HAXCMS Publishing key';
-                json.key = this.getSSHKey();                
-                let response = fetch('https://api.github.com/user/keys',
-                  {
-                    method: "POST",
-                    body: {
-                    'auth': [email, pass],
-                    'body': JSON.stringify(json)
-                    },
-                  }
-                );
-                // we did it, now store that it worked so we can skip all this setup in the future
-                if (response.getStatusCode() == 201) {
-                    this.config.site.git.keySet = true;
-                    this.saveConfigFile();
-                    // set global config for username / email if we can
-                    const gitRepo = new GitPlus({
-                      dir: this.directory + '/' + this.manifest.metadata.site.name
-                    });
-                    new GitPlus({});
-                    gitRepo.gitExec(
-                        'config --global user.name "' +
-                            this.config.site.git.user +
-                            '"'
-                    );
-                    gitRepo.gitExec(
-                        'config --global user.email "' +
-                            this.config.site.git.email +
-                            '"'
-                    );
-                }
-    
-                return response.getStatusCode();
-            }
-            return 'saved';
-        }
-        /**
-         * Write configuration to the config file
-         */
-        async saveUserDataFile()
-        {
-          return await fs.writeFileSync(this.configDirectory + '/userData.json',
-            JSON.stringify(this.userData, null, 2)
-          );
-        }
-        /**
-         * Write configuration to the config file
-         */
-        async saveConfigFile()
-        {
-          return await fs.writeFileSync(this.configDirectory + '/config.json',
-            JSON.stringify(this.config, null, 2)
-          );
-        }
-        /**
-         * get SSH Key that was created during install
-         */
-        getSSHKey()
-        {
-            return false;
-        }
-        // russia strikes again
-        // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
-        html_to_obj(html) {
-          dom = new DOMDocument();
-          html = mb_convert_encoding(html, 'HTML-ENTITIES', "UTF-8");
-          dom.loadHTML(html);
-          return this.element_to_obj(dom.documentElement);
-        }
-        element_to_obj(element) {
-          obj = { "tag": element.tagName };
-          for (var attribute in element.attributes) {
-              obj[attribute.name] = attribute.value;
-          }
-          for (var subElement in element.childNodes) {
-              if (subElement.nodeType == XML_TEXT_NODE) {
-                  obj["html"] = subElement.wholeText;
-              }
-              else {
-                  obj["children"].push(this.element_to_obj(subElement));
-              }
-          }
-          return obj;
+    async loadForm(form_id, context = []) {
+      let fields = {};
+      let value = {};
+      // @todo add future support for dependency injection as far as allowed forms
+      if (typeof this[form_id + "Form"] === "function") {
+        fields = await this[form_id + "Form"](context);
       }
-        /**
-         * parse attributes out of an HTML tag in a safer manner
-         */
-        parse_attributes(attr) {
-          let atList = [];
-          const regexp = /\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/ig;
-          const matches = [...attr.matchAll(regexp)];
-          for (var i in matches) {
-            if (matches[i][3])
-              atList[matches[i][3]] = null;
-            else
-              atList[matches[i][1]] = matches[i][2];
+      else {
+        fields = {
+          '__failed': {
+            'status': 500,
+            'message': form_id + ' does not exist',
           }
-          return atList;
-        }
-        /**
-         * Helper for parsing out and returning page-break's in a body of content
-         * to help support HAX multi-page editing / outlining capabilities
-         */
-        pageBreakParser(body = '<page-break></page-break>') {
-          body += '<page-break fakeendcap="fakeendcap"></page-break>';
-          let pageData = [];
-          // match all pages + content
-          const regexp = /(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/g;
-          const matches = [...body.matchAll(regexp)];
-          for (var i in matches) {
-            // replace & to avoid XML parsing issues
-            let content = "<div " + matches[i][2].replace('published ', 'published="published" ').replace('locked ', 'locked="locked" ') + "></div>";
-            let attrs = this.parse_attributes(content);
-            pageData[i] = {
-                "content": matches[i][4],
-                // this assumes that the attributes are well formed; make sure front end did this
-                // even for boolean attributes
-                "attributes": attrs
-            };
+        };
+      }
+      if (typeof this[form_id + "Value"] === "function") {
+        value = await this[form_id + "Value"](context);
+      }
+      // ensure values are set for the hidden internal fields
+      value.haxcms_form_id = form_id;
+      value.haxcms_form_token = this.getRequestToken(form_id);
+      return {
+        'fields': fields,
+        'value': value,
+      };
+    }
+    /**
+     * Process the form submission data
+     */
+    async processForm(form_id, params, context = []) {
+      // make sure we have the original value / key pairs for the form
+      if (this[form_id + "Value"]) {
+        value = await this[form_id + "Value"](context);
+      }
+      else {
+        fields = {
+          '__failed': {
+            'status': 500,
+            'message': form_id + ' does not exist',
           }
-          return pageData;
+        };
+      }
+    }
+    /**
+     * Magic function that will convert foo.bar.zzz into obj.foo.bar.zzz with look up.
+     */
+    deepObjectLookUp(obj, path) {
+      let thing = explode('-', path);
+      // while exists, pop off key and expand deeper in value assessment
+      let current = obj;
+      while (thing.length > 0) {
+        let key = thing.shift();
+        if (typeof current !== 'undefined' && key) {
+          current = current[key];
         }
+      }
+      return current;
+    }
+
+    /**
+     * Return the form for the siteSettings
+     */
+    async siteSettingsForm(context) {
+      let site = await this.loadSite(context['site']['name']);
+      return this.config.site.fields;
+    }
+    /**
+     * Build a selectorList for the front-end that has all values
+     * for selection keyed by item id: title, ordered based on
+     * hierarchy with -- for each level down
+     */
+    itemSelectorList() {
+      let items = site.manifest.orderTree(site.manifest.items);
+      itemValues = [
+        {
+          "text": "-- No page --",
+          "value": null,
+        }
+      ];
+      for (var key in items) {
+        let item = items[key];
+        // calculate -- depth so it looks like a tree
+        itemBuilder = item;
+        // walk back through parent tree
+        distance = "- ";
+        while (itemBuilder && itemBuilder.parent != null) {
+          itemBuilder = this.findParent(items, itemBuilder);
+          // double check structure is sound
+          if (itemBuilder) {
+            distance = "--" + distance;
+          }
+        }
+        itemValues.push({
+          "text": distance + item.title,
+          "value": item.id,
+        })
+      }
+      return itemValues;
+    }
+    /**
+     * Return the form for the siteSettings
+     */
+    async siteSettingsValue(context) {
+      let site = await this.loadSite(context['site']['name']);
+      // passing in as JSON for sanity
+      let jsonResponse = JSON.parse(`{
+        "manifest": {
+          "site": {
+            "manifest-title": null,
+            "manifest-description": null,
+            "manifest-metadata-site-domain": null,
+            "manifest-metadata-site-tags": null,
+            "manifest-metadata-site-logo": null
+          },
+          "theme": {
+            "manifest-metadata-theme-element": null,
+            "manifest-metadata-theme-variables-image": null,
+            "manifest-metadata-theme-variables-imageAlt": null,
+            "manifest-metadata-theme-variables-imageLink": null,
+            "manifest-metadata-theme-variables-hexCode": null,
+            "manifest-metadata-theme-variables-cssVariable": null,
+            "manifest-metadata-theme-variables-icon": null,
+            "regions": {
+              "manifest-metadata-theme-regions-header": null,
+              "manifest-metadata-theme-regions-sidebarFirst": null,
+              "manifest-metadata-theme-regions-sidebarSecond": null,
+              "manifest-metadata-theme-regions-contentTop": null,
+              "manifest-metadata-theme-regions-contentBottom": null,
+              "manifest-metadata-theme-regions-footerPrimary": null,
+              "manifest-metadata-theme-regions-footerSecondary": null
+            }
+          },
+          "author": {
+            "manifest-license": null,
+            "manifest-metadata-author-image": null,
+            "manifest-metadata-author-name": null,
+            "manifest-metadata-author-email": null,
+            "manifest-metadata-author-socialLink": null
+          },
+          "seo": {
+            "manifest-metadata-site-settings-lang": null,
+            "manifest-metadata-site-settings-pathauto": null,
+            "manifest-metadata-site-settings-publishPagesOn": true,
+            "manifest-metadata-site-settings-sw": null,
+            "manifest-metadata-site-settings-forceUpgrade": null,
+            "manifest-metadata-site-settings-gaID": null
+          }
+        }
+      }`);
+      // this will process the form values and engineer them out of
+      // the manifest based on key location to value found there (if any)
+      return this.populateManifestValues(site, jsonResponse);
+    }
+    /**
+     * Populate values based on the structure of the form schema values
+     * established previously. This REQUIRES that the key in the end
+     * is a string in the form of "manifest-what-ever-value-this-needs"
+     * which it then takes ANY structure and recursively populates it
+     * with the appropriate values to match
+     */
+    populateManifestValues(site, manifestKeys) {
+      for (var key in manifestKeys) {
+        let value = manifestKeys[key];
+        // cascade of our methodology for building out forms
+        // which peg to the internal workings of JSON outline schema
+        // while still being presented in a visually agnostic manner
+        // this is some crazy S..
+        // test if we have deeper items to traverse at this level
+
+        if (typeof value !== "string" && typeof value !== "boolean" && value && Object.keys(value).length > 0) {
+          manifestKeys[key] = this.populateManifestValues(site, value);
+        }
+        else if (typeof key === "string") {
+          let lookup = this.deepObjectLookUp(site, key);
+          if (lookup) {
+            // special support for regions as front end form structure differs slightly from backend
+            // to support multiple attributes on a single object on front end
+            // even when it's a 1 to 1
+            if (lookup.isArray && lookup.isArray() && key.indexOf('-regions-') !== -1) {
+              let tmp = [];
+              for (var rkey in lookup) {
+                let regionId = lookup[rkey];
+                tmp.push({
+                  node: regionId
+                })
+              }
+              manifestKeys[key] = tmp;
+            }
+            else {
+              manifestKeys[key] = lookup;
+            }
+          }     
+        }
+      }
+      // @todo needs to not be a hack :p
+      if ((manifestKeys["manifest-metadata-theme-variables-cssVariable"])) {
+        manifestKeys["manifest-metadata-theme-variables-cssVariable"] = manifestKeys["manifest-metadata-theme-variables-cssVariable"].replace('-7', '').replace("--simple-colors-default-theme-", '');
+      }
+      return manifestKeys;
+    }
+    /**
+     * Get input method for HAXSchema based on a data type
+     * @var type [string]
+     */
+    getInputMethod(type = null) {
+      switch (type) {
+        case 'string':
+          return 'textfield';
+        break;
+        case 'number':
+          return 'number';
+        break;
+        case 'date':
+          return 'datepicker';
+        break;
+        case 'boolean':
+          return 'boolean';
+        break;
+        default:
+          return 'textfield';
+        break;
+      }
+    }
+    /**
+     * Get the current version number
+     */
+    async getHAXCMSVersion()
+    {
+      let version = null;
+      if (!(version)) {
+        // sanity
+        let vFile = await fs.readFileSync(path.join(HAXCMS_ROOT, "/VERSION.txt"),
+        {encoding:'utf8', flag:'r'}, 'utf8');
+        if (vFile) {
+          return filter_var(vFile);
+        }
+      }
+      return version;
+    }
+    /**
+     * Load theme location data as mix of config and system
+     */
+    getThemes()
+    {
+        return this.config.themes;
+    }
+    /**
+     * Build valid JSON Schema for the config we have knowledge of
+     */
+    getConfigSchema()
+    {
+        schema = {};
+        schema['schema'] = "http://json-schema.org/schema#";
+        schema.title = "HAXCMS Config";
+        schema.type = "object";
+        schema.properties = {};
+        schema.properties.publishing = {};
+        schema.properties.publishing.title = "Publishing settings";
+        schema.properties.publishing.type = "object";
+        schema.properties.publishing.properties = {};
+        schema.properties.apis = {};
+        schema.properties.apis.title = "API Connectivity";
+        schema.properties.apis.type = "object";
+        schema.properties.apis.properties = {};
+        // establish some defaults if nothing set internally
+        publishing = {
+            'vendor': {
+                'name': 'Vendor',
+                'description' :
+                    'Name for this provided (github currently supported)',
+                'value': 'github'
+            },
+            'branch': {
+                'name': 'Branch',
+                'description' :
+                    'Project code branch (like master or gh-pages)',
+                'value': 'gh-pages'
+            },
+            'url': {
+                'name': 'Repo url',
+                'description' :
+                    'Base address / organization that new sites will be saved under',
+                'value': 'git@github.com:elmsln'
+            },
+            'user': {
+                'name': 'User / Org',
+                'description': 'User name or organization to publish to',
+                'value': ''
+            },
+            'email': {
+                'name': 'Email',
+                'description': 'Email address of your github account',
+                'value': ''
+            },
+            'pass': {
+                'name': 'Password',
+                'description' :
+                    'Only use this if you want to automate SSH key setup. This is not stored',
+                'value': ''
+            },
+            'cdn': {
+                'name': 'CDN',
+                'description': 'A CDN address that supports HAXCMS',
+                'value': 'cdn.webcomponents.psu.edu'
+            }
+        };
+        // publishing
+        for (var key in publishing) {
+          let value = publishing[key];
+            props = {};
+            props.title = value['name'];
+            props.type = 'string';
+            if ((this.config.site.git[key])) {
+                props.value = this.config.site.git[key];
+            } else {
+                props.value = value['value'];
+            }
+            props.component = {};
+            props.component.name = "paper-input";
+            props.component.valueProperty = "value";
+            props.component.slot =
+                '<div slot="suffix">' + value['description'] + '</div>';
+            if (key == 'pass') {
+                props.component.attributes = {};
+                props.component.attributes.type = 'password';
+            }
+            if (key == 'pass' && (this.config.site.git.user)) {
+                // keep moving but if we already have a user name we don't need this
+                // we only ask for a password on the very first run through
+                schema.properties.publishing.properties.user.component.slot =
+                    '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
+                schema.properties.publishing.properties.user.component.attributes = {};
+                schema.properties.publishing.properties.user.component.attributes.disabled =
+                    'disabled';
+                schema.properties.publishing.properties.email.component.attributes = {};
+                schema.properties.publishing.properties.email.component.attributes.disabled =
+                    'disabled';
+                schema.properties.publishing.properties.email.component.slot =
+                    '<div slot="suffix">Set, to change this manually edit _config/config.json.</div>';
+            } else {
+                schema.properties.publishing.properties[key] = props;
+            }
+        }
+        // API keys
+        hax = new HAXAppStoreService();
+        apiDocs = hax.baseSupportedApps();
+        for (var key in apiDocs) {
+            props = {};
+            props.title = key;
+            props.type = 'string';
+            // if we have this value loaded internally then set it
+            if ((this.config.appStore.apiKeys[key])) {
+                props.value = this.config.appStore.apiKeys[key];
+            }
+            props.component = {};
+            // look for our documentation object name
+            if ((apiDocs[key])) {
+                props.title = apiDocs[key]['name'];
+                props.component.slot =
+                    '<div slot="suffix"><a href="' +
+                    apiDocs[key]['docs'] +
+                    '" target="_blank">See ' +
+                    props.title +
+                    ' developer docs.</a></div>';
+            }
+            props.component.name = "paper-input";
+            props.component.valueProperty = "value";
+            schema.properties.apis.properties[key] = props;
+        }
+        return schema;
+    }
+    /**
+     * Set and validate config
+     */
+    setUserData(values)
+    {
+      // only support user picture for the moment
+      if ((values.userPicture)) {
+        this.userData.userPicture = values.userPicture;
+      }
+      this.saveUserDataFile();
+    }
+    /**
+     * Set and validate config
+     */
+    setConfig(values)
+    {
+        if ((values.apis)) {
+          for (var key in values.apis) {
+            let val = values.apis[key];
+            this.config.appStore.apiKeys[key] = val;
+          }
+        }
+        if (!(this.config.site)) {
+          this.config.site = {};
+        }
+        if (!(this.config.site.git)) {
+          this.config.site.git = {};
+        }
+        if (values.publishing) {
+          for (var key in values.publishing) {
+            let val = values.publishing[key];
+            this.config.site.git[key] = val;
+          }
+        }
+        // test for a password in order to do the git hook up this one time
+        if (
+          (this.config.site.git.email) &&
+          (this.config.site.git.pass)
+        ) {
+          email = this.config.site.git.email;
+          pass = this.config.site.git.pass;
+          // ensure we never save the password, this is just a 1 time pass through
+          delete this.config.site.git.pass;
+        }
+        // save config to the file
+        this.saveConfigFile();
+        // see if we need to set a github key for publishing
+        // this is a one time thing that helps with the workflow
+        if (
+          (email) &&
+          (pass) &&
+          !(this.config.site.git.keySet) &&
+          (this.config.site.git.vendor) &&
+          this.config.site.git.vendor == 'github'
+        ) {
+            let json = {};
+            json.title = 'HAXCMS Publishing key';
+            json.key = this.getSSHKey();                
+            let response = fetch('https://api.github.com/user/keys',
+              {
+                method: "POST",
+                body: {
+                'auth': [email, pass],
+                'body': JSON.stringify(json)
+                },
+              }
+            );
+            // we did it, now store that it worked so we can skip all this setup in the future
+            if (response.getStatusCode() == 201) {
+                this.config.site.git.keySet = true;
+                this.saveConfigFile();
+                // set global config for username / email if we can
+                const gitRepo = new GitPlus({
+                  dir: this.directory + '/' + this.manifest.metadata.site.name
+                });
+                new GitPlus({});
+                gitRepo.gitExec(
+                    'config --global user.name "' +
+                        this.config.site.git.user +
+                        '"'
+                );
+                gitRepo.gitExec(
+                    'config --global user.email "' +
+                        this.config.site.git.email +
+                        '"'
+                );
+            }
+
+            return response.getStatusCode();
+        }
+        return 'saved';
+    }
+    /**
+     * Write configuration to the config file
+     */
+    async saveUserDataFile()
+    {
+      return await fs.writeFileSync(this.configDirectory + '/userData.json',
+        JSON.stringify(this.userData, null, 2)
+      );
+    }
+    /**
+     * Write configuration to the config file
+     */
+    async saveConfigFile()
+    {
+      return await fs.writeFileSync(this.configDirectory + '/config.json',
+        JSON.stringify(this.config, null, 2)
+      );
+    }
+    /**
+     * get SSH Key that was created during install
+     */
+    getSSHKey()
+    {
+        return false;
+    }
+    // russia strikes again
+    // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
+    html_to_obj(html) {
+      dom = new DOMDocument();
+      html = mb_convert_encoding(html, 'HTML-ENTITIES', "UTF-8");
+      dom.loadHTML(html);
+      return this.element_to_obj(dom.documentElement);
+    }
+    element_to_obj(element) {
+      obj = { "tag": element.tagName };
+      for (var attribute in element.attributes) {
+          obj[attribute.name] = attribute.value;
+      }
+      for (var subElement in element.childNodes) {
+          if (subElement.nodeType == XML_TEXT_NODE) {
+              obj["html"] = subElement.wholeText;
+          }
+          else {
+              obj["children"].push(this.element_to_obj(subElement));
+          }
+      }
+      return obj;
+  }
+    /**
+     * parse attributes out of an HTML tag in a safer manner
+     */
+    parse_attributes(attr) {
+      let atList = [];
+      const regexp = /\s*(?:([a-z0-9-]+)\s*=\s*"([^"]*)")|(?:\s+([a-z0-9-]+)(?=\s*|>|\s+[a..z0-9]+))/ig;
+      const matches = [...attr.matchAll(regexp)];
+      for (var i in matches) {
+        if (matches[i][3])
+          atList[matches[i][3]] = null;
+        else
+          atList[matches[i][1]] = matches[i][2];
+      }
+      return atList;
+    }
+    /**
+     * Helper for parsing out and returning page-break's in a body of content
+     * to help support HAX multi-page editing / outlining capabilities
+     */
+    pageBreakParser(body = '<page-break></page-break>') {
+      body += '<page-break fakeendcap="fakeendcap"></page-break>';
+      let pageData = [];
+      // match all pages + content
+      const regexp = /(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/g;
+      const matches = [...body.matchAll(regexp)];
+      for (var i in matches) {
+        // replace & to avoid XML parsing issues
+        let content = "<div " + matches[i][2].replace('published ', 'published="published" ').replace('locked ', 'locked="locked" ') + "></div>";
+        let attrs = this.parse_attributes(content);
+        pageData[i] = {
+            "content": matches[i][4],
+            // this assumes that the attributes are well formed; make sure front end did this
+            // even for boolean attributes
+            "attributes": attrs
+        };
+      }
+      return pageData;
+    }
     /**
      * Generate a valid HAX App store specification schema for connecting to this site via JSON.
      */
@@ -892,6 +939,44 @@ const HAXCMS = new class HAXCMSClass {
       }
     };
     }
+  /**
+   * Return the active URI if it exists
+   */
+   getURI() {
+    return HAXCMS.request_url.href;
+  }
+  /**
+   * Return the active domain if it exists
+   */
+   getDomain() {
+    return this.domain;
+  }
+  /**
+   * Load wc-registry.json relative to the site in question
+   */
+   getWCRegistryJson(site, base = './') {
+    let wcMap = {};
+    let wcPath;
+    // need to make the request relative to site
+    if (base == './') {
+      // possible this comes up empty
+      if (fs.existsSync(site.directory + '/' + site.manifest.metadata.site.name + '/wc-registry.json')) {
+        wcPath = path.join(site.directory, '/' + site.manifest.metadata.site.name, '/wc-registry.json');
+      }
+      else {
+        wcPath = path.join(HAXCMS_ROOT, "/wc-registry.json");
+      }
+    }
+    else {
+      wcPath = path.join(base, "wc-registry.json");
+    }
+    // support private IP space which will block this ever going through
+    if (!process.env.IAM_PRIVATE_ADDRESS_SPACE) {
+      wcMap = JSON.parse(fs.readFileSync(wcPath),
+      {encoding:'utf8', flag:'r'}, 'utf8');
+    }
+    return wcMap;
+  }
     /**
      * Validate a JTW during POST
      */
@@ -1072,7 +1157,18 @@ const HAXCMS = new class HAXCMSClass {
         return false;
     }
 }
-
+module.exports = HAXCMS;
+// HAXCMSSite which overlaps heavily and is referenced here often
+const utf8 = require('utf8');
+const JSONOutlineSchemaItem = require('./JSONOutlineSchemaItem.js');
+const FeedMe = require('./RSS.js');
+const array_search = require('locutus/php/array/array_search');
+const array_unshift = require('locutus/php/array/array_unshift');
+const implode = require('locutus/php/strings/implode');
+const array_unique = require("locutus/php/array/array_unique");
+const json_encode = require('locutus/php/json/json_encode');
+const strtr = require('locutus/php/strings/strtr');
+const usort = require('locutus/php/array/usort');
 // a site object
 class HAXCMSSite
 {
@@ -1130,108 +1226,268 @@ class HAXCMSSite
         siteBasePath,
         name,
         gitDetails,
-        domain = null
+        domain = null,
+        build = null
     ) {
-        // calls must set basePath internally to avoid page association issues
-        this.basePath = siteBasePath;
-        this.directory = directory;
-        this.name = name;
-        // clean up name so it can be in a URL / published
-        let tmpname = decodeURIComponent(name);
-        tmpname = this.cleanTitle(tmpname, false);
-        let loop = 0;
-        let newName = tmpname;
-        if (fs.pathExistsSync(directory + "/" + newName)) {
-          while (fs.lstatSync(directory  + "/" + newName).isFile()) {
-              loop++;
-              newName = tmpname + '-' + loop;
-          }
+      // calls must set basePath internally to avoid page association issues
+      this.basePath = siteBasePath;
+      this.directory = directory;
+      this.name = name;
+      // clean up name so it can be in a URL / published
+      let tmpname = decodeURIComponent(name);
+      tmpname = this.cleanTitle(tmpname, false);
+      let loop = 0;
+      let newName = tmpname;
+      if (fs.pathExistsSync(directory + "/" + newName)) {
+        while (fs.lstatSync(directory  + "/" + newName).isFile()) {
+            loop++;
+            newName = tmpname + '-' + loop;
         }
-        tmpname = newName;
-        // attempt to shift it on the file system
-        await this.recurseCopy(
-            HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site',
-            directory + '/' + tmpname
-        );
-        // create symlink to make it easier to resolve things to single built asset buckets
-        await fs.symlink('../../wc-registry.json', directory + '/' + tmpname + '/wc-registry.json');
-        await fs.symlink('../../build', directory + '/' + tmpname + '/build');
-        // symlink to do local development if needed
-        await fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
-        // symlink to do project development if needed
-        if (fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isSymbolicLink() || fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isDirectory()) {
-          await fs.symlink(
-            '../../node_modules',
-            directory + '/' + tmpname + '/node_modules'
-            );
-        }
-        // links babel files so that unification is easier
+      }
+      tmpname = newName;
+      // attempt to shift it on the file system
+      await this.recurseCopy(
+          HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site',
+          directory + '/' + tmpname
+      );
+      // create symlink to make it easier to resolve things to single built asset buckets
+      await fs.symlink('../../build', directory + '/' + tmpname + '/build');
+      // symlink to do local development if needed
+      await fs.symlink('../../dist', directory + '/' + tmpname + '/dist');
+      // symlink to do project development if needed
+      if (fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isSymbolicLink() || fs.lstatSync(HAXCMS.HAXCMS_ROOT + '/node_modules').isDirectory()) {
         await fs.symlink(
-            '../../../babel/babel-top.js',
-            directory + '/' + tmpname + '/assets/babel-top.js'
-        );
-        await fs.symlink(
-            '../../../babel/babel-bottom.js',
-            directory + '/' + tmpname + '/assets/babel-bottom.js'
-        );
-        // default support is for gh-pages
-        if (domain == null && (gitDetails != null && gitDetails.user)) {
-            domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
-        } else if (domain != null) {
-            // put domain into CNAME not the github.io address if that exists
-            await fs.writeFileSync(directory + '/' + tmpname + '/CNAME', domain);
+          '../../node_modules',
+          directory + '/' + tmpname + '/node_modules'
+          );
+      }
+      // links babel files so that unification is easier
+      await fs.symlink('../../wc-registry.json', directory + '/' + tmpname + '/wc-registry.json');
+      await fs.symlink(
+        '../../../babel/babel-top.js',
+        directory + '/' + tmpname + '/assets/babel-top.js'
+      );
+      await fs.symlink(
+          '../../../babel/babel-bottom.js',
+          directory + '/' + tmpname + '/assets/babel-bottom.js'
+      );
+      // default support is for gh-pages
+      if (domain == null && (gitDetails != null && gitDetails.user)) {
+        domain = 'https://' + gitDetails.user + '.github.io/' + tmpname;
+    } else if (domain != null) {
+        // put domain into CNAME not the github.io address if that exists
+        await fs.writeFileSync(directory + '/' + tmpname + '/CNAME', domain);
+    }
+    // load what we just created
+    this.manifest = new JSONOutlineSchema();
+    // where to save it to
+    this.manifest.file = directory + '/' + tmpname + '/site.json';
+    // start updating the schema to match this new item we got
+    this.manifest.title = name;
+    this.manifest.location = this.basePath + tmpname + '/index.html';
+    this.manifest.metadata = {};
+    this.manifest.metadata.author = {};
+    this.manifest.metadata.site = {};
+    this.manifest.metadata.site.settings = {};
+    this.manifest.metadata.site.settings.lang = 'en';
+    this.manifest.metadata.site.name = tmpname;
+    this.manifest.metadata.site.domain = domain;
+    this.manifest.metadata.site.created = Date.now();
+    this.manifest.metadata.site.updated = Date.now();
+    this.manifest.metadata.theme = {};
+    this.manifest.metadata.theme.variables = {};
+    this.manifest.metadata.node = {};
+    this.manifest.metadata.node.fields = {};
+    this.manifest.items = [];
+      // create an initial page to make sense of what's there
+      // this will double as saving our location and other updated data
+      // accept a schema which can generate an array of pages to start
+      if (build == null) {
+        await this.addPage(null, 'Welcome', 'init', 'welcome');
+      }
+      else {
+        let pageSchema = [];
+        switch (build.structure) {
+          case 'import':
+            // implies we had a backend service process much of what we are to build for an import
+            if (build.items) {
+              for (let i=0; i < build.items.length; i++) {
+                pageSchema.push({
+                  "parent" : build.items[i]['parent'],
+                  "title" : build.items[i]['title'],
+                  "template" : "html",
+                  "slug" : build.items[i]['slug'],
+                  "id" : build.items[i]['id'],
+                  "indent" : build.items[i]['indent'],
+                  "contents" : build.items[i]['contents'],
+                  "order" : build.items[i]['order'],
+                  "metadata" : (build.items[i]['metadata']) ? build.items[i]['metadata'] : null,
+              });
+              }
+            }
+            for (let i=0; i < pageSchema.length; i++) {
+              if (pageSchema[i]['template'] == 'html') {
+                await this.addPage(
+                  pageSchema[i]['parent'], 
+                  pageSchema[i]['title'], 
+                  pageSchema[i]['template'], 
+                  pageSchema[i]['slug'],
+                  pageSchema[i]['id'],
+                  pageSchema[i]['indent'],
+                  pageSchema[i]['contents'],
+                  pageSchema[i]['order'],
+                  pageSchema[i]['metadata'],
+                );
+              }
+              else {
+                await this.addPage(pageSchema[i]['parent'], pageSchema[i]['title'], pageSchema[i]['template'], pageSchema[i]['slug']);
+              }
+            }
+          break;
+          case 'course':
+            pageSchema = [{ 
+                "parent" : null,
+                "title" : "Welcome to " + name,
+                "template" : "course",
+                "slug" : "welcome"
+            }];
+            switch (build.type) {
+              case 'docx import':
+                  // ensure we have items
+                if (build.items) {
+                  for (let i=0; i < build.items.length; i++) {
+                    pageSchema.push({
+                      "parent" : build.items[i]['parent'],
+                      "title" : build.items[i]['title'],
+                      "template" : "html",
+                      "slug" : build.items[i]['slug'],
+                      "id" : build.items[i]['id'],
+                      "indent" : build.items[i]['indent'],
+                      "contents" : build.items[i]['contents'],
+                      "order" : build.items[i]['order'],
+                      "metadata" : (build.items[i]['metadata']) ? build.items[i]['metadata'] : null,
+                    });
+                  }
+                }
+              break;
+              case '6w':
+                for (let i=0; i < 6; i++) {
+                  pageSchema.push({
+                    "parent" : null,
+                    "title" : "Lesson " + (i+1),
+                    "template" : "lesson",
+                    "slug" : "lesson-" + (i+1)
+                  });
+                }
+              break;
+              case '15w':
+                for (let i=0; i < 15; i++) {
+                  pageSchema.push({
+                    "parent" : null,
+                    "title" : "Lesson " + (i+1),
+                    "template" : "lesson",
+                    "slug" : "lesson-" + (i+1)
+                });
+                }
+              break;
+              default:
+                /*pageSchema.push({
+                  "parent" : null,
+                  "title" : "Lessons",
+                  "template" : "default",
+                  "slug" : "lessons"
+                });*/
+              break;
+            }
+            /*pageSchema.push({
+              "parent" : null,
+              "title" : "Glossary",
+              "template" : "glossary",
+              "slug" : "glossary"
+            });*/
+            for (let i=0; i < pageSchema.length; i++) {
+              if (pageSchema[i]['template'] == 'html') {
+                await this.addPage(
+                  pageSchema[i]['parent'], 
+                  pageSchema[i]['title'], 
+                  pageSchema[i]['template'], 
+                  pageSchema[i]['slug'],
+                  pageSchema[i]['id'],
+                  pageSchema[i]['indent'],
+                  pageSchema[i]['contents'],
+                  pageSchema[i]['order'],
+                  pageSchema[i]['metadata'],
+                );
+              }
+              else {
+                await this.addPage(pageSchema[i]['parent'], pageSchema[i]['title'], pageSchema[i]['template'], pageSchema[i]['slug']);
+              }
+            }
+          break;
+          case 'blog':
+            await this.addPage(null, 'Article 1', 'init', 'article-1');
+            await this.addPage(null, 'Article 2', 'init', 'article-2');
+            await this.addPage(null, 'Meet the author', 'init', 'meet-the-author');
+          break;
+          case 'website':
+            switch (build.type) {
+              default:
+                await this.addPage(null, 'Home', 'init', 'home');
+              break;
+            }
+          break;
+          case 'collection':
+            await this.addPage(null, 'Home', 'collection', 'home');
+          break;
+          case 'training':
+            await this.addPage(null, 'Start', 'init', 'start');
+            break;
+          case 'portfolio':
+            switch (build.type) {
+              case 'art':
+                await this.addPage(null, 'Gallery 1', 'init', 'gallery-1');
+                await this.addPage(null, 'Gallery 2', 'init', 'gallery-2');
+                await this.addPage(null, 'Meet the artist', 'init', 'meet-the-artist');
+              break;
+              case 'business':
+              case 'technology':
+              default:
+                await this.addPage(null, 'Article 1', 'init', 'article-1');
+                await this.addPage(null, 'Article 2', 'init', 'article-2');
+                await this.addPage(null, 'Meet the author', 'init', 'meet-the-author');
+              break;
+            }
+          break;
         }
-        // load what we just created
-        this.manifest = new JSONOutlineSchema();
-        // where to save it to
-        this.manifest.file = directory + '/' + tmpname + '/site.json';
-        // start updating the schema to match this new item we got
-        this.manifest.title = name;
-        this.manifest.location = this.basePath + tmpname + '/index.html';
-        this.manifest.metadata = {};
-        this.manifest.metadata.author = {};
-        this.manifest.metadata.site = {};
-        this.manifest.metadata.site.name = tmpname;
-        this.manifest.metadata.site.domain = domain;
-        this.manifest.metadata.site.created = Date.now();
-        this.manifest.metadata.site.updated = Date.now();
-        this.manifest.metadata.theme = {};
-        this.manifest.metadata.theme.variables = {};
-        this.manifest.metadata.node = {};
-        this.manifest.metadata.node.fields = {};
-        this.manifest.items = [];
-        // create an initial page to make sense of what's there
-        // this will double as saving our location and other updated data
-        await this.addPage(null, 'Welcome to a new HAXcms site!', 'init');
-        // put this in version control :) :) :)
-
-        const git = new GitPlus({
-          dir: directory + '/' + tmpname
-        });
-        // initalize git repo
-        await git.init();
-        try {
-          await git.add();
-          await git.commit('A new journey begins: ' + this.manifest.title + ' (' + this.manifest.id + ')');
-          if (
-              !(this.manifest.metadata.site && this.manifest.metadata.site.git && this.manifest.metadata.site.git.url) &&
-              (gitDetails != null && gitDetails.url)
-          ) {
-              await this.gitSetRemote(gitDetails);
-          }
-          // write the managed files to ensure we get happy copies
-          await this.rebuildManagedFiles();
-          await this.gitCommit('Managed files updated');
+      }
+      // put this in version control :) :) :)
+      const git = new GitPlus({
+        dir: directory + '/' + tmpname
+      });
+      // initalize git repo
+      await git.init();
+      try {
+        await git.add();
+        await git.commit('A new journey begins: ' + this.manifest.title + ' (' + this.manifest.id + ')');
+        if (
+            !(this.manifest.metadata.site && this.manifest.metadata.site.git && this.manifest.metadata.site.git.url) &&
+            (gitDetails != null && gitDetails.url)
+        ) {
+            await this.gitSetRemote(gitDetails);
         }
-        catch(e){}
-        return this;
+        // write the managed files to ensure we get happy copies
+        await this.rebuildManagedFiles();
+        await this.gitCommit('Managed files updated');
+      }
+      catch(e){}
+      return this;
     }
     /**
      * Return the forceUpgrade status which is whether to force end users to upgrade their browser
      * @return string status of forced upgrade, string as boolean since it'll get written into a JS file
      */
     getForceUpgrade() {
-        if ((this.manifest.metadata.site.settings.forceUpgrade) && this.manifest.metadata.site.settings.forceUpgrade) {
+        if (this.manifest.metadata.site.settings.forceUpgrade) {
             return "true";
         }
         return "false";
@@ -1275,11 +1531,12 @@ class HAXCMSSite
       let templates = this.getManagedTemplateFiles();
       // this can't be there by default since it's a dynamic file and we only
       // want to update this when we are refreshing the managed files directly
+      // not the case w/ non php backends but still fine for consistency
       templates['indexphp'] = 'index.php';
       let siteDirectoryPath = this.directory + '/' + this.manifest.metadata.site.name;
-      boilerPath = HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site/';
+      let boilerPath = HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site/';
       for (var key in templates) {
-        fs.copy(boilerPath + templates[key], siteDirectoryPath + '/' + templates[key]);
+        await fs.copySync(boilerPath + templates[key], siteDirectoryPath + '/' + templates[key]);
       }
       let licenseData = this.getLicenseData('all');
       let licenseLink = '';
@@ -1288,17 +1545,16 @@ class HAXCMSSite
         licenseLink = licenseData[this.manifest.license]['link'];
         licenseName = 'License: ' + licenseData[this.manifest.license]['name'];
       }
-      
       let templateVars = {
           'hexCode': HAXCMS.HAXCMS_FALLBACK_HEX,
-          'version': HAXCMS.getHAXCMSVersion(),
+          'version': await HAXCMS.getHAXCMSVersion(),
           'basePath' :
               this.basePath + this.manifest.metadata.site.name + '/',
           'title': this.manifest.title,
           'short': this.manifest.metadata.site.name,
           'description': this.manifest.description,
           'forceUpgrade': this.getForceUpgrade(),
-          'swhash': {},
+          'swhash': [],
           'ghPagesURLParamCount': 0,
           'licenseLink': licenseLink,
           'licenseName': licenseName,
@@ -1314,9 +1570,10 @@ class HAXCMSSite
           'logo48x48': this.getLogoSize('48','48'),
           'favicon': this.getLogoSize('32','32'),
       };
-      swItems = this.manifest.items;
+      let swItems = this.manifest.items;
+      let file;
       // the core files you need in every SW manifest
-      coreFiles = [
+      let coreFiles = [
           'index.html',
           this.getLogoSize('512','512'),
           this.getLogoSize('256','256'),
@@ -1329,90 +1586,92 @@ class HAXCMSSite
           'site.json',
           '404.html',
       ];
+      let handle;
       // loop through files directory so we can cache those things too
       if (handle = fs.readdirSync(siteDirectoryPath + '/files')) {
-          while (false !== (file = await fs.readFileSync(handle,
-            {encoding:'utf8', flag:'r'}))) {
-              if (
-                  file != "." &&
-                  file != ".." &&
-                  file != '.gitkeep' &&
-                  file != '.DS_Store'
-              ) {
-                  // ensure this is a file
-                  if (
-                    fs.lstatSync(siteDirectoryPath + '/files/' + file).isFile()
-                  ) {
-                      coreFiles.push('files/' + file);
-                  } else {
-                      // @todo maybe step into directories?
-                  }
-              }
+        handle.forEach(file => {
+          if (
+              file != "." &&
+              file != ".." &&
+              file != '.gitkeep' &&
+              file != '.DS_Store'
+          ) {
+            // ensure this is a file
+            if (
+              fs.lstatSync(siteDirectoryPath + '/files/' + file).isFile()
+            ) {
+                coreFiles.push('files/' + file);
+            } else {
+                // @todo maybe step into directories?
+            }
           }
+        });
       }
       for (var key in coreFiles) {
-          coreItem = {};
+          let coreItem = {};
           coreItem.location = coreFiles[key];
           swItems.push(coreItem);
       }
       // generate a legit hash value that's the same for each file name + file size
       for (var key in swItems) {
-          let item = swItems[key];
-          if (
-              item.location === '' ||
-              item.location === templateVars['basePath']
-          ) {
-              filesize = filesize(
-                  siteDirectoryPath + '/index.html'
-              );
-          } else if (
-            fs.pathExistsSync(siteDirectoryPath + '/' + item.location) &&
-            fs.lstatSync(siteDirectoryPath + '/' + item.location).isFile()
-          ) {
-              filesize = filesize(
-                  siteDirectoryPath + '/' + item.location
-              );
-          } else {
-              // ?? file referenced but doesn't exist
-              filesize = 0;
-          }
-          if (filesize !== 0) {
-            templateVars['swhash'].push([
-                  item.location,
-                  strtr(
-                      base64_encode(
-                          hash_hmac(
-                              'md5',
-                              item.location + filesize,
-                              'haxcmsswhash',
-                              true
-                          )
-                      ),
-                      {
-                          '+':'',
-                          '/':'',
-                          '=':'',
-                          '-':''
-                      }
-                  )
-            ]);
-          }
+        let filesize;
+        let item = swItems[key];
+        if (
+            item.location === '' ||
+            item.location === templateVars['basePath']
+        ) {
+            filesize = await fs.statSync(
+                siteDirectoryPath + '/index.html'
+            ).size;
+        } else if (
+          fs.pathExistsSync(siteDirectoryPath + '/' + item.location) &&
+          fs.lstatSync(siteDirectoryPath + '/' + item.location).isFile()
+        ) {
+            filesize = await fs.statSync(
+                siteDirectoryPath + '/' + item.location
+            ).size;
+        } else {
+            // ?? file referenced but doesn't exist
+            filesize = 0;
+        }
+        if (filesize !== 0) {
+          templateVars['swhash'].push([
+              item.location,
+              strtr(
+                HAXCMS.hmacBase64(
+                      item.location + filesize,
+                      'haxcmsswhash',
+                  ),
+                  {
+                      '+':'',
+                      '/':'',
+                      '=':'',
+                      '-':''
+                  }
+              )
+          ]);
+        }
       }
       if ((this.manifest.metadata.theme.variables.hexCode)) {
         templateVars['hexCode'] = this.manifest.metadata.theme.variables.hexCode;
       }
       // put the twig written output into the file
-      // @todo figure out how to port Twig
-      //let loader = new \Twig\Loader\FilesystemLoader(siteDirectoryPath);
-      //let twig = new \Twig\Environment(loader);
-      /*for (var key in templates) {
-          if (fs.lstatSync(siteDirectoryPath + '/' + templates[key]).isFile()) {
-            fs.writeFileSync(
-                siteDirectoryPath + '/' + templates[key],
-                twig.render(templates[key], templateVars)
-            );
+      var Twig = require('twig');
+      for (var key in templates) {
+        // ensure files exist before going to write them
+          if (await fs.lstatSync(siteDirectoryPath + '/' + templates[key]).isFile()) {
+            try {
+              let fileData = await fs.readFileSync(siteDirectoryPath + '/' + templates[key],
+                {encoding:'utf8', flag:'r'}, 'utf8');
+              let template = await Twig.twig({data: fileData, async: false});
+              let templatedHTML = template.render(templateVars);
+              await fs.writeFileSync(siteDirectoryPath + '/' + templates[key], templatedHTML);           
+            }
+            catch(e) {
+              //console.log(e);
+            }
           }
-      }*/
+      } 
     }
     /**
      * Rename a page from one location to another
@@ -1420,18 +1679,18 @@ class HAXCMSSite
      * It also helps secure the sites by ensuring movement is only within
      * their folder tree
      */
-    renamePageLocation(oldItem, newItem) {
+    async renamePageLocation(oldItem, newItem) {
         let siteDirectory = this.directory + '/' + this.manifest.metadata.site.name;
         oldItem = oldItem.replace('./', '').replace('../', '');
         newItem = newItem.replace('./', '').replace('../', '');
         // ensure the path to the new folder is valid
-        if (fs.pathExistsSync(siteDirectory + '/' + oldItem) &&
-          fs.lstatSync(siteDirectory + '/' + oldItem).isFile()) {
-            fs.mirror(
+        if (await fs.pathExistsSync(siteDirectory + '/' + oldItem) &&
+          await fs.lstatSync(siteDirectory + '/' + oldItem).isFile()) {
+            await fs.moveSync(
                 siteDirectory + '/' + oldItem.replace('/index.html', ''),
                 siteDirectory + '/' + newItem.replace('/index.html', '')
             );
-            fs.unlink(siteDirectory + '/' + oldItem);
+            await fs.unlinkSync(siteDirectory + '/' + oldItem);
         }
     }
     /**
@@ -1511,12 +1770,10 @@ class HAXCMSSite
      *
      * @return page repesented as JSONOutlineSchemaItem
      */
-    async addPage(parent = null, title = 'New page', template = "default")
+    async addPage(parent = null, title = 'New page', template = "default", slug = 'welcome', id = null, indent = null, html = '<p></p>', order = null, metadata = null)
     {
         // draft an outline schema item
         let page = new JSONOutlineSchemaItem();
-        // draft an outline schema item
-        page = new JSONOutlineSchemaItem();
         // support direct ID setting, useful for parent associations calculated ahead of time
         if (id) {
           page.id = id;
@@ -1561,7 +1818,7 @@ class HAXCMSSite
         }
         page.metadata.created = Date.now();
         page.metadata.updated = Date.now();
-        location = this.directory + '/' +
+        let location = this.directory + '/' +
             this.manifest.metadata.site.name +
             '/pages' + '/' + page.id;
         // copy the page we use for simplicity (or later complexity if we want)
@@ -1572,11 +1829,11 @@ class HAXCMSSite
             case 'init':
             case 'lesson':
             case 'default':
-              this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/' + template, location);
+              await this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/' + template, location);
             break;
             // didn't understand it, just go default
             default:
-              this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/default', location);
+              await this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/default', location);
             break;
         }
         this.manifest.addItem(page);
@@ -2120,7 +2377,6 @@ class HAXCMSSite
       if ((this.manifest.metadata.author.socialLink) && strpos(this.manifest.metadata.author.socialLink, 'https://twitter.com/') === 0) {
           metadata += "\n" + '  <meta name="twitter:creator" content="' + this.manifest.metadata.author.socialLink.replace('https://twitter.com/', '@') + '" />';
       }
-      HAXCMS.dispatchEvent('haxcms-site-metadata', metadata);
       return metadata;
     }
     /**
@@ -2165,7 +2421,7 @@ class HAXCMSSite
               fs.lstatSync(path + this.manifest.metadata.site.logo).isFile() && 
               !fs.pathExistsSync(path + fileName)) {
               fs.mkdir(path + 'files/haxcms-managed');
-              image = new ImageResize(path + this.manifest.metadata.site.logo);
+              let image = new ImageResize(path + this.manifest.metadata.site.logo);
               image.crop(height, width)
               +save(path + fileName);
           }
@@ -2468,4 +2724,3 @@ class HAXCMSSite
       await fs.copySync(src, dst);
     }
 }
-module.exports = HAXCMS;

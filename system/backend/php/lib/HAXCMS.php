@@ -49,7 +49,6 @@ class HAXCMS
     public $developerMode;          // developer mode flag for deep interal validation bypasses
     public $developerModeAdminOnly; // if developer mode should only be on for the super user
     public $configDirectory;        // location of the _config directory
-    public $sitesJSON;              // endpoint to obtain a listing of sites in json format
     public $domain;                 // domain to write urls off of
     public $protocol;               // http or https
     public $basePath;               // directory that haxcms is installed in on the server
@@ -148,8 +147,6 @@ class HAXCMS
           "archive",
           "*",
         );
-        // end point to get the sites data
-        $this->sitesJSON = $this->systemRequestBase . '/listSites';
         // sites directory
         if (is_dir(HAXCMS_ROOT . '/_sites')) {
             $this->sitesDirectory = '_sites';
@@ -1063,7 +1060,7 @@ class HAXCMS
     public function appStoreConnection() {
         $connection = new stdClass();
         // support for remote appstores if a developer overrides the location
-        // of the appstore then we can't assum eit exists on this server
+        // of the appstore then we can't assume it exists on this server
         if ($this->appStoreFile == $this->systemRequestBase . '/generateAppStore') {
           $connection->url = $this->basePath . $this->appStoreFile . '?app-store-token=' . $this->getRequestToken('appstore');
         }

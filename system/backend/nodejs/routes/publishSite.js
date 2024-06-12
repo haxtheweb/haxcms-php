@@ -194,7 +194,7 @@ const strtr = require('locutus/php/strings/strtr');
                 }
                 let templateVars = {
                     'hexCode': HAXCMS_FALLBACK_HEX,
-                    'version': HAXCMS.getHAXCMSVersion(),
+                    'version': await HAXCMS.getHAXCMSVersion(),
                     'basePath':
                         '/' + site.manifest.metadata.site.name + '/',
                     'title': site.manifest.title,
@@ -313,7 +313,7 @@ const strtr = require('locutus/php/strings/strtr');
                         templateVars['swhash'].push([
                             item.location,
                             strtr(
-                                base64_encode(HAXCMS.hmacBase64(
+                            HAXCMS.hmacBase64(
                                          item.location + filesize,
                                          'haxcmsswhash'
                                     )
@@ -324,7 +324,7 @@ const strtr = require('locutus/php/strings/strtr');
                                     '=' : '',
                                     '-' : ''
                                     }
-                            )
+
                                 ]);
                     }
                 }

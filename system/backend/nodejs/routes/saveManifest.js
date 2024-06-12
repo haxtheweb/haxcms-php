@@ -51,32 +51,33 @@ const fs = require('fs-extra');
     }*/
     if (HAXCMS.validateRequestToken(req.body['haxcms_form_token'], req.body['haxcms_form_id'])) {
       site.manifest.title = req.body['manifest']['site']['manifest-title'].replace(/<\/?[^>]+(>|$)/g, "");
-      site.manifest.description = req.body['manifest']['site']['manifest-description'].replace(/<\/?[^>]+(>|$)/g, "");
+      if (req.body['manifest']['site']['manifest-description']) {
+        site.manifest.description = req.body['manifest']['site']['manifest-description'].replace(/<\/?[^>]+(>|$)/g, "");
+      }
       // store some version data here just so we can find it later
-      site.manifest.metadata.site.version = HAXCMS.getHAXCMSVersion();
+      site.manifest.metadata.site.version = await HAXCMS.getHAXCMSVersion();
       site.manifest.metadata.site.domain = filter_var(
           req.body['manifest']['site']['manifest-metadata-site-domain'],
-          FILTER_SANITIZE_STRING
+          "FILTER_SANITIZE_STRING"
       );
       site.manifest.metadata.site.logo = filter_var(
           req.body['manifest']['site']['manifest-metadata-site-logo'],
-          FILTER_SANITIZE_STRING
+          "FILTER_SANITIZE_STRING"
+      );
+      site.manifest.metadata.site.tags = filter_var(
+        req.body['manifest']['site']['manifest-metadata-site-tags'],
+        "FILTER_SANITIZE_STRING"
       );
       if (!(site.manifest.metadata.site.static)) {
         site.manifest.metadata.site.static = {};
       }
-      site.manifest.metadata.site.static.cdn = filter_var(
-          req.body['manifest']['static']['manifest-metadata-site-static-cdn'],
-          FILTER_SANITIZE_STRING
-      );
-      site.manifest.metadata.site.static.offline = filter_var(
-          req.body['manifest']['static']['manifest-metadata-site-static-offline'],
-          FILTER_VALIDATE_BOOLEAN
-      );
+      if (!(site.manifest.metadata.site.settings)) {
+        site.manifest.metadata.site.settings = {};
+      }
       if ((req.body['manifest']['site']['manifest-domain'])) {
           domain = filter_var(
               req.body['manifest']['site']['manifest-domain'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
           // support updating the domain CNAME value
           if (site.manifest.metadata.site.domain != domain) {
@@ -94,146 +95,138 @@ const fs = require('fs-extra');
       // look for a match so we can set the correct data
       for (var key in hThemes) {
         let theme = hThemes[key];
+        console.log(filter_var(req.body['manifest']['theme']['manifest-metadata-theme-element'], "FILTER_SANITIZE_STRING"));
+        console.log(key);
         if (
-            filter_var(req.body['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
+            filter_var(req.body['manifest']['theme']['manifest-metadata-theme-element'], "FILTER_SANITIZE_STRING") ==
             key
         ) {
             site.manifest.metadata.theme = theme;
         }
       }
+      console.log(site.manifest.metadata.theme);
+      console.log(req.body);
       if (!(site.manifest.metadata.theme.variables)) {
         site.manifest.metadata.theme.variables = {};
       }
-      site.manifest.metadata.theme.variables.image = filter_var(
-          req.body['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_STRING
-      );
+
+      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
+        site.manifest.metadata.theme.variables.image = filter_var(
+          req.body['manifest']['theme']['manifest-metadata-theme-variables-image'],"FILTER_SANITIZE_STRING"
+        );
+      }
+      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
+        site.manifest.metadata.theme.variables.imageAlt = filter_var(
+          req.body['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], "FILTER_SANITIZE_STRING"
+        );
+      }
+      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
+        site.manifest.metadata.theme.variables.imageLink = filter_var(
+          req.body['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], "FILTER_SANITIZE_STRING"
+        );
+      }
+      // REGIONS SUPPORT
+      if (!(site.manifest.metadata.theme.regions)) {
+        site.manifest.metadata.theme.regions = new stdClass();
+      }
+      // look for a match so we can set the correct data
+      let validRegions = [
+        "header",
+        "sidebarFirst",
+        "sidebarSecond",
+        "contentTop",
+        "contentBottom",
+        "footerPrimary",
+        "footerSecondary"
+      ];
+      for (var i in validRegions) {
+        let value = validRegions[i];
+        if (req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value]) {
+          for (var j in req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value]) {
+            let id = req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value][j];
+            req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value][j] = filter_var(id, "FILTER_SANITIZE_STRING");
+          }
+          site.manifest.metadata.theme.regions[value] = req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value];
+        }
+      }
       if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
         site.manifest.metadata.theme.variables.hexCode = filter_var(
-          req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
+          req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],"FILTER_SANITIZE_STRING"
         );
       }
       site.manifest.metadata.theme.variables.cssVariable = "--simple-colors-default-theme-" + filter_var(
-        req.body['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
+        req.body['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], "FILTER_SANITIZE_STRING"
       ) + "-7";
       site.manifest.metadata.theme.variables.icon = filter_var(
-        req.body['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
+        req.body['manifest']['theme']['manifest-metadata-theme-variables-icon'],"FILTER_SANITIZE_STRING"
       );
       if ((req.body['manifest']['author']['manifest-license'])) {
           site.manifest.license = filter_var(
               req.body['manifest']['author']['manifest-license'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
           if (!(site.manifest.metadata.author)) {
             site.manifest.metadata.author = {};
           }
           site.manifest.metadata.author.image = filter_var(
               req.body['manifest']['author']['manifest-metadata-author-image'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
           site.manifest.metadata.author.name = filter_var(
               req.body['manifest']['author']['manifest-metadata-author-name'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
           site.manifest.metadata.author.email = filter_var(
               req.body['manifest']['author']['manifest-metadata-author-email'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
           site.manifest.metadata.author.socialLink = filter_var(
               req.body['manifest']['author']['manifest-metadata-author-socialLink'],
-              FILTER_SANITIZE_STRING
+              "FILTER_SANITIZE_STRING"
           );
       }
       if ((req.body['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
           site.manifest.metadata.site.settings.pathauto = filter_var(
           req.body['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
-          FILTER_VALIDATE_BOOLEAN
+          "FILTER_VALIDATE_BOOLEAN"
           );
       }
       if ((req.body['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
         site.manifest.metadata.site.settings.publishPagesOn = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'],
-        FILTER_VALIDATE_BOOLEAN
+        "FILTER_VALIDATE_BOOLEAN"
         );
       }
       if ((req.body['manifest']['seo']['manifest-metadata-site-settings-sw'])) {
         site.manifest.metadata.site.settings.sw = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-sw'],
-        FILTER_VALIDATE_BOOLEAN
+        "FILTER_VALIDATE_BOOLEAN"
         );
       }
       if ((req.body['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
         site.manifest.metadata.site.settings.forceUpgrade = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
-        FILTER_VALIDATE_BOOLEAN
+        "FILTER_VALIDATE_BOOLEAN"
         );
       }
-      // more importantly, this is where the field UI stuff is...
-      if ((req.body['manifest']['fields']['manifest-metadata-node-fields'])) {
-          fields = [];
-          // establish a fields block, replacing with whatever is there now
-          site.manifest.metadata.node.fields = {};
-          for (var key in req.body['manifest']['fields']['manifest-metadata-node-fields']) {
-            let field = req.body['manifest']['fields']['manifest-metadata-node-fields'][key];
-            fields.push(field);
-          }
-          if (fields.length > 0) {
-              site.manifest.metadata.node.fields = fields;
-          }
+      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
+        site.manifest.metadata.site.settings.gaID = filter_var(
+        req.body['manifest']['seo']['manifest-metadata-site-settings-gaID'],
+        "FILTER_SANITIZE_STRING"
+        );
       }
-      site.manifest.metadata.site.git.autoPush = filter_var(
-        req.body['manifest']['git']['manifest-metadata-site-git-autoPush'],
-        FILTER_VALIDATE_BOOLEAN
-      );
-      site.manifest.metadata.site.git.branch = filter_var(
-        req.body['manifest']['git']['manifest-metadata-site-git-branch'],
-        FILTER_SANITIZE_STRING
-      );
-      site.manifest.metadata.site.git.staticBranch = filter_var(
-        req.body['manifest']['git']['manifest-metadata-site-git-staticBranch'],
-        FILTER_SANITIZE_STRING
-      );
-      site.manifest.metadata.site.git.vendor = filter_var(
-        req.body['manifest']['git']['manifest-metadata-site-git-vendor'],
-        FILTER_SANITIZE_STRING
-      );
-      site.manifest.metadata.site.git.publicRepoUrl = filter_var(
-        req.body['manifest']['git']['manifest-metadata-site-git-publicRepoUrl'],
-        FILTER_SANITIZE_STRING
-      );
       site.manifest.metadata.site.updated = Date.now();
       // don't reorganize the structure
       await site.manifest.save(false);
       await site.gitCommit('Manifest updated');
       // rebuild the files that twig processes
       await site.rebuildManagedFiles();
+      site.updateAlternateFormats();
       await site.gitCommit('Managed files updated');
-      // check git remote if it came across as a possible setting
-      if ((req.body['manifest']['git']['manifest-metadata-site-git-url'])) {
-        if (
-          filter_var(req.body['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING) &&
-          (!(site.manifest.metadata.site.git.url) ||
-            site.manifest.metadata.site.git.url !=
-              filter_var(
-                req.body['manifest']['git']['manifest-metadata-site-git-url'],
-                FILTER_SANITIZE_STRING
-              ))
-        ) {
-          site.gitSetRemote(
-              filter_var(req.body['manifest']['git']['manifest-metadata-site-git-url'], FILTER_SANITIZE_STRING)
-          );
-        }
-        site.manifest.metadata.site.git.url =
-        filter_var(
-          req.body['manifest']['git']['manifest-metadata-site-git-url'],
-          FILTER_SANITIZE_STRING
-        );
-        await site.manifest.save(false);
-        await site.gitCommit('origin updated');
-      }
       res.send(site.manifest);
     }
     else {
-        res.send(403);
+      res.send(403);
     }
   }
   module.exports = saveManifest;

@@ -53,18 +53,39 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
    * )
    */
 async function createSite(req, res) {
-if (HAXCMS.validateRequestToken(null, null, req.body)) {
+  if (HAXCMS.validateRequestToken()) {
     let domain = null;
     // woohoo we can edit this thing!
     if (req.body['site']['domain'] && req.body['site']['domain'] != null && req.body['site']['domain'] != '') {
-    domain = req.body['site']['domain'];
+      domain = req.body['site']['domain'];
+    }
+    // null in the event we get hits that don't have this
+    let build = null;
+    let filesToDownload = [];
+    // support for build info. the details used to actually create this site originally
+    if (req.body['build']) {
+      build = {};
+      // version of the platform used when originally created
+      build.version = await HAXCMS.getHAXCMSVersion();
+      // course, website, portfolio, etc
+      build.structure = req.body['build']['structure'];
+      // TYPE of structure we are creating
+      build.type = req.body['build']['type'];
+      if (build.type == 'docx import' || build.structure == "import") {
+        // JSONOutlineSchemaItem Array
+        build.items = req.body['build']['items'];
+      }
+      if (req.body['build']['files']) {
+        filesToDownload = req.body['build']['files'];
+      }
     }
     // sanitize name
     let name = HAXCMS.generateMachineName(req.body['site']['name']);
     let site = await HAXCMS.loadSite(
         name.toLowerCase(),
         true,
-        domain
+        domain,
+        build
     );
     // now get a new item to reference this into the top level sites listing
     let schema = new JSONOutlineSchemaItem();
@@ -76,41 +97,55 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
         '/' +
         site.manifest.metadata.site.name +
         '/index.html';
+    schema.slug = schema.location;
     schema.metadata = {
         site: {},
         theme: {}
     }
+    // store build data in case we need it down the road
+    schema.metadata.build = build;
     schema.metadata.site.name = site.manifest.metadata.site.name;
     let theme = HAXCMS.HAXCMS_DEFAULT_THEME;
-    if (req.body['theme']['name'] && typeof req.body['theme']['name'] === "string") {
-    theme = req.body['theme']['name'];
+    if (req.body['site']['theme'] && typeof req.body['site']['theme'] === "string") {
+      theme = req.body['site']['theme'];
     }
     let themesAry = HAXCMS.getThemes();
     // look for a match so we can set the correct data
     for (var key in themesAry) {
-        if (theme == key) {
-            schema.metadata.theme = themesAry[key];
-        }
+      if (theme == key) {
+        schema.metadata.theme = themesAry[key];
+      }
     }
     schema.metadata.theme.variables = {};
     // description for an overview if desired
     if (req.body['site']['description'] && req.body['site']['description'] != '' && req.body['site']['description'] != null) {
         schema.description = req.body['site']['description'].replace(/<\/?[^>]+(>|$)/g, "");
     }
-
-    schema.metadata.theme.variables.image = 'assets/banner.jpg';
-    // icon to express the concept / visually identify site
-    if (req.body['theme']['icon'] && req.body['theme']['icon'] != '' && req.body['theme']['icon'] != null) {
-        schema.metadata.theme.variables.icon = req.body['theme']['icon'];
+    // background image / banner
+    if (req.body['theme']['image'] && req.body['theme']['image'] != '' && req.body['theme']['image'] != null) {
+      schema.metadata.site.logo = req.body['theme']['image'];
     }
-    // slightly style the site based on css vars and hexcode
+    else {
+      schema.metadata.site.logo = 'assets/banner.jpg';
+    }
+    // icon to express the concept / visually identify site
+    if ((req.body['theme']['icon']) && req.body['theme']['icon'] != '' && req.body['theme']['icon'] != null) {
+      schema.metadata.theme.variables.icon = req.body['theme']['icon'];
+    }
     let hex = HAXCMS.HAXCMS_FALLBACK_HEX;
+    // slightly style the site based on css vars and hexcode
+    if ((req.body['theme']['hexCode']) && req.body['theme']['hexCode'] != '' && req.body['theme']['hexCode'] != null) {
+       hex = req.body['theme']['hexCode'];
+    }
     schema.metadata.theme.variables.hexCode = hex;
     let cssvar = '--simple-colors-default-theme-light-blue-7';
-    if (req.body['theme']['color'] && req.body['theme']['color'] != '' && req.body['theme']['color'] != null) {
-        cssvar = '--simple-colors-default-theme-' + req.body['theme']['color'] + '-7';
+    if ((req.body['theme']['cssVariable']) && req.body['theme']['cssVariable'] != '' && req.body['theme']['cssVariable'] != null) {
+        cssvar = req.body['theme']['cssVariable'];
     }
     schema.metadata.theme.variables.cssVariable = cssvar;
+    schema.metadata.site.settings = {};
+    schema.metadata.site.settings.lang = 'en-US';
+    schema.metadata.site.settings.publishPagesOn = true;
     schema.metadata.site.created = Date.now();
     schema.metadata.site.updated = Date.now();
     // check for publishing settings being set globally in HAXCMS
@@ -135,6 +170,19 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
     site.manifest.description = schema.description;
     // save the outline into the new site
     await site.manifest.save(false);
+    // walk through files if any came across and save each of them
+    if (filesToDownload && filesToDownload.isArray && filesToDownload.isArray()) {
+      for (var locationName in filesToDownload) {
+        let downloadLocation = filesToDownload[locationName];
+        let file = new HAXCMSFile();
+        // check for a file upload; we block a few formats by design
+        let fileResult = file.save({
+          "name" : locationName,
+          "tmp_name" : downloadLocation,
+          "bulk-import" : true
+        }, site);
+      }
+    }
     // main site schema doesn't care about publishing settings
     delete schema.metadata.site.git;
 
@@ -162,10 +210,13 @@ if (HAXCMS.validateRequestToken(null, null, req.body)) {
         console.log(e);
     }
     
-    res.send(schema);
-}
-else {
-    res.send(403);
-}
+    res.send({
+      "status": 200,
+      "data": schema
+    });
+  }
+  else {
+      res.send(403);
+  }
 }
 module.exports = createSite;

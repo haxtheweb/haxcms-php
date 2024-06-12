@@ -52,7 +52,7 @@
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -72,12 +72,14 @@
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
+        --simple-tooltip-background: #ffffff;
+        --simple-tooltip-text-color: #000000;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-image: url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
         background-repeat: repeat, repeat-y, repeat-y;
         background-position: center center, top left, top right;
         background-size: auto, 20% auto, 20% auto;
@@ -89,8 +91,8 @@
       body.app-loaded div[slot="externalproviders"] {
         display: unset;
       }
-      body.app-loaded.dark-mode {
-        background-image: url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+      body.app-loaded.dark-mode:not(.bad-device) {
+        background-image: url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('./build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
 
       #loading {
@@ -116,7 +118,12 @@
         color: var(--app-hax-accent-color, var(--accent-color));
         font-weight: normal;
         margin-top: 2.5px;
-        font-size: 2vw;
+        font-size: 20px;
+      }
+      @media (max-width: 700px) {
+        #loading .subtitle {
+          font-size: 12px;
+        }
       }
 
       #loading .bracket {
@@ -176,6 +183,7 @@
         border-right: 3px solid var(--simple-colors-default-theme-grey-1);
         border-top: 3px solid  var(--simple-colors-default-theme-grey-1);
       }
+
       simple-modal::part(title) {
         background-color: transparent;
         margin: 0;
@@ -208,9 +216,17 @@
       simple-modal button.hax-modal-btn.cancel:focus {
         background-color: darkred;
       }
+
     </style>
   </head>
-  <body no-js>
+  <body>
+    
+    <div id="loading">
+      <div class="title">
+        <span class="bracket">&#60;</span>Loading..<span class="bracket">&#62;</span>
+      </div>
+      <div class="subtitle">HAX is loading</div>
+    </div>
     <script>
       // very trusting but it's us so...
       let script = document.createElement("script");
@@ -230,9 +246,35 @@
         document.getElementsByClassName('version')[0].innerHTML = 'V' + version;
         return version;
       });
+      // reduce FOUC for dark mode so it starts in dark rapidly if selected
+    if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
+      if (window.localStorage.getItem('app-hax-darkMode') == 'true') {
+        document.body.classList.add('dark-mode');
+      }
+      else {
+        document.body.classList.remove('dark-mode');
+      }
+    }
+    // remove loading text
+    window.addEventListener('app-hax-loaded',() => {
+      document.querySelector("#loading").remove();
+      // make sure we load the font if we have a good device
+      setTimeout(() => {
+        if (!document.body.classList.contains('bad-device')) {
+        const link = document.createElement("link");
+        link.setAttribute(
+          "href",
+          "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+        );
+        link.setAttribute("rel", "stylesheet");
+        link.setAttribute("fetchpriority", "low");
+        document.head.appendChild(link);
+      }
+      }, 50);
+    });
     </script>
-    <app-hax base-path="/" token="thingsAndStuff">
-    </app-hax>
+    <div id="visuallist"></div>
+    <app-hax base-path="/"></app-hax>
     <div class="version">V</div>
     <noscript>Enable JavaScript to use HAX</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN ="./";window.__appForceUpgrade=true;</script>

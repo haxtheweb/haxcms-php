@@ -211,7 +211,7 @@ class JSONOutlineSchema
     {
         // on every save we ensure it's sorted in the right order
         if (reorder) {
-            this.items = this.orderTree(this.items);
+            this.items = await this.orderTree(this.items);
         }
         let schema = (this);
         let file = schema['file'];
@@ -222,7 +222,7 @@ class JSONOutlineSchema
         if (output = JSON.stringify(schema, null, 2)) {
           // reassign so we don't lose it in the transaction
           this.file = file;
-          return fs.writeFileSync(file, output);
+          return await fs.writeFileSync(file, output);
         }
     }
     /**

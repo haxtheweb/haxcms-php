@@ -7,6 +7,7 @@ const app = express();
 const server = require('http').Server(app);
 // HAXcms core settings
 const HAXCMS = require('./lib/HAXCMS.js');
+const saveManifest = require('./routes/saveManifest.js');
 // app settings
 const port = 3000;
 app.use(express.urlencoded({ extended: false }));
@@ -28,7 +29,17 @@ app.use('/', (req, res, next) => {
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
   res.setHeader('Content-Type', 'application/json');
-  next();
+  // dynamic step routes in HAXcms site list UI
+  if (req.url === req.url.replace(/\/createSite-step-(.*)/, "/").replace(/\/home/, "/")) {
+    next();
+  }
+  else {
+    res.setHeader('Content-Type', 'text/html');
+    res.sendFile(req.url.replace(/\/createSite-step-(.*)/, "/").replace(/\/home/, "/"),
+    {
+      root: __dirname + "/public"
+    });
+  }
 });
 // sites need rewriting to work with PWA routes without failing file location
 // similar to htaccess
@@ -67,6 +78,7 @@ const routes = {
     gitImportSite: require('./routes/gitImportSite.js'),
     listFiles: require('./routes/listFiles.js'),
     saveFile: require('./routes/saveFile.js'),
+    saveManifest: require('./routes/saveManifest.js'),
     saveOutline: require('./routes/saveOutline.js'),
     openapi: require('./routes/openapi.js'),
 
@@ -107,8 +119,8 @@ const openRoutes = [
 // routes object above and apply JWT requirement on paths in a better way
 for (var method in routes) {
   for (var route in routes[method]) {
-    app[method](`${HAXCMS.basePath}${HAXCMS.apiBase}${route}`, (req, res) => {
-      const op = req.route.path.replace(`${HAXCMS.basePath}${HAXCMS.apiBase}`, '');
+    app[method](`${HAXCMS.basePath}${HAXCMS.systemRequestBase}${route}`, (req, res) => {
+      const op = req.route.path.replace(`${HAXCMS.basePath}${HAXCMS.systemRequestBase}`, '');
       const rMethod = req.method.toLowerCase();
       if (openRoutes.includes(op) || HAXCMS.validateJWT(req, res)) {
         // call the method

@@ -12,14 +12,14 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *    )
    * )
    */
-  function openapi(req, res) {
+  async function openapi(req, res) {
     // scan this document in order to build the Swagger docs
     // @todo make this scan multiple sources to surface user defined microservices
     // @todo MAKE THIS WORK
     //let openapi = \OpenApi\scan(dirname(__FILE__) + '/Operations.php');
     let openapi = HAXCMS.HAXCMS_ROOT + '/system/backends/php/lib/Operations.php';
     // dynamically add the version
-    openapi.info.version = HAXCMS.getHAXCMSVersion();
+    openapi.info.version = await HAXCMS.getHAXCMSVersion();
     openapi.servers = [];
     openapi.servers[0] = {};
     // generate url dynamically w/ path to the API route

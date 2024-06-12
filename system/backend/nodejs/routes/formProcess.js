@@ -17,7 +17,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *   )
    * )
    */
-  function formProcess(req, res) {
+  async function formProcess(req, res) {
     if (HAXCMS.validateRequestToken(req.body['haxcms_form_token'], req.body['haxcms_form_id'])) {
       let context = {
         'site': [],
@@ -29,8 +29,8 @@ const HAXCMS = require('../lib/HAXCMS.js');
       if ((req.body['node'])) {
         context['node'] = req.body['node'];
       }
-      let form = HAXCMS.processForm(req.body['haxcms_form_id'], req.body, context);
-      if ((form.fields['__failed'])) {
+      let form = await HAXCMS.processForm(req.body['haxcms_form_id'], req.body, context);
+      if (form.fields['__failed']) {
         res.send(
           form.fields
         );
