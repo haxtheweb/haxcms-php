@@ -31,7 +31,7 @@
   "scripts": {
     "lint": "prettier --check 'system/**/*.php' '*.{html,js,php,yml}'",
     "format": "prettier --write 'system/**/*.php' '*.{html,js,php,yml}'",
-    "build": "ddev rm --all && polymer build && yarn run terser && yarn run wc-autoloader && yarn run version-match && ddev start",
+    "build": "ddev rm --all && polymer build && yarn run terser && yarn run wc-autoloader && yarn run version-match && mkdir build/es6/node_modules/@lrnwebcomponents && cp -R build/es6/node_modules/@haxtheweb/wc-autoload build/es6/node_modules/@lrnwebcomponents/wc-autoload && cp -R build/es6/node_modules/@haxtheweb/dynamic-import-registry build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry && ddev start",
     "postinstall": "./node_modules/.bin/patch-package",
     "terser": "gulp terser --gulpfile=gulpfile.cjs",
     "wc-autoloader": "gulp wc-autoloader --gulpfile=gulpfile.cjs",
