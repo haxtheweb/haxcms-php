@@ -80,7 +80,7 @@ const strip_tags = require("locutus/php/strings/strip_tags");
             };
             item = site.itemFromParams(nodeParams);
             // generate the boilerplate to fill this page
-            site.recurseCopy(
+            HAXCMS.recurseCopy(
               HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
                 site.directory +
                     '/' +

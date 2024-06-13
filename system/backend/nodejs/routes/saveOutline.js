@@ -78,7 +78,7 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
           tmpTitle = site.getUniqueSlugName(cleanTitle, page);
           page.location = 'pages/' + tmpTitle + '/index.html';
           page.slug = tmpTitle;
-          await site.recurseCopy(
+          await HAXCMS.recurseCopy(
               HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
               siteDirectory + '/pages/' + tmpTitle
           );
@@ -123,7 +123,7 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
               let tmpTitle = site.getUniqueSlugName(cleanTitle, page);
               page.location = 'pages/' + tmpTitle + '/index.html';
               page.slug = tmpTitle;
-              await site.recurseCopy(
+              await HAXCMS.recurseCopy(
                   HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
                   siteDirectory + '/pages/' + tmpTitle
               );

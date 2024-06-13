@@ -175,18 +175,23 @@ class JSONOutlineSchema
             if ((vars['items'])) {
                 for (var key in vars['items']) {
                     let item = vars['items'][key];
-                    let newItem = new JSONOutlineSchemaItem();
-                    newItem.id = item.id;
-                    newItem.indent = item.indent;
-                    newItem.location = item.location;
-                    newItem.slug = item.slug;
-                    newItem.order = item.order;
-                    newItem.parent = item.parent;
-                    newItem.title = item.title;
-                    newItem.description = item.description;
-                    // metadata can be anything so whatever
-                    newItem.metadata = item.metadata;
-                    this.items[key] = newItem;
+                    if (item) {
+                        let newItem = new JSONOutlineSchemaItem();
+                        newItem.id = item.id;
+                        newItem.indent = item.indent;
+                        newItem.location = item.location;
+                        newItem.slug = item.slug;
+                        newItem.order = item.order;
+                        newItem.parent = item.parent;
+                        newItem.title = item.title;
+                        newItem.description = item.description;
+                        // metadata can be anything so whatever
+                        newItem.metadata = item.metadata;
+                        this.items[key] = newItem;
+                    }
+                    else {
+                        console.warn(`invalid item at ${key}`);
+                    }
                 }
             }
             return true;

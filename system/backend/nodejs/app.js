@@ -1,4 +1,5 @@
 // lib dependencies
+process.env.haxcms_middleware = "node-express";
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
@@ -7,7 +8,9 @@ const app = express();
 const server = require('http').Server(app);
 // HAXcms core settings
 const HAXCMS = require('./lib/HAXCMS.js');
-const saveManifest = require('./routes/saveManifest.js');
+console.log(HAXCMS.isCLI());
+// routes with all requires
+const routesMap = require('./routesMap.js');
 // app settings
 const port = 3000;
 app.use(express.urlencoded({ extended: false }));
@@ -23,7 +26,6 @@ app.use(helmet({
 app.use(cookieParser());
 app.use(fileUpload());
 app.use(express.static("public"));
-
 app.use('/', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -59,48 +61,7 @@ app.use('/sites/',(req, res) => {
 app.options('*', function(req, res) {
 	res.send(200);
 });
-// app routes
-const routes = {
-  post: {
-    login: require('./routes/login.js'),
-    logout: require('./routes/logout.js'),
-    revertCommit: require('./routes/revertCommit.js'),
-    refreshAccessToken: require('./routes/refreshAccessToken.js'),
 
-    formLoad: require('./routes/formLoad.js'),
-    formProcess: require('./routes/formProcess.js'),
-    getConfig: require('./routes/getConfig.js'),
-    setConfig: require('./routes/setConfig.js'),
-    getNodeFields: require('./routes/getNodeFields.js'),
-    setUserPhoto: require('./routes/setUserPhoto.js'),
-    siteUpdateAlternateFormats: require('./routes/siteUpdateAlternateFormats.js'),
-    getUserData: require('./routes/getUserData.js'),
-    gitImportSite: require('./routes/gitImportSite.js'),
-    listFiles: require('./routes/listFiles.js'),
-    saveFile: require('./routes/saveFile.js'),
-    saveManifest: require('./routes/saveManifest.js'),
-    saveOutline: require('./routes/saveOutline.js'),
-    openapi: require('./routes/openapi.js'),
-
-    createSite: require('./routes/createSite.js'),
-    syncSite: require('./routes/syncSite.js'),
-    publishSite: require('./routes/publishSite.js'),
-    cloneSite: require('./routes/cloneSite.js'),
-    archiveSite: require('./routes/archiveSite.js'),
-    deleteSite: require('./routes/deleteSite.js'),
-    downloadSite: require('./routes/downloadSite.js'),
-
-    createNode: require('./routes/createNode.js'),
-    saveNode: require('./routes/saveNode.js'),
-    deleteNode: require('./routes/deleteNode.js'),
-    getSitesList: require('./routes/listSites.js'),
-  },
-  get: {
-    logout: require('./routes/logout.js'),
-    connectionSettings: require('./routes/connectionSettings.js'),
-    generateAppStore: require('./routes/generateAppStore.js'),
-  },
-};
 // these routes need to return a response without a JWT validation
 const openRoutes = [
   'generateAppStore',
@@ -116,15 +77,15 @@ const openRoutes = [
 // loop through methods and apply the route to the file to deliver it
 // @todo ensure that we apply the same JWT checking that we do in the PHP side
 // instead of a simple array of what to let go through we could put it into our
-// routes object above and apply JWT requirement on paths in a better way
-for (var method in routes) {
-  for (var route in routes[method]) {
+// routesMap object above and apply JWT requirement on paths in a better way
+for (var method in routesMap) {
+  for (var route in routesMap[method]) {
     app[method](`${HAXCMS.basePath}${HAXCMS.systemRequestBase}${route}`, (req, res) => {
       const op = req.route.path.replace(`${HAXCMS.basePath}${HAXCMS.systemRequestBase}`, '');
       const rMethod = req.method.toLowerCase();
       if (openRoutes.includes(op) || HAXCMS.validateJWT(req, res)) {
         // call the method
-        routes[rMethod][op](req, res);
+        routesMap[rMethod][op](req, res);
       }
       else {
         res.sendStatus(403);

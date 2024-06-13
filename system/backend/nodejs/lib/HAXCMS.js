@@ -222,7 +222,7 @@ const HAXCMS = new class HAXCMSClass {
    * @todo Need to support CLI
    */
   isCLI() {
-    return !module.parent;
+    return process.env.haxcms_middleware === "node-cli";
   }
 
   /**
@@ -257,6 +257,12 @@ const HAXCMS = new class HAXCMSClass {
       slug = slug.substring(1)
     }
     return slug;
+  }
+  /**
+   * Generate UUID
+   */
+  generateUUID() {
+    return uuidv4();
   }
   /**
    * Clean up a title / sanitize the input string for file system usage
@@ -977,6 +983,20 @@ const HAXCMS = new class HAXCMSClass {
     }
     return wcMap;
   }
+  /**
+   * Test and ensure the name being returned is a location currently unused
+   */
+  getUniqueName(name)
+  {
+      let location = name;
+      let loop = 0;
+      const original = location;
+      while (fs.existsSync(this.HAXCMS_ROOT + '/' + this.sitesDirectory + '/' + location)) {
+        loop++;
+        location = original + '-' + loop;
+      }
+      return location;
+  }
     /**
      * Validate a JTW during POST
      */
@@ -1156,6 +1176,13 @@ const HAXCMS = new class HAXCMSClass {
         }
         return false;
     }
+    /**
+     * Recursive copy to rename high level but copy all files
+     */
+    async recurseCopy(src, dst, skip = [])
+    {
+      await fs.copySync(src, dst);
+    }
 }
 module.exports = HAXCMS;
 // HAXCMSSite which overlaps heavily and is referenced here often
@@ -1246,7 +1273,7 @@ class HAXCMSSite
       }
       tmpname = newName;
       // attempt to shift it on the file system
-      await this.recurseCopy(
+      await HAXCMS.recurseCopy(
           HAXCMS.HAXCMS_ROOT + '/system/boilerplate/site',
           directory + '/' + tmpname
       );
@@ -1460,6 +1487,7 @@ class HAXCMSSite
           break;
         }
       }
+      console.log(this.manifest.items);
       // put this in version control :) :) :)
       const git = new GitPlus({
         dir: directory + '/' + tmpname
@@ -1570,8 +1598,7 @@ class HAXCMSSite
           'logo48x48': this.getLogoSize('48','48'),
           'favicon': this.getLogoSize('32','32'),
       };
-      let swItems = this.manifest.items;
-      let file;
+      let swItems = [...this.manifest.items];
       // the core files you need in every SW manifest
       let coreFiles = [
           'index.html',
@@ -1829,11 +1856,11 @@ class HAXCMSSite
             case 'init':
             case 'lesson':
             case 'default':
-              await this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/' + template, location);
+              await HAXCMS.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/' + template, location);
             break;
             // didn't understand it, just go default
             default:
-              await this.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/default', location);
+              await HAXCMS.recurseCopy(HAXCMS_ROOT + '/system/boilerplate/page/default', location);
             break;
         }
         this.manifest.addItem(page);
@@ -1970,7 +1997,7 @@ class HAXCMSSite
             "id":item.id.replace('-', '').replace('item-', '').substring(0, 29),
             "title":item.title,
             "created":created,
-            "location":item.location.replace('pages/', '').replace('/index.html', ''),
+            "location": item.location.replace('pages/', '').replace('/index.html', ''),
             "description":item.description,
             "text":textData,
           });
@@ -2715,12 +2742,5 @@ class HAXCMSSite
         }
       }
       return rSlug;
-    }
-    /**
-     * Recursive copy to rename high level but copy all files
-     */
-    async recurseCopy(src, dst, skip = [])
-    {
-      await fs.copySync(src, dst);
     }
 }

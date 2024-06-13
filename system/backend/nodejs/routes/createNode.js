@@ -101,7 +101,7 @@ async function createNode(req, res) {
     item.metadata.images = [];
     item.metadata.videos = [];
     // generate the boilerplate to fill this page
-    site.recurseCopy(
+    HAXCMS.recurseCopy(
       HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
         site.directory +
             '/' +
@@ -154,6 +154,8 @@ async function createNode(req, res) {
     // update the alternate formats as a new page exists
     await site.updateAlternateFormats();
   }
-  res.send(item);
+  setTimeout(() => {
+    res.send(item);    
+  }, 100);
 }
 module.exports = createNode;
