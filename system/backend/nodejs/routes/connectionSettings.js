@@ -25,7 +25,7 @@ async function connectionSettings(req, res) {
   // express gives this up on requests but doesn't know it ahead of time
   if (req.headers && req.headers.referer) {
     let details = new url.URL(req.headers.referer);
-    HAXCMS.protocol = details.protocol;
+    HAXCMS.protocol = details.protocol.replace(':', '');
     HAXCMS.domain = details.host;
     HAXCMS.request_url = details;
   }

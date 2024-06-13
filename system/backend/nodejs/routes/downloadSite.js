@@ -1,7 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
 const fs = require('fs-extra');
-const basename = require('locutus/php/filesystem/basename');
-
+const archiver = require('archiver');
 /**
    * @OA\Post(
    *    path="/downloadSite",
@@ -52,36 +51,39 @@ const basename = require('locutus/php/filesystem/basename');
     // Get real path for our folder
     let rootPath = await fs.realpath(dir);
     // Initialize archive object
-    let zip = '';
-    // @todo ZipArchive
-    //let zip = new ZipArchive();
-    //zip.open(zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-    // Create recursive directory iterator
-    let directory = new RecursiveDirectoryIterator(rootPath);
-    let filtered = new DirFilter(directory, ['node_modules']);
-    let files = new RecursiveIteratorIterator(filtered);
-    for (var name in files) {
-      let file = files[name];
-      // Skip directories (they would be added automatically)
-      if (!file.isDir()) {
-        // Get real and relative path for current file
-        let filePath = file.getRealPath();
-        let relativePath = filePath.substring(strlen(rootPath) + 1);
-        // Add current file to archive
-        if (filePath != '' && relativePath != '') {
-          await zip.addFile(filePath, relativePath);
-        }
-      }
-    }
-    // Zip archive will be created only after closing object
-    zip.close();
+    await zipDirectory(rootPath, zip_file);
     res.send({
+      status: 200,
+      data: {
       'link':
         HAXCMS.basePath +
         HAXCMS.publishedDirectory +
-        '/' +
-        basename(zip_file),
-      'name': basename(zip_file)
+        '/' + site.name +
+        '.zip',
+      'name': site.name
+      }
     });
   }
+
+
+/**
+ * @param {String} sourceDir: /some/folder/to/compress
+ * @param {String} outPath: /path/to/created.zip
+ * @returns {Promise}
+ */
+function zipDirectory(sourceDir, outPath) {
+  const archive = archiver('zip', { zlib: { level: 9 }});
+  const stream = fs.createWriteStream(outPath);
+
+  return new Promise((resolve, reject) => {
+    archive
+      .directory(sourceDir, false)
+      .on('error', err => reject(err))
+      .pipe(stream)
+    ;
+
+    stream.on('close', () => resolve());
+    archive.finalize();
+  });
+}
   module.exports = downloadSite;

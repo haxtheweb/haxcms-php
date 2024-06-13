@@ -100,7 +100,7 @@ const strip_tags = require("locutus/php/strings/strip_tags");
           // @todo make sure that we stripped off page-break
           // and now save WITHOUT the top level page-break
           // to avoid duplication issues
-          bytes = page.writeLocation(
+          bytes = await page.writeLocation(
             data['content'],
             HAXCMS.HAXCMS_ROOT +
             '/' +
@@ -298,7 +298,10 @@ const strip_tags = require("locutus/php/strings/strip_tags");
               );
           }
         }
-        res.send(page);
+        res.send({
+          status: 200,
+          data: page
+        });
       }
     }
   }

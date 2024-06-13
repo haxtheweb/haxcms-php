@@ -4,6 +4,7 @@
     "package.json",
     "public/archived",
     "public/sites",
+    "public/published",
     "public/system",
     "public/sites/*/**",
     "public/sites/*/pages/**",

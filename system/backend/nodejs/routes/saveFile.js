@@ -1,5 +1,6 @@
+const path = require('path');
 const HAXCMS = require('../lib/HAXCMS.js');
-
+const HAXCMSFile = require('../lib/HAXCMSFile.js');
 /**
    * @OA\Post(
    *    path="/saveFile",
@@ -18,7 +19,7 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *         required=true,
    *         @OA\Schema(type="string")
    *    ),
-   *    @OA\RequestBody(
+   *    @OA\RequestQuery(
    *        @OA\MediaType(
    *             mediaType="application/json",
    *             @OA\Schema(
@@ -48,22 +49,28 @@ const HAXCMS = require('../lib/HAXCMS.js');
    *   )
    * )
    */
-  async function saveFile(req, res) {
-    // @todo might want to scrub prior to this level but not sure
-    if (($_FILES['file-upload'])) {
-      let site = await HAXCMS.loadSite(req.body['site']['name']);
+  async function saveFile(req, res, next) {
+    if (req.file.fieldname == 'file-upload') {
+      let site = await HAXCMS.loadSite(req.query['siteName']);
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
-      let page = site.loadNode(req.body['node']['id']);
-      let upload = $_FILES['file-upload'];
+      let page = site.loadNode(req.query['nodeId']);
+      let upload = req.file;
+      upload.name = upload.originalname;
+      upload.tmp_name = path.join("./", upload.path);
       let file = new HAXCMSFile();
       let fileResult = await file.save(upload, site, page);
-      if (fileResult['status'] == 500) {
+      if (!fileResult || fileResult['status'] == 500) {
         res.send(500);
       }
-      await site.gitCommit('File added: ' + upload['name']);
-      res.send(fileResult);
+      else {
+        await site.gitCommit('File added: ' + upload['name']);
+        res.send(fileResult);  
+      }
+    }
+    else {
+      res.send(500);
     }
   }
   module.exports = saveFile;

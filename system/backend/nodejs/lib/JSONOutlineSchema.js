@@ -166,7 +166,7 @@ class JSONOutlineSchema
                 {encoding:'utf8', flag:'r'}));
             let vars = (fileData);
             for (var key in vars) {
-                if ((this[key]) && key != 'items') {
+                if (typeof this[key] !== 'undefined' && key != 'items') {
                     this[key] = vars[key];
                 }
             }

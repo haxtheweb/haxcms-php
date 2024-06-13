@@ -271,10 +271,26 @@ function filter_var(input, filter, options) {
         }
 
         return data;
+    case supportedFilters.FILTER_SANITIZE_STRING:
+        if (data !== null) {
+            return escapeHtml(data);
+        }
+        return null;
     default:
-        return false;
+        console.error(`Filter missing: ${filter}`);
     }
 
     return false;
 }
+function escapeHtml(text = '') {
+    var map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
 module.exports = filter_var;

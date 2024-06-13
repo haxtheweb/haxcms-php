@@ -70,6 +70,7 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
  */
 async function createNode(req, res) {
   let nodeParams = req.body;
+  let item;
   let site = await HAXCMS.loadSite(req.body['site']['name'].toLowerCase());
   // implies we've been TOLD to create nodes
   // this is typically from a docx import
@@ -98,6 +99,7 @@ async function createNode(req, res) {
   else {
     // generate a new item based on the site
     item = site.itemFromParams(nodeParams);
+    console.log(item);
     item.metadata.images = [];
     item.metadata.videos = [];
     // generate the boilerplate to fill this page
@@ -115,13 +117,15 @@ async function createNode(req, res) {
     // support for duplicating the content of another item
     if (nodeParams['node']['duplicate']) {
       // verify we can load this id
+      let nodeToDuplicate;
       if (nodeToDuplicate = site.loadNode(nodeParams['node']['duplicate'])) {
-          content = site.getPageContent(nodeToDuplicate);
+          let content = await site.getPageContent(nodeToDuplicate);
+          let page;
           // verify we actually have the id of an item that we just created
           if (page = site.loadNode(item.id)) {
           // write it to the file system
           // this all seems round about but it's more secure
-          bytes = page.writeLocation(
+          let bytes = await page.writeLocation(
               content,
               HAXCMS.HAXCMS_ROOT +
               '/' +
@@ -137,9 +141,10 @@ async function createNode(req, res) {
     // this is possible when importing and processing a file to generate
     // html which becomes the boilerplated content in effect
     else if (nodeParams['node']['contents']) {
+      let page;
       if (page = site.loadNode(item.id)) {
           // write it to the file system
-          bytes = page.writeLocation(
+          let bytes = await page.writeLocation(
           nodeParams['node']['contents'],
           HAXCMS.HAXCMS_ROOT +
           '/' +
@@ -154,8 +159,9 @@ async function createNode(req, res) {
     // update the alternate formats as a new page exists
     await site.updateAlternateFormats();
   }
-  setTimeout(() => {
-    res.send(item);    
-  }, 100);
+  res.send({
+    status: 200,
+    data: item
+  });    
 }
 module.exports = createNode;

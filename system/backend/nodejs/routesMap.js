@@ -14,7 +14,6 @@ const routesMap = {
     siteUpdateAlternateFormats: require('./routes/siteUpdateAlternateFormats.js'),
     getUserData: require('./routes/getUserData.js'),
     gitImportSite: require('./routes/gitImportSite.js'),
-    listFiles: require('./routes/listFiles.js'),
     saveFile: require('./routes/saveFile.js'),
     saveManifest: require('./routes/saveManifest.js'),
     saveOutline: require('./routes/saveOutline.js'),
@@ -25,7 +24,6 @@ const routesMap = {
     publishSite: require('./routes/publishSite.js'),
     cloneSite: require('./routes/cloneSite.js'),
     archiveSite: require('./routes/archiveSite.js'),
-    deleteSite: require('./routes/deleteSite.js'),
     downloadSite: require('./routes/downloadSite.js'),
 
     createNode: require('./routes/createNode.js'),
@@ -35,6 +33,7 @@ const routesMap = {
   },
   get: {
     logout: require('./routes/logout.js'),
+    listFiles: require('./routes/listFiles.js'),
     connectionSettings: require('./routes/connectionSettings.js'),
     generateAppStore: require('./routes/generateAppStore.js'),
   },

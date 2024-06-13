@@ -274,7 +274,7 @@ const HAXCMS = new class HAXCMSClass {
       if (stripPage) {
           cleanTitle = cleanTitle.replace('pages/', '').replace('/index.html', '');
       }
-      cleanTitle = cleanTitle.replace(' ', '-').toLowerCase();
+      cleanTitle = cleanTitle.replace(/ /g, '-').toLowerCase();
       cleanTitle = cleanTitle.replace('/[^\w\-\/\s]+/u', '-');
       cleanTitle = cleanTitle.replace('/--+/u', '-');
       // ensure we don't return an empty title or it could break downstream things
@@ -490,19 +490,23 @@ const HAXCMS = new class HAXCMSClass {
         }
         else if (typeof key === "string") {
           let lookup = this.deepObjectLookUp(site, key);
-          if (lookup) {
+          if (lookup || lookup === '' || lookup === false) {
             // special support for regions as front end form structure differs slightly from backend
             // to support multiple attributes on a single object on front end
             // even when it's a 1 to 1
-            if (lookup.isArray && lookup.isArray() && key.indexOf('-regions-') !== -1) {
+            if (key.indexOf('-regions-') !== -1) {
               let tmp = [];
               for (var rkey in lookup) {
                 let regionId = lookup[rkey];
-                tmp.push({
-                  node: regionId
-                })
+                if (regionId) {
+                  tmp.push({
+                    node: regionId
+                  })  
+                }
               }
-              manifestKeys[key] = tmp;
+              if (tmp.length > 0) {
+                manifestKeys[key] = tmp;
+              }
             }
             else {
               manifestKeys[key] = lookup;
@@ -896,8 +900,14 @@ const HAXCMS = new class HAXCMSClass {
               }
             },
             "search": {
+              "filename": {
+                "title": "File name",
+                "type": "string"
+              }
             },
             "data": {
+              "__HAXJWT__": true,
+              "__HAXAPPENDUPLOADENDPOINT__": true
             },
             "resultMap": {
               "defaultGizmoType": "image",
@@ -912,7 +922,7 @@ const HAXCMS = new class HAXCMSClass {
                 "source": "url",
                 "id": "uuid",
                 "title": "name",
-                "type": "type"
+                "mimetype": "mimetype"
               }
             }
           },
@@ -1012,8 +1022,8 @@ const HAXCMS = new class HAXCMSClass {
       if (request == false && req.body && req.body['jwt'] && req.body['jwt'] != null) {
         request = this.decodeJWT(req.body['jwt'])
       }
-      if (request == false && res.query && res.query['jwt'] && res.query['jwt'] != null) {
-        request = this.decodeJWT(res.query['jwt'])
+      if (request == false && req.query && req.query['jwt'] && req.query['jwt'] != null) {
+        request = this.decodeJWT(req.query['jwt'])
       }
       // if we were able to find a valid JWT in that mess, try and validate it
       if (  
@@ -1206,25 +1216,6 @@ class HAXCMSSite
         this.basePath = '/';
         this.language = 'en-us';
     }
-      /**
-   * Clean up a title / sanitize the input string for file system usage
-   */
-  cleanTitle(value, stripPage = true)
-  {
-      let cleanTitle = value.trim();
-      // strips off the identifies for a page on the file system
-      if (stripPage) {
-        cleanTitle = cleanTitle.replace('pages/', '').replace('/index.html', '');
-      }
-      cleanTitle = cleanTitle.replace(' ', '-').toLowerCase();
-      cleanTitle = cleanTitle.replace('/[^\w\-\/\s]+/u', '-');
-      cleanTitle = cleanTitle.replace('/--+/u', '-');
-      // ensure we don't return an empty title or it could break downstream things
-      if (cleanTitle == '') {
-          cleanTitle = 'blank';
-      }
-      return cleanTitle;
-  }
     /**
      * Load a site based on directory and name
      */
@@ -1232,7 +1223,7 @@ class HAXCMSSite
     {
         this.name = name;
         let tmpname = decodeURIComponent(name);
-        tmpname = this.cleanTitle(tmpname, false);
+        tmpname = HAXCMS.cleanTitle(tmpname, false);
         this.basePath = siteBasePath;
         this.directory = directory;
         this.manifest = new JSONOutlineSchema();
@@ -1262,7 +1253,7 @@ class HAXCMSSite
       this.name = name;
       // clean up name so it can be in a URL / published
       let tmpname = decodeURIComponent(name);
-      tmpname = this.cleanTitle(tmpname, false);
+      tmpname = HAXCMS.cleanTitle(tmpname, false);
       let loop = 0;
       let newName = tmpname;
       if (fs.pathExistsSync(directory + "/" + newName)) {
@@ -1487,7 +1478,6 @@ class HAXCMSSite
           break;
         }
       }
-      console.log(this.manifest.items);
       // put this in version control :) :) :)
       const git = new GitPlus({
         dir: directory + '/' + tmpname
@@ -2293,7 +2283,7 @@ class HAXCMSSite
       if ((params['metadata']) && params['metadata'] != '' && params['metadata'] != null) {
           item.metadata = params['metadata'];
       }
-      if ((params['node']['location']) && params['node']['location'] != '' && params['node']['location'] != null) {
+      if (typeof params['node']['location'] !== 'undefined' && params['node']['location'] != '' && params['node']['location'] != null) {
         cleanTitle = HAXCMS.cleanTitle(params['node']['location']);
         item.slug = this.getUniqueSlugName(cleanTitle);
       } else {
@@ -2400,9 +2390,9 @@ class HAXCMSSite
       if ((this.manifest.license) && (licenseData[this.manifest.license])) {
           metadata += "\n" + '  <meta rel="cc:license" href="' + licenseData[this.manifest.license]['link'] + '" content="License: ' + licenseData[this.manifest.license]['name'] + '"/>' + "\n";
       }
-      // add in twitter link if they provided one
-      if ((this.manifest.metadata.author.socialLink) && strpos(this.manifest.metadata.author.socialLink, 'https://twitter.com/') === 0) {
-          metadata += "\n" + '  <meta name="twitter:creator" content="' + this.manifest.metadata.author.socialLink.replace('https://twitter.com/', '@') + '" />';
+      // add in X link if they provided one
+      if ((this.manifest.metadata.author.socialLink) && (this.manifest.metadata.author.socialLink.indexOf('https://twitter.com/') === 0 || this.manifest.metadata.author.socialLink.indexOf('https://x.com/') === 0)) {
+          metadata += "\n" + '  <meta name="twitter:creator" content="' + this.manifest.metadata.author.socialLink.replace('https://twitter.com/', '@').replace('https://x.com/', '@') + '" />';
       }
       return metadata;
     }

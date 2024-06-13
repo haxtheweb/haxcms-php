@@ -51,9 +51,7 @@ const fs = require('fs-extra');
     }*/
     if (HAXCMS.validateRequestToken(req.body['haxcms_form_token'], req.body['haxcms_form_id'])) {
       site.manifest.title = req.body['manifest']['site']['manifest-title'].replace(/<\/?[^>]+(>|$)/g, "");
-      if (req.body['manifest']['site']['manifest-description']) {
-        site.manifest.description = req.body['manifest']['site']['manifest-description'].replace(/<\/?[^>]+(>|$)/g, "");
-      }
+      site.manifest.description = req.body['manifest']['site']['manifest-description'].replace(/<\/?[^>]+(>|$)/g, "");
       // store some version data here just so we can find it later
       site.manifest.metadata.site.version = await HAXCMS.getHAXCMSVersion();
       site.manifest.metadata.site.domain = filter_var(
@@ -74,8 +72,8 @@ const fs = require('fs-extra');
       if (!(site.manifest.metadata.site.settings)) {
         site.manifest.metadata.site.settings = {};
       }
-      if ((req.body['manifest']['site']['manifest-domain'])) {
-          domain = filter_var(
+      if (typeof req.body['manifest']['site']['manifest-domain'] !== 'undefined') {
+          let domain = filter_var(
               req.body['manifest']['site']['manifest-domain'],
               "FILTER_SANITIZE_STRING"
           );
@@ -95,8 +93,6 @@ const fs = require('fs-extra');
       // look for a match so we can set the correct data
       for (var key in hThemes) {
         let theme = hThemes[key];
-        console.log(filter_var(req.body['manifest']['theme']['manifest-metadata-theme-element'], "FILTER_SANITIZE_STRING"));
-        console.log(key);
         if (
             filter_var(req.body['manifest']['theme']['manifest-metadata-theme-element'], "FILTER_SANITIZE_STRING") ==
             key
@@ -104,30 +100,28 @@ const fs = require('fs-extra');
             site.manifest.metadata.theme = theme;
         }
       }
-      console.log(site.manifest.metadata.theme);
-      console.log(req.body);
       if (!(site.manifest.metadata.theme.variables)) {
         site.manifest.metadata.theme.variables = {};
       }
 
-      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
+      if (typeof req.body['manifest']['theme']['manifest-metadata-theme-variables-image'] !== 'undefined') {
         site.manifest.metadata.theme.variables.image = filter_var(
           req.body['manifest']['theme']['manifest-metadata-theme-variables-image'],"FILTER_SANITIZE_STRING"
         );
       }
-      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
+      if (typeof req.body['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'] !== 'undefined') {
         site.manifest.metadata.theme.variables.imageAlt = filter_var(
           req.body['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], "FILTER_SANITIZE_STRING"
         );
       }
-      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
+      if (typeof req.body['manifest']['theme']['manifest-metadata-theme-variables-imageLink'] !== 'undefined') {
         site.manifest.metadata.theme.variables.imageLink = filter_var(
           req.body['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], "FILTER_SANITIZE_STRING"
         );
       }
       // REGIONS SUPPORT
       if (!(site.manifest.metadata.theme.regions)) {
-        site.manifest.metadata.theme.regions = new stdClass();
+        site.manifest.metadata.theme.regions = {};
       }
       // look for a match so we can set the correct data
       let validRegions = [
@@ -149,7 +143,7 @@ const fs = require('fs-extra');
           site.manifest.metadata.theme.regions[value] = req.body['manifest']['theme']['manifest-metadata-theme-regions-' + value];
         }
       }
-      if ((req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
+      if (typeof req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'] !== 'undefined') {
         site.manifest.metadata.theme.variables.hexCode = filter_var(
           req.body['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],"FILTER_SANITIZE_STRING"
         );
@@ -160,7 +154,7 @@ const fs = require('fs-extra');
       site.manifest.metadata.theme.variables.icon = filter_var(
         req.body['manifest']['theme']['manifest-metadata-theme-variables-icon'],"FILTER_SANITIZE_STRING"
       );
-      if ((req.body['manifest']['author']['manifest-license'])) {
+      if (typeof req.body['manifest']['author']['manifest-license'] !== 'undefined') {
           site.manifest.license = filter_var(
               req.body['manifest']['author']['manifest-license'],
               "FILTER_SANITIZE_STRING"
@@ -185,31 +179,31 @@ const fs = require('fs-extra');
               "FILTER_SANITIZE_STRING"
           );
       }
-      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
+      if (typeof req.body['manifest']['seo']['manifest-metadata-site-settings-pathauto'] !== 'undefined') {
           site.manifest.metadata.site.settings.pathauto = filter_var(
           req.body['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
           "FILTER_VALIDATE_BOOLEAN"
           );
       }
-      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
+      if (typeof req.body['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'] !== 'undefined') {
         site.manifest.metadata.site.settings.publishPagesOn = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'],
         "FILTER_VALIDATE_BOOLEAN"
         );
       }
-      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-sw'])) {
+      if (typeof req.body['manifest']['seo']['manifest-metadata-site-settings-sw'] !== 'undefined') {
         site.manifest.metadata.site.settings.sw = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-sw'],
         "FILTER_VALIDATE_BOOLEAN"
         );
       }
-      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
+      if (typeof req.body['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'] !== 'undefined') {
         site.manifest.metadata.site.settings.forceUpgrade = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
         "FILTER_VALIDATE_BOOLEAN"
         );
       }
-      if ((req.body['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
+      if (typeof req.body['manifest']['seo']['manifest-metadata-site-settings-gaID'] !== 'undefined') {
         site.manifest.metadata.site.settings.gaID = filter_var(
         req.body['manifest']['seo']['manifest-metadata-site-settings-gaID'],
         "FILTER_SANITIZE_STRING"

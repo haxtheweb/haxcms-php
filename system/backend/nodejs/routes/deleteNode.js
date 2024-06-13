@@ -22,14 +22,33 @@ const HAXCMS = require('../lib/HAXCMS.js');
     // update the page's content, using manifest to find it
     // this ensures that writing is always to what the file system
     // determines to be the correct page
+    let page;
     if (page = site.loadNode(req.body['node']['id'])) {
         if (await site.deleteNode(page) === false) {
           res.send(500);
         } else {
+          // now, we need to look for orphans if we deleted anything
+          for (var key in site.manifest.items) {
+            // just to be safe..
+            let pageUpdate;
+            if (pageUpdate = site.loadNode(site.manifest.items[key].id)) {
+              // ensure that parent is valid to rescue orphan items
+              let parentPage;
+              if (pageUpdate.parent != null && !(parentPage = site.loadNode(pageUpdate.parent))) {
+                pageUpdate.parent = null;
+                // force to bottom of things while still being in old order if lots of things got axed
+                pageUpdate.order = parseInt(pageUpdate.order) + site.manifest.items.length - 1;
+                site.updateNode(pageUpdate);
+              }
+            }
+          }
           await site.gitCommit(
             'Page deleted: ' + page.title + ' (' + page.id + ')'
           );
-          res.send(page);
+          res.send({
+            status: 200,
+            data: page
+          });
         }
     } else {
         res.send(500);

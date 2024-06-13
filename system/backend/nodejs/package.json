@@ -14,20 +14,21 @@
     "fs-extra": "10.0.0",
     "locutus": "2.0.15",
     "helmet": "4.6.0",
-    "express-fileupload": "1.2.1",
     "express": "4.19.2",
     "open": "8.0.9",
     "openapi-enforcer-middleware": "1.2.4",
     "openapi-enforcer": "1.14.1",
     "sharp": "0.30.5",
+    "archiver": "7.0.1",
     "uuid": "8.3.2",
     "twig": "1.15.4",
     "crypto": "1.0.1",
     "utf8": "3.0.0",
-    "mime": "2.5.2",
+    "mime": "4.0.3",
     "git-interface": "2.1.2",
     "jsonwebtoken": "8.5.1",
-    "cookie-parser": "1.4.5"
+    "cookie-parser": "1.4.5",
+    "multer": "1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "3.1.3"

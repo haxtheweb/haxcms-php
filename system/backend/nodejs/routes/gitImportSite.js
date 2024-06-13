@@ -43,7 +43,7 @@ const filter_var = require('../lib/filter_var.js');
         repoUrl = req.body['site']['git']['url'];
         // make sure there's a .git in the address
         if (filter_var(repoUrl, "FILTER_VALIDATE_URL") !== false &&
-            strpos(repoUrl, '.git')
+          repoUrl.indexOf('.git') !== -1
           ) {
           ary = explode('/', repoUrl.replace('.git', ''));
           repo_path = ary.pop();
