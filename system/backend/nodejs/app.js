@@ -99,11 +99,12 @@ for (var method in routesMap) {
   }
 }
 
-server.listen(port, (err) => {
+server.listen(port, async (err) => {
 	if (err) {
 		throw err;
 	}
-  const open = require('open');
+  const openPkg = await import('open');
+  const open = openPkg.default;
   // opens the url in the default browser 
   open('http://localhost:3000');
 	/* eslint-disable no-console */

@@ -146,8 +146,8 @@ async function createSite(req, res) {
     schema.metadata.site.settings = {};
     schema.metadata.site.settings.lang = 'en-US';
     schema.metadata.site.settings.publishPagesOn = true;
-    schema.metadata.site.created = Date.now();
-    schema.metadata.site.updated = Date.now();
+    schema.metadata.site.created = Math.floor(Date.now() / 1000);
+    schema.metadata.site.updated = Math.floor(Date.now() / 1000);
     // check for publishing settings being set globally in HAXCMS
     // this would allow them to fork off to different locations down stream
     schema.metadata.site.git = {};
@@ -207,7 +207,7 @@ async function createSite(req, res) {
         }
     }
     catch(e) {
-        console.log(e);
+        console.warn(e);
     }
     
     res.send({

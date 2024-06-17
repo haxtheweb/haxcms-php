@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const HAXCMS = require('./HAXCMS.js');
-const mime = import('mime');
+const mime = require('mime');
 const sharp = require('sharp');
 // a site object
 class HAXCMSFile
@@ -38,7 +38,7 @@ class HAXCMSFile
         await fs.moveSync(filedata, fullpath);
       }
       catch(err) {
-        console.log(err);
+        console.warn(err);
         return {
           status: 500
         };

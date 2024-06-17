@@ -103,7 +103,7 @@ const strtr = require('locutus/php/strings/strtr');
             if (!(site.manifest.metadata.site.static)) {
               site.manifest.metadata.site.static = {};
             }
-            site.manifest.metadata.site.static.lastPublished = Date.now();
+            site.manifest.metadata.site.static.lastPublished = Math.floor(Date.now() / 1000);
             site.manifest.metadata.site.static.publishedLocation = domain;
             await site.manifest.save(false);
             // just to be safe in case the push isn't successful

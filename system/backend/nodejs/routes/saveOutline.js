@@ -76,7 +76,8 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
       // verify this exists, front end could have set what they wanted
       // or it could have just been renamed
       // if it doesn't exist currently make sure the name is unique
-      if (!site.loadNode(page.id)) {
+      let tmpLoad = site.loadNode(page.id);
+      if (!tmpLoad) {
         await HAXCMS.recurseCopy(
             HAXCMS.HAXCMS_ROOT + '/system/boilerplate/page/default',
             siteDirectory + '/' + page.location.replace('/index.html', '')
@@ -85,8 +86,8 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
       // this would imply existing item, lets see if it moved or needs moved
       else {
           moved = false;
-          for( var key in original) {
-            let tmpItem = original[key];
+          for( var moveKey in original) {
+            let tmpItem = original[moveKey];
               // see if this is something moving as opposed to brand new
               if (
                   tmpItem.id == page.id &&
@@ -123,30 +124,31 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
           }
       }
       // check for any metadata keys that did come over
-      for (let key in item.metadata) {
-          page.metadata[key] = item.metadata[key];
+      for (let pageKey in item.metadata) {
+          page.metadata[pageKey] = item.metadata[pageKey];
       }
-    }
-    // safety check for new things
-    if (typeof page.metadata.created === 'undefined') {
-        page.metadata.created = Date.now();
-        page.metadata.images = [];
-        page.metadata.videos = [];
-    }
-    // always update at this time
-    page.metadata.updated = Date.now();
-    let tmp = site.loadNode(page.id);
-    if (site.loadNode(page.id)) {
+      // safety check for new things
+      if (typeof page.metadata.created === 'undefined') {
+          page.metadata.created = Math.floor(Date.now() / 1000);
+          page.metadata.images = [];
+          page.metadata.videos = [];
+      }
+      // always update at this time
+      page.metadata.updated = Math.floor(Date.now() / 1000);
+      let tmp = site.loadNode(page.id);
+      if (tmp) {
         await site.updateNode(page);
-    } else {
+      } else {
         site.manifest.addItem(page);
+        await site.manifest.save(false);
+      }
     }
     // process any duplicate / contents requests we had now that structure is sane
     // including potentially duplication of material from something
     // we are about to act on and now that we have the map
     items = [...req.body['items']];
-    for (let key in items) {
-      let item = items[key];
+    for (let dupKey in items) {
+      let item = items[dupKey];
       // load the item, or the item as built out of the itemMap
       // since we reset the UUID on creation
       page = site.loadNode(item.id);
@@ -187,17 +189,18 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
     }
     items = [...req.body['items']];
     // now, we can finally delete as content operations have finished
-    for (let key in items) {
-      let item = items[key];
+    for (let delKey in items) {
+      let item = items[delKey];
       // verify if we were told to delete this item via flag not in the real spec
-      if (typeof item.delete !== 'undefined' && item.delete == TRUE) {
+      if (typeof item.delete !== 'undefined' && item.delete === true) {
         // load the item, or the item as built out of the itemMap
         // since we reset the UUID on creation
-        if (!(page = site.loadNode(item.id))) {
+        page = site.loadNode(item.id);
+        if (!page) {
           page = site.loadNode(itemMap[item.id]);
         }
-        site.deleteNode(page);
-        site.gitCommit(
+        await site.deleteNode(page);
+        await site.gitCommit(
           'Page deleted: ' + page.title + ' (' + page.id + ')'
         );
       }
@@ -205,12 +208,14 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
     await site.manifest.save();
     // now, we need to look for orphans if we deleted anything
     let orphanCheck = [...site.manifest.items];
-    for (let key in orphanCheck) {
-      let item = orphanCheck[key];
+    for (let orKey in orphanCheck) {
+      let item = orphanCheck[orKey];
       // just to be safe..
-      if (page = site.loadNode(item.id)) {
+      page = site.loadNode(item.id)
+      if (page && page.parent != null) {
+        let parentPage = site.loadNode(page.parent);
         // ensure that parent is valid to rescue orphan items
-        if (page.parent != null && !(parentPage = site.loadNode(page.parent))) {
+        if (!parentPage) {
           page.parent = null;
           // force to bottom of things while still being in old order if lots of things got axed
           page.order = parseInt(page.order) + site.manifest.items.length - 1;
@@ -218,11 +223,10 @@ const JSONOutlineSchemaItem = require('../lib/JSONOutlineSchemaItem.js');
         }
       }
     }
-    site.manifest.metadata.site.updated = Date.now();
+    site.manifest.metadata.site.updated = Math.floor(Date.now() / 1000);
     await site.manifest.save();
     // update alt formats like rss as we did massive changes
-    site.updateAlternateFormats();
-    site.gitCommit('Outline updated in bulk');
+    await site.updateAlternateFormats();
     await site.gitCommit('Outline updated in bulk');
     res.send(site.manifest.items);
   }

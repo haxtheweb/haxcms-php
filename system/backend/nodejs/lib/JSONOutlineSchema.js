@@ -222,9 +222,9 @@ class JSONOutlineSchema
         let file = schema['file'];
         // delete so it doesn't show up in the site.json file
         delete schema['file'];
-        let output;
+        let output = JSON.stringify(schema, null, 2);
         // ensure we have valid json object
-        if (output = JSON.stringify(schema, null, 2)) {
+        if (output) {
           // reassign so we don't lose it in the transaction
           this.file = file;
           return await fs.writeFileSync(file, output);

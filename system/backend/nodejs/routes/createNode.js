@@ -94,12 +94,11 @@ async function createNode(req, res) {
         );  
       }
     }
-    site.gitCommit(count(nodeParams['items']) + ' pages added'); 
+    await site.gitCommit(count(nodeParams['items']) + ' pages added'); 
   }
   else {
     // generate a new item based on the site
     item = site.itemFromParams(nodeParams);
-    console.log(item);
     item.metadata.images = [];
     item.metadata.videos = [];
     // generate the boilerplate to fill this page

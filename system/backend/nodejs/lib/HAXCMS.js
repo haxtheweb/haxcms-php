@@ -1307,8 +1307,8 @@ class HAXCMSSite
     this.manifest.metadata.site.settings.lang = 'en';
     this.manifest.metadata.site.name = tmpname;
     this.manifest.metadata.site.domain = domain;
-    this.manifest.metadata.site.created = Date.now();
-    this.manifest.metadata.site.updated = Date.now();
+    this.manifest.metadata.site.created = Math.floor(Date.now() / 1000);
+    this.manifest.metadata.site.updated = Math.floor(Date.now() / 1000);
     this.manifest.metadata.theme = {};
     this.manifest.metadata.theme.variables = {};
     this.manifest.metadata.node = {};
@@ -1682,7 +1682,7 @@ class HAXCMSSite
               await fs.writeFileSync(siteDirectoryPath + '/' + templates[key], templatedHTML);           
             }
             catch(e) {
-              //console.log(e);
+              //console.warn(e);
             }
           }
       } 
@@ -1830,8 +1830,8 @@ class HAXCMSSite
             page.metadata[key] = value;
           }
         }
-        page.metadata.created = Date.now();
-        page.metadata.updated = Date.now();
+        page.metadata.created = Math.floor(Date.now() / 1000);
+        page.metadata.updated = Math.floor(Date.now() / 1000);
         let location = this.directory + '/' +
             this.manifest.metadata.site.name +
             '/pages' + '/' + page.id;
@@ -1871,8 +1871,8 @@ class HAXCMSSite
     /**
      * Save the site, though this basically is just a mapping to the manifest site.json saving
      */
-    async save() {
-      await this.manifest.save();
+    async save(reorder = true) {
+      await this.manifest.save(reorder);
     }
     /**
      * Update RSS, Atom feeds, site map, legacy outline, search index
@@ -1922,7 +1922,7 @@ class HAXCMSSite
                     } else {
                         priority = '0.5';
                     }
-                    let updatedTime = Date.now();
+                    let updatedTime = Math.floor(Date.now() / 1000);
                     updatedTime.setTimestamp(item.metadata.updated);
                     let d = new Date();
                     updatedTime.format(d.toISOString());
@@ -1941,7 +1941,7 @@ class HAXCMSSite
         }*/
         if (format == null || format == 'legacy') {
             // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-            fs.writeFileSync(
+            await fs.writeFileSync(
                 siteDirectory + 'legacy-outline.html',
                 `<!DOCTYPE html>
                 <html lang="en">
@@ -1950,7 +1950,7 @@ class HAXCMSSite
                         <meta content="utf-8" http-equiv="encoding">
                         <link rel="stylesheet" type="text/css"href="assets/legacy-outline.css">
                     </head>
-                    <body>{this.treeToNodes(this.manifest.items)}</body>
+                    <body>${this.treeToNodes([...this.manifest.items])}</body>
                 </html>`
             );
         }
@@ -1970,7 +1970,7 @@ class HAXCMSSite
       let textData;
       for (var key in items) {
         let item = items[key];
-        let created = Date.now();
+        let created = Math.floor(Date.now() / 1000);
         if ((item.metadata) && (item.metadata.created)) {
           created = item.metadata.created;
         }
@@ -1991,7 +1991,7 @@ class HAXCMSSite
         }
         catch(e) {
           // if that failed, not concerned as it's just an index
-          console.log(e);
+          console.warn(e);
         }
       }
       return data;
@@ -2023,7 +2023,7 @@ class HAXCMSSite
      * @return array items - sorted items based on the key used
      */
     sortItems(key, dir = 'ASC') {
-        let items = this.manifest.items;
+        let items = [...this.manifest.items];
         switch (key) {
             case 'created':
             case 'updated':
@@ -2071,7 +2071,7 @@ class HAXCMSSite
         for (var key in current) {
             let item = this.manifest.items[key];
             if (!array_search(item.id, rendered)) {
-                loc +=`<li><a href="{item.location}" target="content">{item.title}</a>`;
+                loc +=`<li><a href="${item.location}" target="content">${item.title}</a>`;
                 rendered.push(item.id);
                 let children = [];
                 for (var key2 in this.manifest.items) {
@@ -2105,7 +2105,7 @@ class HAXCMSSite
       for (var key in this.manifest.items) {
         let item = this.manifest.items[key];
         if (item.id == uuid) {
-            return item;
+          return item;
         }
       }
       return false;
@@ -2287,8 +2287,8 @@ class HAXCMSSite
         cleanTitle = HAXCMS.cleanTitle(item.title);
         item.slug = this.getUniqueSlugName(cleanTitle, item, true);
       }
-      item.metadata.created = Date.now();
-      item.metadata.updated = Date.now();
+      item.metadata.created = Math.floor(Date.now() / 1000);
+      item.metadata.updated = Math.floor(Date.now() / 1000);
       return item;
     }
     /**

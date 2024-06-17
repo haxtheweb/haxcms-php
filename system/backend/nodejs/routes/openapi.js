@@ -32,7 +32,7 @@ const YAML = require('yaml')
         {encoding:'utf8', flag:'r'}, 'utf8');
       openapi = formatClass.parse(fileContents);
     } catch (e) {
-        console.log(e);
+        console.warn(e);
     }
     // dynamically add the version
     openapi.info.version = await HAXCMS.getHAXCMSVersion();

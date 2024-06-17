@@ -1,6 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
 const fs = require('fs');
-const mime = import('mime');
+const mime = require('mime');
 /**
    * @OA\Post(
    *    path="/listFiles",

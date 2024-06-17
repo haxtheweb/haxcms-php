@@ -46,8 +46,8 @@ class FeedMe
               item.metadata = {};
             }
             if (!(item.metadata.created)) {
-              item.metadata.created = Date.now();
-              item.metadata.updated = Date.now();
+              item.metadata.created = Math.floor(Date.now() / 1000);
+              item.metadata.updated = Math.floor(Date.now() / 1000);
             }
             if ((item.metadata.tags)) {
                 tags = implode(',', item.metadata.tags);
@@ -117,8 +117,8 @@ class FeedMe
               item.metadata = {};
             }
             if (!(item.metadata.created)) {
-              item.metadata.created = Date.now();
-              item.metadata.updated = Date.now();
+              item.metadata.created = Math.floor(Date.now() / 1000);
+              item.metadata.updated = Math.floor(Date.now() / 1000);
             }
             if ((item.metadata.tags)) {
                 for (var key2 in item.metadata.tags) {

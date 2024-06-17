@@ -209,7 +209,7 @@ const fs = require('fs-extra');
         "FILTER_SANITIZE_STRING"
         );
       }
-      site.manifest.metadata.site.updated = Date.now();
+      site.manifest.metadata.site.updated = Math.floor(Date.now() / 1000);
       // don't reorganize the structure
       await site.manifest.save(false);
       await site.gitCommit('Manifest updated');

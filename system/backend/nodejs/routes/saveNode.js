@@ -91,7 +91,7 @@ const strip_tags = require("locutus/php/strings/strip_tags");
             // add the item back into the outline schema
             site.manifest.addItem(item);
             site.manifest.save();
-            site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
+            await site.gitCommit('Page added:' + item.title + ' (' + item.id + ')');
             // possible the item-id had to be made by back end
             data["attributes"]["item-id"] = item.id;
           }
@@ -247,7 +247,7 @@ const strip_tags = require("locutus/php/strings/strip_tags");
                 page.metadata.locked = true;
               }
               // update the updated timestamp
-              page.metadata.updated = Date.now();
+              page.metadata.updated = Math.floor(Date.now() / 1000);
               clean = strip_tags(body);
               // auto generate a text only description from first 200 chars
               // unless we were sent one to use
