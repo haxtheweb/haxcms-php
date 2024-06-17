@@ -1,5 +1,8 @@
 function logoutRoute(req, res)  {
-    res.send('"user-logged-out"');
+    res.send({
+        "status" : 200,
+        "data" : 'loggedout',
+    })
 }
 
 module.exports = logoutRoute;

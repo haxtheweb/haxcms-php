@@ -3,7 +3,6 @@ const routesMap = {
     login: require('./routes/login.js'),
     logout: require('./routes/logout.js'),
     revertCommit: require('./routes/revertCommit.js'),
-    refreshAccessToken: require('./routes/refreshAccessToken.js'),
 
     formLoad: require('./routes/formLoad.js'),
     formProcess: require('./routes/formProcess.js'),
@@ -17,7 +16,6 @@ const routesMap = {
     saveFile: require('./routes/saveFile.js'),
     saveManifest: require('./routes/saveManifest.js'),
     saveOutline: require('./routes/saveOutline.js'),
-    openapi: require('./routes/openapi.js'),
 
     createSite: require('./routes/createSite.js'),
     syncSite: require('./routes/syncSite.js'),
@@ -29,13 +27,16 @@ const routesMap = {
     createNode: require('./routes/createNode.js'),
     saveNode: require('./routes/saveNode.js'),
     deleteNode: require('./routes/deleteNode.js'),
-    getSitesList: require('./routes/listSites.js'),
+    listSites: require('./routes/listSites.js'),
   },
   get: {
     logout: require('./routes/logout.js'),
     listFiles: require('./routes/listFiles.js'),
+    openapi: require('./routes/openapi.js'),
+    "openapi/json": require('./routes/openapi.js'),
     connectionSettings: require('./routes/connectionSettings.js'),
     generateAppStore: require('./routes/generateAppStore.js'),
+    refreshAccessToken: require('./routes/refreshAccessToken.js'),
   },
 };
 

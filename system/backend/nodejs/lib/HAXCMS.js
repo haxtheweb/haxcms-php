@@ -1119,9 +1119,6 @@ const HAXCMS = new class HAXCMSClass {
       }
       // kick back the end if its invalid
       if (endOnInvalid) {
-        res.cookie('jwt', '', {
-          expires:1,
-        });
         res.cookie('haxcms_refresh_token', '', {
           expires:1,
         });

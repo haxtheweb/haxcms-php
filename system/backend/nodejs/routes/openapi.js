@@ -1,4 +1,6 @@
 const HAXCMS = require('../lib/HAXCMS.js');
+const fs = require('fs');
+const YAML = require('yaml')
 
 /**
    * Generate the swagger API documentation for this site
@@ -13,11 +15,25 @@ const HAXCMS = require('../lib/HAXCMS.js');
    * )
    */
   async function openapi(req, res) {
-    // scan this document in order to build the Swagger docs
-    // @todo make this scan multiple sources to surface user defined microservices
-    // @todo MAKE THIS WORK
-    //let openapi = \OpenApi\scan(dirname(__FILE__) + '/Operations.php');
-    let openapi = HAXCMS.HAXCMS_ROOT + '/system/backends/php/lib/Operations.php';
+    // return json / yalm generated from php version
+    let format = 'yaml';
+    let formatClass = YAML;
+    // default is yaml but also support JSON output
+    if (req.route.path === "/system/api/openapi/json") {
+      format = 'json';
+      formatClass = JSON;
+    }
+    else {
+      res.setHeader('Content-Type', 'application/yaml');
+    }
+    let openapi = {};
+    try {
+      let fileContents = fs.readFileSync(`./lib/openapi/spec.${format}`,
+        {encoding:'utf8', flag:'r'}, 'utf8');
+      openapi = formatClass.parse(fileContents);
+    } catch (e) {
+        console.log(e);
+    }
     // dynamically add the version
     openapi.info.version = await HAXCMS.getHAXCMSVersion();
     openapi.servers = [];
@@ -26,11 +42,6 @@ const HAXCMS = require('../lib/HAXCMS.js');
     openapi.servers[0].url = HAXCMS.protocol + '://' + HAXCMS.domain + HAXCMS.basePath + HAXCMS.systemRequestBase;
     openapi.servers[0].description = "Site list / dashboard for administrator user";
     // output, yaml we have to exit early or we'll get encapsulation
-    if ((req.body['args']) && req.body['args'][1] == 'json') {
-      res.send(JSON.parse(openapi.toJson()));
-    }
-    else {
-      res.send(openapi.toYaml());
-    }
+    res.send(formatClass.stringify(openapi));
   }
   module.exports = openapi;

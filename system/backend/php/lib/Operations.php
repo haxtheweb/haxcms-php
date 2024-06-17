@@ -1675,7 +1675,7 @@ class Operations {
     }
   }
   /**
-   * @OA\Post(
+   * @OA\Get(
    *    path="/listFiles",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
@@ -1824,7 +1824,7 @@ class Operations {
     } 
   }
   /**
-   * @OA\Post(
+   * @OA\Get(
    *    path="/logout",
    *    tags={"cms","user"},
    *    @OA\Response(

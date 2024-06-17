@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const HAXCMS = require('./HAXCMS.js');
-const mime = require('mime');
+const mime = import('mime');
 const sharp = require('sharp');
 // a site object
 class HAXCMSFile
@@ -57,7 +57,7 @@ class HAXCMSFile
         /*try {
             fs.mkdir(path + 'scale-50');
             fs.mkdir(path + 'crop-sm');
-        } catch (IOExceptionInterface exception) {
+        } catch (IOExceptionInterface exopenapiception) {
             echo "An error occurred while creating your directory at " +
                 exception.getPath();
         }

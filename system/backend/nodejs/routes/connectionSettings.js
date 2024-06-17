@@ -60,7 +60,7 @@ async function connectionSettings(req, res) {
     downloadSite: `${baseAPIPath}downloadSite`,
     archiveSite: `${baseAPIPath}archiveSite`,
     copySite: `${baseAPIPath}cloneSite`,
-    getSitesList: `${baseAPIPath}getSitesList`,
+    getSitesList: `${baseAPIPath}listSites`,
   });
   res.send(`window.appSettings =${returnData};`);
 }

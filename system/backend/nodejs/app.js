@@ -69,6 +69,7 @@ const openRoutes = [
   'api',
   'options',
   'openapi',
+  'openapi/json',
   'refreshAccessToken'
 ];
 // loop through methods and apply the route to the file to deliver it

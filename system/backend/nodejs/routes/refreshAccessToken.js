@@ -14,7 +14,10 @@ function refreshAccessToken(req, res) {
   const validRefresh = HAXCMS.validateRefreshToken(false, req);
   // if we have a valid refresh token then issue a new access token
   if (validRefresh) {
-    res.send(HAXCMS.getJWT(validRefresh.user));
+    res.send({
+      status: 200,
+      jwt: HAXCMS.getJWT(validRefresh.user)
+    });
   }
   else {
     res.cookie('haxcms_refresh_token', '');
