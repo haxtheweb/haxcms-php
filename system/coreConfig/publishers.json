@@ -1,14 +1,14 @@
 {
   "local": {
-    "name": "Locally",
+    "name": "Local",
     "machine": "local",
     "type": "public",
-    "image": "system/backend/php/publishing/local/local.png"
+    "image": "dist/coreConfig/publishing/local/local.png"
   },
   "github": {
     "name": "Github",
     "machine": "github",
     "type": "public",
-    "image": "system/backend/php/publishing/github/github.png"
+    "image": "dist/coreConfig/publishing/github/github.png"
   }
 }

@@ -3,29 +3,17 @@
   "version": "{{ version }}",
   "description": "{{ description }}",
   "main": "index.html",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com/haxtheweb/haxcms.git"
-  },
   "author": {
     "name": "btopro"
   },
   "license": "Apache-2.0",
-  "dependencies": {
-    "@haxtheweb/haxcms-elements": "^8.0.0"
-  },
   "private": false,
   "publishConfig": {
     "access": "public"
   },
-  "resolutions": {
-  },
-  "devDependencies": {
-    "@web/dev-server": "0.3.0"
-  },
   "scripts": {
-    "start": "yarn run dev",
-    "dev": "web-dev-server -c web-dev-server.haxcms.config.cjs",
-    "dev-theme": "cd custom && yarn start"
+    "start": "npm run dev",
+    "dev": "npx @haxtheweb/haxcms-nodejs",
+    "dev-theme": "cd custom && npm start"
   }
 }
