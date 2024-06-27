@@ -190,11 +190,16 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     chmod("_config/tmp", 0755);
     chmod("_config/config.json", 0644);
     chmod("_config/userData.json", 0644);
+    // identifies this as a config directory for HAXcms since it is a generic name
+    file_put_contents(
+      '_config/.isHAXcmsConfig', ""
+    );
     // set SALT
     file_put_contents(
       '_config/SALT.txt',
       uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid()
     );
+
     // set things in config file from the norm
     $configFile = file_get_contents('_config/config.php');
     // private key

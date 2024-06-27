@@ -95,6 +95,8 @@ cd ..
 # whew that was hard work. the end.
 
 # jk
+# identifies this as a config directory for HAXcms since it is a generic name
+touch _config/.isHAXcmsConfig
 # echo a uuid to a salt file we can use later on
 touch _config/SALT.txt
 echo "$(getuuid)" > _config/SALT.txt

@@ -159,6 +159,7 @@
 					"required": true,
 					"options": {
 						"cdn.webcomponents.psu.edu": "Penn State CDN",
+						"cdn.hax.cloud": "Penn State CDN",
 						"cdn.waxam.io": "Waxam CDN",
 						"build": "Local (no CDN)"
 					},

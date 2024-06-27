@@ -278,7 +278,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     </app-hax>
     <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
-    <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.__appForceUpgrade=true;</script>
+    <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
     <?php $bottom = ''; $HAXCMS->dispatchEvent('haxcms-app-bottom', $bottom); print $bottom;?>
   </body>
