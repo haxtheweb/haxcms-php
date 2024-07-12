@@ -13,7 +13,7 @@ HAX (Headless Authoring eXperience) is a <a href="https://developer.mozilla.org/
 You can run and build assets local to your project as opposed to using one of the zero-config CDNs (or use your own!). CDN providers are created using the following tools:
 - [Unbundled Webcomponents repo](https://github.com/elmsln/unbundled-webcomponents) - Using this can you can make your own build that works in HAX and any other website with relative ease. The tooling is all preconfigured, all you need to do is install new assets from NPM (use yarn to do this) and 
 - [OpenWC](https://open-wc.org/) - While not HAX related, this is a great community tooling repo to get started with web components and front end development using best practices.
-- [WCFactory](https://github.com/haxtheweb/wcfactory) - This can be used to build and manage a web components repo at scale. This is a meta tooling which can be used to build a monorepo using best practices of managing and deployment hundreds of elements. This is what the HAX core team uses to build and manage [LRNWebComponents](https://github.com/haxtheweb/webcomponents).
+- [WCFactory](https://github.com/haxtheweb/wcfactory) - This can be used to build and manage a web components repo at scale. This is a meta tooling which can be used to build a monorepo using best practices of managing and deployment hundreds of elements. This is what the HAX core team uses to build and manage [Webcomponents](https://github.com/haxtheweb/webcomponents).
 - [lit-element docs](https://lit-element.polymer-project.org/) - While not required, LitElement is a very popular base case for development web components that provides better DX than "VanillaJS" while still being extremely small.
 
 ## Wiring custom elements to HAX
