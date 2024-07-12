@@ -1,6 +1,6 @@
 {
   "name": "haxcms",
-  "version": "2.0.9",
+  "version": "9.0.0",
   "description": "CMS backend and rigging for a full on CMS",
   "main": "../index.html",
   "repository": {
@@ -12,7 +12,10 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@haxtheweb/haxcms-nodejs": "^0.0.15"
+    "@haxtheweb/haxcms-nodejs": "^0.0.16"
+  },
+  "devDependencies": {
+    "commit-and-tag-version": "^12.4.1"
   },
   "scripts": {
     "start": "yarn run dev",

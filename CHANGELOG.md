@@ -1,4 +1,8 @@
-# HAXcms change log
+# Changelog
+
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## 9.0.0 (2024-07-12)
 
 ## 8.0.0 - 23-12-21
 This is a pretty massive update in perspection of quality of the system. Since Version 7 released in June, there have been 291 issues closed that are in this release!
