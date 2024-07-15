@@ -39,6 +39,8 @@
         "play-list": "@haxtheweb/play-list/play-list.js",
         "simple-cta": "@haxtheweb/simple-cta/simple-cta.js",
         "page-section": "@haxtheweb/page-section/page-section.js",
+        "page-break": "@haxtheweb/page-break/page-break.js",
+        "page-anchor": "@haxtheweb/page-break/lib/page-anchor.js",
         "spotify-embed": "@haxtheweb/spotify-embed/spotify-embed.js",
         "media-image": "@haxtheweb/media-image/media-image.js",
         "inline-audio": "@haxtheweb/inline-audio/inline-audio.js",
@@ -73,7 +75,6 @@
         "date-card": "@haxtheweb/date-card/date-card.js",
         "h5p-element": "@haxtheweb/h5p-element/h5p-element.js",
         "md-block": "@haxtheweb/md-block/md-block.js",
-        "page-break": "@haxtheweb/page-break/page-break.js",
         "rpg-character": "@haxtheweb/rpg-character/rpg-character.js"
     },
       "apiKeys": {
