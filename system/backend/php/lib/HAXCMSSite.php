@@ -1316,8 +1316,8 @@ class HAXCMSSite
       $themePreload = '';
       // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" as="script" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" />';
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
         $description = $this->manifest->description;
