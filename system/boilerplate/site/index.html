@@ -20,6 +20,9 @@
     else if (document.location.pathname.indexOf('/sites/') != -1) {
       document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
     }
+    else if (globalThis.location.host.indexOf('github.io') != -1 && globalThis.location.pathname.split('/').length > 1) {
+      document.write("<base href='/" + document.location.pathname.split('/')[1] + "/' />");
+    }
     else {
       document.write("<base href='/' />");
     }
@@ -160,18 +163,18 @@
     }
   </style>
   <script id="loadingscript">
-    window.dataLayer = window.dataLayer || [];
+    globalThis.dataLayer = globalThis.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    window.addEventListener('haxcms-ready', function(e) {
+    globalThis.addEventListener('haxcms-ready', function(e) {
       var s = document.createElement('script');
       s.async = true;
       document.body.appendChild(s);
       // give the web components a second to build
       setTimeout(function() {
         setTimeout(function() {
-          if (window.HAXCMS.requestAvailability().store.getManifest()) {
-          var gaid = window.HAXCMS.requestAvailability().store.getManifest().metadata.site.settings.gaID || null;
+          if (globalThis.HAXCMS.requestAvailability().store.getManifest()) {
+          var gaid = globalThis.HAXCMS.requestAvailability().store.getManifest().metadata.site.settings.gaID || null;
           if (gaid) {
             gtag('config', gaid);
             s.src = `https://www.googletagmanager.com/gtag/js?id=${gaid}`;
@@ -203,8 +206,8 @@
     </div>
   </div>
   <script>
-    window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};
-    window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="./";window.__appForceUpgrade=false;</script>
+    globalThis.MicroFrontendRegistryConfig = globalThis.MicroFrontendRegistryConfig || {};
+    globalThis.HAXCMSContext="php";document.body.removeAttribute('no-js');globalThis.__appCDN="./";globalThis.__appForceUpgrade=false;</script>
   <script src="./build-haxcms.js"></script>
   <script src="./build.js"></script>
 </body>
