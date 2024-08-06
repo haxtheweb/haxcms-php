@@ -1693,6 +1693,7 @@ class HAXCMS
         }
     }
 }
+
 class DirFilter extends RecursiveFilterIterator
 {
     protected $exclude;
@@ -1701,11 +1702,11 @@ class DirFilter extends RecursiveFilterIterator
         parent::__construct($iterator);
         $this->exclude = $exclude;
     }
-    public function accept()
+    public function accept(): bool
     {
         return !($this->isDir() && in_array($this->getFilename(), $this->exclude));
     }
-    public function getChildren()
+    public function getChildren(): ?\RecursiveFilterIterator
     {
         return new DirFilter($this->getInnerIterator()->getChildren(), $this->exclude);
     }
