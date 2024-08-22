@@ -321,6 +321,22 @@ class HAXCMSSite
       }
       return null;
     }
+  /**
+     * Return the gaIDCode if we have a gaID
+     */
+    public function getGaCode() {
+      if (!is_null($this->getGaID())) {
+        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $this->getGaID() . "\"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+      
+          gtag('config', '" . $this->getGaID() . "');
+        </script>";
+      }
+      return '';
+    }
     /**
      * Return the sw status
      * @return string status of forced upgrade, string as boolean since it'll get written into a JS file
@@ -378,6 +394,7 @@ class HAXCMSSite
         // this can't be there by default since it's a dynamic file and we only
         // want to update this when we are refreshing the managed files directly
         $templates['indexphp'] = 'index.php';
+        $templates['configphp'] = 'config.php';
       }
       $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
       $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
@@ -770,23 +787,6 @@ class HAXCMSSite
               // some of these XML parsers are a bit unstable
           }
       }
-      if (is_null($format) || $format == 'legacy') {
-          // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-          @file_put_contents(
-              $siteDirectory . 'legacy-outline.html',
-              '<!DOCTYPE html>
-              <html lang="' . $this->getLanguage() . '">
-                <head>
-                      <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-                      <meta content="utf-8" http-equiv="encoding">
-                      <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
-                  </head>
-                  <body>' .
-                  $this->treeToNodes($this->manifest->items) .
-                  '</body>
-              </html>'
-          );
-      }
       $domain = NULL;
       if (isset($this->manifest->metadata->site->domain)) {
         $domain = $this->manifest->metadata->site->domain;
@@ -832,23 +832,6 @@ class HAXCMSSite
       @$generator->createSitemap();
       // writing early generated sitemap to file
       @$generator->writeSitemap();
-      if (is_null($format) || $format == 'legacy') {
-          // now generate a static list of links. This is so we can have legacy fail-back iframe mode in tact
-          @file_put_contents(
-              $siteDirectory . 'legacy-outline.html',
-              '<!DOCTYPE html>
-              <html lang="' . $this->getLanguage() . '">
-                  <head>
-                      <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-                      <meta content="utf-8" http-equiv="encoding">
-                      <link rel="stylesheet" type="text/css" href="assets/legacy-outline.css">
-                  </head>
-                  <body>' .
-                  $this->treeToNodes($this->manifest->items) .
-                  '</body>
-              </html>'
-          );
-      }
       if (is_null($format) || $format == 'search') {
           // now generate the search index
           @file_put_contents(
@@ -1335,7 +1318,7 @@ class HAXCMSSite
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
-  <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" />
+  <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />

@@ -77,22 +77,11 @@
     }
   </style>
 </head>
-<body no-js {{ bodyAttrs|raw }}>
+<body {{ bodyAttrs|raw }}>
   <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>{{ title }}</div><div>loading</div></div></haxcms-site-builder>
-  <div id="haxcmsoutdatedfallback">
-    <div id="haxcmsoutdatedfallbacksuperold"> 
-      <iframe id="outline" loading="lazy" style="width:18%;float:left;height:90vh;padding:0;margin:0;" name="outline" id="frame1"
-        src="legacy-outline.html"></iframe>
-      <iframe id="content" loading="lazy" style="width:80%;float:left;height:90vh;padding:0;margin:0;" name="content" id="frame2" src=""></iframe>
-      <div class="use-modern-browser">Please use a modern browser to
-        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
-    </div>
-  </div>
   <script>
     window.HAXCMSContext="published";
-    document.body.removeAttribute('no-js');
     window.__appCDN="./";
-    window.__appForceUpgrade={{ forceUpgrade }};
   </script>
   <script src="./build-haxcms.js"></script>
   <script src="./build.js"></script>

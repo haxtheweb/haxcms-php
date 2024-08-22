@@ -1,69 +1,85 @@
 <?php
-  $bootstrapPath = "/../..";
-  if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
-    $GLOBALS["HAXcmsInDocker"] = true;
-    $bootstrapPath = "";
-  }
-  include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
-  include_once $HAXCMS->configDirectory . '/config.php';
-  $site = $HAXCMS->loadSite(basename(__DIR__));
-  $page = $site->loadNodeByLocation();
-  $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
+// include config which is used to derive site state
+// if we don't have config, ignore this file and force index.html to
+// be the output
+if (file_exists('config.php')) {
+  include_once 'config.php';
+  $HAXSiteConfig = $GLOBALS["HAXSiteConfig"];
+}
+else {
+  print file_get_contents('index.html');
+  exit();
+}
 ?>
 <!DOCTYPE html>
-<html lang="<?php print $site->getLanguage(); ?>">
+<html lang="<?php print $HAXSiteConfig->getLanguage(); ?>">
 <head>
-  <?php print $site->getBaseTag(); ?>
-  <?php print $site->getSiteMetadata($page); ?>
-  <?php print $site->getServiceWorkerScript(null, FALSE, $site->getServiceWorkerStatus()); ?>
+  <?php print $HAXSiteConfig->getBaseTag(); ?>
+  <?php print $HAXSiteConfig->getSiteMetadata($HAXSiteConfig->page); ?>
+  <?php print $HAXSiteConfig->getServiceWorkerScript(null, FALSE, $HAXSiteConfig->getServiceWorkerStatus()); ?>
   <style>
     body {
       margin: 0;
+      padding: 0;
       min-height: 98vh;
     }
-    .use-modern-browser a {
-      font-size: 22px;
+    haxcms-site-builder:not([theme-loaded]) * {
+      margin-top: 100px;
+      display: block;
+      max-width: 50vw;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .use-modern-browser {
-      font-size: 22px;
-      text-align: center;
-      width: 100%;
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) {
+      margin-top: 100px;
+    }
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) * {
+      max-width: 50vw;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) *:not(:defined) {
+      display: block;
+      min-height: 50px;
+      min-width: 200px;
     }
   </style>
   <style id="loadingstyles">
     haxcms-site-builder {
       display: block;
     }
-    body[no-js] haxcms-site-builder {
-      display: none !important;
+    body {
+      background-color: #ffffff;
+      color: rgba(0,0,0, 0.2);
     }
     #loading {
-      background-color: white;
+      background-color: #ffffff;
       bottom: 0px;
       left: 0px;
       opacity: 1;
       position: absolute;
       right: 0px;
       top: 0px;
-      transition: all linear 300ms;
-      -webkit-transition: all linear 300ms;
       z-index: 99999999;
     }
-
     #loading.loaded {
-      animation: fade-out .7s ease-in-out;
+      animation: fade-out .1s ease-in-out;
       animation-fill-mode: forwards;
     }
     #loading div.messaging {
-      color: rgba(255,255,255, 0.7);
-      font-family: Roboto;
+      color: rgba(0,0,0, 0.2);
       left: 0px;
-      margin-top: -75px;
       position: absolute;
       right: 0px;
       text-align: center;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 25vh;
+    }
+    #loading div.messaging h1 {
+      font-family: Helvetica, "Trebuchet MS", Verdana, sans-serif !important;
+      line-height: 2;
+      font-size: 18px !important;
+      margin: 0;
+      padding: 0;
     }
 
     .progress-line,
@@ -73,13 +89,13 @@
       margin: auto;
     }
     .progress-line {
-      background-color: rgba(0,0,0, 0.05);
+      background-color: rgba(0,0,0, 0.1);
       display: -webkit-flex;
       display: flex;
-      width: 30vw;
+      width: 50vw;
     }
     .progress-line:before {
-      background-color: <?php print $color;?>;
+      background-color: <?php print $HAXSiteConfig->color;?>;
       content: '';
       animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
@@ -108,9 +124,21 @@
         opacity: 0;
       }
     }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #333333;
+        color: rgba(255,255,255, 0.2);
+      }
+      #loading {
+        background-color: #333333;
+      }
+      #loading div.messaging {
+        color: rgba(255,255,255, 0.2);
+      }
+    }
   </style>
   <script id="loadingscript">
-    window.addEventListener('haxcms-ready', function(e) {
+    globalThis.addEventListener('haxcms-ready', function(e) {
       // give the web components a second to build
       setTimeout(function() {
         document.querySelector('#loading').classList.add('loaded');
@@ -118,30 +146,21 @@
           document.querySelector('#loading').parentNode.removeChild(document.querySelector('#loading'));
           document.querySelector('#loadingstyles').parentNode.removeChild(document.querySelector('#loadingstyles'));
           document.querySelector('#loadingscript').parentNode.removeChild(document.querySelector('#loadingscript'));
-        }, 600);
+        }, 100);
       }, 300);
     });
   </script>
 </head>
-<body no-js <?php print $site->getSitePageAttributes();?>>
+<body <?php print $HAXSiteConfig->getSitePageAttributes();?>>
   <div id="loading">
     <div class="messaging">
       <div class="progress-line"></div>
-      <h1 role="alert" aria-busy="true">Loading <?php print $site->name; ?>..</h1>
+      <h1 role="alert" aria-busy="true">Loading <?php print $HAXSiteConfig->name; ?>..</h1>
     </div>
   </div>
-  <haxcms-site-builder id="site" file="site.json<?php print $HAXCMS->cacheBusterHash();?>">
-    <?php print $site->getPageContent($page); ?>
+  <haxcms-site-builder id="site" file="site.json<?php print $HAXSiteConfig->cacheBusterHash();?>">
+    <?php print $HAXSiteConfig->getPageContent($HAXSiteConfig->page); ?>
   </haxcms-site-builder>
-  <div id="haxcmsoutdatedfallback">
-    <div id="haxcmsoutdatedfallbacksuperold"> 
-      <iframe id="outline" style="width:18%;float:left;height:90vh;padding:0;margin:0;" name="outline" id="frame1"
-        src="legacy-outline.html" loading="lazy"></iframe>
-      <iframe id="content" style="width:80%;float:left;height:90vh;padding:0;margin:0;" name="content" id="frame2" src="" loading="lazy"></iframe>
-      <div class="use-modern-browser">Please use a modern browser to
-        view our website correctly. <a href="http://outdatedbrowser.com/">Update my browser now</a></div>
-    </div>
-  </div>
   <script>
     <?php 
       // support for local dev overrides of where microservices / other JS comes from
@@ -149,18 +168,10 @@
         include_once '../../_config/.local.microservice.config.php';
       }
     ?>
-    window.HAXCMSContext="php";document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic($site);?>";window.__appForceUpgrade=<?php print $site->getForceUpgrade();?>;</script>
-  <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build-haxcms.js"></script>
-  <script src="<?php print $HAXCMS->getCDNForDynamic($site);?>build.js"></script>
-<?php if ($site->getGaID()) { ?>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=<?php print $site->getGaID();?>"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', '<?php print $site->getGaID();?>');
+    globalThis.HAXCMSContext="php";globalThis.__appCDN="<?php print $HAXSiteConfig->getCDNForDynamic();?>";
   </script>
-<?php } ?>
+  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build-haxcms.js"></script>
+  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build.js"></script>
+  <?php print $HAXSiteConfig->getGaCode(); ?>
 </body>
 </html>
