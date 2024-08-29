@@ -1,17 +1,15 @@
-APIVersion: v1.12.1
 name: haxcms
 type: php
 docroot: ""
-php_version: "7.4"
+php_version: "8.3"
+ddev_version_constraint: '>= v1.23.0'
 webserver_type: apache-fpm
 router_http_port: "80"
 router_https_port: "443"
 xdebug_enabled: false
+omit_containers: ["db"]
 additional_hostnames: []
 additional_fqdns: []
-mariadb_version: null
-nfs_mount_enabled: false
-provider: default
 hooks:
   post-start:
   - exec: sudo a2enmod http2
@@ -43,10 +41,7 @@ timezone: ""
 
 # docroot: <relative_path> # Relative path to the directory containing index.php.
 
-# php_version: "7.2"  # PHP version to use, "5.6", "7.0", "7.1", "7.2", "7.3", "7.4"
-
-# You can explicitly specify the webimage, dbimage, dbaimage lines but this
-# is not recommended, as the images are often closely tied to ddev's' behavior,
+# php_version: "7.2"  # Pdatae images are often closely tied to ddev's' behavior,
 # so this can break upgrades.
 
 # webimage: <docker_image>  # nginx/php docker image.

@@ -2,6 +2,12 @@
 // HAXSiteConfig
 // this is a bridge between HAXcms, HAXsite and page rendering in index.php
 class HAXSiteConfig {
+
+  public $site;     // site object based on current content
+  public $page;     // Page object based on current location
+  public $color;    // color, leveraged for a primary site color to use in loading / accents
+  public $name;     // name of the site
+  
   public function __construct($site = null) {
     $this->site = $site;
     $this->page = $this->site->loadNodeByLocation();

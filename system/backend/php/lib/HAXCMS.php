@@ -58,7 +58,7 @@ class HAXCMS
     public $safeInputStream;        // sanitized php input stream
     public $sessionJwt;             // session jwt; set via POST if it exists
     public $sessionToken;           // token for the request coming in; not a JWT but for form validation / XSS
-    public $siteListingAttr;        // additional attributes allowed to be injected into the site-listing page
+    public $siteListing;            // additional attributes / slots allowed to be injected into the site-listing page
     public $systemRequestBase;      // base path to the API backend
     public $acceptedHAXFileTypes;   // array of accepted file types via HAX types
     public $coreConfigPath;         // coreConfig path
@@ -1131,6 +1131,12 @@ class HAXCMS
       }
       $uri = '/' . ltrim($uri, '/');
       return $uri;
+    }
+    // load a site based on the name at a path
+    public function loadSiteViaConfig($name, $path) {
+      $site = new HAXCMSSite();
+      $site->load($path, '/', $name);
+      return $site;
     }
     /**
      * Load a site off the file system with option to create
