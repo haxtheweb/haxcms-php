@@ -3,7 +3,7 @@
     "description": "Headless CMS for managing and publishing hybrid static, web component driven sites.",
     "license": "Apache-2.0",
     "require": {
-        "php": "^7.1",
+        "php": "^8.1",
         "guzzlehttp/guzzle": "^6.3",
         "twig/twig": "^2.0",
         "icamys/php-sitemap-generator": "^1.0",

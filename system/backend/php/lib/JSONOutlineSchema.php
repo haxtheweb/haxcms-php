@@ -19,6 +19,7 @@ class JSONOutlineSchema
     public $license;
     public $metadata;
     public $items;
+    public $location;
     /**
      * Establish defaults
      */

@@ -745,14 +745,14 @@ class HAXCMSSite
                       $siteDirectory
                   );
                   // will create also compressed (gzipped) sitemap
-                  $generator->createGZipFile = true;
+                  $generator->enableCompression();
                   // determine how many urls should be put into one file
                   // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-                  $generator->maxURLsPerSitemap = 50000;
+                  $generator->setMaxUrlsPerSitemap(50000);
                   // sitemap file name
-                  $generator->sitemapFileName = "sitemap.xml";
+                  $generator->setSitemapFilename("sitemap.xml");
                   // sitemap index file name
-                  $generator->sitemapIndexFileName = "sitemap-index.xml";
+                  $generator->setSitemapIndexFilename("sitemap-index.xml");
                   // adding url `loc`, `lastmodified`, `changefreq`, `priority`
                   foreach ($this->manifest->items as $key => $item) {
                       if ($item->parent == null) {
@@ -778,10 +778,9 @@ class HAXCMSSite
                           $priority
                       );
                   }
-                  // generating internally a sitemap
-                  @$generator->createSitemap();
                   // writing early generated sitemap to file
-                  @$generator->writeSitemap();
+                  @$generator->flush();
+                  @$generator->finalize();
               }
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
@@ -801,14 +800,14 @@ class HAXCMSSite
           $siteDirectory
       );
       // will create also compressed (gzipped) sitemap
-      $generator->createGZipFile = true;
+      $generator->enableCompression();
       // determine how many urls should be put into one file
       // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-      $generator->maxURLsPerSitemap = 50000;
+      $generator->setMaxUrlsPerSitemap(50000);
       // sitemap file name
-      $generator->sitemapFileName = "sitemap.xml";
+      $generator->setSitemapFilename("sitemap.xml");
       // sitemap index file name
-      $generator->sitemapIndexFileName = "sitemap-index.xml";
+      $generator->setSitemapIndexFilename("sitemap-index.xml");
       // adding url `loc`, `lastmodified`, `changefreq`, `priority`
       foreach ($this->manifest->items as $key => $item) {
           if ($item->parent == null) {
@@ -828,10 +827,9 @@ class HAXCMSSite
               $priority
           );
       }
-      // generating internally a sitemap
-      @$generator->createSitemap();
       // writing early generated sitemap to file
-      @$generator->writeSitemap();
+      @$generator->flush();
+      @$generator->finalize();
       if (is_null($format) || $format == 'search') {
           // now generate the search index
           @file_put_contents(
@@ -1257,12 +1255,14 @@ class HAXCMSSite
       }
       else {
         $content = $this->getPageContent($page);
-        preg_match_all("/<(?:\"-[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>/", $content, $matches);
-        foreach ($matches[0] as $match) {
-          if (strpos($match, '-')) {
-            $tag = str_replace('>', '', str_replace('</', '', $match));
-            $preloadTags[$tag] = $tag;
-          }
+        if (!is_null($content)) {
+          preg_match_all("/<(?:\"-[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>/", $content, $matches);
+          foreach ($matches[0] as $match) {
+            if (strpos($match, '-')) {
+              $tag = str_replace('>', '', str_replace('</', '', $match));
+              $preloadTags[$tag] = $tag;
+            }
+          }  
         }
       }
       // domain's need to inject their own full path for OG metadata (which is edge case)

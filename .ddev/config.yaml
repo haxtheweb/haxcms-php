@@ -1,7 +1,7 @@
 name: haxcms
 type: php
 docroot: ""
-php_version: "8.3"
+php_version: "7.4"
 ddev_version_constraint: '>= v1.23.0'
 webserver_type: apache-fpm
 router_http_port: "80"
