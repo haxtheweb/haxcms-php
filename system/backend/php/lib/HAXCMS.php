@@ -1133,9 +1133,23 @@ class HAXCMS
       return $uri;
     }
     // load a site based on the name at a path
-    public function loadSiteViaConfig($name, $path) {
+    public function loadSiteFromConfig($dir) {
+      // dir is the location of the config file which is sitting in a site
+      // this means the basename is the name of the site and that the path
+      // value is the directory that the base lives within
+      $name = basename($dir);
+      $path = dirname($dir)
       $site = new HAXCMSSite();
-      $site->load($path, '/', $name);
+      // check for an environment variable dictating the <base> tag
+      // this ensures the PWA nature of the system will load successfully based on
+      // a vanity URL being supplied
+      $base = getenv('HAXSITE_BASE_URL');
+      // if no base supplied we need to assume to do the HAXcms /sites/{name} alignment
+      // naming conventioin for the base
+      if (is_null($base)) {
+        $base = $this->basePath . $this->sitesDirectory . '/';
+      }
+      $site->load($path, $base, $name);
       return $site;
     }
     /**

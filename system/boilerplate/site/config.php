@@ -35,7 +35,7 @@ if (file_exists(__DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/lib/HAXSiteConfig.php';
   include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
-  $site = $HAXCMS->loadSite(basename(__DIR__));
+  $site = $HAXCMS->loadSiteFromConfig(__DIR__);
   $page = $site->loadNodeByLocation();
   $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
   $HAXSiteConfig = new HAXSiteConfig($site);
