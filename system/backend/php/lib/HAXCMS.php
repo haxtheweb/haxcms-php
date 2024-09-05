@@ -1146,7 +1146,7 @@ class HAXCMS
       $base = getenv('HAXSITE_BASE_URL');
       // if no base supplied we need to assume to do the HAXcms /sites/{name} alignment
       // naming conventioin for the base
-      if (is_null($base)) {
+      if (!$base) {
         $base = $this->basePath . $this->sitesDirectory . '/';
       }
       $site->load($path, $base, $name);
