@@ -1138,7 +1138,7 @@ class HAXCMS
       // this means the basename is the name of the site and that the path
       // value is the directory that the base lives within
       $name = basename($dir);
-      $path = dirname($dir)
+      $path = dirname($dir);
       $site = new HAXCMSSite();
       // check for an environment variable dictating the <base> tag
       // this ensures the PWA nature of the system will load successfully based on
