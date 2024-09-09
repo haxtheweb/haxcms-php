@@ -1100,10 +1100,15 @@ class HAXCMSSite
      * @return string HTML blob for hte <base> tag
      */
     public function getBaseTag() {
-      if (isset($GLOBALS["HAXcmsInDocker"])) {
-        return '<base href="' . $this->basePath . '" />';
+      return '<base href="' . $this->getPWABaseTagPath() . '" />';
+    }
+    // get the path that sites in the <base> tag's href. This call is in the event
+    // we want to start using this in the future
+    public function getPWABaseTagPath() {
+      if (isset($GLOBALS["HAXcmsInDocker"]) || getenv('HAXSITE_BASE_URL')) {
+        return $this->basePath;
       }
-      return '<base href="' . $this->basePath . $this->manifest->metadata->site->name . '/" />';
+      return $this->basePath . $this->manifest->metadata->site->name . '/';
     }
     /**
      * Return a standard service worker that takes into account

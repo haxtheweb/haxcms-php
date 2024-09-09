@@ -539,7 +539,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       // support dynamic calculation
       if (is_null($basePath)) {
-        $basePath = $this->basePath . $this->manifest->metadata->site->name . '/';
+        $basePath = $this->basePath;
       }
       return "
       <script>
