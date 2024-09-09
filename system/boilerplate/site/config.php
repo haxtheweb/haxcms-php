@@ -53,8 +53,14 @@ if (!isset($GLOBALS['HAXCMS'])) {
   class HAXSiteConfig {
     public function __construct($basePath = NULL, $location = "./site.json") {
       $this->basePath = $basePath;
+      // test forced setting, fallback to an environmental global, then just /
       if ($this->basePath === NULL) {
-        $this->basePath = $this->request_uri();
+        if (getenv('HAXSITE_BASE_URL')) {
+          $this->basePath = getenv('HAXSITE_BASE_URL');
+        }
+        else {
+          $this->basePath = '/';
+        }
       }
       $this->cdn = './';
       $this->developerMode = FALSE;
