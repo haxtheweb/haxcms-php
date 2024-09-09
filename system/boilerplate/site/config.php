@@ -377,6 +377,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
       // load from the active address if we have one
       if (is_null($path)) {
         $opPath = str_replace($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $this->request_uri());
+        if (getenv('HAXSITE_BASE_URL')) {
+          $opPath = str_replace(getenv('HAXSITE_BASE_URL'), '', $opPath);
+        }
         $path = $opPath;
       }
       $path .= "/index.html";
