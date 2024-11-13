@@ -6,7 +6,7 @@
 - [Code Review](#code-review)
 - [Best Practices](#best-practices)
 - [Testing](#testing)
-- [Security](#securit)
+- [Security](#security)
 
 HAX is open source, but many of the people working on it do so as their day job.
 In order to avoid forcing people to be "at work" effectively 24/7, we want to establish some semi-formal protocols around development.
