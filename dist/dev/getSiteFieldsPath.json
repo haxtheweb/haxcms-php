@@ -31,8 +31,8 @@
 					"icon": "editor:short-text"
 				}, {
 					"property": "manifest-metadata-site-logo",
-					"title": "Logo",
-					"description": "Logo for thumbnails, browser tabs and used on phones",
+					"title": "Favicon",
+					"description": "Browser tab image / used on phones as small site logo",
 					"inputMethod": "haxupload",
 					"required": false,
 					"noVoiceRecord": true
