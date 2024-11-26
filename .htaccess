@@ -7,8 +7,11 @@
     Order allow,deny
   </IfModule>
 </FilesMatch>
-Header add Cross-Origin-Embedder-Policy "require-corp"
-Header add Cross-Origin-Opener-Policy "same-origin"
+
+#only uncomment these if you understand the implication as CDNs become off limits
+#Header add Cross-Origin-Embedder-Policy "require-corp"
+#Header add Cross-Origin-Opener-Policy "same-origin"
+
 # Don't show directory listings for URLs which map to a directory.
 Options -Indexes
 # Follow symbolic links in this directory.
