@@ -9,11 +9,11 @@
 /.homeadditions
 /.importdb*
 /.sshimageBuild
-/.venv
 /.webimageBuild
 /apache/apache-site.conf
 /commands/.gitattributes
 /config.local.y*ml
+/config.*.local.y*ml
 /db_snapshots
 /mutagen/mutagen.yml
 /mutagen/.start-synced
@@ -25,7 +25,6 @@
 /providers/platform.yaml
 /providers/upsun.yaml
 /sequelpro.spf
-/settings/settings.ddev.py
 /traefik/config/haxcms.yaml
 /traefik/certs/haxcms.crt
 /traefik/certs/haxcms.key
