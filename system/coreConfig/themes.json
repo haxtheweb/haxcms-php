@@ -26,7 +26,7 @@
   "polaris-theme": {
     "element": "polaris-theme",
     "path": "@haxtheweb/polaris-theme/polaris-theme.js",
-    "name": "Polaris - Basic site",
+    "name": "Polaris - 2020",
     "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
   },
   "polaris-invent-theme": {
@@ -39,6 +39,12 @@
     "element": "polaris-flex-theme",
     "path": "@haxtheweb/polaris-theme/lib/polaris-flex-theme.js",
     "name": "Polaris - Flex",
+    "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
+  },
+  "polaris-flex-sidebar": {
+    "element": "polaris-flex-sidebar",
+    "path": "@haxtheweb/polaris-theme/lib/polaris-flex-sidebar.js",
+    "name": "Polaris - Flex Sidebar",
     "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
   },
   "ddd-brochure-theme": {
