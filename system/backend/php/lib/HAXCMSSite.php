@@ -1105,8 +1105,11 @@ class HAXCMSSite
     // get the path that sites in the <base> tag's href. This call is in the event
     // we want to start using this in the future
     public function getPWABaseTagPath() {
-      if (isset($GLOBALS["HAXcmsInDocker"]) || getenv('HAXSITE_BASE_URL')) {
+      if (isset($GLOBALS["HAXcmsInDocker"])) {
         return $this->basePath;
+      }
+      if (getenv('HAXSITE_BASE_URL')) {
+        return getenv('HAXSITE_BASE_URL');
       }
       return $this->basePath . $this->manifest->metadata->site->name . '/';
     }

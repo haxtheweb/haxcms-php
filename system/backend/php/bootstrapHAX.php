@@ -43,6 +43,13 @@ if (file_exists($here . '/_config/IAM')) {
       }
     }
   }
+
+  // account for vanity domains
+  if (isset($_SERVER['HAXSITE_BASE_URL']) && isset($_SERVER['DOCUMENT_ROOT'])) {
+    $pieces2 = explode('/', $_SERVER['DOCUMENT_ROOT']);
+    $userDir = $pieces2[count($pieces2)-4];
+  }
+
   // leverage BRANCH in order to calculate the correct directory name here
   if ($branch = file_get_contents($here . '/BRANCH.txt')) {
     // intenals rewrite for things that are login in nature
