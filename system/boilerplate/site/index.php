@@ -14,6 +14,15 @@ else {
 <!DOCTYPE html>
 <html lang="<?php print $HAXSiteConfig->getLanguage(); ?>">
 <head>
+  <script type="importmap">
+    {
+      "scopes": {
+        "./custom/build/": {
+          "@haxtheweb/": "./build/es6/node_modules/@haxtheweb/"
+        }
+      }
+    }
+  </script>
   <?php print $HAXSiteConfig->getBaseTag(); ?>
   <?php print $HAXSiteConfig->getSiteMetadata($HAXSiteConfig->page); ?>
   <?php print $HAXSiteConfig->getServiceWorkerScript(null, FALSE, $HAXSiteConfig->getServiceWorkerStatus()); ?>
@@ -152,12 +161,12 @@ else {
   </script>
 </head>
 <body <?php print $HAXSiteConfig->getSitePageAttributes();?>>
-  <div id="loading">
+  <section role="alert" id="loading" aria-busy="true">
     <div class="messaging">
       <div class="progress-line"></div>
-      <h1 role="alert" aria-busy="true">Loading <?php print $HAXSiteConfig->name; ?>..</h1>
+      <h1>Loading <?php print $HAXSiteConfig->name; ?>..</h1>
     </div>
-  </div>
+  </section>
   <haxcms-site-builder id="site" file="site.json<?php print $HAXSiteConfig->cacheBusterHash();?>">
     <?php print $HAXSiteConfig->getPageContent($HAXSiteConfig->page); ?>
   </haxcms-site-builder>

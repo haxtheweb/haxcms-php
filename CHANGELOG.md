@@ -22,7 +22,7 @@ It adds a new concept in theming called "Regions" which are very easy to impleme
 
 - Documentation / Community Improvements
   - Monthly team meetings and Bi-monthly User meetings now take place
-  - New community documentation and excellence in teaching resource established via HAXcellence: https://oer.hax.psu.edu/bto108/sites/haxcellence/
+  - New community documentation and excellence in teaching resource established via haxtheweb: https://haxtheweb.org/
   - Site contains tutorials, Pedagogical articles, videos, community stances / pillars, experiments and more
   - https://www.youtube.com/@haxtheweb associated YouTube channel just for the project
 - Merlin Improvements
@@ -59,7 +59,7 @@ Merlin added for a more inteligent way of working with the system and discoverin
 - Lots of new block types for instructional design including inline audio, multiple choice, mark the words, "learning component", page types, worksheet downloads and more!
 - Additional blocks including audio players, spotify embed, twitter embed, author "page flag" notes, collapsed fieldsets!
 - Performance - This version of HAX loads even faster than previous iterations at all levels. Sites load faster, pages load faster, larger sites load faster, and the editor loads faster with less resources with extensive testing and support for low performance / connectivity devices and environments
-- Ground work laid for the team to begin building out HAXCellence - A resource for teaching excellence with HAX. Learn more about this work in progress effort to make HAX the ultimate instructional design and development backed platform -- https://oer.hax.psu.edu/bto108/sites/haxcellence/ontology
+- Ground work laid for the team to begin building out HAXCellence - A resource for teaching excellence with HAX. Learn more about this work in progress effort to make HAX the ultimate instructional design and development backed platform -- https://haxtheweb.org/ontology
 
 ## 6.0.0 - 2022-12-20
 Features as related from our new Request Intake process

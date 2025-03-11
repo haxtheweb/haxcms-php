@@ -17,7 +17,7 @@ jobs:
         run: echo 'GITHUB_REPOSITORY=$GITHUB_REPOSITORY' >> $GITHUB_ENV
         
       - name: Checkout 🛎️
-        uses: actions/checkout@v4.1.7 # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
+        uses: actions/checkout@v4.1.7
         with:
           persist-credentials: false
 
@@ -34,6 +34,6 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4.6.3
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: $GITHUB_BASE_REF # The branch the action should deploy to.
-          FOLDER: ./ # The folder the action should deploy.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.base_ref }} # The branch the action should deploy to.
+          folder: ./ # The folder the action should deploy.
