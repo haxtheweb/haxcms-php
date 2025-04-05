@@ -9,9 +9,11 @@
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "start": "yarn run watch",
-    "watch": "rollup --watch -c rollup.config.js"
+    "watch": "rollup --watch -c rollup.config.js",
+    "analyze": "cem analyze --litelement --exclude build 'src/custom.js'"
   },
   "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.10.3",
     "rollup": "^2.0.0",
     "@rollup/plugin-node-resolve": "16.0.0",
     "@web/rollup-plugin-import-meta-assets": "^2.2.1",

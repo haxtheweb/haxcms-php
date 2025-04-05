@@ -1872,44 +1872,6 @@ class Operations {
   }
   /**
    * @OA\Post(
-   *    path="/setUserPhoto",
-   *    tags={"cms","authenticated","user"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Set the user's uploaded photo"
-   *   )
-   * )
-   */
-  public function setUserPhoto() {
-    // @todo might want to scrub prior to this level but not sure
-    if (isset($_FILES['file-upload'])) {
-      $upload = $_FILES['file-upload'];
-      $file = new HAXCMSFile();
-      $fileResult = $file->save($upload, 'system/user/files', null, 'thumbnail');
-      if ($fileResult['status'] == 500) {
-        return array(
-          '__failed' => array(
-            'status' => 500,
-            'message' => 'failed to write',
-          )
-        );
-      }
-      // save this back to the user data object
-      $values = new stdClass();
-      $values->userPicture = $fileResult['data']['file']['fullUrl'];
-      $GLOBALS['HAXCMS']->setUserData($values);
-      return $fileResult;
-    }
-  }
-  /**
-   * @OA\Post(
    *    path="/saveFile",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(

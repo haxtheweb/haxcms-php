@@ -1516,7 +1516,6 @@ class HAXCMS
         $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode';
         $settings->getUserDataPath = $path . 'getUserData';
-        $settings->setUserPhotoPath = $path . 'setUserPhoto';
         $settings->deleteNodePath = $path . 'deleteNode';
         $settings->createSite = $path . 'createSite';
         $settings->gitImportSite = $path . 'gitImportSite';

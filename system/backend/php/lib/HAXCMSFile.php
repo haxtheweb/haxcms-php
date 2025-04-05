@@ -16,14 +16,15 @@ class HAXCMSFIle
         $status = 0;
         $return = array();
         $name = $upload['name'];
-        // check for a file upload; we block a few formats by design
+        // ensure file is an image, video, docx, pdf, etc. of safe file types to allow uploading
         if (
             isset($upload['tmp_name']) &&
-            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) &&
-            strpos($name, '.php') === FALSE &&
-            strpos($name, '.sh') === FALSE &&
-            strpos($name, '.js') === FALSE &&
-            strpos($name, '.css') === FALSE
+            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) && 
+            // ensure file extension is an image, video, docx, pdf, etc. of safe file types to allow uploading
+            preg_match(
+                '/.(jpg|jpeg|png|gif|webm|webp|mp4|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|html|md)$/i',
+                $upload['name']
+            )
         ) {
             // get contents of the file if it was uploaded into a variable
             $filedata = @file_get_contents($upload['tmp_name']);
