@@ -1,6 +1,6 @@
 {
   "name": "haxcms",
-  "version": "9.0.6",
+  "version": "10.0.2",
   "description": "CMS backend and rigging for a full on CMS",
   "main": "../index.html",
   "repository": {
@@ -19,7 +19,8 @@
   },
   "scripts": {
     "start": "yarn run dev",
-    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/"
+    "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
+    "release": "commit-and-tag-version && git push --follow-tags origin master"
   },
   "npmClient": "yarn",
   "useWorkspaces": true,
