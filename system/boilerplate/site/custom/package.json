@@ -14,10 +14,10 @@
   },
   "devDependencies": {
     "@custom-elements-manifest/analyzer": "^0.10.3",
-    "rollup": "^2.0.0",
-    "@rollup/plugin-node-resolve": "16.0.0",
+    "rollup": "^4.39.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
     "@web/rollup-plugin-import-meta-assets": "^2.2.1",
-    "rollup-plugin-esbuild": "6.1.1",
-    "@rollup/plugin-babel": "6.0.4"
+    "rollup-plugin-esbuild": "^6.2.1",
+    "@rollup/plugin-babel": "^6.0.4"
   }
 }
