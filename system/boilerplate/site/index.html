@@ -1,26 +1,6 @@
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
-  <script type="importmap">
-    {
-      "scopes": {
-        "./custom/build/": {
-          "@haxtheweb/": "./build/es6/node_modules/@haxtheweb/"
-        }
-      }
-    }
-  </script>
-  <meta charset="utf-8">
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-  <title>HAXcms</title>
-  <meta name="application-name" content="HAXcms" />
-  <meta name="apple-mobile-web-app-title" content="HAXcms" />
-  <meta name="og:sitename" property="og:sitename" content="HAXcms" />
-  <meta name="og:title" property="og:title" content="HAXcms" />
-  <meta name="twitter:title" property="twitter:title" content="HAXcms" />
-  <meta name="og:url" property="og:url" content="/" data-managed-seo />
-  <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <script>
     // attempt to correctly set the base without knowing where we're installed fully...
     if (document.location.pathname.indexOf('/_sites/') != -1) {
@@ -41,6 +21,26 @@
       seoTag.setAttribute('content', document.location.href);
     }
   </script>
+  <script type="importmap">
+    {
+      "scopes": {
+        "./custom/build/": {
+          "@haxtheweb/": "./build/es6/node_modules/@haxtheweb/"
+        }
+      }
+    }
+  </script>
+  <meta charset="utf-8">
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <title>HAXcms</title>
+  <meta name="application-name" content="HAXcms" />
+  <meta name="apple-mobile-web-app-title" content="HAXcms" />
+  <meta name="og:sitename" property="og:sitename" content="HAXcms" />
+  <meta name="og:title" property="og:title" content="HAXcms" />
+  <meta name="twitter:title" property="twitter:title" content="HAXcms" />
+  <meta name="og:url" property="og:url" content="/" data-managed-seo />
+  <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <link rel="preload" href="./build.js" as="script" />
   <link rel="preload" href="./build-haxcms.js" as="script" />
   <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />

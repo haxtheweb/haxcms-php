@@ -22,7 +22,7 @@ class HAXCMSFIle
             (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) && 
             // ensure file extension is an image, video, docx, pdf, etc. of safe file types to allow uploading
             preg_match(
-                '/.(jpg|jpeg|png|gif|webm|webp|mp4|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|html|md)$/i',
+                '/.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|html|md)$/i',
                 $upload['name']
             )
         ) {

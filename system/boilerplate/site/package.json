@@ -13,7 +13,7 @@
   },
   "scripts": {
     "start": "npm run dev",
-    "ghpages:build": "rm assets/babel* && rm build && rm wc-registry.json",
+    "ghpages:build": "rm index.html && mv ghpages.html index.html && rm assets/babel* && rm build && rm wc-registry.json",
     "dev": "npx @haxtheweb/haxcms-nodejs",
     "dev-theme": "cd custom && npm start"
   }

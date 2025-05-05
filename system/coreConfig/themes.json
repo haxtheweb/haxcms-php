@@ -17,6 +17,12 @@
     "name": "Clean Portfolio theme",
     "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
   },
+  "journey-theme": {
+    "element": "journey-theme",
+    "path": "@haxtheweb/journey-theme/journey-theme.js",
+    "name": "Journey theme",
+    "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
+  },
   "learn-two-theme": {
     "element": "learn-two-theme",
     "path": "@haxtheweb/learn-two-theme/learn-two-theme.js",

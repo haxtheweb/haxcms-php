@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <script>
+    // attempt to correctly set the base without knowing where we're installed fully...
+    if (document.location.pathname.indexOf('/_sites/') != -1) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/_sites/') + 8)) + "/' />");
+    }
+    else if (document.location.pathname.indexOf('/sites/') != -1) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
+    }
+    else if (globalThis.location.host.indexOf('github.io') != -1 && globalThis.location.pathname.split('/').length > 1) {
+      document.write("<base href='/" + document.location.pathname.split('/')[1] + "/' />");
+    }
+    else {
+      document.write("<base href='/' />");
+    }
+    var mangedSEO = document.querySelectorAll('[data-managed-seo]');
+    for (var i = 0; i < mangedSEO.length; i++) {
+      var seoTag = mangedSEO[i];
+      seoTag.setAttribute('content', document.location.href);
+    }
+  </script>
+  <script type="importmap">
+    {
+      "scopes": {
+        "./custom/build/": {
+          "@haxtheweb/": "https://cdn.hax.cloud/cdn/build/es6/node_modules/@haxtheweb/"
+        }
+      }
+    }
+  </script>
+  <meta charset="utf-8">
+  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <title>HAXcms</title>
+  <meta name="application-name" content="HAXcms" />
+  <meta name="apple-mobile-web-app-title" content="HAXcms" />
+  <meta name="og:sitename" property="og:sitename" content="HAXcms" />
+  <meta name="og:title" property="og:title" content="HAXcms" />
+  <meta name="twitter:title" property="twitter:title" content="HAXcms" />
+  <meta name="og:url" property="og:url" content="/" data-managed-seo />
+  <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
+  <link rel="preload" href="./build.js" as="script" />
+  <link rel="preload" href="./build-haxcms.js" as="script" />
+  <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
+  <link rel="preload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />
+  <link rel="preload" href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
+  <link rel="preload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/themes/haxcms-basic-theme.js" as="script" crossorigin="anonymous" />
+  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/themes/haxcms-basic-theme.js" />
+  <link rel="preload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+  <meta name="generator" content="HAXcms">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <link rel="icon" href="assets/icon-48x48.png">
+  <meta name="theme-color" content="">
+  <meta name="robots" content="index, follow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" sizes="48x48" href="assets/icon-48x48.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="assets/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="96x96" href="assets/icon-96x96.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
+  <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
+  <meta name="msapplication-TileColor" content="">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="description" content="" />
+  <meta name="og:type" property="og:type" content="article" />
+  <meta name="og:description" property="og:description" content="" />
+  <meta name="og:image" property="og:image" content="" />
+  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+  <meta name="twitter:description" property="twitter:description" content="" />
+  <meta name="twitter:image" property="twitter:image" content="" />
+  <meta rel="cc:license" href="https://creativecommons.org/licenses/by-sa/4.0/" content="License: Creative Commons: Attribution Share a like"/>
+  
+  <!-- Service worker disabled via settings -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 98vh;
+    }
+    haxcms-site-builder:not([theme-loaded]) * {
+      margin-top: 100px;
+      display: block;
+      max-width: 50vw;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) {
+      margin-top: 100px;
+    }
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) * {
+      max-width: 50vw;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    haxcms-site-builder[theme-loaded] .haxcms-theme-element:not(:defined) *:not(:defined) {
+      display: block;
+      min-height: 50px;
+      min-width: 200px;
+    }
+  </style>
+  <style id="loadingstyles">
+    haxcms-site-builder {
+      display: block;
+    }
+    body {
+      background-color: #ffffff;
+      color: rgba(0,0,0, 0.2);
+    }
+    #loading {
+      background-color: #ffffff;
+      bottom: 0px;
+      left: 0px;
+      opacity: 1;
+      position: absolute;
+      right: 0px;
+      top: 0px;
+      z-index: 99999999;
+    }
+    #loading.loaded {
+      animation: fade-out .1s ease-in-out;
+      animation-fill-mode: forwards;
+    }
+    #loading div.messaging {
+      color: rgba(0,0,0, 0.2);
+      left: 0px;
+      position: absolute;
+      right: 0px;
+      text-align: center;
+      top: 25vh;
+    }
+    #loading div.messaging h1 {
+      font-family: Helvetica, "Trebuchet MS", Verdana, sans-serif !important;
+      line-height: 2;
+      font-size: 18px !important;
+      margin: 0;
+      padding: 0;
+    }
+
+    .progress-line,
+    .progress-line:before {
+      height: 8px;
+      width: 100%;
+      margin: auto;
+    }
+    .progress-line {
+      background-color: rgba(0,0,0, 0.1);
+      display: -webkit-flex;
+      display: flex;
+      width: 50vw;
+    }
+    .progress-line:before {
+      background-color: #FF2222;
+      content: '';
+      animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes running-progress {
+      0% {
+        margin-left: 0px;
+        margin-right: 100%;
+      }
+      50% {
+        margin-left: 25%;
+        margin-right: 0%;
+      }
+      100% {
+        margin-left: 100%;
+        margin-right: 0;
+      }
+    }
+    @keyframes fade-out {
+      0% {
+        opacity: 1;
+      }
+      99% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #333333;
+        color: rgba(255,255,255, 0.2);
+      }
+      #loading {
+        background-color: #333333;
+      }
+      #loading div.messaging {
+        color: rgba(255,255,255, 0.2);
+      }
+    }
+  </style>
+  <script id="loadingscript">
+    globalThis.dataLayer = globalThis.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    globalThis.addEventListener('haxcms-ready', function(e) {
+      var s = document.createElement('script');
+      s.async = true;
+      document.body.appendChild(s);
+      // give the web components a second to build
+      setTimeout(function() {
+        document.querySelector('#loading').classList.add('loaded');
+        setTimeout(function() {
+          if (globalThis.HAXCMS.requestAvailability().store.getManifest()) {
+            var gaid = globalThis.HAXCMS.requestAvailability().store.getManifest().metadata.site.settings.gaID || null;
+            if (gaid) {
+              gtag('config', gaid);
+              s.src = `https://www.googletagmanager.com/gtag/js?id=${gaid}`;
+            }
+          }
+          document.querySelector('#loading').parentNode.removeChild(document.querySelector('#loading'));
+          document.querySelector('#loadingstyles').parentNode.removeChild(document.querySelector('#loadingstyles'));
+          document.querySelector('#loadingscript').parentNode.removeChild(document.querySelector('#loadingscript'));
+        }, 100);
+      }, 300);
+    });
+  </script>
+</head>
+<body vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/">
+  <section role="alert" id="loading" aria-busy="true">
+    <div class="messaging">
+      <div class="progress-line"></div>
+      <h1>Loading..</h1>
+    </div>
+  </section>
+  <haxcms-site-builder id="site" file="site.json?2GQKWcJ3ni0xrL2X4_Dw_Sr9SeXqY2Sk3XblmvHVArA"></haxcms-site-builder>
+  <script>
+    globalThis.MicroFrontendRegistryConfig = globalThis.MicroFrontendRegistryConfig || {};
+    globalThis.HAXCMSContext="php";globalThis.__appCDN="./";</script>
+  <script src="./build-haxcms.js"></script>
+  <script src="./build.js"></script>
+</body>
+</html>

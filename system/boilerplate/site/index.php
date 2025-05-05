@@ -14,6 +14,7 @@ else {
 <!DOCTYPE html>
 <html lang="<?php print $HAXSiteConfig->getLanguage(); ?>">
 <head>
+  <?php print $HAXSiteConfig->getBaseTag(); ?>
   <script type="importmap">
     {
       "scopes": {
@@ -23,7 +24,6 @@ else {
       }
     }
   </script>
-  <?php print $HAXSiteConfig->getBaseTag(); ?>
   <?php print $HAXSiteConfig->getSiteMetadata($HAXSiteConfig->page); ?>
   <?php print $HAXSiteConfig->getServiceWorkerScript(null, FALSE, $HAXSiteConfig->getServiceWorkerStatus()); ?>
   <style>

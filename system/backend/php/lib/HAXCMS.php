@@ -778,104 +778,6 @@ class HAXCMS
         return $schema;
     }
     /**
-     * Set and validate config
-     */
-    public function setUserData($values)
-    {
-      // only support user picture for the moment
-      if (isset($values->userPicture)) {
-        $this->userData->userPicture = $values->userPicture;
-      }
-      $this->saveUserDataFile();
-    }
-    /**
-     * Set and validate config
-     */
-    public function setConfig($values)
-    {
-        if (isset($values->apis)) {
-          foreach ($values->apis as $key => $val) {
-            $this->config->appStore->apiKeys->{$key} = $val;
-          }
-        }
-        if (!isset($this->config->site)) {
-          $this->config->site = new stdClass();
-        }
-        if (!isset($this->config->site->git)) {
-          $this->config->site->git = new stdClass();
-        }
-        if ($values->publishing) {
-          foreach ($values->publishing as $key => $val) {
-            $this->config->site->git->{$key} = $val;
-          }
-        }
-        // test for a password in order to do the git hook up this one time
-        if (
-          isset($this->config->site->git->email) &&
-          isset($this->config->site->git->pass)
-        ) {
-          $email = $this->config->site->git->email;
-          $pass = $this->config->site->git->pass;
-          // ensure we never save the password, this is just a 1 time pass through
-          unset($this->config->site->git->pass);
-        }
-        // save config to the file
-        $this->saveConfigFile();
-        // see if we need to set a github key for publishing
-        // this is a one time thing that helps with the workflow
-        if (
-          isset($email) &&
-          isset($pass) &&
-          !isset($this->config->site->git->keySet) &&
-          isset($this->config->site->git->vendor) &&
-          $this->config->site->git->vendor == 'github'
-        ) {
-            $json = new stdClass();
-            $json->title = 'HAXCMS Publishing key';
-            $json->key = $this->getSSHKey();
-            $client = new GuzzleHttp\Client();
-            $body = json_encode($json);
-            $response = $client->request(
-                'POST',
-                'https://api.github.com/user/keys',
-                [
-                    'auth' => [$email, $pass],
-                    'body' => $body
-                ]
-            );
-            // we did it, now store that it worked so we can skip all this setup in the future
-            if ($response->getStatusCode() == 201) {
-                $this->config->site->git->keySet = true;
-                $this->saveConfigFile();
-                // set global config for username / email if we can
-                $gitRepo = new GitRepo();
-                $gitRepo->run(
-                    'config --global user.name "' .
-                        $this->config->site->git->user .
-                        '"'
-                );
-                $gitRepo->run(
-                    'config --global user.email "' .
-                        $this->config->site->git->email .
-                        '"'
-                );
-            }
-
-            return $response->getStatusCode();
-        }
-        return 'saved';
-    }
-    /**
-     * Write configuration to the config file
-     */
-    private function saveUserDataFile()
-    {
-        return @file_put_contents(
-            $this->configDirectory . '/userData.json',
-            json_encode($this->userData, JSON_PRETTY_PRINT)
-        );
-    }
-    /**
      * Write configuration to the config file
      */
     private function saveConfigFile()
@@ -1508,8 +1410,6 @@ class HAXCMS
         $settings->saveManifestPath = $path . 'saveManifest';
         $settings->saveOutlinePath = $path . 'saveOutline';
         $settings->syncSitePath = $path . 'syncSite';
-        $settings->setConfigPath = $path . 'setConfig';
-        $settings->getConfigPath = $path . 'getConfig';
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->revertSitePath = $path . 'revertCommit';
         // form token to validate form submissions as unique to the session
@@ -1518,7 +1418,6 @@ class HAXCMS
         $settings->getUserDataPath = $path . 'getUserData';
         $settings->deleteNodePath = $path . 'deleteNode';
         $settings->createSite = $path . 'createSite';
-        $settings->gitImportSite = $path . 'gitImportSite';
         $settings->downloadSite = $path . 'downloadSite';
         $settings->archiveSite = $path . 'archiveSite';
         $settings->copySite = $path . 'cloneSite';
