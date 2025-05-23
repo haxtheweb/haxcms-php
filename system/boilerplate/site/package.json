@@ -12,9 +12,9 @@
     "access": "public"
   },
   "scripts": {
-    "start": "npm run dev",
+    "start": "npm run serve",
     "ghpages:build": "rm index.html && mv ghpages.html index.html && rm assets/babel* && rm build && rm wc-registry.json",
-    "dev": "npx @haxtheweb/haxcms-nodejs",
-    "dev-theme": "cd custom && npm start"
+    "serve": "npx @haxtheweb/haxcms-nodejs",
+    "dev": "NODE_ENV=development npm run serve"
   }
 }

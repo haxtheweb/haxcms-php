@@ -1409,9 +1409,7 @@ class HAXCMS
         $settings->saveNodePath = $path . 'saveNode';
         $settings->saveManifestPath = $path . 'saveManifest';
         $settings->saveOutlinePath = $path . 'saveOutline';
-        $settings->syncSitePath = $path . 'syncSite';
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
-        $settings->revertSitePath = $path . 'revertCommit';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode';
