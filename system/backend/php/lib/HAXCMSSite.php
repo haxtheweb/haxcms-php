@@ -616,6 +616,21 @@ class HAXCMSSite
         return true;
     }
     /**
+     * Validate that a page's location is in a valid space (aka pages/whatever/index.html)
+     * and not outside the current site directory.
+     */
+    public function validatePageLocation($location)
+    {
+      // ensure the path to the new folder is valid
+      $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
+      // force removal of anything that might try to move out of the location of pages
+      $location = str_replace('./', '', str_replace('../', '', $location));
+      if (file_exists($siteDirectoryPath . '/' . $location)) {
+        return true;
+      }
+      return false;
+    }
+    /**
      * Add a page to the site's file system and reflect it in the outine schema.
      *
      * @var $parent JSONOutlineSchemaItem representing a parent to add this page under
@@ -879,14 +894,20 @@ class HAXCMSSite
             $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
           }
           // may seem silly but IDs in lunr have a size limit for some reason in our context..
-          $data["items"][] = array(
+          $jsonFeed = array(
             "guid" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
             "url" => $domain . $slug,
             "title" => $item->title,
             "summary" => $item->description,
-            "content_html" => @file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location),
+            "content_html" => '',
             "date_published" => date('c', $created),
           );
+          // test location is valid prior to adding it
+          if ($this->validatePageLocation($item->location)) {
+            $locationPath = str_replace('./', '', str_replace('../', '', $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location));
+            $jsonFeed['content_html'] = @file_get_contents($locationPath);
+          }
+          $data["items"][] = $jsonFeed;
         }
         $count++;
       }
@@ -904,18 +925,26 @@ class HAXCMSSite
         }
         // slug is now the URL canonical
         $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
+        // if the item has a slug, use that instead of the location
         if (isset($item->slug)) {
           $slug = $item->slug;
         }
         // may seem silly but IDs in lunr have a size limit for some reason in our context..
-        $data[] = array(
+        $lunrSearchItem = array(
           "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
           "title" => $item->title,
           "created" => $created,
           "location" => $slug,
-          "description" => $item->description,
-          "text" => $this->cleanSearchData(@file_get_contents($this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location)),
+          "description" => strip_tags($item->description),
+          "text" => '',
         );
+        // test location is valid prior to adding it
+        if ($this->validatePageLocation($item->location)) {
+          $locationPath = str_replace('./', '', str_replace('../', '', $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location));
+          $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($locationPath));
+        }
+
+        $data[] = $lunrSearchItem;
       }
       return $data;
     }
@@ -1076,7 +1105,7 @@ class HAXCMSSite
         }
         // look for the theme banner
         if (isset($this->manifest->metadata->theme->variables->image)) {
-          $fileName = $this->manifest->metadata->theme->variables->image;
+          $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_STRING);
         }
       }
       return $fileName;
@@ -1245,10 +1274,16 @@ class HAXCMSSite
       if (isset($page->location) && $page->location != '') {
         $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          $content = filter_var(file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/' . $page->location));
+          // ensure path is not trying to escape the site directory
+          $content = '';
+          if ($this->validatePageLocation($page->location)) {
+            $locationPath = str_replace('./', '', str_replace('../', '', HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/' . $page->location));
+            $content = filter_var(@file_get_contents($locationPath));
+          }
         }
         return $content;
       }
+      return '';
     }
     /**
      * Return accurate, rendered site metadata
@@ -1311,14 +1346,14 @@ class HAXCMSSite
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
-        $description = $this->manifest->description;
+        $description = filter_var($this->manifest->description, FILTER_SANITIZE_STRING);
       }
       if ($title == '' || $title == 'New item') {
-        $title = $this->manifest->title;
-        $siteTitle = $this->manifest->title;
+        $title = filter_var($this->manifest->title, FILTER_SANITIZE_STRING);
+        $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
-          $hexCode = $this->manifest->metadata->theme->variables->hexCode;
+          $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
       }
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
@@ -1354,14 +1389,14 @@ class HAXCMSSite
   <meta name="msapplication-TileColor" content="' . $hexCode . '">
   <meta name="msapplication-tap-highlight" content="no">
   <meta name="description" content="' . $description . '" />
-  <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
+  <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
-  <meta name="og:url" property="og:url" content="' . $domain . '" />
+  <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
   <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" property="twitter:site" content="' . $domain . '" />
+  <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
   <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
@@ -1371,8 +1406,10 @@ class HAXCMSSite
           $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
       }
       // add in twitter link if they provided one
-      if (isset($this->manifest->metadata->author->socialLink) && strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0) {
-          $metadata .= '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
+      if (isset($this->manifest->metadata->author->socialLink) && (strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0 || strpos($this->manifest->metadata->author->socialLink, 'https://x.com/') === 0)) {
+        $socialLink = str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink);
+        $socialLink = str_replace('https://x.com/', '@', $socialLink);  
+        $metadata .= '  <meta name="twitter:creator" content="' . filter_var($socialLink, FILTER_SANITIZE_STRING) . '" />';
       }
       $GLOBALS['HAXCMS']->dispatchEvent('haxcms-site-metadata', $metadata);
       return $metadata;
@@ -1450,7 +1487,7 @@ class HAXCMSSite
           }
         }
       }
-      return $fileName;
+      return filter_var($fileName, FILTER_SANITIZE_URL);
     }
     /**
      * License data for common open license

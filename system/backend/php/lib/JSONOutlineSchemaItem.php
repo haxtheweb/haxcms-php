@@ -34,8 +34,10 @@ class JSONOutlineSchemaItem
      */
     public function readLocation($basePath = '')
     {
-        if (file_exists($basePath . $this->location)) {
-            return file_get_contents($basePath . $this->location);
+        // ensure we don't have slashes that would allow to escape the current directory tree
+        $tmpLoc = str_replace('./', '', str_replace('../','', $this->location));
+        if (file_exists($basePath . $tmpLoc)) {
+            return @file_get_contents($basePath . $tmpLoc);
         }
         return false;
     }
@@ -48,8 +50,11 @@ class JSONOutlineSchemaItem
         if ($body == '') {
             $body = '<p></p>';
         }
-        if (file_exists($basePath . $this->location)) {
-            return @file_put_contents($basePath . $this->location, $body);
+        // ensure we don't have slashes that would allow to escape the current directory tree
+        // so you can't write outside of the current directory tree
+        $tmpLoc = str_replace('./', '', str_replace('../','', $this->location));
+        if (file_exists($basePath . $tmpLoc)) {
+            return @file_put_contents($basePath . $tmpLoc, $body);
         }
         return false;
     }

@@ -297,15 +297,15 @@ class Operations {
       $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
       $site->manifest->metadata->site->domain = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-domain'],
-          FILTER_UNSAFE_RAW
+          FILTER_SANITIZE_URL
       );
       $site->manifest->metadata->site->logo = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-logo'],
-          FILTER_UNSAFE_RAW
+          FILTER_SANITIZE_URL
       );
       $site->manifest->metadata->site->tags = filter_var(
         $this->params['manifest']['site']['manifest-metadata-site-tags'],
-        FILTER_UNSAFE_RAW
+        FILTER_SANITIZE_STRING
       );
       if (!isset($site->manifest->metadata->site->static)) {
         $site->manifest->metadata->site->static = new stdClass();
@@ -316,7 +316,7 @@ class Operations {
       if (isset($this->params['manifest']['site']['manifest-domain'])) {
           $domain = filter_var(
               $this->params['manifest']['site']['manifest-domain'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_URL
           );
           // support updating the domain CNAME value
           if ($site->manifest->metadata->site->domain != $domain) {
@@ -333,7 +333,7 @@ class Operations {
       // look for a match so we can set the correct data
       foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
         if (
-            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_UNSAFE_RAW) ==
+            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
             $key
         ) {
             $site->manifest->metadata->theme = $theme;
@@ -344,17 +344,17 @@ class Operations {
       }
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
         $site->manifest->metadata->theme->variables->image = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_UNSAFE_RAW
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_URL
         );
       }
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
         $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_UNSAFE_RAW
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
         );
       }
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
         $site->manifest->metadata->theme->variables->imageLink = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_UNSAFE_RAW
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_URL
         );
       }
       // REGIONS SUPPORT
@@ -374,51 +374,51 @@ class Operations {
       foreach ($validRegions as $i => $value) {
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
           foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
-            $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_UNSAFE_RAW);
+            $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
           }
           $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
         }
       }
       if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
         $site->manifest->metadata->theme->variables->hexCode = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_UNSAFE_RAW
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
         );
       }
       $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_UNSAFE_RAW
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
       ). "-7";
       $site->manifest->metadata->theme->variables->icon = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_UNSAFE_RAW
+        $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
       );
       if (isset($this->params['manifest']['author']['manifest-license'])) {
           $site->manifest->license = filter_var(
               $this->params['manifest']['author']['manifest-license'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_STRING
           );
           if (!isset($site->manifest->metadata->author)) {
             $site->manifest->metadata->author = new stdClass();
           }
           $site->manifest->metadata->author->image = filter_var(
               $this->params['manifest']['author']['manifest-metadata-author-image'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_URL
           );
           $site->manifest->metadata->author->name = filter_var(
               $this->params['manifest']['author']['manifest-metadata-author-name'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_STRING
           );
           $site->manifest->metadata->author->email = filter_var(
               $this->params['manifest']['author']['manifest-metadata-author-email'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_EMAIL
           );
           $site->manifest->metadata->author->socialLink = filter_var(
               $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
-              FILTER_UNSAFE_RAW
+              FILTER_SANITIZE_URL
           );
       }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
         $site->manifest->metadata->site->settings->lang = filter_var(
         $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
-        FILTER_UNSAFE_RAW
+        FILTER_SANITIZE_STRING
         );
     }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
@@ -448,7 +448,7 @@ class Operations {
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
         $site->manifest->metadata->site->settings->gaID = filter_var(
         $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
-        FILTER_UNSAFE_RAW
+        FILTER_SANITIZE_STRING
         );
       }
       $site->manifest->metadata->site->updated = time();
@@ -989,7 +989,7 @@ class Operations {
               // allow setting theme via page break
               if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
                 $themes = $GLOBALS['HAXCMS']->getThemes();
-                $value = filter_var($data["attributes"]["developer-theme"], FILTER_UNSAFE_RAW);
+                $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
                 // support for removing the custom theme or applying none
                 if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
                   unset($page->metadata->theme);
@@ -1094,7 +1094,7 @@ class Operations {
               // auto generate a text only description from first 200 chars
               // unless we were sent one to use
               if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
-                $page->description = $data["attributes"]["description"];
+                $page->description = strip_tags($data["attributes"]["description"]);
               }
               else {
                 $page->description = str_replace(

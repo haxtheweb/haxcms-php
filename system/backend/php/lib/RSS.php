@@ -70,7 +70,7 @@ class FeedMe
                 '</link>
       <description>
           <![CDATA[ ' .
-                file_get_contents($siteDirectory . '/' . $item->location) .
+                file_get_contents($siteDirectory . '/' . str_replace('./', '', str_replace('../', '', $item->location))) .
                 ' ]]>
       </description>
       <category>' .
@@ -167,7 +167,7 @@ class FeedMe
                 '
     <content type="html">
       <![CDATA[ ' .
-                file_get_contents($siteDirectory . '/' . $item->location) .
+                file_get_contents($siteDirectory . '/' . str_replace('./', '', str_replace('../', '', $item->location))) .
                 ' ]]>
     </content>
   </entry>';

@@ -787,40 +787,6 @@ class HAXCMS
             json_encode($this->config, JSON_PRETTY_PRINT)
         );
     }
-    /**
-     * get SSH Key that was created during install
-     */
-    private function getSSHKey()
-    {
-        if (file_exists($this->configDirectory . '/.ssh/haxyourweb.pub')) {
-            return @file_get_contents(
-                $this->configDirectory . '/.ssh/haxyourweb.pub'
-            );
-        } else {
-            // try to build it dynamically
-            shell_exec(
-                'ssh-keygen -f ' .
-                    $this->configDirectory .
-                    '/.ssh/haxyourweb -t rsa -N "" -C "' .
-                    $this->config->site->git->email .
-                    '"'
-            );
-            // check if it exists now
-            if (file_exists($this->configDirectory . '/.ssh/haxyourweb.pub')) {
-                $git = new GitRepo();
-                // establish this new key location as the one to use for all git calls
-                $git->run(
-                    "config core.sshCommand " .
-                        $this->configDirectory .
-                        "/.ssh/haxyourweb"
-                );
-                return @file_get_contents(
-                    $this->configDirectory . '/.ssh/haxyourweb.pub'
-                );
-            }
-        }
-        return false;
-    }
     // russia strikes again
     // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
     public function html_to_obj($html) {
@@ -1224,6 +1190,9 @@ class HAXCMS
                 str_replace('/index.html', '', $cleanTitle)
             );
         }
+        // remove path slashes as title cleaning is commonly used for filename purposes
+        $cleanTitle = str_replace('./', '', $cleanTitle);
+        $cleanTitle = str_replace('../', '', $cleanTitle);
         $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
         $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
         $cleanTitle = mb_strtolower(
