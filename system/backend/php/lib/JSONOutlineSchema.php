@@ -212,6 +212,18 @@ class JSONOutlineSchema
         }
         return false;
     }
+    
+    /**
+     * Get a key by ID, useful to find previous and next items quickly
+     */
+    public function getItemKeyById($id) {
+        foreach ($this->items as $key => $item) {
+            if ($item->id === $id) {
+                return $key;
+            }
+        }
+        return false;
+    }
     /**
      * Save data back to the file system location
      */

@@ -35,6 +35,8 @@
                 "settings": {
                     "pathauto": false,
                     "publishPagesOn": true,
+                    "canonical": true,
+                    "private": false,
                     "forceUpgrade": true,
                     "sw": false
                 }

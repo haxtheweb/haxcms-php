@@ -183,25 +183,57 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = $page->title;
-      $siteTitle = $this->manifest->title . ' | ' . $page->title;
-      $description = $page->description;
+      $title = filter_var($page->title, FILTER_SANITIZE_STRING);
+      $siteTitle = filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . ' | ' . filter_var($page->title, FILTER_SANITIZE_STRING);
+      $description = filter_var($page->description, FILTER_SANITIZE_STRING);;
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $this->manifest->metadata->theme->path . '" />';
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
-        $description = $this->manifest->description;
+        $description = filter_var($this->manifest->description, FILTER_SANITIZE_STRING);
       }
       if ($title == '' || $title == 'New item') {
-        $title = $this->manifest->title;
-        $siteTitle = $this->manifest->title;
+        $title = filter_var($this->manifest->title, FILTER_SANITIZE_STRING);
+        $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
-          $hexCode = $this->manifest->metadata->theme->variables->hexCode;
+          $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
+      }
+      // if we have a privacy flag, then tell robots not to index this were it to be found
+      // which in HAXiam this isn't possible
+      if (isset($this->manifest->metadata->site->settings->private) && $this->manifest->metadata->site->settings->private) {
+        $robots = '<meta name="robots" content="none" />';
+      }
+      else {
+        $robots = '<meta name="robots" content="index, follow" />';
+      }
+      // canonical flag, if set we use the domain field
+      if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
+        if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
+          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+        }
+        else {
+          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+        }
+      }
+      else {
+        $canonical = '';
+      }
+      $prevResource = '';
+      $nextResource = '';
+      // if we have a place in the array bc it's a page, then we can get next / prev
+      if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
+        $currentId = $this->manifest->getItemKeyById($page->id);
+        if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
+          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+        }
+        if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
+          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+        }
       }
       $metadata = '
           <meta charset="utf-8">' . $preconnect . '
@@ -210,41 +242,41 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <link rel="preload" href="' . $base . 'build.js" as="script" />
           <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
           <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
-          <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/dynamic-import-registry/dynamic-import-registry.js" />
-          <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/wc-autoload/wc-autoload.js" />
+          <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />
+          <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
         ' . $themePreload . $contentPreload . '
-          <link rel="preload" href="' . $base . 'build/es6/node_modules/@lrnwebcomponents/haxcms-elements/lib/base.css" as="style" />
-          <meta name="generator" content="HAXcms">
-          <link rel="manifest" href="manifest.json">
-          <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+          <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+          <meta name="generator" content="HAXcms" />
+        ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
+          <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
           <title>' . $siteTitle . '</title>
-          <link rel="icon" href="' . $this->getLogoSize('16', '16') . '">
-          <meta name="theme-color" content="' . $hexCode . '">
-          <meta name="robots" content="index, follow">
-          <meta name="mobile-web-app-capable" content="yes">
-          <meta name="application-name" content="' . $title . '">
-          <meta name="apple-mobile-web-app-capable" content="yes">
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-          <meta name="apple-mobile-web-app-title" content="' . $title . '">
-          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '">
-          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '">
-          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '">
-          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '">
-          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '">
-          <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '">
-          <meta name="msapplication-TileColor" content="' . $hexCode . '">
-          <meta name="msapplication-tap-highlight" content="no">
+          <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+          <meta name="theme-color" content="' . $hexCode . '" />
+          ' . $robots . '
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="application-name" content="' . $title . '" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-title" content="' . $title . '" />
+          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
+          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
+          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
+          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
+          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
+          <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+          <meta name="msapplication-TileColor" content="' . $hexCode . '" />
+          <meta name="msapplication-tap-highlight" content="no" />
           <meta name="description" content="' . $description . '" />
-          <meta name="og:sitename" property="og:sitename" content="' . $this->manifest->title . '" />
+          <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
           <meta name="og:title" property="og:title" content="' . $title . '" />
           <meta name="og:type" property="og:type" content="article" />
-          <meta name="og:url" property="og:url" content="' . $domain . '" />
+          <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
           <meta name="og:description" property="og:description" content="' . $description . '" />
           <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
           <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-          <meta name="twitter:site" property="twitter:site" content="' . $domain . '" />
+          <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
           <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
           <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
           <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  

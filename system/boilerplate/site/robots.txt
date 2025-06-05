@@ -1,4 +1,7 @@
 User-agent: *
+{% if privateSite %}
+Disallow: /
+{% else %}
 Crawl-delay: 10
 # CSS, JS, Images
 Allow: /assets/*.css$
@@ -25,3 +28,4 @@ Disallow: /dist/
 Disallow: /node_modules/
 Disallow: /pages/
 Disallow: /theme/
+{% endif %}

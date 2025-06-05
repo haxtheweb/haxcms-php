@@ -554,6 +554,8 @@ class HAXCMS
             "manifest-metadata-author-socialLink": null
           },
           "seo": {
+            "manifest-metadata-site-settings-private": null,
+            "manifest-metadata-site-settings-canonical": true,
             "manifest-metadata-site-settings-lang": null,
             "manifest-metadata-site-settings-pathauto": null,
             "manifest-metadata-site-settings-publishPagesOn": true,

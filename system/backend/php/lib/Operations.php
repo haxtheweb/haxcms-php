@@ -415,17 +415,29 @@ class Operations {
               FILTER_SANITIZE_URL
           );
       }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
+        $site->manifest->metadata->site->settings->private = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-private'],
+        FILTER_VALIDATE_BOOLEAN
+        );
+      }
+      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'])) {
+        $site->manifest->metadata->site->settings->canonical = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'],
+        FILTER_VALIDATE_BOOLEAN
+        );
+      }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
         $site->manifest->metadata->site->settings->lang = filter_var(
         $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
         FILTER_SANITIZE_STRING
         );
-    }
+      }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
-          $site->manifest->metadata->site->settings->pathauto = filter_var(
-          $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
-          FILTER_VALIDATE_BOOLEAN
-          );
+        $site->manifest->metadata->site->settings->pathauto = filter_var(
+        $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
+        FILTER_VALIDATE_BOOLEAN
+        );
       }
       if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
         $site->manifest->metadata->site->settings->publishPagesOn = filter_var(
@@ -1966,6 +1978,7 @@ class Operations {
       $schema->metadata->site->settings = new stdClass();
       $schema->metadata->site->settings->lang = 'en-US';
       $schema->metadata->site->settings->publishPagesOn = true;
+      $schema->metadata->site->settings->canonical = true;
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

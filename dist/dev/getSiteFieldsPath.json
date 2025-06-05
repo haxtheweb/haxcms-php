@@ -82,7 +82,25 @@
 				"property": "seo",
 				"title": "SEO",
 				"description": "Search engine and detailed internal path handling",
-				"properties": [{
+				"properties": [
+				{
+					"property": "manifest-metadata-site-settings-private",
+					"title": "Private site",
+					"description": "Prevents indexing on search engines and may require authentication to access based on environment",
+					"inputMethod": "boolean"
+				},
+				{
+					"property": "manifest-metadata-site-settings-canonical",
+					"title": "Canonical",
+					"description": "Treat domain as canonical? This helps improve SEO but does nothing if site is private",
+					"inputMethod": "boolean"
+				},
+				{
+					"property": "manifest-metadata-site-settings-lang",
+					"title": "Language",
+					"description": "https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes for acceptable language codes.",
+					"inputMethod": "textfield"
+				},{
 					"property": "manifest-metadata-site-settings-pathauto",
 					"title": "Pathauto",
 					"description": "Automatically maintain and update page paths",
@@ -196,6 +214,8 @@
 					"manifest-metadata-theme-variables-icon": "icons:record-voice-over"
 				},
 				"seo": {
+					"manifest-metadata-site-settings-private": null,
+					"manifest-metadata-site-settings-canonical": null,
 					"manifest-metadata-site-settings-pathauto": null,
 					"manifest-metadata-site-settings-publishPagesOn": null,
 					"manifest-metadata-site-settings-sw": null,

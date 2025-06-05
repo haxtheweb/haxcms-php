@@ -115,6 +115,8 @@ class HAXCMSSite
         $this->manifest->metadata->site = new stdClass();
         $this->manifest->metadata->site->settings = new stdClass();
         $this->manifest->metadata->site->settings->lang = 'en'; // default but changed via settings
+        $this->manifest->metadata->site->settings->private = false; // default all sites are open
+        $this->manifest->metadata->site->settings->canonical = true; // default all sites to include a canonical URL to reduce duplication
         $this->manifest->metadata->site->name = $tmpname;
         $this->manifest->metadata->site->domain = $domain;
         $this->manifest->metadata->site->created = time();
@@ -321,7 +323,7 @@ class HAXCMSSite
       }
       return null;
     }
-  /**
+    /**
      * Return the gaIDCode if we have a gaID
      */
     public function getGaCode() {
@@ -416,6 +418,7 @@ class HAXCMSSite
               $this->basePath . $this->manifest->metadata->site->name . '/',
           'title' => $this->manifest->title,
           'short' => $this->manifest->metadata->site->name,
+          'privateSite' => $this->manifest->metadata->site->settings->private,
           'description' => $this->manifest->description,
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
@@ -1335,9 +1338,9 @@ class HAXCMSSite
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = $page->title;
-      $siteTitle = $this->manifest->title . ' | ' . $page->title;
-      $description = $page->description;
+      $title = filter_var($page->title, FILTER_SANITIZE_STRING);
+      $siteTitle = filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . ' | ' . filter_var($page->title, FILTER_SANITIZE_STRING);
+      $description = filter_var($page->description, FILTER_SANITIZE_STRING);;
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       // sanity check, then preload the theme
@@ -1355,6 +1358,38 @@ class HAXCMSSite
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
           $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
       }
+      // if we have a privacy flag, then tell robots not to index this were it to be found
+      // which in HAXiam this isn't possible
+      if (isset($this->manifest->metadata->site->settings->private) && $this->manifest->metadata->site->settings->private) {
+        $robots = '<meta name="robots" content="none" />';
+      }
+      else {
+        $robots = '<meta name="robots" content="index, follow" />';
+      }
+      // canonical flag, if set we use the domain field
+      if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
+        if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
+          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+        }
+        else {
+          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+        }
+      }
+      else {
+        $canonical = '';
+      }
+      $prevResource = '';
+      $nextResource = '';
+      // if we have a place in the array bc it's a page, then we can get next / prev
+      if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
+        $currentId = $this->manifest->getItemKeyById($page->id);
+        if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
+          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+        }
+        if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
+          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+        }
+      }
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
@@ -1368,26 +1403,26 @@ class HAXCMSSite
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
-  <meta name="generator" content="HAXcms">
-  <link rel="manifest" href="manifest.json">
-  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+  <meta name="generator" content="HAXcms" />
+' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
   <title>' . $siteTitle . '</title>
-  <link rel="icon" href="' . $this->getLogoSize('16', '16') . '">
-  <meta name="theme-color" content="' . $hexCode . '">
-  <meta name="robots" content="index, follow">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="' . $title . '">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="' . $title . '">
-  <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '">
-  <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '">
-  <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '">
-  <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '">
-  <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '">
-  <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '">
-  <meta name="msapplication-TileColor" content="' . $hexCode . '">
-  <meta name="msapplication-tap-highlight" content="no">
+  <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+  <meta name="theme-color" content="' . $hexCode . '" />
+  ' . $robots . '
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="' . $title . '" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="' . $title . '" />
+  <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
+  <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
+  <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
+  <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
+  <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
+  <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+  <meta name="msapplication-TileColor" content="' . $hexCode . '" />
+  <meta name="msapplication-tap-highlight" content="no" />
   <meta name="description" content="' . $description . '" />
   <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />

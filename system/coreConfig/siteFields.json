@@ -283,6 +283,18 @@
       "description": "Search engine and detailed internal path handling",
       "properties": [
         {
+          "property": "manifest-metadata-site-settings-private",
+          "title": "Private site",
+          "description": "Prevents indexing on search engines and require authentication to access",
+          "inputMethod": "boolean"
+        },
+        {
+          "property": "manifest-metadata-site-settings-canonical",
+          "title": "Canonical",
+          "description": "Treat domain as canonical? This helps improve SEO but does nothing if site is private",
+          "inputMethod": "boolean"
+        },
+        {
           "property": "manifest-metadata-site-settings-lang",
           "title": "Language",
           "description": "https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes for acceptable language codes.",
