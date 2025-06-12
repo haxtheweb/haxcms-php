@@ -17,6 +17,12 @@
     "name": "Clean Portfolio theme",
     "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
   },
+  "glossy-portfolio-theme": {
+    "element": "glossy-portfolio-theme",
+    "path": "@haxtheweb/glossy-portfolio-theme/glossy-portfolio-theme.js",
+    "name": "Glossy Portfolio theme",
+    "thumbnail": "build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/PartyStyle.svg"
+  },
   "journey-theme": {
     "element": "journey-theme",
     "path": "@haxtheweb/journey-theme/journey-theme.js",
