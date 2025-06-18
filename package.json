@@ -1,6 +1,6 @@
 {
   "name": "haxcms",
-  "version": "11.0.1",
+  "version": "11.0.5",
   "description": "CMS backend and rigging for a full on CMS",
   "main": "../index.html",
   "repository": {
