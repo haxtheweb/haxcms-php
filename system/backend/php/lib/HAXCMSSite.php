@@ -410,6 +410,11 @@ class HAXCMSSite
         $licenseLink = $licenseData[$this->manifest->license]['link'];
         $licenseName = 'License: ' . $licenseData[$this->manifest->license]['name'];
       }
+      // don't assume privacy flag exists
+      $privateSetting = FALSE;
+      if (isset($this->manifest->metadata->site->settings->private)) {
+        $privateSetting = $this->manifest->metadata->site->settings->private;
+      }
       
       $templateVars = array(
           'hexCode' => HAXCMS_FALLBACK_HEX,
@@ -418,7 +423,7 @@ class HAXCMSSite
               $this->basePath . $this->manifest->metadata->site->name . '/',
           'title' => $this->manifest->title,
           'short' => $this->manifest->metadata->site->name,
-          'privateSite' => $this->manifest->metadata->site->settings->private,
+          'privateSite' => $privateSetting,
           'description' => $this->manifest->description,
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
