@@ -1652,6 +1652,7 @@ class Operations {
    * )
    */
   public function logout() {
+    setcookie('haxcms_refresh_token', '', 1);
     return array(
       "status" => 200,
       "data" => 'loggedout',
