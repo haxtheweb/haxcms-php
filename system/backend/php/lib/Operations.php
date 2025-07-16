@@ -257,227 +257,238 @@ class Operations {
    */
   public function saveManifest() {
     // load the site from name
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    // standard form submit
-    // @todo 
-    // make the form point to a form submission endpoint with appropriate name
-    // add a hidden field to the output that always has the haxcms_form_id as well
-    // as a dynamically generated Request token relative to the name of the
-    // form
-    // pull the form schema for the form itself internally
-    // ensure ONLY the things that appear in that schema get set
-    // if something DID NOT COME ACROSS, don't unset it, only set what shows up
-    // if something DID COME ACROSS WE DIDN'T SET, kill the transaction (xss)
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
 
-    // - snag the form
-    // @todo see if we can dynamically save the valus in the same format we loaded
-    // the original form in. This would involve removing the vast majority of
-    // what's below
-    /*if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
-      $context = array(
-        'site' => array(),
-        'node' => array(),
-      );
-      if (isset($this->params['site'])) {
-        $context['site'] = $this->params['site'];
-      }
-      if (isset($this->params['node'])) {
-        $context['node'] = $this->params['node'];
-      }
-      $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
-    }*/
-    if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
-      $site->manifest->title = strip_tags(
-          $this->params['manifest']['site']['manifest-title']
-      );
-      $site->manifest->description = strip_tags(
-          $this->params['manifest']['site']['manifest-description']
-      );
-      // store version data here so we know where we were when last globally saved
-      $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
-      $site->manifest->metadata->site->domain = filter_var(
-          $this->params['manifest']['site']['manifest-metadata-site-domain'],
-          FILTER_SANITIZE_URL
-      );
-      $site->manifest->metadata->site->logo = filter_var(
-          $this->params['manifest']['site']['manifest-metadata-site-logo'],
-          FILTER_SANITIZE_URL
-      );
-      $site->manifest->metadata->site->tags = filter_var(
-        $this->params['manifest']['site']['manifest-metadata-site-tags'],
-        FILTER_SANITIZE_STRING
-      );
-      if (!isset($site->manifest->metadata->site->static)) {
-        $site->manifest->metadata->site->static = new stdClass();
-      }
-      if (!isset($site->manifest->metadata->site->settings)) {
-        $site->manifest->metadata->site->settings = new stdClass();
-      }
-      if (isset($this->params['manifest']['site']['manifest-domain'])) {
-          $domain = filter_var(
-              $this->params['manifest']['site']['manifest-domain'],
-              FILTER_SANITIZE_URL
-          );
-          // support updating the domain CNAME value
-          if ($site->manifest->metadata->site->domain != $domain) {
-              $site->manifest->metadata->site->domain = $domain;
-              @file_put_contents(
-                  $site->directory .
-                      '/' .
-                      $site->manifest->site->name .
-                      '/CNAME',
-                  $domain
-              );
-          }
-      }
-      // look for a match so we can set the correct data
-      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
-        if (
-            filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
-            $key
-        ) {
-            $site->manifest->metadata->theme = $theme;
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      // standard form submit
+      // @todo 
+      // make the form point to a form submission endpoint with appropriate name
+      // add a hidden field to the output that always has the haxcms_form_id as well
+      // as a dynamically generated Request token relative to the name of the
+      // form
+      // pull the form schema for the form itself internally
+      // ensure ONLY the things that appear in that schema get set
+      // if something DID NOT COME ACROSS, don't unset it, only set what shows up
+      // if something DID COME ACROSS WE DIDN'T SET, kill the transaction (xss)
+
+      // - snag the form
+      // @todo see if we can dynamically save the valus in the same format we loaded
+      // the original form in. This would involve removing the vast majority of
+      // what's below
+      /*if ($GLOBALS['HAXCMS']->validateRequestToken(null, 'form')) {
+        $context = array(
+          'site' => array(),
+          'node' => array(),
+        );
+        if (isset($this->params['site'])) {
+          $context['site'] = $this->params['site'];
         }
-      }
-      if (!isset($site->manifest->metadata->theme->variables)) {
-        $site->manifest->metadata->theme->variables = new stdClass();
-      }
-      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
-        $site->manifest->metadata->theme->variables->image = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_URL
-        );
-      }
-      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
-        $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
-        );
-      }
-      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
-        $site->manifest->metadata->theme->variables->imageLink = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_URL
-        );
-      }
-      // REGIONS SUPPORT
-      if (!isset($site->manifest->metadata->theme->regions)) {
-        $site->manifest->metadata->theme->regions = new stdClass();
-      }
-      // look for a match so we can set the correct data
-      $validRegions = array(
-        "header",
-        "sidebarFirst",
-        "sidebarSecond",
-        "contentTop",
-        "contentBottom",
-        "footerPrimary",
-        "footerSecondary"
-      );
-      foreach ($validRegions as $i => $value) {
-        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
-          foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
-            $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
-          }
-          $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
+        if (isset($this->params['node'])) {
+          $context['node'] = $this->params['node'];
         }
-      }
-      if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
-        $site->manifest->metadata->theme->variables->hexCode = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
+        $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
+      }*/
+      if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
+        $site->manifest->title = strip_tags(
+            $this->params['manifest']['site']['manifest-title']
         );
-      }
-      $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
-      ). "-7";
-      $site->manifest->metadata->theme->variables->icon = filter_var(
-        $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
-      );
-      if (isset($this->params['manifest']['author']['manifest-license'])) {
-          $site->manifest->license = filter_var(
-              $this->params['manifest']['author']['manifest-license'],
-              FILTER_SANITIZE_STRING
-          );
-          if (!isset($site->manifest->metadata->author)) {
-            $site->manifest->metadata->author = new stdClass();
+        $site->manifest->description = strip_tags(
+            $this->params['manifest']['site']['manifest-description']
+        );
+        // store version data here so we know where we were when last globally saved
+        $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+        $site->manifest->metadata->site->domain = filter_var(
+            $this->params['manifest']['site']['manifest-metadata-site-domain'],
+            FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->logo = filter_var(
+            $this->params['manifest']['site']['manifest-metadata-site-logo'],
+            FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->tags = filter_var(
+          $this->params['manifest']['site']['manifest-metadata-site-tags'],
+          FILTER_SANITIZE_STRING
+        );
+        if (!isset($site->manifest->metadata->site->static)) {
+          $site->manifest->metadata->site->static = new stdClass();
+        }
+        if (!isset($site->manifest->metadata->site->settings)) {
+          $site->manifest->metadata->site->settings = new stdClass();
+        }
+        if (isset($this->params['manifest']['site']['manifest-domain'])) {
+            $domain = filter_var(
+                $this->params['manifest']['site']['manifest-domain'],
+                FILTER_SANITIZE_URL
+            );
+            // support updating the domain CNAME value
+            if ($site->manifest->metadata->site->domain != $domain) {
+                $site->manifest->metadata->site->domain = $domain;
+                @file_put_contents(
+                    $site->directory .
+                        '/' .
+                        $site->manifest->site->name .
+                        '/CNAME',
+                    $domain
+                );
+            }
+        }
+        // look for a match so we can set the correct data
+        foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
+          if (
+              filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
+              $key
+          ) {
+              $site->manifest->metadata->theme = $theme;
           }
-          $site->manifest->metadata->author->image = filter_var(
-              $this->params['manifest']['author']['manifest-metadata-author-image'],
-              FILTER_SANITIZE_URL
+        }
+        if (!isset($site->manifest->metadata->theme->variables)) {
+          $site->manifest->metadata->theme->variables = new stdClass();
+        }
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-image'])) {
+          $site->manifest->metadata->theme->variables->image = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_URL
           );
-          $site->manifest->metadata->author->name = filter_var(
-              $this->params['manifest']['author']['manifest-metadata-author-name'],
-              FILTER_SANITIZE_STRING
+        }
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
+          $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
           );
-          $site->manifest->metadata->author->email = filter_var(
-              $this->params['manifest']['author']['manifest-metadata-author-email'],
-              FILTER_SANITIZE_EMAIL
+        }
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
+          $site->manifest->metadata->theme->variables->imageLink = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_URL
           );
-          $site->manifest->metadata->author->socialLink = filter_var(
-              $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
-              FILTER_SANITIZE_URL
+        }
+        // REGIONS SUPPORT
+        if (!isset($site->manifest->metadata->theme->regions)) {
+          $site->manifest->metadata->theme->regions = new stdClass();
+        }
+        // look for a match so we can set the correct data
+        $validRegions = array(
+          "header",
+          "sidebarFirst",
+          "sidebarSecond",
+          "contentTop",
+          "contentBottom",
+          "footerPrimary",
+          "footerSecondary"
+        );
+        foreach ($validRegions as $i => $value) {
+          if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
+            foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
+              $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
+            }
+            $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
+          }
+        }
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
+          $site->manifest->metadata->theme->variables->hexCode = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
           );
+        }
+        $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
+        ). "-7";
+        $site->manifest->metadata->theme->variables->icon = filter_var(
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
+        );
+        if (isset($this->params['manifest']['author']['manifest-license'])) {
+            $site->manifest->license = filter_var(
+                $this->params['manifest']['author']['manifest-license'],
+                FILTER_SANITIZE_STRING
+            );
+            if (!isset($site->manifest->metadata->author)) {
+              $site->manifest->metadata->author = new stdClass();
+            }
+            $site->manifest->metadata->author->image = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-image'],
+                FILTER_SANITIZE_URL
+            );
+            $site->manifest->metadata->author->name = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-name'],
+                FILTER_SANITIZE_STRING
+            );
+            $site->manifest->metadata->author->email = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-email'],
+                FILTER_SANITIZE_EMAIL
+            );
+            $site->manifest->metadata->author->socialLink = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
+                FILTER_SANITIZE_URL
+            );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
+          $site->manifest->metadata->site->settings->private = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-private'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'])) {
+          $site->manifest->metadata->site->settings->canonical = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
+          $site->manifest->metadata->site->settings->lang = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
+          FILTER_SANITIZE_STRING
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
+          $site->manifest->metadata->site->settings->pathauto = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
+          $site->manifest->metadata->site->settings->publishPagesOn = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-sw'])) {
+          $site->manifest->metadata->site->settings->sw = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-sw'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
+          $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
+          FILTER_VALIDATE_BOOLEAN
+          );
+        }
+        if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
+          $site->manifest->metadata->site->settings->gaID = filter_var(
+          $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
+          FILTER_SANITIZE_STRING
+          );
+        }
+        $site->manifest->metadata->site->updated = time();
+        // don't reorganize the structure
+        $site->manifest->save(false);
+        $site->gitCommit('Manifest updated');
+        // rebuild the files that twig processes
+        $site->rebuildManagedFiles();
+        $site->updateAlternateFormats();
+        $site->gitCommit('Managed files updated');
+        return $site->manifest;
       }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
-        $site->manifest->metadata->site->settings->private = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-private'],
-        FILTER_VALIDATE_BOOLEAN
+      else {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'invalid request token',
+          )
         );
       }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'])) {
-        $site->manifest->metadata->site->settings->canonical = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-canonical'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
-        $site->manifest->metadata->site->settings->lang = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
-        FILTER_SANITIZE_STRING
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
-        $site->manifest->metadata->site->settings->pathauto = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'])) {
-        $site->manifest->metadata->site->settings->publishPagesOn = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-publishPagesOn'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-sw'])) {
-        $site->manifest->metadata->site->settings->sw = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-sw'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'])) {
-        $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-forceUpgrade'],
-        FILTER_VALIDATE_BOOLEAN
-        );
-      }
-      if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
-        $site->manifest->metadata->site->settings->gaID = filter_var(
-        $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
-        FILTER_SANITIZE_STRING
-        );
-      }
-      $site->manifest->metadata->site->updated = time();
-      // don't reorganize the structure
-      $site->manifest->save(false);
-      $site->gitCommit('Manifest updated');
-      // rebuild the files that twig processes
-      $site->rebuildManagedFiles();
-      $site->updateAlternateFormats();
-      $site->gitCommit('Managed files updated');
-      return $site->manifest;
     }
     else {
       return array(
         '__failed' => array(
-          'status' => 403,
-          'message' => 'invalid request token',
+          'status' => 500,
+          'message' => 'invalid site token',
         )
       );
     }
@@ -500,200 +511,209 @@ class Operations {
    * )
    */
   public function saveOutline() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
-    $original = $site->manifest->items;
-    $items = $this->rawParams['items'];
-    $itemMap = array();
-    // items from the POST
-    foreach ($items as $key => $item) {
-      // get a fake item of the existing
-      if (!($page = $site->loadNode($item->id))) {
-        $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
-        // we don't trust the front end UUID if it wasn't existing already
-        $itemMap[$item->id] = $page->id;
-      }
-      // set a title if we have one
-      if ($item->title != '' && $item->title) {
-        $page->title = $item->title;
-      }
-      $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
-      if ($item->parent == null) {
-        $page->parent = null;
-        $page->indent = 0;
-      } else {
-        // check the item map as backend dictates unique ID
-        if (isset($itemMap[$item->parent])) {
-          $page->parent = $itemMap[$item->parent];
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
+      $original = $site->manifest->items;
+      $items = $this->rawParams['items'];
+      $itemMap = array();
+      // items from the POST
+      foreach ($items as $key => $item) {
+        // get a fake item of the existing
+        if (!($page = $site->loadNode($item->id))) {
+          $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+          // we don't trust the front end UUID if it wasn't existing already
+          $itemMap[$item->id] = $page->id;
+        }
+        // set a title if we have one
+        if ($item->title != '' && $item->title) {
+          $page->title = $item->title;
+        }
+        $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+        if ($item->parent == null) {
+          $page->parent = null;
+          $page->indent = 0;
         } else {
-          // set to the parent id
-          $page->parent = $item->parent;
+          // check the item map as backend dictates unique ID
+          if (isset($itemMap[$item->parent])) {
+            $page->parent = $itemMap[$item->parent];
+          } else {
+            // set to the parent id
+            $page->parent = $item->parent;
+          }
+          // move it one indentation below the parent; this can be changed later if desired
+          $page->indent = $item->indent;
         }
-        // move it one indentation below the parent; this can be changed later if desired
-        $page->indent = $item->indent;
-      }
-      if (isset($item->order)) {
-        $page->order = (int)$item->order;
-      } else {
-        $page->order = (int)$key;
-      }
-      // keep location if we get one already
-      if (isset($item->location) && $item->location != '') {
-        $page->location = $item->location;
-      } else {
-        // generate a logical page slug
-        $page->location = 'pages/' . $page->id . '/index.html';
-      }
-      // keep location if we get one already
-      if (isset($item->slug) && $item->slug != '') {
-      } else {
+        if (isset($item->order)) {
+          $page->order = (int)$item->order;
+        } else {
+          $page->order = (int)$key;
+        }
+        // keep location if we get one already
+        if (isset($item->location) && $item->location != '') {
+          $page->location = $item->location;
+        } else {
           // generate a logical page slug
-          $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
-      }
-      // verify this exists, front end could have set what they wanted
-      // or it could have just been renamed
-      // if it doesn't exist currently make sure the name is unique
-      if (!$site->loadNode($page->id)) {
-        $site->recurseCopy(
-            HAXCMS_ROOT . '/system/boilerplate/page/default',
-            $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
-        );
-      }
-      // this would imply existing item, lets see if it moved or needs moved
-      else {
-          $moved = false;
-          foreach ($original as $key => $tmpItem) {
-              // see if this is something moving as opposed to brand new
-              if (
-                  $tmpItem->id == $page->id &&
-                  $tmpItem->slug != ''
-              ) {
-                  // core support for automatically managing paths to make them nice
-                  if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                      $moved = true;
-                      $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page, true);
-                  }
-                  else if ($tmpItem->slug != $page->slug) {
-                      $moved = true;
-                      $page->slug = $GLOBALS['HAXCMS']->generateSlugName($tmpItem->slug);
-                  }
-              }
-          }
-          // it wasn't moved and it doesn't exist... let's fix that
-          // this is beyond an edge case
-          if (
-              !$moved &&
-              !file_exists($siteDirectory . '/' . $page->location)
-          ) {
-              $pAuto = false;
-              if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
-                $pAuto = true;
-              }
-              $tmpTitle = $site->getUniqueSlugName($cleanTitle, $page, $pAuto);
-              $page->location = 'pages/' . $page->id . '/index.html';
-              $page->slug = $tmpTitle;
-              $site->recurseCopy(
-                  HAXCMS_ROOT . '/system/boilerplate/page/default',
-                  $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
-              );
-          }
-      }
-      // check for any metadata keys that did come over
-      foreach ($item->metadata as $key => $value) {
-          $page->metadata->{$key} = $value;
-      }
-      // safety check for new things
-      if (!isset($page->metadata->created)) {
-          $page->metadata->created = time();
-          $page->metadata->images = array();
-          $page->metadata->videos = array();
-      }
-      // always update at this time
-      $page->metadata->updated = time();
-      if ($site->loadNode($page->id)) {
-          $site->updateNode($page);
-      } else {
-          $site->manifest->addItem($page);
-      }
-    }
-    // process any duplicate / contents requests we had now that structure is sane
-    // including potentially duplication of material from something
-    // we are about to act on and now that we have the map
-    $items = $this->rawParams['items'];
-    foreach ($items as $key => $item) {
-      // load the item, or the item as built out of the itemMap
-      // since we reset the UUID on creation
-      if (!($page = $site->loadNode($item->id))) {
-        $page = $site->loadNode($itemMap[$item->id]);
-      }
-      if (isset($item->duplicate)) {
-        // load the node we are duplicating with support for the same map needed for page loading
-        if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
-          $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+          $page->location = 'pages/' . $page->id . '/index.html';
         }
-        $content = $site->getPageContent($nodeToDuplicate);
-        // write it to the file system
-        $bytes = $page->writeLocation(
-          $content,
-          HAXCMS_ROOT .
-          '/' .
-          $GLOBALS['HAXCMS']->sitesDirectory .
-          '/' .
-          $site->manifest->metadata->site->name .
-          '/'
-        );
+        // keep location if we get one already
+        if (isset($item->slug) && $item->slug != '') {
+        } else {
+            // generate a logical page slug
+            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+        }
+        // verify this exists, front end could have set what they wanted
+        // or it could have just been renamed
+        // if it doesn't exist currently make sure the name is unique
+        if (!$site->loadNode($page->id)) {
+          $site->recurseCopy(
+              HAXCMS_ROOT . '/system/boilerplate/page/default',
+              $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+          );
+        }
+        // this would imply existing item, lets see if it moved or needs moved
+        else {
+            $moved = false;
+            foreach ($original as $key => $tmpItem) {
+                // see if this is something moving as opposed to brand new
+                if (
+                    $tmpItem->id == $page->id &&
+                    $tmpItem->slug != ''
+                ) {
+                    // core support for automatically managing paths to make them nice
+                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
+                        $moved = true;
+                        $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page, true);
+                    }
+                    else if ($tmpItem->slug != $page->slug) {
+                        $moved = true;
+                        $page->slug = $GLOBALS['HAXCMS']->generateSlugName($tmpItem->slug);
+                    }
+                }
+            }
+            // it wasn't moved and it doesn't exist... let's fix that
+            // this is beyond an edge case
+            if (
+                !$moved &&
+                !file_exists($siteDirectory . '/' . $page->location)
+            ) {
+                $pAuto = false;
+                if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
+                  $pAuto = true;
+                }
+                $tmpTitle = $site->getUniqueSlugName($cleanTitle, $page, $pAuto);
+                $page->location = 'pages/' . $page->id . '/index.html';
+                $page->slug = $tmpTitle;
+                $site->recurseCopy(
+                    HAXCMS_ROOT . '/system/boilerplate/page/default',
+                    $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                );
+            }
+        }
+        // check for any metadata keys that did come over
+        foreach ($item->metadata as $key => $value) {
+            $page->metadata->{$key} = $value;
+        }
+        // safety check for new things
+        if (!isset($page->metadata->created)) {
+            $page->metadata->created = time();
+            $page->metadata->images = array();
+            $page->metadata->videos = array();
+        }
+        // always update at this time
+        $page->metadata->updated = time();
+        if ($site->loadNode($page->id)) {
+            $site->updateNode($page);
+        } else {
+            $site->manifest->addItem($page);
+        }
       }
-      // contents that were shipped across, and not null, take priority over a dup request
-      if (isset($item->contents) && $item->contents && $item->contents != '') {
-        // write it to the file system
-        $bytes = $page->writeLocation(
-          $item->contents,
-          HAXCMS_ROOT .
-          '/' .
-          $GLOBALS['HAXCMS']->sitesDirectory .
-          '/' .
-          $site->manifest->metadata->site->name .
-          '/'
-        );
-      }
-    }
-    $items = $this->rawParams['items'];
-    // now, we can finally delete as content operations have finished
-    foreach ($items as $key => $item) {
-      // verify if we were told to delete this item via flag not in the real spec
-      if (isset($item->delete) && $item->delete == TRUE) {
+      // process any duplicate / contents requests we had now that structure is sane
+      // including potentially duplication of material from something
+      // we are about to act on and now that we have the map
+      $items = $this->rawParams['items'];
+      foreach ($items as $key => $item) {
         // load the item, or the item as built out of the itemMap
         // since we reset the UUID on creation
         if (!($page = $site->loadNode($item->id))) {
           $page = $site->loadNode($itemMap[$item->id]);
         }
-        $site->deleteNode($page);
-        $site->gitCommit(
-          'Page deleted: ' . $page->title . ' (' . $page->id . ')'
-        );
-      }
-    }
-    $site->manifest->save();
-    // now, we need to look for orphans if we deleted anything
-    $orphanCheck = $site->manifest->items;
-    foreach ($orphanCheck as $key => $item) {
-      // just to be safe..
-      if ($page = $site->loadNode($item->id)) {
-        // ensure that parent is valid to rescue orphan items
-        if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
-          $page->parent = null;
-          // force to bottom of things while still being in old order if lots of things got axed
-          $page->order = (int)$page->order + count($site->manifest->items) - 1;
-          $site->updateNode($page);
+        if (isset($item->duplicate)) {
+          // load the node we are duplicating with support for the same map needed for page loading
+          if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
+            $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+          }
+          $content = $site->getPageContent($nodeToDuplicate);
+          // write it to the file system
+          $bytes = $page->writeLocation(
+            $content,
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->manifest->metadata->site->name .
+            '/'
+          );
+        }
+        // contents that were shipped across, and not null, take priority over a dup request
+        if (isset($item->contents) && $item->contents && $item->contents != '') {
+          // write it to the file system
+          $bytes = $page->writeLocation(
+            $item->contents,
+            HAXCMS_ROOT .
+            '/' .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $site->manifest->metadata->site->name .
+            '/'
+          );
         }
       }
+      $items = $this->rawParams['items'];
+      // now, we can finally delete as content operations have finished
+      foreach ($items as $key => $item) {
+        // verify if we were told to delete this item via flag not in the real spec
+        if (isset($item->delete) && $item->delete == TRUE) {
+          // load the item, or the item as built out of the itemMap
+          // since we reset the UUID on creation
+          if (!($page = $site->loadNode($item->id))) {
+            $page = $site->loadNode($itemMap[$item->id]);
+          }
+          $site->deleteNode($page);
+          $site->gitCommit(
+            'Page deleted: ' . $page->title . ' (' . $page->id . ')'
+          );
+        }
+      }
+      $site->manifest->save();
+      // now, we need to look for orphans if we deleted anything
+      $orphanCheck = $site->manifest->items;
+      foreach ($orphanCheck as $key => $item) {
+        // just to be safe..
+        if ($page = $site->loadNode($item->id)) {
+          // ensure that parent is valid to rescue orphan items
+          if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
+            $page->parent = null;
+            // force to bottom of things while still being in old order if lots of things got axed
+            $page->order = (int)$page->order + count($site->manifest->items) - 1;
+            $site->updateNode($page);
+          }
+        }
+      }
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save();
+      // update alt formats like rss as we did massive changes
+      $site->updateAlternateFormats();
+      $site->gitCommit('Outline updated in bulk');
+      return $site->manifest->items;
+    } else {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'invalid site token',
+        )
+      );
     }
-    $site->manifest->metadata->site->updated = time();
-    $site->manifest->save();
-    // update alt formats like rss as we did massive changes
-    $site->updateAlternateFormats();
-    $site->gitCommit('Outline updated in bulk');
-    return $site->manifest->items;
   }
   /**
    * @OA\Post(
@@ -771,59 +791,78 @@ class Operations {
    */
   public function createNode() {
     $nodeParams = $this->params;
-    $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
-    // implies we've been TOLD to create nodes
-    // this is typically from a docx import
-    if (isset($nodeParams['items'])) {
-      // create pages
-      for ($i=0; $i < count($nodeParams['items']); $i++) {
-        // outline-designer allows delete + confirmation but we don't have anything
-        // so instead, just don't process the thing in question if asked to delete it
-        if (isset($nodeParams['items'][$i]['delete']) && $nodeParams['items'][$i]['delete'] == TRUE) {
-          // do nothing
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $nodeParams['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
+      // implies we've been TOLD to create nodes
+      // this is typically from a docx import
+      if (isset($nodeParams['items'])) {
+        // create pages
+        for ($i=0; $i < count($nodeParams['items']); $i++) {
+          // outline-designer allows delete + confirmation but we don't have anything
+          // so instead, just don't process the thing in question if asked to delete it
+          if (isset($nodeParams['items'][$i]['delete']) && $nodeParams['items'][$i]['delete'] == TRUE) {
+            // do nothing
+          }
+          else {
+            $item = $site->addPage(
+              $nodeParams['items'][$i]['parent'], 
+              $nodeParams['items'][$i]['title'], 
+              'html', 
+              $nodeParams['items'][$i]['slug'],
+              $nodeParams['items'][$i]['id'],
+              $nodeParams['items'][$i]['indent'],
+              $nodeParams['items'][$i]['contents']
+            );  
+          }
         }
-        else {
-          $item = $site->addPage(
-            $nodeParams['items'][$i]['parent'], 
-            $nodeParams['items'][$i]['title'], 
-            'html', 
-            $nodeParams['items'][$i]['slug'],
-            $nodeParams['items'][$i]['id'],
-            $nodeParams['items'][$i]['indent'],
-            $nodeParams['items'][$i]['contents']
-          );  
-        }
+        $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
       }
-      $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
-    }
-    else {
-      // generate a new item based on the site
-      $item = $site->itemFromParams($nodeParams);
-      $item->metadata->images = array();
-      $item->metadata->videos = array();
-      // generate the boilerplate to fill this page
-      $site->recurseCopy(
-          HAXCMS_ROOT . '/system/boilerplate/page/default',
-          $site->directory .
-              '/' .
-              $site->manifest->metadata->site->name .
-              '/' .
-              str_replace('/index.html', '', $item->location)
-      );
-      // add the item back into the outline schema
-      $site->manifest->addItem($item);
-      $site->manifest->save();
-      // support for duplicating the content of another item
-      if (isset($nodeParams['node']['duplicate'])) {
-        // verify we can load this id
-        if ($nodeToDuplicate = $site->loadNode($nodeParams['node']['duplicate'])) {
-          $content = $site->getPageContent($nodeToDuplicate);
-          // verify we actually have the id of an item that we just created
+      else {
+        // generate a new item based on the site
+        $item = $site->itemFromParams($nodeParams);
+        $item->metadata->images = array();
+        $item->metadata->videos = array();
+        // generate the boilerplate to fill this page
+        $site->recurseCopy(
+            HAXCMS_ROOT . '/system/boilerplate/page/default',
+            $site->directory .
+                '/' .
+                $site->manifest->metadata->site->name .
+                '/' .
+                str_replace('/index.html', '', $item->location)
+        );
+        // add the item back into the outline schema
+        $site->manifest->addItem($item);
+        $site->manifest->save();
+        // support for duplicating the content of another item
+        if (isset($nodeParams['node']['duplicate'])) {
+          // verify we can load this id
+          if ($nodeToDuplicate = $site->loadNode($nodeParams['node']['duplicate'])) {
+            $content = $site->getPageContent($nodeToDuplicate);
+            // verify we actually have the id of an item that we just created
+            if ($page = $site->loadNode($item->id)) {
+              // write it to the file system
+              // this all seems round about but it's more secure
+              $bytes = $page->writeLocation(
+                $content,
+                HAXCMS_ROOT .
+                '/' .
+                $GLOBALS['HAXCMS']->sitesDirectory .
+                '/' .
+                $site->manifest->metadata->site->name .
+                '/'
+              );
+            }
+          }
+        }
+        // implies front end was told to generate a page with set content
+        // this is possible when importing and processing a file to generate
+        // html which becomes the boilerplated content in effect
+        else if (isset($nodeParams['node']['contents'])) {
           if ($page = $site->loadNode($item->id)) {
             // write it to the file system
-            // this all seems round about but it's more secure
             $bytes = $page->writeLocation(
-              $content,
+              $nodeParams['node']['contents'],
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -833,32 +872,23 @@ class Operations {
             );
           }
         }
+        $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
+        // update the alternate formats as a new page exists
+        $site->updateAlternateFormats();
       }
-      // implies front end was told to generate a page with set content
-      // this is possible when importing and processing a file to generate
-      // html which becomes the boilerplated content in effect
-      else if (isset($nodeParams['node']['contents'])) {
-        if ($page = $site->loadNode($item->id)) {
-          // write it to the file system
-          $bytes = $page->writeLocation(
-            $nodeParams['node']['contents'],
-            HAXCMS_ROOT .
-            '/' .
-            $GLOBALS['HAXCMS']->sitesDirectory .
-            '/' .
-            $site->manifest->metadata->site->name .
-            '/'
-          );
-        }
-      }
-      $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
-      // update the alternate formats as a new page exists
-      $site->updateAlternateFormats();
+      return array(
+        'status' => 200,
+        'data' => $item
+      );
     }
-    return array(
-      'status' => 200,
-      'data' => $item
-    );
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'failed to create node',
+        )
+      );
+    }
   }
   /**
    * @OA\Post(
@@ -878,289 +908,307 @@ class Operations {
    * )
    */
   public function saveNode() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    $schema = array();
-    if (isset($this->params['node']['body'])) {
-      $body = $this->params['node']['body'];
-      // we ship the schema with the body
-      if (isset($this->params['node']['schema'])) {
-        $schema = $this->params['node']['schema'];
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      $schema = array();
+      if (isset($this->params['node']['body'])) {
+        $body = $this->params['node']['body'];
+        // we ship the schema with the body
+        if (isset($this->params['node']['schema'])) {
+          $schema = $this->params['node']['schema'];
+        }
       }
-    }
-    $details = array();
-    // if we have details object then merge configure and advanced
-    if (isset($this->params['node']['details'])) {
-      foreach ($this->params['node']['details']['node']['configure'] as $key => $value) {
-        $details[$key] = $value;
+      $details = array();
+      // if we have details object then merge configure and advanced
+      if (isset($this->params['node']['details'])) {
+        foreach ($this->params['node']['details']['node']['configure'] as $key => $value) {
+          $details[$key] = $value;
+        }
+        foreach ($this->params['node']['details']['node']['advanced'] as $key => $value) {
+          $details[$key] = $value;
+        }
       }
-      foreach ($this->params['node']['details']['node']['advanced'] as $key => $value) {
-        $details[$key] = $value;
-      }
-    }
-    // update the page's content, using manifest to find it
-    // this ensures that writing is always to what the file system
-    // determines to be the correct page
-    // @todo review this step by step
-    if ($page = $site->loadNode($this->params['node']['id'])) {
-      // convert web location for loading into file location for writing
-      if (isset($body)) {
-        $bytes = 0;
-        // see if we have multiple pages / this page has been told to split into multiple
-        $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
-        foreach($pageData as $data) {
-          // trap to ensure if front-end didnt send a UUID for id then we make it
-          if (!isset($data["attributes"]["title"])) {
-            $data["attributes"]["title"] = 'New page';
-          }
-          // to avoid critical error in parsing, we defer to the POST's ID always
-          // this also blocks multiple page breaks if it doesn't exist as we don't allow
-          // the front end to dictate what gets created here
-          if (!isset($data["attributes"]["item-id"])) {
-            $data["attributes"]["item-id"] = $this->params['node']['id'];
-          }
-          if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
-            $data["attributes"]["path"] = $data["attributes"]["title"];
-          }
-          // verify this pages does not exist; this is only possible if we parse multiple page-break
-          // a capability that is not supported currently beyond experiments
-          if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
-            // generate a new item based on the site
-            $nodeParams = array(
-              "node" => array(
-                "title" => $data["attributes"]["title"],
-                "id" => $data["attributes"]["item-id"],
-                "location" => $data["attributes"]["path"],
-              )
+      // update the page's content, using manifest to find it
+      // this ensures that writing is always to what the file system
+      // determines to be the correct page
+      // @todo review this step by step
+      if ($page = $site->loadNode($this->params['node']['id'])) {
+        // convert web location for loading into file location for writing
+        if (isset($body)) {
+          $bytes = 0;
+          // see if we have multiple pages / this page has been told to split into multiple
+          $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
+          foreach($pageData as $data) {
+            // trap to ensure if front-end didnt send a UUID for id then we make it
+            if (!isset($data["attributes"]["title"])) {
+              $data["attributes"]["title"] = 'New page';
+            }
+            // to avoid critical error in parsing, we defer to the POST's ID always
+            // this also blocks multiple page breaks if it doesn't exist as we don't allow
+            // the front end to dictate what gets created here
+            if (!isset($data["attributes"]["item-id"])) {
+              $data["attributes"]["item-id"] = $this->params['node']['id'];
+            }
+            if (!isset($data["attributes"]["path"]) || $data["attributes"]["path"] == '#') {
+              $data["attributes"]["path"] = $data["attributes"]["title"];
+            }
+            // verify this pages does not exist; this is only possible if we parse multiple page-break
+            // a capability that is not supported currently beyond experiments
+            if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
+              // generate a new item based on the site
+              $nodeParams = array(
+                "node" => array(
+                  "title" => $data["attributes"]["title"],
+                  "id" => $data["attributes"]["item-id"],
+                  "location" => $data["attributes"]["path"],
+                )
+              );
+              $item = $site->itemFromParams($nodeParams);
+              // generate the boilerplate to fill this page
+              $site->recurseCopy(
+                  HAXCMS_ROOT . '/system/boilerplate/page/default',
+                  $site->directory .
+                      '/' .
+                      $site->manifest->metadata->site->name .
+                      '/' .
+                      str_replace('/index.html', '', $item->location)
+              );
+              // add the item back into the outline schema
+              $site->manifest->addItem($item);
+              $site->manifest->save();
+              $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
+              // possible the item-id had to be made by back end
+              $data["attributes"]["item-id"] = $item->id;
+            }
+            // now this should exist if it didn't a minute ago
+            $page = $site->loadNode($data["attributes"]["item-id"]);
+            // @todo make sure that we stripped off page-break
+            // and now save WITHOUT the top level page-break
+            // to avoid duplication issues
+            $bytes = $page->writeLocation(
+              $data['content'],
+              HAXCMS_ROOT .
+              '/' .
+              $GLOBALS['HAXCMS']->sitesDirectory .
+              '/' .
+              $site->manifest->metadata->site->name .
+              '/'
             );
-            $item = $site->itemFromParams($nodeParams);
-            // generate the boilerplate to fill this page
-            $site->recurseCopy(
-                HAXCMS_ROOT . '/system/boilerplate/page/default',
-                $site->directory .
-                    '/' .
-                    $site->manifest->metadata->site->name .
-                    '/' .
-                    str_replace('/index.html', '', $item->location)
-            );
-            // add the item back into the outline schema
-            $site->manifest->addItem($item);
-            $site->manifest->save();
-            $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')');
-            // possible the item-id had to be made by back end
-            $data["attributes"]["item-id"] = $item->id;
-          }
-          // now this should exist if it didn't a minute ago
-          $page = $site->loadNode($data["attributes"]["item-id"]);
-          // @todo make sure that we stripped off page-break
-          // and now save WITHOUT the top level page-break
-          // to avoid duplication issues
-          $bytes = $page->writeLocation(
-            $data['content'],
-            HAXCMS_ROOT .
-            '/' .
-            $GLOBALS['HAXCMS']->sitesDirectory .
-            '/' .
-            $site->manifest->metadata->site->name .
-            '/'
-          );
-          if ($bytes === false) {
-            return array(
-              '__failed' => array(
-                'status' => 500,
-                'message' => 'failed to write',
-              )
-            );
-          } else {
-              // sanity check
-              if (!isset($page->metadata)) {
-                $page->metadata = new stdClass();
-              }
-              // update attributes in the page
-              if (isset($data["attributes"]["title"])) {
-                $page->title = $data["attributes"]["title"];
-              }
-              if (isset($data["attributes"]["slug"])) {
-                // account for x being the only front end reserved route
-                if ($data["attributes"]["slug"] == "x") {
-                  $data["attributes"]["slug"] = "x-x";
+            if ($bytes === false) {
+              return array(
+                '__failed' => array(
+                  'status' => 500,
+                  'message' => 'failed to write',
+                )
+              );
+            } else {
+                // sanity check
+                if (!isset($page->metadata)) {
+                  $page->metadata = new stdClass();
                 }
-                // same but trying to force a sub-route; paths cannot conflict with front end
-                if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
-                  $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
+                // update attributes in the page
+                if (isset($data["attributes"]["title"])) {
+                  $page->title = $data["attributes"]["title"];
                 }
-                // machine name should more aggressively scrub the slug than clean title
-                // @todo need to verify this doesn't already exist
-                $page->slug = $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"]);
-              }
-              if (isset($data["attributes"]["parent"])) {
-                $page->parent = $data["attributes"]["parent"];
-              }
-              else {
-                $page->parent = null;
-              }
-              // allow setting theme via page break
-              if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
-                $themes = $GLOBALS['HAXCMS']->getThemes();
-                $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
-                // support for removing the custom theme or applying none
-                if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
+                if (isset($data["attributes"]["slug"])) {
+                  // account for x being the only front end reserved route
+                  if ($data["attributes"]["slug"] == "x") {
+                    $data["attributes"]["slug"] = "x-x";
+                  }
+                  // same but trying to force a sub-route; paths cannot conflict with front end
+                  if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
+                    $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
+                  }
+                  // machine name should more aggressively scrub the slug than clean title
+                  // @todo need to verify this doesn't already exist
+                  $page->slug = $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"]);
+                }
+                if (isset($data["attributes"]["parent"])) {
+                  $page->parent = $data["attributes"]["parent"];
+                }
+                else {
+                  $page->parent = null;
+                }
+                // allow setting theme via page break
+                if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
+                  $themes = $GLOBALS['HAXCMS']->getThemes();
+                  $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                  // support for removing the custom theme or applying none
+                  if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
+                    unset($page->metadata->theme);
+                  }
+                  // ensure it exists
+                  else if (isset($themes->{$value})) {
+                    $page->metadata->theme = $themes->{$value};
+                    $page->metadata->theme->key = $value;
+                  }
+                }
+                else if (isset($page->metadata->theme)) {
                   unset($page->metadata->theme);
                 }
-                // ensure it exists
-                else if (isset($themes->{$value})) {
-                  $page->metadata->theme = $themes->{$value};
-                  $page->metadata->theme->key = $value;
+                if (isset($data["attributes"]["depth"])) {
+                  $page->indent = (int)$data["attributes"]["depth"];
                 }
-              }
-              else if (isset($page->metadata->theme)) {
-                unset($page->metadata->theme);
-              }
-              if (isset($data["attributes"]["depth"])) {
-                $page->indent = (int)$data["attributes"]["depth"];
-              }
-              if (isset($data["attributes"]["order"])) {
-                $page->order = (int)$data["attributes"]["order"];
-              }
-              // boolean so these are either there or not
-              // historically we are published if this value is not set
-              // and that will remain true however as we save / update pages
-              // this will ensure that we set things to published
-              if (isset($data["attributes"]["published"])) {
-                $page->metadata->published = true;
-              }
-              else {
-                $page->metadata->published = false;
-              }
-              // support for defining and updating page type
-              if (isset($data["attributes"]["page-type"]) && $data["attributes"]["page-type"] != '') {
-                $page->metadata->pageType = $data["attributes"]["page-type"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->pageType)) {
-                unset($page->metadata->pageType);
-              }
-              // support for defining and updating hideInMenu
-              if (isset($data["attributes"]["hide-in-menu"])) {
-                $page->metadata->hideInMenu = true;
-              }
-              else {
-                $page->metadata->hideInMenu = false;
-              }
-              // support for defining and updating related-items
-              if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
-                $page->metadata->relatedItems = $data["attributes"]["related-items"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->relatedItems)) {
-                unset($page->metadata->relatedItems);
-              }
-              // support for defining and updating image
-              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                $page->metadata->image = $data["attributes"]["image"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->image)) {
-                unset($page->metadata->image);
-              }
-              // support for defining and updating page type
-              if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
-                $page->metadata->tags = $data["attributes"]["tags"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->tags)) {
-                unset($page->metadata->tags);
-              }
-              // support for defining and updating page accentColor
-              if (isset($data["attributes"]["accent-color"]) && $data["attributes"]["accent-color"] != '') {
-                $page->metadata->accentColor = $data["attributes"]["accent-color"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->accentColor)) {
-                unset($page->metadata->accentColor);
-              }
-              // support for defining and updating page type
-              if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
-                $page->metadata->icon = $data["attributes"]["icon"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->icon)) {
-                unset($page->metadata->icon);
-              }
-              // support for defining an image to represent the page
-              if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                $page->metadata->image = $data["attributes"]["image"];
-              }
-              // they sent across nothing but we had something previously
-              else if (isset($page->metadata->image)) {
-                unset($page->metadata->image);
-              }
-              if (!isset($data["attributes"]["locked"])) {
-                $page->metadata->locked = false;
-              }
-              else {
-                $page->metadata->locked = true;
-              }
-              // update the updated timestamp
-              $page->metadata->updated = time();
-              $clean = strip_tags($body);
-              // auto generate a text only description from first 200 chars
-              // unless we were sent one to use
-              if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
-                $page->description = strip_tags($data["attributes"]["description"]);
-              }
-              else {
-                $page->description = str_replace(
-                  "\n",
-                  '',
-                  substr($clean, 0, 200)
-              );
-              }
-              $readtime = round(str_word_count($clean) / 200);
-              // account for uber small body
-              if ($readtime == 0) {
-                $readtime = 1;
-              }
-              $page->metadata->readtime = $readtime;
-              // reset bc we rebuild this each page save
-              $page->metadata->videos = array();
-              $page->metadata->images = array();
-              // pull schema apart and seee if we have any images
-              // that other things could use for metadata / theming purposes
-              foreach ($schema as $element) {
-                switch($element['tag']) {
-                  case 'img':
-                    if (isset($element['properties']['src'])) {
-                      array_push($page->metadata->images, $element['properties']['src']);
-                    }
-                  break;
-                  case 'a11y-gif-player':
-                    if (isset($element['properties']['src'])) {
-                      array_push($page->metadata->images, $element['properties']['src']);
-                    }
-                  break;
-                  case 'media-image':
-                    if (isset($element['properties']['source'])) {
-                      array_push($page->metadata->images, $element['properties']['source']);
-                    }
-                  break;
-                  case 'video-player':
-                    if (isset($element['properties']['source'])) {
-                      array_push($page->metadata->videos, $element['properties']['source']);
-                    }
-                  break;
+                if (isset($data["attributes"]["order"])) {
+                  $page->order = (int)$data["attributes"]["order"];
                 }
-              }
-              $site->updateNode($page);
-              $site->gitCommit(
-                'Page updated: ' . $page->title . ' (' . $page->id . ')'
-              );
+                // boolean so these are either there or not
+                // historically we are published if this value is not set
+                // and that will remain true however as we save / update pages
+                // this will ensure that we set things to published
+                if (isset($data["attributes"]["published"])) {
+                  $page->metadata->published = true;
+                }
+                else {
+                  $page->metadata->published = false;
+                }
+                // support for defining and updating page type
+                if (isset($data["attributes"]["page-type"]) && $data["attributes"]["page-type"] != '') {
+                  $page->metadata->pageType = $data["attributes"]["page-type"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->pageType)) {
+                  unset($page->metadata->pageType);
+                }
+                // support for defining and updating hideInMenu
+                if (isset($data["attributes"]["hide-in-menu"])) {
+                  $page->metadata->hideInMenu = true;
+                }
+                else {
+                  $page->metadata->hideInMenu = false;
+                }
+                // support for defining and updating related-items
+                if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
+                  $page->metadata->relatedItems = $data["attributes"]["related-items"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->relatedItems)) {
+                  unset($page->metadata->relatedItems);
+                }
+                // support for defining and updating image
+                if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                  $page->metadata->image = $data["attributes"]["image"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->image)) {
+                  unset($page->metadata->image);
+                }
+                // support for defining and updating page type
+                if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
+                  $page->metadata->tags = $data["attributes"]["tags"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->tags)) {
+                  unset($page->metadata->tags);
+                }
+                // support for defining and updating page accentColor
+                if (isset($data["attributes"]["accent-color"]) && $data["attributes"]["accent-color"] != '') {
+                  $page->metadata->accentColor = $data["attributes"]["accent-color"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->accentColor)) {
+                  unset($page->metadata->accentColor);
+                }
+                // support for defining and updating page type
+                if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
+                  $page->metadata->icon = $data["attributes"]["icon"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->icon)) {
+                  unset($page->metadata->icon);
+                }
+                // support for defining an image to represent the page
+                if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
+                  $page->metadata->image = $data["attributes"]["image"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->image)) {
+                  unset($page->metadata->image);
+                }
+                if (!isset($data["attributes"]["locked"])) {
+                  $page->metadata->locked = false;
+                }
+                else {
+                  $page->metadata->locked = true;
+                }
+                // update the updated timestamp
+                $page->metadata->updated = time();
+                $clean = strip_tags($body);
+                // auto generate a text only description from first 200 chars
+                // unless we were sent one to use
+                if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
+                  $page->description = strip_tags($data["attributes"]["description"]);
+                }
+                else {
+                  $page->description = str_replace(
+                    "\n",
+                    '',
+                    substr($clean, 0, 200)
+                );
+                }
+                $readtime = round(str_word_count($clean) / 200);
+                // account for uber small body
+                if ($readtime == 0) {
+                  $readtime = 1;
+                }
+                $page->metadata->readtime = $readtime;
+                // reset bc we rebuild this each page save
+                $page->metadata->videos = array();
+                $page->metadata->images = array();
+                // pull schema apart and seee if we have any images
+                // that other things could use for metadata / theming purposes
+                foreach ($schema as $element) {
+                  switch($element['tag']) {
+                    case 'img':
+                      if (isset($element['properties']['src'])) {
+                        array_push($page->metadata->images, $element['properties']['src']);
+                      }
+                    break;
+                    case 'a11y-gif-player':
+                      if (isset($element['properties']['src'])) {
+                        array_push($page->metadata->images, $element['properties']['src']);
+                      }
+                    break;
+                    case 'media-image':
+                      if (isset($element['properties']['source'])) {
+                        array_push($page->metadata->images, $element['properties']['source']);
+                      }
+                    break;
+                    case 'video-player':
+                      if (isset($element['properties']['source'])) {
+                        array_push($page->metadata->videos, $element['properties']['source']);
+                      }
+                    break;
+                  }
+                }
+                $site->updateNode($page);
+                $site->gitCommit(
+                  'Page updated: ' . $page->title . ' (' . $page->id . ')'
+                );
+            }
           }
+          return array(
+            'status' => 200,
+            'data' => $page
+          );
         }
+      }
+      else {
         return array(
-          'status' => 200,
-          'data' => $page
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'failed to write',
+          )
         );
       }
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'failed to write',
+        )
+      );
     }
   }
   /**
@@ -1182,46 +1230,56 @@ class Operations {
    */
   public function deleteNode() {
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    // update the page's content, using manifest to find it
-    // this ensures that writing is always to what the file system
-    // determines to be the correct page
-    if ($page = $site->loadNode($this->params['node']['id'])) {
-        if ($site->deleteNode($page) === false) {
-          return array(
-            '__failed' => array(
-              'status' => 500,
-              'message' => 'failed to delete',
-            )
-          );
-        } else {
-          // now, we need to look for orphans if we deleted anything
-          $orphanCheck = $site->manifest->items;
-          foreach ($orphanCheck as $key => $item) {
-            // just to be safe..
-            if ($page = $site->loadNode($item->id)) {
-              // ensure that parent is valid to rescue orphan items
-              if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
-                $page->parent = null;
-                // force to bottom of things while still being in old order if lots of things got axed
-                $page->order = (int)$page->order + count($site->manifest->items) - 1;
-                $site->updateNode($page);
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      // update the page's content, using manifest to find it
+      // this ensures that writing is always to what the file system
+      // determines to be the correct page
+      if ($page = $site->loadNode($this->params['node']['id'])) {
+          if ($site->deleteNode($page) === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to delete',
+              )
+            );
+          } else {
+            // now, we need to look for orphans if we deleted anything
+            $orphanCheck = $site->manifest->items;
+            foreach ($orphanCheck as $key => $item) {
+              // just to be safe..
+              if ($page = $site->loadNode($item->id)) {
+                // ensure that parent is valid to rescue orphan items
+                if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
+                  $page->parent = null;
+                  // force to bottom of things while still being in old order if lots of things got axed
+                  $page->order = (int)$page->order + count($site->manifest->items) - 1;
+                  $site->updateNode($page);
+                }
               }
             }
+            $site->gitCommit(
+              'Page deleted: ' . $page->title . ' (' . $page->id . ')'
+            );
+            return array(
+              'status' => 200,
+              'data' => $page
+            );
           }
-          $site->gitCommit(
-            'Page deleted: ' . $page->title . ' (' . $page->id . ')'
-          );
-          return array(
-            'status' => 200,
-            'data' => $page
-          );
-        }
-        exit();
-    } else {
+          exit();
+      } else {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'failed to delete',
+          )
+        );
+      }
+    }
+    else {
       return array(
         '__failed' => array(
           'status' => 500,
-          'message' => 'failed to load',
+          'message' => 'failed to delete',
         )
       );
     }
@@ -1283,7 +1341,7 @@ class Operations {
    *    path="/generateAppStore",
    *    tags={"hax","api"},
    *    @OA\Parameter(
-   *         name="app-store-token",
+   *         name="appstore_token",
    *         description="security token for appstore",
    *         in="query",
    *         required=true,
@@ -1298,9 +1356,9 @@ class Operations {
   public function generateAppStore() {
     // test if this is a valid user login with this specialty token that HAX looks for
     if (
-      isset($this->params['app-store-token']) &&
-      $GLOBALS['HAXCMS']->validateRequestToken($this->params['app-store-token'], 'appstore')
-    ) {
+      isset($this->params['appstore_token']) &&
+      $GLOBALS['HAXCMS']->validateRequestToken($this->params['appstore_token'], 'appstore') &&
+      isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $haxService = new HAXAppStoreService();
       $apikeys = array();
       $baseApps = $haxService->baseSupportedApps();
@@ -1314,7 +1372,7 @@ class Operations {
       }
       $appStore = $haxService->loadBaseAppStore($apikeys);
       // pull in the core one we supply, though only upload works currently
-      $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON());
+      $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON($this->params['site_token'], $this->params['site']['name']));
       array_push($appStore, $tmp);
       if (isset($GLOBALS['HAXCMS']->config->appStore->stax)) {
           $staxList = $GLOBALS['HAXCMS']->config->appStore->stax;
@@ -1388,10 +1446,12 @@ class Operations {
    * )
    */
   public function getUserData() {
-    return array(
-      'status' => 200,
-      'data' => $GLOBALS['HAXCMS']->userData
-    );
+    if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        'status' => 200,
+        'data' => $GLOBALS['HAXCMS']->userData
+      );
+    }
   }
   /**
    * @OA\Post(
@@ -1511,39 +1571,41 @@ class Operations {
    */
   public function listFiles() {
     $files = array();
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    $search = (isset($this->params['filename'])) ? $this->params['filename'] : '';
-    // build files directory path
-    $fileDir = $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
-    if ($handle = opendir($fileDir)) {
-      while (false !== ($file = readdir($handle))) {
-        // ignore system files
-          if (
-              $file != "." &&
-              $file != ".." &&
-              $file != '.gitkeep' &&
-              $file != '._.DS_Store' &&
-              $file != '.DS_Store'
-          ) {
-              // ensure this is a file and if we are searching for results then return only exact ones
-              if (is_file($fileDir . '/' . $file) && ($search == "" || strpos($file, $search) || strpos($file, $search) === 0)) {
-                // @todo thumbnail support for non image media / thumbnails in general via internal cache / file call
-                $files[] = array(
-                  'path' => 'files/' . $file,
-                  'fullUrl' =>
-                      $GLOBALS['HAXCMS']->basePath .
-                      $GLOBALS['HAXCMS']->sitesDirectory .
-                      $fileDir . '/' .
-                      $file,
-                  'url' => 'files/' . $file,
-                  'mimetype' => mime_content_type($fileDir . '/' . $file),
-                  'name' => $file
-                );
-              }
-          }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      $search = (isset($this->params['filename'])) ? $this->params['filename'] : '';
+      // build files directory path
+      $fileDir = $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
+      if ($handle = opendir($fileDir)) {
+        while (false !== ($file = readdir($handle))) {
+          // ignore system files
+            if (
+                $file != "." &&
+                $file != ".." &&
+                $file != '.gitkeep' &&
+                $file != '._.DS_Store' &&
+                $file != '.DS_Store'
+            ) {
+                // ensure this is a file and if we are searching for results then return only exact ones
+                if (is_file($fileDir . '/' . $file) && ($search == "" || strpos($file, $search) || strpos($file, $search) === 0)) {
+                  // @todo thumbnail support for non image media / thumbnails in general via internal cache / file call
+                  $files[] = array(
+                    'path' => 'files/' . $file,
+                    'fullUrl' =>
+                        $GLOBALS['HAXCMS']->basePath .
+                        $GLOBALS['HAXCMS']->sitesDirectory .
+                        $fileDir . '/' .
+                        $file,
+                    'url' => 'files/' . $file,
+                    'mimetype' => mime_content_type($fileDir . '/' . $file),
+                    'name' => $file
+                  );
+                }
+            }
+        }
+        closedir($handle);
       }
-      closedir($handle);
-  }
+    }
     return $files;
   }
   /**
@@ -1738,8 +1800,16 @@ class Operations {
    * )
    */
   public function saveFile() {
-    // @todo might want to scrub prior to this level but not sure
-    if (isset($_FILES['file-upload'])) {
+    // resolve front-end parsing issue with saveFiles based on how that was structured
+    // this is a bit of a hack but site token will have the ?siteName in it as opposed to stand alone params
+    if (isset($this->params['site_token']) && !isset($this->params['site'])) {
+      $tmp = explode('?siteName=', $this->params['site_token']);
+      if (count($tmp) == 2) {
+        $this->params['site_token'] = $tmp[0];
+        $this->params['site']['name'] = $tmp[1];
+      }
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name']) && isset($_FILES['file-upload'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
@@ -1758,6 +1828,14 @@ class Operations {
       }
       $site->gitCommit('File added: ' . $upload['name']);
       return $fileResult;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Invalid file request',
+        )
+      );
     }
   }
 
@@ -1778,52 +1856,54 @@ class Operations {
    * )
    */
   public function listSites() {
-    // top level fake JOS
-    $return = array(
-      "id" => "123-123-123-123",
-      "title" => "My sites",
-      "author" => "me",
-      "description" => "All of my micro sites I know and love.",
-      "license" => "by-sa",
-      "metadata" => array(),
-      "items" => array()
-    );
-    // loop through files directory so we can cache those things too
-    if ($handle = opendir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory)) {
-      while (false !== ($item = readdir($handle))) {
-        if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
-          $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
-          $site = json_decode($json);
-          if (isset($site->title)) {
-            $site->indent = 0;
-            $site->order = 0;
-            $site->parent = null;
-            $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
-            $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
-            $site->metadata->pageCount = count($site->items);
-            // we don't need all items stored here
-            unset($site->items);
-            // unset other things we don't need to send across in this meta site.json response
-            if (isset($site->metadata->dynamicElementLoader)) {
-              unset($site->metadata->dynamicElementLoader);
+    if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // top level fake JOS
+      $return = array(
+        "id" => "123-123-123-123",
+        "title" => "My sites",
+        "author" => "me",
+        "description" => "All of my micro sites I know and love.",
+        "license" => "by-sa",
+        "metadata" => array(),
+        "items" => array()
+      );
+      // loop through files directory so we can cache those things too
+      if ($handle = opendir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory)) {
+        while (false !== ($item = readdir($handle))) {
+          if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
+            $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
+            $site = json_decode($json);
+            if (isset($site->title)) {
+              $site->indent = 0;
+              $site->order = 0;
+              $site->parent = null;
+              $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
+              $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
+              $site->metadata->pageCount = count($site->items);
+              // we don't need all items stored here
+              unset($site->items);
+              // unset other things we don't need to send across in this meta site.json response
+              if (isset($site->metadata->dynamicElementLoader)) {
+                unset($site->metadata->dynamicElementLoader);
+              }
+              
+              if (isset($site->metadata->node)) {
+                unset($site->metadata->node);
+              }
+              if (isset($site->metadata->build->items)) {
+                unset($site->metadata->build->items);
+              }
+              $return['items'][] = $site;
             }
-            
-            if (isset($site->metadata->node)) {
-              unset($site->metadata->node);
-            }
-            if (isset($site->metadata->build->items)) {
-              unset($site->metadata->build->items);
-            }
-            $return['items'][] = $site;
           }
         }
+        closedir($handle);
       }
-      closedir($handle);
+      return array(
+        "status" => 200,
+        "data" => $return
+      );
     }
-    return array(
-      "status" => 200,
-      "data" => $return
-    );
   }
   /**
    * @OA\Post(
@@ -1879,7 +1959,7 @@ class Operations {
    * )
    */
   public function createSite() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken()) {
+    if ($GLOBALS['HAXCMS']->validateRequestToken() && isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
       $domain = null;
       // woohoo we can edit this thing!
       if (isset($this->params['site']['domain']) && $this->params['site']['domain'] != null && $this->params['site']['domain'] != '') {
@@ -2116,103 +2196,48 @@ class Operations {
    * )
    */
   public function cloneSite() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
-    $originalPathForReplacement = "/sites/" . $site->manifest->metadata->site->name . "/files/";
-    $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
-    // ensure the path to the new folder is valid
-    $GLOBALS['fileSystem']->mirror(
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $cloneName
-    );
-    // we need to then load and rewrite the site name var or it will conflict given the name change
-    $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
-    $site->manifest->metadata->site->name = $cloneName;
-    $site->manifest->id = $GLOBALS['HAXCMS']->generateUUID();
-    // loop through all items and rewrite the path to files as we cloned it
-    foreach ($site->manifest->items as $delta => $item) {
-      if (isset($item->metadata->files)) {
-        foreach ($item->metadata->files as $delta2 => $file) {
-          $site->manifest->items[$delta]->metadata->files[$delta2]->path = str_replace(
-            $originalPathForReplacement,
-            '/sites/' . $cloneName . '/files/',
-            $site->manifest->items[$delta]->metadata->files[$delta2]->path
-          );
-          $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl = str_replace(
-            $originalPathForReplacement,
-            '/sites/' . $cloneName . '/files/',
-            $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl
-          );
+    if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      $siteDirectoryPath = $site->directory . '/' . $site->manifest->metadata->site->name;
+      $originalPathForReplacement = "/sites/" . $site->manifest->metadata->site->name . "/files/";
+      $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
+      // ensure the path to the new folder is valid
+      $GLOBALS['fileSystem']->mirror(
+          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $cloneName
+      );
+      // we need to then load and rewrite the site name var or it will conflict given the name change
+      $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
+      $site->manifest->metadata->site->name = $cloneName;
+      $site->manifest->id = $GLOBALS['HAXCMS']->generateUUID();
+      // loop through all items and rewrite the path to files as we cloned it
+      foreach ($site->manifest->items as $delta => $item) {
+        if (isset($item->metadata->files)) {
+          foreach ($item->metadata->files as $delta2 => $file) {
+            $site->manifest->items[$delta]->metadata->files[$delta2]->path = str_replace(
+              $originalPathForReplacement,
+              '/sites/' . $cloneName . '/files/',
+              $site->manifest->items[$delta]->metadata->files[$delta2]->path
+            );
+            $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl = str_replace(
+              $originalPathForReplacement,
+              '/sites/' . $cloneName . '/files/',
+              $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl
+            );
+          }
         }
       }
-    }
-    $site->save();
-    return array(
-      'status' => 200,
-      'data' => array(
-        'detail' =>
-          $GLOBALS['HAXCMS']->basePath .
-          $GLOBALS['HAXCMS']->sitesDirectory .
-          '/' .
-          $cloneName,
-        'name' => $cloneName
-      ),
-    );
-  }
-  /**
-   * @OA\Post(
-   *    path="/deleteSite",
-   *    tags={"cms","authenticated","site"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\RequestBody(
-   *        @OA\MediaType(
-   *             mediaType="application/json",
-   *             @OA\Schema(
-   *                 @OA\Property(
-   *                     property="site",
-   *                     type="object"
-   *                 ),
-   *                 required={"site"},
-   *                 example={
-   *                    "site": {
-   *                      "name": "mynewsite"
-   *                    },
-   *                 }
-   *             )
-   *         )
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Delete a site from the file system"
-   *   )
-   * )
-   */
-  public function deleteSite() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->manifest->metadata->site->name) {
-      $GLOBALS['fileSystem']->remove([
-        $site->directory . '/' . $site->manifest->metadata->site->name
-      ]);
+      $site->save();
       return array(
         'status' => 200,
         'data' => array(
-          'name' => $site->name,
-          'detail' => 'Site deleted',
-        )
-      );
-    }
-    else {
-      return array(
-        '__failed' => array(
-          'status' => 500,
-          'message' => 'Site does not exist!',
-        )
+          'detail' =>
+            $GLOBALS['HAXCMS']->basePath .
+            $GLOBALS['HAXCMS']->sitesDirectory .
+            '/' .
+            $cloneName,
+          'name' => $cloneName
+        ),
       );
     }
   }
@@ -2251,52 +2276,54 @@ class Operations {
    * )
    */
   public function downloadSite() {
-    // load site
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
-    $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name;
-    // form a basic name
-    $zip_file =
-      HAXCMS_ROOT .
-      '/' .
-      $GLOBALS['HAXCMS']->publishedDirectory .
-      '/' .
-      $site->manifest->metadata->site->name .
-      '.zip';
-    // Get real path for our folder
-    $rootPath = realpath($dir);
-    // Initialize archive object
-    $zip = new ZipArchive();
-    $zip->open($zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-    // Create recursive directory iterator
-    $directory = new RecursiveDirectoryIterator($rootPath);
-    $filtered = new DirFilter($directory, array('node_modules'));
-    $files = new RecursiveIteratorIterator($filtered);
-    foreach ($files as $name => $file) {
-      // Skip directories (they would be added automatically)
-      if (!$file->isDir()) {
-        // Get real and relative path for current file
-        $filePath = $file->getRealPath();
-        $relativePath = substr($filePath, strlen($rootPath) + 1);
-        // Add current file to archive
-        if ($filePath != '' && $relativePath != '') {
-          $zip->addFile($filePath, $relativePath);
+    if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // load site
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
+      $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name;
+      // form a basic name
+      $zip_file =
+        HAXCMS_ROOT .
+        '/' .
+        $GLOBALS['HAXCMS']->publishedDirectory .
+        '/' .
+        $site->manifest->metadata->site->name .
+        '.zip';
+      // Get real path for our folder
+      $rootPath = realpath($dir);
+      // Initialize archive object
+      $zip = new ZipArchive();
+      $zip->open($zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+      // Create recursive directory iterator
+      $directory = new RecursiveDirectoryIterator($rootPath);
+      $filtered = new DirFilter($directory, array('node_modules'));
+      $files = new RecursiveIteratorIterator($filtered);
+      foreach ($files as $name => $file) {
+        // Skip directories (they would be added automatically)
+        if (!$file->isDir()) {
+          // Get real and relative path for current file
+          $filePath = $file->getRealPath();
+          $relativePath = substr($filePath, strlen($rootPath) + 1);
+          // Add current file to archive
+          if ($filePath != '' && $relativePath != '') {
+            $zip->addFile($filePath, $relativePath);
+          }
         }
       }
+      // Zip archive will be created only after closing object
+      $zip->close();
+      return array(
+        'status' => 200,
+        'data' => array(
+          'link' =>
+            $GLOBALS['HAXCMS']->basePath .
+            $GLOBALS['HAXCMS']->publishedDirectory .
+            '/' .
+            basename($zip_file),
+          'name' => basename($zip_file)
+        )
+      );
     }
-    // Zip archive will be created only after closing object
-    $zip->close();
-    return array(
-      'status' => 200,
-      'data' => array(
-        'link' =>
-          $GLOBALS['HAXCMS']->basePath .
-          $GLOBALS['HAXCMS']->publishedDirectory .
-          '/' .
-          basename($zip_file),
-        'name' => basename($zip_file)
-      )
-    );
   }
   /**
    * @OA\Post(
@@ -2333,26 +2360,28 @@ class Operations {
    * )
    */
   public function archiveSite() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-    if ($site->manifest->metadata->site->name) {
-      rename(
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
-        HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory . '/' . $site->manifest->metadata->site->name);
-      return array(
-        'status' => 200,
-        'data' => array(
-          'name' => $site->name,
-          'detail' => 'Site archived',
-        )
-      );
-    }
-    else {
-      return array(
-        '__failed' => array(
-          'status' => 500,
-          'message' => 'Site does not exist',
-        )
-      );
+    if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if ($site->manifest->metadata->site->name) {
+        rename(
+          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory . '/' . $site->manifest->metadata->site->name);
+        return array(
+          'status' => 200,
+          'data' => array(
+            'name' => $site->name,
+            'detail' => 'Site archived',
+          )
+        );
+      }
+      else {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Site does not exist',
+          )
+        );
+      }
     }
   }
 }

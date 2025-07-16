@@ -54,7 +54,6 @@ class Request {
       if (in_array($op, array(
         'generateAppStore',
         'connectionSettings',
-        'listSites',
         'login',
         'logout',
         'api',

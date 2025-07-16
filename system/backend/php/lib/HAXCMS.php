@@ -65,7 +65,7 @@ class HAXCMS
     /**
      * Establish defaults for HAXCMS
      */
-    public function __construct()
+    public function __construct() 
     {
       $this->developerMode = FALSE;
       $this->developerModeAdminOnly = FALSE;
@@ -852,7 +852,7 @@ class HAXCMS
     /**
      * Generate a valid HAX App store specification schema for connecting to this site via JSON.
      */
-    public function siteConnectionJSON()
+    public function siteConnectionJSON($siteToken = '', $siteName = '')
     {
         return '{
       "details": {
@@ -869,7 +869,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/api/listFiles",
+            "endPoint": "system/api/listFiles?site_token=' . $siteToken . '&siteName=' . $siteName . '",
             "pagination": {
               "style": "link",
               "props": {
@@ -908,7 +908,7 @@ class HAXCMS
           },
           "add": {
             "method": "POST",
-            "endPoint": "system/api/saveFile",
+            "endPoint": "system/api/saveFile?site_token=' . $siteToken .'",
             "acceptsGizmoTypes": ' . json_encode($this->acceptedHAXFileTypes) . ',
             "resultMap": {
               "item": "data.file",
@@ -927,12 +927,17 @@ class HAXCMS
      * Generate appstore connection information. This has to happen at run time.
      * to get into account _config / environmental overrides
      */
-    public function appStoreConnection() {
+    public function appStoreConnection($siteToken = NULL, $siteName = '') {
         $connection = new stdClass();
         // support for remote appstores if a developer overrides the location
         // of the appstore then we can't assume it exists on this server
         if ($this->appStoreFile == $this->systemRequestBase . '/generateAppStore') {
-          $connection->url = $this->basePath . $this->appStoreFile . '?app-store-token=' . $this->getRequestToken('appstore');
+          $connection->url = $this->basePath . $this->appStoreFile;
+          $connection->params = array(
+            'appstore_token' => $this->getRequestToken('appstore'),
+            'site_token' => $siteToken,
+            'siteName' => $siteName,
+          );
         }
         else {
           $connection->url = $this->appStoreFile;
@@ -1144,7 +1149,7 @@ class HAXCMS
             return TRUE;
           }
         }
-        return TRUE;
+        return FALSE;
     }
     /**
      * Generate machine name
@@ -1267,6 +1272,18 @@ class HAXCMS
         return false;
     }
     /**
+     * Get the active user name based on the session
+     * or the super user if the session is not set
+     */
+    public function getActiveUserName() {
+      if ($this->user->name != null && $this->user->name != '') {
+        return $this->user->name;
+      }
+      elseif (isset($this->superUser->name)) {
+        return $this->superUser->name;
+      }
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
@@ -1369,6 +1386,18 @@ class HAXCMS
      */
     public function appJWTConnectionSettings($base = '/')
     {
+        $sitename = '';
+        // pull out the site name from the base path
+        if (isset($_SERVER['HTTP_REFERER'])) {
+          $sitepath = str_replace($this->protocol . '://' . $this->domain . $this->basePath . $this->sitesDirectory . '/', '', $_SERVER['HTTP_REFERER']);
+          $siteparts = explode('/', $sitepath);
+          // should always be at the base here
+          $sitename = $siteparts[0];
+        }
+        // user token includes user and site name of the request
+        $siteToken = $this->getRequestToken($GLOBALS['HAXCMS']->getActiveUserName() . ':' . $sitename);
+        // user token is just the name of the logged in user
+        $userToken = $this->getRequestToken($GLOBALS['HAXCMS']->getActiveUserName());
         $path = $base . $this->systemRequestBase . '/';
         $settings = new stdClass();
         $settings->login = $path . 'login';
@@ -1376,23 +1405,23 @@ class HAXCMS
         $settings->logout = $path . 'logout';
         $settings->connectionSettings = $path . 'connectionSettings';
         $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
-        $settings->themes = $this->getThemes();
-        $settings->saveNodePath = $path . 'saveNode';
-        $settings->saveManifestPath = $path . 'saveManifest';
-        $settings->saveOutlinePath = $path . 'saveOutline';
+        $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
+        $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
+        $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
-        $settings->createNodePath = $path . 'createNode';
-        $settings->getUserDataPath = $path . 'getUserData';
-        $settings->deleteNodePath = $path . 'deleteNode';
-        $settings->createSite = $path . 'createSite';
-        $settings->downloadSite = $path . 'downloadSite';
-        $settings->archiveSite = $path . 'archiveSite';
-        $settings->copySite = $path . 'cloneSite';
-        $settings->deleteSite = $path . 'deleteSite';
-        $settings->getSitesList = $path . 'listSites';
-        $settings->appStore = $this->appStoreConnection();
+        $settings->createNodePath = $path . 'createNode?site_token=' . $siteToken;
+        $settings->deleteNodePath = $path . 'deleteNode?site_token=' . $siteToken;
+
+        $settings->getUserDataPath = $path . 'getUserData?user_token=' . $userToken;
+        $settings->createSite = $path . 'createSite?user_token=' . $userToken;
+        $settings->downloadSite = $path . 'downloadSite?user_token=' . $userToken;
+        $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
+        $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
+        $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
+        $settings->appStore = $this->appStoreConnection($siteToken, $sitename);
+        $settings->themes = $this->getThemes();
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
             foreach ($this->config->appJWTConnectionSettings as $key => $value) {
