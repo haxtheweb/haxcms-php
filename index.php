@@ -2,6 +2,9 @@
 if (!is_dir('_config') || !is_dir('_sites') || !is_dir('_archived') || !is_dir('_published')) {
     header("Location: install.php");
 }
+// CSP to prevent click-jacking on login page
+header("Content-Security-Policy: frame-ancestors 'none'");
+
 include_once dirname(__FILE__) . '/system/backend/php/bootstrapHAX.php';
 include_once $HAXCMS->configDirectory . '/config.php';
 $appSettings = $HAXCMS->appJWTConnectionSettings('');
