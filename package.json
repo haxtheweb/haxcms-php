@@ -12,7 +12,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@haxtheweb/haxcms-nodejs": "^0.0.16"
+    "@haxtheweb/haxcms-nodejs": "^11.0.13"
   },
   "devDependencies": {
     "commit-and-tag-version": "^12.4.1"
