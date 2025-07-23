@@ -256,9 +256,8 @@ class Operations {
    * )
    */
   public function saveManifest() {
-    // load the site from name
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
-
+      // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       // standard form submit
       // @todo 
@@ -487,7 +486,7 @@ class Operations {
     else {
       return array(
         '__failed' => array(
-          'status' => 500,
+          'status' => 403,
           'message' => 'invalid site token',
         )
       );
@@ -709,7 +708,7 @@ class Operations {
     } else {
       return array(
         '__failed' => array(
-          'status' => 500,
+          'status' => 403,
           'message' => 'invalid site token',
         )
       );
@@ -884,8 +883,8 @@ class Operations {
     else {
       return array(
         '__failed' => array(
-          'status' => 500,
-          'message' => 'failed to create node',
+          'status' => 403,
+          'message' => 'invalid site token',
         )
       );
     }
@@ -1278,8 +1277,8 @@ class Operations {
     else {
       return array(
         '__failed' => array(
-          'status' => 500,
-          'message' => 'failed to delete',
+          'status' => 403,
+          'message' => 'invalid site token',
         )
       );
     }
@@ -1372,7 +1371,7 @@ class Operations {
       }
       $appStore = $haxService->loadBaseAppStore($apikeys);
       // pull in the core one we supply, though only upload works currently
-      $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON($this->params['site_token'], $this->params['site']['name']));
+      $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON($this->params['site_token']));
       array_push($appStore, $tmp);
       if (isset($GLOBALS['HAXCMS']->config->appStore->stax)) {
           $staxList = $GLOBALS['HAXCMS']->config->appStore->stax;
@@ -1450,6 +1449,14 @@ class Operations {
       return array(
         'status' => 200,
         'data' => $GLOBALS['HAXCMS']->userData
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
       );
     }
   }
@@ -1904,6 +1911,14 @@ class Operations {
         "data" => $return
       );
     }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
   }
   /**
    * @OA\Post(
@@ -2240,6 +2255,14 @@ class Operations {
         ),
       );
     }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
   }
   /**
    * @OA\Post(
@@ -2324,6 +2347,14 @@ class Operations {
         )
       );
     }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
   }
   /**
    * @OA\Post(
@@ -2382,6 +2413,14 @@ class Operations {
           )
         );
       }
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
     }
   }
 }

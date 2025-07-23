@@ -852,7 +852,7 @@ class HAXCMS
     /**
      * Generate a valid HAX App store specification schema for connecting to this site via JSON.
      */
-    public function siteConnectionJSON($siteToken = '', $siteName = '')
+    public function siteConnectionJSON($siteToken = '')
     {
         return '{
       "details": {
@@ -869,7 +869,7 @@ class HAXCMS
         "operations": {
           "browse": {
             "method": "GET",
-            "endPoint": "system/api/listFiles?site_token=' . $siteToken . '&siteName=' . $siteName . '",
+            "endPoint": "system/api/listFiles?site_token=' . $siteToken . '",
             "pagination": {
               "style": "link",
               "props": {
