@@ -172,74 +172,6 @@ class Operations {
   }
   /**
    * @OA\Post(
-   *    path="/rebuildManagedFiles",
-   *    tags={"cms","authenticated"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Parameter(
-   *         name="name",
-   *         description="machine name of the site to rebuild managed files for",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Rebuild managed files for the site"
-   *   )
-   * )
-   */
-  public function rebuildManagedFiles() {
-    $status = 200;
-    // only allow * on CLI for safety reasons
-    if ($GLOBALS['HAXCMS']->isCLI() && isset($this->params['site']['name']) && $this->params['site']['name'] === "__ALL__") {
-      // parameter requested but without name
-      if ($handle = opendir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory)) {
-        while (false !== ($item = readdir($handle))) {
-          if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
-            $site = $GLOBALS['HAXCMS']->loadSite($item);
-            // MUST have this value to ensure it's the right site
-            if (isset($site->manifest->metadata->site->name)) {
-              $site->rebuildManagedFiles();
-              $site->updateAlternateFormats();
-              $return['managedFilesRebuilt'][] = $item;  
-            }
-          }
-        }
-        closedir($handle);
-      }
-    }
-    else if (isset($this->params['site']['name'])) {
-      // rebuild a single site
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      if ($site === false) {
-        $status = 400;
-      }
-      else {
-        $site->rebuildManagedFiles();
-        $site->updateAlternateFormats();
-        $return['managedFilesRebuilt'][] = $this->params['site']['name'];  
-      }
-    }
-
-    if (!isset($return)) {
-      $status = 400;
-      $return = array();
-    }
-    
-    return array(
-      "status" => $status,
-      "data" => $return
-    );
-  }
-
-  /**
-   * @OA\Post(
    *    path="/saveManifest",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
@@ -2150,31 +2082,6 @@ class Operations {
         )
       );
     }
-  }
-  /**
-   * Get configuration related to HAX appstore. This allows the user to set valid
-   * configuration via a front-end presented form.
-   */
-  /**
-   * @OA\Get(
-   *    path="/haxConfigurationSelectionData",
-   *    tags={"editor","authenticated","settings"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
-   *    @OA\Response(
-   *        response="200",
-   *        description="Get configuration for HAX in how appstore is constructed"
-   *   )
-   * )
-   */
-  public function haxConfigurationSelectionData() {
-    $response = new stdClass();
-    return $response;
   }
   /**
    * @OA\Post(
