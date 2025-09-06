@@ -42,6 +42,14 @@
           "inputMethod": "haxupload",
           "required": false,
           "noVoiceRecord": true
+        },
+        {
+          "property": "manifest-metadata-site-homePageId",
+          "title": "Home page",
+          "description": "Page to use as the default landing / home page",
+          "inputMethod": "select",
+          "required": false,
+          "icon": "icons:home"
         }
       ]
     },

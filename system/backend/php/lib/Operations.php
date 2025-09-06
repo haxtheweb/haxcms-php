@@ -396,6 +396,36 @@ class Operations {
           FILTER_SANITIZE_STRING
           );
         }
+        // Handle homepage setting - validate it exists in the site outline
+        if (isset($this->params['manifest']['site']['manifest-metadata-site-homePageId'])) {
+          $homePageId = filter_var(
+            $this->params['manifest']['site']['manifest-metadata-site-homePageId'],
+            FILTER_SANITIZE_STRING
+          );
+          // Validate that the page exists in the site manifest
+          $validPage = false;
+          if ($homePageId && $homePageId !== '' && $site->manifest->items) {
+            foreach ($site->manifest->items as $item) {
+              if ($item->id === $homePageId) {
+                $validPage = true;
+                break;
+              }
+            }
+          }
+          // Only set if valid, otherwise leave as null/unset
+          if ($validPage) {
+            $site->manifest->metadata->site->homePageId = $homePageId;
+          } else {
+            // Remove the setting if it was previously set but is now invalid
+            if (isset($site->manifest->metadata->site->homePageId)) {
+              unset($site->manifest->metadata->site->homePageId);
+            }
+            // Also remove from settings path in case it was previously saved there
+            if (isset($site->manifest->metadata->site->settings->homePageId)) {
+              unset($site->manifest->metadata->site->settings->homePageId);
+            }
+          }
+        }
         $site->manifest->metadata->site->updated = time();
         // don't reorganize the structure
         $site->manifest->save(false);
