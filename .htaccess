@@ -70,6 +70,8 @@ DirectoryIndex index.php index.html
   # Make sure Authorization HTTP header is available to PHP
   # even when running as CGI or FastCGI.
   RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  
+  
   # Pass all requests not referring directly to files in the filesystem to
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -101,4 +103,9 @@ DirectoryIndex index.php index.html
 <IfModule mod_headers.c>
   # Disable content sniffing, since it's an attack vector.
   Header always set X-Content-Type-Options nosniff
+  
+  # Security: Force download of HTML files in files directories to prevent XSS  
+  # Direct approach using SetEnvIf to bypass .htaccess inheritance issues
+  SetEnvIf Request_URI "/files/.*\.html?$" force_html_download=1
+  Header always set Content-Disposition "attachment" env=force_html_download
 </IfModule>
