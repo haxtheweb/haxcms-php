@@ -743,16 +743,37 @@ class HAXCMSSite
     public function updateAlternateFormats($format = NULL)
     {
       $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      // Determine domain for feeds
+      $domain = NULL;
+      if (isset($this->manifest->metadata->site->domain) && !empty($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;
+      }
+      if (is_null($domain) || $domain == "") {
+        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
+        $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
+        if (empty($fallbackDomain)) {
+            // CLI fallback or when SERVER_NAME is not available - use root path
+            $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
+        } else {
+            $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
+            // Ensure we have a protocol
+            if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
+                $fallbackDomain = 'https://' . $fallbackDomain;
+            }
+            $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
+        }
+      }
+      
       if (is_null($format) || $format == 'rss') {
           try {
               // rip changes to feed urls
               $rss = new FeedMe();
               $siteDirectory =
                   $this->directory . '/' . $this->manifest->metadata->site->name . '/';
-              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this));
+              @file_put_contents($siteDirectory . 'rss.xml', $rss->getRSSFeed($this, $domain));
               @file_put_contents(
                   $siteDirectory . 'atom.xml',
-                  $rss->getAtomFeed($this)
+                  $rss->getAtomFeed($this, $domain)
               );
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
@@ -761,8 +782,7 @@ class HAXCMSSite
       // build a sitemap if we have a domain, kinda required...
       if (is_null($format) || $format == 'sitemap') {
           try {
-              if (isset($this->manifest->metadata->site->domain)) {
-                  $domain = $this->manifest->metadata->site->domain;
+              if (!empty($domain)) {
                   $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
                       $domain,
                       $siteDirectory
@@ -789,13 +809,7 @@ class HAXCMSSite
                       $updatedTime->setTimestamp($item->metadata->updated);
                       $updatedTime->format(DateTime::ATOM);
                       @$generator->addUrl(
-                          $domain .
-                              '/' .
-                              str_replace(
-                                  'pages/',
-                                  '',
-                                  str_replace('/index.html', '', $item->location)
-                              ),
+                          rtrim($domain, '/') . '/' . ltrim($item->slug, '/'),
                           $updatedTime,
                           'daily',
                           $priority
@@ -809,50 +823,6 @@ class HAXCMSSite
               // some of these XML parsers are a bit unstable
           }
       }
-      $domain = NULL;
-      if (isset($this->manifest->metadata->site->domain)) {
-        $domain = $this->manifest->metadata->site->domain;
-      }
-      if (is_null($domain) || $domain == "") {
-        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
-        $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
-      }
-
-      $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-          $domain,
-          $siteDirectory
-      );
-      // will create also compressed (gzipped) sitemap
-      $generator->enableCompression();
-      // determine how many urls should be put into one file
-      // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-      $generator->setMaxUrlsPerSitemap(50000);
-      // sitemap file name
-      $generator->setSitemapFilename("sitemap.xml");
-      // sitemap index file name
-      $generator->setSitemapIndexFilename("sitemap-index.xml");
-      // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-      foreach ($this->manifest->items as $key => $item) {
-          if ($item->parent == null) {
-              $priority = '1.0';
-          } elseif ($item->indent == 2) {
-              $priority = '0.7';
-          } else {
-              $priority = '0.5';
-          }
-          $updatedTime = new DateTime();
-          $updatedTime->setTimestamp($item->metadata->updated);
-          $updatedTime->format(DateTime::ATOM);
-          $generator->addUrl(
-              $item->slug,
-              $updatedTime,
-              'daily',
-              $priority
-          );
-      }
-      // writing early generated sitemap to file
-      @$generator->flush();
-      @$generator->finalize();
       if (is_null($format) || $format == 'search') {
           // now generate the search index
           @file_put_contents(
