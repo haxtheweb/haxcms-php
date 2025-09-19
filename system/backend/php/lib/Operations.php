@@ -1092,6 +1092,14 @@ class Operations {
                 else if (isset($page->metadata->image)) {
                   unset($page->metadata->image);
                 }
+                // support for defining and updating author
+                if (isset($data["attributes"]["author"]) && $data["attributes"]["author"] != '') {
+                  $page->metadata->author = $data["attributes"]["author"];
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->author)) {
+                  unset($page->metadata->author);
+                }
                 if (!isset($data["attributes"]["locked"])) {
                   $page->metadata->locked = false;
                 }
