@@ -537,6 +537,7 @@ class HAXCMS
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
             "manifest-metadata-theme-variables-icon": null,
+            "manifest-metadata-theme-styleGuide": null,
             "regions": {
               "manifest-metadata-theme-regions-header": null,
               "manifest-metadata-theme-regions-sidebarFirst": null,

@@ -871,6 +871,12 @@ class Operations {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      
+      // Special handling for style guide endpoint through saveNode
+      if (isset($this->params['node']['id']) && $this->params['node']['id'] === 'x/theme/style-guide') {
+        return $this->handleStyleGuideSave($site);
+      }
+      
       $schema = array();
       if (isset($this->params['node']['body'])) {
         $body = $this->params['node']['body'];
@@ -1806,6 +1812,115 @@ class Operations {
         )
       );
     }
+  }
+
+  /**
+   * Handle style guide save operation through saveNode endpoint
+   * @param object $site The HAXcms site object
+   * @return array Response array with status and data
+   */
+  private function handleStyleGuideSave($site) {
+    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
+    $styleGuideFile = $siteDirectory . '/theme/style-guide.html';
+    
+    // Extract content from node body (saveNode endpoint)
+    $content = null;
+    if (isset($this->params['node']['body'])) {
+      $content = $this->params['node']['body'];
+    }
+    
+    // validate that we have content to save
+    if (!$content) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Content parameter is required',
+        )
+      );
+    }
+    
+    // validate content is a string and has some actual content
+    if (!is_string($content)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Content must be a string',
+        )
+      );
+    }
+    
+    // basic validation - ensure we have some HTML-like content
+    $cleanContent = trim($content);
+    if (empty($cleanContent)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Content cannot be empty',
+        )
+      );
+    }
+    
+    // validate that content appears to be HTML by checking for basic HTML patterns
+    // this follows similar pattern to how saveNode validates content structure
+    if (!preg_match('/<[^>]+>/', $cleanContent)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Content must be valid HTML',
+        )
+      );
+    }
+    
+    // check if the theme directory exists, if not create it
+    $themeDirectory = $siteDirectory . '/theme';
+    if (!file_exists($themeDirectory)) {
+      if (!mkdir($themeDirectory, 0755, true)) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Failed to create theme directory',
+          )
+        );
+      }
+    }
+    
+    // ensure the site's style guide setting allows writing to the default location
+    // only allow writing to the default location (theme/style-guide.html)
+    // if user has changed the styleGuide setting to an external URL, block writes
+    if (isset($site->manifest->metadata->theme->styleGuide) && 
+        $site->manifest->metadata->theme->styleGuide !== null && 
+        $site->manifest->metadata->theme->styleGuide !== '') {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Style guide is configured to use external source. Cannot edit through HAXcms.',
+        )
+      );
+    }
+    
+    // write the content to the style guide file
+    $bytes = file_put_contents($styleGuideFile, $cleanContent);
+    
+    if ($bytes === false) {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Failed to write style guide file',
+        )
+      );
+    }
+    
+    // commit to git
+    $site->gitCommit('Style guide updated');
+    
+    return array(
+      'status' => 200,
+      'message' => 'Style guide saved successfully',
+      'data' => [
+        'bytes' => $bytes,
+        'file' => 'theme/style-guide.html'
+      ]
+    );
   }
 
   /**
