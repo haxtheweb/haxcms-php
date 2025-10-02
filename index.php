@@ -62,7 +62,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         padding: 0;
         font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMBackgroundImage.svg');
         background-repeat: repeat;
         background-position: center center;
         background-size: auto, 20% auto, 20% auto;
@@ -72,7 +72,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         --simple-tooltip-opacity: 1;
         --simple-tooltip-text-color: #ffffff;
         --simple-tooltip-delay-in: 0;
-        --simple-tooltip-duration-in: 200ms;
+        --simple-tooltip-duration-in: 300ms;
         --simple-tooltip-duration-out: 0;
         --simple-tooltip-border-radius: 0;
         --simple-tooltip-font-size: 14px;
@@ -82,18 +82,15 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       }
       body.dark-mode {
         background-color: black;
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg');
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMBackgroundImage.svg');
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
-        --simple-tooltip-background: #ffffff;
-        --simple-tooltip-text-color: #000000;
       }
       body.app-loaded:not(.bad-device) {
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
-        background-repeat: repeat, repeat-y, repeat-y;
-        background-position: center center, top left, top right;
-        background-size: auto, 20% auto, 20% auto;
-        background-attachment: fixed, fixed, fixed;
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/LMBackgroundImage.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignLightModeRight.svg');
+        background-position: top;
+        background-size: auto;
+        
       }
       div[slot="externalproviders"] {
         display: none;
@@ -101,10 +98,9 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       body.app-loaded div[slot="externalproviders"] {
         display: unset;
       }
-      body.app-loaded.dark-mode:not(.bad-device) {
-        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMGridBox.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
+      body.app-loaded.dark-mode {
+        background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMBackgroundImage.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeLeft.svg'), url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DesignDarkModeRight.svg');
       }
-
       #loading {
         font-family: 'Press Start 2P', sans-serif;
         text-align: center;
@@ -128,12 +124,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         color: var(--app-hax-accent-color, var(--accent-color));
         font-weight: normal;
         margin-top: 2.5px;
-        font-size: 20px;
-      }
-      @media (max-width: 700px) {
-        #loading .subtitle {
-          font-size: 12px;
-        }
+        font-size: 2vw;
       }
 
       #loading .bracket {
@@ -193,40 +184,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         border-right: 3px solid var(--simple-colors-default-theme-grey-1);
         border-top: 3px solid  var(--simple-colors-default-theme-grey-1);
       }
-
-      simple-modal::part(title) {
-        background-color: transparent;
-        margin: 0;
-        padding: 0;
-        text-align: center;
-        font-size: 20px;
-        line-height: 20px;
-        color: black;
-      }
-      simple-modal button.hax-modal-btn {
-        font-size: 30px;
-        padding: 8px;
-        margin: 4px;
-        color: white;
-        background-color: green;
-        border: 4px solid black;
-        border-radius: 8px;
-        font-family: 'Press Start 2P', sans-serif;
-      }
-      simple-modal button.hax-modal-btn.cancel {
-        background-color: red;
-      }
-      simple-modal button.hax-modal-btn:hover,
-      simple-modal button.hax-modal-btn:focus {
-        outline: 2px solid black;
-        cursor: pointer;
-        background-color: darkgreen;
-      }
-      simple-modal button.hax-modal-btn.cancel:hover,
-      simple-modal button.hax-modal-btn.cancel:focus {
-        background-color: darkred;
-      }
-
     </style>
   </head>
   <body>
