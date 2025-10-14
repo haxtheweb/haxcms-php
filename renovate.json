@@ -1,11 +1,42 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "schedule:weekly",
-    "group:all",
-    ":rebaseStalePrs",
-    ":preserveSemverRanges",
-    ":semanticPrefixChore",
-    ":ignoreUnstable",
-    ":renovatePrefix"
+    "config:recommended"
+  ],
+  "commitMessageLowerCase": "never",
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "schedule": [
+    "* 0-7 * * 1"
+  ],
+  "packageRules": [
+    {
+      "groupName": "HAXTheWeb Dependencies",
+      "matchPackagePatterns": ["^@haxtheweb/"],
+      "schedule": ["at any time"]
+    },
+    {
+      "groupName": "Development Dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "addLabels": ["skip changelog"],
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/"
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "addLabels": ["skip changelog"],
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/"
+    },
+    {
+      "enabled": false,
+      "matchUpdateTypes": ["digest"]
+    }
   ]
 }
