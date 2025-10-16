@@ -1154,35 +1154,72 @@ class HAXCMS
         return FALSE;
     }
     /**
-     * Generate machine name
+     * Generate machine name (for folder names, usernames - must be filesystem safe)
      */
     public function generateMachineName($name) {
-        return strtolower(preg_replace(array(
-        '/[^a-zA-Z0-9]+/',
-        '/-+/',
-        '/^-+/',
-        '/-+$/',
-        ), array('-', '-', '', ''), $name));
+        // Remove null bytes
+        $name = str_replace(chr(0), '', $name);
+        
+        // URL decode to catch encoded traversal attempts
+        $name = urldecode($name);
+        
+        // Remove any path traversal sequences completely
+        $name = preg_replace('/\.{2,}/', '', $name);  // Remove .. sequences
+        $name = preg_replace('/[\\\/]/', '', $name);  // Remove all slashes
+        
+        // Only allow alphanumeric, hyphens, and underscores
+        $name = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $name);
+        
+        // Clean up multiple consecutive hyphens/underscores
+        $name = preg_replace('/[-_]{2,}/', '-', $name);
+        
+        // Remove leading/trailing hyphens/underscores
+        $name = trim($name, '-_');
+        
+        // Convert to lowercase
+        $name = strtolower($name);
+        
+        // Fallback for empty result
+        if (empty($name)) {
+            $name = 'default';
+        }
+        
+        return $name;
     }
     /**
-     * Generate slug name
+     * Generate slug name (for URLs - allows forward slashes but prevents path traversal)
      */
     public function generateSlugName($name) {
-      $slug = strtolower(preg_replace(array(
-        '/[^\w\-\/]+/',
-        '/-+/',
-        '/^-+/',
-        '/-+$/',
-        ), array('-', '-', '', ''), $name));
-      // '//' needs removed
-      $slug = str_replace('////','/',$slug);
-      $slug = str_replace('///','/',$slug);
-      $slug = str_replace('//','/',$slug);
-      $slug = str_replace('//','/',$slug);
-      // slugs CAN NOT start with / but otherwise it should be allowed
-      while (substr($slug, 0, 1) == "/") {
-        $slug = substr($slug, 1);
+      // Remove null bytes
+      $name = str_replace(chr(0), '', $name);
+      
+      // URL decode to catch encoded traversal attempts
+      $name = urldecode($name);
+      
+      // Remove path traversal sequences while preserving forward slashes for URLs
+      $name = preg_replace('/\.{2,}[\/]*/', '', $name);  // Remove ../ and .. sequences
+      $name = str_replace('\\', '', $name);  // Remove backslashes
+      
+      // Convert to lowercase first
+      $slug = strtolower($name);
+      
+      // Allow word chars, hyphens, and forward slashes
+      $slug = preg_replace('/[^\w\-\/]+/u', '-', $slug);
+      
+      // Clean up multiple consecutive hyphens
+      $slug = preg_replace('/-{2,}/', '-', $slug);
+      
+      // Clean up multiple consecutive slashes
+      $slug = preg_replace('/\/{2,}/', '/', $slug);
+      
+      // Remove leading/trailing hyphens and slashes
+      $slug = trim($slug, '-/');
+      
+      // Ensure no path traversal sequences remain after processing
+      if (strpos($slug, '..') !== false) {
+          $slug = str_replace('..', '', $slug);
       }
+      
       return $slug;
     }
     /**
@@ -1422,6 +1459,10 @@ class HAXCMS
         $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
         $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
         $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
+        // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
+        if (isset($this->config->iam) && $this->config->iam) {
+            $settings->haxiamAddUserAccess = $path . 'haxiamAddUserAccess?user_token=' . $userToken;
+        }
         $settings->appStore = $this->appStoreConnection($siteToken, $sitename);
         $settings->themes = $this->getThemes();
         // allow for overrides in config.php

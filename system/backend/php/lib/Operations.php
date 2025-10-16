@@ -2483,4 +2483,269 @@ class Operations {
       );
     }
   }
+
+  /**
+   * HAXIAM Add User Access - Grant access to a site by creating symlinks
+   * 
+   * @OA\Post(
+   *    path="/haxiamAddUserAccess",
+   *    tags={"cms","authenticated","haxiam"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="userName",
+   *                     type="string",
+   *                     description="Username to grant access to"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="siteName",
+   *                     type="string",
+   *                     description="Name of the site to grant access to"
+   *                 ),
+   *                 required={"userName", "siteName"},
+   *                 example={
+   *                    "userName": "xyz456",
+   *                    "siteName": "stuff"
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="User access granted successfully",
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="status",
+   *                     type="string",
+   *                     example="success"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="message",
+   *                     type="string",
+   *                     example="User access granted successfully"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="userName",
+   *                     type="string",
+   *                     example="xyz456"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="timestamp",
+   *                     type="string",
+   *                     format="date-time"
+   *                 )
+   *             )
+   *         )
+   *    ),
+   *    @OA\Response(
+   *        response="403",
+   *        description="User not found or unauthorized"
+   *    ),
+   *    @OA\Response(
+   *        response="400",
+   *        description="Invalid input or HAXIAM not enabled"
+   *    ),
+   *    @OA\Response(
+   *        response="500",
+   *        description="Failed to create user access"
+   *    )
+   * )
+   */
+  public function haxiamAddUserAccess() {
+    // Only allow this operation in HAXIAM mode
+    if (!isset($GLOBALS['HAXCMS']->config->iam) || !$GLOBALS['HAXCMS']->config->iam) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'HAXIAM mode is not enabled',
+        )
+      );
+    }
+
+    // Validate user token for security (same as other user operations like archiveSite)
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+
+    // Validate required parameters
+    if (!isset($this->params['userName']) || empty(trim($this->params['userName']))) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'userName is required',
+        )
+      );
+    }
+
+    if (!isset($this->params['siteName']) || empty(trim($this->params['siteName']))) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'siteName is required',
+        )
+      );
+    }
+
+    // Clean and validate inputs using HAXCMS machine name sanitization
+    $rawUserName = trim($this->params['userName']);
+    $rawSiteName = trim($this->params['siteName']);
+    
+    // Validate and sanitize userName using the enhanced generateMachineName method
+    $targetUserName = $GLOBALS['HAXCMS']->generateMachineName($rawUserName);
+    if ($targetUserName !== $rawUserName || empty($targetUserName)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'userName must be a valid machine name (alphanumeric, hyphens, underscores only)',
+        )
+      );
+    }
+    
+    // Validate and sanitize siteName using the enhanced generateMachineName method
+    $siteName = $GLOBALS['HAXCMS']->generateMachineName($rawSiteName);
+    if ($siteName !== $rawSiteName || empty($siteName)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'siteName must be a valid machine name (alphanumeric, hyphens, underscores only)',
+        )
+      );
+    }
+
+    $currentUser = $GLOBALS['HAXCMS']->getActiveUserName();
+    
+    // Prevent self-access grants
+    if ($targetUserName === $currentUser) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Cannot grant access to yourself',
+        )
+      );
+    }
+
+    // Validate that the target user exists in HAXIAM and has a sites directory
+    if (!$this->_validateHAXIAMUser($targetUserName)) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'User not found or has not set up HAXIAM yet',
+        )
+      );
+    }
+
+    // Validate that the current user owns the specified site
+    if (!$this->_validateUserOwnsSite($currentUser, $siteName)) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'You do not own this site or site does not exist',
+        )
+      );
+    }
+
+    // Create the symlink for the target user
+    try {
+      $result = $this->_createUserSiteSymlink($currentUser, $targetUserName, $siteName);
+      if ($result['success']) {
+        // Log the access grant
+        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' to user '{$targetUserName}'");
+        
+        return array(
+          'status' => 'success',
+          'message' => 'User access granted successfully',
+          'userName' => $targetUserName,
+          'timestamp' => date('c')
+        );
+      } else {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => $result['error'],
+          )
+        );
+      }
+    } catch (Exception $e) {
+      error_log("HAXIAM addUserAccess error: " . $e->getMessage());
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Failed to create user access',
+        )
+      );
+    }
+  }
+
+  /**
+   * Helper method to validate if a user exists in HAXIAM and has set up their environment
+   */
+  private function _validateHAXIAMUser($userName) {
+    // In HAXIAM, users have directories under /var/www/sites/{userName}
+    $userPath = '/var/www/sites/' . $userName;
+    $sitesPath = $userPath . '/sites';
+    
+    // User must exist AND have a sites directory (indicating they've logged in and set up HAXIAM)
+    return is_dir($userPath) && is_dir($sitesPath);
+  }
+
+  /**
+   * Helper method to validate that the current user owns the specified site
+   */
+  private function _validateUserOwnsSite($userName, $siteName) {
+    // Check that the site exists in the user's sites directory
+    $sitePath = '/var/www/sites/' . $userName . '/sites/' . $siteName;
+    return is_dir($sitePath) && !is_link($sitePath); // Must be actual directory, not symlink
+  }
+
+  /**
+   * Helper method to create a symlink in the target user's sites directory
+   */
+  private function _createUserSiteSymlink($sourceUser, $targetUser, $siteName) {
+    // Source: the actual site directory owned by the source user
+    $sourceSitePath = '/var/www/sites/' . $sourceUser . '/sites/' . $siteName;
+    
+    // Target: where the symlink should be created in target user's directory
+    $targetUserSitesDir = '/var/www/sites/' . $targetUser . '/sites';
+    $targetSitePath = $targetUserSitesDir . '/' . $siteName;
+    
+    // Double-check source site exists and is actually a directory (not a symlink)
+    if (!is_dir($sourceSitePath) || is_link($sourceSitePath)) {
+      return array('success' => false, 'error' => 'Source site does not exist or is not owned by you');
+    }
+    
+    // Check if target already has access (symlink or directory already exists)
+    if (file_exists($targetSitePath)) {
+      return array('success' => false, 'error' => 'User already has access to this site');
+    }
+    
+    // Ensure target user's sites directory exists - DO NOT create it, fail if it doesn't exist
+    if (!is_dir($targetUserSitesDir)) {
+      return array('success' => false, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
+    }
+    
+    // Create the symlink using relative path: ../../sourceuser/sites/sitename
+    $relativePath = '../../' . $sourceUser . '/sites/' . $siteName;
+    
+    if (@symlink($relativePath, $targetSitePath)) {
+      return array('success' => true);
+    } else {
+      return array('success' => false, 'error' => 'Failed to create symlink - check permissions');
+    }
+  }
 }
