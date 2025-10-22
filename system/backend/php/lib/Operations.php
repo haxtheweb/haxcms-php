@@ -74,6 +74,23 @@ include_once "JSONOutlineSchemaItem.php";
 class Operations {
   public $params;
   public $rawParams;
+  
+  /**
+   * Check if a platform capability is allowed
+   * @param object $site The site object
+   * @param string $capability The capability to check (e.g., 'delete', 'addPage', 'outlineDesigner', 'manifest')
+   * @return bool Whether the capability is allowed
+   */
+  private function platformAllows($site, $capability) {
+    // Check if platform configuration exists
+    if (isset($site->manifest->metadata->platform) && 
+        isset($site->manifest->metadata->platform->{$capability})) {
+      // If explicitly set to false, deny
+      return $site->manifest->metadata->platform->{$capability} !== false;
+    }
+    // Default to true if not specified
+    return true;
+  }
   /**
    * 
    * @OA\Post(
@@ -191,6 +208,16 @@ class Operations {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'manifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Manifest editing is disabled for this site',
+          )
+        );
+      }
       // standard form submit
       // @todo 
       // make the form point to a form submission endpoint with appropriate name
@@ -474,6 +501,16 @@ class Operations {
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'outlineDesigner')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Outline operations are disabled for this site',
+          )
+        );
+      }
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       $original = $site->manifest->items;
       $items = $this->rawParams['items'];
@@ -754,6 +791,16 @@ class Operations {
     $nodeParams = $this->params;
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $nodeParams['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'addPage')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Adding pages is disabled for this site',
+          )
+        );
+      }
       // implies we've been TOLD to create nodes
       // this is typically from a docx import
       if (isset($nodeParams['items'])) {
@@ -1204,8 +1251,18 @@ class Operations {
    * )
    */
   public function deleteNode() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'delete')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Delete is disabled for this site',
+          )
+        );
+      }
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
@@ -1259,6 +1316,192 @@ class Operations {
       );
     }
   }
+
+  /**
+   * @OA\Post(
+   *    path="/saveNodeDetails",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Perform a singular node operation (moveUp, moveDown, indent, outdent, setParent)"
+   *   )
+   * )
+   */
+  public function saveNodeDetails() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'outlineDesigner')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Outline operations are disabled for this site',
+          )
+        );
+      }
+      if (!isset($this->params['node']['id'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Missing node id',
+          )
+        );
+      }
+      $operation = isset($this->params['node']['details']['operation']) ? $this->params['node']['details']['operation'] : null;
+      $page = $site->loadNode($this->params['node']['id']);
+      if (!$page) {
+        return array(
+          '__failed' => array(
+            'status' => 404,
+            'message' => 'Node not found',
+          )
+        );
+      }
+      // Store original count for safety check
+      $originalItemCount = count($site->manifest->items);
+      $items = $site->manifest->items;
+      $sameParent = function($a, $b) {
+        $pa = isset($a->parent) ? $a->parent : null;
+        $pb = isset($b->parent) ? $b->parent : null;
+        return ($pa === $pb);
+      };
+      $siblings = array();
+      foreach ($items as $it) {
+        if ($sameParent($it, $page)) { $siblings[] = $it; }
+      }
+      // helper to find sibling by order within same parent
+      $findSiblingByOrder = function($order) use ($siblings) {
+        foreach ($siblings as $s) {
+          if (isset($s->order) && (int)$s->order === (int)$order) { return $s; }
+        }
+        return null;
+      };
+      // helper to get last child order for a given parent id
+      $lastChildOrder = function($parentId) use ($items) {
+        $max = -1;
+        foreach ($items as $it) {
+          $p = isset($it->parent) ? $it->parent : null;
+          if ($p === $parentId && isset($it->order)) {
+            $o = (int)$it->order;
+            if ($o > $max) { $max = $o; }
+          }
+        }
+        return $max;
+      };
+
+      switch ($operation) {
+        case 'moveUp':
+          if (isset($page->order) && (int)$page->order > 0) {
+            $other = $findSiblingByOrder((int)$page->order - 1);
+            if ($other && $other->id !== $page->id) {
+              $other->order = (int)$other->order + 1;
+              $page->order = (int)$page->order - 1;
+            }
+          }
+          break;
+        case 'moveDown':
+          if (isset($page->order)) {
+            $other = $findSiblingByOrder((int)$page->order + 1);
+            if ($other && $other->id !== $page->id) {
+              $other->order = (int)$other->order - 1;
+              $page->order = (int)$page->order + 1;
+            }
+          }
+          break;
+        case 'indent':
+          if (isset($page->order)) {
+            $prev = $findSiblingByOrder((int)$page->order - 1);
+            if ($prev) {
+              $page->parent = $prev->id;
+              $page->indent = isset($prev->indent) ? ((int)$prev->indent + 1) : 1;
+              $page->order = $lastChildOrder($prev->id) + 1;
+            }
+          }
+          break;
+        case 'outdent':
+          if (isset($page->parent) && $page->parent !== null) {
+            $parentNode = $site->loadNode($page->parent);
+            $newParent = $parentNode ? $parentNode->parent : null;
+            $insertAfterOrder = $parentNode && isset($parentNode->order) ? ((int)$parentNode->order + 1) : 0;
+            // shift siblings in new parent group to make space
+            foreach ($items as $it) {
+              $p = isset($it->parent) ? $it->parent : null;
+              if ($p === $newParent && isset($it->order) && (int)$it->order >= $insertAfterOrder) {
+                $it->order = (int)$it->order + 1;
+              }
+            }
+            $page->parent = $newParent;
+            $page->indent = isset($page->indent) ? max(((int)$page->indent) - 1, 0) : 0;
+            $page->order = $insertAfterOrder;
+          }
+          break;
+        case 'setParent':
+          // Move page under a specific parent
+          // Use array_key_exists to properly handle null values
+          $newParent = array_key_exists('parent', $this->params['node']['details']) ? $this->params['node']['details']['parent'] : null;
+          $newOrder = array_key_exists('order', $this->params['node']['details']) ? (int)$this->params['node']['details']['order'] : 0;
+          // account for this being set to empty string which means null
+          if (!$newParent || $newParent === '') {
+            $newParent = null;
+          }
+          // Update the page's parent and order
+          $page->parent = $newParent;
+          $page->order = $newOrder;
+          // Calculate indent based on new parent depth
+          if ($newParent === null) {
+            $page->indent = 0;
+          } else {
+            $parentNode = $site->loadNode($newParent);
+            $page->indent = $parentNode && isset($parentNode->indent) ? ((int)$parentNode->indent + 1) : 1;
+          }
+          break;
+        default:
+          break;
+      }
+
+      // Since loadNode returns a reference, $page modifications already update the manifest
+      // Only reassign items if we made a copy that needs to go back
+      $site->manifest->items = $items;
+      
+      // Safety check: ensure item count hasn't changed
+      if (count($site->manifest->items) !== $originalItemCount) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Item count mismatch: expected ' . $originalItemCount . ' but got ' . count($site->manifest->items) . '. Operation aborted to prevent data loss.',
+          )
+        );
+      }
+      
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->updateAlternateFormats();
+      $site->gitCommit('Node operation: ' . $operation . ' on ' . $page->title . ' (' . $page->id . ')');
+
+      $updated = $site->loadNode($page->id);
+      return array(
+        'status' => 200,
+        'data' => $updated,
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
   /**
    * @OA\Post(
    *    path="/siteUpdateAlternateFormats",
@@ -1928,6 +2171,84 @@ class Operations {
         'bytes' => $bytes,
         'file' => 'theme/style-guide.html'
       ]
+    );
+  }
+  /**
+   * Discover available site skeletons from core and user config directories.
+   * Returns metadata list compatible with app-hax v2 dashboard.
+   * Requires a valid user_token and JWT.
+   *
+   * @OA\Get(
+   *    path="/skeletonsList",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="List available site skeletons"
+   *   )
+   * )
+   */
+  public function skeletonsList() {
+    // Validate user_token like listSites
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+
+    $items = array();
+    // directories to scan for JSON skeleton definitions
+    $dirs = array();
+    $coreDir = HAXCMS_ROOT . '/system/boilerplate/skeletons';
+    $configDir = HAXCMS_ROOT . '/_config/skeletons';
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+
+    foreach ($dirs as $dir) {
+      if ($handle = opendir($dir)) {
+        while (false !== ($file = readdir($handle))) {
+          if ($file === '.' || $file === '..') { continue; }
+          $path = $dir . '/' . $file;
+          if (is_file($path) && strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json') {
+            $json = @file_get_contents($path);
+            $skeleton = json_decode($json);
+            if (!is_object($skeleton)) { continue; }
+            // Accept flexible export structures; derive meta fields
+            $meta = isset($skeleton->meta) ? $skeleton->meta : new stdClass();
+            $title = isset($meta->useCaseTitle) && $meta->useCaseTitle ? $meta->useCaseTitle : (isset($meta->name) ? $meta->name : basename($file, '.json'));
+            $description = isset($meta->useCaseDescription) && $meta->useCaseDescription ? $meta->useCaseDescription : (isset($meta->description) ? $meta->description : '');
+            $image = isset($meta->useCaseImage) ? $meta->useCaseImage : '';
+            // categories/tags from meta or build type if present
+            $category = array();
+            if (isset($meta->category) && is_array($meta->category)) { $category = $meta->category; }
+            else if (isset($meta->tags) && is_array($meta->tags)) { $category = $meta->tags; }
+            // attributes/icons optional in meta
+            $attributes = array();
+            if (isset($meta->attributes) && is_array($meta->attributes)) { $attributes = $meta->attributes; }
+            // demo/source url optional
+            $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
+            // Build public URL relative to HAXcms base
+            $publicBase = $GLOBALS['HAXCMS']->basePath . str_replace(HAXCMS_ROOT . '/', '', $dir) . '/';
+            $items[] = array(
+              'title' => $title,
+              'description' => $description,
+              'image' => $image,
+              'category' => $category,
+              'attributes' => $attributes,
+              'demo-url' => $demo,
+              'skeleton-url' => $publicBase . $file
+            );
+          }
+        }
+        closedir($handle);
+      }
+    }
+
+    return array(
+      'status' => 200,
+      'data' => $items
     );
   }
 

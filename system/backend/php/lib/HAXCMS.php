@@ -1165,7 +1165,7 @@ class HAXCMS
         
         // Remove any path traversal sequences completely
         $name = preg_replace('/\.{2,}/', '', $name);  // Remove .. sequences
-        $name = preg_replace('/[\\\/]/', '', $name);  // Remove all slashes
+        $name = preg_replace('/[\\/]/', '', $name);  // Remove all slashes
         
         // Only allow alphanumeric, hyphens, and underscores
         $name = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $name);
@@ -1447,6 +1447,7 @@ class HAXCMS
         $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
         $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
         $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
+        $settings->saveNodeDetailsPath = $path . 'saveNodeDetails?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
@@ -1459,6 +1460,8 @@ class HAXCMS
         $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
         $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
         $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
+        // Skeletons list endpoint for App HAX v2 dashboard
+        $settings->skeletonsList = $path . 'skeletonsList?user_token=' . $userToken;
         // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
         if (isset($this->config->iam) && $this->config->iam) {
             $settings->haxiamAddUserAccess = $path . 'haxiamAddUserAccess?user_token=' . $userToken;
