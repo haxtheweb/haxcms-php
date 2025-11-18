@@ -1330,7 +1330,7 @@ class Operations {
    *    ),
    *    @OA\Response(
    *        response="200",
-   *        description="Perform a singular node operation (moveUp, moveDown, indent, outdent, setParent)"
+   *        description="Perform a singular node operation: moveUp, moveDown, indent, outdent, setParent, setTitle, setDescription, setTags, setIcon, setMedia, setImage, setRelatedItems, setLocked, setPublished, setHideInMenu, setSlug"
    *   )
    * )
    */
@@ -1461,6 +1461,109 @@ class Operations {
           } else {
             $parentNode = $site->loadNode($newParent);
             $page->indent = $parentNode && isset($parentNode->indent) ? ((int)$parentNode->indent + 1) : 1;
+          }
+          break;
+        // Singular field modification operations
+        case 'setTitle':
+          if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
+            $page->title = strip_tags($this->params['node']['details']['title']);
+          }
+          break;
+        case 'setDescription':
+          if (array_key_exists('description', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['description'] !== '') {
+              $page->description = strip_tags($this->params['node']['details']['description']);
+            } else {
+              $page->description = '';
+            }
+          }
+          break;
+        case 'setTags':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('tags', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
+              $page->metadata->tags = filter_var($this->params['node']['details']['tags'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->tags);
+            }
+          }
+          break;
+        case 'setIcon':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('icon', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['icon'] !== '' && $this->params['node']['details']['icon'] !== null) {
+              $page->metadata->icon = filter_var($this->params['node']['details']['icon'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->icon);
+            }
+          }
+          break;
+        case 'setMedia':
+        case 'setImage':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('image', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
+              $page->metadata->image = filter_var($this->params['node']['details']['image'], FILTER_SANITIZE_URL);
+            } else {
+              unset($page->metadata->image);
+            }
+          }
+          break;
+        case 'setRelatedItems':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('relatedItems', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['relatedItems'] !== '' && $this->params['node']['details']['relatedItems'] !== null) {
+              $page->metadata->relatedItems = filter_var($this->params['node']['details']['relatedItems'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->relatedItems);
+            }
+          }
+          break;
+        case 'setLocked':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('locked', $this->params['node']['details'])) {
+            $page->metadata->locked = filter_var($this->params['node']['details']['locked'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setPublished':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('published', $this->params['node']['details'])) {
+            $page->metadata->published = filter_var($this->params['node']['details']['published'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setHideInMenu':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('hideInMenu', $this->params['node']['details'])) {
+            $page->metadata->hideInMenu = filter_var($this->params['node']['details']['hideInMenu'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setSlug':
+          // Limited case - allow modifying slug but validate it's unique
+          if (array_key_exists('slug', $this->params['node']['details']) && $this->params['node']['details']['slug'] !== '') {
+            $newSlug = $this->params['node']['details']['slug'];
+            // account for x being the only front end reserved route
+            if ($newSlug == "x") {
+              $newSlug = "x-x";
+            }
+            // same but trying to force a sub-route; paths cannot conflict with frontend
+            if (substr($newSlug, 0, 2) == "x/") {
+              $newSlug = str_replace('x/', 'x-x/', $newSlug);
+            }
+            $page->slug = $GLOBALS['HAXCMS']->generateSlugName($newSlug);
           }
           break;
         default:
