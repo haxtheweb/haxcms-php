@@ -64,7 +64,7 @@ include_once 'lib/HAXCMS.php';
 // invoke the CMS
 $HAXCMS = new HAXCMS();
 // support IAM config now apply these changes
-if (file_exists($here . '/_config/IAM')) {
+if (file_exists($here . '/../../_iamConfig/HAXcmsConfig.php')) {
     $HAXCMS->config->iam = true;
     if (file_exists($here . '/../../_iamConfig/HAXcmsConfig.php')) {
         include_once $here . '/../../_iamConfig/HAXcmsConfig.php';
