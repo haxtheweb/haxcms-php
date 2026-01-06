@@ -133,9 +133,11 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
+            case 'from-skeleton':
             case 'import':
               $pageSchema = array();
               // implies we had a backend service process much of what we are to build for an import
+              // from-skeleton uses same structure as import but comes from skeleton files
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
                   array_push($pageSchema, array(
@@ -145,7 +147,7 @@ class HAXCMSSite
                     "slug" => $build->items[$i]['slug'],
                     "id" => $build->items[$i]['id'],
                     "indent" => $build->items[$i]['indent'],
-                    "contents" => $build->items[$i]['contents'],
+                    "contents" => isset($build->items[$i]['content']) ? $build->items[$i]['content'] : (isset($build->items[$i]['contents']) ? $build->items[$i]['contents'] : ''),
                     "order" => $build->items[$i]['order'],
                     "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                   ));

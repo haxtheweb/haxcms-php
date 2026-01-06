@@ -1022,7 +1022,8 @@ class Operations {
                 }
                 // update attributes in the page
                 if (isset($data["attributes"]["title"])) {
-                  $page->title = $data["attributes"]["title"];
+                  // decode entities and strip tags so manifest stores clean text
+                  $page->title = html_entity_decode(strip_tags($data["attributes"]["title"]));
                 }
                 if (isset($data["attributes"]["slug"])) {
                   // account for x being the only front end reserved route
@@ -1159,13 +1160,14 @@ class Operations {
                 // auto generate a text only description from first 200 chars
                 // unless we were sent one to use
                 if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
-                  $page->description = strip_tags($data["attributes"]["description"]);
+                  $page->description = html_entity_decode(strip_tags($data["attributes"]["description"]));
                 }
                 else {
+                  $decodedClean = html_entity_decode($clean);
                   $page->description = str_replace(
                     "\n",
                     '',
-                    substr($clean, 0, 200)
+                    substr($decodedClean, 0, 200)
                 );
                 }
                 $readtime = round(str_word_count($clean) / 200);
@@ -2332,8 +2334,11 @@ class Operations {
             if (isset($meta->attributes) && is_array($meta->attributes)) { $attributes = $meta->attributes; }
             // demo/source url optional
             $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
-            // Build public URL relative to HAXcms base
-            $publicBase = $GLOBALS['HAXCMS']->basePath . str_replace(HAXCMS_ROOT . '/', '', $dir) . '/';
+            // Build API URL to fetch skeleton content with user_token
+            $skeletonName = basename($file, '.json');
+            $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase;
+            $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
+            $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($skeletonName) . '&user_token=' . urlencode($userToken);
             $items[] = array(
               'title' => $title,
               'description' => $description,
@@ -2341,7 +2346,7 @@ class Operations {
               'category' => $category,
               'attributes' => $attributes,
               'demo-url' => $demo,
-              'skeleton-url' => $publicBase . $file
+              'skeleton-url' => $skeletonUrl
             );
           }
         }
@@ -2352,6 +2357,90 @@ class Operations {
     return array(
       'status' => 200,
       'data' => $items
+    );
+  }
+
+  /**
+   * Get a specific skeleton file by name.
+   * Returns the skeleton JSON data.
+   * Requires a valid user_token.
+   *
+   * @OA\Get(
+   *    path="/getSkeleton",
+   *    tags={"cms"},
+   *    @OA\Parameter(
+   *         name="name",
+   *         description="Skeleton file name (without .json extension)",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Returns skeleton JSON data"
+   *   )
+   * )
+   */
+  public function getSkeleton() {
+    // Validate user_token
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+
+    if (!isset($this->params['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'skeleton name is required',
+        )
+      );
+    }
+
+    // Sanitize the skeleton name to prevent directory traversal
+    $safeName = basename($this->params['name']);
+    $fileName = (substr($safeName, -5) === '.json') ? $safeName : $safeName . '.json';
+
+    // directories to search for skeleton files
+    $dirs = array();
+    $coreDir = HAXCMS_ROOT . '/system/boilerplate/skeletons';
+    $configDir = HAXCMS_ROOT . '/_config/skeletons';
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+
+    // Search for the skeleton file
+    foreach ($dirs as $dir) {
+      $filePath = $dir . '/' . $fileName;
+      
+      if (file_exists($filePath)) {
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json);
+        
+        if ($skeleton === null) {
+          return array(
+            '__failed' => array(
+              'status' => 500,
+              'message' => 'Failed to parse skeleton file',
+            )
+          );
+        }
+        
+        return array(
+          'status' => 200,
+          'data' => $skeleton
+        );
+      }
+    }
+
+    return array(
+      '__failed' => array(
+        'status' => 404,
+        'message' => 'skeleton not found',
+      )
     );
   }
 
@@ -2501,7 +2590,7 @@ class Operations {
         $build->structure = $this->params['build']['structure'];
         // TYPE of structure we are creating
         $build->type = $this->params['build']['type'];
-        if ($build->type == 'docx import' || $build->structure == "import") {
+        if ($build->type == 'docx import' || $build->structure == "import" || $build->structure == "from-skeleton") {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
         }
