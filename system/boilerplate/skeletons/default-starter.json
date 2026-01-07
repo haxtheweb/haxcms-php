@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "name": "default-starter",
+    "description": "Simple starter site with one page to get you started",
+    "version": "1.0.0",
+    "created": "2026-01-05T21:36:29Z",
+    "type": "skeleton",
+    "useCaseTitle": "Default Starter",
+    "useCaseDescription": "A clean slate with one page - perfect for starting your HAX site journey",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-two-thumb.jpg",
+    "category": ["starter", "basic"],
+    "tags": ["beginner", "simple", "default"],
+    "attributes": []
+  },
+  "site": {
+    "name": "default-starter",
+    "description": "Simple starter site with one page to get you started",
+    "theme": "clean-two"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-home-default-starter",
+        "title": "Home",
+        "slug": "home",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<p>Edit this page to get started on your HAX site!</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#3f51b5",
+    "cssVariable": "--simple-colors-default-theme-indigo-7",
+    "icon": "icons:home",
+    "image": ""
+  }
+}
