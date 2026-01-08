@@ -8,8 +8,8 @@
     "useCaseTitle": "Default Starter",
     "useCaseDescription": "A clean slate with one page - perfect for starting your HAX site journey",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-two-thumb.jpg",
-    "category": ["starter", "basic"],
-    "tags": ["beginner", "simple", "default"],
+    "category": ["default"],
+    "tags": ["default"],
     "attributes": []
   },
   "site": {

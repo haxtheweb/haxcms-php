@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "name": "student-club-polaris-flex",
+    "description": "Polaris Flex themed student club site with five pages for overview, about, events, projects, and joining.",
+    "version": "1.0.0",
+    "created": "2026-01-08T20:18:20Z",
+    "type": "skeleton",
+    "useCaseTitle": "Club Website",
+    "useCaseDescription": "A student club marketing skeleton using the Polaris Flex theme with pages that can represent any campus club.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg",
+    "category": ["Website"],
+    "tags": ["club", "events", "students"],
+    "attributes": []
+  },
+  "site": {
+    "name": "student-club-polaris-flex",
+    "description": "A club website skeleton using the Polaris Flex theme.",
+    "theme": "polaris-flex-theme"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-club-home",
+        "title": "Welcome to HAX Club",
+        "slug": "index",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Welcome to HAX Club</h2><p>Use this landing page to explain what your club is about in student-friendly language. Describe the community you serve, the kinds of activities you run, and why someone would want to join.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["overview", "landing"]
+        }
+      },
+      {
+        "id": "item-club-about",
+        "title": "About the Club",
+        "slug": "about-club",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>About the Club</h2><p>Tell the origin story of your club, its mission, and how it fits into campus life. Clarify whether this is focused on coding, arts, advocacy, or another interest area so visitors can quickly understand the fit.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["about", "mission"]
+        }
+      },
+      {
+        "id": "item-club-events",
+        "title": "Events & Meetings",
+        "slug": "events-meetings",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Events &amp; Meetings</h2><p>Summarize your typical meeting schedule, recurring events, and special activities like workshops, hack nights, or socials. Make it easy for students to know when and where to show up.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["schedule", "calendar"]
+        }
+      },
+      {
+        "id": "item-club-projects",
+        "title": "Projects & Resources",
+        "slug": "projects-resources",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Projects &amp; Resources</h2><p>Highlight active or past projects that members collaborate on. Link out to code repositories, design boards, documentation, or learning resources that new members should see first.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["projects", "resources"]
+        }
+      },
+      {
+        "id": "item-club-join-contact",
+        "title": "Join & Contact",
+        "slug": "join-contact",
+        "order": 4,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Join &amp; Contact</h2><p>Provide clear instructions for joining the club, such as mailing lists, sign-up forms, or platforms you use to coordinate events. Include officer contact information or a general club email so visitors can reach out with questions.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["join", "contact"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#ff9800",
+    "cssVariable": "--simple-colors-default-theme-orange-6",
+    "icon": "icons:group-work",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg"
+  }
+}

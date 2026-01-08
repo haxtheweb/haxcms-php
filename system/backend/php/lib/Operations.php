@@ -2338,6 +2338,12 @@ class Operations {
             $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
             // Build API URL to fetch skeleton content with user_token
             $skeletonName = basename($file, '.json');
+            // "default-starter" is a shared internal fallback skeleton that
+            // many generic themes reference as their skeleton definition.
+            // It should not appear in the public list of selectable skeletons.
+            if ($skeletonName === 'default-starter') {
+              continue;
+            }
             $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase;
             $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
             $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($skeletonName) . '&user_token=' . urlencode($userToken);

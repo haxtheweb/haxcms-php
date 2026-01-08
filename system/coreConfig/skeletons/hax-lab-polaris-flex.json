@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "name": "hax-lab-polaris-flex",
+    "description": "Polaris Flex themed university or research lab marketing site with a six-page structure highlighting mission, people, and projects.",
+    "version": "1.0.0",
+    "created": "2026-01-08T18:15:00Z",
+    "type": "skeleton",
+    "useCaseTitle": "University Lab",
+    "useCaseDescription": "A brochure site skeleton for a university or research lab using the Polaris Flex theme with six opinionated pages.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg",
+    "category": ["Website"],
+    "tags": ["university", "lab", "research", "education"],
+    "attributes": []
+  },
+  "site": {
+    "name": "university-lab-polaris-flex",
+    "description": "A university or research lab brochure site skeleton using the Polaris Flex theme.",
+    "theme": "polaris-flex-theme"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-hax-lab-home",
+        "title": "Lab Home",
+        "slug": "index",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Welcome to Our Lab</h2><p>This site skeleton is designed to promote a university or research lab as an open, collaborative space for innovation in its discipline. Use this home page to briefly introduce the lab, highlight who it serves, and feature calls to action into the rest of the site.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["overview", "landing"]
+        }
+      },
+      {
+        "id": "item-what-is-hax-lab",
+        "title": "About the Lab",
+        "slug": "what-is-hax-lab",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>What is This Lab?</h2><p>Use this page to clearly define your lab, its mission, and how it fits into the broader work of your department, college, or institution. Summarize why the lab exists, what kinds of problems it tackles, and how its work moves from experimentation into real-world tools and practices.</p><h3>Who Benefits from the Lab?</h3><p>Outline the primary audiences that benefit from your lab: faculty and instructional designers, students and interns, community or industry partners, and collaborators across campus.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["mission", "audience"]
+        }
+      },
+      {
+        "id": "item-how-hax-lab-works",
+        "title": "How Our Lab Works",
+        "slug": "how-hax-lab-works",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>How Does Our Lab Work?</h2><p>Describe how your lab operates day-to-day: how projects are identified, how prototypes or studies are designed, and how experiments become stable, documented solutions that others can adopt.</p><h3>From Idea to Impact</h3><p>Break down the workflow into clear steps, such as: identify a need, prototype or design a study, test with real learners or partners, iterate based on feedback, and share improvements back with your community.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["process", "workflow"]
+        }
+      },
+      {
+        "id": "item-projects-impact",
+        "title": "Projects & Impact",
+        "slug": "projects-impact",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Projects &amp; Impact</h2><p>Summarize key lab projects, including work on teaching and learning innovations, open educational resources, tools, or services your team maintains. Connect each project to the impact it has on students, instructors, and your wider community.</p><h3>Highlighted Initiatives</h3><p>Use this section to list featured initiatives or collaborations from your lab, highlighting how these efforts support experimentation and sustained improvement in your field.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["projects", "impact"]
+        }
+      },
+      {
+        "id": "item-people-of-hax-lab",
+        "title": "People of the Lab",
+        "slug": "people-of-hax-lab",
+        "order": 4,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>People of the Lab</h2><p>Introduce the people behind your lab. Start with founders and faculty sponsors, then highlight staff, student workers, interns, and contributors who have shaped the lab over time.</p><h3>Founders &amp; Faculty Sponsors</h3><p>Use this section to name the core faculty or staff sponsors and originators of the lab and describe their roles in guiding its direction.</p><h3>Interns and Contributors</h3><p>Document past interns and contributors, linking their work back to major projects and outcomes for your lab and the broader community.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["people", "founders", "contributors"]
+        }
+      },
+      {
+        "id": "item-get-involved",
+        "title": "Get Involved",
+        "slug": "get-involved",
+        "order": 5,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Get Involved with Our Lab</h2><p>Explain the different ways people and organizations can engage with your lab. Provide clear paths for students and interns, faculty and instructional designers, institutional partners, and external collaborators.</p><h3>Ways to Engage</h3><p>Describe how to apply for internships or assistantships, propose collaborations, contribute to open projects, or participate in pilots and studies.</p><h3>Contact &amp; Next Steps</h3><p>End with straightforward next steps and contact information so interested visitors can quickly move from curiosity to action.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["engagement", "contact"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#3f51b5",
+    "cssVariable": "--simple-colors-default-theme-indigo-7",
+    "icon": "icons:school",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg"
+  }
+}
