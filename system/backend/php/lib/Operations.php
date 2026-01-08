@@ -2306,7 +2306,9 @@ class Operations {
     $items = array();
     // directories to scan for JSON skeleton definitions
     $dirs = array();
-    $coreDir = HAXCMS_ROOT . '/system/boilerplate/skeletons';
+    // built-in skeletons should come from coreConfig/skeletons like other core config
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    // _config location still participates in the cascade for overrides
     $configDir = HAXCMS_ROOT . '/_config/skeletons';
     if (is_dir($coreDir)) { $dirs[] = $coreDir; }
     if (is_dir($configDir)) { $dirs[] = $configDir; }
@@ -2407,7 +2409,9 @@ class Operations {
 
     // directories to search for skeleton files
     $dirs = array();
-    $coreDir = HAXCMS_ROOT . '/system/boilerplate/skeletons';
+    // built-in skeletons should come from coreConfig/skeletons like other core config
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    // _config location still participates in the cascade for overrides
     $configDir = HAXCMS_ROOT . '/_config/skeletons';
     if (is_dir($coreDir)) { $dirs[] = $coreDir; }
     if (is_dir($configDir)) { $dirs[] = $configDir; }
