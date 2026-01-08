@@ -2344,7 +2344,9 @@ class Operations {
             if ($skeletonName === 'default-starter') {
               continue;
             }
-            $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase;
+            // Ensure base API path ends with a trailing slash so route
+            // concatenation does not produce `/system/apigetSkeleton`.
+            $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
             $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
             $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($skeletonName) . '&user_token=' . urlencode($userToken);
             $items[] = array(
@@ -2392,10 +2394,26 @@ class Operations {
   public function getSkeleton() {
     // Validate user_token
     if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // Debug info to help track down token mismatches in local/dev setups.
+      $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
+      $expectedToken = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
+      $providedToken = isset($this->params['user_token']) ? $this->params['user_token'] : null;
+      $debug = array(
+        'activeUserName' => $activeUser,
+        'hasUserToken' => isset($this->params['user_token']),
+        'providedToken' => $providedToken,
+        'expectedToken' => $expectedToken,
+        // helpful to see what params made it this far
+        'paramKeys' => array_keys($this->params),
+      );
+      // Log to PHP error log for backend inspection.
+      error_log('HAXCMS getSkeleton token failure: ' . json_encode($debug));
+
       return array(
         '__failed' => array(
           'status' => 403,
           'message' => 'invalid request token',
+          'debug' => $debug,
         )
       );
     }

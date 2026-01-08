@@ -59,7 +59,11 @@ class Request {
         'api',
         'options',
         'openapi',
-        'refreshAccessToken'))) {
+        'refreshAccessToken',
+        // getSkeleton is gated by user_token validation inside Operations,
+        // and in practice is called via a pre-signed URL that does not
+        // include JWT (unlike skeletonsList, which uses makeCall).
+        'getSkeleton'))) {
         $this->validateJWT = FALSE;
       }
       if ($this->valid()) {
