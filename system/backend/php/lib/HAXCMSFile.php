@@ -3,7 +3,7 @@ include_once dirname(__FILE__) . "/../vendor/autoload.php";
 use \Gumlet\ImageResize;
 
 // a site object
-class HAXCMSFIle
+class HAXCMSFile
 {
     /**
      * Save file into this site, optionally updating reference inside the page

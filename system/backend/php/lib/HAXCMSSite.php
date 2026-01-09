@@ -133,9 +133,11 @@ class HAXCMSSite
         }
         else {
           switch ($build->structure) {
+            case 'from-skeleton':
             case 'import':
               $pageSchema = array();
               // implies we had a backend service process much of what we are to build for an import
+              // from-skeleton uses same structure as import but comes from skeleton files
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
                   array_push($pageSchema, array(
@@ -145,7 +147,7 @@ class HAXCMSSite
                     "slug" => $build->items[$i]['slug'],
                     "id" => $build->items[$i]['id'],
                     "indent" => $build->items[$i]['indent'],
-                    "contents" => $build->items[$i]['contents'],
+                    "contents" => isset($build->items[$i]['content']) ? $build->items[$i]['content'] : (isset($build->items[$i]['contents']) ? $build->items[$i]['contents'] : ''),
                     "order" => $build->items[$i]['order'],
                     "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                   ));
@@ -1374,11 +1376,11 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/haxcms-site-builder.js" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-router.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base/HAXCMSThemeWiring.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base/HAXCMSLitElementTheme.js" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSThemeWiring.js" crossorigin="anonymous" />
+  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/utils/utils.js" crossorigin="anonymous" />
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />

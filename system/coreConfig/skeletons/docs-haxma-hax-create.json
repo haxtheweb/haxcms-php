@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "name": "docs-haxma-hax-create",
+    "description": "HAXma themed documentation site with pages focused on documenting a coding project using HAX create.",
+    "version": "1.0.0",
+    "created": "2026-01-08T20:18:40Z",
+    "type": "skeleton",
+    "useCaseTitle": "Doc site",
+    "useCaseDescription": "A lightweight documentation skeleton using the HAXma doc theme and HAX create as the sample project.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-haxma-theme-thumb.jpg",
+    "category": ["Website"],
+    "tags": ["docs", "developer", "reference"],
+    "attributes": []
+  },
+  "site": {
+    "name": "docs-haxma-hax-create",
+    "description": "A documentation skeleton using the HAXma theme and HAX create as the sample project.",
+    "theme": "haxma-theme"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-docs-overview",
+        "title": "Project Overview",
+        "slug": "index",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Project Overview</h2><p>Describe the coding project you are documenting, using HAX create as the example. Summarize what the project does, why it exists, and who it is for.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["overview", "context"]
+        }
+      },
+      {
+        "id": "item-docs-getting-started",
+        "title": "Getting Started with HAX create",
+        "slug": "getting-started-hax-create",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Getting Started with HAX create</h2><p>Document how to bootstrap a new project with HAX create. Include steps for installation, initializing a new site, and running the development workflow so contributors can quickly get a local environment running.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["gettingstarted", "setup"]
+        }
+      },
+      {
+        "id": "item-docs-api-extensions",
+        "title": "API & Extensions",
+        "slug": "api-extensions",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>API &amp; Extensions</h2><p>Use this page to capture the key commands, configuration options, and extension points for your project. For HAX create, this might include how to scaffold new sites, integrate with themes, or connect to HAXcms-powered backends.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["api", "extensions"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#607d8b",
+    "cssVariable": "--simple-colors-default-theme-blue-grey-6",
+    "icon": "icons:description",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-haxma-theme-thumb.jpg"
+  }
+}

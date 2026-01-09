@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "name": "online-course-clean-one",
+    "description": "Clean One themed online course skeleton with a syllabus and a Lesson 1 unit containing three subpages.",
+    "version": "1.0.0",
+    "created": "2026-01-08T20:18:30Z",
+    "type": "skeleton",
+    "useCaseTitle": "Online Course",
+    "useCaseDescription": "An online course skeleton using the Clean One theme with a syllabus and a first lesson broken into introduction, content, and conclusion pages.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg",
+    "category": ["Course"],
+    "tags": ["online", "lesson", "syllabus"],
+    "attributes": []
+  },
+  "site": {
+    "name": "online-course-clean-one",
+    "description": "An online course skeleton using the Clean One theme.",
+    "theme": "clean-one"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-course-syllabus",
+        "title": "Syllabus",
+        "slug": "syllabus",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Course Syllabus</h2><p>Outline the course description, learning objectives, required materials, grading breakdown, and major deadlines. Keep this page focused on the big picture of what learners will accomplish.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["syllabus", "overview"]
+        }
+      },
+      {
+        "id": "item-lesson-1",
+        "title": "Lesson 1",
+        "slug": "lesson-1",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Lesson 1 Overview</h2><p>Use this page to introduce the focus of Lesson 1 and how it connects to the rest of the course. Summarize what learners should know or be able to do after completing this lesson.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["lesson", "overview"]
+        }
+      },
+      {
+        "id": "item-lesson-1-intro",
+        "title": "Lesson 1: Introduction",
+        "slug": "lesson-1-introduction",
+        "order": 2,
+        "parent": "item-lesson-1",
+        "indent": 1,
+        "content": "<h2>Lesson 1 Introduction</h2><p>Give learners context for this lesson: why the topic matters, how it connects to prior knowledge, and what questions they should keep in mind as they move through the content.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["intro", "context"]
+        }
+      },
+      {
+        "id": "item-lesson-1-content",
+        "title": "Lesson 1: Content",
+        "slug": "lesson-1-content",
+        "order": 3,
+        "parent": "item-lesson-1",
+        "indent": 1,
+        "content": "<h2>Lesson 1 Content</h2><p>Organize the main instructional materials for Lesson 1 here. Combine text, media, and interactive elements to guide learners through concepts, examples, and practice opportunities.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["content", "instruction"]
+        }
+      },
+      {
+        "id": "item-lesson-1-conclusion",
+        "title": "Lesson 1: Conclusion",
+        "slug": "lesson-1-conclusion",
+        "order": 4,
+        "parent": "item-lesson-1",
+        "indent": 1,
+        "content": "<h2>Lesson 1 Conclusion</h2><p>Wrap up Lesson 1 by revisiting the learning objectives, summarizing key takeaways, and pointing learners toward next steps such as reflections, assessments, or the next lesson.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["conclusion", "summary"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#3f51b5",
+    "cssVariable": "--simple-colors-default-theme-indigo-7",
+    "icon": "icons:school",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg"
+  }
+}

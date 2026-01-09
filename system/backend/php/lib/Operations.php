@@ -74,6 +74,23 @@ include_once "JSONOutlineSchemaItem.php";
 class Operations {
   public $params;
   public $rawParams;
+  
+  /**
+   * Check if a platform capability is allowed
+   * @param object $site The site object
+   * @param string $capability The capability to check (e.g., 'delete', 'addPage', 'outlineDesigner', 'manifest')
+   * @return bool Whether the capability is allowed
+   */
+  private function platformAllows($site, $capability) {
+    // Check if platform configuration exists
+    if (isset($site->manifest->metadata->platform) && 
+        isset($site->manifest->metadata->platform->{$capability})) {
+      // If explicitly set to false, deny
+      return $site->manifest->metadata->platform->{$capability} !== false;
+    }
+    // Default to true if not specified
+    return true;
+  }
   /**
    * 
    * @OA\Post(
@@ -191,6 +208,16 @@ class Operations {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'manifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Manifest editing is disabled for this site',
+          )
+        );
+      }
       // standard form submit
       // @todo 
       // make the form point to a form submission endpoint with appropriate name
@@ -474,6 +501,16 @@ class Operations {
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'outlineDesigner')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Outline operations are disabled for this site',
+          )
+        );
+      }
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       $original = $site->manifest->items;
       $items = $this->rawParams['items'];
@@ -754,6 +791,16 @@ class Operations {
     $nodeParams = $this->params;
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $nodeParams['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
+      
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'addPage')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Adding pages is disabled for this site',
+          )
+        );
+      }
       // implies we've been TOLD to create nodes
       // this is typically from a docx import
       if (isset($nodeParams['items'])) {
@@ -975,7 +1022,8 @@ class Operations {
                 }
                 // update attributes in the page
                 if (isset($data["attributes"]["title"])) {
-                  $page->title = $data["attributes"]["title"];
+                  // decode entities and strip tags so manifest stores clean text
+                  $page->title = html_entity_decode(strip_tags($data["attributes"]["title"]));
                 }
                 if (isset($data["attributes"]["slug"])) {
                   // account for x being the only front end reserved route
@@ -1112,13 +1160,14 @@ class Operations {
                 // auto generate a text only description from first 200 chars
                 // unless we were sent one to use
                 if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
-                  $page->description = strip_tags($data["attributes"]["description"]);
+                  $page->description = html_entity_decode(strip_tags($data["attributes"]["description"]));
                 }
                 else {
+                  $decodedClean = html_entity_decode($clean);
                   $page->description = str_replace(
                     "\n",
                     '',
-                    substr($clean, 0, 200)
+                    substr($decodedClean, 0, 200)
                 );
                 }
                 $readtime = round(str_word_count($clean) / 200);
@@ -1204,8 +1253,18 @@ class Operations {
    * )
    */
   public function deleteNode() {
-    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'delete')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Delete is disabled for this site',
+          )
+        );
+      }
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
@@ -1259,6 +1318,295 @@ class Operations {
       );
     }
   }
+
+  /**
+   * @OA\Post(
+   *    path="/saveNodeDetails",
+   *    tags={"cms","authenticated","node"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Perform a singular node operation: moveUp, moveDown, indent, outdent, setParent, setTitle, setDescription, setTags, setIcon, setMedia, setImage, setRelatedItems, setLocked, setPublished, setHideInMenu, setSlug"
+   *   )
+   * )
+   */
+  public function saveNodeDetails() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // Check platform configuration
+      if (!$this->platformAllows($site, 'outlineDesigner')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Outline operations are disabled for this site',
+          )
+        );
+      }
+      if (!isset($this->params['node']['id'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Missing node id',
+          )
+        );
+      }
+      $operation = isset($this->params['node']['details']['operation']) ? $this->params['node']['details']['operation'] : null;
+      $page = $site->loadNode($this->params['node']['id']);
+      if (!$page) {
+        return array(
+          '__failed' => array(
+            'status' => 404,
+            'message' => 'Node not found',
+          )
+        );
+      }
+      // Store original count for safety check
+      $originalItemCount = count($site->manifest->items);
+      $items = $site->manifest->items;
+      $sameParent = function($a, $b) {
+        $pa = isset($a->parent) ? $a->parent : null;
+        $pb = isset($b->parent) ? $b->parent : null;
+        return ($pa === $pb);
+      };
+      $siblings = array();
+      foreach ($items as $it) {
+        if ($sameParent($it, $page)) { $siblings[] = $it; }
+      }
+      // helper to find sibling by order within same parent
+      $findSiblingByOrder = function($order) use ($siblings) {
+        foreach ($siblings as $s) {
+          if (isset($s->order) && (int)$s->order === (int)$order) { return $s; }
+        }
+        return null;
+      };
+      // helper to get last child order for a given parent id
+      $lastChildOrder = function($parentId) use ($items) {
+        $max = -1;
+        foreach ($items as $it) {
+          $p = isset($it->parent) ? $it->parent : null;
+          if ($p === $parentId && isset($it->order)) {
+            $o = (int)$it->order;
+            if ($o > $max) { $max = $o; }
+          }
+        }
+        return $max;
+      };
+
+      switch ($operation) {
+        case 'moveUp':
+          if (isset($page->order) && (int)$page->order > 0) {
+            $other = $findSiblingByOrder((int)$page->order - 1);
+            if ($other && $other->id !== $page->id) {
+              $other->order = (int)$other->order + 1;
+              $page->order = (int)$page->order - 1;
+            }
+          }
+          break;
+        case 'moveDown':
+          if (isset($page->order)) {
+            $other = $findSiblingByOrder((int)$page->order + 1);
+            if ($other && $other->id !== $page->id) {
+              $other->order = (int)$other->order - 1;
+              $page->order = (int)$page->order + 1;
+            }
+          }
+          break;
+        case 'indent':
+          if (isset($page->order)) {
+            $prev = $findSiblingByOrder((int)$page->order - 1);
+            if ($prev) {
+              $page->parent = $prev->id;
+              $page->indent = isset($prev->indent) ? ((int)$prev->indent + 1) : 1;
+              $page->order = $lastChildOrder($prev->id) + 1;
+            }
+          }
+          break;
+        case 'outdent':
+          if (isset($page->parent) && $page->parent !== null) {
+            $parentNode = $site->loadNode($page->parent);
+            $newParent = $parentNode ? $parentNode->parent : null;
+            $insertAfterOrder = $parentNode && isset($parentNode->order) ? ((int)$parentNode->order + 1) : 0;
+            // shift siblings in new parent group to make space
+            foreach ($items as $it) {
+              $p = isset($it->parent) ? $it->parent : null;
+              if ($p === $newParent && isset($it->order) && (int)$it->order >= $insertAfterOrder) {
+                $it->order = (int)$it->order + 1;
+              }
+            }
+            $page->parent = $newParent;
+            $page->indent = isset($page->indent) ? max(((int)$page->indent) - 1, 0) : 0;
+            $page->order = $insertAfterOrder;
+          }
+          break;
+        case 'setParent':
+          // Move page under a specific parent
+          // Use array_key_exists to properly handle null values
+          $newParent = array_key_exists('parent', $this->params['node']['details']) ? $this->params['node']['details']['parent'] : null;
+          $newOrder = array_key_exists('order', $this->params['node']['details']) ? (int)$this->params['node']['details']['order'] : 0;
+          // account for this being set to empty string which means null
+          if (!$newParent || $newParent === '') {
+            $newParent = null;
+          }
+          // Update the page's parent and order
+          $page->parent = $newParent;
+          $page->order = $newOrder;
+          // Calculate indent based on new parent depth
+          if ($newParent === null) {
+            $page->indent = 0;
+          } else {
+            $parentNode = $site->loadNode($newParent);
+            $page->indent = $parentNode && isset($parentNode->indent) ? ((int)$parentNode->indent + 1) : 1;
+          }
+          break;
+        // Singular field modification operations
+        case 'setTitle':
+          if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
+            $page->title = strip_tags($this->params['node']['details']['title']);
+          }
+          break;
+        case 'setDescription':
+          if (array_key_exists('description', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['description'] !== '') {
+              $page->description = strip_tags($this->params['node']['details']['description']);
+            } else {
+              $page->description = '';
+            }
+          }
+          break;
+        case 'setTags':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('tags', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
+              $page->metadata->tags = filter_var($this->params['node']['details']['tags'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->tags);
+            }
+          }
+          break;
+        case 'setIcon':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('icon', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['icon'] !== '' && $this->params['node']['details']['icon'] !== null) {
+              $page->metadata->icon = filter_var($this->params['node']['details']['icon'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->icon);
+            }
+          }
+          break;
+        case 'setMedia':
+        case 'setImage':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('image', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
+              $page->metadata->image = filter_var($this->params['node']['details']['image'], FILTER_SANITIZE_URL);
+            } else {
+              unset($page->metadata->image);
+            }
+          }
+          break;
+        case 'setRelatedItems':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('relatedItems', $this->params['node']['details'])) {
+            if ($this->params['node']['details']['relatedItems'] !== '' && $this->params['node']['details']['relatedItems'] !== null) {
+              $page->metadata->relatedItems = filter_var($this->params['node']['details']['relatedItems'], FILTER_SANITIZE_STRING);
+            } else {
+              unset($page->metadata->relatedItems);
+            }
+          }
+          break;
+        case 'setLocked':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('locked', $this->params['node']['details'])) {
+            $page->metadata->locked = filter_var($this->params['node']['details']['locked'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setPublished':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('published', $this->params['node']['details'])) {
+            $page->metadata->published = filter_var($this->params['node']['details']['published'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setHideInMenu':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('hideInMenu', $this->params['node']['details'])) {
+            $page->metadata->hideInMenu = filter_var($this->params['node']['details']['hideInMenu'], FILTER_VALIDATE_BOOLEAN);
+          }
+          break;
+        case 'setSlug':
+          // Limited case - allow modifying slug but validate it's unique
+          if (array_key_exists('slug', $this->params['node']['details']) && $this->params['node']['details']['slug'] !== '') {
+            $newSlug = $this->params['node']['details']['slug'];
+            // account for x being the only front end reserved route
+            if ($newSlug == "x") {
+              $newSlug = "x-x";
+            }
+            // same but trying to force a sub-route; paths cannot conflict with frontend
+            if (substr($newSlug, 0, 2) == "x/") {
+              $newSlug = str_replace('x/', 'x-x/', $newSlug);
+            }
+            $page->slug = $GLOBALS['HAXCMS']->generateSlugName($newSlug);
+          }
+          break;
+        default:
+          break;
+      }
+
+      // Since loadNode returns a reference, $page modifications already update the manifest
+      // Only reassign items if we made a copy that needs to go back
+      $site->manifest->items = $items;
+      
+      // Safety check: ensure item count hasn't changed
+      if (count($site->manifest->items) !== $originalItemCount) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Item count mismatch: expected ' . $originalItemCount . ' but got ' . count($site->manifest->items) . '. Operation aborted to prevent data loss.',
+          )
+        );
+      }
+      
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->updateAlternateFormats();
+      $site->gitCommit('Node operation: ' . $operation . ' on ' . $page->title . ' (' . $page->id . ')');
+
+      $updated = $site->loadNode($page->id);
+      return array(
+        'status' => 200,
+        'data' => $updated,
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
   /**
    * @OA\Post(
    *    path="/siteUpdateAlternateFormats",
@@ -1930,6 +2278,199 @@ class Operations {
       ]
     );
   }
+  /**
+   * Discover available site skeletons from core and user config directories.
+   * Returns metadata list compatible with app-hax v2 dashboard.
+   * Requires a valid user_token and JWT.
+   *
+   * @OA\Get(
+   *    path="/skeletonsList",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="List available site skeletons"
+   *   )
+   * )
+   */
+  public function skeletonsList() {
+    // Validate user_token like listSites
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+
+    $items = array();
+    // directories to scan for JSON skeleton definitions
+    $dirs = array();
+    // built-in skeletons should come from coreConfig/skeletons like other core config
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    // _config location still participates in the cascade for overrides
+    $configDir = HAXCMS_ROOT . '/_config/skeletons';
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+
+    foreach ($dirs as $dir) {
+      if ($handle = opendir($dir)) {
+        while (false !== ($file = readdir($handle))) {
+          if ($file === '.' || $file === '..') { continue; }
+          $path = $dir . '/' . $file;
+          if (is_file($path) && strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json') {
+            $json = @file_get_contents($path);
+            $skeleton = json_decode($json);
+            if (!is_object($skeleton)) { continue; }
+            // Accept flexible export structures; derive meta fields
+            $meta = isset($skeleton->meta) ? $skeleton->meta : new stdClass();
+            $title = isset($meta->useCaseTitle) && $meta->useCaseTitle ? $meta->useCaseTitle : (isset($meta->name) ? $meta->name : basename($file, '.json'));
+            $description = isset($meta->useCaseDescription) && $meta->useCaseDescription ? $meta->useCaseDescription : (isset($meta->description) ? $meta->description : '');
+            $image = isset($meta->useCaseImage) ? $meta->useCaseImage : '';
+            // categories/tags from meta or build type if present
+            $category = array();
+            if (isset($meta->category) && is_array($meta->category)) { $category = $meta->category; }
+            else if (isset($meta->tags) && is_array($meta->tags)) { $category = $meta->tags; }
+            // attributes/icons optional in meta
+            $attributes = array();
+            if (isset($meta->attributes) && is_array($meta->attributes)) { $attributes = $meta->attributes; }
+            // demo/source url optional
+            $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
+            // Build API URL to fetch skeleton content with user_token
+            $skeletonName = basename($file, '.json');
+            // "default-starter" is a shared internal fallback skeleton that
+            // many generic themes reference as their skeleton definition.
+            // It should not appear in the public list of selectable skeletons.
+            if ($skeletonName === 'default-starter') {
+              continue;
+            }
+            // Ensure base API path ends with a trailing slash so route
+            // concatenation does not produce `/system/apigetSkeleton`.
+            $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
+            $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
+            $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($skeletonName) . '&user_token=' . urlencode($userToken);
+            $items[] = array(
+              'title' => $title,
+              'description' => $description,
+              'image' => $image,
+              'category' => $category,
+              'attributes' => $attributes,
+              'demo-url' => $demo,
+              'skeleton-url' => $skeletonUrl
+            );
+          }
+        }
+        closedir($handle);
+      }
+    }
+
+    return array(
+      'status' => 200,
+      'data' => $items
+    );
+  }
+
+  /**
+   * Get a specific skeleton file by name.
+   * Returns the skeleton JSON data.
+   * Requires a valid user_token.
+   *
+   * @OA\Get(
+   *    path="/getSkeleton",
+   *    tags={"cms"},
+   *    @OA\Parameter(
+   *         name="name",
+   *         description="Skeleton file name (without .json extension)",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Returns skeleton JSON data"
+   *   )
+   * )
+   */
+  public function getSkeleton() {
+    // Validate user_token
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // Debug info to help track down token mismatches in local/dev setups.
+      $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
+      $expectedToken = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
+      $providedToken = isset($this->params['user_token']) ? $this->params['user_token'] : null;
+      $debug = array(
+        'activeUserName' => $activeUser,
+        'hasUserToken' => isset($this->params['user_token']),
+        'providedToken' => $providedToken,
+        'expectedToken' => $expectedToken,
+        // helpful to see what params made it this far
+        'paramKeys' => array_keys($this->params),
+      );
+      // Log to PHP error log for backend inspection.
+      error_log('HAXCMS getSkeleton token failure: ' . json_encode($debug));
+
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+          'debug' => $debug,
+        )
+      );
+    }
+
+    if (!isset($this->params['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'skeleton name is required',
+        )
+      );
+    }
+
+    // Sanitize the skeleton name to prevent directory traversal
+    $safeName = basename($this->params['name']);
+    $fileName = (substr($safeName, -5) === '.json') ? $safeName : $safeName . '.json';
+
+    // directories to search for skeleton files
+    $dirs = array();
+    // built-in skeletons should come from coreConfig/skeletons like other core config
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    // _config location still participates in the cascade for overrides
+    $configDir = HAXCMS_ROOT . '/_config/skeletons';
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+
+    // Search for the skeleton file
+    foreach ($dirs as $dir) {
+      $filePath = $dir . '/' . $fileName;
+      
+      if (file_exists($filePath)) {
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json);
+        
+        if ($skeleton === null) {
+          return array(
+            '__failed' => array(
+              'status' => 500,
+              'message' => 'Failed to parse skeleton file',
+            )
+          );
+        }
+        
+        return array(
+          'status' => 200,
+          'data' => $skeleton
+        );
+      }
+    }
+
+    return array(
+      '__failed' => array(
+        'status' => 404,
+        'message' => 'skeleton not found',
+      )
+    );
+  }
 
   /**
    * 
@@ -2077,7 +2618,7 @@ class Operations {
         $build->structure = $this->params['build']['structure'];
         // TYPE of structure we are creating
         $build->type = $this->params['build']['type'];
-        if ($build->type == 'docx import' || $build->structure == "import") {
+        if ($build->type == 'docx import' || $build->structure == "import" || $build->structure == "from-skeleton") {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
         }
@@ -2481,6 +3022,271 @@ class Operations {
           'message' => 'invalid request token',
         )
       );
+    }
+  }
+
+  /**
+   * HAXIAM Add User Access - Grant access to a site by creating symlinks
+   * 
+   * @OA\Post(
+   *    path="/haxiamAddUserAccess",
+   *    tags={"cms","authenticated","haxiam"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\RequestBody(
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="userName",
+   *                     type="string",
+   *                     description="Username to grant access to"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="siteName",
+   *                     type="string",
+   *                     description="Name of the site to grant access to"
+   *                 ),
+   *                 required={"userName", "siteName"},
+   *                 example={
+   *                    "userName": "xyz456",
+   *                    "siteName": "stuff"
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="User access granted successfully",
+   *        @OA\MediaType(
+   *             mediaType="application/json",
+   *             @OA\Schema(
+   *                 @OA\Property(
+   *                     property="status",
+   *                     type="string",
+   *                     example="success"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="message",
+   *                     type="string",
+   *                     example="User access granted successfully"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="userName",
+   *                     type="string",
+   *                     example="xyz456"
+   *                 ),
+   *                 @OA\Property(
+   *                     property="timestamp",
+   *                     type="string",
+   *                     format="date-time"
+   *                 )
+   *             )
+   *         )
+   *    ),
+   *    @OA\Response(
+   *        response="403",
+   *        description="User not found or unauthorized"
+   *    ),
+   *    @OA\Response(
+   *        response="400",
+   *        description="Invalid input or HAXIAM not enabled"
+   *    ),
+   *    @OA\Response(
+   *        response="500",
+   *        description="Failed to create user access"
+   *    )
+   * )
+   */
+  public function haxiamAddUserAccess() {
+    // Only allow this operation in HAXIAM mode
+    if (!isset($GLOBALS['HAXCMS']->config->iam) || !$GLOBALS['HAXCMS']->config->iam) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'HAXIAM mode is not enabled',
+        )
+      );
+    }
+
+    // Validate user token for security (same as other user operations like archiveSite)
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+
+    // Validate required parameters
+    if (!isset($this->params['userName']) || empty(trim($this->params['userName']))) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'userName is required',
+        )
+      );
+    }
+
+    if (!isset($this->params['siteName']) || empty(trim($this->params['siteName']))) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'siteName is required',
+        )
+      );
+    }
+
+    // Clean and validate inputs using HAXCMS machine name sanitization
+    $rawUserName = trim($this->params['userName']);
+    $rawSiteName = trim($this->params['siteName']);
+    
+    // Validate and sanitize userName using the enhanced generateMachineName method
+    $targetUserName = $GLOBALS['HAXCMS']->generateMachineName($rawUserName);
+    if ($targetUserName !== $rawUserName || empty($targetUserName)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'userName must be a valid machine name (alphanumeric, hyphens, underscores only)',
+        )
+      );
+    }
+    
+    // Validate and sanitize siteName using the enhanced generateMachineName method
+    $siteName = $GLOBALS['HAXCMS']->generateMachineName($rawSiteName);
+    if ($siteName !== $rawSiteName || empty($siteName)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'siteName must be a valid machine name (alphanumeric, hyphens, underscores only)',
+        )
+      );
+    }
+
+    $currentUser = $GLOBALS['HAXCMS']->getActiveUserName();
+    
+    // Prevent self-access grants
+    if ($targetUserName === $currentUser) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Cannot grant access to yourself',
+        )
+      );
+    }
+
+    // Validate that the target user exists in HAXIAM and has a sites directory
+    if (!$this->_validateHAXIAMUser($targetUserName)) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'User not found or has not set up HAXIAM yet',
+        )
+      );
+    }
+
+    // Validate that the current user owns the specified site
+    if (!$this->_validateUserOwnsSite($currentUser, $siteName)) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'You do not own this site or site does not exist',
+        )
+      );
+    }
+
+    // Create the symlink for the target user
+    try {
+      $result = $this->_createUserSiteSymlink($currentUser, $targetUserName, $siteName);
+      if ($result['success']) {
+        // Log the access grant
+        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' to user '{$targetUserName}'");
+        
+        return array(
+          'status' => 'success',
+          'message' => 'User access granted successfully',
+          'userName' => $targetUserName,
+          'timestamp' => date('c')
+        );
+      } else {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => $result['error'],
+          )
+        );
+      }
+    } catch (Exception $e) {
+      error_log("HAXIAM addUserAccess error: " . $e->getMessage());
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Failed to create user access',
+        )
+      );
+    }
+  }
+
+  /**
+   * Helper method to validate if a user exists in HAXIAM and has set up their environment
+   */
+  private function _validateHAXIAMUser($userName) {
+    // In HAXIAM, users have directories under /var/www/sites/{userName}
+    $userPath = '/var/www/sites/' . $userName;
+    $sitesPath = $userPath . '/sites';
+    
+    // User must exist AND have a sites directory (indicating they've logged in and set up HAXIAM)
+    return is_dir($userPath) && is_dir($sitesPath);
+  }
+
+  /**
+   * Helper method to validate that the current user owns the specified site
+   */
+  private function _validateUserOwnsSite($userName, $siteName) {
+    // Check that the site exists in the user's sites directory
+    $sitePath = '/var/www/sites/' . $userName . '/sites/' . $siteName;
+    return is_dir($sitePath) && !is_link($sitePath); // Must be actual directory, not symlink
+  }
+
+  /**
+   * Helper method to create a symlink in the target user's sites directory
+   */
+  private function _createUserSiteSymlink($sourceUser, $targetUser, $siteName) {
+    // Source: the actual site directory owned by the source user
+    $sourceSitePath = '/var/www/sites/' . $sourceUser . '/sites/' . $siteName;
+    
+    // Target: where the symlink should be created in target user's directory
+    $targetUserSitesDir = '/var/www/sites/' . $targetUser . '/sites';
+    $targetSitePath = $targetUserSitesDir . '/' . $siteName;
+    
+    // Double-check source site exists and is actually a directory (not a symlink)
+    if (!is_dir($sourceSitePath) || is_link($sourceSitePath)) {
+      return array('success' => false, 'error' => 'Source site does not exist or is not owned by you');
+    }
+    
+    // Check if target already has access (symlink or directory already exists)
+    if (file_exists($targetSitePath)) {
+      return array('success' => false, 'error' => 'User already has access to this site');
+    }
+    
+    // Ensure target user's sites directory exists - DO NOT create it, fail if it doesn't exist
+    if (!is_dir($targetUserSitesDir)) {
+      return array('success' => false, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
+    }
+    
+    // Create the symlink using relative path: ../../sourceuser/sites/sitename
+    $relativePath = '../../' . $sourceUser . '/sites/' . $siteName;
+    
+    if (@symlink($relativePath, $targetSitePath)) {
+      return array('success' => true);
+    } else {
+      return array('success' => false, 'error' => 'Failed to create symlink - check permissions');
     }
   }
 }

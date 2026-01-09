@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "name": "resume-journey-theme",
+    "description": "Journey themed resume site with five sections for profile, experience, education, skills, and contact.",
+    "version": "1.0.0",
+    "created": "2026-01-08T20:18:10Z",
+    "type": "skeleton",
+    "useCaseTitle": "Resume",
+    "useCaseDescription": "A personal resume skeleton using the Journey theme with clear sections for summary, experience, education, skills, and contact.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
+    "category": ["Website"],
+    "tags": ["resume", "career", "skills"],
+    "attributes": []
+  },
+  "site": {
+    "name": "resume-journey-theme",
+    "description": "A resume skeleton using the Journey theme.",
+    "theme": "journey-theme"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-resume-profile",
+        "title": "Profile & Summary",
+        "slug": "index",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Profile &amp; Summary</h2><p>Introduce who you are in a few concise paragraphs. Focus on your role, years of experience, key strengths, and what kinds of roles or opportunities you are seeking.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["profile", "summary"]
+        }
+      },
+      {
+        "id": "item-resume-experience",
+        "title": "Experience",
+        "slug": "experience",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Experience</h2><p>List your most relevant positions, projects, or roles. For each entry, summarize your responsibilities, technologies or tools used, and measurable outcomes.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["work", "history"]
+        }
+      },
+      {
+        "id": "item-resume-education",
+        "title": "Education",
+        "slug": "education",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Education</h2><p>Document degrees, certificates, and key coursework. Highlight honors, research, or projects that connect directly to the roles you are targeting.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["education", "degree"]
+        }
+      },
+      {
+        "id": "item-resume-skills",
+        "title": "Skills & Tools",
+        "slug": "skills-tools",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Skills &amp; Tools</h2><p>Organize your skills into logical groups such as languages, frameworks, design tools, or soft skills. Emphasize the skills that align with your target opportunities.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["skillset", "tools"]
+        }
+      },
+      {
+        "id": "item-resume-contact",
+        "title": "Projects & Contact",
+        "slug": "projects-contact",
+        "order": 4,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Projects &amp; Contact</h2><p>Highlight a small selection of projects, portfolios, or publications that show your work in context. Close with clear contact details and links to profiles such as GitHub, LinkedIn, or portfolios.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["projects", "contact"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#009688",
+    "cssVariable": "--simple-colors-default-theme-teal-6",
+    "icon": "icons:assignment-ind",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg"
+  }
+}

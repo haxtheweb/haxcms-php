@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "name": "art-portfolio-clean-portfolio",
+    "description": "Clean Portfolio themed art portfolio site with five opinionated pages for biography, contact, and three galleries.",
+    "version": "1.0.0",
+    "created": "2026-01-08T20:18:00Z",
+    "type": "skeleton",
+    "useCaseTitle": "Art Portfolio",
+    "useCaseDescription": "An art portfolio skeleton using the Clean Portfolio theme with pages for the artist story, contact, and three distinct gallery views.",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-portfolio-theme-thumb.jpg",
+    "category": ["Website"],
+    "tags": ["art", "gallery", "portfolio"],
+    "attributes": []
+  },
+  "site": {
+    "name": "art-portfolio-clean-portfolio",
+    "description": "An art portfolio skeleton using the Clean Portfolio theme.",
+    "theme": "clean-portfolio-theme"
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "item-artist-home-about",
+        "title": "Home & About the Artist",
+        "slug": "index",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Welcome to the Studio</h2><p>Use this page to introduce the artist in a concise, story-driven way. Highlight your medium, themes you explore, where your work has appeared, and the kind of opportunities you are looking for.</p><h3>Artist Statement</h3><p>Share a short artist statement that explains what motivates your work and how visitors should read the galleries that follow.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["about", "story"]
+        }
+      },
+      {
+        "id": "item-gallery-featured",
+        "title": "Gallery: Featured Works",
+        "slug": "gallery-featured",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Featured Works</h2><p>Curate a small set of pieces that best represent your current practice. Include short captions that explain the concept, materials, and any exhibition or publication details.</p><h3>Highlights</h3><p>Use this section to call out a few standout works that you want curators, clients, or collaborators to see first.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["featured", "highlight"]
+        }
+      },
+      {
+        "id": "item-gallery-series-one",
+        "title": "Gallery: Series One",
+        "slug": "gallery-series-one",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Series One</h2><p>Dedicate this gallery to a cohesive body of work, such as a series, collection, or exhibition. Explain what connects the pieces and what stories or questions they explore.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["series", "collection"]
+        }
+      },
+      {
+        "id": "item-gallery-series-two",
+        "title": "Gallery: Series Two",
+        "slug": "gallery-series-two",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Series Two</h2><p>Use this gallery for a second body of work, a different medium, or an experimental direction. Provide context so visitors understand how this work relates to or departs from your primary practice.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["series", "experiment"]
+        }
+      },
+      {
+        "id": "item-contact-commissions",
+        "title": "Contact & Commissions",
+        "slug": "contact-commissions",
+        "order": 4,
+        "parent": null,
+        "indent": 0,
+        "content": "<h2>Contact &amp; Commissions</h2><p>Give visitors clear instructions for reaching you about commissions, exhibitions, print sales, and collaboration inquiries. Include your preferred channels and response expectations.</p><h3>Stay Connected</h3><p>Optionally list social profiles, mailing list details, or other ways people can follow your work over time.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": ["contact", "commission"]
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "hexCode": "#e91e63",
+    "cssVariable": "--simple-colors-default-theme-pink-6",
+    "icon": "icons:palette",
+    "image": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-portfolio-theme-thumb.jpg"
+  }
+}
