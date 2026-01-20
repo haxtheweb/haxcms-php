@@ -77,9 +77,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         --simple-tooltip-border-radius: 0;
         --simple-tooltip-font-size: 14px;
       }
-      body.app-hax-create {
-        overflow: hidden;
-      }
       body.dark-mode {
         background-color: black;
         background-image: url('<?php print $HAXCMS->basePath;?>build/es6/node_modules/@haxtheweb/app-hax/lib/assets/images/DMBackgroundImage.svg');
