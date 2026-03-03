@@ -2327,6 +2327,11 @@ class Operations {
             $title = isset($meta->useCaseTitle) && $meta->useCaseTitle ? $meta->useCaseTitle : (isset($meta->name) ? $meta->name : basename($file, '.json'));
             $description = isset($meta->useCaseDescription) && $meta->useCaseDescription ? $meta->useCaseDescription : (isset($meta->description) ? $meta->description : '');
             $image = isset($meta->useCaseImage) ? $meta->useCaseImage : '';
+            // priority: negative floats to the top, positive sinks
+            $priority = 0;
+            if (isset($meta->priority) && is_numeric($meta->priority)) {
+              $priority = 0 + $meta->priority;
+            }
             // categories/tags from meta or build type if present
             $category = array();
             if (isset($meta->category) && is_array($meta->category)) { $category = $meta->category; }
@@ -2353,6 +2358,7 @@ class Operations {
               'title' => $title,
               'description' => $description,
               'image' => $image,
+              'priority' => $priority,
               'category' => $category,
               'attributes' => $attributes,
               // repeat machine name explicitly so UIs don't have to infer it from skeleton-url

@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "created": "2026-01-08T20:18:10Z",
     "type": "skeleton",
+    "priority": -1,
     "useCaseTitle": "Resume",
     "useCaseDescription": "A personal resume skeleton using the Journey theme with clear sections for summary, experience, education, skills, and contact.",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
