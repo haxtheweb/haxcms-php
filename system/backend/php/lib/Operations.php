@@ -208,6 +208,13 @@ class Operations {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // preserve existing platform settings regardless of what the client sends
+      // (platform settings are saved via savePlatformSettings)
+      $existingPlatform = null;
+      if (isset($site->manifest->metadata) && isset($site->manifest->metadata->platform)) {
+        $existingPlatform = $site->manifest->metadata->platform;
+      }
       
       // Check platform configuration
       if (!$this->platformAllows($site, 'manifest')) {
@@ -453,6 +460,17 @@ class Operations {
             }
           }
         }
+        // ensure platform exists; do not overwrite existing platform settings
+        if (!isset($site->manifest->metadata->platform)) {
+          $site->manifest->metadata->platform = new stdClass();
+          $site->manifest->metadata->platform->audience = 'expert';
+          $site->manifest->metadata->platform->features = new stdClass();
+          $site->manifest->metadata->platform->allowedBlocks = array();
+        }
+        if (!is_null($existingPlatform)) {
+          $site->manifest->metadata->platform = $existingPlatform;
+        }
+
         $site->manifest->metadata->site->updated = time();
         // don't reorganize the structure
         $site->manifest->save(false);
@@ -481,6 +499,188 @@ class Operations {
       );
     }
   }
+
+  /**
+   * @OA\Post(
+   *    path="/savePlatformSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="jwt",
+   *         description="JSON Web token, obtain by using  /login",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save platform settings into site.json metadata.platform"
+   *   )
+   * )
+   */
+  public function savePlatformSettings() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      // load the site from name
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      // platform can arrive as an array depending on request parsing
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
+      // Validate payload shape
+      $allowedAudiences = array('novice', 'expert');
+      if (!isset($platform->audience) || !in_array($platform->audience, $allowedAudiences)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid audience',
+          )
+        );
+      }
+
+      $validFeatureKeys = array(
+        'addPage',
+        'deletePage',
+        'outlineDesigner',
+        'styleGuide',
+        'insights',
+        'manifest',
+        'pageBreak',
+        'addBlock',
+        'contentMap',
+        'viewSource',
+        'onlineSearch'
+      );
+
+      if (!isset($platform->features) || (!is_object($platform->features) && !is_array($platform->features))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid features',
+          )
+        );
+      }
+
+      // normalize features to an object so later access via {$k} works consistently
+      if (is_array($platform->features)) {
+        $platform->features = json_decode(json_encode($platform->features));
+      }
+
+      foreach ((array) $platform->features as $key => $value) {
+        if (!in_array($key, $validFeatureKeys)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid feature key',
+            )
+          );
+        }
+        // Accept boolean-like values (true/false, "true"/"false", 1/0)
+        // and normalize to strict booleans for storage.
+        $coerced = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if (is_null($coerced)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid feature value for ' . $key,
+            )
+          );
+        }
+        $platform->features->{$key} = $coerced;
+      }
+
+      if (!isset($platform->allowedBlocks) || !is_array($platform->allowedBlocks)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid allowedBlocks',
+          )
+        );
+      }
+
+      $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
+
+      $cleanAllowedBlocks = array();
+      foreach ($platform->allowedBlocks as $tag) {
+        if (!is_string($tag)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid allowedBlocks entry',
+            )
+          );
+        }
+
+        // Allow basic HTML primitives (no dash) OR web components found in wc-registry
+        $isHtmlTag = false;
+        if (preg_match('/^[a-z][a-z0-9]*$/', $tag) && strpos($tag, '-') === false) {
+          $isHtmlTag = true;
+        }
+
+        $isRegisteredWc = false;
+        if (!$isHtmlTag && $wcMap && isset($wcMap->{$tag})) {
+          $isRegisteredWc = true;
+        }
+
+        if (!$isHtmlTag && !$isRegisteredWc) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid tag name in allowedBlocks',
+            )
+          );
+        }
+
+        $cleanAllowedBlocks[] = $tag;
+      }
+      $cleanAllowedBlocks = array_values(array_unique($cleanAllowedBlocks));
+      sort($cleanAllowedBlocks);
+
+      // this ensures that we are ignoring any platform settings listed previously
+      // and instead defer to what came across in the save
+      // @note this means the front-end needs to send ALL the settings to work
+      // which is why our earlier checks verify that ALL the pieces are there
+      // if we shifted approach at a future point in time to be saving pieces
+      // of this 1 at a time then this approach would need modified but should
+      // establish a reasonable pattern to be saving PER metadata key group
+      $site->manifest->metadata->platform = new stdClass();
+      $site->manifest->metadata->platform->audience = $platform->audience;
+
+      $site->manifest->metadata->platform->features = new stdClass();
+      foreach ($validFeatureKeys as $i => $k) {
+        if (isset($platform->features->{$k})) {
+          $site->manifest->metadata->platform->features->{$k} = $platform->features->{$k};
+        }
+      }
+
+      $site->manifest->metadata->platform->allowedBlocks = $cleanAllowedBlocks;
+      $site->manifest->metadata->site->updated = time();
+
+      // don't reorganize the structure
+      $site->manifest->save(false);
+      $site->gitCommit('Platform settings updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
   /**
    * @OA\Post(
    *    path="/saveOutline",

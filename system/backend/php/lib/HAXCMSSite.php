@@ -125,6 +125,11 @@ class HAXCMSSite
         $this->manifest->metadata->theme->variables = new stdClass();
         $this->manifest->metadata->node = new stdClass();
         $this->manifest->metadata->node->fields = new stdClass();
+        // platform settings scaffold (prevents front-end null handling)
+        $this->manifest->metadata->platform = new stdClass();
+        $this->manifest->metadata->platform->audience = 'expert';
+        $this->manifest->metadata->platform->features = new stdClass();
+        $this->manifest->metadata->platform->allowedBlocks = array();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         // accept a schema which can generate an array of pages to start

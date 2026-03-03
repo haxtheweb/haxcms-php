@@ -1452,6 +1452,7 @@ class HAXCMS
         $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
         $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
         $settings->saveNodeDetailsPath = $path . 'saveNodeDetails?site_token=' . $siteToken;
+        $settings->savePlatformSettingsPath = $path . 'savePlatformSettings?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
