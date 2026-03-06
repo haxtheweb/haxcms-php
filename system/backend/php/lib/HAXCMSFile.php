@@ -5,6 +5,73 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
+    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+    private $dangerousExecutableExtensions = array(
+        'php',
+        'php3',
+        'php4',
+        'php5',
+        'php7',
+        'php8',
+        'phtml',
+        'phar',
+        'phpt',
+        'cgi',
+        'pl',
+        'py',
+        'rb',
+        'sh',
+        'bash',
+        'zsh',
+        'ksh',
+        'csh',
+        'tcsh',
+        'asp',
+        'aspx',
+        'jsp',
+        'exe',
+        'dll',
+        'com',
+        'bat',
+        'cmd',
+        'msi'
+    );
+
+    private function normalizeExtensionPart($part)
+    {
+        return strtolower(preg_replace('/[^a-z0-9]/i', '', $part));
+    }
+
+    private function stripExecutableExtensionPatterns($name)
+    {
+        $directory = pathinfo($name, PATHINFO_DIRNAME);
+        $basename = pathinfo($name, PATHINFO_BASENAME);
+        $parts = explode('.', $basename);
+        if (count($parts) <= 1) {
+            return $name;
+        }
+        $safeParts = array();
+        foreach ($parts as $index => $part) {
+            if ($part === '') {
+                continue;
+            }
+            if (
+                $index > 0 &&
+                in_array($this->normalizeExtensionPart($part), $this->dangerousExecutableExtensions, true)
+            ) {
+                continue;
+            }
+            $safeParts[] = $part;
+        }
+        if (count($safeParts) === 0) {
+            return '';
+        }
+        $safeName = implode('.', $safeParts);
+        if ($directory !== '' && $directory !== '.') {
+            return $directory . '/' . $safeName;
+        }
+        return $safeName;
+    }
     /**
      * Save file into this site, optionally updating reference inside the page
      */
@@ -15,16 +82,13 @@ class HAXCMSFile
         $size = false;
         $status = 0;
         $return = array();
-        $name = $upload['name'];
+        $name = $this->stripExecutableExtensionPatterns($upload['name']);
         // ensure file is an image, video, docx, pdf, etc. of safe file types to allow uploading
         if (
             isset($upload['tmp_name']) &&
             (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) && 
             // ensure file extension is an image, video, docx, pdf, etc. of safe file types to allow uploading
-            preg_match(
-                '/.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i',
-                $upload['name']
-            )
+            preg_match($this->allowedUploadPattern, $name)
         ) {
             // get contents of the file if it was uploaded into a variable
             $filedata = @file_get_contents($upload['tmp_name']);

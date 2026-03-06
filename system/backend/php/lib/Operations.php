@@ -74,6 +74,7 @@ include_once "JSONOutlineSchemaItem.php";
 class Operations {
   public $params;
   public $rawParams;
+  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
   
   /**
    * Check if a platform capability is allowed
@@ -90,6 +91,120 @@ class Operations {
     }
     // Default to true if not specified
     return true;
+  }
+  /**
+   * Validate and normalize a bulk import file name.
+   */
+  private function normalizeBulkImportName($locationName) {
+    if (!is_string($locationName)) {
+      return false;
+    }
+    $normalized = trim(str_replace('\\', '/', preg_replace('/^files\//', '', $locationName)));
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      strpos($normalized, '..') !== false ||
+      substr($normalized, 0, 1) === '/'
+    ) {
+      return false;
+    }
+    $parts = explode('/', $normalized);
+    foreach ($parts as $part) {
+      if ($part === '' || $part === '.' || $part === '..') {
+        return false;
+      }
+    }
+    return $normalized;
+  }
+  /**
+   * Ensure bulk import source path is a URL or an absolute path, never relative.
+   */
+  private function isSafeBulkImportSourcePath($sourcePath) {
+    if (!is_string($sourcePath)) {
+      return false;
+    }
+    $normalized = trim($sourcePath);
+    if ($normalized === '' || strpos($normalized, "\0") !== false) {
+      return false;
+    }
+    if (preg_match('/^https?:\/\//i', $normalized)) {
+      return true;
+    }
+    if (substr($normalized, 0, 1) === '/') {
+      return true;
+    }
+    if (preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)) {
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Normalize and validate an outline page location.
+   */
+  private function normalizeOutlineLocation($location) {
+    if (!is_string($location)) {
+      return false;
+    }
+    $normalized = str_replace('\\', '/', $location);
+    $normalized = trim($normalized);
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      substr($normalized, 0, 1) === '/'
+    ) {
+      return false;
+    }
+    $parts = explode('/', $normalized);
+    foreach ($parts as $part) {
+      if ($part === '' || $part === '.' || $part === '..') {
+        return false;
+      }
+    }
+    if (!isset($parts[0]) || ($parts[0] !== 'pages' && $parts[0] !== 'content')) {
+      return false;
+    }
+    return implode('/', $parts);
+  }
+  /**
+   * Ensure a write target resolves to an existing file within the site root.
+   */
+  private function getValidatedOutlineWriteTarget($siteDirectory, $location) {
+    $normalizedLocation = $this->normalizeOutlineLocation($location);
+    if ($normalizedLocation === false) {
+      return false;
+    }
+    $siteRoot = realpath($siteDirectory);
+    if ($siteRoot === false || !is_dir($siteRoot)) {
+      return false;
+    }
+    $targetPath = $siteRoot . '/' . $normalizedLocation;
+    if (!file_exists($targetPath) || !is_file($targetPath)) {
+      return false;
+    }
+    $targetRealPath = realpath($targetPath);
+    if ($targetRealPath === false) {
+      return false;
+    }
+    if (
+      $targetRealPath !== $siteRoot &&
+      strpos($targetRealPath, $siteRoot . DIRECTORY_SEPARATOR) !== 0
+    ) {
+      return false;
+    }
+    return $targetRealPath;
+  }
+  /**
+   * Validate that saved content appears to be HTML.
+   */
+  private function isLikelyHtmlContent($content) {
+    if (!is_string($content)) {
+      return false;
+    }
+    $trimmed = trim($content);
+    if ($trimmed === '') {
+      return false;
+    }
+    return preg_match('/<([a-zA-Z][a-zA-Z0-9-]*)([[:space:]][^>]*)?>/', $trimmed) === 1;
   }
   /**
    * 
@@ -713,6 +828,11 @@ class Operations {
       }
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       $original = $site->manifest->items;
+      $originalLocationMap = array();
+      foreach ($original as $originalItem) {
+        $originalLocationMap[$originalItem->id] = $this->normalizeOutlineLocation($originalItem->location);
+      }
+      $safeLocationMap = array();
       $items = $this->rawParams['items'];
       $itemMap = array();
       // items from the POST
@@ -747,9 +867,9 @@ class Operations {
         } else {
           $page->order = (int)$key;
         }
-        // keep location if we get one already
-        if (isset($item->location) && $item->location != '') {
-          $page->location = $item->location;
+        // location is backend-controlled to prevent arbitrary writes
+        if (isset($originalLocationMap[$page->id]) && $originalLocationMap[$page->id]) {
+          $page->location = $originalLocationMap[$page->id];
         } else {
           // generate a logical page slug
           $page->location = 'pages/' . $page->id . '/index.html';
@@ -808,6 +928,7 @@ class Operations {
                 );
             }
         }
+        $safeLocationMap[$page->id] = $page->location;
         // check for any metadata keys that did come over
         foreach ($item->metadata as $key => $value) {
             $page->metadata->{$key} = $value;
@@ -834,14 +955,76 @@ class Operations {
         // load the item, or the item as built out of the itemMap
         // since we reset the UUID on creation
         if (!($page = $site->loadNode($item->id))) {
-          $page = $site->loadNode($itemMap[$item->id]);
+          if (isset($itemMap[$item->id])) {
+            $page = $site->loadNode($itemMap[$item->id]);
+          }
         }
+        if (!$page) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid page reference',
+            )
+          );
+        }
+        $expectedLocation = null;
+        if (isset($safeLocationMap[$page->id]) && $safeLocationMap[$page->id]) {
+          $expectedLocation = $safeLocationMap[$page->id];
+        } else {
+          $expectedLocation = $this->normalizeOutlineLocation($page->location);
+        }
+        if (!$expectedLocation) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid page location',
+            )
+          );
+        }
+        if (isset($item->location) && $item->location != '') {
+          $requestedLocation = $this->normalizeOutlineLocation($item->location);
+          if (!$requestedLocation || $requestedLocation !== $expectedLocation) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'location does not match page id',
+              )
+            );
+          }
+        }
+        if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid write target',
+            )
+          );
+        }
+        $page->location = $expectedLocation;
         if (isset($item->duplicate)) {
           // load the node we are duplicating with support for the same map needed for page loading
           if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
-            $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+            if (isset($itemMap[$item->duplicate])) {
+              $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+            }
+          }
+          if (!$nodeToDuplicate) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid duplicate source',
+              )
+            );
           }
           $content = $site->getPageContent($nodeToDuplicate);
+          if (!$this->isLikelyHtmlContent($content)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid duplicate content',
+              )
+            );
+          }
           // write it to the file system
           $bytes = $page->writeLocation(
             $content,
@@ -852,9 +1035,25 @@ class Operations {
             $site->manifest->metadata->site->name .
             '/'
           );
+          if ($bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
+            );
+          }
         }
         // contents that were shipped across, and not null, take priority over a dup request
         if (isset($item->contents) && $item->contents && $item->contents != '') {
+          if (!$this->isLikelyHtmlContent($item->contents)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid page contents',
+              )
+            );
+          }
           // write it to the file system
           $bytes = $page->writeLocation(
             $item->contents,
@@ -865,6 +1064,14 @@ class Operations {
             $site->manifest->metadata->site->name .
             '/'
           );
+          if ($bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
+            );
+          }
         }
       }
       $items = $this->rawParams['items'];
@@ -875,7 +1082,12 @@ class Operations {
           // load the item, or the item as built out of the itemMap
           // since we reset the UUID on creation
           if (!($page = $site->loadNode($item->id))) {
-            $page = $site->loadNode($itemMap[$item->id]);
+            if (isset($itemMap[$item->id])) {
+              $page = $site->loadNode($itemMap[$item->id]);
+            }
+          }
+          if (!$page) {
+            continue;
           }
           $site->deleteNode($page);
           $site->gitCommit(
@@ -2140,6 +2352,265 @@ class Operations {
     return $files;
   }
   /**
+   * Normalize skeleton machine name for matching (filename or meta name).
+   */
+  private function normalizeSkeletonMachineName($value) {
+    if (!is_string($value)) {
+      return '';
+    }
+    return strtolower(trim(preg_replace('/\.json$/i', '', $value)));
+  }
+  /**
+   * Resolve skeleton build payload by machine name from user/config/core skeleton folders.
+   */
+  private function resolveSkeletonBuildByMachineName($machineName) {
+    $normalizedTarget = $this->normalizeSkeletonMachineName($machineName);
+    if ($normalizedTarget === '') {
+      return null;
+    }
+    $dirs = array();
+    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    foreach ($dirs as $dir) {
+      if (!($handle = opendir($dir))) { continue; }
+      while (false !== ($file = readdir($handle))) {
+        if ($file === '.' || $file === '..') { continue; }
+        $filePath = $dir . '/' . $file;
+        if (!is_file($filePath) || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'json') {
+          continue;
+        }
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json, true);
+        if (!is_array($skeleton)) {
+          continue;
+        }
+        $normalizedFileName = $this->normalizeSkeletonMachineName(pathinfo($file, PATHINFO_FILENAME));
+        $meta = isset($skeleton['meta']) && is_array($skeleton['meta']) ? $skeleton['meta'] : array();
+        $normalizedMetaMachineName = $this->normalizeSkeletonMachineName(isset($meta['machineName']) ? $meta['machineName'] : '');
+        $normalizedMetaName = $this->normalizeSkeletonMachineName(isset($meta['name']) ? $meta['name'] : '');
+        if (
+          $normalizedTarget === $normalizedFileName ||
+          $normalizedTarget === $normalizedMetaMachineName ||
+          $normalizedTarget === $normalizedMetaName
+        ) {
+          closedir($handle);
+          return array(
+            'filePath' => $filePath,
+            'skeleton' => $skeleton,
+            'build' => isset($skeleton['build']) && is_array($skeleton['build']) ? $skeleton['build'] : null,
+          );
+        }
+      }
+      closedir($handle);
+    }
+    return null;
+  }
+  /**
+   * Build a compact signature from build items for fallback skeleton matching.
+   */
+  private function buildItemsSignature($items) {
+    if (!is_array($items) || count($items) === 0) {
+      return null;
+    }
+    $ids = array();
+    foreach ($items as $item) {
+      if (is_array($item) && isset($item['id']) && is_string($item['id'])) {
+        $ids[] = $item['id'];
+      }
+      if (count($ids) >= 5) {
+        break;
+      }
+    }
+    if (count($ids) === 0) {
+      return null;
+    }
+    return count($items) . ':' . implode('|', $ids);
+  }
+  /**
+   * Resolve skeleton by comparing build item signatures when machineName is unavailable.
+   */
+  private function resolveSkeletonByBuildItems($items) {
+    $targetSignature = $this->buildItemsSignature($items);
+    if (is_null($targetSignature)) {
+      return null;
+    }
+    $dirs = array();
+    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
+    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
+    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
+    if (is_dir($configDir)) { $dirs[] = $configDir; }
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    foreach ($dirs as $dir) {
+      if (!($handle = opendir($dir))) { continue; }
+      while (false !== ($file = readdir($handle))) {
+        if ($file === '.' || $file === '..') { continue; }
+        $filePath = $dir . '/' . $file;
+        if (!is_file($filePath) || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'json') {
+          continue;
+        }
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json, true);
+        if (!is_array($skeleton) || !isset($skeleton['build']) || !is_array($skeleton['build'])) {
+          continue;
+        }
+        $skeletonBuildItems = isset($skeleton['build']['items']) && is_array($skeleton['build']['items'])
+          ? $skeleton['build']['items']
+          : array();
+        $skeletonSignature = $this->buildItemsSignature($skeletonBuildItems);
+        if (!is_null($skeletonSignature) && $skeletonSignature === $targetSignature) {
+          closedir($handle);
+          return array(
+            'filePath' => $filePath,
+            'skeleton' => $skeleton,
+            'build' => $skeleton['build'],
+          );
+        }
+      }
+      closedir($handle);
+    }
+    return null;
+  }
+  /**
+   * Convert arrays into stdClass objects recursively for metadata assignment.
+   */
+  private function toObject($value) {
+    if (is_array($value)) {
+      return json_decode(json_encode($value));
+    }
+    return $value;
+  }
+  /**
+   * Get trusted settings from skeleton payload with fallbacks.
+   */
+  private function getTrustedSkeletonSettings($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    if (isset($skeleton['site']) && is_array($skeleton['site']) && isset($skeleton['site']['settings']) && is_array($skeleton['site']['settings'])) {
+      return $skeleton['site']['settings'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalSettings']) &&
+      is_array($skeleton['_skeleton']['originalSettings'])
+    ) {
+      return $skeleton['_skeleton']['originalSettings'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalMetadata']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['site']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['site']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['site']['settings']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['site']['settings'])
+    ) {
+      return $skeleton['_skeleton']['originalMetadata']['site']['settings'];
+    }
+    return null;
+  }
+  /**
+   * Get trusted platform settings from skeleton payload with fallbacks.
+   */
+  private function getTrustedSkeletonPlatform($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    if (isset($skeleton['site']) && is_array($skeleton['site']) && isset($skeleton['site']['platform']) && is_array($skeleton['site']['platform'])) {
+      return $skeleton['site']['platform'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalMetadata']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['platform']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['platform'])
+    ) {
+      return $skeleton['_skeleton']['originalMetadata']['platform'];
+    }
+    return null;
+  }
+  /**
+   * Build theme metadata from trusted skeleton payload.
+   */
+  private function getTrustedSkeletonTheme($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    $theme = null;
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['fullThemeConfig']) &&
+      is_array($skeleton['_skeleton']['fullThemeConfig'])
+    ) {
+      $fullThemeConfig = $skeleton['_skeleton']['fullThemeConfig'];
+      $themeBase = array();
+      if (isset($fullThemeConfig['settings']) && is_array($fullThemeConfig['settings'])) {
+        $themeBase = $fullThemeConfig['settings'];
+      }
+      if (isset($fullThemeConfig['element']) && is_string($fullThemeConfig['element']) && $fullThemeConfig['element'] !== '') {
+        $themeBase['element'] = $fullThemeConfig['element'];
+      }
+      if (isset($fullThemeConfig['variables']) && is_array($fullThemeConfig['variables'])) {
+        $themeBase['variables'] = $fullThemeConfig['variables'];
+      }
+      if (count($themeBase) > 0) {
+        $theme = $themeBase;
+      }
+    }
+    $skeletonThemeElement = '';
+    if (
+      isset($skeleton['site']) &&
+      is_array($skeleton['site']) &&
+      isset($skeleton['site']['theme']) &&
+      is_string($skeleton['site']['theme']) &&
+      $skeleton['site']['theme'] !== ''
+    ) {
+      $skeletonThemeElement = $skeleton['site']['theme'];
+    }
+    if ((!is_array($theme) || count($theme) === 0) && $skeletonThemeElement !== '') {
+      $themes = $GLOBALS['HAXCMS']->getThemes();
+      if (isset($themes[$skeletonThemeElement])) {
+        $theme = json_decode(json_encode($themes[$skeletonThemeElement]), true);
+      }
+    }
+    if ((!is_array($theme) || count($theme) === 0) && isset($skeleton['theme']) && is_array($skeleton['theme'])) {
+      $theme = $skeleton['theme'];
+    }
+    if (!is_array($theme) || count($theme) === 0) {
+      return null;
+    }
+    if (!isset($theme['element']) && $skeletonThemeElement !== '') {
+      $theme['element'] = $skeletonThemeElement;
+    }
+    if (
+      !isset($theme['element']) &&
+      isset($theme['path']) &&
+      is_string($theme['path']) &&
+      $theme['path'] !== ''
+    ) {
+      $pathParts = explode('/', $theme['path']);
+      $inferred = array_pop($pathParts);
+      $inferred = preg_replace('/\\.js$/', '', $inferred);
+      if ($inferred !== '') {
+        $theme['element'] = $inferred;
+      }
+    }
+    if (!isset($theme['variables']) || !is_array($theme['variables'])) {
+      $theme['variables'] = array();
+    }
+    return $theme;
+  }
+  /**
    * @OA\Post(
    *    path="/login",
    *    tags={"cms","user"},
@@ -2504,14 +2975,16 @@ class Operations {
     }
 
     $items = array();
+    $seen = array();
     // directories to scan for JSON skeleton definitions
     $dirs = array();
-    // built-in skeletons should come from coreConfig/skeletons like other core config
+    // precedence: user-specific config > deployment config > core defaults
+    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
     $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    // _config location still participates in the cascade for overrides
-    $configDir = HAXCMS_ROOT . '/_config/skeletons';
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
     if (is_dir($configDir)) { $dirs[] = $configDir; }
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
 
     foreach ($dirs as $dir) {
       if ($handle = opendir($dir)) {
@@ -2543,6 +3016,10 @@ class Operations {
             $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
             // Build API URL to fetch skeleton content with user_token
             $skeletonName = basename($file, '.json');
+            // de-dupe by machineName using precedence order above
+            if (in_array($skeletonName, $seen, TRUE)) {
+              continue;
+            }
             // "default-starter" is a shared internal fallback skeleton that
             // many generic themes reference as their skeleton definition.
             // It should not appear in the public list of selectable skeletons.
@@ -2567,6 +3044,7 @@ class Operations {
               'demo-url' => $demo,
               'skeleton-url' => $skeletonUrl
             );
+            $seen[] = $skeletonName;
           }
         }
         closedir($handle);
@@ -2642,12 +3120,13 @@ class Operations {
 
     // directories to search for skeleton files
     $dirs = array();
-    // built-in skeletons should come from coreConfig/skeletons like other core config
+    // precedence: user-specific config > deployment config > core defaults
+    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
     $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    // _config location still participates in the cascade for overrides
-    $configDir = HAXCMS_ROOT . '/_config/skeletons';
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
     if (is_dir($configDir)) { $dirs[] = $configDir; }
+    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
 
     // Search for the skeleton file
     foreach ($dirs as $dir) {
@@ -2818,6 +3297,8 @@ class Operations {
       // null in the event we get hits that don't have this
       $build = null;
       $filesToDownload = Array();
+      $trustedSkeleton = null;
+      $trustedSkeletonFilePath = null;
       // support for build info. the details used to actually create this site originally
       if (isset($this->params['build'])) {
         $build = new stdClass();
@@ -2834,7 +3315,90 @@ class Operations {
         if (isset($this->params['build']['files'])) {
           $filesToDownload = $this->params['build']['files'];
         }
+        $isFromSkeleton =
+          isset($build->structure) &&
+          $build->structure === 'from-skeleton';
+        if ($isFromSkeleton) {
+          $skeletonMachineName = (
+            isset($this->params['build']['skeletonMachineName']) &&
+            is_string($this->params['build']['skeletonMachineName'])
+          )
+            ? $this->params['build']['skeletonMachineName']
+            : '';
+          $resolvedSkeleton = null;
+          if ($skeletonMachineName !== '') {
+            $resolvedSkeleton = $this->resolveSkeletonBuildByMachineName($skeletonMachineName);
+          }
+          if (
+            (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton'])) &&
+            isset($build->items) &&
+            is_array($build->items) &&
+            count($build->items) > 0
+          ) {
+            $resolvedSkeleton = $this->resolveSkeletonByBuildItems($build->items);
+          }
+          if (
+            $skeletonMachineName !== '' &&
+            (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton']))
+          ) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'Unable to resolve skeletonMachineName for from-skeleton build',
+                'skeletonMachineName' => $skeletonMachineName,
+              )
+            );
+          }
+          if (is_array($resolvedSkeleton) && isset($resolvedSkeleton['skeleton']) && is_array($resolvedSkeleton['skeleton'])) {
+            $trustedSkeleton = $resolvedSkeleton['skeleton'];
+            $trustedSkeletonFilePath = isset($resolvedSkeleton['filePath']) ? $resolvedSkeleton['filePath'] : null;
+            $trustedBuild = (isset($trustedSkeleton['build']) && is_array($trustedSkeleton['build']))
+              ? $trustedSkeleton['build']
+              : array();
+            if (isset($trustedBuild['structure']) && is_string($trustedBuild['structure']) && $trustedBuild['structure'] !== '') {
+              $build->structure = $trustedBuild['structure'];
+            }
+            if (isset($trustedBuild['type']) && is_string($trustedBuild['type']) && $trustedBuild['type'] !== '') {
+              $build->type = $trustedBuild['type'];
+            }
+            $build->items = (isset($trustedBuild['items']) && is_array($trustedBuild['items']))
+              ? $trustedBuild['items']
+              : array();
+            if (isset($trustedBuild['files']) && (is_array($trustedBuild['files']) || is_object($trustedBuild['files']))) {
+              $filesToDownload = is_object($trustedBuild['files'])
+                ? (array)$trustedBuild['files']
+                : $trustedBuild['files'];
+            }
+            error_log(
+              '[createSite] resolved skeleton build from machine name: ' .
+              json_encode(array(
+                'skeletonMachineName' => $skeletonMachineName,
+                'resolvedFile' => $trustedSkeletonFilePath,
+                'itemCount' => is_array($build->items) ? count($build->items) : 0,
+                'fileCount' => is_array($filesToDownload) ? count($filesToDownload) : 0,
+              ))
+            );
+          }
+        }
       }
+      $buildDebug = array(
+        'structure' => (is_object($build) && isset($build->structure)) ? $build->structure : null,
+        'type' => (is_object($build) && isset($build->type)) ? $build->type : null,
+        'skeletonMachineName' => isset($this->params['build']['skeletonMachineName']) ? $this->params['build']['skeletonMachineName'] : null,
+        'hasItems' => (is_object($build) && isset($build->items) && is_array($build->items) && count($build->items) > 0),
+        'itemCount' => (is_object($build) && isset($build->items) && is_array($build->items)) ? count($build->items) : 0,
+        'hasFiles' => (is_array($filesToDownload) && count($filesToDownload) > 0),
+        'fileCount' => is_array($filesToDownload) ? count($filesToDownload) : 0
+      );
+      error_log('[createSite] incoming build debug: ' . json_encode($buildDebug));
+      if (is_object($build) && isset($build->structure) && $build->structure === 'from-skeleton') {
+        error_log('[createSite] from-skeleton raw payload: ' . json_encode(isset($this->params['build']) ? $this->params['build'] : array()));
+      }
+      $useTrustedSkeleton =
+        is_object($build) &&
+        isset($build->structure) &&
+        $build->structure === 'from-skeleton' &&
+        is_array($trustedSkeleton);
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
       $site = $GLOBALS['HAXCMS']->loadSite(
@@ -2858,58 +3422,146 @@ class Operations {
       $schema->slug = $schema->location;
       $schema->metadata->site = new stdClass();
       $schema->metadata->theme = new stdClass();
-      // store build data in case we need it down the road
-      $schema->metadata->build = $build;
-      // we don't need to store replication of all items imported on site creation
-      if (isset($schema->metadata->build->items)) {
-        unset($schema->metadata->build->items);
+      if ($useTrustedSkeleton) {
+        $trustedPlatform = $this->getTrustedSkeletonPlatform($trustedSkeleton);
+        if (is_array($trustedPlatform)) {
+          $schema->metadata->platform = $this->toObject($trustedPlatform);
+        }
+      }
+      if (!isset($schema->metadata->platform) || !is_object($schema->metadata->platform)) {
+        // platform settings scaffold (prevents front-end null handling)
+        $schema->metadata->platform = new stdClass();
+        $schema->metadata->platform->audience = 'expert';
+        $schema->metadata->platform->features = new stdClass();
+        $schema->metadata->platform->allowedBlocks = array();
+      }
+      // store build data in case we need it down the road (non-skeleton only)
+      if (!$useTrustedSkeleton && is_object($build)) {
+        $schema->metadata->build = $build;
+        // we don't need to store replication of all items imported on site creation
+        if (isset($schema->metadata->build->items)) {
+          unset($schema->metadata->build->items);
+        }
       }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
-      if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
+      $incomingTheme = (isset($this->params['theme']) && is_array($this->params['theme']))
+        ? $this->params['theme']
+        : array();
+      if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['theme']) &&
+        is_string($trustedSkeleton['site']['theme']) &&
+        $trustedSkeleton['site']['theme'] !== ''
+      ) {
+        $theme = $trustedSkeleton['site']['theme'];
+      }
+      else if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
         $theme = $this->params['site']['theme'];
       }
       else {
         $theme = HAXCMS_DEFAULT_THEME;
       }
-      // look for a match so we can set the correct data
-      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $themeObj) {
-          if ($theme == $key) {
-              $schema->metadata->theme = $themeObj;
-          }
+      if ($useTrustedSkeleton) {
+        $trustedTheme = $this->getTrustedSkeletonTheme($trustedSkeleton);
+        if (is_array($trustedTheme)) {
+          $schema->metadata->theme = $this->toObject($trustedTheme);
+        }
       }
-      $schema->metadata->theme->variables = new stdClass();
+      // look for a match so we can set the correct data
+      if (!is_object($schema->metadata->theme) || count((array)$schema->metadata->theme) === 0) {
+        foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $themeObj) {
+            if ($theme == $key) {
+                $schema->metadata->theme = $themeObj;
+            }
+        }
+      }
+      if (!is_object($schema->metadata->theme)) {
+        $schema->metadata->theme = new stdClass();
+      }
+      if (!isset($schema->metadata->theme->variables) || !is_object($schema->metadata->theme->variables)) {
+        $schema->metadata->theme->variables = new stdClass();
+      }
       // description for an overview if desired
       if (isset($this->params['site']['description']) && $this->params['site']['description'] != '' && $this->params['site']['description'] != null) {
           $schema->description = strip_tags($this->params['site']['description']);
       }
+      else if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['description']) &&
+        is_string($trustedSkeleton['site']['description'])
+      ) {
+          $schema->description = strip_tags($trustedSkeleton['site']['description']);
+      }
       // background image / banner
-      if (isset($this->params['theme']['image']) && $this->params['theme']['image'] != '' && $this->params['theme']['image'] != null) {
-        $schema->metadata->site->logo = $this->params['theme']['image'];
+      if (isset($incomingTheme['image']) && $incomingTheme['image'] != '' && $incomingTheme['image'] != null) {
+        $schema->metadata->site->logo = $incomingTheme['image'];
+      }
+      else if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['logo']) &&
+        is_string($trustedSkeleton['site']['logo']) &&
+        $trustedSkeleton['site']['logo'] !== ''
+      ) {
+        $schema->metadata->site->logo = $trustedSkeleton['site']['logo'];
       }
       else {
         $schema->metadata->site->logo = 'assets/banner.jpg';
       }
       // icon to express the concept / visually identify site
-      if (isset($this->params['theme']['icon']) && $this->params['theme']['icon'] != '' && $this->params['theme']['icon'] != null) {
-          $schema->metadata->theme->variables->icon = $this->params['theme']['icon'];
+      if (isset($incomingTheme['icon']) && $incomingTheme['icon'] != '' && $incomingTheme['icon'] != null) {
+          $schema->metadata->theme->variables->icon = $incomingTheme['icon'];
       }
       // slightly style the site based on css vars and hexcode
-      if (isset($this->params['theme']['hexCode']) && $this->params['theme']['hexCode'] != '' && $this->params['theme']['hexCode'] != null) {
-          $hex = $this->params['theme']['hexCode'];
+      if (
+        isset($schema->metadata->theme->variables->hexCode) &&
+        is_string($schema->metadata->theme->variables->hexCode) &&
+        $schema->metadata->theme->variables->hexCode !== ''
+      ) {
+          $hex = $schema->metadata->theme->variables->hexCode;
       } else {
           $hex = '#aeff00';
       }
+      if (isset($incomingTheme['hexCode']) && $incomingTheme['hexCode'] != '' && $incomingTheme['hexCode'] != null) {
+          $hex = $incomingTheme['hexCode'];
+      }
       $schema->metadata->theme->variables->hexCode = $hex;
-      if (isset($this->params['theme']['cssVariable']) && $this->params['theme']['cssVariable'] != '' && $this->params['theme']['cssVariable'] != null) {
-          $cssvar = $this->params['theme']['cssVariable'];
+      if (
+        isset($schema->metadata->theme->variables->cssVariable) &&
+        is_string($schema->metadata->theme->variables->cssVariable) &&
+        $schema->metadata->theme->variables->cssVariable !== ''
+      ) {
+          $cssvar = $schema->metadata->theme->variables->cssVariable;
       } else {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
+      if (isset($incomingTheme['cssVariable']) && $incomingTheme['cssVariable'] != '' && $incomingTheme['cssVariable'] != null) {
+          $cssvar = $incomingTheme['cssVariable'];
+      }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
-      $schema->metadata->site->settings = new stdClass();
-      $schema->metadata->site->settings->lang = 'en-US';
-      $schema->metadata->site->settings->publishPagesOn = true;
-      $schema->metadata->site->settings->canonical = true;
+      $trustedSettings = $useTrustedSkeleton
+        ? $this->getTrustedSkeletonSettings($trustedSkeleton)
+        : null;
+      if (is_array($trustedSettings)) {
+        $schema->metadata->site->settings = $this->toObject($trustedSettings);
+      }
+      else {
+        $schema->metadata->site->settings = new stdClass();
+      }
+      if (!isset($schema->metadata->site->settings->lang) || $schema->metadata->site->settings->lang === '') {
+        $schema->metadata->site->settings->lang = 'en-US';
+      }
+      if (!isset($schema->metadata->site->settings->publishPagesOn)) {
+        $schema->metadata->site->settings->publishPagesOn = true;
+      }
+      if (!isset($schema->metadata->site->settings->canonical)) {
+        $schema->metadata->site->settings->canonical = true;
+      }
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS
@@ -2938,10 +3590,24 @@ class Operations {
       // walk through files if any came across and save each of them
       if (is_array($filesToDownload)) {
         foreach ($filesToDownload as $locationName => $downloadLocation) {
+          $normalizedImportName = $this->normalizeBulkImportName($locationName);
+          if (
+            $normalizedImportName === false ||
+            preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1 ||
+            !$this->isSafeBulkImportSourcePath($downloadLocation)
+          ) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'Invalid file import payload in build.files',
+                'file' => $locationName,
+              )
+            );
+          }
           $file = new HAXCMSFile();
           // check for a file upload; we block a few formats by design
           $fileResult = $file->save(Array(
-            "name" => $locationName,
+            "name" => $normalizedImportName,
             "tmp_name" => $downloadLocation,
             "bulk-import" => TRUE
           ), $site);
