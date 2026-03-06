@@ -307,8 +307,8 @@ class Operations {
    *    path="/saveManifest",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -620,8 +620,8 @@ class Operations {
    *    path="/savePlatformSettings",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -801,8 +801,8 @@ class Operations {
    *    path="/saveOutline",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -981,17 +981,7 @@ class Operations {
             )
           );
         }
-        if (isset($item->location) && $item->location != '') {
-          $requestedLocation = $this->normalizeOutlineLocation($item->location);
-          if (!$requestedLocation || $requestedLocation !== $expectedLocation) {
-            return array(
-              '__failed' => array(
-                'status' => 400,
-                'message' => 'location does not match page id',
-              )
-            );
-          }
-        }
+        // location is backend-controlled based on page id, ignore client input
         if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
           return array(
             '__failed' => array(
@@ -1130,8 +1120,8 @@ class Operations {
    *     path="/createNode",
    *     tags={"cms","authenticated","node"},
    *     @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1315,8 +1305,8 @@ class Operations {
    *    path="/saveNode",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1652,8 +1642,8 @@ class Operations {
    *    path="/deleteNode",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1736,8 +1726,8 @@ class Operations {
    *    path="/saveNodeDetails",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2023,13 +2013,6 @@ class Operations {
    * @OA\Post(
    *    path="/siteUpdateAlternateFormats",
    *    tags={"cms","authenticated","meta"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Update the alternative formats surrounding a site"
@@ -2168,8 +2151,8 @@ class Operations {
    *    path="/getUserData",
    *    tags={"cms","authenticated","user","settings"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2201,8 +2184,8 @@ class Operations {
    *    path="/formLoad",
    *    tags={"cms","authenticated","form"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="haxcms_form_id",
+   *         description="Form identifier to load",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2251,8 +2234,15 @@ class Operations {
    *    path="/formProcess",
    *    tags={"cms","authenticated","form"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="haxcms_form_id",
+   *         description="Form identifier to process",
+   *         in="query",
+   *         required=true,
+   *         @OA\\Schema(type="string")
+   *    ),
+   *    @OA\\Parameter(
+   *         name="haxcms_form_token",
+   *         description="Form request token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2300,8 +2290,8 @@ class Operations {
    *    path="/listFiles",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2758,8 +2748,8 @@ class Operations {
    *    path="/saveFile",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3239,8 +3229,8 @@ class Operations {
    *    path="/createSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3261,7 +3251,11 @@ class Operations {
    *                     property="theme",
    *                     type="object"
    *                 ),
-   *                 required={"site","node"},
+   *                 @OA\\Property(
+   *                     property="token",
+   *                     type="string"
+   *                 ),
+   *                 required={"site","token"},
    *                 example={
    *                    "site": {
    *                      "name": "mynewsite",
@@ -3657,8 +3651,8 @@ class Operations {
    *    path="/cloneSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3745,8 +3739,8 @@ class Operations {
    *    path="/downloadSite",
    *    tags={"cms","authenticated","site","meta"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3837,8 +3831,8 @@ class Operations {
    *    path="/archiveSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3907,8 +3901,8 @@ class Operations {
    *    path="/haxiamAddUserAccess",
    *    tags={"cms","authenticated","haxiam"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
