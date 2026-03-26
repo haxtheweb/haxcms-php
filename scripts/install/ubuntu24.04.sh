@@ -39,6 +39,7 @@ sudo a2enconf php8.3-fpm
 sudo a2dismod php8.3
 sudo a2dismod mpm_prefork
 sudo a2enmod mpm_event
+sudo a2dismod status
 # enable protocol support
 sudo echo "Protocols h2 http/1.1" > /etc/apache2/conf-available/http2.conf
 sudo a2enconf http2
