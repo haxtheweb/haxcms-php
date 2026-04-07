@@ -664,19 +664,43 @@ class Operations {
 
       $validFeatureKeys = array(
         'addPage',
+        'saveAndEdit',
         'deletePage',
         'outlineDesigner',
         'styleGuide',
         'insights',
-        'manifest',
+        'siteManifest',
+        'themeManifest',
+        'authorManifest',
+        'seoManifest',
         'pageBreak',
         'addBlock',
+        'popularGizmos',
+        'recentGizmos',
         'contentMap',
         'viewSource',
-        'onlineSearch'
+        'uploadMedia',
+        'onlineMedia',
+        'community',
+        'pageTemplates',
+        'blockTemplates'
       );
-
-      if (!isset($platform->features) || (!is_object($platform->features) && !is_array($platform->features))) {
+      $legacyFeatureKeyMap = array(
+        'manifest' => array('siteManifest', 'themeManifest', 'authorManifest', 'seoManifest'),
+        'onlineSearch' => array('onlineMedia'),
+        'delete' => array('deletePage')
+      );
+      $featureSources = array();
+      if (isset($platform->features) && (is_object($platform->features) || is_array($platform->features))) {
+        $featureSources[] = $platform->features;
+      }
+      if (isset($platform->cmsFeatures) && (is_object($platform->cmsFeatures) || is_array($platform->cmsFeatures))) {
+        $featureSources[] = $platform->cmsFeatures;
+      }
+      if (isset($platform->editorFeatures) && (is_object($platform->editorFeatures) || is_array($platform->editorFeatures))) {
+        $featureSources[] = $platform->editorFeatures;
+      }
+      if (count($featureSources) === 0) {
         return array(
           '__failed' => array(
             'status' => 400,
@@ -684,33 +708,40 @@ class Operations {
           )
         );
       }
-
-      // normalize features to an object so later access via {$k} works consistently
-      if (is_array($platform->features)) {
-        $platform->features = json_decode(json_encode($platform->features));
-      }
-
-      foreach ((array) $platform->features as $key => $value) {
-        if (!in_array($key, $validFeatureKeys)) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid feature key',
-            )
-          );
+      $normalizedFeatures = array();
+      foreach ($featureSources as $featureSource) {
+        if (is_object($featureSource)) {
+          $featureSource = (array) $featureSource;
         }
-        // Accept boolean-like values (true/false, "true"/"false", 1/0)
-        // and normalize to strict booleans for storage.
-        $coerced = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-        if (is_null($coerced)) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid feature value for ' . $key,
-            )
-          );
+        foreach ($featureSource as $key => $value) {
+          // Accept boolean-like values (true/false, "true"/"false", 1/0)
+          // and normalize to strict booleans for storage.
+          $coerced = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+          if (is_null($coerced)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid feature value for ' . $key,
+              )
+            );
+          }
+          if (in_array($key, $validFeatureKeys)) {
+            $normalizedFeatures[$key] = $coerced;
+          }
+          else if (isset($legacyFeatureKeyMap[$key])) {
+            foreach ($legacyFeatureKeyMap[$key] as $mappedKey) {
+              $normalizedFeatures[$mappedKey] = $coerced;
+            }
+          }
+          else {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid feature key',
+              )
+            );
+          }
         }
-        $platform->features->{$key} = $coerced;
       }
 
       if (!isset($platform->allowedBlocks) || !is_array($platform->allowedBlocks)) {
@@ -772,8 +803,8 @@ class Operations {
 
       $site->manifest->metadata->platform->features = new stdClass();
       foreach ($validFeatureKeys as $i => $k) {
-        if (isset($platform->features->{$k})) {
-          $site->manifest->metadata->platform->features->{$k} = $platform->features->{$k};
+        if (isset($normalizedFeatures[$k])) {
+          $site->manifest->metadata->platform->features->{$k} = $normalizedFeatures[$k];
         }
       }
 
