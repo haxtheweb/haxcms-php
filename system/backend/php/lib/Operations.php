@@ -117,6 +117,31 @@ class Operations {
     return $normalized;
   }
   /**
+   * Return normalized absolute bulk import staging root path.
+   */
+  private function getBulkImportStagingRootPath() {
+    if (!isset($GLOBALS['HAXCMS']) || !isset($GLOBALS['HAXCMS']->configDirectory)) {
+      return false;
+    }
+    $stagingRoot = $GLOBALS['HAXCMS']->configDirectory . '/tmp/imports';
+    $resolvedRoot = realpath($stagingRoot);
+    if ($resolvedRoot === false || !is_dir($resolvedRoot)) {
+      return false;
+    }
+    return rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+  }
+  /**
+   * Test if a resolved absolute path stays within a resolved absolute root path.
+   */
+  private function isPathWithinRoot($resolvedPath, $resolvedRoot) {
+    $normalizedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/');
+    $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+    if ($normalizedPath === $normalizedRoot) {
+      return true;
+    }
+    return strpos($normalizedPath, $normalizedRoot . '/') === 0;
+  }
+  /**
    * Ensure bulk import source path is a URL or an absolute path, never relative.
    */
   private function isSafeBulkImportSourcePath($sourcePath) {
@@ -127,16 +152,27 @@ class Operations {
     if ($normalized === '' || strpos($normalized, "\0") !== false) {
       return false;
     }
-    if (preg_match('/^https?:\/\//i', $normalized)) {
-      return true;
+    // block stream wrappers / protocols
+    if (preg_match('/^[A-Za-z][A-Za-z0-9+\.\-]*:/', $normalized)) {
+      if (!preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)) {
+        return false;
+      }
     }
-    if (substr($normalized, 0, 1) === '/') {
-      return true;
+    if (
+      substr($normalized, 0, 1) !== '/' &&
+      !preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)
+    ) {
+      return false;
     }
-    if (preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)) {
-      return true;
+    $resolvedSourcePath = realpath($normalized);
+    if ($resolvedSourcePath === false || !is_file($resolvedSourcePath)) {
+      return false;
     }
-    return false;
+    $stagingRoot = $this->getBulkImportStagingRootPath();
+    if ($stagingRoot === false) {
+      return false;
+    }
+    return $this->isPathWithinRoot($resolvedSourcePath, $stagingRoot);
   }
   /**
    * Normalize and validate an outline page location.

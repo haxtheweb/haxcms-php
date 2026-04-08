@@ -169,6 +169,58 @@ class HAXCMSFile
         }
         return true;
     }
+    private function getBulkImportStagingRootPath()
+    {
+        global $HAXCMS;
+        if (!isset($HAXCMS) || !isset($HAXCMS->configDirectory)) {
+            return false;
+        }
+        $stagingRoot = $HAXCMS->configDirectory . '/tmp/imports';
+        $resolvedRoot = realpath($stagingRoot);
+        if ($resolvedRoot === false || !is_dir($resolvedRoot)) {
+            return false;
+        }
+        return rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+    }
+    private function isPathWithinRoot($resolvedPath, $resolvedRoot)
+    {
+        $normalizedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/');
+        $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+        if ($normalizedPath === $normalizedRoot) {
+            return true;
+        }
+        return strpos($normalizedPath, $normalizedRoot . '/') === 0;
+    }
+    private function isValidBulkImportTmpPath($tmpPath)
+    {
+        if (!is_string($tmpPath)) {
+            return false;
+        }
+        $normalized = trim($tmpPath);
+        if ($normalized === '' || strpos($normalized, "\0") !== false) {
+            return false;
+        }
+        if (preg_match('/^[A-Za-z][A-Za-z0-9+\.\-]*:/', $normalized)) {
+            if (!preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)) {
+                return false;
+            }
+        }
+        if (
+            substr($normalized, 0, 1) !== '/' &&
+            !preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)
+        ) {
+            return false;
+        }
+        $resolvedSource = realpath($normalized);
+        if ($resolvedSource === false || !is_file($resolvedSource)) {
+            return false;
+        }
+        $stagingRoot = $this->getBulkImportStagingRootPath();
+        if ($stagingRoot === false) {
+            return false;
+        }
+        return $this->isPathWithinRoot($resolvedSource, $stagingRoot);
+    }
     /**
      * Save file into this site, optionally updating reference inside the page
      */
@@ -181,9 +233,16 @@ class HAXCMSFile
         $return = array();
         $name = $this->stripExecutableExtensionPatterns($upload['name']);
         $validationError = '';
-        $isUploadSourceValid =
-            isset($upload['tmp_name']) &&
-            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import']));
+        $isBulkImport = isset($upload['bulk-import']);
+        $isUploadSourceValid = false;
+        if (isset($upload['tmp_name'])) {
+            if ($isBulkImport) {
+                $isUploadSourceValid = $this->isValidBulkImportTmpPath($upload['tmp_name']);
+            }
+            else {
+                $isUploadSourceValid = is_uploaded_file($upload['tmp_name']);
+            }
+        }
         $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
         $passesMimeValidation = false;
         if ($isUploadSourceValid && $isAllowedExtension) {
@@ -193,7 +252,12 @@ class HAXCMSFile
             $validationError = 'File type not allowed';
         }
         else if (!$isUploadSourceValid) {
-            $validationError = 'Invalid upload source';
+            if ($isBulkImport) {
+                $validationError = 'Invalid bulk import source';
+            }
+            else {
+                $validationError = 'Invalid upload source';
+            }
         }
         // ensure file is an image, video, docx, pdf, etc. of safe file types to allow uploading
         if (
