@@ -2431,6 +2431,94 @@ class Operations {
     return null;
   }
   /**
+   * Resolve a trusted skeleton payload by matching machineName against theme keys/elements.
+   * This allows from-skeleton requests to pass either skeleton machine name or theme machine name.
+   */
+  private function resolveSkeletonBuildByThemeMachineName($machineName) {
+    $normalizedTarget = $this->normalizeSkeletonMachineName($machineName);
+    if ($normalizedTarget === '') {
+      return null;
+    }
+    $themes = $GLOBALS['HAXCMS']->getThemes();
+    if (is_object($themes)) {
+      $themes = (array)$themes;
+    }
+    if (!is_array($themes)) {
+      return null;
+    }
+    $matchedThemeKey = null;
+    foreach ($themes as $themeKey => $themeObj) {
+      $normalizedKey = $this->normalizeSkeletonMachineName($themeKey);
+      $themeElement = '';
+      if (is_array($themeObj) && isset($themeObj['element']) && is_string($themeObj['element'])) {
+        $themeElement = $themeObj['element'];
+      }
+      else if (is_object($themeObj) && isset($themeObj->element) && is_string($themeObj->element)) {
+        $themeElement = $themeObj->element;
+      }
+      $normalizedElement = $this->normalizeSkeletonMachineName($themeElement);
+      if (
+        $normalizedTarget === $normalizedKey ||
+        ($normalizedElement !== '' && $normalizedTarget === $normalizedElement)
+      ) {
+        $matchedThemeKey = $themeKey;
+        break;
+      }
+    }
+    if (is_null($matchedThemeKey)) {
+      return null;
+    }
+    $fallbackSkeleton = $this->resolveSkeletonBuildByMachineName('default-starter');
+    $trustedSkeleton = null;
+    $trustedSkeletonFilePath = null;
+    if (
+      is_array($fallbackSkeleton) &&
+      isset($fallbackSkeleton['skeleton']) &&
+      is_array($fallbackSkeleton['skeleton'])
+    ) {
+      $trustedSkeleton = $fallbackSkeleton['skeleton'];
+      $trustedSkeletonFilePath = isset($fallbackSkeleton['filePath'])
+        ? $fallbackSkeleton['filePath']
+        : null;
+    }
+    if (!is_array($trustedSkeleton)) {
+      $trustedSkeleton = array(
+        'meta' => array(),
+        'site' => array(),
+        'build' => array(
+          'type' => 'skeleton',
+          'structure' => 'from-skeleton',
+          'items' => array(),
+          'files' => array(),
+        ),
+      );
+      $trustedSkeletonFilePath = 'generated:theme-fallback';
+    }
+    if (!isset($trustedSkeleton['meta']) || !is_array($trustedSkeleton['meta'])) {
+      $trustedSkeleton['meta'] = array();
+    }
+    $trustedSkeleton['meta']['machineName'] = $matchedThemeKey;
+    $trustedSkeleton['meta']['name'] = $matchedThemeKey;
+    if (!isset($trustedSkeleton['site']) || !is_array($trustedSkeleton['site'])) {
+      $trustedSkeleton['site'] = array();
+    }
+    $trustedSkeleton['site']['theme'] = $matchedThemeKey;
+    if (
+      isset($trustedSkeleton['_skeleton']) &&
+      is_array($trustedSkeleton['_skeleton']) &&
+      isset($trustedSkeleton['_skeleton']['fullThemeConfig'])
+    ) {
+      unset($trustedSkeleton['_skeleton']['fullThemeConfig']);
+    }
+    return array(
+      'filePath' => $trustedSkeletonFilePath,
+      'skeleton' => $trustedSkeleton,
+      'build' => isset($trustedSkeleton['build']) && is_array($trustedSkeleton['build'])
+        ? $trustedSkeleton['build']
+        : null,
+    );
+  }
+  /**
    * Build a compact signature from build items for fallback skeleton matching.
    */
   private function buildItemsSignature($items) {
@@ -3353,6 +3441,9 @@ class Operations {
           $resolvedSkeleton = null;
           if ($skeletonMachineName !== '') {
             $resolvedSkeleton = $this->resolveSkeletonBuildByMachineName($skeletonMachineName);
+            if (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton'])) {
+              $resolvedSkeleton = $this->resolveSkeletonBuildByThemeMachineName($skeletonMachineName);
+            }
           }
           if (
             (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton'])) &&
