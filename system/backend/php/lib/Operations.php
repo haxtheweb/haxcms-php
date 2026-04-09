@@ -2666,12 +2666,24 @@ class Operations {
     }
     if ((!is_array($theme) || count($theme) === 0) && $skeletonThemeElement !== '') {
       $themes = $GLOBALS['HAXCMS']->getThemes();
+      if (is_object($themes)) {
+        $themes = json_decode(json_encode($themes), true);
+      }
+      if (!is_array($themes)) {
+        $themes = array();
+      }
       if (isset($themes[$skeletonThemeElement])) {
         $theme = json_decode(json_encode($themes[$skeletonThemeElement]), true);
       }
     }
-    if ((!is_array($theme) || count($theme) === 0) && isset($skeleton['theme']) && is_array($skeleton['theme'])) {
-      $theme = $skeleton['theme'];
+    if (
+      (!is_array($theme) || count($theme) === 0) &&
+      isset($skeleton['theme']) &&
+      (is_array($skeleton['theme']) || is_object($skeleton['theme']))
+    ) {
+      $theme = is_object($skeleton['theme'])
+        ? json_decode(json_encode($skeleton['theme']), true)
+        : $skeleton['theme'];
     }
     if (!is_array($theme) || count($theme) === 0) {
       return null;
