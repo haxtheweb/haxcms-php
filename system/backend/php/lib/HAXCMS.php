@@ -1405,6 +1405,23 @@ class HAXCMS
       return $this->cleanFilename($segments[0]);
     }
     /**
+     * Resolve active IAM tenant username from loaded root path.
+     */
+    public function getIAMTenantUserName() {
+      if (!(isset($this->config->iam) && $this->config->iam)) {
+        return null;
+      }
+      if (defined('HAXCMS_ROOT')) {
+        $root = str_replace('\\', '/', HAXCMS_ROOT);
+        if (preg_match('/\\/users\\/([^\\/]+)/', $root, $matches) === 1) {
+          if (isset($matches[1]) && $matches[1] != '') {
+            return $this->cleanFilename($matches[1]);
+          }
+        }
+      }
+      return $this->getRequestPathUserName();
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
