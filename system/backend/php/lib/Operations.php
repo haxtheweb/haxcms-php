@@ -2048,6 +2048,30 @@ class Operations {
    * )
    */
   public function connectionSettings() {
+    // In HAXiam mode, require an authenticated user and enforce
+    // /<username>/system/api/* path alignment with authenticated principal.
+    if (isset($GLOBALS['HAXCMS']->config->iam) && $GLOBALS['HAXCMS']->config->iam) {
+      $pathUser = $GLOBALS['HAXCMS']->getRequestPathUserName();
+      if (!is_null($pathUser) && $pathUser != '') {
+        $authenticatedUser = $GLOBALS['HAXCMS']->getAuthenticatedUserName();
+        if (is_null($authenticatedUser) || $authenticatedUser == '') {
+          return array(
+            '__failed' => array(
+              'status' => 403,
+              'message' => 'Access denied',
+            )
+          );
+        }
+        if ($authenticatedUser !== $pathUser) {
+          return array(
+            '__failed' => array(
+              'status' => 403,
+              'message' => 'Access denied',
+            )
+          );
+        }
+      }
+    }
     // need to return this as if it was a javascript file, weird looking for sure
     return array(
       '__noencode' => array(

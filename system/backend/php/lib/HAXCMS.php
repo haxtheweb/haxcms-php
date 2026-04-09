@@ -1327,6 +1327,71 @@ class HAXCMS
       }
     }
     /**
+     * Resolve authenticated username from refresh token or JWT without ending request.
+     */
+    public function getAuthenticatedUserName() {
+      if ($this->isCLI()) {
+        return null;
+      }
+      if (isset($_COOKIE['haxcms_refresh_token']) && $_COOKIE['haxcms_refresh_token'] != '') {
+        $refreshTokenDecoded = $this->validateRefreshToken(FALSE);
+        if (
+          $refreshTokenDecoded &&
+          isset($refreshTokenDecoded->user) &&
+          $refreshTokenDecoded->user != ''
+        ) {
+          return $this->cleanFilename($refreshTokenDecoded->user);
+        }
+      }
+      $request = FALSE;
+      if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
+      }
+      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $request = $this->decodeJWT($_POST['jwt'])) {
+      }
+      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
+      }
+      if (
+        $request != FALSE &&
+        isset($request->id) &&
+        $request->id == $this->getRequestToken('user') &&
+        isset($request->user) &&
+        $request->user != '' &&
+        $this->validateUser($request->user)
+      ) {
+        return $this->cleanFilename($request->user);
+      }
+      return null;
+    }
+    /**
+     * Resolve IAM path username from request URI (/<username>/system/api/...).
+     */
+    public function getRequestPathUserName() {
+      if (!isset($_SERVER['REQUEST_URI'])) {
+        return null;
+      }
+      $path = parse_url($this->request_uri(), PHP_URL_PATH);
+      if (!is_string($path) || $path == '') {
+        return null;
+      }
+      $basePath = trim((string) $this->basePath);
+      if ($basePath != '' && $basePath != '/') {
+        $normalizedBase = '/' . trim($basePath, '/');
+        if (strpos($path, $normalizedBase) === 0) {
+          $path = substr($path, strlen($normalizedBase));
+        }
+      }
+      $path = '/' . ltrim($path, '/');
+      $segments = explode('/', trim($path, '/'));
+      if (!is_array($segments) || !isset($segments[0]) || $segments[0] == '') {
+        return null;
+      }
+      // non-IAM routes like /system/api/* do not include a tenant user segment
+      if ($segments[0] == 'system') {
+        return null;
+      }
+      return $this->cleanFilename($segments[0]);
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
