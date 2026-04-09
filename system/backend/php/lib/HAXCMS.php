@@ -1333,6 +1333,7 @@ class HAXCMS
       if ($this->isCLI()) {
         return null;
       }
+      $refreshUser = null;
       if (isset($_COOKIE['haxcms_refresh_token']) && $_COOKIE['haxcms_refresh_token'] != '') {
         $refreshTokenDecoded = $this->validateRefreshToken(FALSE);
         if (
@@ -1340,9 +1341,10 @@ class HAXCMS
           isset($refreshTokenDecoded->user) &&
           $refreshTokenDecoded->user != ''
         ) {
-          return $this->cleanFilename($refreshTokenDecoded->user);
+          $refreshUser = $this->cleanFilename($refreshTokenDecoded->user);
         }
       }
+      $jwtUser = null;
       $request = FALSE;
       if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
       }
@@ -1358,7 +1360,18 @@ class HAXCMS
         $request->user != '' &&
         $this->validateUser($request->user)
       ) {
-        return $this->cleanFilename($request->user);
+        $jwtUser = $this->cleanFilename($request->user);
+      }
+      // If both authentication mechanisms are present, they must agree.
+      if (!is_null($jwtUser) && !is_null($refreshUser) && $jwtUser !== $refreshUser) {
+        return null;
+      }
+      // If JWT user identity is present, always prefer it.
+      if (!is_null($jwtUser) && $jwtUser != '') {
+        return $jwtUser;
+      }
+      if (!is_null($refreshUser) && $refreshUser != '') {
+        return $refreshUser;
       }
       return null;
     }
