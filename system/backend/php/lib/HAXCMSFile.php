@@ -169,7 +169,7 @@ class HAXCMSFile
         }
         return true;
     }
-    private function getBulkImportStagingRootPath()
+    public static function getBulkImportStagingRootPath()
     {
         global $HAXCMS;
         if (!isset($HAXCMS) || !isset($HAXCMS->configDirectory)) {
@@ -182,7 +182,7 @@ class HAXCMSFile
         }
         return rtrim(str_replace('\\', '/', $resolvedRoot), '/');
     }
-    private function isPathWithinRoot($resolvedPath, $resolvedRoot)
+    public static function isPathWithinRoot($resolvedPath, $resolvedRoot)
     {
         $normalizedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/');
         $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
@@ -191,7 +191,7 @@ class HAXCMSFile
         }
         return strpos($normalizedPath, $normalizedRoot . '/') === 0;
     }
-    private function isValidBulkImportTmpPath($tmpPath)
+    public static function isValidBulkImportTmpPath($tmpPath)
     {
         if (!is_string($tmpPath)) {
             return false;
@@ -211,15 +211,19 @@ class HAXCMSFile
         ) {
             return false;
         }
+        // reject symlinks to prevent TOCTOU attacks
+        if (is_link($normalized)) {
+            return false;
+        }
         $resolvedSource = realpath($normalized);
         if ($resolvedSource === false || !is_file($resolvedSource)) {
             return false;
         }
-        $stagingRoot = $this->getBulkImportStagingRootPath();
+        $stagingRoot = self::getBulkImportStagingRootPath();
         if ($stagingRoot === false) {
             return false;
         }
-        return $this->isPathWithinRoot($resolvedSource, $stagingRoot);
+        return self::isPathWithinRoot($resolvedSource, $stagingRoot);
     }
     /**
      * Save file into this site, optionally updating reference inside the page
@@ -237,7 +241,7 @@ class HAXCMSFile
         $isUploadSourceValid = false;
         if (isset($upload['tmp_name'])) {
             if ($isBulkImport) {
-                $isUploadSourceValid = $this->isValidBulkImportTmpPath($upload['tmp_name']);
+                $isUploadSourceValid = self::isValidBulkImportTmpPath($upload['tmp_name']);
             }
             else {
                 $isUploadSourceValid = is_uploaded_file($upload['tmp_name']);
@@ -265,6 +269,13 @@ class HAXCMSFile
             $isAllowedExtension &&
             $passesMimeValidation
         ) {
+            // TOCTOU defense: verify source is not a symlink right before reading
+            if ($isBulkImport && is_link($upload['tmp_name'])) {
+                return array(
+                    'status' => 500,
+                    'data' => 'Bulk import source replaced with symlink'
+                );
+            }
             // get contents of the file if it was uploaded into a variable
             $filedata = @file_get_contents($upload['tmp_name']);
             // attempt to save the file either to site or system level
