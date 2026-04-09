@@ -1417,7 +1417,7 @@ class HAXCMS
       }
       // kick back the end if its invalid
       if ($endOnInvalid) {
-        setcookie('haxcms_refresh_token', '', 1);
+        setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
         header('Status: 401');
         print 'haxcms_refresh_token:invalid:end_on_invalid_flag';
         exit();

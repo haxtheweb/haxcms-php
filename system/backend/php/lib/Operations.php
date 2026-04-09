@@ -2746,7 +2746,7 @@ class Operations {
         );
       } else {
           // set a refresh_token COOKIE that will ship w/ all calls automatically
-          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = true, $_httponly = true);
           return array(
             "status" => 200,
             "jwt" => $GLOBALS['HAXCMS']->getJWT($u),
@@ -2771,7 +2771,7 @@ class Operations {
         );
       } else {
           // set a refresh_token COOKIE that will ship w/ all calls automatically
-          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = true, $_httponly = true);
           return $GLOBALS['HAXCMS']->getJWT($u);
       }
     }
@@ -2803,7 +2803,7 @@ class Operations {
    * )
    */
   public function logout() {
-    setcookie('haxcms_refresh_token', '', 1);
+    setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
     return array(
       "status" => 200,
       "data" => 'loggedout',
@@ -2831,7 +2831,7 @@ class Operations {
     }
     else {
       // this failed so unset the cookie
-      setcookie('haxcms_refresh_token', '', 1);
+      setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
       return array(
         '__failed' => array(
           'status' => 401,
