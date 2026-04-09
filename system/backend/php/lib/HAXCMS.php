@@ -1341,7 +1341,7 @@ class HAXCMS
           isset($refreshTokenDecoded->user) &&
           $refreshTokenDecoded->user != ''
         ) {
-          $refreshUser = $this->cleanFilename($refreshTokenDecoded->user);
+          $refreshUser = $this->generateMachineName($refreshTokenDecoded->user);
         }
       }
       $jwtUser = null;
@@ -1360,7 +1360,7 @@ class HAXCMS
         $request->user != '' &&
         $this->validateUser($request->user)
       ) {
-        $jwtUser = $this->cleanFilename($request->user);
+        $jwtUser = $this->generateMachineName($request->user);
       }
       // If both authentication mechanisms are present, they must agree.
       if (!is_null($jwtUser) && !is_null($refreshUser) && $jwtUser !== $refreshUser) {
@@ -1402,7 +1402,7 @@ class HAXCMS
       if ($segments[0] == 'system') {
         return null;
       }
-      return $this->cleanFilename($segments[0]);
+      return $this->generateMachineName($segments[0]);
     }
     /**
      * Resolve active IAM tenant username from loaded root path.
@@ -1415,7 +1415,7 @@ class HAXCMS
         $root = str_replace('\\', '/', HAXCMS_ROOT);
         if (preg_match('/\\/users\\/([^\\/]+)/', $root, $matches) === 1) {
           if (isset($matches[1]) && $matches[1] != '') {
-            return $this->cleanFilename($matches[1]);
+            return $this->generateMachineName($matches[1]);
           }
         }
       }
