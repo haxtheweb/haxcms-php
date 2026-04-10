@@ -18,10 +18,23 @@ class SanitizeContent
 
     public static function sanitizeMetadataValue($value)
     {
+        return self::escapeHTMLAttribute($value);
+    }
+
+    public static function escapeHTMLAttribute($value)
+    {
         if ($value === null) {
             return '';
         }
         return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    public static function escapeXMLValue($value)
+    {
+        if ($value === null) {
+            return '';
+        }
+        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     public static function sanitizeHTMLForStorage($html)

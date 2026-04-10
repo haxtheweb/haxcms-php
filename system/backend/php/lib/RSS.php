@@ -1,4 +1,5 @@
 <?php
+include_once 'SanitizeContent.php';
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
@@ -7,7 +8,7 @@ class FeedMe
      */
     private function xmlEscape($value = '')
     {
-        return htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        return SanitizeContent::escapeXMLValue($value);
     }
     /**
      * Normalize timestamps that may be unix seconds, milliseconds, or parseable dates.

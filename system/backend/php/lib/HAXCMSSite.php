@@ -1291,71 +1291,61 @@ class HAXCMSSite
               $tag = str_replace('>', '', str_replace('</', '', $match));
               $preloadTags[$tag] = $tag;
             }
-          }  
+          }
         }
       }
-      // domain's need to inject their own full path for OG metadata (which is edge case)
-      // most of the time this is the actual usecase so use the active path
       if (is_null($domain)) {
         $domain = $GLOBALS['HAXCMS']->getURI();
       }
-      // support preconnecting CDNs, sets us up for dynamic CDN switching too
       $preconnect = '';
       $base = './';
       if ($cdn == '' && $GLOBALS['HAXCMS']->cdn != './') {
         $cdn = $GLOBALS['HAXCMS']->cdn;
       }
       if ($cdn != '') {
-        // preconnect for faster DNS lookup
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
-        // base is preload for the calls below
-        $base = $cdn;
+        $preconnect = '<link rel="preconnect" crossorigin href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($cdn, '')) . '">';
+        $base = SanitizeContent::sanitizeURLValue($cdn, '');
       }
       $contentPreload = '';
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
       foreach ($preloadTags as $tag) {
-        // means the tag is known in our registry
         if (isset($wcMap->{$tag})) {
           $contentPreload .= '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = filter_var($page->title, FILTER_SANITIZE_STRING);
-      $siteTitle = filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . ' | ' . filter_var($page->title, FILTER_SANITIZE_STRING);
-      $description = filter_var($page->description, FILTER_SANITIZE_STRING);;
+      $title = SanitizeContent::escapeHTMLAttribute($page->title);
+      $siteTitle = SanitizeContent::escapeHTMLAttribute($this->manifest->title) . ' | ' . SanitizeContent::escapeHTMLAttribute($page->title);
+      $description = SanitizeContent::escapeHTMLAttribute($page->description);
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
-      // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
         $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
-        $description = filter_var($this->manifest->description, FILTER_SANITIZE_STRING);
+        $description = SanitizeContent::escapeHTMLAttribute($this->manifest->description);
       }
       if ($title == '' || $title == 'New item') {
-        $title = filter_var($this->manifest->title, FILTER_SANITIZE_STRING);
+        $title = SanitizeContent::escapeHTMLAttribute($this->manifest->title);
         $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
-          $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
+        $hexCode = SanitizeContent::escapeHTMLAttribute($this->manifest->metadata->theme->variables->hexCode);
       }
-      // if we have a privacy flag, then tell robots not to index this were it to be found
-      // which in HAXiam this isn't possible
       if (isset($this->manifest->metadata->site->settings->private) && $this->manifest->metadata->site->settings->private) {
         $robots = '<meta name="robots" content="none" />';
       }
       else {
         $robots = '<meta name="robots" content="index, follow" />';
       }
-      // canonical flag, if set we use the domain field
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->manifest->metadata->site->domain . '/' . $page->slug, '')) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, '')) . '" />' . "\n";
         }
       }
       else {
@@ -1363,16 +1353,17 @@ class HAXCMSSite
       }
       $prevResource = '';
       $nextResource = '';
-      // if we have a place in the array bc it's a page, then we can get next / prev
       if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
         $currentId = $this->manifest->getItemKeyById($page->id);
         if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
-          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+          $prevResource = '  <link rel="prev" href="' . SanitizeContent::escapeHTMLAttribute($this->manifest->items[$currentId-1]->slug) . '" />' . "\n";
         }
         if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
-          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+          $nextResource = '  <link rel="next" href="' . SanitizeContent::escapeHTMLAttribute($this->manifest->items[$currentId+1]->slug) . '" />' . "\n";
         }
       }
+      $safeDomain = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, ''));
+      $safeSocialImage = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), ''));
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
@@ -1394,7 +1385,7 @@ class HAXCMSSite
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
   <title>' . $siteTitle . '</title>
-  <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+  <link rel="icon" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('16', '16'), '')) . '" />
   <meta name="theme-color" content="' . $hexCode . '" />
   ' . $robots . '
   <meta name="mobile-web-app-capable" content="yes" />
@@ -1402,36 +1393,34 @@ class HAXCMSSite
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="' . $title . '" />
-  <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
-  <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
-  <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
-  <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
-  <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
-  <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+  <link rel="apple-touch-icon" sizes="48x48" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('48', '48'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="72x72" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('72', '72'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="96x96" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('96', '96'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="144x144" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('144', '144'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="192x192" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('192', '192'), '')) . '" />
+  <meta name="msapplication-TileImage" content="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('144', '144'), '')) . '" />
   <meta name="msapplication-TileColor" content="' . $hexCode . '" />
   <meta name="msapplication-tap-highlight" content="no" />
   <meta name="description" content="' . $description . '" />
-  <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
+  <meta name="og:sitename" property="og:sitename" content="' . SanitizeContent::escapeHTMLAttribute($this->manifest->title) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
-  <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+  <meta name="og:url" property="og:url" content="' . $safeDomain . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
-  <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
+  <meta name="og:image" property="og:image" content="' . $safeSocialImage . '" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+  <meta name="twitter:site" property="twitter:site" content="' . $safeDomain . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
-  <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
-      // mix in license metadata if we have it
+  <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />';
       $licenseData = $this->getLicenseData('all');
       if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
-          $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
+        $metadata .= "\n" . '  <meta rel="cc:license" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($licenseData[$this->manifest->license]['link'], '')) . '" content="License: ' . SanitizeContent::escapeHTMLAttribute($licenseData[$this->manifest->license]['name']) . '"/>' . "\n";
       }
-      // add in twitter link if they provided one
       if (isset($this->manifest->metadata->author->socialLink) && (strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0 || strpos($this->manifest->metadata->author->socialLink, 'https://x.com/') === 0)) {
         $socialLink = str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink);
-        $socialLink = str_replace('https://x.com/', '@', $socialLink);  
-        $metadata .= '  <meta name="twitter:creator" content="' . filter_var($socialLink, FILTER_SANITIZE_STRING) . '" />';
+        $socialLink = str_replace('https://x.com/', '@', $socialLink);
+        $metadata .= '  <meta name="twitter:creator" content="' . SanitizeContent::escapeHTMLAttribute($socialLink) . '" />';
       }
       $GLOBALS['HAXCMS']->dispatchEvent('haxcms-site-metadata', $metadata);
       return $metadata;
