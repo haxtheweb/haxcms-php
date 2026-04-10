@@ -1,5 +1,6 @@
 <?php
 include_once "JSONOutlineSchemaItem.php";
+include_once "SanitizeContent.php";
 /**
  * @OA\Info(
  *     title="HAXcms API",
@@ -1026,7 +1027,7 @@ class Operations {
           }
           // write it to the file system
           $bytes = $page->writeLocation(
-            $content,
+            SanitizeContent::sanitizeHTMLForStorage($content),
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1055,7 +1056,7 @@ class Operations {
           }
           // write it to the file system
           $bytes = $page->writeLocation(
-            $item->contents,
+            SanitizeContent::sanitizeHTMLForStorage($item->contents),
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1263,7 +1264,7 @@ class Operations {
               // write it to the file system
               // this all seems round about but it's more secure
               $bytes = $page->writeLocation(
-                $content,
+                SanitizeContent::sanitizeHTMLForStorage($content),
                 HAXCMS_ROOT .
                 '/' .
                 $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1281,7 +1282,7 @@ class Operations {
           if ($page = $site->loadNode($item->id)) {
             // write it to the file system
             $bytes = $page->writeLocation(
-              $nodeParams['node']['contents'],
+              SanitizeContent::sanitizeHTMLForStorage($nodeParams['node']['contents']),
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1411,7 +1412,7 @@ class Operations {
             // and now save WITHOUT the top level page-break
             // to avoid duplication issues
             $bytes = $page->writeLocation(
-              $data['content'],
+              SanitizeContent::sanitizeHTMLForStorage($data['content']),
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .

@@ -1,6 +1,7 @@
 <?php
 // working with RSS
 include_once 'RSS.php';
+include_once 'SanitizeContent.php';
 use \Gumlet\ImageResize;
 // a site object
 class HAXCMSSite
@@ -725,7 +726,7 @@ class HAXCMSSite
         if ($template == 'html') {
           // now this should exist if it didn't a minute ago
           $bytes = $page->writeLocation(
-            $html,
+            SanitizeContent::sanitizeHTMLForStorage($html),
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
