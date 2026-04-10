@@ -360,9 +360,17 @@ class Operations {
             $this->params['manifest']['site']['manifest-metadata-site-domain'],
             FILTER_SANITIZE_URL
         );
+        $site->manifest->metadata->site->domain = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->domain,
+          ''
+        );
         $site->manifest->metadata->site->logo = filter_var(
             $this->params['manifest']['site']['manifest-metadata-site-logo'],
             FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->logo,
+          ''
         );
         $site->manifest->metadata->site->tags = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-tags'],
@@ -379,6 +387,7 @@ class Operations {
                 $this->params['manifest']['site']['manifest-domain'],
                 FILTER_SANITIZE_URL
             );
+            $domain = SanitizeContent::sanitizeURLValue($domain, '');
             // support updating the domain CNAME value
             if ($site->manifest->metadata->site->domain != $domain) {
                 $site->manifest->metadata->site->domain = $domain;
@@ -407,6 +416,10 @@ class Operations {
           $site->manifest->metadata->theme->variables->image = filter_var(
             $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_URL
           );
+          $site->manifest->metadata->theme->variables->image = SanitizeContent::sanitizeURLValue(
+            $site->manifest->metadata->theme->variables->image,
+            ''
+          );
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
           $site->manifest->metadata->theme->variables->imageAlt = filter_var(
@@ -416,6 +429,10 @@ class Operations {
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
           $site->manifest->metadata->theme->variables->imageLink = filter_var(
             $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_URL
+          );
+          $site->manifest->metadata->theme->variables->imageLink = SanitizeContent::sanitizeURLValue(
+            $site->manifest->metadata->theme->variables->imageLink,
+            ''
           );
         }
         // REGIONS SUPPORT
@@ -463,6 +480,10 @@ class Operations {
                 $this->params['manifest']['author']['manifest-metadata-author-image'],
                 FILTER_SANITIZE_URL
             );
+            $site->manifest->metadata->author->image = SanitizeContent::sanitizeURLValue(
+              $site->manifest->metadata->author->image,
+              ''
+            );
             $site->manifest->metadata->author->name = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-name'],
                 FILTER_SANITIZE_STRING
@@ -474,6 +495,10 @@ class Operations {
             $site->manifest->metadata->author->socialLink = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
                 FILTER_SANITIZE_URL
+            );
+            $site->manifest->metadata->author->socialLink = SanitizeContent::sanitizeURLValue(
+              $site->manifest->metadata->author->socialLink,
+              ''
             );
         }
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
@@ -1506,7 +1531,9 @@ class Operations {
                 }
                 // support for defining and updating related-items
                 if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
-                  $page->metadata->relatedItems = $data["attributes"]["related-items"];
+                  $page->metadata->relatedItems = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["related-items"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->relatedItems)) {
@@ -1514,7 +1541,10 @@ class Operations {
                 }
                 // support for defining and updating image
                 if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                  $page->metadata->image = $data["attributes"]["image"];
+                  $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                    $data["attributes"]["image"],
+                    ''
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->image)) {
@@ -1522,7 +1552,9 @@ class Operations {
                 }
                 // support for defining and updating page type
                 if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
-                  $page->metadata->tags = $data["attributes"]["tags"];
+                  $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["tags"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->tags)) {
@@ -1530,7 +1562,9 @@ class Operations {
                 }
                 // support for defining and updating page accentColor
                 if (isset($data["attributes"]["accent-color"]) && $data["attributes"]["accent-color"] != '') {
-                  $page->metadata->accentColor = $data["attributes"]["accent-color"];
+                  $page->metadata->accentColor = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["accent-color"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->accentColor)) {
@@ -1538,7 +1572,9 @@ class Operations {
                 }
                 // support for defining and updating page type
                 if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
-                  $page->metadata->icon = $data["attributes"]["icon"];
+                  $page->metadata->icon = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["icon"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->icon)) {
@@ -1546,7 +1582,10 @@ class Operations {
                 }
                 // support for defining an image to represent the page
                 if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                  $page->metadata->image = $data["attributes"]["image"];
+                  $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                    $data["attributes"]["image"],
+                    ''
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->image)) {
@@ -1554,7 +1593,9 @@ class Operations {
                 }
                 // support for defining and updating author
                 if (isset($data["attributes"]["author"]) && $data["attributes"]["author"] != '') {
-                  $page->metadata->author = $data["attributes"]["author"];
+                  $page->metadata->author = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["author"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->author)) {
@@ -1898,7 +1939,9 @@ class Operations {
           }
           if (array_key_exists('tags', $this->params['node']['details'])) {
             if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
-              $page->metadata->tags = filter_var($this->params['node']['details']['tags'], FILTER_SANITIZE_STRING);
+              $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['tags']
+              );
             } else {
               unset($page->metadata->tags);
             }
@@ -1910,7 +1953,9 @@ class Operations {
           }
           if (array_key_exists('icon', $this->params['node']['details'])) {
             if ($this->params['node']['details']['icon'] !== '' && $this->params['node']['details']['icon'] !== null) {
-              $page->metadata->icon = filter_var($this->params['node']['details']['icon'], FILTER_SANITIZE_STRING);
+              $page->metadata->icon = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['icon']
+              );
             } else {
               unset($page->metadata->icon);
             }
@@ -1923,7 +1968,10 @@ class Operations {
           }
           if (array_key_exists('image', $this->params['node']['details'])) {
             if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
-              $page->metadata->image = filter_var($this->params['node']['details']['image'], FILTER_SANITIZE_URL);
+              $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                $this->params['node']['details']['image'],
+                ''
+              );
             } else {
               unset($page->metadata->image);
             }
@@ -1935,7 +1983,9 @@ class Operations {
           }
           if (array_key_exists('relatedItems', $this->params['node']['details'])) {
             if ($this->params['node']['details']['relatedItems'] !== '' && $this->params['node']['details']['relatedItems'] !== null) {
-              $page->metadata->relatedItems = filter_var($this->params['node']['details']['relatedItems'], FILTER_SANITIZE_STRING);
+              $page->metadata->relatedItems = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['relatedItems']
+              );
             } else {
               unset($page->metadata->relatedItems);
             }
