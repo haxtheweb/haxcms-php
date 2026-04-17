@@ -1202,7 +1202,6 @@ class Operations {
    *                    "site": {
    *                      "name": "mysite"
    *                    },
-   *                    "items": [{},{}],
    *                    "node": {
    *                      "id": null,
    *                      "title": "Cool post",
@@ -2332,9 +2331,9 @@ class Operations {
    *         description="Form identifier to process",
    *         in="query",
    *         required=true,
-   *         @OA\\Schema(type="string")
+   *         @OA\Schema(type="string")
    *    ),
-   *    @OA\\Parameter(
+   *    @OA\Parameter(
    *         name="haxcms_form_token",
    *         description="Form request token",
    *         in="query",
@@ -3445,7 +3444,7 @@ class Operations {
    *                     property="theme",
    *                     type="object"
    *                 ),
-   *                 @OA\\Property(
+   *                 @OA\Property(
    *                     property="token",
    *                     type="string"
    *                 ),
@@ -3459,7 +3458,6 @@ class Operations {
    *                    "build": {
    *                      "type": "course",
    *                      "structure": "docx import",
-   *                      "items": [{},{}]
    *                    },
    *                    "theme": {
    *                      "color": "blue",
