@@ -94,6 +94,68 @@ class Operations {
     return true;
   }
   /**
+   * Validate that an associative array/object only contains approved keys.
+   */
+  private function hasOnlyAllowedKeys($value, $allowedKeys) {
+    if (is_object($value)) {
+      $value = (array) $value;
+    }
+    if (!is_array($value)) {
+      return false;
+    }
+    foreach ($value as $key => $unused) {
+      if (!in_array($key, $allowedKeys, true)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  /**
+   * Normalize css variable submitted by appearance settings.
+   */
+  private function normalizeAppearanceCssVariable($value) {
+    if (!is_string($value)) {
+      return false;
+    }
+    $value = filter_var($value, FILTER_SANITIZE_STRING);
+    if (!is_string($value)) {
+      return false;
+    }
+    $value = str_replace('--simple-colors-default-theme-', '', $value);
+    $value = preg_replace('/-7$/', '', $value);
+    $value = strtolower(trim($value));
+    if ($value === '' || preg_match('/^[a-z0-9-]+$/', $value) !== 1) {
+      return false;
+    }
+    return $value;
+  }
+  /**
+   * Validate and sanitize region ids for appearance settings.
+   */
+  private function sanitizeAppearanceRegionIds($value) {
+    if (!is_array($value)) {
+      return false;
+    }
+    $cleanIds = array();
+    foreach ($value as $id) {
+      if (!is_string($id)) {
+        return false;
+      }
+      $cleanId = filter_var($id, FILTER_SANITIZE_STRING);
+      if (!is_string($cleanId)) {
+        return false;
+      }
+      $cleanId = trim($cleanId);
+      if ($cleanId === '') {
+        return false;
+      }
+      if (!in_array($cleanId, $cleanIds, true)) {
+        $cleanIds[] = $cleanId;
+      }
+    }
+    return $cleanIds;
+  }
+  /**
    * Validate and normalize a bulk import file name.
    */
   private function normalizeBulkImportName($locationName) {
@@ -465,6 +527,23 @@ class Operations {
         $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
         ). "-7";
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'])) {
+          $palette = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'],
+            FILTER_SANITIZE_STRING
+          );
+          if (is_string($palette)) {
+            $palette = strtolower(trim($palette));
+            if ($palette === '') {
+              if (isset($site->manifest->metadata->theme->variables->palette)) {
+                unset($site->manifest->metadata->theme->variables->palette);
+              }
+            }
+            else if (preg_match('/^[a-z0-9-]+$/', $palette)) {
+              $site->manifest->metadata->theme->variables->palette = $palette;
+            }
+          }
+        }
         $site->manifest->metadata->theme->variables->icon = filter_var(
           $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
         );
@@ -621,6 +700,514 @@ class Operations {
 
   /**
    * @OA\Post(
+   *    path="/saveSeoSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save SEO and author settings into site.json"
+   *   )
+   * )
+   */
+  public function saveSeoSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!isset($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site->settings)) {
+        $site->manifest->metadata->site->settings = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->author)) {
+        $site->manifest->metadata->author = new stdClass();
+      }
+
+      $author = array();
+      if (isset($this->params['author']) && is_array($this->params['author'])) {
+        $author = $this->params['author'];
+      }
+      $seo = array();
+      if (isset($this->params['seo']) && is_array($this->params['seo'])) {
+        $seo = $this->params['seo'];
+      }
+      $manifestAuthor = array();
+      if (
+        isset($this->params['manifest']) &&
+        isset($this->params['manifest']['author']) &&
+        is_array($this->params['manifest']['author'])
+      ) {
+        $manifestAuthor = $this->params['manifest']['author'];
+      }
+      $manifestSeo = array();
+      if (
+        isset($this->params['manifest']) &&
+        isset($this->params['manifest']['seo']) &&
+        is_array($this->params['manifest']['seo'])
+      ) {
+        $manifestSeo = $this->params['manifest']['seo'];
+      }
+
+      $licenseValue = null;
+      if (array_key_exists('license', $author)) {
+        $licenseValue = $author['license'];
+      }
+      else if (array_key_exists('manifest.license', $manifestAuthor)) {
+        $licenseValue = $manifestAuthor['manifest.license'];
+      }
+      if (!is_null($licenseValue)) {
+        $site->manifest->license = filter_var(
+          strval($licenseValue),
+          FILTER_SANITIZE_STRING
+        );
+      }
+
+      $authorImageValue = null;
+      if (array_key_exists('image', $author)) {
+        $authorImageValue = $author['image'];
+      }
+      else if (array_key_exists('manifest.metadata.author.image', $manifestAuthor)) {
+        $authorImageValue = $manifestAuthor['manifest.metadata.author.image'];
+      }
+      if (!is_null($authorImageValue)) {
+        $site->manifest->metadata->author->image = filter_var(
+          strval($authorImageValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->image = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->image,
+          ''
+        );
+      }
+
+      $authorNameValue = null;
+      if (array_key_exists('name', $author)) {
+        $authorNameValue = $author['name'];
+      }
+      else if (array_key_exists('manifest.metadata.author.name', $manifestAuthor)) {
+        $authorNameValue = $manifestAuthor['manifest.metadata.author.name'];
+      }
+      if (!is_null($authorNameValue)) {
+        $site->manifest->metadata->author->name = filter_var(
+          strval($authorNameValue),
+          FILTER_SANITIZE_STRING
+        );
+      }
+
+      $authorSocialLinkValue = null;
+      if (array_key_exists('socialLink', $author)) {
+        $authorSocialLinkValue = $author['socialLink'];
+      }
+      else if (array_key_exists('manifest.metadata.author.socialLink', $manifestAuthor)) {
+        $authorSocialLinkValue = $manifestAuthor['manifest.metadata.author.socialLink'];
+      }
+      if (!is_null($authorSocialLinkValue)) {
+        $site->manifest->metadata->author->socialLink = filter_var(
+          strval($authorSocialLinkValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->socialLink = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->socialLink,
+          ''
+        );
+      }
+
+      $pathautoInput = null;
+      $pathautoHasValue = false;
+      if (array_key_exists('pathauto', $seo)) {
+        $pathautoInput = $seo['pathauto'];
+        $pathautoHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.pathauto', $manifestSeo)) {
+        $pathautoInput = $manifestSeo['manifest.metadata.site.settings.pathauto'];
+        $pathautoHasValue = true;
+      }
+      if ($pathautoHasValue && !is_null($pathautoInput) && $pathautoInput !== '') {
+        $pathautoValue = filter_var(
+          $pathautoInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($pathautoValue)) {
+          $site->manifest->metadata->site->settings->pathauto = $pathautoValue;
+        }
+      }
+
+      $publishPagesOnInput = null;
+      $publishPagesOnHasValue = false;
+      if (array_key_exists('publishPagesOn', $seo)) {
+        $publishPagesOnInput = $seo['publishPagesOn'];
+        $publishPagesOnHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.publishPagesOn', $manifestSeo)) {
+        $publishPagesOnInput = $manifestSeo['manifest.metadata.site.settings.publishPagesOn'];
+        $publishPagesOnHasValue = true;
+      }
+      if ($publishPagesOnHasValue && !is_null($publishPagesOnInput) && $publishPagesOnInput !== '') {
+        $publishPagesOnValue = filter_var(
+          $publishPagesOnInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($publishPagesOnValue)) {
+          $site->manifest->metadata->site->settings->publishPagesOn = $publishPagesOnValue;
+        }
+      }
+
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->gitCommit('SEO settings updated');
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveAppearanceSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save appearance settings into site.json metadata.theme"
+   *   )
+   * )
+   */
+  public function saveAppearanceSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$site || !isset($site->manifest)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid site',
+          )
+        );
+      }
+      if (!$this->platformAllows($site, 'themeManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Theme settings are disabled for this site',
+          )
+        );
+      }
+
+      $siteParams = isset($this->params['site']) ? $this->params['site'] : null;
+      if (is_object($siteParams)) {
+        $siteParams = (array) $siteParams;
+      }
+      if (!$this->hasOnlyAllowedKeys($siteParams, array('name'))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid site payload',
+          )
+        );
+      }
+
+      $manifestParams = isset($this->params['manifest']) ? $this->params['manifest'] : null;
+      if (is_object($manifestParams)) {
+        $manifestParams = (array) $manifestParams;
+      }
+      if (!$this->hasOnlyAllowedKeys($manifestParams, array('theme'))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid manifest payload',
+          )
+        );
+      }
+
+      $themeParams = isset($manifestParams['theme']) ? $manifestParams['theme'] : null;
+      if (is_object($themeParams)) {
+        $themeParams = (array) $themeParams;
+      }
+      $regionFieldMap = array(
+        'manifest-metadata-theme-regions-header' => 'header',
+        'manifest-metadata-theme-regions-sidebarFirst' => 'sidebarFirst',
+        'manifest-metadata-theme-regions-sidebarSecond' => 'sidebarSecond',
+        'manifest-metadata-theme-regions-contentTop' => 'contentTop',
+        'manifest-metadata-theme-regions-contentBottom' => 'contentBottom',
+        'manifest-metadata-theme-regions-footerPrimary' => 'footerPrimary',
+        'manifest-metadata-theme-regions-footerSecondary' => 'footerSecondary',
+      );
+      $allowedThemeKeys = array_merge(
+        array(
+          'manifest-metadata-theme-element',
+          'manifest-metadata-theme-variables-image',
+          'manifest-metadata-theme-variables-imageAlt',
+          'manifest-metadata-theme-variables-imageLink',
+          'manifest-metadata-theme-variables-cssVariable',
+          'manifest-metadata-theme-variables-palette',
+          'manifest-metadata-theme-variables-icon',
+        ),
+        array_keys($regionFieldMap)
+      );
+      if (!$this->hasOnlyAllowedKeys($themeParams, $allowedThemeKeys)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid appearance payload',
+          )
+        );
+      }
+
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->theme) || !is_object($site->manifest->metadata->theme)) {
+        $site->manifest->metadata->theme = new stdClass();
+      }
+
+      if (array_key_exists('manifest-metadata-theme-element', $themeParams)) {
+        if (!is_string($themeParams['manifest-metadata-theme-element'])) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $themeElement = trim(filter_var($themeParams['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING));
+        if ($themeElement === '') {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $themes = $GLOBALS['HAXCMS']->getThemes();
+        $themeValue = null;
+        if (is_object($themes) && isset($themes->{$themeElement})) {
+          $themeValue = $themes->{$themeElement};
+        }
+        else if (is_array($themes) && isset($themes[$themeElement])) {
+          $themeValue = $themes[$themeElement];
+        }
+        if (is_null($themeValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $site->manifest->metadata->theme = $themeValue;
+      }
+
+      if (!isset($site->manifest->metadata->theme->variables) || !is_object($site->manifest->metadata->theme->variables)) {
+        $site->manifest->metadata->theme->variables = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->theme->regions) || !is_object($site->manifest->metadata->theme->regions)) {
+        $site->manifest->metadata->theme->regions = new stdClass();
+      }
+
+      if (array_key_exists('manifest-metadata-theme-variables-image', $themeParams)) {
+        $imageValue = $themeParams['manifest-metadata-theme-variables-image'];
+        if (!is_null($imageValue) && !is_string($imageValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid image value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->image = SanitizeContent::sanitizeURLValue(
+          filter_var($imageValue, FILTER_SANITIZE_URL),
+          ''
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-imageAlt', $themeParams)) {
+        $imageAltValue = $themeParams['manifest-metadata-theme-variables-imageAlt'];
+        if (!is_null($imageAltValue) && !is_string($imageAltValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid imageAlt value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+          $imageAltValue,
+          FILTER_SANITIZE_STRING
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-imageLink', $themeParams)) {
+        $imageLinkValue = $themeParams['manifest-metadata-theme-variables-imageLink'];
+        if (!is_null($imageLinkValue) && !is_string($imageLinkValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid imageLink value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->imageLink = SanitizeContent::sanitizeURLValue(
+          filter_var($imageLinkValue, FILTER_SANITIZE_URL),
+          ''
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-cssVariable', $themeParams)) {
+        $cssVariable = $this->normalizeAppearanceCssVariable(
+          $themeParams['manifest-metadata-theme-variables-cssVariable']
+        );
+        if ($cssVariable === false) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid cssVariable value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->cssVariable =
+          '--simple-colors-default-theme-' . $cssVariable . '-7';
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-palette', $themeParams)) {
+        $paletteValue = $themeParams['manifest-metadata-theme-variables-palette'];
+        if (!is_null($paletteValue) && !is_string($paletteValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid palette value',
+            )
+          );
+        }
+        if (is_null($paletteValue)) {
+          if (isset($site->manifest->metadata->theme->variables->palette)) {
+            unset($site->manifest->metadata->theme->variables->palette);
+          }
+        }
+        else {
+          $palette = filter_var($paletteValue, FILTER_SANITIZE_STRING);
+          if (!is_string($palette)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid palette value',
+              )
+            );
+          }
+          $palette = strtolower(trim($palette));
+          if ($palette === '') {
+            if (isset($site->manifest->metadata->theme->variables->palette)) {
+              unset($site->manifest->metadata->theme->variables->palette);
+            }
+          }
+          else if (preg_match('/^[a-z0-9-]+$/', $palette) === 1) {
+            $site->manifest->metadata->theme->variables->palette = $palette;
+          }
+          else {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid palette value',
+              )
+            );
+          }
+        }
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-icon', $themeParams)) {
+        $iconValue = $themeParams['manifest-metadata-theme-variables-icon'];
+        if (!is_null($iconValue) && !is_string($iconValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid icon value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->icon = filter_var(
+          $iconValue,
+          FILTER_SANITIZE_STRING
+        );
+      }
+
+      foreach ($regionFieldMap as $field => $regionName) {
+        if (array_key_exists($field, $themeParams)) {
+          $cleanRegionIds = $this->sanitizeAppearanceRegionIds($themeParams[$field]);
+          if ($cleanRegionIds === false) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid region value',
+              )
+            );
+          }
+          $site->manifest->metadata->theme->regions->{$regionName} = $cleanRegionIds;
+        }
+      }
+
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->gitCommit('Appearance settings updated');
+      $site->rebuildManagedFiles();
+      $site->updateAlternateFormats();
+      $site->gitCommit('Managed files updated');
+
+      return array(
+        'status' => 200,
+        'data' => array(
+          'saved' => true,
+          'appearance' => array(
+            'theme' => true,
+          )
+        )
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
    *    path="/savePlatformSettings",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
@@ -632,7 +1219,7 @@ class Operations {
    *    ),
    *    @OA\Response(
    *        response="200",
-   *        description="Save platform settings into site.json metadata.platform"
+   *        description=\"Save platform feature settings into site.json metadata.platform.features\"
    *   )
    * )
    */
@@ -656,15 +1243,6 @@ class Operations {
       }
 
       // Validate payload shape
-      $allowedAudiences = array('novice', 'expert');
-      if (!isset($platform->audience) || !in_array($platform->audience, $allowedAudiences)) {
-        return array(
-          '__failed' => array(
-            'status' => 400,
-            'message' => 'invalid audience',
-          )
-        );
-      }
 
       $validFeatureKeys = array(
         'addPage',
@@ -748,6 +1326,166 @@ class Operations {
         }
       }
 
+      // Write features only. Audience and allowed blocks are managed by their
+      // dedicated endpoints (saveEditorSettings / saveAllowedBlocks).
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+      }
+      $site->manifest->metadata->platform->features = new stdClass();
+      foreach ($validFeatureKeys as $i => $k) {
+        if (isset($normalizedFeatures[$k])) {
+          $site->manifest->metadata->platform->features->{$k} = $normalizedFeatures[$k];
+        }
+      }
+      $site->manifest->metadata->site->updated = time();
+
+      // don't reorganize the structure
+      $site->manifest->save(false);
+      $site->gitCommit('Platform settings updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveEditorSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save editor settings into site.json metadata.platform.audience"
+   *   )
+   * )
+   */
+  public function saveEditorSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
+      if (!isset($platform->audience) || !is_string($platform->audience)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid audience',
+          )
+        );
+      }
+      $audience = strtolower(trim($platform->audience));
+      $allowedAudiences = array('novice', 'expert');
+      if (!in_array($audience, $allowedAudiences)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid audience',
+          )
+        );
+      }
+
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+      }
+
+      $site->manifest->metadata->platform->audience = $audience;
+      $site->manifest->metadata->site->updated = time();
+
+      $site->manifest->save(false);
+      $site->gitCommit('Editor settings updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveAllowedBlocks",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save allowed blocks into site.json metadata.platform.allowedBlocks"
+   *   )
+   * )
+   */
+  public function saveAllowedBlocks() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      // load the site from name
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      // platform can arrive as an array depending on request parsing
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
       if (!isset($platform->allowedBlocks) || !is_array($platform->allowedBlocks)) {
         return array(
           '__failed' => array(
@@ -758,7 +1496,6 @@ class Operations {
       }
 
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
-
       $cleanAllowedBlocks = array();
       foreach ($platform->allowedBlocks as $tag) {
         if (!is_string($tag)) {
@@ -770,14 +1507,24 @@ class Operations {
           );
         }
 
+        $cleanTag = trim($tag);
+        if ($cleanTag === '') {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid tag name in allowedBlocks',
+            )
+          );
+        }
+
         // Allow basic HTML primitives (no dash) OR web components found in wc-registry
         $isHtmlTag = false;
-        if (preg_match('/^[a-z][a-z0-9]*$/', $tag) && strpos($tag, '-') === false) {
+        if (preg_match('/^[a-z][a-z0-9]*$/', $cleanTag) && strpos($cleanTag, '-') === false) {
           $isHtmlTag = true;
         }
 
         $isRegisteredWc = false;
-        if (!$isHtmlTag && $wcMap && isset($wcMap->{$tag})) {
+        if (!$isHtmlTag && $wcMap && isset($wcMap->{$cleanTag})) {
           $isRegisteredWc = true;
         }
 
@@ -790,26 +1537,22 @@ class Operations {
           );
         }
 
-        $cleanAllowedBlocks[] = $tag;
+        $cleanAllowedBlocks[] = $cleanTag;
       }
       $cleanAllowedBlocks = array_values(array_unique($cleanAllowedBlocks));
       sort($cleanAllowedBlocks);
 
-      // this ensures that we are ignoring any platform settings listed previously
-      // and instead defer to what came across in the save
-      // @note this means the front-end needs to send ALL the settings to work
-      // which is why our earlier checks verify that ALL the pieces are there
-      // if we shifted approach at a future point in time to be saving pieces
-      // of this 1 at a time then this approach would need modified but should
-      // establish a reasonable pattern to be saving PER metadata key group
-      $site->manifest->metadata->platform = new stdClass();
-      $site->manifest->metadata->platform->audience = $platform->audience;
-
-      $site->manifest->metadata->platform->features = new stdClass();
-      foreach ($validFeatureKeys as $i => $k) {
-        if (isset($normalizedFeatures[$k])) {
-          $site->manifest->metadata->platform->features->{$k} = $normalizedFeatures[$k];
-        }
+      if (!isset($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+        $site->manifest->metadata->platform->audience = 'expert';
+        $site->manifest->metadata->platform->features = new stdClass();
+        $site->manifest->metadata->platform->allowedBlocks = array();
       }
 
       $site->manifest->metadata->platform->allowedBlocks = $cleanAllowedBlocks;
@@ -817,7 +1560,7 @@ class Operations {
 
       // don't reorganize the structure
       $site->manifest->save(false);
-      $site->gitCommit('Platform settings updated');
+      $site->gitCommit('Allowed blocks updated');
 
       return $site->manifest;
     }

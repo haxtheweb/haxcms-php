@@ -540,6 +540,7 @@ class HAXCMS
             "manifest-metadata-theme-variables-imageLink": null,
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
+            "manifest-metadata-theme-variables-palette": null,
             "manifest-metadata-theme-variables-icon": null,
             "manifest-metadata-theme-styleGuide": null,
             "regions": {
@@ -1545,9 +1546,13 @@ class HAXCMS
         $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
         $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
         $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
+        $settings->saveAppearanceSettingsPath = $path . 'saveAppearanceSettings?site_token=' . $siteToken;
         $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
         $settings->saveNodeDetailsPath = $path . 'saveNodeDetails?site_token=' . $siteToken;
         $settings->savePlatformSettingsPath = $path . 'savePlatformSettings?site_token=' . $siteToken;
+        $settings->saveAllowedBlocksPath = $path . 'saveAllowedBlocks?site_token=' . $siteToken;
+        $settings->saveEditorSettingsPath = $path . 'saveEditorSettings?site_token=' . $siteToken;
+        $settings->saveSeoSettingsPath = $path . 'saveSeoSettings?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
