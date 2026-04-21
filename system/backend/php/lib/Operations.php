@@ -1497,12 +1497,12 @@ class Operations {
 
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
       $cleanAllowedBlocks = array();
-      foreach ($platform->allowedBlocks as $tag) {
+      foreach ($platform->allowedBlocks as $index => $tag) {
         if (!is_string($tag)) {
           return array(
             '__failed' => array(
               'status' => 400,
-              'message' => 'invalid allowedBlocks entry',
+              'message' => 'invalid allowedBlocks entry at index ' . $index,
             )
           );
         }
@@ -1512,7 +1512,7 @@ class Operations {
           return array(
             '__failed' => array(
               'status' => 400,
-              'message' => 'invalid tag name in allowedBlocks',
+              'message' => 'invalid tag name in allowedBlocks at index ' . $index . ' (empty value)',
             )
           );
         }
@@ -1532,7 +1532,7 @@ class Operations {
           return array(
             '__failed' => array(
               'status' => 400,
-              'message' => 'invalid tag name in allowedBlocks',
+              'message' => 'invalid tag name in allowedBlocks at index ' . $index . ': ' . $cleanTag,
             )
           );
         }
