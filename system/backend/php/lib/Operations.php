@@ -1531,7 +1531,7 @@ class Operations {
         $platform = json_decode(json_encode($platform));
       }
 
-      if (!isset($platform->allowedBlocks) || !is_array($platform->allowedBlocks)) {
+      if (!property_exists($platform, 'allowedBlocks')) {
         return array(
           '__failed' => array(
             'status' => 400,
@@ -1539,53 +1539,63 @@ class Operations {
           )
         );
       }
-
-      $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
-      $cleanAllowedBlocks = array();
-      foreach ($platform->allowedBlocks as $index => $tag) {
-        if (!is_string($tag)) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid allowedBlocks entry at index ' . $index,
-            )
-          );
-        }
-
-        $cleanTag = trim($tag);
-        if ($cleanTag === '') {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid tag name in allowedBlocks at index ' . $index . ' (empty value)',
-            )
-          );
-        }
-
-        // Allow basic HTML primitives (no dash) OR web components found in wc-registry
-        $isHtmlTag = false;
-        if (preg_match('/^[a-z][a-z0-9]*$/', $cleanTag) && strpos($cleanTag, '-') === false) {
-          $isHtmlTag = true;
-        }
-
-        $isRegisteredWc = false;
-        if (!$isHtmlTag && $wcMap && isset($wcMap->{$cleanTag})) {
-          $isRegisteredWc = true;
-        }
-
-        if (!$isHtmlTag && !$isRegisteredWc) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid tag name in allowedBlocks at index ' . $index . ': ' . $cleanTag,
-            )
-          );
-        }
-
-        $cleanAllowedBlocks[] = $cleanTag;
+      if (!is_null($platform->allowedBlocks) && !is_array($platform->allowedBlocks)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid allowedBlocks',
+          )
+        );
       }
-      $cleanAllowedBlocks = array_values(array_unique($cleanAllowedBlocks));
-      sort($cleanAllowedBlocks);
+      $cleanAllowedBlocks = null;
+      if (is_array($platform->allowedBlocks)) {
+        $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
+        $cleanAllowedBlocks = array();
+        foreach ($platform->allowedBlocks as $index => $tag) {
+          if (!is_string($tag)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid allowedBlocks entry at index ' . $index,
+              )
+            );
+          }
+
+          $cleanTag = trim($tag);
+          if ($cleanTag === '') {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid tag name in allowedBlocks at index ' . $index . ' (empty value)',
+              )
+            );
+          }
+
+          // Allow basic HTML primitives (no dash) OR web components found in wc-registry
+          $isHtmlTag = false;
+          if (preg_match('/^[a-z][a-z0-9]*$/', $cleanTag) && strpos($cleanTag, '-') === false) {
+            $isHtmlTag = true;
+          }
+
+          $isRegisteredWc = false;
+          if (!$isHtmlTag && $wcMap && isset($wcMap->{$cleanTag})) {
+            $isRegisteredWc = true;
+          }
+
+          if (!$isHtmlTag && !$isRegisteredWc) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid tag name in allowedBlocks at index ' . $index . ': ' . $cleanTag,
+              )
+            );
+          }
+
+          $cleanAllowedBlocks[] = $cleanTag;
+        }
+        $cleanAllowedBlocks = array_values(array_unique($cleanAllowedBlocks));
+        sort($cleanAllowedBlocks);
+      }
 
       if (!isset($site->manifest->metadata)) {
         $site->manifest->metadata = new stdClass();
