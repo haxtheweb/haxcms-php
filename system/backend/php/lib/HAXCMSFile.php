@@ -73,6 +73,25 @@ class HAXCMSFile
         return strtolower(preg_replace('/[^a-z0-9]/i', '', $part));
     }
 
+    private function normalizeFilenameExtensionCasing($name)
+    {
+        if (!is_string($name) || $name === '') {
+            return '';
+        }
+        $directory = pathinfo($name, PATHINFO_DIRNAME);
+        $basename = pathinfo($name, PATHINFO_BASENAME);
+        $extension = pathinfo($basename, PATHINFO_EXTENSION);
+        if ($extension === '') {
+            return $name;
+        }
+        $filename = pathinfo($basename, PATHINFO_FILENAME);
+        $normalizedName = $filename . '.' . strtolower($extension);
+        if ($directory !== '' && $directory !== '.') {
+            return $directory . '/' . $normalizedName;
+        }
+        return $normalizedName;
+    }
+
     private function stripExecutableExtensionPatterns($name)
     {
         $directory = pathinfo($name, PATHINFO_DIRNAME);
@@ -235,7 +254,9 @@ class HAXCMSFile
         $size = false;
         $status = 0;
         $return = array();
-        $name = $this->stripExecutableExtensionPatterns($upload['name']);
+        $name = $this->normalizeFilenameExtensionCasing(
+            $this->stripExecutableExtensionPatterns($upload['name'])
+        );
         $validationError = '';
         $isBulkImport = isset($upload['bulk-import']);
         $isUploadSourceValid = false;
@@ -294,7 +315,7 @@ class HAXCMSFile
             // account for name possibly matching on file system already
             $actual_name = pathinfo($name, PATHINFO_FILENAME);
             $original_name = $actual_name;
-            $extension = pathinfo($name, PATHINFO_EXTENSION);
+            $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
             $i = 1;
             while (file_exists($path . $actual_name . "." . $extension)) {           
                 $actual_name = (string)$original_name . $i;

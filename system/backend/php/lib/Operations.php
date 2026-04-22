@@ -84,13 +84,34 @@ class Operations {
    * @return bool Whether the capability is allowed
    */
   private function platformAllows($site, $capability) {
-    // Check if platform configuration exists
-    if (isset($site->manifest->metadata->platform) && 
-        isset($site->manifest->metadata->platform->{$capability})) {
-      // If explicitly set to false, deny
-      return $site->manifest->metadata->platform->{$capability} !== false;
+    if (
+      !isset($site->manifest->metadata->platform) ||
+      (!is_object($site->manifest->metadata->platform) && !is_array($site->manifest->metadata->platform))
+    ) {
+      return true;
     }
-    // Default to true if not specified
+    $platform = $site->manifest->metadata->platform;
+    $keyAliases = array(
+      'uploadMedia' => array('uploadMedia', 'upload'),
+      'onlineMedia' => array('onlineMedia', 'onlineSearch'),
+      'deletePage' => array('deletePage', 'delete'),
+      'delete' => array('deletePage', 'delete'),
+      'siteManifest' => array('siteManifest', 'manifest'),
+      'manifest' => array('siteManifest', 'manifest'),
+    );
+    $keys = isset($keyAliases[$capability]) ? $keyAliases[$capability] : array($capability);
+    $sources = array();
+    if (isset($platform->features) && (is_object($platform->features) || is_array($platform->features))) {
+      $sources[] = (array) $platform->features;
+    }
+    $sources[] = (array) $platform;
+    foreach ($sources as $source) {
+      foreach ($keys as $key) {
+        if (array_key_exists($key, $source) && is_bool($source[$key])) {
+          return $source[$key] !== false;
+        }
+      }
+    }
     return true;
   }
   /**
@@ -373,7 +394,7 @@ class Operations {
       }
       
       // Check platform configuration
-      if (!$this->platformAllows($site, 'manifest')) {
+      if (!$this->platformAllows($site, 'siteManifest')) {
         return array(
           '__failed' => array(
             'status' => 403,
@@ -726,6 +747,14 @@ class Operations {
     }
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'seoManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'SEO settings are disabled for this site',
+          )
+        );
+      }
       if (!isset($site->manifest->metadata)) {
         $site->manifest->metadata = new stdClass();
       }
@@ -1389,6 +1418,14 @@ class Operations {
     }
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'siteManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Editor settings are disabled for this site',
+          )
+        );
+      }
       if (!isset($this->rawParams['platform'])) {
         return array(
           '__failed' => array(
@@ -1471,6 +1508,14 @@ class Operations {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'siteManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Allowed blocks settings are disabled for this site',
+          )
+        );
+      }
       if (!isset($this->rawParams['platform'])) {
         return array(
           '__failed' => array(
@@ -2148,6 +2193,14 @@ class Operations {
             // verify this pages does not exist; this is only possible if we parse multiple page-break
             // a capability that is not supported currently beyond experiments
             if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
+              if (!$this->platformAllows($site, 'addPage')) {
+                return array(
+                  '__failed' => array(
+                    'status' => 403,
+                    'message' => 'Adding pages is disabled for this site',
+                  )
+                );
+              }
               // generate a new item based on the site
               $nodeParams = array(
                 "node" => array(
@@ -2452,7 +2505,7 @@ class Operations {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
 
       // Check platform configuration
-      if (!$this->platformAllows($site, 'delete')) {
+      if (!$this->platformAllows($site, 'deletePage')) {
         return array(
           '__failed' => array(
             'status' => 403,
@@ -2553,6 +2606,26 @@ class Operations {
         );
       }
       $operation = isset($this->params['node']['details']['operation']) ? $this->params['node']['details']['operation'] : null;
+      $pageDetailOperations = array(
+        'setTitle',
+        'setDescription',
+        'setTags',
+        'setIcon',
+        'setMedia',
+        'setImage',
+        'setRelatedItems',
+        'setLocked',
+        'setPublished',
+        'setHideInMenu',
+      );
+      if (in_array($operation, $pageDetailOperations, true) && !$this->platformAllows($site, 'pageBreak')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Page details editing is disabled for this site',
+          )
+        );
+      }
       $page = $site->loadNode($this->params['node']['id']);
       if (!$page) {
         return array(
@@ -3739,6 +3812,14 @@ class Operations {
     }
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name']) && isset($_FILES['file-upload'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'uploadMedia')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Uploading media is disabled for this site',
+          )
+        );
+      }
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page

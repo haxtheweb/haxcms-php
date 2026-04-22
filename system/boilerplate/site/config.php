@@ -431,20 +431,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
         else {
           $wcPath = $base . 'wc-registry.json';
         }
-        // support private IP space by avoiding remote fetches while
-        // still allowing local wc-registry.json reads
-        $isRemoteWcPath = (preg_match('/^https?:\\/\\//', $wcPath) === 1);
-        if (!$isRemoteWcPath || !defined('IAM_PRIVATE_ADDRESS_SPACE')) {
-          $wcRegistryRaw = @file_get_contents($wcPath);
-          if ($wcRegistryRaw !== false) {
-            $decodedWcMap = json_decode($wcRegistryRaw);
-            if (is_object($decodedWcMap)) {
-              $wcMap = $decodedWcMap;
-            }
-          }
-        }
-        if (!is_object($wcMap)) {
-          $wcMap = new stdClass();
+        // support private IP space which will block this ever going through
+        if (!defined('IAM_PRIVATE_ADDRESS_SPACE')) {
+          $wcMap = json_decode(file_get_contents($wcPath));
         }
       }
       return $wcMap;
