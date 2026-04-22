@@ -338,11 +338,12 @@ class HAXCMS
                 }
             }
             else {
+                $sanitizedValue = is_bool($value) ? $value : filter_var($value);
                 if (is_array($values)) {
-                    $values[$key] = filter_var($value);
+                    $values[$key] = $sanitizedValue;
                 }
                 else if (is_object($values)) {
-                    $values->{$key} = filter_var($value);
+                    $values->{$key} = $sanitizedValue;
                 }
             }
         }
