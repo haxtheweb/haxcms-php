@@ -4275,10 +4275,6 @@ class Operations {
    *                     type="object"
    *                 ),
    *                 @OA\Property(
-   *                     property="theme",
-   *                     type="object"
-   *                 ),
-   *                 @OA\Property(
    *                     property="token",
    *                     type="string"
    *                 ),
@@ -4287,16 +4283,13 @@ class Operations {
    *                    "site": {
    *                      "name": "mynewsite",
    *                      "description": "The description",
-   *                      "theme": "theme name"
+   *                      "theme": "learn-two-theme"
    *                    },
    *                    "build": {
    *                      "type": "course",
-   *                      "structure": "docx import",
+   *                      "structure": "docx import"
    *                    },
-   *                    "theme": {
-   *                      "color": "blue",
-   *                      "icon": "icons:save"
-   *                    }
+   *                    "token": "request-token"
    *                 }
    *             )
    *         )
@@ -4467,9 +4460,6 @@ class Operations {
         }
       }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
-      $incomingTheme = (isset($this->params['theme']) && is_array($this->params['theme']))
-        ? $this->params['theme']
-        : array();
       if (
         $useTrustedSkeleton &&
         isset($trustedSkeleton['site']) &&
@@ -4486,6 +4476,9 @@ class Operations {
       else {
         $theme = HAXCMS_DEFAULT_THEME;
       }
+      if (is_string($theme)) {
+        $theme = strtolower(trim($theme));
+      }
       if ($useTrustedSkeleton) {
         $trustedTheme = $this->getTrustedSkeletonTheme($trustedSkeleton);
         if (is_array($trustedTheme)) {
@@ -4494,10 +4487,23 @@ class Operations {
       }
       // look for a match so we can set the correct data
       if (!is_object($schema->metadata->theme) || count((array)$schema->metadata->theme) === 0) {
-        foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $themeObj) {
-            if ($theme == $key) {
-                $schema->metadata->theme = $themeObj;
-            }
+        $themes = $GLOBALS['HAXCMS']->getThemes();
+        if (is_object($themes)) {
+          $themes = (array)$themes;
+        }
+        if (is_array($themes) && isset($themes[$theme])) {
+          $schema->metadata->theme = is_object($themes[$theme])
+            ? json_decode(json_encode($themes[$theme]))
+            : $this->toObject($themes[$theme]);
+        }
+        else {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Invalid theme supplied for site creation',
+              'theme' => $theme,
+            )
+          );
         }
       }
       if (!is_object($schema->metadata->theme)) {
@@ -4519,11 +4525,8 @@ class Operations {
       ) {
           $schema->description = strip_tags($trustedSkeleton['site']['description']);
       }
-      // background image / banner
-      if (isset($incomingTheme['image']) && $incomingTheme['image'] != '' && $incomingTheme['image'] != null) {
-        $schema->metadata->site->logo = $incomingTheme['image'];
-      }
-      else if (
+      // background image / banner (request does not control this)
+      if (
         $useTrustedSkeleton &&
         isset($trustedSkeleton['site']) &&
         is_array($trustedSkeleton['site']) &&
@@ -4537,9 +4540,15 @@ class Operations {
         $schema->metadata->site->logo = 'assets/banner.jpg';
       }
       // icon to express the concept / visually identify site
-      if (isset($incomingTheme['icon']) && $incomingTheme['icon'] != '' && $incomingTheme['icon'] != null) {
-          $schema->metadata->theme->variables->icon = $incomingTheme['icon'];
+      $icon = 'icons:record-voice-over';
+      if (
+        isset($schema->metadata->theme->variables->icon) &&
+        is_string($schema->metadata->theme->variables->icon) &&
+        $schema->metadata->theme->variables->icon !== ''
+      ) {
+          $icon = $schema->metadata->theme->variables->icon;
       }
+      $schema->metadata->theme->variables->icon = $icon;
       // slightly style the site based on css vars and hexcode
       if (
         isset($schema->metadata->theme->variables->hexCode) &&
@@ -4548,10 +4557,7 @@ class Operations {
       ) {
           $hex = $schema->metadata->theme->variables->hexCode;
       } else {
-          $hex = '#aeff00';
-      }
-      if (isset($incomingTheme['hexCode']) && $incomingTheme['hexCode'] != '' && $incomingTheme['hexCode'] != null) {
-          $hex = $incomingTheme['hexCode'];
+          $hex = HAXCMS_FALLBACK_HEX;
       }
       $schema->metadata->theme->variables->hexCode = $hex;
       if (
@@ -4562,9 +4568,6 @@ class Operations {
           $cssvar = $schema->metadata->theme->variables->cssVariable;
       } else {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
-      }
-      if (isset($incomingTheme['cssVariable']) && $incomingTheme['cssVariable'] != '' && $incomingTheme['cssVariable'] != null) {
-          $cssvar = $incomingTheme['cssVariable'];
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
       $trustedSettings = $useTrustedSkeleton
