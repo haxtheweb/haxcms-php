@@ -37,7 +37,7 @@ HAX seeks to be the smallest possible back-end CMS to make HAX work and be able 
 - Contact via issue queue if interested in this solution and collaborating to improve it's deployment methodology
 
 # Requirements (PHP)
-- Supports PHP 7.4+
+- Supports PHP 8.3+
 - Requires `zip`, `gd`, and `xml` modules be installed
 - Apache 2.4
 # Requirements (node, still in development)

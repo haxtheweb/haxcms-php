@@ -2240,11 +2240,12 @@ class Operations {
             }
             // now this should exist if it didn't a minute ago
             $page = $site->loadNode($data["attributes"]["item-id"]);
+            $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($data['content']);
             // @todo make sure that we stripped off page-break
             // and now save WITHOUT the top level page-break
             // to avoid duplication issues
             $bytes = $page->writeLocation(
-              SanitizeContent::sanitizeHTMLForStorage($data['content']),
+              $sanitizedContent,
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -2466,6 +2467,7 @@ class Operations {
                   }
                 }
                 $site->updateNode($page);
+                $site->writePageAlternateFormats($page, $sanitizedContent);
                 $site->gitCommit(
                   'Page updated: ' . $page->title . ' (' . $page->id . ')'
                 );

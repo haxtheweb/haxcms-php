@@ -30,13 +30,13 @@ getuuid(){
 sudo apt-get -y install apache2
 # using apt-get to install the main packages
 sudo apt-get install -y sendmail uuid uuid-runtime curl policycoreutils unzip patch git nano gcc make autoconf libc-dev pkg-config
-# install php 8.3
-sudo apt-get install -y php8.3-fpm php8.3-zip php8.3-gd php8.3-xml php8.3-mbstring php8.3-yaml
+# install php 8.5
+sudo apt-get install -y php8.5-fpm php8.5-zip php8.5-gd php8.5-xml php8.5-mbstring php8.5-yaml
 # optional for development
 # sudo apt-get install -y composer nodejs
 sudo a2enmod proxy_fcgi
-sudo a2enconf php8.3-fpm
-sudo a2dismod php8.3
+sudo a2enconf php8.5-fpm
+sudo a2dismod php8.5
 sudo a2dismod mpm_prefork
 sudo a2enmod mpm_event
 # enable protocol support
@@ -49,17 +49,17 @@ sudo pecl channel-update pecl.php.net
 # install uploadprogress
 sudo pecl install uploadprogress
 # Adding uploadprogress to PHP conf files
-sudo touch /etc/php/8.3/mods-available/uploadprogress.ini
-sudo echo extension=uploadprogress.so > /etc/php/8.3/mods-available/uploadprogress.ini
+sudo touch /etc/php/8.5/mods-available/uploadprogress.ini
+sudo echo extension=uploadprogress.so > /etc/php/8.5/mods-available/uploadprogress.ini
 
 # Sanity Logs
 sudo mkdir /var/log/php-fpm/
-sudo echo slowlog = /var/log/php-fpm/www-slow.log >> /etc/php/8.3/fpm/pool.d/www.conf
-sudo echo request_slowlog_timeout = 2s >> /etc/php/8.3/fpm/pool.d/www.conf
-sudo echo php_admin_value[error_log] = /var/log/php-fpm/www-error.log >> /etc/php/8.3/fpm/pool.d/www.conf
+sudo echo slowlog = /var/log/php-fpm/www-slow.log >> /etc/php/8.5/fpm/pool.d/www.conf
+sudo echo request_slowlog_timeout = 2s >> /etc/php/8.5/fpm/pool.d/www.conf
+sudo echo php_admin_value[error_log] = /var/log/php-fpm/www-error.log >> /etc/php/8.5/fpm/pool.d/www.conf
 
 # restart fpm so we have access to these things
-sudo service php8.3-fpm restart
+sudo service php8.5-fpm restart
 
 # set httpd_can_sendmail so mails go out
 sudo setsebool -P httpd_can_sendmail on

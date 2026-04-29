@@ -1272,6 +1272,205 @@ class HAXCMSSite
       return '';
     }
     /**
+     * Generate per-page alternate format files beside index.html.
+     * Best effort only: failures must never break page save responses.
+     */
+    public function writePageAlternateFormats($page, $htmlContent = '')
+    {
+      if (!isset($page) || !isset($page->location) || $page->location == '') {
+        return false;
+      }
+      $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      $content = '';
+      if (is_string($htmlContent) && $htmlContent != '') {
+        $content = $htmlContent;
+      }
+      else {
+        $content = $this->getPageContent($page);
+      }
+      if (!is_string($content) || $content == '') {
+        $content = '<p></p>';
+      }
+      // markdown
+      try {
+        $markdownLocation = $this->getPageAlternateLocation($page->location, 'md');
+        @file_put_contents($siteDirectory . $markdownLocation, $this->htmlToMarkdown($content));
+      }
+      catch (Exception $e) {}
+      // json
+      try {
+        $jsonPayload = $this->getPageAlternatePayload($page, $content, 'json');
+        @file_put_contents(
+          $siteDirectory . $jsonPayload['location'],
+          json_encode($jsonPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+      }
+      catch (Exception $e) {}
+      // yaml
+      try {
+        $yamlPayload = $this->getPageAlternatePayload($page, $content, 'yaml');
+        @file_put_contents(
+          $siteDirectory . $yamlPayload['location'],
+          $this->encodePageAlternateYaml($yamlPayload)
+        );
+      }
+      catch (Exception $e) {}
+      // xml
+      try {
+        $xmlPayload = $this->getPageAlternatePayload($page, $content, 'xml');
+        @file_put_contents(
+          $siteDirectory . $xmlPayload['location'],
+          $this->getPageAlternateXml($xmlPayload)
+        );
+      }
+      catch (Exception $e) {}
+      return true;
+    }
+    /**
+     * Build structured alternate payload with extension-specific location.
+     */
+    private function getPageAlternatePayload($page, $content, $extension = 'json')
+    {
+      $payload = json_decode(json_encode($page), true);
+      if (!is_array($payload)) {
+        $payload = array();
+      }
+      $payload['location'] = $this->getPageAlternateLocation($page->location, $extension);
+      $payload['content'] = $content;
+      return $payload;
+    }
+    /**
+     * Derive sidecar file location from page location.
+     */
+    private function getPageAlternateLocation($location = '', $extension = 'json')
+    {
+      if (!is_string($location) || $location == '') {
+        return '';
+      }
+      $normalizedLocation = str_replace('\\', '/', $location);
+      $cleanExtension = strtolower(ltrim((string) $extension, '.'));
+      if (preg_match('/\\.html?$/i', $normalizedLocation)) {
+        return preg_replace('/\\.html?$/i', '.' . $cleanExtension, $normalizedLocation);
+      }
+      return $normalizedLocation . '.' . $cleanExtension;
+    }
+    /**
+     * HTML to markdown conversion with tolerant handling of custom tags.
+     */
+    private function htmlToMarkdown($html = '')
+    {
+      if (!is_string($html) || trim($html) == '') {
+        return '';
+      }
+      $markdown = str_replace("\r\n", "\n", $html);
+      $markdown = preg_replace_callback('/<pre[^>]*>\\s*<code[^>]*>([\\s\\S]*?)<\\/code>\\s*<\\/pre>/i', function ($matches) {
+        return "\n```\n" . trim($matches[1], "\n") . "\n```\n";
+      }, $markdown);
+      $markdown = preg_replace('/<img[^>]*src=["\']([^"\']+)["\'][^>]*alt=["\']([^"\']*)["\'][^>]*>/i', '![$2]($1)', $markdown);
+      $markdown = preg_replace('/<img[^>]*alt=["\']([^"\']*)["\'][^>]*src=["\']([^"\']+)["\'][^>]*>/i', '![$1]($2)', $markdown);
+      $markdown = preg_replace('/<img[^>]*src=["\']([^"\']+)["\'][^>]*>/i', '![]($1)', $markdown);
+      $markdown = preg_replace('/<a[^>]*href=["\']([^"\']+)["\'][^>]*>([\\s\\S]*?)<\\/a>/i', '[$2]($1)', $markdown);
+      $markdown = preg_replace('/<(strong|b)[^>]*>([\\s\\S]*?)<\\/\\1>/i', '**$2**', $markdown);
+      $markdown = preg_replace('/<(em|i)[^>]*>([\\s\\S]*?)<\\/\\1>/i', '*$2*', $markdown);
+      $markdown = preg_replace('/<code[^>]*>([\\s\\S]*?)<\\/code>/i', '`$1`', $markdown);
+      $markdown = preg_replace('/<br\\s*\\/?\\s*>/i', "\n", $markdown);
+      for ($level = 6; $level > 0; $level--) {
+        $markdown = preg_replace(
+          '/<h' . $level . '[^>]*>([\\s\\S]*?)<\\/h' . $level . '>/i',
+          "\n" . str_repeat('#', $level) . " $1\n\n",
+          $markdown
+        );
+      }
+      $markdown = preg_replace_callback('/<li[^>]*>([\\s\\S]*?)<\\/li>/i', function ($matches) {
+        return "\n- " . trim($matches[1]);
+      }, $markdown);
+      $markdown = preg_replace('/<\\/?(ul|ol)[^>]*>/i', "\n", $markdown);
+      $markdown = preg_replace('/<p[^>]*>([\\s\\S]*?)<\\/p>/i', "\n$1\n\n", $markdown);
+      $markdown = preg_replace('/<\\/?(div|section|article|main)[^>]*>/i', "\n", $markdown);
+      $markdown = preg_replace('/<\\/?span[^>]*>/i', '', $markdown);
+      $markdown = preg_replace('/[ \t]+\n/', "\n", $markdown);
+      $markdown = preg_replace('/\n{3,}/', "\n\n", $markdown);
+      return trim($markdown);
+    }
+    /**
+     * Encode payload as YAML. Falls back to JSON (valid YAML 1.2) if ext-yaml is unavailable.
+     */
+    private function encodePageAlternateYaml($payload)
+    {
+      if (function_exists('yaml_emit')) {
+        $yamlOutput = @yaml_emit($payload);
+        if (is_string($yamlOutput) && $yamlOutput != '') {
+          return $yamlOutput;
+        }
+      }
+      return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+    /**
+     * Build XML output from structured payload.
+     */
+    private function getPageAlternateXml($payload)
+    {
+      $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<item>";
+      foreach ($payload as $key => $value) {
+        $xml .= $this->getPageAlternateXmlNode($key, $value);
+      }
+      $xml .= "\n</item>\n";
+      return $xml;
+    }
+    /**
+     * XML recursive serializer.
+     */
+    private function getPageAlternateXmlNode($key, $value)
+    {
+      $tagName = $this->getSafeXmlTagName($key);
+      if ($key === 'content') {
+        return "\n<" . $tagName . "><![CDATA[" . $this->getSafeXmlCdata($value) . "]]></" . $tagName . ">";
+      }
+      if (is_object($value)) {
+        $value = get_object_vars($value);
+      }
+      if (is_array($value)) {
+        $output = '';
+        $isAssoc = array_keys($value) !== range(0, count($value) - 1);
+        if ($isAssoc) {
+          foreach ($value as $childKey => $childValue) {
+            $output .= $this->getPageAlternateXmlNode($childKey, $childValue);
+          }
+        }
+        else {
+          foreach ($value as $childValue) {
+            $output .= $this->getPageAlternateXmlNode('item', $childValue);
+          }
+        }
+        return "\n<" . $tagName . ">" . $output . "\n</" . $tagName . ">";
+      }
+      if (is_null($value)) {
+        return "\n<" . $tagName . "></" . $tagName . ">";
+      }
+      return "\n<" . $tagName . ">" . SanitizeContent::escapeXMLValue((string) $value) . "</" . $tagName . ">";
+    }
+    /**
+     * Ensure generated XML tags are valid.
+     */
+    private function getSafeXmlTagName($name = '')
+    {
+      $tagName = preg_replace('/[^A-Za-z0-9_-]/', '-', (string) $name);
+      if ($tagName == '') {
+        $tagName = 'item';
+      }
+      if (preg_match('/^[0-9]/', $tagName)) {
+        $tagName = 'item-' . $tagName;
+      }
+      return $tagName;
+    }
+    /**
+     * Prevent CDATA close token breakouts.
+     */
+    private function getSafeXmlCdata($value = '')
+    {
+      return str_replace(']]>', ']]]]><![CDATA[>', (string) $value);
+    }
+    /**
      * Return accurate, rendered site metadata
      * @var JSONOutlineSchemaItem $page - a loaded page object, most likely whats active
      * @return string an html chunk of tags for the head section
