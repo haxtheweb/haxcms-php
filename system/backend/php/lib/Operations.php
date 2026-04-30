@@ -1668,6 +1668,7 @@ class Operations {
       $safeLocationMap = array();
       $items = $this->rawParams['items'];
       $itemMap = array();
+      $pageAlternateContentMap = array();
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -1721,6 +1722,7 @@ class Operations {
               HAXCMS_ROOT . '/system/boilerplate/page/default',
               $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
           );
+          $pageAlternateContentMap[$page->id] = '';
         }
         // this would imply existing item, lets see if it moved or needs moved
         else {
@@ -1759,6 +1761,7 @@ class Operations {
                     HAXCMS_ROOT . '/system/boilerplate/page/default',
                     $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
                 );
+                $pageAlternateContentMap[$page->id] = '';
             }
         }
         $safeLocationMap[$page->id] = $page->location;
@@ -1824,6 +1827,11 @@ class Operations {
           );
         }
         $page->location = $expectedLocation;
+        $alternateContent = '';
+        $shouldWriteAlternate = false;
+        if (isset($pageAlternateContentMap[$page->id])) {
+          $shouldWriteAlternate = true;
+        }
         if (isset($item->duplicate)) {
           // load the node we are duplicating with support for the same map needed for page loading
           if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
@@ -1849,8 +1857,9 @@ class Operations {
             );
           }
           // write it to the file system
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
           $bytes = $page->writeLocation(
-            SanitizeContent::sanitizeHTMLForStorage($content),
+            $alternateContent,
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1866,6 +1875,7 @@ class Operations {
               )
             );
           }
+          $shouldWriteAlternate = true;
         }
         // contents that were shipped across, and not null, take priority over a dup request
         if (isset($item->contents) && $item->contents && $item->contents != '') {
@@ -1878,8 +1888,9 @@ class Operations {
             );
           }
           // write it to the file system
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($item->contents);
           $bytes = $page->writeLocation(
-            SanitizeContent::sanitizeHTMLForStorage($item->contents),
+            $alternateContent,
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1895,6 +1906,10 @@ class Operations {
               )
             );
           }
+          $shouldWriteAlternate = true;
+        }
+        if ($shouldWriteAlternate) {
+          $site->writePageAlternateFormats($page, $alternateContent);
         }
       }
       $items = $this->rawParams['items'];
@@ -2078,6 +2093,7 @@ class Operations {
         // add the item back into the outline schema
         $site->manifest->addItem($item);
         $site->manifest->save();
+        $alternateContent = '';
         // support for duplicating the content of another item
         if (isset($nodeParams['node']['duplicate'])) {
           // verify we can load this id
@@ -2087,8 +2103,9 @@ class Operations {
             if ($page = $site->loadNode($item->id)) {
               // write it to the file system
               // this all seems round about but it's more secure
+              $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
               $bytes = $page->writeLocation(
-                SanitizeContent::sanitizeHTMLForStorage($content),
+                $alternateContent,
                 HAXCMS_ROOT .
                 '/' .
                 $GLOBALS['HAXCMS']->sitesDirectory .
@@ -2105,8 +2122,9 @@ class Operations {
         else if (isset($nodeParams['node']['contents'])) {
           if ($page = $site->loadNode($item->id)) {
             // write it to the file system
+            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($nodeParams['node']['contents']);
             $bytes = $page->writeLocation(
-              SanitizeContent::sanitizeHTMLForStorage($nodeParams['node']['contents']),
+              $alternateContent,
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -2115,6 +2133,9 @@ class Operations {
               '/'
             );
           }
+        }
+        if ($page = $site->loadNode($item->id)) {
+          $site->writePageAlternateFormats($page, $alternateContent);
         }
         $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
         // update the alternate formats as a new page exists
@@ -4427,6 +4448,70 @@ class Operations {
           $domain,
           $build
       );
+      $supportedSiteLicenses = array(
+        'by',
+        'by-sa',
+        'by-nd',
+        'by-nc',
+        'by-nc-sa',
+        'by-nc-nd'
+      );
+      if (method_exists($site, 'getLicenseData')) {
+        $licenseOptions = $site->getLicenseData('select');
+        if (is_array($licenseOptions) && count($licenseOptions) > 0) {
+          $normalizedSupportedLicenses = array();
+          foreach (array_keys($licenseOptions) as $licenseKey) {
+            $normalizedKey = strtolower(trim(str_replace('_', '-', strval($licenseKey))));
+            if ($normalizedKey !== '') {
+              $normalizedSupportedLicenses[] = $normalizedKey;
+            }
+          }
+          if (count($normalizedSupportedLicenses) > 0) {
+            $supportedSiteLicenses = array_values(array_unique($normalizedSupportedLicenses));
+          }
+        }
+      }
+      $normalizeSiteLicenseValue = function ($rawValue) use ($supportedSiteLicenses) {
+        if (!is_string($rawValue)) {
+          return null;
+        }
+        $value = strtolower(trim(str_replace('_', '-', $rawValue)));
+        if ($value === '') {
+          return null;
+        }
+        if (in_array($value, $supportedSiteLicenses, true)) {
+          return $value;
+        }
+        foreach ($supportedSiteLicenses as $code) {
+          if (
+            strpos($value, '/licenses/' . $code) !== false ||
+            strpos($value, 'cc ' . $code) !== false ||
+            strpos($value, 'cc-' . $code) !== false ||
+            strpos($value, 'cc:' . $code) !== false
+          ) {
+            return $code;
+          }
+        }
+        return null;
+      };
+      $requestedLicense = null;
+      if (isset($this->params['site']['license']) && is_string($this->params['site']['license'])) {
+        $requestedLicense = $this->params['site']['license'];
+      }
+      $normalizedSiteLicense = $normalizeSiteLicenseValue($requestedLicense);
+      if (
+        is_null($normalizedSiteLicense) &&
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['license']) &&
+        is_string($trustedSkeleton['site']['license'])
+      ) {
+        $normalizedSiteLicense = $normalizeSiteLicenseValue($trustedSkeleton['site']['license']);
+      }
+      if (!is_null($normalizedSiteLicense)) {
+        $site->manifest->license = $normalizedSiteLicense;
+      }
       // this could have changed after creation because of on file system
       $name = $site->manifest->metadata->site->name;
       // now get a new item to reference this into the top level sites listing
@@ -4464,6 +4549,9 @@ class Operations {
         }
       }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
+      if (!is_null($normalizedSiteLicense)) {
+        $schema->metadata->site->license = $normalizedSiteLicense;
+      }
       if (
         $useTrustedSkeleton &&
         isset($trustedSkeleton['site']) &&

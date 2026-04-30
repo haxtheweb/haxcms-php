@@ -1,4 +1,9 @@
 {
+  "deploymentProfile": "self-hosted-multi-site",
+  "mcp": {
+    "enabled": true,
+    "readOnly": true
+  },
   "themes": {},
   "appStore": {
     "stax": [

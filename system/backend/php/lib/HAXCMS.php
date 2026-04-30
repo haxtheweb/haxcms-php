@@ -206,6 +206,23 @@ class HAXCMS
                 if (!isset($this->config->appJWTConnectionSettings)) {
                     $this->config->appJWTConnectionSettings = new stdClass();
                 }
+                if (!isset($this->config->deploymentProfile)) {
+                    if (isset($this->config->iam) && $this->config->iam) {
+                        $this->config->deploymentProfile = 'haxiam-managed';
+                    }
+                    else {
+                        $this->config->deploymentProfile = 'self-hosted-multi-site';
+                    }
+                }
+                if (!isset($this->config->mcp)) {
+                    $this->config->mcp = new stdClass();
+                }
+                if (!isset($this->config->mcp->enabled)) {
+                    $this->config->mcp->enabled = ($this->getDeploymentProfile() != 'haxiam-managed');
+                }
+                if (!isset($this->config->mcp->readOnly)) {
+                    $this->config->mcp->readOnly = TRUE;
+                }
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(
@@ -1724,6 +1741,47 @@ class HAXCMS
         exit();
       }
       return FALSE;
+    }
+    /**
+     * Deployment profile controls platform-level MCP defaults.
+     */
+    public function getDeploymentProfile() {
+      if (!isset($this->config->deploymentProfile) || $this->config->deploymentProfile == '') {
+        return 'single-site';
+      }
+      $profile = strtolower((string) $this->config->deploymentProfile);
+      $validProfiles = array('single-site', 'self-hosted-multi-site', 'haxiam-managed');
+      if (in_array($profile, $validProfiles)) {
+        return $profile;
+      }
+      return 'single-site';
+    }
+    /**
+     * MCP availability policy.
+     */
+    public function isMCPEnabled() {
+      if (!isset($this->config->mcp) || !isset($this->config->mcp->enabled)) {
+        return FALSE;
+      }
+      return ($this->config->mcp->enabled === TRUE);
+    }
+    /**
+     * MCP write-protection policy (true means write calls must be blocked).
+     */
+    public function isMCPReadOnly() {
+      if (!$this->isMCPEnabled()) {
+        return TRUE;
+      }
+      if (!isset($this->config->mcp) || !isset($this->config->mcp->readOnly)) {
+        return TRUE;
+      }
+      return ($this->config->mcp->readOnly !== FALSE);
+    }
+    /**
+     * MCP write capability helper.
+     */
+    public function isMCPWriteEnabled() {
+      return ($this->isMCPEnabled() && !$this->isMCPReadOnly());
     }
 
     /**

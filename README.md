@@ -92,6 +92,15 @@ To avoid a cgroup error before running HAX locally (e.g. before using "ddev star
 sudo mkdir /sys/fs/cgroup/systemd
 sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
 ```
+## MCP and deployment profiles
+- MCP policy defaults are controlled via `_config/config.json`.
+- New installs include:
+  - `deploymentProfile`: `single-site`, `self-hosted-multi-site`, or `haxiam-managed`
+  - `mcp.enabled`: global MCP toggle
+  - `mcp.readOnly`: write-protection toggle for future MCP write tools
+- Default behavior:
+  - `haxiam-managed` defaults MCP to disabled unless explicitly enabled.
+  - Other profiles default to MCP enabled with read-only mode on.
 # Get Help / Issues / Support
 - Discord Channel - https://bit.ly/hax-discord
 - Unified issue queue - https://github.com/haxtheweb/issues/issues
