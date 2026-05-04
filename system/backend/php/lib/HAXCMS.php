@@ -1591,6 +1591,8 @@ class HAXCMS
         $settings->getUserDataPath = $path . 'getUserData?user_token=' . $userToken;
         $settings->createSite = $path . 'createSite?user_token=' . $userToken;
         $settings->downloadSite = $path . 'downloadSite?user_token=' . $userToken;
+        $settings->downloadSiteSkeleton = $path . 'downloadSiteSkeleton?user_token=' . $userToken;
+        $settings->saveSiteAsTemplate = $path . 'saveSiteAsTemplate?user_token=' . $userToken;
         $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
         $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
         $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;

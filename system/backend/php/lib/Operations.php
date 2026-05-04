@@ -201,6 +201,345 @@ class Operations {
     return $normalized;
   }
   /**
+   * Clone mixed data through JSON encoding into an associative array.
+   */
+  private function cloneTemplateArray($value, $fallback = array()) {
+    $encoded = json_encode($value);
+    if ($encoded === false) {
+      return $fallback;
+    }
+    $decoded = json_decode($encoded, true);
+    if (is_array($decoded)) {
+      return $decoded;
+    }
+    return $fallback;
+  }
+  /**
+   * Normalize a template machine name.
+   */
+  private function normalizeTemplateMachineName($value) {
+    if (!is_string($value)) {
+      return 'site-template';
+    }
+    $machineName = $GLOBALS['HAXCMS']->generateMachineName($value);
+    if (!is_string($machineName) || trim($machineName) === '') {
+      return 'site-template';
+    }
+    $machineName = strtolower(trim(preg_replace('/\\.json$/i', '', $machineName)));
+    if ($machineName === '') {
+      return 'site-template';
+    }
+    return $machineName;
+  }
+  /**
+   * Normalize a value into a string array for tags/category fields.
+   */
+  private function normalizeTemplateArrayValue($value) {
+    if (is_array($value)) {
+      return $this->cloneTemplateArray($value, array());
+    }
+    if (is_string($value) && trim($value) !== '') {
+      return array(trim($value));
+    }
+    return array();
+  }
+  /**
+   * Normalize a page location for safe on-disk reads.
+   */
+  private function normalizeTemplateLocation($location) {
+    if (!is_string($location)) {
+      return '';
+    }
+    $normalized = str_replace('\\', '/', $location);
+    $normalized = ltrim(trim($normalized), '/');
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      strpos($normalized, '..') !== false
+    ) {
+      return '';
+    }
+    return $normalized;
+  }
+  /**
+   * Read page content from disk for template generation.
+   */
+  private function readTemplateItemContent($siteDirectory, $item) {
+    $location = '';
+    if (is_array($item) && isset($item['location'])) {
+      $location = $item['location'];
+    }
+    $safeLocation = $this->normalizeTemplateLocation($location);
+    if ($safeLocation === '') {
+      return '';
+    }
+    $targetPath = $siteDirectory . '/' . $safeLocation;
+    if (!file_exists($targetPath) || !is_file($targetPath)) {
+      return '';
+    }
+    $content = @file_get_contents($targetPath);
+    if ($content === false) {
+      return '';
+    }
+    return $content;
+  }
+  /**
+   * Normalize item metadata defaults for template export.
+   */
+  private function normalizeTemplateItemMetadata($metadata) {
+    $result = is_array($metadata)
+      ? $this->cloneTemplateArray($metadata, array())
+      : array();
+    if (!isset($result['tags']) || !is_array($result['tags'])) {
+      $result['tags'] = array();
+    }
+    if (!array_key_exists('published', $result)) {
+      $result['published'] = true;
+    }
+    if (!array_key_exists('hideInMenu', $result)) {
+      $result['hideInMenu'] = false;
+    }
+    return $result;
+  }
+  /**
+   * Resolve theme information for template export.
+   */
+  private function resolveTemplateThemeData($manifestMetadata = array()) {
+    $themeMetadata =
+      isset($manifestMetadata['theme']) && is_array($manifestMetadata['theme'])
+        ? $manifestMetadata['theme']
+        : array();
+    $defaultTheme = defined('HAXCMS_DEFAULT_THEME')
+      ? HAXCMS_DEFAULT_THEME
+      : 'clean-two';
+    $themeElement =
+      isset($themeMetadata['element']) &&
+      is_string($themeMetadata['element']) &&
+      trim($themeMetadata['element']) !== ''
+        ? trim($themeMetadata['element'])
+        : $defaultTheme;
+    $themeVariables =
+      isset($themeMetadata['variables']) && is_array($themeMetadata['variables'])
+        ? $this->cloneTemplateArray($themeMetadata['variables'], array())
+        : array();
+    $themeSettings = array();
+    $themes = $this->cloneTemplateArray($GLOBALS['HAXCMS']->getThemes(), array());
+    if (isset($themes[$themeElement]) && is_array($themes[$themeElement])) {
+      $themeSettings = $this->cloneTemplateArray($themes[$themeElement], array());
+    }
+    foreach ($themeMetadata as $key => $value) {
+      if ($key !== 'element' && $key !== 'variables') {
+        $themeSettings[$key] = $value;
+      }
+    }
+    $useCaseImage =
+      isset($themeSettings['thumbnail']) &&
+      is_string($themeSettings['thumbnail']) &&
+      trim($themeSettings['thumbnail']) !== ''
+        ? $themeSettings['thumbnail']
+        : '@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-' . $themeElement . '-thumb.jpg';
+    return array(
+      'themeElement' => $themeElement,
+      'themeVariables' => $themeVariables,
+      'themeSettings' => $themeSettings,
+      'useCaseImage' => $useCaseImage,
+    );
+  }
+  /**
+   * Build source URL for a site template payload.
+   */
+  private function getTemplateSourceUrl($siteName) {
+    $basePath = $GLOBALS['HAXCMS']->basePath;
+    if (!is_string($basePath) || $basePath === '') {
+      $basePath = '/';
+    }
+    if (substr($basePath, -1) !== '/') {
+      $basePath .= '/';
+    }
+    $sitesDirectory = trim((string) $GLOBALS['HAXCMS']->sitesDirectory, '/');
+    return $basePath . $sitesDirectory . '/' . $siteName . '/';
+  }
+  /**
+   * Generate a complete template skeleton payload from a site.
+   */
+  private function buildSiteTemplateSkeleton($site) {
+    if (!$site || !isset($site->manifest)) {
+      throw new Exception('Invalid site requested');
+    }
+    $manifest = $site->manifest;
+    $manifestMetadata = isset($manifest->metadata)
+      ? $this->cloneTemplateArray($manifest->metadata, array())
+      : array();
+    $siteMetadata =
+      isset($manifestMetadata['site']) && is_array($manifestMetadata['site'])
+        ? $manifestMetadata['site']
+        : array();
+    $siteNameSource =
+      isset($siteMetadata['name']) &&
+      is_string($siteMetadata['name']) &&
+      trim($siteMetadata['name']) !== ''
+        ? $siteMetadata['name']
+        : (isset($site->name) ? (string) $site->name : 'site-template');
+    $siteName = $this->normalizeTemplateMachineName($siteNameSource);
+    $siteTitle =
+      isset($manifest->title) && is_string($manifest->title) && trim($manifest->title) !== ''
+        ? $manifest->title
+        : $siteName;
+    $siteDescription =
+      isset($manifest->description) &&
+      is_string($manifest->description) &&
+      trim($manifest->description) !== ''
+        ? 'Template based on ' . $manifest->description
+        : 'Template based on ' . $siteTitle;
+    $siteSettings =
+      isset($siteMetadata['settings']) && is_array($siteMetadata['settings'])
+        ? $this->cloneTemplateArray($siteMetadata['settings'], array())
+        : array();
+    if (!isset($siteSettings['lang']) || $siteSettings['lang'] === '') {
+      $siteSettings['lang'] = 'en-US';
+    }
+    if (!array_key_exists('publishPagesOn', $siteSettings)) {
+      $siteSettings['publishPagesOn'] = true;
+    }
+    if (!array_key_exists('canonical', $siteSettings)) {
+      $siteSettings['canonical'] = true;
+    }
+    $platformSettings =
+      isset($manifestMetadata['platform']) && is_array($manifestMetadata['platform'])
+        ? $this->cloneTemplateArray($manifestMetadata['platform'], array())
+        : array();
+    $category = $this->normalizeTemplateArrayValue(
+      isset($siteMetadata['category']) ? $siteMetadata['category'] : array()
+    );
+    $tags = $this->normalizeTemplateArrayValue(
+      isset($siteMetadata['tags']) ? $siteMetadata['tags'] : array()
+    );
+    $themeData = $this->resolveTemplateThemeData($manifestMetadata);
+    $siteDirectory = $site->directory . '/' . $siteName;
+    $sourceUrl = $this->getTemplateSourceUrl($siteName);
+    $rawItems = isset($manifest->items) && is_array($manifest->items)
+      ? $manifest->items
+      : array();
+    usort($rawItems, function ($a, $b) {
+      $aOrder = (is_object($a) && isset($a->order) && is_numeric($a->order))
+        ? (int) $a->order
+        : PHP_INT_MAX;
+      $bOrder = (is_object($b) && isset($b->order) && is_numeric($b->order))
+        ? (int) $b->order
+        : PHP_INT_MAX;
+      if ($aOrder === $bOrder) {
+        return 0;
+      }
+      return ($aOrder < $bOrder) ? -1 : 1;
+    });
+    $structure = array();
+    foreach ($rawItems as $index => $item) {
+      $itemData = $this->cloneTemplateArray($item, array());
+      $id =
+        isset($itemData['id']) &&
+        is_string($itemData['id']) &&
+        trim($itemData['id']) !== ''
+          ? $itemData['id']
+          : $GLOBALS['HAXCMS']->generateUUID();
+      $title =
+        isset($itemData['title']) &&
+        is_string($itemData['title']) &&
+        trim($itemData['title']) !== ''
+          ? $itemData['title']
+          : 'Page ' . ($index + 1);
+      $slug =
+        isset($itemData['slug']) &&
+        is_string($itemData['slug']) &&
+        trim($itemData['slug']) !== ''
+          ? $itemData['slug']
+          : 'page-' . ($index + 1);
+      $parent =
+        isset($itemData['parent']) && $itemData['parent'] !== ''
+          ? $itemData['parent']
+          : null;
+      $order =
+        isset($itemData['order']) && is_numeric($itemData['order'])
+          ? (int) $itemData['order']
+          : (int) $index;
+      $indent =
+        isset($itemData['indent']) && is_numeric($itemData['indent'])
+          ? (int) $itemData['indent']
+          : 0;
+      $metadata = $this->normalizeTemplateItemMetadata(
+        isset($itemData['metadata']) ? $itemData['metadata'] : array()
+      );
+      $content = $this->readTemplateItemContent($siteDirectory, $itemData);
+      $structure[] = array(
+        'id' => $id,
+        'title' => $title,
+        'slug' => $slug,
+        'order' => $order,
+        'parent' => $parent,
+        'indent' => $indent,
+        'content' => $content,
+        'metadata' => $metadata,
+      );
+    }
+    $skeleton = array(
+      'meta' => array(
+        'name' => $siteName,
+        'machineName' => $siteName,
+        'priority' => 0,
+        'description' => $siteDescription,
+        'version' => '1.0.0',
+        'created' => gmdate('c'),
+        'type' => 'skeleton',
+        'sourceUrl' => $sourceUrl,
+        'useCaseTitle' => $siteTitle,
+        'useCaseDescription' => $siteDescription,
+        'useCaseImage' => $themeData['useCaseImage'],
+        'category' => $category,
+        'tags' => $tags,
+        'attributes' => array(),
+      ),
+      'site' => array(
+        'name' => $siteName,
+        'description' => $siteDescription,
+        'theme' => $themeData['themeElement'],
+        'settings' => $siteSettings,
+        'platform' => $platformSettings,
+      ),
+      'build' => array(
+        'type' => 'skeleton',
+        'structure' => 'from-skeleton',
+        'items' => $structure,
+        'files' => array(),
+      ),
+      'theme' => $themeData['themeSettings'],
+      '_skeleton' => array(
+        'originalMetadata' => array(
+          'site' => array(
+            'category' => $category,
+            'tags' => $tags,
+            'settings' => $siteSettings,
+          ),
+          'licensing' => isset($manifestMetadata['licensing']) && is_array($manifestMetadata['licensing'])
+            ? $manifestMetadata['licensing']
+            : array(),
+          'node' => isset($manifestMetadata['node']) && is_array($manifestMetadata['node'])
+            ? $manifestMetadata['node']
+            : array(),
+          'platform' => $platformSettings,
+        ),
+        'originalSettings' => $siteSettings,
+        'fullThemeConfig' => array(
+          'element' => $themeData['themeElement'],
+          'variables' => $themeData['themeVariables'],
+          'settings' => $themeData['themeSettings'],
+        ),
+      ),
+    );
+    if (isset($manifest->license) && is_string($manifest->license) && trim($manifest->license) !== '') {
+      $skeleton['site']['license'] = $manifest->license;
+    }
+    return $skeleton;
+  }
+  /**
    * Normalize and validate an outline page location.
    */
   private function normalizeOutlineLocation($location) {
@@ -4946,6 +5285,245 @@ class Operations {
         '__failed' => array(
           'status' => 403,
           'message' => 'invalid request token',
+        )
+      );
+    }
+  }
+  /**
+   * @OA\\Post(
+   *    path=\"/downloadSiteSkeleton\",
+   *    tags={\"cms\",\"authenticated\",\"site\",\"meta\"},
+   *    @OA\\Parameter(
+   *         name=\"user_token\",
+   *         description=\"User validation token\",
+   *         in=\"query\",
+   *         required=true,
+   *         @OA\\Schema(type=\"string\")
+   *    ),
+   *    @OA\\RequestBody(
+   *        @OA\\MediaType(
+   *             mediaType=\"application/json\",
+   *             @OA\\Schema(
+   *                 @OA\\Property(
+   *                     property=\"site\",
+   *                     type=\"object\"
+   *                 ),
+   *                 required={\"site\"},
+   *                 example={
+   *                    \"site\": {
+   *                      \"name\": \"mynewsite\"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\\Response(
+   *        response=\"200\",
+   *        description=\"Generate and return skeleton JSON for an existing site\"
+   *   )
+   * )
+   */
+  public function downloadSiteSkeleton() {
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+    if (
+      !isset($this->params['site']) ||
+      !is_array($this->params['site']) ||
+      !isset($this->params['site']['name']) ||
+      !is_string($this->params['site']['name']) ||
+      trim($this->params['site']['name']) === ''
+    ) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'invalid site name',
+        )
+      );
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    if (!$site || !isset($site->manifest)) {
+      return array(
+        '__failed' => array(
+          'status' => 404,
+          'message' => 'Site does not exist',
+        )
+      );
+    }
+    try {
+      $skeleton = $this->buildSiteTemplateSkeleton($site);
+      $filename =
+        (isset($skeleton['meta']) &&
+          is_array($skeleton['meta']) &&
+          isset($skeleton['meta']['machineName']) &&
+          is_string($skeleton['meta']['machineName']) &&
+          trim($skeleton['meta']['machineName']) !== ''
+            ? $skeleton['meta']['machineName']
+            : $this->normalizeTemplateMachineName($site->manifest->metadata->site->name)) .
+        '.json';
+      return array(
+        'status' => 200,
+        'data' => array(
+          'skeleton' => $skeleton,
+          'filename' => $filename,
+        ),
+      );
+    }
+    catch (Exception $e) {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Unable to generate site skeleton',
+          'detail' => $e->getMessage(),
+        )
+      );
+    }
+  }
+  /**
+   * @OA\\Post(
+   *    path=\"/saveSiteAsTemplate\",
+   *    tags={\"cms\",\"authenticated\",\"site\",\"meta\"},
+   *    @OA\\Parameter(
+   *         name=\"user_token\",
+   *         description=\"User validation token\",
+   *         in=\"query\",
+   *         required=true,
+   *         @OA\\Schema(type=\"string\")
+   *    ),
+   *    @OA\\RequestBody(
+   *        @OA\\MediaType(
+   *             mediaType=\"application/json\",
+   *             @OA\\Schema(
+   *                 @OA\\Property(
+   *                     property=\"site\",
+   *                     type=\"object\"
+   *                 ),
+   *                 required={\"site\"},
+   *                 example={
+   *                    \"site\": {
+   *                      \"name\": \"mynewsite\"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\\Response(
+   *        response=\"200\",
+   *        description=\"Generate a skeleton from an existing site and save it to user templates\"
+   *   )
+   * )
+   */
+  public function saveSiteAsTemplate() {
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+    if (
+      !isset($this->params['site']) ||
+      !is_array($this->params['site']) ||
+      !isset($this->params['site']['name']) ||
+      !is_string($this->params['site']['name']) ||
+      trim($this->params['site']['name']) === ''
+    ) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'invalid site name',
+        )
+      );
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    if (!$site || !isset($site->manifest)) {
+      return array(
+        '__failed' => array(
+          'status' => 404,
+          'message' => 'Site does not exist',
+        )
+      );
+    }
+    try {
+      $skeleton = $this->buildSiteTemplateSkeleton($site);
+      $machineName =
+        isset($skeleton['meta']) &&
+        is_array($skeleton['meta']) &&
+        isset($skeleton['meta']['machineName']) &&
+        is_string($skeleton['meta']['machineName']) &&
+        trim($skeleton['meta']['machineName']) !== ''
+          ? $this->normalizeTemplateMachineName($skeleton['meta']['machineName'])
+          : $this->normalizeTemplateMachineName($site->manifest->metadata->site->name);
+      if ($machineName === '') {
+        $machineName = 'site-template';
+      }
+      if (!isset($skeleton['meta']) || !is_array($skeleton['meta'])) {
+        $skeleton['meta'] = array();
+      }
+      $skeleton['meta']['name'] = $machineName;
+      $skeleton['meta']['machineName'] = $machineName;
+      $skeletonsDirectory = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+      if (!file_exists($skeletonsDirectory) && !mkdir($skeletonsDirectory, 0755, true)) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to create skeletons directory',
+          )
+        );
+      }
+      if (!is_dir($skeletonsDirectory) || !is_writable($skeletonsDirectory)) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Skeletons directory is not writable',
+          )
+        );
+      }
+      $targetPath = $skeletonsDirectory . '/' . $machineName . '.json';
+      $payload = json_encode($skeleton, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+      if ($payload === false) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to encode site skeleton',
+          )
+        );
+      }
+      $writeResult = @file_put_contents($targetPath, $payload . PHP_EOL);
+      if ($writeResult === false) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to save site skeleton',
+          )
+        );
+      }
+      $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
+      $userToken = $this->params['user_token'];
+      $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($machineName) . '&user_token=' . urlencode($userToken);
+      return array(
+        'status' => 200,
+        'data' => array(
+          'saved' => true,
+          'name' => $machineName,
+          'filename' => $machineName . '.json',
+          'path' => $targetPath,
+          'link' => $skeletonUrl,
+        ),
+      );
+    }
+    catch (Exception $e) {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Unable to save site skeleton',
+          'detail' => $e->getMessage(),
         )
       );
     }
