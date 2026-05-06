@@ -3625,6 +3625,50 @@ class Operations {
     return $files;
   }
   /**
+   * Return default skeleton directories in precedence order.
+   */
+  private function getDefaultSkeletonDirectories() {
+    return array(
+      'user' => $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons',
+      'config' => $GLOBALS['HAXCMS']->configDirectory . '/skeletons',
+      'core' => $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons',
+    );
+  }
+  /**
+   * Discover skeleton directories, allowing integrations (like HAXiam) to alter search locations.
+   * Precedence defaults to user -> config -> core and can be extended via hook.
+   */
+  private function getSkeletonDirectories() {
+    $defaultDirs = $this->getDefaultSkeletonDirectories();
+    $dirs = array();
+    foreach ($defaultDirs as $dir) {
+      if (is_dir($dir)) {
+        $dirs[] = rtrim($dir, '/');
+      }
+    }
+    $context = new stdClass();
+    $context->directories = $dirs;
+    $context->defaultDirectories = $defaultDirs;
+    $GLOBALS['HAXCMS']->dispatchEvent('haxcms-skeleton-dirs', $context);
+    if (!is_object($context) || !isset($context->directories) || !is_array($context->directories)) {
+      return $dirs;
+    }
+    $finalDirs = array();
+    foreach ($context->directories as $dir) {
+      if (!is_string($dir)) {
+        continue;
+      }
+      $normalizedDir = rtrim(trim($dir), '/');
+      if ($normalizedDir === '' || !is_dir($normalizedDir)) {
+        continue;
+      }
+      if (!in_array($normalizedDir, $finalDirs, true)) {
+        $finalDirs[] = $normalizedDir;
+      }
+    }
+    return $finalDirs;
+  }
+  /**
    * Normalize skeleton machine name for matching (filename or meta name).
    */
   private function normalizeSkeletonMachineName($value) {
@@ -3641,13 +3685,7 @@ class Operations {
     if ($normalizedTarget === '') {
       return null;
     }
-    $dirs = array();
-    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
-    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    $dirs = $this->getSkeletonDirectories();
     foreach ($dirs as $dir) {
       if (!($handle = opendir($dir))) { continue; }
       while (false !== ($file = readdir($handle))) {
@@ -3799,13 +3837,7 @@ class Operations {
     if (is_null($targetSignature)) {
       return null;
     }
-    $dirs = array();
-    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
-    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    $dirs = $this->getSkeletonDirectories();
     foreach ($dirs as $dir) {
       if (!($handle = opendir($dir))) { continue; }
       while (false !== ($file = readdir($handle))) {
@@ -4358,14 +4390,7 @@ class Operations {
     $items = array();
     $seen = array();
     // directories to scan for JSON skeleton definitions
-    $dirs = array();
-    // precedence: user-specific config > deployment config > core defaults
-    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
-    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    $dirs = $this->getSkeletonDirectories();
 
     foreach ($dirs as $dir) {
       if ($handle = opendir($dir)) {
@@ -4500,14 +4525,7 @@ class Operations {
     $fileName = (substr($safeName, -5) === '.json') ? $safeName : $safeName . '.json';
 
     // directories to search for skeleton files
-    $dirs = array();
-    // precedence: user-specific config > deployment config > core defaults
-    $userConfigDir = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
-    $configDir = $GLOBALS['HAXCMS']->configDirectory . '/skeletons';
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    if (is_dir($userConfigDir)) { $dirs[] = $userConfigDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
+    $dirs = $this->getSkeletonDirectories();
 
     // Search for the skeleton file
     foreach ($dirs as $dir) {
