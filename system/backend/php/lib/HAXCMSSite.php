@@ -1561,7 +1561,7 @@ class HAXCMSSite
     private function getRequestedVariantInfo($path = '')
     {
       $matches = array();
-      if (preg_match('/^(.*)\.(md|json|ya?ml|xml)$/i', $path, $matches)) {
+      if (preg_match('/^(.*)\.(html|md|json|ya?ml|xml)$/i', $path, $matches)) {
         $format = strtolower($matches[2]);
         if ($format === 'yml') {
           $format = 'yaml';
@@ -1582,6 +1582,9 @@ class HAXCMSSite
     private function getRequestedVariantContentType($format = '')
     {
       switch ($format) {
+        case 'html':
+          return 'text/html; charset=utf-8';
+        break;
         case 'md':
           return 'text/markdown; charset=utf-8';
         break;
@@ -1761,7 +1764,7 @@ class HAXCMSSite
         return;
       }
       $canonicalPath = $this->getCanonicalPagePathForSlug($page->slug);
-      $formats = array('md', 'json', 'yaml', 'xml');
+      $formats = array('html', 'md', 'json', 'yaml', 'xml');
       $linkParts = array();
       foreach ($formats as $format) {
         $filePath = $this->getAlternateFilePathForPageFormat($page, $format);
@@ -1783,7 +1786,7 @@ class HAXCMSSite
         return '';
       }
       $canonicalPath = $this->getCanonicalPagePathForSlug($page->slug);
-      $formats = array('md', 'json', 'yaml', 'xml');
+      $formats = array('html', 'md', 'json', 'yaml', 'xml');
       $tags = '';
       foreach ($formats as $format) {
         $filePath = $this->getAlternateFilePathForPageFormat($page, $format);
