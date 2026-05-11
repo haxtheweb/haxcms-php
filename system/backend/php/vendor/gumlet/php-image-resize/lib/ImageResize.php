@@ -301,17 +301,26 @@ class ImageResize
             }
         }
         
+        $destX = (int) round($this->dest_x);
+        $destY = (int) round($this->dest_y);
+        $sourceX = (int) round($this->source_x);
+        $sourceY = (int) round($this->source_y);
+        $destWidth = (int) round($this->getDestWidth());
+        $destHeight = (int) round($this->getDestHeight());
+        $sourceW = (int) round($this->source_w);
+        $sourceH = (int) round($this->source_h);
+
         imagecopyresampled(
             $dest_image,
             $this->source_image,
-            $this->dest_x,
-            $this->dest_y,
-            $this->source_x,
-            $this->source_y,
-            $this->getDestWidth(),
-            $this->getDestHeight(),
-            $this->source_w,
-            $this->source_h
+            $destX,
+            $destY,
+            $sourceX,
+            $sourceY,
+            $destWidth,
+            $destHeight,
+            $sourceW,
+            $sourceH
         );
         
         if ($this->gamma_correct) {

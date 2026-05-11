@@ -1102,7 +1102,7 @@ class HAXCMSSite
      */
     private function cleanSearchData($text) {
       // clean up initial, small, trim, replace end lines, utf8 no tags
-      $text = trim(strtolower(str_replace("\n", ' ', utf8_encode(strip_tags($text)))));
+      $text = trim(strtolower(str_replace("\n", ' ', strip_tags((string) $text))));
       // all weird chars
       $text = preg_replace('/[^a-z0-9\']/', ' ', $text);
       $text = str_replace("'", '', $text);
@@ -1254,7 +1254,7 @@ class HAXCMSSite
         }
         // look for the theme banner
         if (isset($this->manifest->metadata->theme->variables->image)) {
-          $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_STRING);
+          $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_URL);
         }
       }
       return $fileName;

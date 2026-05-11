@@ -115,6 +115,150 @@ class Operations {
     return true;
   }
   /**
+   * Detect scoped Details payloads that omit legacy form token fields.
+   */
+  private function isScopedDetailsManifestPayload($params) {
+    if (!is_array($params)) {
+      return false;
+    }
+    if (!isset($params['manifest']) || !is_array($params['manifest'])) {
+      return false;
+    }
+    $manifestSite = array();
+    if (isset($params['manifest']['site']) && is_array($params['manifest']['site'])) {
+      $manifestSite = $params['manifest']['site'];
+    }
+    $manifestSeo = array();
+    if (isset($params['manifest']['seo']) && is_array($params['manifest']['seo'])) {
+      $manifestSeo = $params['manifest']['seo'];
+    }
+    $hasDetailsFields =
+      array_key_exists('title', $params) ||
+      array_key_exists('homePageId', $params) ||
+      array_key_exists('sw', $params) ||
+      array_key_exists('forceUpgrade', $params) ||
+      array_key_exists('manifest-title', $manifestSite) ||
+      array_key_exists('manifest-metadata-site-homePageId', $manifestSite) ||
+      array_key_exists('manifest-metadata-site-settings-sw', $manifestSeo) ||
+      array_key_exists('manifest-metadata-site-settings-forceUpgrade', $manifestSeo);
+    if (!$hasDetailsFields) {
+      return false;
+    }
+    return !isset($params['haxcms_form_id']) && !isset($params['haxcms_form_token']);
+  }
+  /**
+   * Ensure metadata containers required for scoped manifest writes exist.
+   */
+  private function ensureSiteMetadataContainers($site) {
+    if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+      $site->manifest->metadata = new stdClass();
+    }
+    if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+      $site->manifest->metadata->site = new stdClass();
+    }
+    if (!isset($site->manifest->metadata->site->settings) || !is_object($site->manifest->metadata->site->settings)) {
+      $site->manifest->metadata->site->settings = new stdClass();
+    }
+  }
+  /**
+   * Apply scoped Details payload values to the site manifest.
+   */
+  private function applyScopedDetailsManifestPayload($site, $params) {
+    $this->ensureSiteMetadataContainers($site);
+    $manifestSite = array();
+    if (isset($params['manifest']) && is_array($params['manifest']) && isset($params['manifest']['site']) && is_array($params['manifest']['site'])) {
+      $manifestSite = $params['manifest']['site'];
+    }
+    $manifestSeo = array();
+    if (isset($params['manifest']) && is_array($params['manifest']) && isset($params['manifest']['seo']) && is_array($params['manifest']['seo'])) {
+      $manifestSeo = $params['manifest']['seo'];
+    }
+
+    $titleValue = null;
+    $hasTitleValue = false;
+    if (array_key_exists('manifest-title', $manifestSite)) {
+      $titleValue = $manifestSite['manifest-title'];
+      $hasTitleValue = true;
+    }
+    else if (array_key_exists('title', $params)) {
+      $titleValue = $params['title'];
+      $hasTitleValue = true;
+    }
+    if ($hasTitleValue) {
+      $site->manifest->title = strip_tags(strval($titleValue));
+    }
+
+    $homePageIdValue = null;
+    $hasHomePageIdValue = false;
+    if (array_key_exists('manifest-metadata-site-homePageId', $manifestSite)) {
+      $homePageIdValue = $manifestSite['manifest-metadata-site-homePageId'];
+      $hasHomePageIdValue = true;
+    }
+    else if (array_key_exists('homePageId', $params)) {
+      $homePageIdValue = $params['homePageId'];
+      $hasHomePageIdValue = true;
+    }
+    if ($hasHomePageIdValue) {
+      $homePageId = filter_var(strval($homePageIdValue), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+      $validPage = false;
+      if ($homePageId !== '' && isset($site->manifest->items) && $site->manifest->items) {
+        foreach ($site->manifest->items as $item) {
+          if (isset($item->id) && $item->id === $homePageId) {
+            $validPage = true;
+            break;
+          }
+        }
+      }
+      if ($validPage) {
+        $site->manifest->metadata->site->homePageId = $homePageId;
+      }
+      else {
+        if (isset($site->manifest->metadata->site->homePageId)) {
+          unset($site->manifest->metadata->site->homePageId);
+        }
+        if (isset($site->manifest->metadata->site->settings->homePageId)) {
+          unset($site->manifest->metadata->site->settings->homePageId);
+        }
+      }
+    }
+
+    $swValue = null;
+    $hasSwValue = false;
+    if (array_key_exists('manifest-metadata-site-settings-sw', $manifestSeo)) {
+      $swValue = $manifestSeo['manifest-metadata-site-settings-sw'];
+      $hasSwValue = true;
+    }
+    else if (array_key_exists('sw', $params)) {
+      $swValue = $params['sw'];
+      $hasSwValue = true;
+    }
+    if ($hasSwValue) {
+      $site->manifest->metadata->site->settings->sw = filter_var(
+        $swValue,
+        FILTER_VALIDATE_BOOLEAN
+      );
+    }
+
+    $forceUpgradeValue = null;
+    $hasForceUpgradeValue = false;
+    if (array_key_exists('manifest-metadata-site-settings-forceUpgrade', $manifestSeo)) {
+      $forceUpgradeValue = $manifestSeo['manifest-metadata-site-settings-forceUpgrade'];
+      $hasForceUpgradeValue = true;
+    }
+    else if (array_key_exists('forceUpgrade', $params)) {
+      $forceUpgradeValue = $params['forceUpgrade'];
+      $hasForceUpgradeValue = true;
+    }
+    if ($hasForceUpgradeValue) {
+      $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
+        $forceUpgradeValue,
+        FILTER_VALIDATE_BOOLEAN
+      );
+    }
+
+    $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+  }
+  /**
    * Validate that an associative array/object only contains approved keys.
    */
   private function hasOnlyAllowedKeys($value, $allowedKeys) {
@@ -138,7 +282,7 @@ class Operations {
     if (!is_string($value)) {
       return false;
     }
-    $value = filter_var($value, FILTER_SANITIZE_STRING);
+    $value = filter_var($value, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     if (!is_string($value)) {
       return false;
     }
@@ -162,7 +306,7 @@ class Operations {
       if (!is_string($id)) {
         return false;
       }
-      $cleanId = filter_var($id, FILTER_SANITIZE_STRING);
+      $cleanId = filter_var($id, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
       if (!is_string($cleanId)) {
         return false;
       }
@@ -769,7 +913,14 @@ class Operations {
         }
         $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
       }*/
-      if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
+      $isScopedDetailsPayload = $this->isScopedDetailsManifestPayload($this->params);
+      $formToken = isset($this->params['haxcms_form_token']) ? $this->params['haxcms_form_token'] : null;
+      $formId = isset($this->params['haxcms_form_id']) ? $this->params['haxcms_form_id'] : null;
+      if ($isScopedDetailsPayload || $GLOBALS['HAXCMS']->validateRequestToken($formToken, $formId)) {
+        if ($isScopedDetailsPayload) {
+          $this->applyScopedDetailsManifestPayload($site, $this->params);
+        }
+        else {
         $site->manifest->title = strip_tags(
             $this->params['manifest']['site']['manifest-title']
         );
@@ -796,7 +947,7 @@ class Operations {
         );
         $site->manifest->metadata->site->tags = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-tags'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
         if (!isset($site->manifest->metadata->site->static)) {
           $site->manifest->metadata->site->static = new stdClass();
@@ -825,7 +976,7 @@ class Operations {
         // look for a match so we can set the correct data
         foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
           if (
-              filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
+              filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_FULL_SPECIAL_CHARS) ==
               $key
           ) {
               $site->manifest->metadata->theme = $theme;
@@ -845,7 +996,7 @@ class Operations {
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
           $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
@@ -874,23 +1025,23 @@ class Operations {
         foreach ($validRegions as $i => $value) {
           if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
             foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
-              $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
+              $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
             }
             $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
           }
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
           $site->manifest->metadata->theme->variables->hexCode = filter_var(
-            $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_FULL_SPECIAL_CHARS
         ). "-7";
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'])) {
           $palette = filter_var(
             $this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'],
-            FILTER_SANITIZE_STRING
+            FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
           if (is_string($palette)) {
             $palette = strtolower(trim($palette));
@@ -905,12 +1056,12 @@ class Operations {
           }
         }
         $site->manifest->metadata->theme->variables->icon = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
         if (isset($this->params['manifest']['author']['manifest-license'])) {
             $site->manifest->license = filter_var(
                 $this->params['manifest']['author']['manifest-license'],
-                FILTER_SANITIZE_STRING
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
             );
             if (!isset($site->manifest->metadata->author)) {
               $site->manifest->metadata->author = new stdClass();
@@ -925,7 +1076,7 @@ class Operations {
             );
             $site->manifest->metadata->author->name = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-name'],
-                FILTER_SANITIZE_STRING
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
             );
             $site->manifest->metadata->author->email = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-email'],
@@ -955,7 +1106,7 @@ class Operations {
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
           $site->manifest->metadata->site->settings->lang = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
@@ -985,14 +1136,14 @@ class Operations {
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
           $site->manifest->metadata->site->settings->gaID = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         // Handle homepage setting - validate it exists in the site outline
         if (isset($this->params['manifest']['site']['manifest-metadata-site-homePageId'])) {
           $homePageId = filter_var(
             $this->params['manifest']['site']['manifest-metadata-site-homePageId'],
-            FILTER_SANITIZE_STRING
+            FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
           // Validate that the page exists in the site manifest
           $validPage = false;
@@ -1017,6 +1168,7 @@ class Operations {
               unset($site->manifest->metadata->site->settings->homePageId);
             }
           }
+        }
         }
         // ensure platform exists; do not overwrite existing platform settings
         if (!isset($site->manifest->metadata->platform)) {
@@ -1142,7 +1294,7 @@ class Operations {
       if (!is_null($licenseValue)) {
         $site->manifest->license = filter_var(
           strval($licenseValue),
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
       }
 
@@ -1174,7 +1326,21 @@ class Operations {
       if (!is_null($authorNameValue)) {
         $site->manifest->metadata->author->name = filter_var(
           strval($authorNameValue),
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $authorEmailValue = null;
+      if (array_key_exists('email', $author)) {
+        $authorEmailValue = $author['email'];
+      }
+      else if (array_key_exists('manifest.metadata.author.email', $manifestAuthor)) {
+        $authorEmailValue = $manifestAuthor['manifest.metadata.author.email'];
+      }
+      if (!is_null($authorEmailValue)) {
+        $site->manifest->metadata->author->email = filter_var(
+          strval($authorEmailValue),
+          FILTER_SANITIZE_EMAIL
         );
       }
 
@@ -1194,6 +1360,126 @@ class Operations {
           $site->manifest->metadata->author->socialLink,
           ''
         );
+      }
+
+      $descriptionValue = null;
+      if (array_key_exists('description', $seo)) {
+        $descriptionValue = $seo['description'];
+      }
+      else if (array_key_exists('manifest.description', $manifestSeo)) {
+        $descriptionValue = $manifestSeo['manifest.description'];
+      }
+      if (!is_null($descriptionValue)) {
+        $site->manifest->description = filter_var(
+          strval($descriptionValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $logoValue = null;
+      if (array_key_exists('logo', $seo)) {
+        $logoValue = $seo['logo'];
+      }
+      else if (array_key_exists('manifest.metadata.site.logo', $manifestSeo)) {
+        $logoValue = $manifestSeo['manifest.metadata.site.logo'];
+      }
+      if (!is_null($logoValue)) {
+        $site->manifest->metadata->site->logo = filter_var(
+          strval($logoValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->logo,
+          ''
+        );
+      }
+
+      $domainValue = null;
+      if (array_key_exists('domain', $seo)) {
+        $domainValue = $seo['domain'];
+      }
+      else if (array_key_exists('manifest.metadata.site.domain', $manifestSeo)) {
+        $domainValue = $manifestSeo['manifest.metadata.site.domain'];
+      }
+      if (!is_null($domainValue)) {
+        $site->manifest->metadata->site->domain = filter_var(
+          strval($domainValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->domain = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->domain,
+          ''
+        );
+      }
+
+      $langValue = null;
+      if (array_key_exists('lang', $seo)) {
+        $langValue = $seo['lang'];
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.lang', $manifestSeo)) {
+        $langValue = $manifestSeo['manifest.metadata.site.settings.lang'];
+      }
+      if (!is_null($langValue)) {
+        $site->manifest->metadata->site->settings->lang = filter_var(
+          strval($langValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $gaIDValue = null;
+      if (array_key_exists('gaID', $seo)) {
+        $gaIDValue = $seo['gaID'];
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.gaID', $manifestSeo)) {
+        $gaIDValue = $manifestSeo['manifest.metadata.site.settings.gaID'];
+      }
+      if (!is_null($gaIDValue)) {
+        $site->manifest->metadata->site->settings->gaID = filter_var(
+          strval($gaIDValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $privateInput = null;
+      $privateHasValue = false;
+      if (array_key_exists('private', $seo)) {
+        $privateInput = $seo['private'];
+        $privateHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.private', $manifestSeo)) {
+        $privateInput = $manifestSeo['manifest.metadata.site.settings.private'];
+        $privateHasValue = true;
+      }
+      if ($privateHasValue && !is_null($privateInput) && $privateInput !== '') {
+        $privateValue = filter_var(
+          $privateInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($privateValue)) {
+          $site->manifest->metadata->site->settings->private = $privateValue;
+        }
+      }
+
+      $canonicalInput = null;
+      $canonicalHasValue = false;
+      if (array_key_exists('canonical', $seo)) {
+        $canonicalInput = $seo['canonical'];
+        $canonicalHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.canonical', $manifestSeo)) {
+        $canonicalInput = $manifestSeo['manifest.metadata.site.settings.canonical'];
+        $canonicalHasValue = true;
+      }
+      if ($canonicalHasValue && !is_null($canonicalInput) && $canonicalInput !== '') {
+        $canonicalValue = filter_var(
+          $canonicalInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($canonicalValue)) {
+          $site->manifest->metadata->site->settings->canonical = $canonicalValue;
+        }
       }
 
       $pathautoInput = null;
@@ -1377,7 +1663,7 @@ class Operations {
             )
           );
         }
-        $themeElement = trim(filter_var($themeParams['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING));
+        $themeElement = trim(filter_var($themeParams['manifest-metadata-theme-element'], FILTER_SANITIZE_FULL_SPECIAL_CHARS));
         if ($themeElement === '') {
           return array(
             '__failed' => array(
@@ -1439,7 +1725,7 @@ class Operations {
         }
         $site->manifest->metadata->theme->variables->imageAlt = filter_var(
           $imageAltValue,
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
       }
       if (array_key_exists('manifest-metadata-theme-variables-imageLink', $themeParams)) {
@@ -1488,7 +1774,7 @@ class Operations {
           }
         }
         else {
-          $palette = filter_var($paletteValue, FILTER_SANITIZE_STRING);
+          $palette = filter_var($paletteValue, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
           if (!is_string($palette)) {
             return array(
               '__failed' => array(
@@ -1528,7 +1814,7 @@ class Operations {
         }
         $site->manifest->metadata->theme->variables->icon = filter_var(
           $iconValue,
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
       }
 
@@ -2008,6 +2294,19 @@ class Operations {
       $items = $this->rawParams['items'];
       $itemMap = array();
       $pageAlternateContentMap = array();
+      $normalizeOutlineSlug = function ($slug, $page = null, $pathAuto = false) use ($site) {
+        $normalizedSlug = $GLOBALS['HAXCMS']->generateSlugName($slug);
+        if ($normalizedSlug == 'x') {
+          $normalizedSlug = 'x-x';
+        }
+        if (substr($normalizedSlug, 0, 2) == 'x/') {
+          $normalizedSlug = str_replace('x/', 'x-x/', $normalizedSlug);
+        }
+        if ($normalizedSlug == '') {
+          $normalizedSlug = 'blank';
+        }
+        return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
+      };
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -2047,11 +2346,12 @@ class Operations {
           // generate a logical page slug
           $page->location = 'pages/' . $page->id . '/index.html';
         }
-        // keep location if we get one already
+        // keep slug if we get one already, but sanitize / normalize it
         if (isset($item->slug) && $item->slug != '') {
+            $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
         } else {
             // generate a logical page slug
-            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+            $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
         }
         // verify this exists, front end could have set what they wanted
         // or it could have just been renamed
@@ -2075,11 +2375,15 @@ class Operations {
                     // core support for automatically managing paths to make them nice
                     if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
                         $moved = true;
-                        $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page, true);
+                        $page->slug = $normalizeOutlineSlug(
+                          $GLOBALS['HAXCMS']->cleanTitle($page->title),
+                          $page,
+                          true
+                        );
                     }
                     else if ($tmpItem->slug != $page->slug) {
                         $moved = true;
-                        $page->slug = $GLOBALS['HAXCMS']->generateSlugName($tmpItem->slug);
+                        $page->slug = $normalizeOutlineSlug($page->slug, $page, false);
                     }
                 }
             }
@@ -2093,7 +2397,7 @@ class Operations {
                 if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
                   $pAuto = true;
                 }
-                $tmpTitle = $site->getUniqueSlugName($cleanTitle, $page, $pAuto);
+                $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
                 $page->location = 'pages/' . $page->id . '/index.html';
                 $page->slug = $tmpTitle;
                 $site->recurseCopy(
@@ -2102,6 +2406,9 @@ class Operations {
                 );
                 $pageAlternateContentMap[$page->id] = '';
             }
+        }
+        if (!isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
+            $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
         }
         $safeLocationMap[$page->id] = $page->location;
         // check for any metadata keys that did come over
@@ -2652,7 +2959,7 @@ class Operations {
                 // allow setting theme via page break
                 if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
                   $themes = $GLOBALS['HAXCMS']->getThemes();
-                  $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                  $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
                   // support for removing the custom theme or applying none
                   if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
                     unset($page->metadata->theme);
