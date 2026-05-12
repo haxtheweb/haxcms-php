@@ -12,10 +12,10 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@haxtheweb/haxcms-nodejs": "^11.0.13"
+    "@haxtheweb/haxcms-nodejs": "^25.0.0"
   },
   "devDependencies": {
-    "commit-and-tag-version": "^12.4.1"
+    "commit-and-tag-version": "12.7.3"
   },
   "scripts": {
     "start": "yarn run dev",
