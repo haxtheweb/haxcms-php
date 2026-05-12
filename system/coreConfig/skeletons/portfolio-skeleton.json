@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "name": "portfolio",
+    "machineName": "portfolio",
+    "priority": 0,
+    "description": "Template based on skeleton from-skeleton",
+    "version": "1.0.0",
+    "created": "2026-03-05T20:54:02.636Z",
+    "type": "skeleton",
+    "sourceUrl": "http://localhost:3000/_sites/portfolio/",
+    "useCaseTitle": "portfolio",
+    "useCaseDescription": "Template based on skeleton from-skeleton",
+    "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
+    "category": [],
+    "tags": [],
+    "attributes": []
+  },
+  "site": {
+    "name": "portfolio",
+    "description": "Template based on skeleton from-skeleton",
+    "theme": "glossy-portfolio-theme",
+    "settings": {
+      "lang": "en-US",
+      "publishPagesOn": true,
+      "canonical": true
+    },
+    "platform": {
+      "audience": "novice",
+      "features": {
+        "addPage": false,
+        "deletePage": false,
+        "outlineDesigner": false,
+        "styleGuide": false,
+        "insights": false,
+        "manifest": false,
+        "pageBreak": false,
+        "addBlock": false,
+        "contentMap": false,
+        "viewSource": false,
+        "onlineSearch": false
+      },
+      "allowedBlocks": []
+    }
+  },
+  "build": {
+    "type": "skeleton",
+    "structure": "from-skeleton",
+    "items": [
+      {
+        "id": "f7ad95dc-5bc2-a26c-f736-8f8d963fe0cb",
+        "title": "Finance Portfolio",
+        "slug": "home",
+        "order": 0,
+        "parent": null,
+        "indent": 0,
+        "content": "\n<p><i>Aspiring Financial Analyst | Focus: [Investment Banking / Asset Management / FinTech]</i>&#160;</p>\n<p><strong>Location:</strong> New York&#160;</p>\n<p><strong target=\"_blank\">Contact:</strong> <a href=\"https://hax.psu.edu/\">[LinkedIn Link] | [Email] | [GitHub/Website Link]</a></p>\n<p></p>\n",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "6364a2d3-3f36-a6a7-d0f8-40e834d84643",
+        "title": "Professional Summary",
+        "slug": "home/new-item",
+        "order": 1,
+        "parent": "f7ad95dc-5bc2-a26c-f736-8f8d963fe0cb",
+        "indent": 1,
+        "content": "\n<grid-plate disable-responsive layout=\"1-2-1\"><h2>                    Quantitative and detailed Finance student.</h2><p slot=\"col-2\" data-text-align=\"center\"><span>Proven track record in </span><strong>Financial Modeling</strong><span>, </span><strong>Equity Research</strong><span>, and </span><strong>Valuation</strong><span> (DCF, Comps). </span></p>\n\n\n\n\n\n\n\n<p slot=\"col-2\" data-text-align=\"center\">Passionate about the intersection of macroeconomic trends and the NYC capital markets. </p><p slot=\"col-2\" data-text-align=\"center\">Seeking to leverage analytical skills to drive value in a fast-paced analyst role.</p>\n</grid-plate>\n<h2 id=\"h2--1084078427\">Technical Skills</h2>\n<grid-plate disable-responsive layout=\"1-1-1\"><p slot=\"col-2\"><strong>Data &amp; Analytics</strong></p>\n\n<p slot=\"col-2\"><strong>Python (Pandas, NumPy)<br></strong>\n\n</p>\n<p slot=\"col-2\"><strong>Bloomberg Terminal / FactSet<br></strong>\n</p>\n<p slot=\"col-2\"><strong>Advanced Excel (VBA/Macros)<br></strong>\n</p>\n<p slot=\"col-2\"><strong>Tableau / Power BI<br></strong>\n</p>\n\n<p slot=\"col-1\"><strong>Financial Modeling</strong></p>\n\n<p slot=\"col-1\"><strong>DCF &#38;amp; LBO Modeling<br></strong>\n\n</p>\n<p slot=\"col-1\"><strong>3-Statement Integration<br></strong>\n</p>\n<p slot=\"col-1\"><strong>M&#38;A Accretion/Dilution<br></strong>\n</p>\n<p slot=\"col-1\"><strong>Sensitive Scenario Analysis<br></strong>\n</p>\n\n<p slot=\"col-3\"><strong>Soft Skills</strong></p>\n\n<p slot=\"col-3\"><strong>CRM Skills<br></strong>\n\n</p>\n<p slot=\"col-3\"><strong>Persuasive Presentation<br></strong>\n</p>\n<p slot=\"col-3\"><strong>Pressured Decision Making<br></strong>\n</p>\n<p slot=\"col-3\"><strong>Business Writing<br></strong>\n</p>\n\n</grid-plate>\n<p></p>\n",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "d89827bc-9708-06b7-5093-04a444511d5c",
+        "title": "Projects ",
+        "slug": "new-item",
+        "order": 1,
+        "parent": null,
+        "indent": 0,
+        "content": "\n<h3 id=\"h3--1710046007\">Equity Research Report - JP Morgan&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; January 2020</h3>\n<h3 id=\"h3--1710046007\"><strong>Objective:</strong><span> Conducted a comprehensive valuation to determine if the stock was undervalued.</span></h3>\n<h3 id=\"h3--1710046007\"><strong>Methodology:</strong><span> Built a 5-year </span><strong>Discounted Cash Flow (DCF)</strong><span> model and performed a </span><strong>Comparable Company Analysis (CCA)</strong><span> using a 10-firm peer group.</span></h3>\n<hr/><p><span><br></span></p>\n<p><span><br></span></p>\n<h3 id=\"h3-696169052\">Algorithmic Trading Strategy (Python)&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;March 2024</h3>\n<h3 id=\"h3-696169052\"><strong>Objective:</strong><span> Developed a \"Mean Reversion\" strategy for S&amp;P 500 ETFs.</span></h3>\n<h3 id=\"h3-696169052\"><strong>Methodology:</strong><span> Utilized Python to backtest the strategy against 10 years of historical data. Calculated </span><strong>Sharpe Ratio</strong><span>, </span><strong>Sorting Ratio</strong><span>, and </span><strong>Maximum Drawdown</strong><span>.</span></h3>\n<h3 id=\"h3-696169052\"><strong>Visual:</strong><span> [Include a chart showing your strategy's performance vs. the S&amp;P 500 benchmark].</span></h3>\n<hr/><p><span><br></span></p>\n<h3 id=\"h3-0\"><p></p></h3>\n",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "6739cfe7-3859-47ba-1ea1-90a730fceb08",
+        "title": "Professional Experience",
+        "slug": "new-item-1",
+        "order": 2,
+        "parent": null,
+        "indent": 0,
+        "content": "\n<h3 id=\"h3-0\"><p></p></h3>\n<h3 id=\"h3-0\"><p></p></h3>\n<h3 id=\"h3--581804614\">Summer Analyst - Chase Bank, Manhattan, NY</h3>\n<ul><li>Supported the deal team in the execution of $50M+ in mid-market M&amp;A transactions.</li></ul>\n<p></p>\n<ul><li>Automated weekly market update reports using Excel VBA, reducing manual entry time by 40%.</li></ul>\n<p></p>\n<ul><li>Performed due diligence on 5+ target companies, focusing on EBITDA adjustments and working capital trends.</li></ul>\n<h3 id=\"h3-919257069\">Sales &#38; Trading Analyst - Morgan Stanley, Brooklyn, NY</h3>\n<p><i>Rotated across Fixed Income, Currencies, and Commodities (FICC) and Equity Derivatives desks.</i></p>\n<ul><li><strong>Trade Execution &amp; Support:</strong> Assisted senior traders in the execution of high-volume flow, supporting books with daily notionals exceeding <strong>$500M</strong>.</li>\n</ul>\n<p></p>\n<ul>\n\n<li><strong>Quantitative Analysis:</strong><span> Developed a Python-based dashboard to track real-time volatility spreads between S&amp;P 500 options and VIX futures, identifying 3+ actionable arbitrage opportunities for the desk.</span></li>\n</ul>\n<p></p>\n<ul>\n<li><strong>Market Intelligence:</strong><span> Synthesized global macroeconomic news and Federal Reserve commentary into daily \"Morning Run\" briefings distributed to institutional clients and internal MDs.</span></li>\n</ul>\n<p></p>\n<ul>\n<li><strong>Risk Management:</strong><span> Monitored desk </span><strong>Value at Risk (VaR)</strong><span> and Greeks (Delta, Gamma, Vega) to ensure positions remained within firm-mandated risk limits during high-volatility sessions.</span></li>\n\n</ul>\n<h3 id=\"h3-0\"><p></p></h3>\n",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "d974a095-e4c0-1f54-bd3f-85d7c83ada67",
+        "title": "Education & Certifications",
+        "slug": "new-item-2",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "\n<h3 id=\"h3--985263202\">New York University, NY - B.S. in Finance | GPA: [4.0/4.0]</h3>\n<p><b>Honors: [ Dean’s List, Beta Gamma Sigma Honor Society, Investment Club Sector Lead] </b></p>\n<p></p>\n<p>Relevant Coursework: Investment Analysis: Applied Modern Portfolio Theory (MPT) and Capital Asset Pricing Model (CAPM) to optimize a mock $1M portfolio.&#160;</p>\n<p>Corporate Finance: Focused on capital structure optimization, WACC calculation, and dividend policy analysis.&#160;</p>\n<p>Econometrics: Leveraged R/Python to perform multiple regression analysis on market volatility drivers.</p>\n<h3>Professional Certifications&#160;</h3>\n<p>&#160;- Bloomberg Market Concepts (BMC) Focus: Core Market Dynamics Technical Proficiency:&#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; <span>Completed 8+ hours of interactive training on the Bloomberg Terminal. Mastery of modules in Economics, Currencies, Fixed Income, and Equities. </span></p>\n<p><span>NYC Impact: Proves you can navigate the Terminal—the \"oxygen\" of NYC trading floors—to pull data and run functions like GP, EE, and HP. </span></p>\n<p><span> - CFA Investment Foundations Focus: Global Investment Industry &amp; Ethics Conceptual Mastery:             Gained a comprehensive overview of the investment chain, including asset classes, industry regulation, and fiduciary responsibility. </span></p>\n<p><span>NYC Impact: Signals a commitment to the \"CFA Track,\" showing senior analysts that you are serious about long-term professional standards and ethical decision-making. </span></p>\n<p><span>- Wall Street Prep: Financial Modeling &amp; Valuation </span></p>\n<p><span>Focus: Hands-on \"Deal\" Modeling Skills Developed: Built 3-statement integrated models, Discounted Cash Flow (DCF) models, and M&amp;A Accretion/Dilution models from scratch using real-world case studies </span></p>\n<p><span>NYC Impact: This is the exact same training program used by Bulge Bracket banks to train their incoming first-year analysts. Listing this tells a recruiter, \"You won't have to teach me how to link a Balance Sheet.\"</span></p>\n",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      }
+    ],
+    "files": []
+  },
+  "theme": {
+    "path": "@haxtheweb/glossy-portfolio-theme/glossy-portfolio-theme.js",
+    "name": "Glossy Portfolio",
+    "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
+    "description": "Start with a blank site using the Glossy Portfolio",
+    "category": [
+      "Website"
+    ],
+    "hidden": false,
+    "priority": 0,
+    "terrible": false
+  },
+  "_skeleton": {
+    "originalMetadata": {
+      "site": {
+        "category": [],
+        "tags": [],
+        "settings": {
+          "lang": "en-US",
+          "publishPagesOn": true,
+          "canonical": true
+        }
+      },
+      "licensing": {},
+      "node": {
+        "fields": {}
+      },
+      "platform": {
+        "audience": "novice",
+        "features": {
+          "addPage": false,
+          "deletePage": false,
+          "outlineDesigner": false,
+          "styleGuide": false,
+          "insights": false,
+          "manifest": false,
+          "pageBreak": false,
+          "addBlock": false,
+          "contentMap": false,
+          "viewSource": false,
+          "onlineSearch": false
+        },
+        "allowedBlocks": []
+      }
+    },
+    "originalSettings": {
+      "lang": "en-US",
+      "publishPagesOn": true,
+      "canonical": true
+    },
+    "fullThemeConfig": {
+      "element": "glossy-portfolio-theme",
+      "variables": {
+        "hexCode": "#3f51b5",
+        "cssVariable": "--simple-colors-default-theme-light-blue-7"
+      },
+      "settings": {
+        "path": "@haxtheweb/glossy-portfolio-theme/glossy-portfolio-theme.js",
+        "name": "Glossy Portfolio",
+        "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
+        "description": "Start with a blank site using the Glossy Portfolio",
+        "category": [
+          "Website"
+        ],
+        "hidden": false,
+        "priority": 0,
+        "terrible": false
+      }
+    }
+  }
+}

@@ -206,6 +206,23 @@ class HAXCMS
                 if (!isset($this->config->appJWTConnectionSettings)) {
                     $this->config->appJWTConnectionSettings = new stdClass();
                 }
+                if (!isset($this->config->deploymentProfile)) {
+                    if (isset($this->config->iam) && $this->config->iam) {
+                        $this->config->deploymentProfile = 'haxiam-managed';
+                    }
+                    else {
+                        $this->config->deploymentProfile = 'self-hosted-multi-site';
+                    }
+                }
+                if (!isset($this->config->mcp)) {
+                    $this->config->mcp = new stdClass();
+                }
+                if (!isset($this->config->mcp->enabled)) {
+                    $this->config->mcp->enabled = ($this->getDeploymentProfile() != 'haxiam-managed');
+                }
+                if (!isset($this->config->mcp->readOnly)) {
+                    $this->config->mcp->readOnly = TRUE;
+                }
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(
@@ -338,11 +355,12 @@ class HAXCMS
                 }
             }
             else {
+                $sanitizedValue = is_bool($value) ? $value : filter_var($value);
                 if (is_array($values)) {
-                    $values[$key] = filter_var($value);
+                    $values[$key] = $sanitizedValue;
                 }
                 else if (is_object($values)) {
-                    $values->{$key} = filter_var($value);
+                    $values->{$key} = $sanitizedValue;
                 }
             }
         }
@@ -540,6 +558,7 @@ class HAXCMS
             "manifest-metadata-theme-variables-imageLink": null,
             "manifest-metadata-theme-variables-hexCode": null,
             "manifest-metadata-theme-variables-cssVariable": null,
+            "manifest-metadata-theme-variables-palette": null,
             "manifest-metadata-theme-variables-icon": null,
             "manifest-metadata-theme-styleGuide": null,
             "regions": {
@@ -985,9 +1004,20 @@ class HAXCMS
         else {
           $wcPath = $base . 'wc-registry.json';
         }
-        // support private IP space which will block this ever going through
-        if (!defined('IAM_PRIVATE_ADDRESS_SPACE')) {
-          $wcMap = json_decode(file_get_contents($wcPath));
+        // support private IP space by avoiding remote fetches while
+        // still allowing local wc-registry.json reads
+        $isRemoteWcPath = (preg_match('/^https?:\\/\\//', $wcPath) === 1);
+        if (!$isRemoteWcPath || !defined('IAM_PRIVATE_ADDRESS_SPACE')) {
+          $wcRegistryRaw = @file_get_contents($wcPath);
+          if ($wcRegistryRaw !== false) {
+            $decodedWcMap = json_decode($wcRegistryRaw);
+            if (is_object($decodedWcMap)) {
+              $wcMap = $decodedWcMap;
+            }
+          }
+        }
+        if (!is_object($wcMap)) {
+          $wcMap = new stdClass();
         }
       }
       return $wcMap;
@@ -1327,6 +1357,101 @@ class HAXCMS
       }
     }
     /**
+     * Resolve authenticated username from refresh token or JWT without ending request.
+     */
+    public function getAuthenticatedUserName() {
+      if ($this->isCLI()) {
+        return null;
+      }
+      $refreshUser = null;
+      if (isset($_COOKIE['haxcms_refresh_token']) && $_COOKIE['haxcms_refresh_token'] != '') {
+        $refreshTokenDecoded = $this->validateRefreshToken(FALSE);
+        if (
+          $refreshTokenDecoded &&
+          isset($refreshTokenDecoded->user) &&
+          $refreshTokenDecoded->user != ''
+        ) {
+          $refreshUser = $this->generateMachineName($refreshTokenDecoded->user);
+        }
+      }
+      $jwtUser = null;
+      $request = FALSE;
+      if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
+      }
+      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $request = $this->decodeJWT($_POST['jwt'])) {
+      }
+      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
+      }
+      if (
+        $request != FALSE &&
+        isset($request->id) &&
+        $request->id == $this->getRequestToken('user') &&
+        isset($request->user) &&
+        $request->user != '' &&
+        $this->validateUser($request->user)
+      ) {
+        $jwtUser = $this->generateMachineName($request->user);
+      }
+      // If both authentication mechanisms are present, they must agree.
+      if (!is_null($jwtUser) && !is_null($refreshUser) && $jwtUser !== $refreshUser) {
+        return null;
+      }
+      // If JWT user identity is present, always prefer it.
+      if (!is_null($jwtUser) && $jwtUser != '') {
+        return $jwtUser;
+      }
+      if (!is_null($refreshUser) && $refreshUser != '') {
+        return $refreshUser;
+      }
+      return null;
+    }
+    /**
+     * Resolve IAM path username from request URI (/<username>/system/api/...).
+     */
+    public function getRequestPathUserName() {
+      if (!isset($_SERVER['REQUEST_URI'])) {
+        return null;
+      }
+      $path = parse_url($this->request_uri(), PHP_URL_PATH);
+      if (!is_string($path) || $path == '') {
+        return null;
+      }
+      $basePath = trim((string) $this->basePath);
+      if ($basePath != '' && $basePath != '/') {
+        $normalizedBase = '/' . trim($basePath, '/');
+        if (strpos($path, $normalizedBase) === 0) {
+          $path = substr($path, strlen($normalizedBase));
+        }
+      }
+      $path = '/' . ltrim($path, '/');
+      $segments = explode('/', trim($path, '/'));
+      if (!is_array($segments) || !isset($segments[0]) || $segments[0] == '') {
+        return null;
+      }
+      // non-IAM routes like /system/api/* do not include a tenant user segment
+      if ($segments[0] == 'system') {
+        return null;
+      }
+      return $this->generateMachineName($segments[0]);
+    }
+    /**
+     * Resolve active IAM tenant username from loaded root path.
+     */
+    public function getIAMTenantUserName() {
+      if (!(isset($this->config->iam) && $this->config->iam)) {
+        return null;
+      }
+      if (defined('HAXCMS_ROOT')) {
+        $root = str_replace('\\', '/', HAXCMS_ROOT);
+        if (preg_match('/\\/users\\/([^\\/]+)/', $root, $matches) === 1) {
+          if (isset($matches[1]) && $matches[1] != '') {
+            return $this->generateMachineName($matches[1]);
+          }
+        }
+      }
+      return $this->getRequestPathUserName();
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
@@ -1417,7 +1542,7 @@ class HAXCMS
       }
       // kick back the end if its invalid
       if ($endOnInvalid) {
-        setcookie('haxcms_refresh_token', '', 1);
+        setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
         header('Status: 401');
         print 'haxcms_refresh_token:invalid:end_on_invalid_flag';
         exit();
@@ -1450,8 +1575,13 @@ class HAXCMS
         $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
         $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
         $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
+        $settings->saveAppearanceSettingsPath = $path . 'saveAppearanceSettings?site_token=' . $siteToken;
         $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
         $settings->saveNodeDetailsPath = $path . 'saveNodeDetails?site_token=' . $siteToken;
+        $settings->savePlatformSettingsPath = $path . 'savePlatformSettings?site_token=' . $siteToken;
+        $settings->saveAllowedBlocksPath = $path . 'saveAllowedBlocks?site_token=' . $siteToken;
+        $settings->saveEditorSettingsPath = $path . 'saveEditorSettings?site_token=' . $siteToken;
+        $settings->saveSeoSettingsPath = $path . 'saveSeoSettings?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
@@ -1461,6 +1591,8 @@ class HAXCMS
         $settings->getUserDataPath = $path . 'getUserData?user_token=' . $userToken;
         $settings->createSite = $path . 'createSite?user_token=' . $userToken;
         $settings->downloadSite = $path . 'downloadSite?user_token=' . $userToken;
+        $settings->downloadSiteSkeleton = $path . 'downloadSiteSkeleton?user_token=' . $userToken;
+        $settings->saveSiteAsTemplate = $path . 'saveSiteAsTemplate?user_token=' . $userToken;
         $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
         $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
         $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
@@ -1611,6 +1743,47 @@ class HAXCMS
         exit();
       }
       return FALSE;
+    }
+    /**
+     * Deployment profile controls platform-level MCP defaults.
+     */
+    public function getDeploymentProfile() {
+      if (!isset($this->config->deploymentProfile) || $this->config->deploymentProfile == '') {
+        return 'single-site';
+      }
+      $profile = strtolower((string) $this->config->deploymentProfile);
+      $validProfiles = array('single-site', 'self-hosted-multi-site', 'haxiam-managed');
+      if (in_array($profile, $validProfiles)) {
+        return $profile;
+      }
+      return 'single-site';
+    }
+    /**
+     * MCP availability policy.
+     */
+    public function isMCPEnabled() {
+      if (!isset($this->config->mcp) || !isset($this->config->mcp->enabled)) {
+        return FALSE;
+      }
+      return ($this->config->mcp->enabled === TRUE);
+    }
+    /**
+     * MCP write-protection policy (true means write calls must be blocked).
+     */
+    public function isMCPReadOnly() {
+      if (!$this->isMCPEnabled()) {
+        return TRUE;
+      }
+      if (!isset($this->config->mcp) || !isset($this->config->mcp->readOnly)) {
+        return TRUE;
+      }
+      return ($this->config->mcp->readOnly !== FALSE);
+    }
+    /**
+     * MCP write capability helper.
+     */
+    public function isMCPWriteEnabled() {
+      return ($this->isMCPEnabled() && !$this->isMCPReadOnly());
     }
 
     /**

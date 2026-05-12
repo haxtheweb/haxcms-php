@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "created": "2026-01-05T21:36:29Z",
     "type": "skeleton",
+    "priority": 0,
     "useCaseTitle": "Default Starter",
     "useCaseDescription": "A clean slate with one page - perfect for starting your HAX site journey",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-two-thumb.jpg",

@@ -1,0 +1,167 @@
+{
+    "meta": {
+      "name": "resume-journey skeleton",
+      "description": "Reume journey skeleton",
+      "version": "1.0.0",
+      "created": "2026-02-09T16:38:47.844Z",
+      "type": "skeleton",
+      "sourceUrl": "http://localhost:3000/_sites/resume-journey/",
+      "useCaseTitle": "Resume Journey",
+      "useCaseDescription": "Resume Journey use case skeleton",
+      "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
+      "category": ["Website"],
+      "tags": ["resume", "career", "skills"],
+      "attributes": []
+    },
+    "site": {
+      "name": "resume-journey",
+      "description": "Template based on (401) 555-1212 Jsmith23@gmail.com",
+      "theme": "journey-theme"
+    },
+    "build": {
+      "type": "skeleton",
+      "structure": "from-skeleton",
+      "items": [
+        {
+          "id": "0df70d5a-5aa9-80b3-1573-898b76f9bf68",
+          "title": "Education",
+          "slug": "index",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "content": "\n<h2 id=\"h2-127468952\">University of Rhode Island, Kingston, RI </h2>\n<p>Bachelor of Science in Business Administration Major: Innovation &#38; Entrepreneurship </p>\n<p>GPA: 3.4/4.0  </p>\n<p>Dean&#8217;s List - 4 semesters  </p>\n<p>Recipient of Kathleen Jackson Academic Scholarship  </p>\n<p>Related Coursework: Business of Innovation: Design Process, Lean Start-Up  </p>\n<p>Certifications: Microsoft Office Specialist; Six Sigma Yellow Belt </p>\n",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": "profile,summary"
+          }
+        },
+        {
+          "id": "c5ad3681-59aa-a86c-379c-758f74ae134d",
+          "title": "Related Experience",
+          "slug": "experience",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "content": "\n<h5 id=\"h5--330037092\">Launch Lab, University of Rhode Island, Kingston, RI</h5>\n<grid-plate disable-responsive layout=\"1-1-1-1\">\n  <p slot=\"col-1\"><b>Ambassador</b>\n  </p>\n\n  <p slot=\"col-4\">May 2024 - present</p>\n</grid-plate>\n<ul>\n  <li>Promote Launch Lab informing College of Business of Blab's resources and programming</li>\n  <li>Supervise Launch Lab space in Carothers Library Attend Innovate at URI events</li>\n  <li>Recommend new activities, workshops, hackathons to help grow participation and awareness</li>\n  <li>Participate in weekly Innovation Ambassador meetings to share activity, successes,\n    and challenges</li>\n  <li>﻿﻿Onboard and serve as mentor to six new ambassadors</li>\n</ul>\n<h5 id=\"h5--1397482313\">Small Business Development Center, Kingston, RI</h5>\n<grid-plate disable-responsive layout=\"1-2-1\">\n  <p slot=\"col-1\"><b>Office Assistant</b>\n  </p>\n\n  <p slot=\"col-3\">June 2021 - April 2024</p>\n</grid-plate>\n<ul>\n  <li>﻿﻿Observed consultations with local small businesses</li>\n  <li>﻿﻿Utilized Excel to track small business interactions, analyzing presenting needs\n    &amp; trends</li>\n  <li>﻿﻿Created PowerPoint presentation demonstrating utilization of services</li>\n  <li>﻿﻿Attended Chamber of Commerce events promoting SBD</li>\n</ul>\n<h5 id=\"h5--1807509329\">Del's Lemonade, Narragansett, RI</h5>\n<grid-plate disable-responsive layout=\"1-2-1\">\n  <p slot=\"col-1\">Mobile Unit Driver</p>\n  <p slot=\"col-3\">June 2020 - July 2021\n    <br>\n  </p>\n\n</grid-plate>\n<ul>\n  <li>﻿﻿Sold product at Narragansett Beach during summer months Managed financial records\n    and maintained register receipts</li>\n  <li>﻿﻿Drove truck to and from sales locations on daily basis</li>\n  <li>﻿﻿Learned importance of pricing and positioning product Gained understanding of\n    family-owned/franchise operations</li>\n</ul>\n",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": "work,history"
+          }
+        },
+        {
+          "id": "9e41b3b1-4aa6-03b7-bae5-2d9680e814d0",
+          "title": "Personal Projects",
+          "slug": "education",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "content": "\n<h2 id=\"h2-127468952\">University of Rhode Island, Kingston, RI </h2>\n<p>Bachelor of Science in Business Administration Major: Innovation &#38; Entrepreneurship</p>\n<p>GPA: 3.4/4.0</p>\n<p>Dean&#8217;s List - 4 semesters</p>\n<p>Recipient of Kathleen Jackson Academic Scholarship</p>\n<p>Related Coursework: Business of Innovation: Design Process, Lean Start-Up</p>\n<p>Certifications: Microsoft Office Specialist; Six Sigma Yellow Belt</p>\n",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": "education,degree"
+          }
+        },
+        {
+          "id": "40b817c1-1777-a4cc-86f2-1194e5a0a2ae",
+          "title": "Skills & Tools",
+          "slug": "skills-tools",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "content": "\n<grid-plate disable-responsive layout=\"1-2-1\">\n  <p slot=\"col-2\">Systems Thinking &amp; Strategic Design</p>\n  <p slot=\"col-2\">Innovation &amp; Opportunity</p>\n  <p slot=\"col-2\">Recognition Lean Startup &amp; MVP Development</p>\n  <p slot=\"col-2\">Community Building &amp; Leadership Market</p>\n  <p slot=\"col-2\">Research &amp; User Discovery</p>\n  <p slot=\"col-2\">Content Strategy &amp; Brand Development</p>\n  <p slot=\"col-2\">Financial &amp; Investment Fundamentals</p>\n</grid-plate>\n",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": "skillset,tools"
+          }
+        },
+        {
+          "id": "89622fb4-d754-c4ac-1886-da4a0189be2a",
+          "title": "Reach out for inquiries!",
+          "slug": "projects-contact",
+          "order": 4,
+          "parent": null,
+          "indent": 0,
+          "content": "\n<grid-plate disable-responsive layout=\"1-2-1\"><h6>Phone #</h6><p slot=\"col-3\">+1 (401) 555-1212</p>\n<p>+1 (4<lrn-math></lrn-math>\n\n\n\n\n\n\n\n\n\n<lrn-math></lrn-math>\n\n\n\n\n\n\n\n\n\n01) 555-1212</p>\n\n\n\n\n\n\n\n\n\n<p></p>\n\n<h3>OOO</h3><p slot=\"col-1\"><b>Phone Number</b></p>\n\n\n\n\n\n\n\n\n\n\n</grid-plate>\n<grid-plate disable-responsive layout=\"1-2-1\"><p slot=\"col-1\"><b>Email</b></p>\n\n\n\n\n<p slot=\"col-3\">Jsmith23@gmail.com</p></grid-plate>\n",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": "projects,contact"
+          }
+        }
+      ],
+      "files": []
+    },
+    "theme": {
+      "imageAlt": null,
+      "imageLink": null,
+      "path": "@haxtheweb/journey-theme/journey-theme.js",
+      "name": "Journey Theme",
+      "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
+      "description": "Start with a blank site using the Journey Theme",
+      "category": [
+        "Website"
+      ],
+      "hidden": false,
+      "terrible": false,
+      "regions": {}
+    },
+    "_skeleton": {
+      "originalMetadata": {
+        "site": {
+          "category": [],
+          "tags": [],
+          "settings": {
+            "lang": "en-US",
+            "publishPagesOn": true,
+            "canonical": true,
+            "private": false,
+            "pathauto": false,
+            "sw": false,
+            "forceUpgrade": false,
+            "gaID": null
+          }
+        },
+        "licensing": {},
+        "node": {
+          "fields": {}
+        },
+        "platform": {}
+      },
+      "originalSettings": {
+        "lang": "en-US",
+        "publishPagesOn": true,
+        "canonical": true,
+        "private": false,
+        "pathauto": false,
+        "sw": false,
+        "forceUpgrade": false
+      },
+      "fullThemeConfig": {
+        "element": "journey-theme",
+        "variables": {
+          "image": "",
+          "imageAlt": null,
+          "imageLink": null,
+          "hexCode": "#3f51b5",
+          "cssVariable": "--simple-colors-default-theme-light-blue-7",
+          "icon": "av:snooze"
+        },
+        "settings": {
+          "path": "@haxtheweb/journey-theme/journey-theme.js",
+          "name": "Journey Theme",
+          "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
+          "description": "Start with a blank site using the Journey Theme",
+          "category": [
+            "Website"
+          ],
+          "hidden": false,
+          "terrible": false,
+          "regions": {}
+        }
+      }
+    }
+  }

@@ -1,0 +1,20 @@
+# {{ title }}
+
+> {{ description }}
+
+HAXcms is a file-based CMS where authored content and metadata are stored as portable files.
+The canonical structure is expressed in `site.json` using JSON Outline Schema (`id`, `parent`, `order`, `slug`, `location`, and `metadata`).
+Use HAX CLI and ecosystem tooling to keep human-authored pages and machine-readable outputs synchronized.
+Managed files (feeds, search indexes, manifests, and this `llms.txt`) are generated artifacts and should be rebuilt by tooling.
+
+## Core resources
+
+- [site.json]({{ basePath }}site.json): Canonical site manifest and navigation tree in JSON Outline Schema format.
+- [llms.txt]({{ basePath }}llms.txt): LLM-oriented guide to this site and its machine-readable resources.
+
+## Optional
+
+- [Search index]({{ basePath }}lunrSearchIndex.json): Lunr corpus for quick full-text retrieval.
+- [RSS feed]({{ basePath }}rss.xml): Site updates in RSS format.
+- [Atom feed]({{ basePath }}atom.xml): Site updates in Atom format.
+- [Sitemap]({{ basePath }}sitemap.xml): URL-level discovery map for the published site.

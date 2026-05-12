@@ -205,7 +205,6 @@ class GitRepo
                         );
                     } elseif (strlen($reference)) {
                         $reference = realpath($reference);
-                        $reference = "--reference $reference";
                     }
                     $repo->clone_remote($source, $reference);
                 } else {
@@ -348,10 +347,10 @@ class GitRepo
     /**
      * Run a command in the git repository
      *
-     * Accepts a shell command to run
+     * Accepts a command to run
      *
      * @access  protected
-     * @param   string  command to run
+     * @param   string|array  command to run
      * @return  string
      */
     protected function run_command($command, $skip_fail = true)
@@ -407,7 +406,30 @@ class GitRepo
      */
     public function run($command)
     {
-        return $this->run_command(Git::get_bin() . " " . $command);
+        $command = trim($command);
+        if ($command === '') {
+            return $this->run_args(array());
+        }
+        $args = preg_split('/\s+/', $command);
+        return $this->run_args($args);
+    }
+
+    /**
+     * Run a git command in the git repository using argument-safe arrays.
+     *
+     * Accepts an array of git command arguments.
+     *
+     * @access  protected
+     * @param   array   command arguments to run
+     * @return  string
+     */
+    protected function run_args($args)
+    {
+        if (!is_array($args)) {
+            $args = array($args);
+        }
+        array_unshift($args, Git::get_bin());
+        return $this->run_command($args);
     }
     /**
      * return the current sha as a string
@@ -445,10 +467,16 @@ class GitRepo
      */
     public function add($files = "*")
     {
+        $args = array('add');
         if (is_array($files)) {
-            $files = '"' . implode('" "', $files) . '"';
+            foreach ($files as $file) {
+                $args[] = $file;
+            }
+        } else {
+            $args[] = $files;
         }
-        return $this->run("add $files -v");
+        $args[] = '-v';
+        return $this->run_args($args);
     }
 
     /**
@@ -458,7 +486,7 @@ class GitRepo
      */
     public function set_remote($destination, $url)
     {
-        return $this->run("remote add $destination $url");
+        return $this->run_args(array('remote', 'add', $destination, $url));
     }
 
     /**
@@ -473,10 +501,18 @@ class GitRepo
      */
     public function rm($files = "*", $cached = false)
     {
-        if (is_array($files)) {
-            $files = '"' . implode('" "', $files) . '"';
+        $args = array('rm');
+        if ($cached) {
+            $args[] = '--cached';
         }
-        return $this->run("rm " . ($cached ? '--cached ' : '') . $files);
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                $args[] = $file;
+            }
+        } else {
+            $args[] = $files;
+        }
+        return $this->run_args($args);
     }
 
     /**
@@ -491,10 +527,11 @@ class GitRepo
      */
     public function commit($message = "", $commit_all = true)
     {
-        $flags = $commit_all ? '-av' : '-v';
-        return $this->run(
-            "commit " . $flags . " -m " . escapeshellarg($message)
-        );
+        $args = array('commit', '-v', '-m', $message);
+        if ($commit_all) {
+            array_splice($args, 2, 0, '-a');
+        }
+        return $this->run_args($args);
     }
 
     /**
@@ -509,7 +546,7 @@ class GitRepo
      */
     public function clone_to($target)
     {
-        return $this->run("clone --local " . $this->repo_path . " $target");
+        return $this->run_args(array('clone', '--local', $this->repo_path, $target));
     }
 
     /**
@@ -524,7 +561,7 @@ class GitRepo
      */
     public function clone_from($source)
     {
-        return $this->run("clone --local $source " . $this->repo_path);
+        return $this->run_args(array('clone', '--local', $source, $this->repo_path));
     }
 
     /**
@@ -540,7 +577,14 @@ class GitRepo
      */
     public function clone_remote($source, $reference)
     {
-        return $this->run("clone $reference $source " . $this->repo_path);
+        $args = array('clone');
+        if (is_string($reference) && strlen($reference)) {
+            $args[] = '--reference';
+            $args[] = $reference;
+        }
+        $args[] = $source;
+        $args[] = $this->repo_path;
+        return $this->run_args($args);
     }
 
     /**
@@ -571,7 +615,7 @@ class GitRepo
      */
     public function create_branch($branch)
     {
-        return $this->run("branch $branch");
+        return $this->run_args(array('branch', $branch));
     }
 
     /**
@@ -585,7 +629,7 @@ class GitRepo
      */
     public function delete_branch($branch, $force = false)
     {
-        return $this->run("branch " . ($force ? '-D' : '-d') . " $branch");
+        return $this->run_args(array('branch', ($force ? '-D' : '-d'), $branch));
     }
 
     /**
@@ -660,7 +704,7 @@ class GitRepo
      */
     public function checkout($branch)
     {
-        return $this->run("checkout $branch");
+        return $this->run_args(array('checkout', $branch));
     }
 
     /**
@@ -674,7 +718,7 @@ class GitRepo
      */
     public function merge($branch)
     {
-        return $this->run("merge $branch --no-ff");
+        return $this->run_args(array('merge', $branch, '--no-ff'));
     }
 
     /**
@@ -690,11 +734,12 @@ class GitRepo
      */
     public function reset($branch = 'master', $remote = 'origin', $hard = true)
     {
-        $flag = '';
+        $args = array('reset');
         if ($hard) {
-            $flag = '--hard';
+            $args[] = '--hard';
         }
-        return $this->run("reset $flag $remote/$branch");
+        $args[] = $remote . '/' . $branch;
+        return $this->run_args($args);
     }
 
     /**
@@ -746,7 +791,7 @@ class GitRepo
         if ($message === null) {
             $message = $tag;
         }
-        return $this->run("tag -a $tag -m " . escapeshellarg($message));
+        return $this->run_args(array('tag', '-a', $tag, '-m', $message));
     }
 
     /**
@@ -760,7 +805,11 @@ class GitRepo
      */
     public function list_tags($pattern = null)
     {
-        $tagArray = explode("\n", $this->run("tag -l $pattern"));
+        $args = array('tag', '-l');
+        if (is_string($pattern) && strlen($pattern)) {
+            $args[] = $pattern;
+        }
+        $tagArray = explode("\n", $this->run_args($args));
         foreach ($tagArray as $i => &$tag) {
             $tag = trim($tag);
             if ($tag == '') {
@@ -782,7 +831,20 @@ class GitRepo
      */
     public function push($remote, $branch, $flags = '--tags')
     {
-        return $this->run("push $remote $branch $flags");
+        $args = array('push', $remote, $branch);
+        if (is_array($flags)) {
+            foreach ($flags as $flag) {
+                $args[] = $flag;
+            }
+        } elseif (is_string($flags) && strlen($flags)) {
+            $parts = preg_split('/\s+/', trim($flags));
+            foreach ($parts as $part) {
+                if ($part !== '') {
+                    $args[] = $part;
+                }
+            }
+        }
+        return $this->run_args($args);
     }
 
     /**
@@ -796,7 +858,7 @@ class GitRepo
      */
     public function pull($remote, $branch)
     {
-        return $this->run("pull $remote $branch");
+        return $this->run_args(array('pull', $remote, $branch));
     }
 
     /**
@@ -810,7 +872,7 @@ class GitRepo
         if ($format === null) {
             return $this->run('log');
         } else {
-            return $this->run('log --pretty=format:"' . $format . '"');
+            return $this->run_args(array('log', '--pretty=format:' . $format));
         }
     }
 
@@ -824,10 +886,10 @@ class GitRepo
     public function show($commit, $format = null)
     {
         if ($format === null) {
-            return $this->run('show');
+            return $this->run_args(array('show', $commit));
         } else {
-            return $this->run(
-                'show --pretty=format:"' . $format . '" ' . $commit
+            return $this->run_args(
+                array('show', '--pretty=format:' . $format, $commit)
             );
         }
     }

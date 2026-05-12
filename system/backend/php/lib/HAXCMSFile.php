@@ -5,6 +5,245 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
+    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+    private $allowedMimeByExtension = array(
+        'jpg' => array('image/jpeg'),
+        'jpeg' => array('image/jpeg'),
+        'png' => array('image/png'),
+        'gif' => array('image/gif'),
+        'webp' => array('image/webp'),
+        'webm' => array('video/webm', 'audio/webm'),
+        'mp4' => array('video/mp4'),
+        'mp3' => array('audio/mpeg', 'audio/mp3'),
+        'mov' => array('video/quicktime'),
+        'csv' => array('text/csv', 'text/plain', 'application/vnd.ms-excel'),
+        'ppt' => array('application/vnd.ms-powerpoint', 'application/x-ole-storage', 'application/octet-stream'),
+        'pptx' => array('application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'),
+        'xlsx' => array('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'),
+        'doc' => array('application/msword', 'application/x-ole-storage', 'application/octet-stream'),
+        'xls' => array('application/vnd.ms-excel', 'application/x-ole-storage', 'application/octet-stream'),
+        'docx' => array('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'),
+        'pdf' => array('application/pdf'),
+        'rtf' => array('application/rtf', 'text/rtf', 'text/plain'),
+        'txt' => array('text/plain'),
+        'vtt' => array('text/vtt', 'text/plain'),
+        'html' => array('text/html', 'application/xhtml+xml'),
+        'md' => array('text/markdown', 'text/x-markdown', 'text/plain')
+    );
+    private $imageExtensions = array(
+        'jpg',
+        'jpeg',
+        'png',
+        'gif',
+        'webp'
+    );
+    private $dangerousExecutableExtensions = array(
+        'php',
+        'php3',
+        'php4',
+        'php5',
+        'php7',
+        'php8',
+        'phtml',
+        'phar',
+        'phpt',
+        'cgi',
+        'pl',
+        'py',
+        'rb',
+        'sh',
+        'bash',
+        'zsh',
+        'ksh',
+        'csh',
+        'tcsh',
+        'asp',
+        'aspx',
+        'jsp',
+        'exe',
+        'dll',
+        'com',
+        'bat',
+        'cmd',
+        'msi'
+    );
+
+    private function normalizeExtensionPart($part)
+    {
+        return strtolower(preg_replace('/[^a-z0-9]/i', '', $part));
+    }
+
+    private function normalizeFilenameExtensionCasing($name)
+    {
+        if (!is_string($name) || $name === '') {
+            return '';
+        }
+        $directory = pathinfo($name, PATHINFO_DIRNAME);
+        $basename = pathinfo($name, PATHINFO_BASENAME);
+        $extension = pathinfo($basename, PATHINFO_EXTENSION);
+        if ($extension === '') {
+            return $name;
+        }
+        $filename = pathinfo($basename, PATHINFO_FILENAME);
+        $normalizedName = $filename . '.' . strtolower($extension);
+        if ($directory !== '' && $directory !== '.') {
+            return $directory . '/' . $normalizedName;
+        }
+        return $normalizedName;
+    }
+
+    private function stripExecutableExtensionPatterns($name)
+    {
+        $directory = pathinfo($name, PATHINFO_DIRNAME);
+        $basename = pathinfo($name, PATHINFO_BASENAME);
+        $parts = explode('.', $basename);
+        if (count($parts) <= 1) {
+            return $name;
+        }
+        $safeParts = array();
+        foreach ($parts as $index => $part) {
+            if ($part === '') {
+                continue;
+            }
+            if (
+                $index > 0 &&
+                in_array($this->normalizeExtensionPart($part), $this->dangerousExecutableExtensions, true)
+            ) {
+                continue;
+            }
+            $safeParts[] = $part;
+        }
+        if (count($safeParts) === 0) {
+            return '';
+        }
+        $safeName = implode('.', $safeParts);
+        if ($directory !== '' && $directory !== '.') {
+            return $directory . '/' . $safeName;
+        }
+        return $safeName;
+    }
+
+    private function detectMimeType($tmpPath)
+    {
+        if (!is_string($tmpPath) || $tmpPath == '' || !file_exists($tmpPath)) {
+            return false;
+        }
+        $mimeType = false;
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mimeType = finfo_file($finfo, $tmpPath);
+                finfo_close($finfo);
+            }
+        }
+        if (($mimeType === false || $mimeType === null || $mimeType === '') && function_exists('mime_content_type')) {
+            $mimeType = mime_content_type($tmpPath);
+        }
+        if (!is_string($mimeType) || $mimeType === '') {
+            return false;
+        }
+        if (strpos($mimeType, ';') !== false) {
+            $mimeParts = explode(';', $mimeType);
+            $mimeType = $mimeParts[0];
+        }
+        return strtolower(trim($mimeType));
+    }
+
+    private function mimeMatchesAllowed($actualMime, $allowedMimes)
+    {
+        foreach ($allowedMimes as $allowedMime) {
+            $allowedMime = strtolower($allowedMime);
+            if (substr($allowedMime, -2) === '/*') {
+                $prefix = substr($allowedMime, 0, -1);
+                if (strpos($actualMime, $prefix) === 0) {
+                    return true;
+                }
+            }
+            else if ($actualMime === $allowedMime) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function validateUploadMimeAndContent($name, $tmpPath, &$errorMessage)
+    {
+        $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if ($extension === '' || !isset($this->allowedMimeByExtension[$extension])) {
+            $errorMessage = 'File type not allowed';
+            return false;
+        }
+        $detectedMime = $this->detectMimeType($tmpPath);
+        if ($detectedMime === false) {
+            $errorMessage = 'Unable to determine uploaded file MIME type';
+            return false;
+        }
+        if (!$this->mimeMatchesAllowed($detectedMime, $this->allowedMimeByExtension[$extension])) {
+            $errorMessage = 'Detected MIME type ' . $detectedMime . ' does not match allowed type for .' . $extension;
+            return false;
+        }
+        if (in_array($extension, $this->imageExtensions, true) && @getimagesize($tmpPath) === false) {
+            $errorMessage = 'Invalid image file content';
+            return false;
+        }
+        return true;
+    }
+    public static function getBulkImportStagingRootPath()
+    {
+        global $HAXCMS;
+        if (!isset($HAXCMS) || !isset($HAXCMS->configDirectory)) {
+            return false;
+        }
+        $stagingRoot = $HAXCMS->configDirectory . '/tmp/imports';
+        $resolvedRoot = realpath($stagingRoot);
+        if ($resolvedRoot === false || !is_dir($resolvedRoot)) {
+            return false;
+        }
+        return rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+    }
+    public static function isPathWithinRoot($resolvedPath, $resolvedRoot)
+    {
+        $normalizedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/');
+        $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+        if ($normalizedPath === $normalizedRoot) {
+            return true;
+        }
+        return strpos($normalizedPath, $normalizedRoot . '/') === 0;
+    }
+    public static function isValidBulkImportTmpPath($tmpPath)
+    {
+        if (!is_string($tmpPath)) {
+            return false;
+        }
+        $normalized = trim($tmpPath);
+        if ($normalized === '' || strpos($normalized, "\0") !== false) {
+            return false;
+        }
+        if (preg_match('/^[A-Za-z][A-Za-z0-9+\.\-]*:/', $normalized)) {
+            if (!preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)) {
+                return false;
+            }
+        }
+        if (
+            substr($normalized, 0, 1) !== '/' &&
+            !preg_match('/^[A-Za-z]:[\\\\\/]/', $normalized)
+        ) {
+            return false;
+        }
+        // reject symlinks to prevent TOCTOU attacks
+        if (is_link($normalized)) {
+            return false;
+        }
+        $resolvedSource = realpath($normalized);
+        if ($resolvedSource === false || !is_file($resolvedSource)) {
+            return false;
+        }
+        $stagingRoot = self::getBulkImportStagingRootPath();
+        if ($stagingRoot === false) {
+            return false;
+        }
+        return self::isPathWithinRoot($resolvedSource, $stagingRoot);
+    }
     /**
      * Save file into this site, optionally updating reference inside the page
      */
@@ -15,17 +254,49 @@ class HAXCMSFile
         $size = false;
         $status = 0;
         $return = array();
-        $name = $upload['name'];
+        $name = $this->normalizeFilenameExtensionCasing(
+            $this->stripExecutableExtensionPatterns($upload['name'])
+        );
+        $validationError = '';
+        $isBulkImport = isset($upload['bulk-import']);
+        $isUploadSourceValid = false;
+        if (isset($upload['tmp_name'])) {
+            if ($isBulkImport) {
+                $isUploadSourceValid = self::isValidBulkImportTmpPath($upload['tmp_name']);
+            }
+            else {
+                $isUploadSourceValid = is_uploaded_file($upload['tmp_name']);
+            }
+        }
+        $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
+        $passesMimeValidation = false;
+        if ($isUploadSourceValid && $isAllowedExtension) {
+            $passesMimeValidation = $this->validateUploadMimeAndContent($name, $upload['tmp_name'], $validationError);
+        }
+        else if ($isUploadSourceValid && !$isAllowedExtension) {
+            $validationError = 'File type not allowed';
+        }
+        else if (!$isUploadSourceValid) {
+            if ($isBulkImport) {
+                $validationError = 'Invalid bulk import source';
+            }
+            else {
+                $validationError = 'Invalid upload source';
+            }
+        }
         // ensure file is an image, video, docx, pdf, etc. of safe file types to allow uploading
         if (
-            isset($upload['tmp_name']) &&
-            (is_uploaded_file($upload['tmp_name']) || isset($upload['bulk-import'])) && 
-            // ensure file extension is an image, video, docx, pdf, etc. of safe file types to allow uploading
-            preg_match(
-                '/.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i',
-                $upload['name']
-            )
+            $isUploadSourceValid &&
+            $isAllowedExtension &&
+            $passesMimeValidation
         ) {
+            // TOCTOU defense: verify source is not a symlink right before reading
+            if ($isBulkImport && is_link($upload['tmp_name'])) {
+                return array(
+                    'status' => 500,
+                    'data' => 'Bulk import source replaced with symlink'
+                );
+            }
             // get contents of the file if it was uploaded into a variable
             $filedata = @file_get_contents($upload['tmp_name']);
             // attempt to save the file either to site or system level
@@ -44,7 +315,7 @@ class HAXCMSFile
             // account for name possibly matching on file system already
             $actual_name = pathinfo($name, PATHINFO_FILENAME);
             $original_name = $actual_name;
-            $extension = pathinfo($name, PATHINFO_EXTENSION);
+            $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
             $i = 1;
             while (file_exists($path . $actual_name . "." . $extension)) {           
                 $actual_name = (string)$original_name . $i;
@@ -158,7 +429,12 @@ class HAXCMSFile
         }
         if ($size === false) {
             $status = 500;
-            $return = 'failed to write ' . $name;
+            if ($validationError !== '') {
+                $return = $validationError;
+            }
+            else {
+                $return = 'failed to write ' . $name;
+            }
         }
         return array(
             'status' => $status,

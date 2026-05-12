@@ -1,7 +1,36 @@
 <?php
+include_once 'SanitizeContent.php';
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
+    /**
+     * Escape text for XML contexts.
+     */
+    private function xmlEscape($value = '')
+    {
+        return SanitizeContent::escapeXMLValue($value);
+    }
+    /**
+     * Normalize timestamps that may be unix seconds, milliseconds, or parseable dates.
+     */
+    private function normalizeTimestamp($value = null)
+    {
+        if ($value === null || $value === '') {
+            return time();
+        }
+        if (is_numeric($value)) {
+            $numeric = (int) $value;
+            if ($numeric > 1000000000000) {
+                return (int) floor($numeric / 1000);
+            }
+            return $numeric;
+        }
+        $parsed = strtotime((string) $value);
+        if ($parsed !== false) {
+            return $parsed;
+        }
+        return time();
+    }
     /**
      * Generate the RSS 2.0 header
      */
@@ -27,49 +56,43 @@ class FeedMe
                 }
             }
         }
-        
         // Ensure domain ends with /
         if (!empty($domain) && substr($domain, -1) !== '/') {
             $domain .= '/';
         }
-        
         // Strip HTML from description
         $description = strip_tags($site->manifest->description ?? '');
-        
         // Generate categories from site tags if available
         $categories = '';
         if (isset($site->manifest->metadata->tags) && is_array($site->manifest->metadata->tags)) {
             foreach ($site->manifest->metadata->tags as $tag) {
                 if (!empty(trim($tag))) {
-                    $categories .= "\n    <category>" . htmlspecialchars(trim($tag), ENT_XML1, 'UTF-8') . "</category>";
+                    $categories .= "\n    <category>" . $this->xmlEscape(trim($tag)) . "</category>";
                 }
             }
         }
-        
         // Only add copyright if we have a domain
         $copyright = '';
         if (!empty($domain)) {
-            $copyright = "\n    <copyright>Copyright (C) " . date('Y') . ' ' . rtrim($domain, '/') . "</copyright>";
+            $copyright = "\n    <copyright>Copyright (C) " . date('Y') . ' ' . $this->xmlEscape(rtrim($domain, '/')) . "</copyright>";
         }
-        
         // Add generator element per RSS spec
         $generator = "\n    <generator>HAXcms PHP</generator>";
-        
         return '<?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
   <channel>
-    <title>' . htmlspecialchars($site->manifest->title ?? '', ENT_XML1, 'UTF-8') . '</title>
-    <link>' . htmlspecialchars($domain, ENT_XML1, 'UTF-8') . '</link>
-    <description>' . htmlspecialchars($description, ENT_XML1, 'UTF-8') . '</description>' .
+    <title>' . $this->xmlEscape($site->manifest->title ?? '') . '</title>
+    <link>' . $this->xmlEscape($domain) . '</link>
+    <description>' . $this->xmlEscape($description) . '</description>' .
             $copyright .
-            "\n    <language>" . htmlspecialchars($site->getLanguage(), ENT_XML1, 'UTF-8') . "</language>
+            "\n    <language>" . $this->xmlEscape($site->getLanguage()) . "</language>
     <lastBuildDate>" .
-            date(\DateTime::RSS, $site->manifest->metadata->site->updated) .
+            date(\DateTime::RSS, $this->normalizeTimestamp($site->manifest->metadata->site->updated ?? null)) .
             '</lastBuildDate>' .
             $generator .
             $categories .
             "\n    <atom:link href=\"" .
-            htmlspecialchars($domain . 'rss.xml', ENT_XML1, 'UTF-8') .'" rel="self" type="application/rss+xml"/>' .
+            $this->xmlEscape($domain . 'rss.xml') . "\" rel=\"self\" type=\"application/rss+xml\"/>" .
             $this->rssItems($site, $domain) .
             "\n  </channel>
 </rss>";
@@ -83,12 +106,10 @@ class FeedMe
         $count = 0;
         $items = $site->sortItems('created');
         $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
-        
         // Ensure domain is properly formatted
         if (!empty($domain) && substr($domain, -1) !== '/') {
             $domain .= '/';
         }
-        
         foreach ($items as $key => $item) {
             // beyond edge but don't want this to error on write
             if (!isset($item->metadata)) {
@@ -98,31 +119,28 @@ class FeedMe
               $item->metadata->created = time();
               $item->metadata->updated = time();
             }
-            
             if ($count < $limit) {
                 // Build absolute link
-                $itemLink = $domain . ltrim($item->slug, '/');
-                
+                $itemLink = $domain . ltrim((string) $item->slug, '/');
                 // Handle categories properly - create separate category elements
                 $categoryElements = '';
                 if (isset($item->metadata->tags) && !empty($item->metadata->tags)) {
                     if (is_array($item->metadata->tags)) {
                         foreach ($item->metadata->tags as $tag) {
-                            $tag = trim($tag);
+                            $tag = trim((string) $tag);
                             if (!empty($tag)) {
-                                $categoryElements .= "\n      <category>" . htmlspecialchars($tag, ENT_XML1, 'UTF-8') . "</category>";
+                                $categoryElements .= "\n      <category>" . $this->xmlEscape($tag) . "</category>";
                             }
                         }
                     } else if (is_string($item->metadata->tags)) {
                         $tag = trim($item->metadata->tags);
                         if (!empty($tag)) {
-                            $categoryElements .= "\n      <category>" . htmlspecialchars($tag, ENT_XML1, 'UTF-8') . "</category>";
+                            $categoryElements .= "\n      <category>" . $this->xmlEscape($tag) . "</category>";
                         }
                     }
                 }
-                
                 // Read and clean content for description
-                $contentPath = $siteDirectory . '/' . str_replace('./', '', str_replace('../', '', $item->location));
+                $contentPath = $siteDirectory . '/' . str_replace('./', '', str_replace('../', '', (string) $item->location));
                 $content = '';
                 if (file_exists($contentPath)) {
                     $rawContent = file_get_contents($contentPath);
@@ -135,17 +153,15 @@ class FeedMe
                         $content = substr($content, 0, 497) . '...';
                     }
                 }
-                
                 // Use absolute URL for GUID to make it valid
                 $guid = $itemLink;
-                
                 $output .= "\n    <item>" .
-                    "\n      <title>" . htmlspecialchars($item->title ?? '', ENT_XML1, 'UTF-8') . "</title>" .
-                    "\n      <link>" . htmlspecialchars($itemLink, ENT_XML1, 'UTF-8') . "</link>" .
-                    "\n      <description>" . htmlspecialchars($content, ENT_XML1, 'UTF-8') . "</description>" .
+                    "\n      <title>" . $this->xmlEscape($item->title ?? '') . "</title>" .
+                    "\n      <link>" . $this->xmlEscape($itemLink) . "</link>" .
+                    "\n      <description>" . $this->xmlEscape($content) . "</description>" .
                     $categoryElements .
-                    "\n      <guid>" . htmlspecialchars($guid, ENT_XML1, 'UTF-8') . "</guid>" .
-                    "\n      <pubDate>" . date(\DateTime::RSS, $item->metadata->created) . "</pubDate>" .
+                    "\n      <guid>" . $this->xmlEscape($guid) . "</guid>" .
+                    "\n      <pubDate>" . date(\DateTime::RSS, $this->normalizeTimestamp($item->metadata->created ?? null)) . "</pubDate>" .
                     "\n    </item>";
             }
             $count++;
@@ -157,26 +173,30 @@ class FeedMe
      */
     public function getAtomFeed($site, $domain = "")
     {
+        if (!empty($domain) && substr($domain, -1) !== '/') {
+            $domain .= '/';
+        }
+        $updated = $this->normalizeTimestamp($site->manifest->metadata->site->updated ?? null);
+        $title = $this->xmlEscape($site->manifest->title ?? '');
+        $subtitle = $this->xmlEscape($site->manifest->description ?? '');
+        $authorName = '';
+        if (isset($site->manifest->author) && !empty($site->manifest->author)) {
+            $authorName = $site->manifest->author;
+        } else if (isset($site->manifest->metadata->author->name)) {
+            $authorName = $site->manifest->metadata->author->name;
+        }
+        $authorName = $this->xmlEscape($authorName);
+        $safeDomain = $this->xmlEscape($domain);
         return '<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>' .
-            $site->manifest->title .
-            '</title>
-  <link href="' .
-            $domain . '" rel="self" />
-  <subtitle>' .
-            $site->manifest->description .
-            '</subtitle>
-  <updated>' .
-            date(\DateTime::ATOM, $site->manifest->metadata->site->updated) .
-            '</updated>
+  <title>' . $title . '</title>
+  <link href="' . $safeDomain . '" rel="self" />
+  <subtitle>' . $subtitle . '</subtitle>
+  <updated>' . date(\DateTime::ATOM, $updated) . '</updated>
   <author>
-      <name>' .
-            $site->manifest->author .
-            '</name>
+      <name>' . $authorName . '</name>
   </author>
-  <id>' .
-            $domain . '</id>' .
+  <id>' . $safeDomain . '</id>' .
             $this->atomItems($site, $domain) .
             '
 </feed>';
@@ -190,6 +210,9 @@ class FeedMe
         $count = 0;
         $items = $site->sortItems('created');
         $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
+        if (!empty($domain) && substr($domain, -1) !== '/') {
+            $domain .= '/';
+        }
         foreach ($items as $key => $item) {
             $tags = '';
             // beyond edge but don't want this to erorr on write
@@ -201,40 +224,54 @@ class FeedMe
               $item->metadata->updated = time();
             }
             if (isset($item->metadata->tags)) {
-                foreach ($item->metadata->tags as $tag) {
-                    $tags .=
-                        '<category term="' . $tag . '" label="' . $tag . '" />';
+                if (is_array($item->metadata->tags)) {
+                    foreach ($item->metadata->tags as $tag) {
+                        $tag = trim((string) $tag);
+                        if ($tag !== '') {
+                            $tags .= '<category term="' . $this->xmlEscape($tag) . '" label="' . $this->xmlEscape($tag) . '" />';
+                        }
+                    }
+                } else if (is_string($item->metadata->tags)) {
+                    $tag = trim($item->metadata->tags);
+                    if ($tag !== '') {
+                        $tags .= '<category term="' . $this->xmlEscape($tag) . '" label="' . $this->xmlEscape($tag) . '" />';
+                    }
                 }
             }
             if ($count < $limit) {
-            $output .=
-                '
-  <entry>
+                $itemLink = $domain . ltrim((string) $item->slug, '/');
+                $safeLocation = str_replace('./', '', str_replace('../', '', (string) $item->location));
+                $itemContent = '';
+                if ($safeLocation != '' && file_exists($siteDirectory . '/' . $safeLocation)) {
+                    $itemContent = file_get_contents($siteDirectory . '/' . $safeLocation);
+                    $itemContent = str_replace(']]>', ']]]]><![CDATA[>', (string) $itemContent);
+                }
+                $output .=
+                    '\n  <entry>
     <title>' .
-                $item->title .
-                '</title>
+                    $this->xmlEscape($item->title ?? '') .
+                    '</title>
     <id>' .
-                $item->id .
-                '</id>
+                    $this->xmlEscape($item->id ?? $itemLink) .
+                    '</id>
     <updated>' .
-                date(\DateTime::ATOM, $item->metadata->updated) .
-                '</updated>
+                    date(\DateTime::ATOM, $this->normalizeTimestamp($item->metadata->updated ?? null)) .
+                    '</updated>
     <published>' .
-                date(\DateTime::ATOM, $item->metadata->created) .
-                '</published>
+                    date(\DateTime::ATOM, $this->normalizeTimestamp($item->metadata->created ?? null)) .
+                    '</published>
     <summary>' .
-                $item->description .
-                '</summary>
+                    $this->xmlEscape($item->description ?? '') .
+                    '</summary>
     <link href="' .
-                $domain . $item->slug .
-                '"/>
+                    $this->xmlEscape($itemLink) .
+                    '"/>
     ' .
-                $tags .
-                '
-    <content type="html">
+                    $tags .
+                    '\n    <content type="html">
       <![CDATA[ ' .
-                file_get_contents($siteDirectory . '/' . str_replace('./', '', str_replace('../', '', $item->location))) .
-                ' ]]>
+                    $itemContent .
+                    ' ]]>
     </content>
   </entry>';
             }

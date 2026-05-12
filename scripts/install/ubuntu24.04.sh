@@ -31,7 +31,7 @@ sudo apt-get -y install apache2
 # using apt-get to install the main packages
 sudo apt-get install -y sendmail uuid uuid-runtime curl policycoreutils unzip patch git nano gcc make autoconf libc-dev pkg-config
 # install php 8.3
-sudo apt-get install -y php8.3-fpm php8.3-zip php8.3-gd php8.3-xml php8.3-mbstring
+sudo apt-get install -y php8.3-fpm php8.3-zip php8.3-gd php8.3-xml php8.3-mbstring php8.3-yaml
 # optional for development
 # sudo apt-get install -y composer nodejs
 sudo a2enmod proxy_fcgi

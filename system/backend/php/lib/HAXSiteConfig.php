@@ -10,7 +10,20 @@ class HAXSiteConfig {
   
   public function __construct($site = null) {
     $this->site = $site;
+    if (
+      isset($this->site) &&
+      method_exists($this->site, 'respondWithRequestedPageVariant') &&
+      $this->site->respondWithRequestedPageVariant()
+    ) {
+      exit;
+    }
     $this->page = $this->site->loadNodeByLocation();
+    if (
+      isset($this->site) &&
+      method_exists($this->site, 'sendPageAlternateHeaders')
+    ) {
+      $this->site->sendPageAlternateHeaders($this->page);
+    }
     $this->color = 'var(' . $this->site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
     $this->name = $this->site->name;
   }

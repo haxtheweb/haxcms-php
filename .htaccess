@@ -106,6 +106,6 @@ DirectoryIndex index.php index.html
   
   # Security: Force download of HTML files in files directories to prevent XSS  
   # Direct approach using SetEnvIf to bypass .htaccess inheritance issues
-  SetEnvIf Request_URI "/files/.*\.html?$" force_html_download=1
+  SetEnvIfNoCase Request_URI "/files/.*\.html?$" force_html_download=1
   Header always set Content-Disposition "attachment" env=force_html_download
 </IfModule>

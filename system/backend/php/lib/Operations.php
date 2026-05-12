@@ -1,5 +1,6 @@
 <?php
 include_once "JSONOutlineSchemaItem.php";
+include_once "SanitizeContent.php";
 /**
  * @OA\Info(
  *     title="HAXcms API",
@@ -74,6 +75,7 @@ include_once "JSONOutlineSchemaItem.php";
 class Operations {
   public $params;
   public $rawParams;
+  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
   
   /**
    * Check if a platform capability is allowed
@@ -82,14 +84,672 @@ class Operations {
    * @return bool Whether the capability is allowed
    */
   private function platformAllows($site, $capability) {
-    // Check if platform configuration exists
-    if (isset($site->manifest->metadata->platform) && 
-        isset($site->manifest->metadata->platform->{$capability})) {
-      // If explicitly set to false, deny
-      return $site->manifest->metadata->platform->{$capability} !== false;
+    if (
+      !isset($site->manifest->metadata->platform) ||
+      (!is_object($site->manifest->metadata->platform) && !is_array($site->manifest->metadata->platform))
+    ) {
+      return true;
     }
-    // Default to true if not specified
+    $platform = $site->manifest->metadata->platform;
+    $keyAliases = array(
+      'uploadMedia' => array('uploadMedia', 'upload'),
+      'onlineMedia' => array('onlineMedia', 'onlineSearch'),
+      'deletePage' => array('deletePage', 'delete'),
+      'delete' => array('deletePage', 'delete'),
+      'siteManifest' => array('siteManifest', 'manifest'),
+      'manifest' => array('siteManifest', 'manifest'),
+    );
+    $keys = isset($keyAliases[$capability]) ? $keyAliases[$capability] : array($capability);
+    $sources = array();
+    if (isset($platform->features) && (is_object($platform->features) || is_array($platform->features))) {
+      $sources[] = (array) $platform->features;
+    }
+    $sources[] = (array) $platform;
+    foreach ($sources as $source) {
+      foreach ($keys as $key) {
+        if (array_key_exists($key, $source) && is_bool($source[$key])) {
+          return $source[$key] !== false;
+        }
+      }
+    }
     return true;
+  }
+  /**
+   * Detect scoped Details payloads that omit legacy form token fields.
+   */
+  private function isScopedDetailsManifestPayload($params) {
+    if (!is_array($params)) {
+      return false;
+    }
+    if (!isset($params['manifest']) || !is_array($params['manifest'])) {
+      return false;
+    }
+    $manifestSite = array();
+    if (isset($params['manifest']['site']) && is_array($params['manifest']['site'])) {
+      $manifestSite = $params['manifest']['site'];
+    }
+    $manifestSeo = array();
+    if (isset($params['manifest']['seo']) && is_array($params['manifest']['seo'])) {
+      $manifestSeo = $params['manifest']['seo'];
+    }
+    $hasDetailsFields =
+      array_key_exists('title', $params) ||
+      array_key_exists('homePageId', $params) ||
+      array_key_exists('sw', $params) ||
+      array_key_exists('forceUpgrade', $params) ||
+      array_key_exists('manifest-title', $manifestSite) ||
+      array_key_exists('manifest-metadata-site-homePageId', $manifestSite) ||
+      array_key_exists('manifest-metadata-site-settings-sw', $manifestSeo) ||
+      array_key_exists('manifest-metadata-site-settings-forceUpgrade', $manifestSeo);
+    if (!$hasDetailsFields) {
+      return false;
+    }
+    return !isset($params['haxcms_form_id']) && !isset($params['haxcms_form_token']);
+  }
+  /**
+   * Ensure metadata containers required for scoped manifest writes exist.
+   */
+  private function ensureSiteMetadataContainers($site) {
+    if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+      $site->manifest->metadata = new stdClass();
+    }
+    if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+      $site->manifest->metadata->site = new stdClass();
+    }
+    if (!isset($site->manifest->metadata->site->settings) || !is_object($site->manifest->metadata->site->settings)) {
+      $site->manifest->metadata->site->settings = new stdClass();
+    }
+  }
+  /**
+   * Apply scoped Details payload values to the site manifest.
+   */
+  private function applyScopedDetailsManifestPayload($site, $params) {
+    $this->ensureSiteMetadataContainers($site);
+    $manifestSite = array();
+    if (isset($params['manifest']) && is_array($params['manifest']) && isset($params['manifest']['site']) && is_array($params['manifest']['site'])) {
+      $manifestSite = $params['manifest']['site'];
+    }
+    $manifestSeo = array();
+    if (isset($params['manifest']) && is_array($params['manifest']) && isset($params['manifest']['seo']) && is_array($params['manifest']['seo'])) {
+      $manifestSeo = $params['manifest']['seo'];
+    }
+
+    $titleValue = null;
+    $hasTitleValue = false;
+    if (array_key_exists('manifest-title', $manifestSite)) {
+      $titleValue = $manifestSite['manifest-title'];
+      $hasTitleValue = true;
+    }
+    else if (array_key_exists('title', $params)) {
+      $titleValue = $params['title'];
+      $hasTitleValue = true;
+    }
+    if ($hasTitleValue) {
+      $site->manifest->title = strip_tags(strval($titleValue));
+    }
+
+    $homePageIdValue = null;
+    $hasHomePageIdValue = false;
+    if (array_key_exists('manifest-metadata-site-homePageId', $manifestSite)) {
+      $homePageIdValue = $manifestSite['manifest-metadata-site-homePageId'];
+      $hasHomePageIdValue = true;
+    }
+    else if (array_key_exists('homePageId', $params)) {
+      $homePageIdValue = $params['homePageId'];
+      $hasHomePageIdValue = true;
+    }
+    if ($hasHomePageIdValue) {
+      $homePageId = filter_var(strval($homePageIdValue), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+      $validPage = false;
+      if ($homePageId !== '' && isset($site->manifest->items) && $site->manifest->items) {
+        foreach ($site->manifest->items as $item) {
+          if (isset($item->id) && $item->id === $homePageId) {
+            $validPage = true;
+            break;
+          }
+        }
+      }
+      if ($validPage) {
+        $site->manifest->metadata->site->homePageId = $homePageId;
+      }
+      else {
+        if (isset($site->manifest->metadata->site->homePageId)) {
+          unset($site->manifest->metadata->site->homePageId);
+        }
+        if (isset($site->manifest->metadata->site->settings->homePageId)) {
+          unset($site->manifest->metadata->site->settings->homePageId);
+        }
+      }
+    }
+
+    $swValue = null;
+    $hasSwValue = false;
+    if (array_key_exists('manifest-metadata-site-settings-sw', $manifestSeo)) {
+      $swValue = $manifestSeo['manifest-metadata-site-settings-sw'];
+      $hasSwValue = true;
+    }
+    else if (array_key_exists('sw', $params)) {
+      $swValue = $params['sw'];
+      $hasSwValue = true;
+    }
+    if ($hasSwValue) {
+      $site->manifest->metadata->site->settings->sw = filter_var(
+        $swValue,
+        FILTER_VALIDATE_BOOLEAN
+      );
+    }
+
+    $forceUpgradeValue = null;
+    $hasForceUpgradeValue = false;
+    if (array_key_exists('manifest-metadata-site-settings-forceUpgrade', $manifestSeo)) {
+      $forceUpgradeValue = $manifestSeo['manifest-metadata-site-settings-forceUpgrade'];
+      $hasForceUpgradeValue = true;
+    }
+    else if (array_key_exists('forceUpgrade', $params)) {
+      $forceUpgradeValue = $params['forceUpgrade'];
+      $hasForceUpgradeValue = true;
+    }
+    if ($hasForceUpgradeValue) {
+      $site->manifest->metadata->site->settings->forceUpgrade = filter_var(
+        $forceUpgradeValue,
+        FILTER_VALIDATE_BOOLEAN
+      );
+    }
+
+    $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+  }
+  /**
+   * Validate that an associative array/object only contains approved keys.
+   */
+  private function hasOnlyAllowedKeys($value, $allowedKeys) {
+    if (is_object($value)) {
+      $value = (array) $value;
+    }
+    if (!is_array($value)) {
+      return false;
+    }
+    foreach ($value as $key => $unused) {
+      if (!in_array($key, $allowedKeys, true)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  /**
+   * Normalize css variable submitted by appearance settings.
+   */
+  private function normalizeAppearanceCssVariable($value) {
+    if (!is_string($value)) {
+      return false;
+    }
+    $value = filter_var($value, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    if (!is_string($value)) {
+      return false;
+    }
+    $value = str_replace('--simple-colors-default-theme-', '', $value);
+    $value = preg_replace('/-7$/', '', $value);
+    $value = strtolower(trim($value));
+    if ($value === '' || preg_match('/^[a-z0-9-]+$/', $value) !== 1) {
+      return false;
+    }
+    return $value;
+  }
+  /**
+   * Validate and sanitize region ids for appearance settings.
+   */
+  private function sanitizeAppearanceRegionIds($value) {
+    if (!is_array($value)) {
+      return false;
+    }
+    $cleanIds = array();
+    foreach ($value as $id) {
+      if (!is_string($id)) {
+        return false;
+      }
+      $cleanId = filter_var($id, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+      if (!is_string($cleanId)) {
+        return false;
+      }
+      $cleanId = trim($cleanId);
+      if ($cleanId === '') {
+        return false;
+      }
+      if (!in_array($cleanId, $cleanIds, true)) {
+        $cleanIds[] = $cleanId;
+      }
+    }
+    return $cleanIds;
+  }
+  /**
+   * Validate and normalize a bulk import file name.
+   */
+  private function normalizeBulkImportName($locationName) {
+    if (!is_string($locationName)) {
+      return false;
+    }
+    $normalized = trim(str_replace('\\', '/', preg_replace('/^files\//', '', $locationName)));
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      strpos($normalized, '..') !== false ||
+      substr($normalized, 0, 1) === '/'
+    ) {
+      return false;
+    }
+    $parts = explode('/', $normalized);
+    foreach ($parts as $part) {
+      if ($part === '' || $part === '.' || $part === '..') {
+        return false;
+      }
+    }
+    return $normalized;
+  }
+  /**
+   * Clone mixed data through JSON encoding into an associative array.
+   */
+  private function cloneTemplateArray($value, $fallback = array()) {
+    $encoded = json_encode($value);
+    if ($encoded === false) {
+      return $fallback;
+    }
+    $decoded = json_decode($encoded, true);
+    if (is_array($decoded)) {
+      return $decoded;
+    }
+    return $fallback;
+  }
+  /**
+   * Normalize a template machine name.
+   */
+  private function normalizeTemplateMachineName($value) {
+    if (!is_string($value)) {
+      return 'site-template';
+    }
+    $machineName = $GLOBALS['HAXCMS']->generateMachineName($value);
+    if (!is_string($machineName) || trim($machineName) === '') {
+      return 'site-template';
+    }
+    $machineName = strtolower(trim(preg_replace('/\\.json$/i', '', $machineName)));
+    if ($machineName === '') {
+      return 'site-template';
+    }
+    return $machineName;
+  }
+  /**
+   * Normalize a value into a string array for tags/category fields.
+   */
+  private function normalizeTemplateArrayValue($value) {
+    if (is_array($value)) {
+      return $this->cloneTemplateArray($value, array());
+    }
+    if (is_string($value) && trim($value) !== '') {
+      return array(trim($value));
+    }
+    return array();
+  }
+  /**
+   * Normalize a page location for safe on-disk reads.
+   */
+  private function normalizeTemplateLocation($location) {
+    if (!is_string($location)) {
+      return '';
+    }
+    $normalized = str_replace('\\', '/', $location);
+    $normalized = ltrim(trim($normalized), '/');
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      strpos($normalized, '..') !== false
+    ) {
+      return '';
+    }
+    return $normalized;
+  }
+  /**
+   * Read page content from disk for template generation.
+   */
+  private function readTemplateItemContent($siteDirectory, $item) {
+    $location = '';
+    if (is_array($item) && isset($item['location'])) {
+      $location = $item['location'];
+    }
+    $safeLocation = $this->normalizeTemplateLocation($location);
+    if ($safeLocation === '') {
+      return '';
+    }
+    $targetPath = $siteDirectory . '/' . $safeLocation;
+    if (!file_exists($targetPath) || !is_file($targetPath)) {
+      return '';
+    }
+    $content = @file_get_contents($targetPath);
+    if ($content === false) {
+      return '';
+    }
+    return $content;
+  }
+  /**
+   * Normalize item metadata defaults for template export.
+   */
+  private function normalizeTemplateItemMetadata($metadata) {
+    $result = is_array($metadata)
+      ? $this->cloneTemplateArray($metadata, array())
+      : array();
+    if (!isset($result['tags']) || !is_array($result['tags'])) {
+      $result['tags'] = array();
+    }
+    if (!array_key_exists('published', $result)) {
+      $result['published'] = true;
+    }
+    if (!array_key_exists('hideInMenu', $result)) {
+      $result['hideInMenu'] = false;
+    }
+    return $result;
+  }
+  /**
+   * Resolve theme information for template export.
+   */
+  private function resolveTemplateThemeData($manifestMetadata = array()) {
+    $themeMetadata =
+      isset($manifestMetadata['theme']) && is_array($manifestMetadata['theme'])
+        ? $manifestMetadata['theme']
+        : array();
+    $defaultTheme = defined('HAXCMS_DEFAULT_THEME')
+      ? HAXCMS_DEFAULT_THEME
+      : 'clean-two';
+    $themeElement =
+      isset($themeMetadata['element']) &&
+      is_string($themeMetadata['element']) &&
+      trim($themeMetadata['element']) !== ''
+        ? trim($themeMetadata['element'])
+        : $defaultTheme;
+    $themeVariables =
+      isset($themeMetadata['variables']) && is_array($themeMetadata['variables'])
+        ? $this->cloneTemplateArray($themeMetadata['variables'], array())
+        : array();
+    $themeSettings = array();
+    $themes = $this->cloneTemplateArray($GLOBALS['HAXCMS']->getThemes(), array());
+    if (isset($themes[$themeElement]) && is_array($themes[$themeElement])) {
+      $themeSettings = $this->cloneTemplateArray($themes[$themeElement], array());
+    }
+    foreach ($themeMetadata as $key => $value) {
+      if ($key !== 'element' && $key !== 'variables') {
+        $themeSettings[$key] = $value;
+      }
+    }
+    $useCaseImage =
+      isset($themeSettings['thumbnail']) &&
+      is_string($themeSettings['thumbnail']) &&
+      trim($themeSettings['thumbnail']) !== ''
+        ? $themeSettings['thumbnail']
+        : '@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-' . $themeElement . '-thumb.jpg';
+    return array(
+      'themeElement' => $themeElement,
+      'themeVariables' => $themeVariables,
+      'themeSettings' => $themeSettings,
+      'useCaseImage' => $useCaseImage,
+    );
+  }
+  /**
+   * Build source URL for a site template payload.
+   */
+  private function getTemplateSourceUrl($siteName) {
+    $basePath = $GLOBALS['HAXCMS']->basePath;
+    if (!is_string($basePath) || $basePath === '') {
+      $basePath = '/';
+    }
+    if (substr($basePath, -1) !== '/') {
+      $basePath .= '/';
+    }
+    $sitesDirectory = trim((string) $GLOBALS['HAXCMS']->sitesDirectory, '/');
+    return $basePath . $sitesDirectory . '/' . $siteName . '/';
+  }
+  /**
+   * Generate a complete template skeleton payload from a site.
+   */
+  private function buildSiteTemplateSkeleton($site) {
+    if (!$site || !isset($site->manifest)) {
+      throw new Exception('Invalid site requested');
+    }
+    $manifest = $site->manifest;
+    $manifestMetadata = isset($manifest->metadata)
+      ? $this->cloneTemplateArray($manifest->metadata, array())
+      : array();
+    $siteMetadata =
+      isset($manifestMetadata['site']) && is_array($manifestMetadata['site'])
+        ? $manifestMetadata['site']
+        : array();
+    $siteNameSource =
+      isset($siteMetadata['name']) &&
+      is_string($siteMetadata['name']) &&
+      trim($siteMetadata['name']) !== ''
+        ? $siteMetadata['name']
+        : (isset($site->name) ? (string) $site->name : 'site-template');
+    $siteName = $this->normalizeTemplateMachineName($siteNameSource);
+    $siteTitle =
+      isset($manifest->title) && is_string($manifest->title) && trim($manifest->title) !== ''
+        ? $manifest->title
+        : $siteName;
+    $siteDescription =
+      isset($manifest->description) &&
+      is_string($manifest->description) &&
+      trim($manifest->description) !== ''
+        ? 'Template based on ' . $manifest->description
+        : 'Template based on ' . $siteTitle;
+    $siteSettings =
+      isset($siteMetadata['settings']) && is_array($siteMetadata['settings'])
+        ? $this->cloneTemplateArray($siteMetadata['settings'], array())
+        : array();
+    if (!isset($siteSettings['lang']) || $siteSettings['lang'] === '') {
+      $siteSettings['lang'] = 'en-US';
+    }
+    if (!array_key_exists('publishPagesOn', $siteSettings)) {
+      $siteSettings['publishPagesOn'] = true;
+    }
+    if (!array_key_exists('canonical', $siteSettings)) {
+      $siteSettings['canonical'] = true;
+    }
+    $platformSettings =
+      isset($manifestMetadata['platform']) && is_array($manifestMetadata['platform'])
+        ? $this->cloneTemplateArray($manifestMetadata['platform'], array())
+        : array();
+    $category = $this->normalizeTemplateArrayValue(
+      isset($siteMetadata['category']) ? $siteMetadata['category'] : array()
+    );
+    $tags = $this->normalizeTemplateArrayValue(
+      isset($siteMetadata['tags']) ? $siteMetadata['tags'] : array()
+    );
+    $themeData = $this->resolveTemplateThemeData($manifestMetadata);
+    $siteDirectory = $site->directory . '/' . $siteName;
+    $sourceUrl = $this->getTemplateSourceUrl($siteName);
+    $rawItems = isset($manifest->items) && is_array($manifest->items)
+      ? $manifest->items
+      : array();
+    usort($rawItems, function ($a, $b) {
+      $aOrder = (is_object($a) && isset($a->order) && is_numeric($a->order))
+        ? (int) $a->order
+        : PHP_INT_MAX;
+      $bOrder = (is_object($b) && isset($b->order) && is_numeric($b->order))
+        ? (int) $b->order
+        : PHP_INT_MAX;
+      if ($aOrder === $bOrder) {
+        return 0;
+      }
+      return ($aOrder < $bOrder) ? -1 : 1;
+    });
+    $structure = array();
+    foreach ($rawItems as $index => $item) {
+      $itemData = $this->cloneTemplateArray($item, array());
+      $id =
+        isset($itemData['id']) &&
+        is_string($itemData['id']) &&
+        trim($itemData['id']) !== ''
+          ? $itemData['id']
+          : $GLOBALS['HAXCMS']->generateUUID();
+      $title =
+        isset($itemData['title']) &&
+        is_string($itemData['title']) &&
+        trim($itemData['title']) !== ''
+          ? $itemData['title']
+          : 'Page ' . ($index + 1);
+      $slug =
+        isset($itemData['slug']) &&
+        is_string($itemData['slug']) &&
+        trim($itemData['slug']) !== ''
+          ? $itemData['slug']
+          : 'page-' . ($index + 1);
+      $parent =
+        isset($itemData['parent']) && $itemData['parent'] !== ''
+          ? $itemData['parent']
+          : null;
+      $order =
+        isset($itemData['order']) && is_numeric($itemData['order'])
+          ? (int) $itemData['order']
+          : (int) $index;
+      $indent =
+        isset($itemData['indent']) && is_numeric($itemData['indent'])
+          ? (int) $itemData['indent']
+          : 0;
+      $metadata = $this->normalizeTemplateItemMetadata(
+        isset($itemData['metadata']) ? $itemData['metadata'] : array()
+      );
+      $content = $this->readTemplateItemContent($siteDirectory, $itemData);
+      $structure[] = array(
+        'id' => $id,
+        'title' => $title,
+        'slug' => $slug,
+        'order' => $order,
+        'parent' => $parent,
+        'indent' => $indent,
+        'content' => $content,
+        'metadata' => $metadata,
+      );
+    }
+    $skeleton = array(
+      'meta' => array(
+        'name' => $siteName,
+        'machineName' => $siteName,
+        'priority' => 0,
+        'description' => $siteDescription,
+        'version' => '1.0.0',
+        'created' => gmdate('c'),
+        'type' => 'skeleton',
+        'sourceUrl' => $sourceUrl,
+        'useCaseTitle' => $siteTitle,
+        'useCaseDescription' => $siteDescription,
+        'useCaseImage' => $themeData['useCaseImage'],
+        'category' => $category,
+        'tags' => $tags,
+        'attributes' => array(),
+      ),
+      'site' => array(
+        'name' => $siteName,
+        'description' => $siteDescription,
+        'theme' => $themeData['themeElement'],
+        'settings' => $siteSettings,
+        'platform' => $platformSettings,
+      ),
+      'build' => array(
+        'type' => 'skeleton',
+        'structure' => 'from-skeleton',
+        'items' => $structure,
+        'files' => array(),
+      ),
+      'theme' => $themeData['themeSettings'],
+      '_skeleton' => array(
+        'originalMetadata' => array(
+          'site' => array(
+            'category' => $category,
+            'tags' => $tags,
+            'settings' => $siteSettings,
+          ),
+          'licensing' => isset($manifestMetadata['licensing']) && is_array($manifestMetadata['licensing'])
+            ? $manifestMetadata['licensing']
+            : array(),
+          'node' => isset($manifestMetadata['node']) && is_array($manifestMetadata['node'])
+            ? $manifestMetadata['node']
+            : array(),
+          'platform' => $platformSettings,
+        ),
+        'originalSettings' => $siteSettings,
+        'fullThemeConfig' => array(
+          'element' => $themeData['themeElement'],
+          'variables' => $themeData['themeVariables'],
+          'settings' => $themeData['themeSettings'],
+        ),
+      ),
+    );
+    if (isset($manifest->license) && is_string($manifest->license) && trim($manifest->license) !== '') {
+      $skeleton['site']['license'] = $manifest->license;
+    }
+    return $skeleton;
+  }
+  /**
+   * Normalize and validate an outline page location.
+   */
+  private function normalizeOutlineLocation($location) {
+    if (!is_string($location)) {
+      return false;
+    }
+    $normalized = str_replace('\\', '/', $location);
+    $normalized = trim($normalized);
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      substr($normalized, 0, 1) === '/'
+    ) {
+      return false;
+    }
+    $parts = explode('/', $normalized);
+    foreach ($parts as $part) {
+      if ($part === '' || $part === '.' || $part === '..') {
+        return false;
+      }
+    }
+    if (!isset($parts[0]) || ($parts[0] !== 'pages' && $parts[0] !== 'content')) {
+      return false;
+    }
+    return implode('/', $parts);
+  }
+  /**
+   * Ensure a write target resolves to an existing file within the site root.
+   */
+  private function getValidatedOutlineWriteTarget($siteDirectory, $location) {
+    $normalizedLocation = $this->normalizeOutlineLocation($location);
+    if ($normalizedLocation === false) {
+      return false;
+    }
+    $siteRoot = realpath($siteDirectory);
+    if ($siteRoot === false || !is_dir($siteRoot)) {
+      return false;
+    }
+    $targetPath = $siteRoot . '/' . $normalizedLocation;
+    if (!file_exists($targetPath) || !is_file($targetPath)) {
+      return false;
+    }
+    $targetRealPath = realpath($targetPath);
+    if ($targetRealPath === false) {
+      return false;
+    }
+    if (
+      $targetRealPath !== $siteRoot &&
+      strpos($targetRealPath, $siteRoot . DIRECTORY_SEPARATOR) !== 0
+    ) {
+      return false;
+    }
+    return $targetRealPath;
+  }
+  /**
+   * Validate that saved content appears to be HTML.
+   */
+  private function isLikelyHtmlContent($content) {
+    if (!is_string($content)) {
+      return false;
+    }
+    $trimmed = trim($content);
+    if ($trimmed === '') {
+      return false;
+    }
+    return preg_match('/<([a-zA-Z][a-zA-Z0-9-]*)([[:space:]][^>]*)?>/', $trimmed) === 1;
   }
   /**
    * 
@@ -192,8 +852,8 @@ class Operations {
    *    path="/saveManifest",
    *    tags={"cms","authenticated"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -208,9 +868,16 @@ class Operations {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+
+      // preserve existing platform settings regardless of what the client sends
+      // (platform settings are saved via savePlatformSettings)
+      $existingPlatform = null;
+      if (isset($site->manifest->metadata) && isset($site->manifest->metadata->platform)) {
+        $existingPlatform = $site->manifest->metadata->platform;
+      }
       
       // Check platform configuration
-      if (!$this->platformAllows($site, 'manifest')) {
+      if (!$this->platformAllows($site, 'siteManifest')) {
         return array(
           '__failed' => array(
             'status' => 403,
@@ -246,7 +913,14 @@ class Operations {
         }
         $form = $GLOBALS['HAXCMS']->loadForm($this->params['haxcms_form_id'], $context);
       }*/
-      if ($GLOBALS['HAXCMS']->validateRequestToken($this->params['haxcms_form_token'], $this->params['haxcms_form_id'])) {
+      $isScopedDetailsPayload = $this->isScopedDetailsManifestPayload($this->params);
+      $formToken = isset($this->params['haxcms_form_token']) ? $this->params['haxcms_form_token'] : null;
+      $formId = isset($this->params['haxcms_form_id']) ? $this->params['haxcms_form_id'] : null;
+      if ($isScopedDetailsPayload || $GLOBALS['HAXCMS']->validateRequestToken($formToken, $formId)) {
+        if ($isScopedDetailsPayload) {
+          $this->applyScopedDetailsManifestPayload($site, $this->params);
+        }
+        else {
         $site->manifest->title = strip_tags(
             $this->params['manifest']['site']['manifest-title']
         );
@@ -259,13 +933,21 @@ class Operations {
             $this->params['manifest']['site']['manifest-metadata-site-domain'],
             FILTER_SANITIZE_URL
         );
+        $site->manifest->metadata->site->domain = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->domain,
+          ''
+        );
         $site->manifest->metadata->site->logo = filter_var(
             $this->params['manifest']['site']['manifest-metadata-site-logo'],
             FILTER_SANITIZE_URL
         );
+        $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->logo,
+          ''
+        );
         $site->manifest->metadata->site->tags = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-tags'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
         if (!isset($site->manifest->metadata->site->static)) {
           $site->manifest->metadata->site->static = new stdClass();
@@ -278,6 +960,7 @@ class Operations {
                 $this->params['manifest']['site']['manifest-domain'],
                 FILTER_SANITIZE_URL
             );
+            $domain = SanitizeContent::sanitizeURLValue($domain, '');
             // support updating the domain CNAME value
             if ($site->manifest->metadata->site->domain != $domain) {
                 $site->manifest->metadata->site->domain = $domain;
@@ -293,7 +976,7 @@ class Operations {
         // look for a match so we can set the correct data
         foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
           if (
-              filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_STRING) ==
+              filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_FULL_SPECIAL_CHARS) ==
               $key
           ) {
               $site->manifest->metadata->theme = $theme;
@@ -306,15 +989,23 @@ class Operations {
           $site->manifest->metadata->theme->variables->image = filter_var(
             $this->params['manifest']['theme']['manifest-metadata-theme-variables-image'],FILTER_SANITIZE_URL
           );
+          $site->manifest->metadata->theme->variables->image = SanitizeContent::sanitizeURLValue(
+            $site->manifest->metadata->theme->variables->image,
+            ''
+          );
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'])) {
           $site->manifest->metadata->theme->variables->imageAlt = filter_var(
-            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_STRING
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageAlt'], FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'])) {
           $site->manifest->metadata->theme->variables->imageLink = filter_var(
             $this->params['manifest']['theme']['manifest-metadata-theme-variables-imageLink'], FILTER_SANITIZE_URL
+          );
+          $site->manifest->metadata->theme->variables->imageLink = SanitizeContent::sanitizeURLValue(
+            $site->manifest->metadata->theme->variables->imageLink,
+            ''
           );
         }
         // REGIONS SUPPORT
@@ -334,26 +1025,43 @@ class Operations {
         foreach ($validRegions as $i => $value) {
           if (isset($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value])) {
             foreach ($this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value] as $j => $id) {
-              $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_STRING);
+              $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value][$j] = filter_var($id, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
             }
             $site->manifest->metadata->theme->regions->{$value} = $this->params['manifest']['theme']['manifest-metadata-theme-regions-' . $value];
           }
         }
         if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'])) {
           $site->manifest->metadata->theme->variables->hexCode = filter_var(
-            $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_STRING
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-hexCode'],FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         $site->manifest->metadata->theme->variables->cssVariable = "--simple-colors-default-theme-" . filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_STRING
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-cssVariable'], FILTER_SANITIZE_FULL_SPECIAL_CHARS
         ). "-7";
+        if (isset($this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'])) {
+          $palette = filter_var(
+            $this->params['manifest']['theme']['manifest-metadata-theme-variables-palette'],
+            FILTER_SANITIZE_FULL_SPECIAL_CHARS
+          );
+          if (is_string($palette)) {
+            $palette = strtolower(trim($palette));
+            if ($palette === '') {
+              if (isset($site->manifest->metadata->theme->variables->palette)) {
+                unset($site->manifest->metadata->theme->variables->palette);
+              }
+            }
+            else if (preg_match('/^[a-z0-9-]+$/', $palette)) {
+              $site->manifest->metadata->theme->variables->palette = $palette;
+            }
+          }
+        }
         $site->manifest->metadata->theme->variables->icon = filter_var(
-          $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_STRING
+          $this->params['manifest']['theme']['manifest-metadata-theme-variables-icon'],FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
         if (isset($this->params['manifest']['author']['manifest-license'])) {
             $site->manifest->license = filter_var(
                 $this->params['manifest']['author']['manifest-license'],
-                FILTER_SANITIZE_STRING
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
             );
             if (!isset($site->manifest->metadata->author)) {
               $site->manifest->metadata->author = new stdClass();
@@ -362,9 +1070,13 @@ class Operations {
                 $this->params['manifest']['author']['manifest-metadata-author-image'],
                 FILTER_SANITIZE_URL
             );
+            $site->manifest->metadata->author->image = SanitizeContent::sanitizeURLValue(
+              $site->manifest->metadata->author->image,
+              ''
+            );
             $site->manifest->metadata->author->name = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-name'],
-                FILTER_SANITIZE_STRING
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
             );
             $site->manifest->metadata->author->email = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-email'],
@@ -373,6 +1085,10 @@ class Operations {
             $site->manifest->metadata->author->socialLink = filter_var(
                 $this->params['manifest']['author']['manifest-metadata-author-socialLink'],
                 FILTER_SANITIZE_URL
+            );
+            $site->manifest->metadata->author->socialLink = SanitizeContent::sanitizeURLValue(
+              $site->manifest->metadata->author->socialLink,
+              ''
             );
         }
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
@@ -390,7 +1106,7 @@ class Operations {
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-lang'])) {
           $site->manifest->metadata->site->settings->lang = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-lang'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-pathauto'])) {
@@ -420,14 +1136,14 @@ class Operations {
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'])) {
           $site->manifest->metadata->site->settings->gaID = filter_var(
           $this->params['manifest']['seo']['manifest-metadata-site-settings-gaID'],
-          FILTER_SANITIZE_STRING
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
         }
         // Handle homepage setting - validate it exists in the site outline
         if (isset($this->params['manifest']['site']['manifest-metadata-site-homePageId'])) {
           $homePageId = filter_var(
             $this->params['manifest']['site']['manifest-metadata-site-homePageId'],
-            FILTER_SANITIZE_STRING
+            FILTER_SANITIZE_FULL_SPECIAL_CHARS
           );
           // Validate that the page exists in the site manifest
           $validPage = false;
@@ -453,6 +1169,18 @@ class Operations {
             }
           }
         }
+        }
+        // ensure platform exists; do not overwrite existing platform settings
+        if (!isset($site->manifest->metadata->platform)) {
+          $site->manifest->metadata->platform = new stdClass();
+          $site->manifest->metadata->platform->audience = 'expert';
+          $site->manifest->metadata->platform->features = new stdClass();
+          $site->manifest->metadata->platform->allowedBlocks = array();
+        }
+        if (!is_null($existingPlatform)) {
+          $site->manifest->metadata->platform = $existingPlatform;
+        }
+
         $site->manifest->metadata->site->updated = time();
         // don't reorganize the structure
         $site->manifest->save(false);
@@ -481,13 +1209,1058 @@ class Operations {
       );
     }
   }
+
+  /**
+   * @OA\Post(
+   *    path="/saveSeoSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save SEO and author settings into site.json"
+   *   )
+   * )
+   */
+  public function saveSeoSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'seoManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'SEO settings are disabled for this site',
+          )
+        );
+      }
+      if (!isset($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site->settings)) {
+        $site->manifest->metadata->site->settings = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->author)) {
+        $site->manifest->metadata->author = new stdClass();
+      }
+
+      $author = array();
+      if (isset($this->params['author']) && is_array($this->params['author'])) {
+        $author = $this->params['author'];
+      }
+      $seo = array();
+      if (isset($this->params['seo']) && is_array($this->params['seo'])) {
+        $seo = $this->params['seo'];
+      }
+      $manifestAuthor = array();
+      if (
+        isset($this->params['manifest']) &&
+        isset($this->params['manifest']['author']) &&
+        is_array($this->params['manifest']['author'])
+      ) {
+        $manifestAuthor = $this->params['manifest']['author'];
+      }
+      $manifestSeo = array();
+      if (
+        isset($this->params['manifest']) &&
+        isset($this->params['manifest']['seo']) &&
+        is_array($this->params['manifest']['seo'])
+      ) {
+        $manifestSeo = $this->params['manifest']['seo'];
+      }
+
+      $licenseValue = null;
+      if (array_key_exists('license', $author)) {
+        $licenseValue = $author['license'];
+      }
+      else if (array_key_exists('manifest.license', $manifestAuthor)) {
+        $licenseValue = $manifestAuthor['manifest.license'];
+      }
+      if (!is_null($licenseValue)) {
+        $site->manifest->license = filter_var(
+          strval($licenseValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $authorImageValue = null;
+      if (array_key_exists('image', $author)) {
+        $authorImageValue = $author['image'];
+      }
+      else if (array_key_exists('manifest.metadata.author.image', $manifestAuthor)) {
+        $authorImageValue = $manifestAuthor['manifest.metadata.author.image'];
+      }
+      if (!is_null($authorImageValue)) {
+        $site->manifest->metadata->author->image = filter_var(
+          strval($authorImageValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->image = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->image,
+          ''
+        );
+      }
+
+      $authorNameValue = null;
+      if (array_key_exists('name', $author)) {
+        $authorNameValue = $author['name'];
+      }
+      else if (array_key_exists('manifest.metadata.author.name', $manifestAuthor)) {
+        $authorNameValue = $manifestAuthor['manifest.metadata.author.name'];
+      }
+      if (!is_null($authorNameValue)) {
+        $site->manifest->metadata->author->name = filter_var(
+          strval($authorNameValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $authorEmailValue = null;
+      if (array_key_exists('email', $author)) {
+        $authorEmailValue = $author['email'];
+      }
+      else if (array_key_exists('manifest.metadata.author.email', $manifestAuthor)) {
+        $authorEmailValue = $manifestAuthor['manifest.metadata.author.email'];
+      }
+      if (!is_null($authorEmailValue)) {
+        $site->manifest->metadata->author->email = filter_var(
+          strval($authorEmailValue),
+          FILTER_SANITIZE_EMAIL
+        );
+      }
+
+      $authorSocialLinkValue = null;
+      if (array_key_exists('socialLink', $author)) {
+        $authorSocialLinkValue = $author['socialLink'];
+      }
+      else if (array_key_exists('manifest.metadata.author.socialLink', $manifestAuthor)) {
+        $authorSocialLinkValue = $manifestAuthor['manifest.metadata.author.socialLink'];
+      }
+      if (!is_null($authorSocialLinkValue)) {
+        $site->manifest->metadata->author->socialLink = filter_var(
+          strval($authorSocialLinkValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->socialLink = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->socialLink,
+          ''
+        );
+      }
+
+      $descriptionValue = null;
+      if (array_key_exists('description', $seo)) {
+        $descriptionValue = $seo['description'];
+      }
+      else if (array_key_exists('manifest.description', $manifestSeo)) {
+        $descriptionValue = $manifestSeo['manifest.description'];
+      }
+      if (!is_null($descriptionValue)) {
+        $site->manifest->description = filter_var(
+          strval($descriptionValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $logoValue = null;
+      if (array_key_exists('logo', $seo)) {
+        $logoValue = $seo['logo'];
+      }
+      else if (array_key_exists('manifest.metadata.site.logo', $manifestSeo)) {
+        $logoValue = $manifestSeo['manifest.metadata.site.logo'];
+      }
+      if (!is_null($logoValue)) {
+        $site->manifest->metadata->site->logo = filter_var(
+          strval($logoValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->logo,
+          ''
+        );
+      }
+
+      $domainValue = null;
+      if (array_key_exists('domain', $seo)) {
+        $domainValue = $seo['domain'];
+      }
+      else if (array_key_exists('manifest.metadata.site.domain', $manifestSeo)) {
+        $domainValue = $manifestSeo['manifest.metadata.site.domain'];
+      }
+      if (!is_null($domainValue)) {
+        $site->manifest->metadata->site->domain = filter_var(
+          strval($domainValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->site->domain = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->site->domain,
+          ''
+        );
+      }
+
+      $langValue = null;
+      if (array_key_exists('lang', $seo)) {
+        $langValue = $seo['lang'];
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.lang', $manifestSeo)) {
+        $langValue = $manifestSeo['manifest.metadata.site.settings.lang'];
+      }
+      if (!is_null($langValue)) {
+        $site->manifest->metadata->site->settings->lang = filter_var(
+          strval($langValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $gaIDValue = null;
+      if (array_key_exists('gaID', $seo)) {
+        $gaIDValue = $seo['gaID'];
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.gaID', $manifestSeo)) {
+        $gaIDValue = $manifestSeo['manifest.metadata.site.settings.gaID'];
+      }
+      if (!is_null($gaIDValue)) {
+        $site->manifest->metadata->site->settings->gaID = filter_var(
+          strval($gaIDValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $privateInput = null;
+      $privateHasValue = false;
+      if (array_key_exists('private', $seo)) {
+        $privateInput = $seo['private'];
+        $privateHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.private', $manifestSeo)) {
+        $privateInput = $manifestSeo['manifest.metadata.site.settings.private'];
+        $privateHasValue = true;
+      }
+      if ($privateHasValue && !is_null($privateInput) && $privateInput !== '') {
+        $privateValue = filter_var(
+          $privateInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($privateValue)) {
+          $site->manifest->metadata->site->settings->private = $privateValue;
+        }
+      }
+
+      $canonicalInput = null;
+      $canonicalHasValue = false;
+      if (array_key_exists('canonical', $seo)) {
+        $canonicalInput = $seo['canonical'];
+        $canonicalHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.canonical', $manifestSeo)) {
+        $canonicalInput = $manifestSeo['manifest.metadata.site.settings.canonical'];
+        $canonicalHasValue = true;
+      }
+      if ($canonicalHasValue && !is_null($canonicalInput) && $canonicalInput !== '') {
+        $canonicalValue = filter_var(
+          $canonicalInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($canonicalValue)) {
+          $site->manifest->metadata->site->settings->canonical = $canonicalValue;
+        }
+      }
+
+      $pathautoInput = null;
+      $pathautoHasValue = false;
+      if (array_key_exists('pathauto', $seo)) {
+        $pathautoInput = $seo['pathauto'];
+        $pathautoHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.pathauto', $manifestSeo)) {
+        $pathautoInput = $manifestSeo['manifest.metadata.site.settings.pathauto'];
+        $pathautoHasValue = true;
+      }
+      if ($pathautoHasValue && !is_null($pathautoInput) && $pathautoInput !== '') {
+        $pathautoValue = filter_var(
+          $pathautoInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($pathautoValue)) {
+          $site->manifest->metadata->site->settings->pathauto = $pathautoValue;
+        }
+      }
+
+      $publishPagesOnInput = null;
+      $publishPagesOnHasValue = false;
+      if (array_key_exists('publishPagesOn', $seo)) {
+        $publishPagesOnInput = $seo['publishPagesOn'];
+        $publishPagesOnHasValue = true;
+      }
+      else if (array_key_exists('manifest.metadata.site.settings.publishPagesOn', $manifestSeo)) {
+        $publishPagesOnInput = $manifestSeo['manifest.metadata.site.settings.publishPagesOn'];
+        $publishPagesOnHasValue = true;
+      }
+      if ($publishPagesOnHasValue && !is_null($publishPagesOnInput) && $publishPagesOnInput !== '') {
+        $publishPagesOnValue = filter_var(
+          $publishPagesOnInput,
+          FILTER_VALIDATE_BOOLEAN,
+          FILTER_NULL_ON_FAILURE
+        );
+        if (!is_null($publishPagesOnValue)) {
+          $site->manifest->metadata->site->settings->publishPagesOn = $publishPagesOnValue;
+        }
+      }
+
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->gitCommit('SEO settings updated');
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveAppearanceSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save appearance settings into site.json metadata.theme"
+   *   )
+   * )
+   */
+  public function saveAppearanceSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$site || !isset($site->manifest)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid site',
+          )
+        );
+      }
+      if (!$this->platformAllows($site, 'themeManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Theme settings are disabled for this site',
+          )
+        );
+      }
+
+      $siteParams = isset($this->params['site']) ? $this->params['site'] : null;
+      if (is_object($siteParams)) {
+        $siteParams = (array) $siteParams;
+      }
+      if (!$this->hasOnlyAllowedKeys($siteParams, array('name'))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid site payload',
+          )
+        );
+      }
+
+      $manifestParams = isset($this->params['manifest']) ? $this->params['manifest'] : null;
+      if (is_object($manifestParams)) {
+        $manifestParams = (array) $manifestParams;
+      }
+      if (!$this->hasOnlyAllowedKeys($manifestParams, array('theme'))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid manifest payload',
+          )
+        );
+      }
+
+      $themeParams = isset($manifestParams['theme']) ? $manifestParams['theme'] : null;
+      if (is_object($themeParams)) {
+        $themeParams = (array) $themeParams;
+      }
+      $regionFieldMap = array(
+        'manifest-metadata-theme-regions-header' => 'header',
+        'manifest-metadata-theme-regions-sidebarFirst' => 'sidebarFirst',
+        'manifest-metadata-theme-regions-sidebarSecond' => 'sidebarSecond',
+        'manifest-metadata-theme-regions-contentTop' => 'contentTop',
+        'manifest-metadata-theme-regions-contentBottom' => 'contentBottom',
+        'manifest-metadata-theme-regions-footerPrimary' => 'footerPrimary',
+        'manifest-metadata-theme-regions-footerSecondary' => 'footerSecondary',
+      );
+      $allowedThemeKeys = array_merge(
+        array(
+          'manifest-metadata-theme-element',
+          'manifest-metadata-theme-variables-image',
+          'manifest-metadata-theme-variables-imageAlt',
+          'manifest-metadata-theme-variables-imageLink',
+          'manifest-metadata-theme-variables-cssVariable',
+          'manifest-metadata-theme-variables-palette',
+          'manifest-metadata-theme-variables-icon',
+        ),
+        array_keys($regionFieldMap)
+      );
+      if (!$this->hasOnlyAllowedKeys($themeParams, $allowedThemeKeys)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid appearance payload',
+          )
+        );
+      }
+
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->theme) || !is_object($site->manifest->metadata->theme)) {
+        $site->manifest->metadata->theme = new stdClass();
+      }
+
+      if (array_key_exists('manifest-metadata-theme-element', $themeParams)) {
+        if (!is_string($themeParams['manifest-metadata-theme-element'])) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $themeElement = trim(filter_var($themeParams['manifest-metadata-theme-element'], FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        if ($themeElement === '') {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $themes = $GLOBALS['HAXCMS']->getThemes();
+        $themeValue = null;
+        if (is_object($themes) && isset($themes->{$themeElement})) {
+          $themeValue = $themes->{$themeElement};
+        }
+        else if (is_array($themes) && isset($themes[$themeElement])) {
+          $themeValue = $themes[$themeElement];
+        }
+        if (is_null($themeValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid theme element',
+            )
+          );
+        }
+        $site->manifest->metadata->theme = $themeValue;
+      }
+
+      if (!isset($site->manifest->metadata->theme->variables) || !is_object($site->manifest->metadata->theme->variables)) {
+        $site->manifest->metadata->theme->variables = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->theme->regions) || !is_object($site->manifest->metadata->theme->regions)) {
+        $site->manifest->metadata->theme->regions = new stdClass();
+      }
+
+      if (array_key_exists('manifest-metadata-theme-variables-image', $themeParams)) {
+        $imageValue = $themeParams['manifest-metadata-theme-variables-image'];
+        if (!is_null($imageValue) && !is_string($imageValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid image value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->image = SanitizeContent::sanitizeURLValue(
+          filter_var($imageValue, FILTER_SANITIZE_URL),
+          ''
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-imageAlt', $themeParams)) {
+        $imageAltValue = $themeParams['manifest-metadata-theme-variables-imageAlt'];
+        if (!is_null($imageAltValue) && !is_string($imageAltValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid imageAlt value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->imageAlt = filter_var(
+          $imageAltValue,
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-imageLink', $themeParams)) {
+        $imageLinkValue = $themeParams['manifest-metadata-theme-variables-imageLink'];
+        if (!is_null($imageLinkValue) && !is_string($imageLinkValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid imageLink value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->imageLink = SanitizeContent::sanitizeURLValue(
+          filter_var($imageLinkValue, FILTER_SANITIZE_URL),
+          ''
+        );
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-cssVariable', $themeParams)) {
+        $cssVariable = $this->normalizeAppearanceCssVariable(
+          $themeParams['manifest-metadata-theme-variables-cssVariable']
+        );
+        if ($cssVariable === false) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid cssVariable value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->cssVariable =
+          '--simple-colors-default-theme-' . $cssVariable . '-7';
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-palette', $themeParams)) {
+        $paletteValue = $themeParams['manifest-metadata-theme-variables-palette'];
+        if (!is_null($paletteValue) && !is_string($paletteValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid palette value',
+            )
+          );
+        }
+        if (is_null($paletteValue)) {
+          if (isset($site->manifest->metadata->theme->variables->palette)) {
+            unset($site->manifest->metadata->theme->variables->palette);
+          }
+        }
+        else {
+          $palette = filter_var($paletteValue, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+          if (!is_string($palette)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid palette value',
+              )
+            );
+          }
+          $palette = strtolower(trim($palette));
+          if ($palette === '') {
+            if (isset($site->manifest->metadata->theme->variables->palette)) {
+              unset($site->manifest->metadata->theme->variables->palette);
+            }
+          }
+          else if (preg_match('/^[a-z0-9-]+$/', $palette) === 1) {
+            $site->manifest->metadata->theme->variables->palette = $palette;
+          }
+          else {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid palette value',
+              )
+            );
+          }
+        }
+      }
+      if (array_key_exists('manifest-metadata-theme-variables-icon', $themeParams)) {
+        $iconValue = $themeParams['manifest-metadata-theme-variables-icon'];
+        if (!is_null($iconValue) && !is_string($iconValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid icon value',
+            )
+          );
+        }
+        $site->manifest->metadata->theme->variables->icon = filter_var(
+          $iconValue,
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      foreach ($regionFieldMap as $field => $regionName) {
+        if (array_key_exists($field, $themeParams)) {
+          $cleanRegionIds = $this->sanitizeAppearanceRegionIds($themeParams[$field]);
+          if ($cleanRegionIds === false) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid region value',
+              )
+            );
+          }
+          $site->manifest->metadata->theme->regions->{$regionName} = $cleanRegionIds;
+        }
+      }
+
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save(false);
+      $site->gitCommit('Appearance settings updated');
+      $site->rebuildManagedFiles();
+      $site->updateAlternateFormats();
+      $site->gitCommit('Managed files updated');
+
+      return array(
+        'status' => 200,
+        'data' => array(
+          'saved' => true,
+          'appearance' => array(
+            'theme' => true,
+          )
+        )
+      );
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/savePlatformSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description=\"Save platform feature settings into site.json metadata.platform.features\"
+   *   )
+   * )
+   */
+  public function savePlatformSettings() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      // load the site from name
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      // platform can arrive as an array depending on request parsing
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
+      // Validate payload shape
+
+      $validFeatureKeys = array(
+        'addPage',
+        'saveAndEdit',
+        'deletePage',
+        'outlineDesigner',
+        'styleGuide',
+        'insights',
+        'siteManifest',
+        'themeManifest',
+        'authorManifest',
+        'seoManifest',
+        'pageBreak',
+        'addBlock',
+        'popularGizmos',
+        'recentGizmos',
+        'contentMap',
+        'viewSource',
+        'uploadMedia',
+        'onlineMedia',
+        'community',
+        'pageTemplates',
+        'blockTemplates'
+      );
+      $legacyFeatureKeyMap = array(
+        'manifest' => array('siteManifest', 'themeManifest', 'authorManifest', 'seoManifest'),
+        'onlineSearch' => array('onlineMedia'),
+        'delete' => array('deletePage')
+      );
+      $featureSources = array();
+      if (isset($platform->features) && (is_object($platform->features) || is_array($platform->features))) {
+        $featureSources[] = $platform->features;
+      }
+      if (isset($platform->cmsFeatures) && (is_object($platform->cmsFeatures) || is_array($platform->cmsFeatures))) {
+        $featureSources[] = $platform->cmsFeatures;
+      }
+      if (isset($platform->editorFeatures) && (is_object($platform->editorFeatures) || is_array($platform->editorFeatures))) {
+        $featureSources[] = $platform->editorFeatures;
+      }
+      if (count($featureSources) === 0) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid features',
+          )
+        );
+      }
+      $normalizedFeatures = array();
+      foreach ($featureSources as $featureSource) {
+        if (is_object($featureSource)) {
+          $featureSource = (array) $featureSource;
+        }
+        foreach ($featureSource as $key => $value) {
+          // Accept boolean-like values (true/false, "true"/"false", 1/0)
+          // and normalize to strict booleans for storage.
+          $coerced = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+          if (is_null($coerced)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid feature value for ' . $key,
+              )
+            );
+          }
+          if (in_array($key, $validFeatureKeys)) {
+            $normalizedFeatures[$key] = $coerced;
+          }
+          else if (isset($legacyFeatureKeyMap[$key])) {
+            foreach ($legacyFeatureKeyMap[$key] as $mappedKey) {
+              $normalizedFeatures[$mappedKey] = $coerced;
+            }
+          }
+          else {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid feature key',
+              )
+            );
+          }
+        }
+      }
+
+      // Write features only. Audience and allowed blocks are managed by their
+      // dedicated endpoints (saveEditorSettings / saveAllowedBlocks).
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+      }
+      $site->manifest->metadata->platform->features = new stdClass();
+      foreach ($validFeatureKeys as $i => $k) {
+        if (isset($normalizedFeatures[$k])) {
+          $site->manifest->metadata->platform->features->{$k} = $normalizedFeatures[$k];
+        }
+      }
+      $site->manifest->metadata->site->updated = time();
+
+      // don't reorganize the structure
+      $site->manifest->save(false);
+      $site->gitCommit('Platform settings updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveEditorSettings",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save editor settings into site.json metadata.platform.audience"
+   *   )
+   * )
+   */
+  public function saveEditorSettings() {
+    if (!isset($this->params['site']) || !isset($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'missing site name',
+        )
+      );
+    }
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'siteManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Editor settings are disabled for this site',
+          )
+        );
+      }
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
+      if (!isset($platform->audience) || !is_string($platform->audience)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid audience',
+          )
+        );
+      }
+      $audience = strtolower(trim($platform->audience));
+      $allowedAudiences = array('novice', 'expert');
+      if (!in_array($audience, $allowedAudiences)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid audience',
+          )
+        );
+      }
+
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+      }
+
+      $site->manifest->metadata->platform->audience = $audience;
+      $site->manifest->metadata->site->updated = time();
+
+      $site->manifest->save(false);
+      $site->gitCommit('Editor settings updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
+  /**
+   * @OA\Post(
+   *    path="/saveAllowedBlocks",
+   *    tags={"cms","authenticated"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Save allowed blocks into site.json metadata.platform.allowedBlocks"
+   *   )
+   * )
+   */
+  public function saveAllowedBlocks() {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      // load the site from name
+      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'siteManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Allowed blocks settings are disabled for this site',
+          )
+        );
+      }
+      if (!isset($this->rawParams['platform'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'missing platform settings',
+          )
+        );
+      }
+
+      $platform = $this->rawParams['platform'];
+      // platform can arrive as an array depending on request parsing
+      if (is_array($platform)) {
+        $platform = json_decode(json_encode($platform));
+      }
+
+      if (!property_exists($platform, 'allowedBlocks')) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid allowedBlocks',
+          )
+        );
+      }
+      if (!is_null($platform->allowedBlocks) && !is_array($platform->allowedBlocks)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid allowedBlocks',
+          )
+        );
+      }
+      $cleanAllowedBlocks = null;
+      if (is_array($platform->allowedBlocks)) {
+        $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($site);
+        $cleanAllowedBlocks = array();
+        foreach ($platform->allowedBlocks as $index => $tag) {
+          if (!is_string($tag)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid allowedBlocks entry at index ' . $index,
+              )
+            );
+          }
+
+          $cleanTag = trim($tag);
+          if ($cleanTag === '') {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid tag name in allowedBlocks at index ' . $index . ' (empty value)',
+              )
+            );
+          }
+
+          // Allow basic HTML primitives (no dash) OR web components found in wc-registry
+          $isHtmlTag = false;
+          if (preg_match('/^[a-z][a-z0-9]*$/', $cleanTag) && strpos($cleanTag, '-') === false) {
+            $isHtmlTag = true;
+          }
+
+          $isRegisteredWc = false;
+          if (!$isHtmlTag && $wcMap && isset($wcMap->{$cleanTag})) {
+            $isRegisteredWc = true;
+          }
+
+          if (!$isHtmlTag && !$isRegisteredWc) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid tag name in allowedBlocks at index ' . $index . ': ' . $cleanTag,
+              )
+            );
+          }
+
+          $cleanAllowedBlocks[] = $cleanTag;
+        }
+        $cleanAllowedBlocks = array_values(array_unique($cleanAllowedBlocks));
+        sort($cleanAllowedBlocks);
+      }
+
+      if (!isset($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->platform) || !is_object($site->manifest->metadata->platform)) {
+        $site->manifest->metadata->platform = new stdClass();
+        $site->manifest->metadata->platform->audience = 'expert';
+        $site->manifest->metadata->platform->features = new stdClass();
+        $site->manifest->metadata->platform->allowedBlocks = array();
+      }
+
+      $site->manifest->metadata->platform->allowedBlocks = $cleanAllowedBlocks;
+      $site->manifest->metadata->site->updated = time();
+
+      // don't reorganize the structure
+      $site->manifest->save(false);
+      $site->gitCommit('Allowed blocks updated');
+
+      return $site->manifest;
+    }
+    else {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid site token',
+        )
+      );
+    }
+  }
+
   /**
    * @OA\Post(
    *    path="/saveOutline",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -513,8 +2286,27 @@ class Operations {
       }
       $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
       $original = $site->manifest->items;
+      $originalLocationMap = array();
+      foreach ($original as $originalItem) {
+        $originalLocationMap[$originalItem->id] = $this->normalizeOutlineLocation($originalItem->location);
+      }
+      $safeLocationMap = array();
       $items = $this->rawParams['items'];
       $itemMap = array();
+      $pageAlternateContentMap = array();
+      $normalizeOutlineSlug = function ($slug, $page = null, $pathAuto = false) use ($site) {
+        $normalizedSlug = $GLOBALS['HAXCMS']->generateSlugName($slug);
+        if ($normalizedSlug == 'x') {
+          $normalizedSlug = 'x-x';
+        }
+        if (substr($normalizedSlug, 0, 2) == 'x/') {
+          $normalizedSlug = str_replace('x/', 'x-x/', $normalizedSlug);
+        }
+        if ($normalizedSlug == '') {
+          $normalizedSlug = 'blank';
+        }
+        return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
+      };
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -547,18 +2339,19 @@ class Operations {
         } else {
           $page->order = (int)$key;
         }
-        // keep location if we get one already
-        if (isset($item->location) && $item->location != '') {
-          $page->location = $item->location;
+        // location is backend-controlled to prevent arbitrary writes
+        if (isset($originalLocationMap[$page->id]) && $originalLocationMap[$page->id]) {
+          $page->location = $originalLocationMap[$page->id];
         } else {
           // generate a logical page slug
           $page->location = 'pages/' . $page->id . '/index.html';
         }
-        // keep location if we get one already
+        // keep slug if we get one already, but sanitize / normalize it
         if (isset($item->slug) && $item->slug != '') {
+            $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
         } else {
             // generate a logical page slug
-            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+            $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
         }
         // verify this exists, front end could have set what they wanted
         // or it could have just been renamed
@@ -568,6 +2361,7 @@ class Operations {
               HAXCMS_ROOT . '/system/boilerplate/page/default',
               $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
           );
+          $pageAlternateContentMap[$page->id] = '';
         }
         // this would imply existing item, lets see if it moved or needs moved
         else {
@@ -581,11 +2375,15 @@ class Operations {
                     // core support for automatically managing paths to make them nice
                     if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
                         $moved = true;
-                        $page->slug = $site->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($page->title), $page, true);
+                        $page->slug = $normalizeOutlineSlug(
+                          $GLOBALS['HAXCMS']->cleanTitle($page->title),
+                          $page,
+                          true
+                        );
                     }
                     else if ($tmpItem->slug != $page->slug) {
                         $moved = true;
-                        $page->slug = $GLOBALS['HAXCMS']->generateSlugName($tmpItem->slug);
+                        $page->slug = $normalizeOutlineSlug($page->slug, $page, false);
                     }
                 }
             }
@@ -599,15 +2397,20 @@ class Operations {
                 if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
                   $pAuto = true;
                 }
-                $tmpTitle = $site->getUniqueSlugName($cleanTitle, $page, $pAuto);
+                $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
                 $page->location = 'pages/' . $page->id . '/index.html';
                 $page->slug = $tmpTitle;
                 $site->recurseCopy(
                     HAXCMS_ROOT . '/system/boilerplate/page/default',
                     $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
                 );
+                $pageAlternateContentMap[$page->id] = '';
             }
         }
+        if (!isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
+            $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
+        }
+        $safeLocationMap[$page->id] = $page->location;
         // check for any metadata keys that did come over
         foreach ($item->metadata as $key => $value) {
             $page->metadata->{$key} = $value;
@@ -634,17 +2437,75 @@ class Operations {
         // load the item, or the item as built out of the itemMap
         // since we reset the UUID on creation
         if (!($page = $site->loadNode($item->id))) {
-          $page = $site->loadNode($itemMap[$item->id]);
+          if (isset($itemMap[$item->id])) {
+            $page = $site->loadNode($itemMap[$item->id]);
+          }
+        }
+        if (!$page) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid page reference',
+            )
+          );
+        }
+        $expectedLocation = null;
+        if (isset($safeLocationMap[$page->id]) && $safeLocationMap[$page->id]) {
+          $expectedLocation = $safeLocationMap[$page->id];
+        } else {
+          $expectedLocation = $this->normalizeOutlineLocation($page->location);
+        }
+        if (!$expectedLocation) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid page location',
+            )
+          );
+        }
+        // location is backend-controlled based on page id, ignore client input
+        if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid write target',
+            )
+          );
+        }
+        $page->location = $expectedLocation;
+        $alternateContent = '';
+        $shouldWriteAlternate = false;
+        if (isset($pageAlternateContentMap[$page->id])) {
+          $shouldWriteAlternate = true;
         }
         if (isset($item->duplicate)) {
           // load the node we are duplicating with support for the same map needed for page loading
           if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
-            $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+            if (isset($itemMap[$item->duplicate])) {
+              $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+            }
+          }
+          if (!$nodeToDuplicate) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid duplicate source',
+              )
+            );
           }
           $content = $site->getPageContent($nodeToDuplicate);
+          if (!$this->isLikelyHtmlContent($content)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid duplicate content',
+              )
+            );
+          }
           // write it to the file system
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
           $bytes = $page->writeLocation(
-            $content,
+            $alternateContent,
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -652,12 +2513,30 @@ class Operations {
             $site->manifest->metadata->site->name .
             '/'
           );
+          if ($bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
+            );
+          }
+          $shouldWriteAlternate = true;
         }
         // contents that were shipped across, and not null, take priority over a dup request
         if (isset($item->contents) && $item->contents && $item->contents != '') {
+          if (!$this->isLikelyHtmlContent($item->contents)) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid page contents',
+              )
+            );
+          }
           // write it to the file system
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($item->contents);
           $bytes = $page->writeLocation(
-            $item->contents,
+            $alternateContent,
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -665,6 +2544,18 @@ class Operations {
             $site->manifest->metadata->site->name .
             '/'
           );
+          if ($bytes === false) {
+            return array(
+              '__failed' => array(
+                'status' => 500,
+                'message' => 'failed to write',
+              )
+            );
+          }
+          $shouldWriteAlternate = true;
+        }
+        if ($shouldWriteAlternate) {
+          $site->writePageAlternateFormats($page, $alternateContent);
         }
       }
       $items = $this->rawParams['items'];
@@ -675,7 +2566,12 @@ class Operations {
           // load the item, or the item as built out of the itemMap
           // since we reset the UUID on creation
           if (!($page = $site->loadNode($item->id))) {
-            $page = $site->loadNode($itemMap[$item->id]);
+            if (isset($itemMap[$item->id])) {
+              $page = $site->loadNode($itemMap[$item->id]);
+            }
+          }
+          if (!$page) {
+            continue;
           }
           $site->deleteNode($page);
           $site->gitCommit(
@@ -718,8 +2614,8 @@ class Operations {
    *     path="/createNode",
    *     tags={"cms","authenticated","node"},
    *     @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -765,7 +2661,6 @@ class Operations {
    *                    "site": {
    *                      "name": "mysite"
    *                    },
-   *                    "items": [{},{}],
    *                    "node": {
    *                      "id": null,
    *                      "title": "Cool post",
@@ -819,7 +2714,9 @@ class Operations {
               $nodeParams['items'][$i]['slug'],
               $nodeParams['items'][$i]['id'],
               $nodeParams['items'][$i]['indent'],
-              $nodeParams['items'][$i]['contents']
+              ((isset($nodeParams['items'][$i]['content']) && $nodeParams['items'][$i]['content'] != '') ? $nodeParams['items'][$i]['content'] : (isset($nodeParams['items'][$i]['contents']) ? $nodeParams['items'][$i]['contents'] : '')),
+              (isset($nodeParams['items'][$i]['order']) ? $nodeParams['items'][$i]['order'] : null),
+              (isset($nodeParams['items'][$i]['metadata']) ? $nodeParams['items'][$i]['metadata'] : null)
             );  
           }
         }
@@ -842,6 +2739,7 @@ class Operations {
         // add the item back into the outline schema
         $site->manifest->addItem($item);
         $site->manifest->save();
+        $alternateContent = '';
         // support for duplicating the content of another item
         if (isset($nodeParams['node']['duplicate'])) {
           // verify we can load this id
@@ -851,8 +2749,9 @@ class Operations {
             if ($page = $site->loadNode($item->id)) {
               // write it to the file system
               // this all seems round about but it's more secure
+              $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
               $bytes = $page->writeLocation(
-                $content,
+                $alternateContent,
                 HAXCMS_ROOT .
                 '/' .
                 $GLOBALS['HAXCMS']->sitesDirectory .
@@ -869,8 +2768,9 @@ class Operations {
         else if (isset($nodeParams['node']['contents'])) {
           if ($page = $site->loadNode($item->id)) {
             // write it to the file system
+            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($nodeParams['node']['contents']);
             $bytes = $page->writeLocation(
-              $nodeParams['node']['contents'],
+              $alternateContent,
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -879,6 +2779,9 @@ class Operations {
               '/'
             );
           }
+        }
+        if ($page = $site->loadNode($item->id)) {
+          $site->writePageAlternateFormats($page, $alternateContent);
         }
         $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
         // update the alternate formats as a new page exists
@@ -903,8 +2806,8 @@ class Operations {
    *    path="/saveNode",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -969,6 +2872,14 @@ class Operations {
             // verify this pages does not exist; this is only possible if we parse multiple page-break
             // a capability that is not supported currently beyond experiments
             if (!$page = $site->loadNode($data["attributes"]["item-id"])) {
+              if (!$this->platformAllows($site, 'addPage')) {
+                return array(
+                  '__failed' => array(
+                    'status' => 403,
+                    'message' => 'Adding pages is disabled for this site',
+                  )
+                );
+              }
               // generate a new item based on the site
               $nodeParams = array(
                 "node" => array(
@@ -996,11 +2907,12 @@ class Operations {
             }
             // now this should exist if it didn't a minute ago
             $page = $site->loadNode($data["attributes"]["item-id"]);
+            $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($data['content']);
             // @todo make sure that we stripped off page-break
             // and now save WITHOUT the top level page-break
             // to avoid duplication issues
             $bytes = $page->writeLocation(
-              $data['content'],
+              $sanitizedContent,
               HAXCMS_ROOT .
               '/' .
               $GLOBALS['HAXCMS']->sitesDirectory .
@@ -1047,7 +2959,7 @@ class Operations {
                 // allow setting theme via page break
                 if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
                   $themes = $GLOBALS['HAXCMS']->getThemes();
-                  $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_STRING);
+                  $value = filter_var($data["attributes"]["developer-theme"], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
                   // support for removing the custom theme or applying none
                   if ($value == '_none_' || $value == '' || !$value || !isset($themes->{$value})) {
                     unset($page->metadata->theme);
@@ -1094,7 +3006,9 @@ class Operations {
                 }
                 // support for defining and updating related-items
                 if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
-                  $page->metadata->relatedItems = $data["attributes"]["related-items"];
+                  $page->metadata->relatedItems = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["related-items"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->relatedItems)) {
@@ -1102,7 +3016,10 @@ class Operations {
                 }
                 // support for defining and updating image
                 if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                  $page->metadata->image = $data["attributes"]["image"];
+                  $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                    $data["attributes"]["image"],
+                    ''
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->image)) {
@@ -1110,7 +3027,9 @@ class Operations {
                 }
                 // support for defining and updating page type
                 if (isset($data["attributes"]["tags"]) && $data["attributes"]["tags"] != '') {
-                  $page->metadata->tags = $data["attributes"]["tags"];
+                  $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["tags"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->tags)) {
@@ -1118,7 +3037,9 @@ class Operations {
                 }
                 // support for defining and updating page accentColor
                 if (isset($data["attributes"]["accent-color"]) && $data["attributes"]["accent-color"] != '') {
-                  $page->metadata->accentColor = $data["attributes"]["accent-color"];
+                  $page->metadata->accentColor = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["accent-color"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->accentColor)) {
@@ -1126,7 +3047,9 @@ class Operations {
                 }
                 // support for defining and updating page type
                 if (isset($data["attributes"]["icon"]) && $data["attributes"]["icon"] != '') {
-                  $page->metadata->icon = $data["attributes"]["icon"];
+                  $page->metadata->icon = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["icon"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->icon)) {
@@ -1134,7 +3057,10 @@ class Operations {
                 }
                 // support for defining an image to represent the page
                 if (isset($data["attributes"]["image"]) && $data["attributes"]["image"] != '') {
-                  $page->metadata->image = $data["attributes"]["image"];
+                  $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                    $data["attributes"]["image"],
+                    ''
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->image)) {
@@ -1142,7 +3068,9 @@ class Operations {
                 }
                 // support for defining and updating author
                 if (isset($data["attributes"]["author"]) && $data["attributes"]["author"] != '') {
-                  $page->metadata->author = $data["attributes"]["author"];
+                  $page->metadata->author = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["author"]
+                  );
                 }
                 // they sent across nothing but we had something previously
                 else if (isset($page->metadata->author)) {
@@ -1206,6 +3134,7 @@ class Operations {
                   }
                 }
                 $site->updateNode($page);
+                $site->writePageAlternateFormats($page, $sanitizedContent);
                 $site->gitCommit(
                   'Page updated: ' . $page->title . ' (' . $page->id . ')'
                 );
@@ -1240,8 +3169,8 @@ class Operations {
    *    path="/deleteNode",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1257,7 +3186,7 @@ class Operations {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
 
       // Check platform configuration
-      if (!$this->platformAllows($site, 'delete')) {
+      if (!$this->platformAllows($site, 'deletePage')) {
         return array(
           '__failed' => array(
             'status' => 403,
@@ -1324,8 +3253,8 @@ class Operations {
    *    path="/saveNodeDetails",
    *    tags={"cms","authenticated","node"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1358,6 +3287,26 @@ class Operations {
         );
       }
       $operation = isset($this->params['node']['details']['operation']) ? $this->params['node']['details']['operation'] : null;
+      $pageDetailOperations = array(
+        'setTitle',
+        'setDescription',
+        'setTags',
+        'setIcon',
+        'setMedia',
+        'setImage',
+        'setRelatedItems',
+        'setLocked',
+        'setPublished',
+        'setHideInMenu',
+      );
+      if (in_array($operation, $pageDetailOperations, true) && !$this->platformAllows($site, 'pageBreak')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Page details editing is disabled for this site',
+          )
+        );
+      }
       $page = $site->loadNode($this->params['node']['id']);
       if (!$page) {
         return array(
@@ -1486,7 +3435,9 @@ class Operations {
           }
           if (array_key_exists('tags', $this->params['node']['details'])) {
             if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
-              $page->metadata->tags = filter_var($this->params['node']['details']['tags'], FILTER_SANITIZE_STRING);
+              $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['tags']
+              );
             } else {
               unset($page->metadata->tags);
             }
@@ -1498,7 +3449,9 @@ class Operations {
           }
           if (array_key_exists('icon', $this->params['node']['details'])) {
             if ($this->params['node']['details']['icon'] !== '' && $this->params['node']['details']['icon'] !== null) {
-              $page->metadata->icon = filter_var($this->params['node']['details']['icon'], FILTER_SANITIZE_STRING);
+              $page->metadata->icon = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['icon']
+              );
             } else {
               unset($page->metadata->icon);
             }
@@ -1511,7 +3464,10 @@ class Operations {
           }
           if (array_key_exists('image', $this->params['node']['details'])) {
             if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
-              $page->metadata->image = filter_var($this->params['node']['details']['image'], FILTER_SANITIZE_URL);
+              $page->metadata->image = SanitizeContent::sanitizeURLValue(
+                $this->params['node']['details']['image'],
+                ''
+              );
             } else {
               unset($page->metadata->image);
             }
@@ -1523,7 +3479,9 @@ class Operations {
           }
           if (array_key_exists('relatedItems', $this->params['node']['details'])) {
             if ($this->params['node']['details']['relatedItems'] !== '' && $this->params['node']['details']['relatedItems'] !== null) {
-              $page->metadata->relatedItems = filter_var($this->params['node']['details']['relatedItems'], FILTER_SANITIZE_STRING);
+              $page->metadata->relatedItems = SanitizeContent::sanitizeMetadataValue(
+                $this->params['node']['details']['relatedItems']
+              );
             } else {
               unset($page->metadata->relatedItems);
             }
@@ -1611,13 +3569,6 @@ class Operations {
    * @OA\Post(
    *    path="/siteUpdateAlternateFormats",
    *    tags={"cms","authenticated","meta"},
-   *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
-   *         in="query",
-   *         required=true,
-   *         @OA\Schema(type="string")
-   *    ),
    *    @OA\Response(
    *        response="200",
    *        description="Update the alternative formats surrounding a site"
@@ -1644,6 +3595,40 @@ class Operations {
    * )
    */
   public function connectionSettings() {
+    // In HAXiam mode, require an authenticated user and enforce
+    // /<username>/system/api/* path alignment with authenticated principal.
+    if (isset($GLOBALS['HAXCMS']->config->iam) && $GLOBALS['HAXCMS']->config->iam) {
+      $tenantUser = $GLOBALS['HAXCMS']->getIAMTenantUserName();
+      $pathUser = $GLOBALS['HAXCMS']->getRequestPathUserName();
+      // If both are present they must agree.
+      if (!is_null($tenantUser) && $tenantUser != '' && !is_null($pathUser) && $pathUser != '' && $tenantUser !== $pathUser) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Access denied',
+          )
+        );
+      }
+      // Expected IAM user identity for this request.
+      $expectedUser = null;
+      if (!is_null($tenantUser) && $tenantUser != '') {
+        $expectedUser = $tenantUser;
+      }
+      else if (!is_null($pathUser) && $pathUser != '') {
+        $expectedUser = $pathUser;
+      }
+      if (!is_null($expectedUser) && $expectedUser != '') {
+        $authenticatedUser = $GLOBALS['HAXCMS']->getAuthenticatedUserName();
+        if (is_null($authenticatedUser) || $authenticatedUser == '' || $authenticatedUser !== $expectedUser) {
+          return array(
+            '__failed' => array(
+              'status' => 403,
+              'message' => 'Access denied',
+            )
+          );
+        }
+      }
+    }
     // need to return this as if it was a javascript file, weird looking for sure
     return array(
       '__noencode' => array(
@@ -1756,8 +3741,8 @@ class Operations {
    *    path="/getUserData",
    *    tags={"cms","authenticated","user","settings"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1789,8 +3774,8 @@ class Operations {
    *    path="/formLoad",
    *    tags={"cms","authenticated","form"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="haxcms_form_id",
+   *         description="Form identifier to load",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1839,8 +3824,15 @@ class Operations {
    *    path="/formProcess",
    *    tags={"cms","authenticated","form"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="haxcms_form_id",
+   *         description="Form identifier to process",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="haxcms_form_token",
+   *         description="Form request token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1888,8 +3880,8 @@ class Operations {
    *    path="/listFiles",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -1940,6 +3932,397 @@ class Operations {
     return $files;
   }
   /**
+   * Return default skeleton directories in precedence order.
+   */
+  private function getDefaultSkeletonDirectories() {
+    return array(
+      'user' => $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons',
+      'config' => $GLOBALS['HAXCMS']->configDirectory . '/skeletons',
+      'core' => $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons',
+    );
+  }
+  /**
+   * Discover skeleton directories, allowing integrations (like HAXiam) to alter search locations.
+   * Precedence defaults to user -> config -> core and can be extended via hook.
+   */
+  private function getSkeletonDirectories() {
+    $defaultDirs = $this->getDefaultSkeletonDirectories();
+    $dirs = array();
+    foreach ($defaultDirs as $dir) {
+      if (is_dir($dir)) {
+        $dirs[] = rtrim($dir, '/');
+      }
+    }
+    $context = new stdClass();
+    $context->directories = $dirs;
+    $context->defaultDirectories = $defaultDirs;
+    $GLOBALS['HAXCMS']->dispatchEvent('haxcms-skeleton-dirs', $context);
+    if (!is_object($context) || !isset($context->directories) || !is_array($context->directories)) {
+      return $dirs;
+    }
+    $finalDirs = array();
+    foreach ($context->directories as $dir) {
+      if (!is_string($dir)) {
+        continue;
+      }
+      $normalizedDir = rtrim(trim($dir), '/');
+      if ($normalizedDir === '' || !is_dir($normalizedDir)) {
+        continue;
+      }
+      if (!in_array($normalizedDir, $finalDirs, true)) {
+        $finalDirs[] = $normalizedDir;
+      }
+    }
+    return $finalDirs;
+  }
+  /**
+   * Normalize skeleton machine name for matching (filename or meta name).
+   */
+  private function normalizeSkeletonMachineName($value) {
+    if (!is_string($value)) {
+      return '';
+    }
+    return strtolower(trim(preg_replace('/\.json$/i', '', $value)));
+  }
+  /**
+   * Resolve skeleton build payload by machine name from user/config/core skeleton folders.
+   */
+  private function resolveSkeletonBuildByMachineName($machineName) {
+    $normalizedTarget = $this->normalizeSkeletonMachineName($machineName);
+    if ($normalizedTarget === '') {
+      return null;
+    }
+    $dirs = $this->getSkeletonDirectories();
+    foreach ($dirs as $dir) {
+      if (!($handle = opendir($dir))) { continue; }
+      while (false !== ($file = readdir($handle))) {
+        if ($file === '.' || $file === '..') { continue; }
+        $filePath = $dir . '/' . $file;
+        if (!is_file($filePath) || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'json') {
+          continue;
+        }
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json, true);
+        if (!is_array($skeleton)) {
+          continue;
+        }
+        $normalizedFileName = $this->normalizeSkeletonMachineName(pathinfo($file, PATHINFO_FILENAME));
+        $meta = isset($skeleton['meta']) && is_array($skeleton['meta']) ? $skeleton['meta'] : array();
+        $normalizedMetaMachineName = $this->normalizeSkeletonMachineName(isset($meta['machineName']) ? $meta['machineName'] : '');
+        $normalizedMetaName = $this->normalizeSkeletonMachineName(isset($meta['name']) ? $meta['name'] : '');
+        if (
+          $normalizedTarget === $normalizedFileName ||
+          $normalizedTarget === $normalizedMetaMachineName ||
+          $normalizedTarget === $normalizedMetaName
+        ) {
+          closedir($handle);
+          return array(
+            'filePath' => $filePath,
+            'skeleton' => $skeleton,
+            'build' => isset($skeleton['build']) && is_array($skeleton['build']) ? $skeleton['build'] : null,
+          );
+        }
+      }
+      closedir($handle);
+    }
+    return null;
+  }
+  /**
+   * Resolve a trusted skeleton payload by matching machineName against theme keys/elements.
+   * This allows from-skeleton requests to pass either skeleton machine name or theme machine name.
+   */
+  private function resolveSkeletonBuildByThemeMachineName($machineName) {
+    $normalizedTarget = $this->normalizeSkeletonMachineName($machineName);
+    if ($normalizedTarget === '') {
+      return null;
+    }
+    $themes = $GLOBALS['HAXCMS']->getThemes();
+    if (is_object($themes)) {
+      $themes = (array)$themes;
+    }
+    if (!is_array($themes)) {
+      return null;
+    }
+    $matchedThemeKey = null;
+    foreach ($themes as $themeKey => $themeObj) {
+      $normalizedKey = $this->normalizeSkeletonMachineName($themeKey);
+      $themeElement = '';
+      if (is_array($themeObj) && isset($themeObj['element']) && is_string($themeObj['element'])) {
+        $themeElement = $themeObj['element'];
+      }
+      else if (is_object($themeObj) && isset($themeObj->element) && is_string($themeObj->element)) {
+        $themeElement = $themeObj->element;
+      }
+      $normalizedElement = $this->normalizeSkeletonMachineName($themeElement);
+      if (
+        $normalizedTarget === $normalizedKey ||
+        ($normalizedElement !== '' && $normalizedTarget === $normalizedElement)
+      ) {
+        $matchedThemeKey = $themeKey;
+        break;
+      }
+    }
+    if (is_null($matchedThemeKey)) {
+      return null;
+    }
+    $fallbackSkeleton = $this->resolveSkeletonBuildByMachineName('default-starter');
+    $trustedSkeleton = null;
+    $trustedSkeletonFilePath = null;
+    if (
+      is_array($fallbackSkeleton) &&
+      isset($fallbackSkeleton['skeleton']) &&
+      is_array($fallbackSkeleton['skeleton'])
+    ) {
+      $trustedSkeleton = $fallbackSkeleton['skeleton'];
+      $trustedSkeletonFilePath = isset($fallbackSkeleton['filePath'])
+        ? $fallbackSkeleton['filePath']
+        : null;
+    }
+    if (!is_array($trustedSkeleton)) {
+      $trustedSkeleton = array(
+        'meta' => array(),
+        'site' => array(),
+        'build' => array(
+          'type' => 'skeleton',
+          'structure' => 'from-skeleton',
+          'items' => array(),
+          'files' => array(),
+        ),
+      );
+      $trustedSkeletonFilePath = 'generated:theme-fallback';
+    }
+    if (!isset($trustedSkeleton['meta']) || !is_array($trustedSkeleton['meta'])) {
+      $trustedSkeleton['meta'] = array();
+    }
+    $trustedSkeleton['meta']['machineName'] = $matchedThemeKey;
+    $trustedSkeleton['meta']['name'] = $matchedThemeKey;
+    if (!isset($trustedSkeleton['site']) || !is_array($trustedSkeleton['site'])) {
+      $trustedSkeleton['site'] = array();
+    }
+    $trustedSkeleton['site']['theme'] = $matchedThemeKey;
+    if (
+      isset($trustedSkeleton['_skeleton']) &&
+      is_array($trustedSkeleton['_skeleton']) &&
+      isset($trustedSkeleton['_skeleton']['fullThemeConfig'])
+    ) {
+      unset($trustedSkeleton['_skeleton']['fullThemeConfig']);
+    }
+    return array(
+      'filePath' => $trustedSkeletonFilePath,
+      'skeleton' => $trustedSkeleton,
+      'build' => isset($trustedSkeleton['build']) && is_array($trustedSkeleton['build'])
+        ? $trustedSkeleton['build']
+        : null,
+    );
+  }
+  /**
+   * Build a compact signature from build items for fallback skeleton matching.
+   */
+  private function buildItemsSignature($items) {
+    if (!is_array($items) || count($items) === 0) {
+      return null;
+    }
+    $ids = array();
+    foreach ($items as $item) {
+      if (is_array($item) && isset($item['id']) && is_string($item['id'])) {
+        $ids[] = $item['id'];
+      }
+      if (count($ids) >= 5) {
+        break;
+      }
+    }
+    if (count($ids) === 0) {
+      return null;
+    }
+    return count($items) . ':' . implode('|', $ids);
+  }
+  /**
+   * Resolve skeleton by comparing build item signatures when machineName is unavailable.
+   */
+  private function resolveSkeletonByBuildItems($items) {
+    $targetSignature = $this->buildItemsSignature($items);
+    if (is_null($targetSignature)) {
+      return null;
+    }
+    $dirs = $this->getSkeletonDirectories();
+    foreach ($dirs as $dir) {
+      if (!($handle = opendir($dir))) { continue; }
+      while (false !== ($file = readdir($handle))) {
+        if ($file === '.' || $file === '..') { continue; }
+        $filePath = $dir . '/' . $file;
+        if (!is_file($filePath) || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'json') {
+          continue;
+        }
+        $json = @file_get_contents($filePath);
+        $skeleton = json_decode($json, true);
+        if (!is_array($skeleton) || !isset($skeleton['build']) || !is_array($skeleton['build'])) {
+          continue;
+        }
+        $skeletonBuildItems = isset($skeleton['build']['items']) && is_array($skeleton['build']['items'])
+          ? $skeleton['build']['items']
+          : array();
+        $skeletonSignature = $this->buildItemsSignature($skeletonBuildItems);
+        if (!is_null($skeletonSignature) && $skeletonSignature === $targetSignature) {
+          closedir($handle);
+          return array(
+            'filePath' => $filePath,
+            'skeleton' => $skeleton,
+            'build' => $skeleton['build'],
+          );
+        }
+      }
+      closedir($handle);
+    }
+    return null;
+  }
+  /**
+   * Convert arrays into stdClass objects recursively for metadata assignment.
+   */
+  private function toObject($value) {
+    if (is_array($value)) {
+      return json_decode(json_encode($value));
+    }
+    return $value;
+  }
+  /**
+   * Get trusted settings from skeleton payload with fallbacks.
+   */
+  private function getTrustedSkeletonSettings($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    if (isset($skeleton['site']) && is_array($skeleton['site']) && isset($skeleton['site']['settings']) && is_array($skeleton['site']['settings'])) {
+      return $skeleton['site']['settings'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalSettings']) &&
+      is_array($skeleton['_skeleton']['originalSettings'])
+    ) {
+      return $skeleton['_skeleton']['originalSettings'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalMetadata']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['site']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['site']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['site']['settings']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['site']['settings'])
+    ) {
+      return $skeleton['_skeleton']['originalMetadata']['site']['settings'];
+    }
+    return null;
+  }
+  /**
+   * Get trusted platform settings from skeleton payload with fallbacks.
+   */
+  private function getTrustedSkeletonPlatform($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    if (isset($skeleton['site']) && is_array($skeleton['site']) && isset($skeleton['site']['platform']) && is_array($skeleton['site']['platform'])) {
+      return $skeleton['site']['platform'];
+    }
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['originalMetadata']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']) &&
+      isset($skeleton['_skeleton']['originalMetadata']['platform']) &&
+      is_array($skeleton['_skeleton']['originalMetadata']['platform'])
+    ) {
+      return $skeleton['_skeleton']['originalMetadata']['platform'];
+    }
+    return null;
+  }
+  /**
+   * Build theme metadata from trusted skeleton payload.
+   */
+  private function getTrustedSkeletonTheme($skeleton) {
+    if (!is_array($skeleton)) {
+      return null;
+    }
+    $theme = null;
+    if (
+      isset($skeleton['_skeleton']) &&
+      is_array($skeleton['_skeleton']) &&
+      isset($skeleton['_skeleton']['fullThemeConfig']) &&
+      is_array($skeleton['_skeleton']['fullThemeConfig'])
+    ) {
+      $fullThemeConfig = $skeleton['_skeleton']['fullThemeConfig'];
+      $themeBase = array();
+      if (isset($fullThemeConfig['settings']) && is_array($fullThemeConfig['settings'])) {
+        $themeBase = $fullThemeConfig['settings'];
+      }
+      if (isset($fullThemeConfig['element']) && is_string($fullThemeConfig['element']) && $fullThemeConfig['element'] !== '') {
+        $themeBase['element'] = $fullThemeConfig['element'];
+      }
+      if (isset($fullThemeConfig['variables']) && is_array($fullThemeConfig['variables'])) {
+        $themeBase['variables'] = $fullThemeConfig['variables'];
+      }
+      if (count($themeBase) > 0) {
+        $theme = $themeBase;
+      }
+    }
+    $skeletonThemeElement = '';
+    if (
+      isset($skeleton['site']) &&
+      is_array($skeleton['site']) &&
+      isset($skeleton['site']['theme']) &&
+      is_string($skeleton['site']['theme']) &&
+      $skeleton['site']['theme'] !== ''
+    ) {
+      $skeletonThemeElement = $skeleton['site']['theme'];
+    }
+    if ((!is_array($theme) || count($theme) === 0) && $skeletonThemeElement !== '') {
+      $themes = $GLOBALS['HAXCMS']->getThemes();
+      if (is_object($themes)) {
+        $themes = json_decode(json_encode($themes), true);
+      }
+      if (!is_array($themes)) {
+        $themes = array();
+      }
+      if (isset($themes[$skeletonThemeElement])) {
+        $theme = json_decode(json_encode($themes[$skeletonThemeElement]), true);
+      }
+    }
+    if (
+      (!is_array($theme) || count($theme) === 0) &&
+      isset($skeleton['theme']) &&
+      (is_array($skeleton['theme']) || is_object($skeleton['theme']))
+    ) {
+      $theme = is_object($skeleton['theme'])
+        ? json_decode(json_encode($skeleton['theme']), true)
+        : $skeleton['theme'];
+    }
+    if (!is_array($theme) || count($theme) === 0) {
+      return null;
+    }
+    if (!isset($theme['element']) && $skeletonThemeElement !== '') {
+      $theme['element'] = $skeletonThemeElement;
+    }
+    if (
+      !isset($theme['element']) &&
+      isset($theme['path']) &&
+      is_string($theme['path']) &&
+      $theme['path'] !== ''
+    ) {
+      $pathParts = explode('/', $theme['path']);
+      $inferred = array_pop($pathParts);
+      $inferred = preg_replace('/\\.js$/', '', $inferred);
+      if ($inferred !== '') {
+        $theme['element'] = $inferred;
+      }
+    }
+    if (!isset($theme['variables']) || !is_array($theme['variables'])) {
+      $theme['variables'] = array();
+    }
+    return $theme;
+  }
+  /**
    * @OA\Post(
    *    path="/login",
    *    tags={"cms","user"},
@@ -1988,7 +4371,7 @@ class Operations {
         );
       } else {
           // set a refresh_token COOKIE that will ship w/ all calls automatically
-          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = true, $_httponly = true);
           return array(
             "status" => 200,
             "jwt" => $GLOBALS['HAXCMS']->getJWT($u),
@@ -2013,7 +4396,7 @@ class Operations {
         );
       } else {
           // set a refresh_token COOKIE that will ship w/ all calls automatically
-          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = false, $_httponly = true);
+          setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = true, $_httponly = true);
           return $GLOBALS['HAXCMS']->getJWT($u);
       }
     }
@@ -2045,7 +4428,7 @@ class Operations {
    * )
    */
   public function logout() {
-    setcookie('haxcms_refresh_token', '', 1);
+    setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
     return array(
       "status" => 200,
       "data" => 'loggedout',
@@ -2073,7 +4456,7 @@ class Operations {
     }
     else {
       // this failed so unset the cookie
-      setcookie('haxcms_refresh_token', '', 1);
+      setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
       return array(
         '__failed' => array(
           'status' => 401,
@@ -2087,8 +4470,8 @@ class Operations {
    *    path="/saveFile",
    *    tags={"hax","authenticated","file"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="site_token",
+   *         description="Site-specific validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2142,6 +4525,14 @@ class Operations {
     }
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name']) && isset($_FILES['file-upload'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$this->platformAllows($site, 'uploadMedia')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Uploading media is disabled for this site',
+          )
+        );
+      }
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
@@ -2304,14 +4695,9 @@ class Operations {
     }
 
     $items = array();
+    $seen = array();
     // directories to scan for JSON skeleton definitions
-    $dirs = array();
-    // built-in skeletons should come from coreConfig/skeletons like other core config
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    // _config location still participates in the cascade for overrides
-    $configDir = HAXCMS_ROOT . '/_config/skeletons';
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
+    $dirs = $this->getSkeletonDirectories();
 
     foreach ($dirs as $dir) {
       if ($handle = opendir($dir)) {
@@ -2327,6 +4713,11 @@ class Operations {
             $title = isset($meta->useCaseTitle) && $meta->useCaseTitle ? $meta->useCaseTitle : (isset($meta->name) ? $meta->name : basename($file, '.json'));
             $description = isset($meta->useCaseDescription) && $meta->useCaseDescription ? $meta->useCaseDescription : (isset($meta->description) ? $meta->description : '');
             $image = isset($meta->useCaseImage) ? $meta->useCaseImage : '';
+            // priority: negative floats to the top, positive sinks
+            $priority = 0;
+            if (isset($meta->priority) && is_numeric($meta->priority)) {
+              $priority = 0 + $meta->priority;
+            }
             // categories/tags from meta or build type if present
             $category = array();
             if (isset($meta->category) && is_array($meta->category)) { $category = $meta->category; }
@@ -2338,6 +4729,10 @@ class Operations {
             $demo = isset($meta->sourceUrl) ? $meta->sourceUrl : '#';
             // Build API URL to fetch skeleton content with user_token
             $skeletonName = basename($file, '.json');
+            // de-dupe by machineName using precedence order above
+            if (in_array($skeletonName, $seen, TRUE)) {
+              continue;
+            }
             // "default-starter" is a shared internal fallback skeleton that
             // many generic themes reference as their skeleton definition.
             // It should not appear in the public list of selectable skeletons.
@@ -2353,11 +4748,16 @@ class Operations {
               'title' => $title,
               'description' => $description,
               'image' => $image,
+              'priority' => $priority,
               'category' => $category,
               'attributes' => $attributes,
+              // repeat machine name explicitly so UIs don't have to infer it from skeleton-url
+              'machineName' => $skeletonName,
+              'machine-name' => $skeletonName,
               'demo-url' => $demo,
               'skeleton-url' => $skeletonUrl
             );
+            $seen[] = $skeletonName;
           }
         }
         closedir($handle);
@@ -2432,13 +4832,7 @@ class Operations {
     $fileName = (substr($safeName, -5) === '.json') ? $safeName : $safeName . '.json';
 
     // directories to search for skeleton files
-    $dirs = array();
-    // built-in skeletons should come from coreConfig/skeletons like other core config
-    $coreDir = $GLOBALS['HAXCMS']->coreConfigPath . 'skeletons';
-    // _config location still participates in the cascade for overrides
-    $configDir = HAXCMS_ROOT . '/_config/skeletons';
-    if (is_dir($coreDir)) { $dirs[] = $coreDir; }
-    if (is_dir($configDir)) { $dirs[] = $configDir; }
+    $dirs = $this->getSkeletonDirectories();
 
     // Search for the skeleton file
     foreach ($dirs as $dir) {
@@ -2551,8 +4945,8 @@ class Operations {
    *    path="/createSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2570,25 +4964,21 @@ class Operations {
    *                     type="object"
    *                 ),
    *                 @OA\Property(
-   *                     property="theme",
-   *                     type="object"
+   *                     property="token",
+   *                     type="string"
    *                 ),
-   *                 required={"site","node"},
+   *                 required={"site","token"},
    *                 example={
    *                    "site": {
    *                      "name": "mynewsite",
    *                      "description": "The description",
-   *                      "theme": "theme name"
+   *                      "theme": "learn-two-theme"
    *                    },
    *                    "build": {
    *                      "type": "course",
-   *                      "structure": "docx import",
-   *                      "items": [{},{}]
+   *                      "structure": "docx import"
    *                    },
-   *                    "theme": {
-   *                      "color": "blue",
-   *                      "icon": "icons:save"
-   *                    }
+   *                    "token": "request-token"
    *                 }
    *             )
    *         )
@@ -2609,6 +4999,8 @@ class Operations {
       // null in the event we get hits that don't have this
       $build = null;
       $filesToDownload = Array();
+      $trustedSkeleton = null;
+      $trustedSkeletonFilePath = null;
       // support for build info. the details used to actually create this site originally
       if (isset($this->params['build'])) {
         $build = new stdClass();
@@ -2625,7 +5017,93 @@ class Operations {
         if (isset($this->params['build']['files'])) {
           $filesToDownload = $this->params['build']['files'];
         }
+        $isFromSkeleton =
+          isset($build->structure) &&
+          $build->structure === 'from-skeleton';
+        if ($isFromSkeleton) {
+          $skeletonMachineName = (
+            isset($this->params['build']['skeletonMachineName']) &&
+            is_string($this->params['build']['skeletonMachineName'])
+          )
+            ? $this->params['build']['skeletonMachineName']
+            : '';
+          $resolvedSkeleton = null;
+          if ($skeletonMachineName !== '') {
+            $resolvedSkeleton = $this->resolveSkeletonBuildByMachineName($skeletonMachineName);
+            if (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton'])) {
+              $resolvedSkeleton = $this->resolveSkeletonBuildByThemeMachineName($skeletonMachineName);
+            }
+          }
+          if (
+            (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton'])) &&
+            isset($build->items) &&
+            is_array($build->items) &&
+            count($build->items) > 0
+          ) {
+            $resolvedSkeleton = $this->resolveSkeletonByBuildItems($build->items);
+          }
+          if (
+            $skeletonMachineName !== '' &&
+            (!is_array($resolvedSkeleton) || !isset($resolvedSkeleton['skeleton']) || !is_array($resolvedSkeleton['skeleton']))
+          ) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'Unable to resolve skeletonMachineName for from-skeleton build',
+                'skeletonMachineName' => $skeletonMachineName,
+              )
+            );
+          }
+          if (is_array($resolvedSkeleton) && isset($resolvedSkeleton['skeleton']) && is_array($resolvedSkeleton['skeleton'])) {
+            $trustedSkeleton = $resolvedSkeleton['skeleton'];
+            $trustedSkeletonFilePath = isset($resolvedSkeleton['filePath']) ? $resolvedSkeleton['filePath'] : null;
+            $trustedBuild = (isset($trustedSkeleton['build']) && is_array($trustedSkeleton['build']))
+              ? $trustedSkeleton['build']
+              : array();
+            if (isset($trustedBuild['structure']) && is_string($trustedBuild['structure']) && $trustedBuild['structure'] !== '') {
+              $build->structure = $trustedBuild['structure'];
+            }
+            if (isset($trustedBuild['type']) && is_string($trustedBuild['type']) && $trustedBuild['type'] !== '') {
+              $build->type = $trustedBuild['type'];
+            }
+            $build->items = (isset($trustedBuild['items']) && is_array($trustedBuild['items']))
+              ? $trustedBuild['items']
+              : array();
+            if (isset($trustedBuild['files']) && (is_array($trustedBuild['files']) || is_object($trustedBuild['files']))) {
+              $filesToDownload = is_object($trustedBuild['files'])
+                ? (array)$trustedBuild['files']
+                : $trustedBuild['files'];
+            }
+            error_log(
+              '[createSite] resolved skeleton build from machine name: ' .
+              json_encode(array(
+                'skeletonMachineName' => $skeletonMachineName,
+                'resolvedFile' => $trustedSkeletonFilePath,
+                'itemCount' => is_array($build->items) ? count($build->items) : 0,
+                'fileCount' => is_array($filesToDownload) ? count($filesToDownload) : 0,
+              ))
+            );
+          }
+        }
       }
+      $buildDebug = array(
+        'structure' => (is_object($build) && isset($build->structure)) ? $build->structure : null,
+        'type' => (is_object($build) && isset($build->type)) ? $build->type : null,
+        'skeletonMachineName' => isset($this->params['build']['skeletonMachineName']) ? $this->params['build']['skeletonMachineName'] : null,
+        'hasItems' => (is_object($build) && isset($build->items) && is_array($build->items) && count($build->items) > 0),
+        'itemCount' => (is_object($build) && isset($build->items) && is_array($build->items)) ? count($build->items) : 0,
+        'hasFiles' => (is_array($filesToDownload) && count($filesToDownload) > 0),
+        'fileCount' => is_array($filesToDownload) ? count($filesToDownload) : 0
+      );
+      error_log('[createSite] incoming build debug: ' . json_encode($buildDebug));
+      if (is_object($build) && isset($build->structure) && $build->structure === 'from-skeleton') {
+        error_log('[createSite] from-skeleton raw payload: ' . json_encode(isset($this->params['build']) ? $this->params['build'] : array()));
+      }
+      $useTrustedSkeleton =
+        is_object($build) &&
+        isset($build->structure) &&
+        $build->structure === 'from-skeleton' &&
+        is_array($trustedSkeleton);
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
       $site = $GLOBALS['HAXCMS']->loadSite(
@@ -2634,6 +5112,70 @@ class Operations {
           $domain,
           $build
       );
+      $supportedSiteLicenses = array(
+        'by',
+        'by-sa',
+        'by-nd',
+        'by-nc',
+        'by-nc-sa',
+        'by-nc-nd'
+      );
+      if (method_exists($site, 'getLicenseData')) {
+        $licenseOptions = $site->getLicenseData('select');
+        if (is_array($licenseOptions) && count($licenseOptions) > 0) {
+          $normalizedSupportedLicenses = array();
+          foreach (array_keys($licenseOptions) as $licenseKey) {
+            $normalizedKey = strtolower(trim(str_replace('_', '-', strval($licenseKey))));
+            if ($normalizedKey !== '') {
+              $normalizedSupportedLicenses[] = $normalizedKey;
+            }
+          }
+          if (count($normalizedSupportedLicenses) > 0) {
+            $supportedSiteLicenses = array_values(array_unique($normalizedSupportedLicenses));
+          }
+        }
+      }
+      $normalizeSiteLicenseValue = function ($rawValue) use ($supportedSiteLicenses) {
+        if (!is_string($rawValue)) {
+          return null;
+        }
+        $value = strtolower(trim(str_replace('_', '-', $rawValue)));
+        if ($value === '') {
+          return null;
+        }
+        if (in_array($value, $supportedSiteLicenses, true)) {
+          return $value;
+        }
+        foreach ($supportedSiteLicenses as $code) {
+          if (
+            strpos($value, '/licenses/' . $code) !== false ||
+            strpos($value, 'cc ' . $code) !== false ||
+            strpos($value, 'cc-' . $code) !== false ||
+            strpos($value, 'cc:' . $code) !== false
+          ) {
+            return $code;
+          }
+        }
+        return null;
+      };
+      $requestedLicense = null;
+      if (isset($this->params['site']['license']) && is_string($this->params['site']['license'])) {
+        $requestedLicense = $this->params['site']['license'];
+      }
+      $normalizedSiteLicense = $normalizeSiteLicenseValue($requestedLicense);
+      if (
+        is_null($normalizedSiteLicense) &&
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['license']) &&
+        is_string($trustedSkeleton['site']['license'])
+      ) {
+        $normalizedSiteLicense = $normalizeSiteLicenseValue($trustedSkeleton['site']['license']);
+      }
+      if (!is_null($normalizedSiteLicense)) {
+        $site->manifest->license = $normalizedSiteLicense;
+      }
       // this could have changed after creation because of on file system
       $name = $site->manifest->metadata->site->name;
       // now get a new item to reference this into the top level sites listing
@@ -2649,58 +5191,159 @@ class Operations {
       $schema->slug = $schema->location;
       $schema->metadata->site = new stdClass();
       $schema->metadata->theme = new stdClass();
-      // store build data in case we need it down the road
-      $schema->metadata->build = $build;
-      // we don't need to store replication of all items imported on site creation
-      if (isset($schema->metadata->build->items)) {
-        unset($schema->metadata->build->items);
+      if ($useTrustedSkeleton) {
+        $trustedPlatform = $this->getTrustedSkeletonPlatform($trustedSkeleton);
+        if (is_array($trustedPlatform)) {
+          $schema->metadata->platform = $this->toObject($trustedPlatform);
+        }
+      }
+      if (!isset($schema->metadata->platform) || !is_object($schema->metadata->platform)) {
+        // platform settings scaffold (prevents front-end null handling)
+        $schema->metadata->platform = new stdClass();
+        $schema->metadata->platform->audience = 'expert';
+        $schema->metadata->platform->features = new stdClass();
+        $schema->metadata->platform->allowedBlocks = array();
+      }
+      // store build data in case we need it down the road (non-skeleton only)
+      if (!$useTrustedSkeleton && is_object($build)) {
+        $schema->metadata->build = $build;
+        // we don't need to store replication of all items imported on site creation
+        if (isset($schema->metadata->build->items)) {
+          unset($schema->metadata->build->items);
+        }
       }
       $schema->metadata->site->name = $site->manifest->metadata->site->name;
-      if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
+      if (!is_null($normalizedSiteLicense)) {
+        $schema->metadata->site->license = $normalizedSiteLicense;
+      }
+      if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['theme']) &&
+        is_string($trustedSkeleton['site']['theme']) &&
+        $trustedSkeleton['site']['theme'] !== ''
+      ) {
+        $theme = $trustedSkeleton['site']['theme'];
+      }
+      else if (isset($this->params['site']['theme']) && is_string($this->params['site']['theme'])) {
         $theme = $this->params['site']['theme'];
       }
       else {
         $theme = HAXCMS_DEFAULT_THEME;
       }
-      // look for a match so we can set the correct data
-      foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $themeObj) {
-          if ($theme == $key) {
-              $schema->metadata->theme = $themeObj;
-          }
+      if (is_string($theme)) {
+        $theme = strtolower(trim($theme));
       }
-      $schema->metadata->theme->variables = new stdClass();
+      if ($useTrustedSkeleton) {
+        $trustedTheme = $this->getTrustedSkeletonTheme($trustedSkeleton);
+        if (is_array($trustedTheme)) {
+          $schema->metadata->theme = $this->toObject($trustedTheme);
+        }
+      }
+      // look for a match so we can set the correct data
+      if (!is_object($schema->metadata->theme) || count((array)$schema->metadata->theme) === 0) {
+        $themes = $GLOBALS['HAXCMS']->getThemes();
+        if (is_object($themes)) {
+          $themes = (array)$themes;
+        }
+        if (is_array($themes) && isset($themes[$theme])) {
+          $schema->metadata->theme = is_object($themes[$theme])
+            ? json_decode(json_encode($themes[$theme]))
+            : $this->toObject($themes[$theme]);
+        }
+        else {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Invalid theme supplied for site creation',
+              'theme' => $theme,
+            )
+          );
+        }
+      }
+      if (!is_object($schema->metadata->theme)) {
+        $schema->metadata->theme = new stdClass();
+      }
+      if (!isset($schema->metadata->theme->variables) || !is_object($schema->metadata->theme->variables)) {
+        $schema->metadata->theme->variables = new stdClass();
+      }
       // description for an overview if desired
       if (isset($this->params['site']['description']) && $this->params['site']['description'] != '' && $this->params['site']['description'] != null) {
           $schema->description = strip_tags($this->params['site']['description']);
       }
-      // background image / banner
-      if (isset($this->params['theme']['image']) && $this->params['theme']['image'] != '' && $this->params['theme']['image'] != null) {
-        $schema->metadata->site->logo = $this->params['theme']['image'];
+      else if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['description']) &&
+        is_string($trustedSkeleton['site']['description'])
+      ) {
+          $schema->description = strip_tags($trustedSkeleton['site']['description']);
+      }
+      // background image / banner (request does not control this)
+      if (
+        $useTrustedSkeleton &&
+        isset($trustedSkeleton['site']) &&
+        is_array($trustedSkeleton['site']) &&
+        isset($trustedSkeleton['site']['logo']) &&
+        is_string($trustedSkeleton['site']['logo']) &&
+        $trustedSkeleton['site']['logo'] !== ''
+      ) {
+        $schema->metadata->site->logo = $trustedSkeleton['site']['logo'];
       }
       else {
         $schema->metadata->site->logo = 'assets/banner.jpg';
       }
       // icon to express the concept / visually identify site
-      if (isset($this->params['theme']['icon']) && $this->params['theme']['icon'] != '' && $this->params['theme']['icon'] != null) {
-          $schema->metadata->theme->variables->icon = $this->params['theme']['icon'];
+      $icon = 'icons:record-voice-over';
+      if (
+        isset($schema->metadata->theme->variables->icon) &&
+        is_string($schema->metadata->theme->variables->icon) &&
+        $schema->metadata->theme->variables->icon !== ''
+      ) {
+          $icon = $schema->metadata->theme->variables->icon;
       }
+      $schema->metadata->theme->variables->icon = $icon;
       // slightly style the site based on css vars and hexcode
-      if (isset($this->params['theme']['hexCode']) && $this->params['theme']['hexCode'] != '' && $this->params['theme']['hexCode'] != null) {
-          $hex = $this->params['theme']['hexCode'];
+      if (
+        isset($schema->metadata->theme->variables->hexCode) &&
+        is_string($schema->metadata->theme->variables->hexCode) &&
+        $schema->metadata->theme->variables->hexCode !== ''
+      ) {
+          $hex = $schema->metadata->theme->variables->hexCode;
       } else {
-          $hex = '#aeff00';
+          $hex = HAXCMS_FALLBACK_HEX;
       }
       $schema->metadata->theme->variables->hexCode = $hex;
-      if (isset($this->params['theme']['cssVariable']) && $this->params['theme']['cssVariable'] != '' && $this->params['theme']['cssVariable'] != null) {
-          $cssvar = $this->params['theme']['cssVariable'];
+      if (
+        isset($schema->metadata->theme->variables->cssVariable) &&
+        is_string($schema->metadata->theme->variables->cssVariable) &&
+        $schema->metadata->theme->variables->cssVariable !== ''
+      ) {
+          $cssvar = $schema->metadata->theme->variables->cssVariable;
       } else {
           $cssvar = '--simple-colors-default-theme-light-blue-7';
       }
       $schema->metadata->theme->variables->cssVariable = $cssvar;
-      $schema->metadata->site->settings = new stdClass();
-      $schema->metadata->site->settings->lang = 'en-US';
-      $schema->metadata->site->settings->publishPagesOn = true;
-      $schema->metadata->site->settings->canonical = true;
+      $trustedSettings = $useTrustedSkeleton
+        ? $this->getTrustedSkeletonSettings($trustedSkeleton)
+        : null;
+      if (is_array($trustedSettings)) {
+        $schema->metadata->site->settings = $this->toObject($trustedSettings);
+      }
+      else {
+        $schema->metadata->site->settings = new stdClass();
+      }
+      if (!isset($schema->metadata->site->settings->lang) || $schema->metadata->site->settings->lang === '') {
+        $schema->metadata->site->settings->lang = 'en-US';
+      }
+      if (!isset($schema->metadata->site->settings->publishPagesOn)) {
+        $schema->metadata->site->settings->publishPagesOn = true;
+      }
+      if (!isset($schema->metadata->site->settings->canonical)) {
+        $schema->metadata->site->settings->canonical = true;
+      }
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS
@@ -2729,10 +5372,24 @@ class Operations {
       // walk through files if any came across and save each of them
       if (is_array($filesToDownload)) {
         foreach ($filesToDownload as $locationName => $downloadLocation) {
+          $normalizedImportName = $this->normalizeBulkImportName($locationName);
+          if (
+            $normalizedImportName === false ||
+            preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1 ||
+            !HAXCMSFile::isValidBulkImportTmpPath($downloadLocation)
+          ) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'Invalid file import payload in build.files',
+                'file' => $locationName,
+              )
+            );
+          }
           $file = new HAXCMSFile();
           // check for a file upload; we block a few formats by design
           $fileResult = $file->save(Array(
-            "name" => $locationName,
+            "name" => $normalizedImportName,
             "tmp_name" => $downloadLocation,
             "bulk-import" => TRUE
           ), $site);
@@ -2782,8 +5439,8 @@ class Operations {
    *    path="/cloneSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2870,8 +5527,8 @@ class Operations {
    *    path="/downloadSite",
    *    tags={"cms","authenticated","site","meta"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -2958,12 +5615,251 @@ class Operations {
     }
   }
   /**
+   * @OA\\Post(
+   *    path=\"/downloadSiteSkeleton\",
+   *    tags={\"cms\",\"authenticated\",\"site\",\"meta\"},
+   *    @OA\\Parameter(
+   *         name=\"user_token\",
+   *         description=\"User validation token\",
+   *         in=\"query\",
+   *         required=true,
+   *         @OA\\Schema(type=\"string\")
+   *    ),
+   *    @OA\\RequestBody(
+   *        @OA\\MediaType(
+   *             mediaType=\"application/json\",
+   *             @OA\\Schema(
+   *                 @OA\\Property(
+   *                     property=\"site\",
+   *                     type=\"object\"
+   *                 ),
+   *                 required={\"site\"},
+   *                 example={
+   *                    \"site\": {
+   *                      \"name\": \"mynewsite\"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\\Response(
+   *        response=\"200\",
+   *        description=\"Generate and return skeleton JSON for an existing site\"
+   *   )
+   * )
+   */
+  public function downloadSiteSkeleton() {
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+    if (
+      !isset($this->params['site']) ||
+      !is_array($this->params['site']) ||
+      !isset($this->params['site']['name']) ||
+      !is_string($this->params['site']['name']) ||
+      trim($this->params['site']['name']) === ''
+    ) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'invalid site name',
+        )
+      );
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    if (!$site || !isset($site->manifest)) {
+      return array(
+        '__failed' => array(
+          'status' => 404,
+          'message' => 'Site does not exist',
+        )
+      );
+    }
+    try {
+      $skeleton = $this->buildSiteTemplateSkeleton($site);
+      $filename =
+        (isset($skeleton['meta']) &&
+          is_array($skeleton['meta']) &&
+          isset($skeleton['meta']['machineName']) &&
+          is_string($skeleton['meta']['machineName']) &&
+          trim($skeleton['meta']['machineName']) !== ''
+            ? $skeleton['meta']['machineName']
+            : $this->normalizeTemplateMachineName($site->manifest->metadata->site->name)) .
+        '.json';
+      return array(
+        'status' => 200,
+        'data' => array(
+          'skeleton' => $skeleton,
+          'filename' => $filename,
+        ),
+      );
+    }
+    catch (Exception $e) {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Unable to generate site skeleton',
+          'detail' => $e->getMessage(),
+        )
+      );
+    }
+  }
+  /**
+   * @OA\\Post(
+   *    path=\"/saveSiteAsTemplate\",
+   *    tags={\"cms\",\"authenticated\",\"site\",\"meta\"},
+   *    @OA\\Parameter(
+   *         name=\"user_token\",
+   *         description=\"User validation token\",
+   *         in=\"query\",
+   *         required=true,
+   *         @OA\\Schema(type=\"string\")
+   *    ),
+   *    @OA\\RequestBody(
+   *        @OA\\MediaType(
+   *             mediaType=\"application/json\",
+   *             @OA\\Schema(
+   *                 @OA\\Property(
+   *                     property=\"site\",
+   *                     type=\"object\"
+   *                 ),
+   *                 required={\"site\"},
+   *                 example={
+   *                    \"site\": {
+   *                      \"name\": \"mynewsite\"
+   *                    },
+   *                 }
+   *             )
+   *         )
+   *    ),
+   *    @OA\\Response(
+   *        response=\"200\",
+   *        description=\"Generate a skeleton from an existing site and save it to user templates\"
+   *   )
+   * )
+   */
+  public function saveSiteAsTemplate() {
+    if (!isset($this->params['user_token']) || !$GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+    if (
+      !isset($this->params['site']) ||
+      !is_array($this->params['site']) ||
+      !isset($this->params['site']['name']) ||
+      !is_string($this->params['site']['name']) ||
+      trim($this->params['site']['name']) === ''
+    ) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'invalid site name',
+        )
+      );
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    if (!$site || !isset($site->manifest)) {
+      return array(
+        '__failed' => array(
+          'status' => 404,
+          'message' => 'Site does not exist',
+        )
+      );
+    }
+    try {
+      $skeleton = $this->buildSiteTemplateSkeleton($site);
+      $machineName =
+        isset($skeleton['meta']) &&
+        is_array($skeleton['meta']) &&
+        isset($skeleton['meta']['machineName']) &&
+        is_string($skeleton['meta']['machineName']) &&
+        trim($skeleton['meta']['machineName']) !== ''
+          ? $this->normalizeTemplateMachineName($skeleton['meta']['machineName'])
+          : $this->normalizeTemplateMachineName($site->manifest->metadata->site->name);
+      if ($machineName === '') {
+        $machineName = 'site-template';
+      }
+      if (!isset($skeleton['meta']) || !is_array($skeleton['meta'])) {
+        $skeleton['meta'] = array();
+      }
+      $skeleton['meta']['name'] = $machineName;
+      $skeleton['meta']['machineName'] = $machineName;
+      $skeletonsDirectory = $GLOBALS['HAXCMS']->configDirectory . '/user/skeletons';
+      if (!file_exists($skeletonsDirectory) && !mkdir($skeletonsDirectory, 0755, true)) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to create skeletons directory',
+          )
+        );
+      }
+      if (!is_dir($skeletonsDirectory) || !is_writable($skeletonsDirectory)) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Skeletons directory is not writable',
+          )
+        );
+      }
+      $targetPath = $skeletonsDirectory . '/' . $machineName . '.json';
+      $payload = json_encode($skeleton, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+      if ($payload === false) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to encode site skeleton',
+          )
+        );
+      }
+      $writeResult = @file_put_contents($targetPath, $payload . PHP_EOL);
+      if ($writeResult === false) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to save site skeleton',
+          )
+        );
+      }
+      $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
+      $userToken = $this->params['user_token'];
+      $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($machineName) . '&user_token=' . urlencode($userToken);
+      return array(
+        'status' => 200,
+        'data' => array(
+          'saved' => true,
+          'name' => $machineName,
+          'filename' => $machineName . '.json',
+          'path' => $targetPath,
+          'link' => $skeletonUrl,
+        ),
+      );
+    }
+    catch (Exception $e) {
+      return array(
+        '__failed' => array(
+          'status' => 500,
+          'message' => 'Unable to save site skeleton',
+          'detail' => $e->getMessage(),
+        )
+      );
+    }
+  }
+  /**
    * @OA\Post(
    *    path="/archiveSite",
    *    tags={"cms","authenticated","site"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using  /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")
@@ -3032,8 +5928,8 @@ class Operations {
    *    path="/haxiamAddUserAccess",
    *    tags={"cms","authenticated","haxiam"},
    *    @OA\Parameter(
-   *         name="jwt",
-   *         description="JSON Web token, obtain by using /login",
+   *         name="user_token",
+   *         description="User validation token",
    *         in="query",
    *         required=true,
    *         @OA\Schema(type="string")

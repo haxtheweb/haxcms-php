@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "created": "2026-01-08T20:18:30Z",
     "type": "skeleton",
+    "priority": -2,
     "useCaseTitle": "Online Course",
     "useCaseDescription": "An online course skeleton using the Clean One theme with a syllabus and a first lesson broken into introduction, content, and conclusion pages.",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg",

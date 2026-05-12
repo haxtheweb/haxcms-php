@@ -24,7 +24,8 @@
 /providers/pantheon.yaml
 /providers/platform.yaml
 /providers/upsun.yaml
-/sequelpro.spf
+/share-providers/cloudflared.sh
+/share-providers/ngrok.sh
 /traefik/config/haxcms.yaml
 /traefik/certs/haxcms.crt
 /traefik/certs/haxcms.key

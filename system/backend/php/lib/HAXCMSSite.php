@@ -1,6 +1,7 @@
 <?php
 // working with RSS
 include_once 'RSS.php';
+include_once 'SanitizeContent.php';
 use \Gumlet\ImageResize;
 // a site object
 class HAXCMSSite
@@ -125,6 +126,11 @@ class HAXCMSSite
         $this->manifest->metadata->theme->variables = new stdClass();
         $this->manifest->metadata->node = new stdClass();
         $this->manifest->metadata->node->fields = new stdClass();
+        // platform settings scaffold (prevents front-end null handling)
+        $this->manifest->metadata->platform = new stdClass();
+        $this->manifest->metadata->platform->audience = 'expert';
+        $this->manifest->metadata->platform->features = new stdClass();
+        $this->manifest->metadata->platform->allowedBlocks = array();
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         // accept a schema which can generate an array of pages to start
@@ -370,6 +376,7 @@ class HAXCMSSite
             // seo / performance
             'push' => 'push-manifest.json',
             'robots' => 'robots.txt',
+            'llms' => 'llms.txt',
             // pwa related files
             'msbc' => 'browserconfig.xml',
             'manifest' => 'manifest.json',
@@ -542,6 +549,13 @@ class HAXCMSSite
                 $siteDirectoryPath . '/' . $location,
                 $twig->render($location, $templateVars)
             );
+          }
+      }
+      if (array_search('llms.txt', $templates) !== FALSE) {
+          try {
+              $this->updateAlternateFormats('llms');
+          } catch (Exception $e) {
+              // best effort only; llms serialization should never break managed-file rebuilds
           }
       }
     }
@@ -717,10 +731,12 @@ class HAXCMSSite
         $this->manifest->addItem($page);
         $this->manifest->save();
         // support direct HTML setting
+        $alternateContent = '';
         if ($template == 'html') {
           // now this should exist if it didn't a minute ago
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($html);
           $bytes = $page->writeLocation(
-            $html,
+            $alternateContent,
             HAXCMS_ROOT .
             '/' .
             $GLOBALS['HAXCMS']->sitesDirectory .
@@ -729,6 +745,7 @@ class HAXCMSSite
             '/'
           );
         }
+        $this->writePageAlternateFormats($page, $alternateContent);
         $this->updateAlternateFormats();
         return $page;
     }
@@ -832,12 +849,164 @@ class HAXCMSSite
                   json_encode($this->lunrSearchIndex($this->manifest->items))
           );
       }
+      if (is_null($format) || $format == 'llms') {
+          try {
+              @file_put_contents(
+                  $siteDirectory . 'llms.txt',
+                  $this->getLLMSTxt($domain)
+              );
+          } catch (Exception $e) {
+              // best effort only; llms serialization should never block save operations
+          }
+      }
       // rebuild the service worker's hashed cache index because this file updated
       // this way users getting cached copies from local device will be informed
       // that this page updated since their last visit
       if (is_null($format) || $format == 'service-worker') {
         $this->rebuildManagedFiles(array('sw' => 'service-worker.js'));
       }
+    }
+    /**
+     * Generate llms.txt content based on site structure and generated markdown pages.
+     */
+    public function getLLMSTxt($domain = '')
+    {
+      $title = '';
+      if (isset($this->manifest->title)) {
+        $title = $this->getLLMSSafeText($this->manifest->title);
+      }
+      if ($title == '' && isset($this->manifest->metadata->site->name)) {
+        $title = $this->getLLMSSafeText($this->manifest->metadata->site->name);
+      }
+      if ($title == '') {
+        $title = 'HAXcms site';
+      }
+      $lines = array('# ' . $title);
+      $description = '';
+      if (isset($this->manifest->description)) {
+        $description = $this->getLLMSSafeText($this->manifest->description);
+      }
+      if ($description != '') {
+        $lines[] = '';
+        $lines[] = '> ' . $description;
+      }
+      $lines[] = '';
+      $lines[] = 'HAXcms is a file-based CMS: authored pages and metadata are stored as portable files, not locked into a database-only workflow.';
+      $lines[] = 'The canonical site structure is `site.json`, represented in JSON Outline Schema (`id`, `parent`, `order`, `slug`, `location`, and `metadata`).';
+      $lines[] = 'Use HAX CLI and ecosystem tooling to maintain human-authored content while keeping machine-readable outputs synchronized.';
+      $lines[] = 'Managed files (feeds, search indexes, manifests, and this `llms.txt`) are generated artifacts and should be rebuilt by tooling.';
+      $lines[] = '';
+      $lines[] = '## Core resources';
+      $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
+      $lines[] = '- [llms.txt](' . $this->getLLMSResourceURL($domain, 'llms.txt') . '): LLM-oriented guide to this site and its machine-readable resources.';
+      $lines[] = '';
+      $lines[] = '## Pages';
+      $items = array();
+      if (isset($this->manifest) && isset($this->manifest->items)) {
+        $items = $this->manifest->orderTree($this->manifest->items);
+      }
+      $hasPages = false;
+      foreach ($items as $item) {
+        if (!isset($item->location) || $item->location == '') {
+          continue;
+        }
+        $markdownLocation = $this->getPageAlternateLocation($item->location, 'md');
+        if ($markdownLocation == '') {
+          continue;
+        }
+        $itemTitle = 'Untitled page';
+        if (isset($item->title) && $item->title != '') {
+          $itemTitle = $item->title;
+        }
+        else if (isset($item->slug) && $item->slug != '') {
+          $itemTitle = $item->slug;
+        }
+        else if (isset($item->id) && $item->id != '') {
+          $itemTitle = $item->id;
+        }
+        $itemTitle = $this->getLLMSSafeLinkText($itemTitle);
+        $itemDescription = '';
+        if (isset($item->description)) {
+          $itemDescription = $this->getLLMSSafeText($item->description);
+        }
+        $line = '- [' . $itemTitle . '](' . $this->getLLMSResourceURL($domain, $markdownLocation) . ')';
+        if ($itemDescription != '') {
+          $line .= ': ' . $itemDescription;
+        }
+        $lines[] = $line;
+        $hasPages = true;
+      }
+      if (!$hasPages) {
+        $lines[] = '- [Site outline](' . $this->getLLMSResourceURL($domain, 'site.json') . '): No page markdown files are currently available.';
+      }
+      $lines[] = '';
+      $lines[] = '## Optional';
+      $lines[] = '- [Search index](' . $this->getLLMSResourceURL($domain, 'lunrSearchIndex.json') . '): Lunr corpus for quick full-text retrieval.';
+      $lines[] = '- [RSS feed](' . $this->getLLMSResourceURL($domain, 'rss.xml') . '): Site updates in RSS format.';
+      $lines[] = '- [Atom feed](' . $this->getLLMSResourceURL($domain, 'atom.xml') . '): Site updates in Atom format.';
+      $lines[] = '- [Sitemap](' . $this->getLLMSResourceURL($domain, 'sitemap.xml') . '): URL-level discovery map for the published site.';
+      return implode("\n", $lines) . "\n";
+    }
+    /**
+     * Build a normalized llms.txt link URL from domain/base and a relative resource path.
+     */
+    public function getLLMSResourceURL($domain = '', $location = '')
+    {
+      $baseURL = $this->getLLMSBaseURL($domain);
+      $cleanLocation = '';
+      if (is_string($location)) {
+        $cleanLocation = str_replace('\\', '/', $location);
+        $cleanLocation = ltrim($cleanLocation, '/');
+      }
+      if ($cleanLocation == '') {
+        return $baseURL;
+      }
+      if ($baseURL == '/') {
+        return '/' . $cleanLocation;
+      }
+      return $baseURL . $cleanLocation;
+    }
+    /**
+     * Normalize domain/base values into a URL-safe prefix for llms.txt links.
+     */
+    public function getLLMSBaseURL($domain = '')
+    {
+      $baseURL = '';
+      if (is_string($domain)) {
+        $baseURL = trim($domain);
+      }
+      if ($baseURL == '') {
+        return '/';
+      }
+      if (!preg_match('/^https?:\\/\\//', $baseURL) && substr($baseURL, 0, 1) != '/') {
+        $baseURL = '/' . $baseURL;
+      }
+      if (substr($baseURL, -1) != '/') {
+        $baseURL .= '/';
+      }
+      return $baseURL;
+    }
+    /**
+     * Normalize text for llms.txt body content.
+     */
+    public function getLLMSSafeText($value = '')
+    {
+      if (is_null($value) || is_array($value) || is_object($value)) {
+        return '';
+      }
+      $text = str_replace(array("\r", "\n"), ' ', (string) $value);
+      return trim(preg_replace('/\\s+/', ' ', $text));
+    }
+    /**
+     * Normalize markdown link text and escape bracket characters.
+     */
+    public function getLLMSSafeLinkText($value = '')
+    {
+      $text = $this->getLLMSSafeText($value);
+      if ($text == '') {
+        $text = 'Untitled page';
+      }
+      return str_replace(array('[', ']'), array('\\[', '\\]'), $text);
     }
     /**
      * Create Lunr.js style search index
@@ -933,7 +1102,7 @@ class HAXCMSSite
      */
     private function cleanSearchData($text) {
       // clean up initial, small, trim, replace end lines, utf8 no tags
-      $text = trim(strtolower(str_replace("\n", ' ', utf8_encode(strip_tags($text)))));
+      $text = trim(strtolower(str_replace("\n", ' ', strip_tags((string) $text))));
       // all weird chars
       $text = preg_replace('/[^a-z0-9\']/', ' ', $text);
       $text = str_replace("'", '', $text);
@@ -1085,7 +1254,7 @@ class HAXCMSSite
         }
         // look for the theme banner
         if (isset($this->manifest->metadata->theme->variables->image)) {
-          $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_STRING);
+          $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_URL);
         }
       }
       return $fileName;
@@ -1266,6 +1435,491 @@ class HAXCMSSite
       return '';
     }
     /**
+     * Generate per-page alternate format files beside index.html.
+     * Best effort only: failures must never break page save responses.
+     */
+    public function writePageAlternateFormats($page, $htmlContent = '')
+    {
+      if (!isset($page) || !isset($page->location) || $page->location == '') {
+        return false;
+      }
+      $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      $content = '';
+      if (is_string($htmlContent) && $htmlContent != '') {
+        $content = $htmlContent;
+      }
+      else {
+        $content = $this->getPageContent($page);
+      }
+      if (!is_string($content) || $content == '') {
+        $content = '<p></p>';
+      }
+      // markdown
+      try {
+        $markdownLocation = $this->getPageAlternateLocation($page->location, 'md');
+        @file_put_contents($siteDirectory . $markdownLocation, $this->htmlToMarkdown($content));
+      }
+      catch (Exception $e) {}
+      // json
+      try {
+        $jsonPayload = $this->getPageAlternatePayload($page, $content, 'json');
+        @file_put_contents(
+          $siteDirectory . $jsonPayload['location'],
+          json_encode($jsonPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+      }
+      catch (Exception $e) {}
+      // yaml
+      try {
+        $yamlPayload = $this->getPageAlternatePayload($page, $content, 'yaml');
+        @file_put_contents(
+          $siteDirectory . $yamlPayload['location'],
+          $this->encodePageAlternateYaml($yamlPayload)
+        );
+      }
+      catch (Exception $e) {}
+      // xml
+      try {
+        $xmlPayload = $this->getPageAlternatePayload($page, $content, 'xml');
+        @file_put_contents(
+          $siteDirectory . $xmlPayload['location'],
+          $this->getPageAlternateXml($xmlPayload)
+        );
+      }
+      catch (Exception $e) {}
+      return true;
+    }
+    /**
+     * Build structured alternate payload with extension-specific location.
+     */
+    private function getPageAlternatePayload($page, $content, $extension = 'json')
+    {
+      $payload = json_decode(json_encode($page), true);
+      if (!is_array($payload)) {
+        $payload = array();
+      }
+      $payload['location'] = $this->getPageAlternateLocation($page->location, $extension);
+      $payload['content'] = $content;
+      return $payload;
+    }
+    /**
+     * Derive sidecar file location from page location.
+     */
+    private function getPageAlternateLocation($location = '', $extension = 'json')
+    {
+      if (!is_string($location) || $location == '') {
+        return '';
+      }
+      $normalizedLocation = str_replace('\\', '/', $location);
+      $cleanExtension = strtolower(ltrim((string) $extension, '.'));
+      if (preg_match('/\\.html?$/i', $normalizedLocation)) {
+        return preg_replace('/\\.html?$/i', '.' . $cleanExtension, $normalizedLocation);
+      }
+      return $normalizedLocation . '.' . $cleanExtension;
+    }
+    /**
+     * Request path without query string.
+     */
+    private function getRequestPathWithoutQuery()
+    {
+      if (isset($_SERVER['REQUEST_URI'])) {
+        $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        if (is_string($requestPath)) {
+          return $requestPath;
+        }
+      }
+      return '/';
+    }
+    /**
+     * Request path relative to the site script directory.
+     */
+    private function getRequestRelativePath()
+    {
+      $requestPath = $this->getRequestPathWithoutQuery();
+      $scriptDirectory = '';
+      if (isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME'])) {
+        $scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+      }
+      if ($scriptDirectory == '.' || $scriptDirectory == '/') {
+        $scriptDirectory = '';
+      }
+      $scriptDirectory = rtrim($scriptDirectory, '/');
+      if ($scriptDirectory != '' && strpos($requestPath, $scriptDirectory) === 0) {
+        $requestPath = substr($requestPath, strlen($scriptDirectory));
+      }
+      if (!is_string($requestPath) || $requestPath == '') {
+        return '/';
+      }
+      if (substr($requestPath, 0, 1) != '/') {
+        $requestPath = '/' . $requestPath;
+      }
+      return $requestPath;
+    }
+    /**
+     * Parse explicit extension-based format request.
+     */
+    private function getRequestedVariantInfo($path = '')
+    {
+      $matches = array();
+      if (preg_match('/^(.*)\.(html|md|json|ya?ml|xml)$/i', $path, $matches)) {
+        $format = strtolower($matches[2]);
+        if ($format === 'yml') {
+          $format = 'yaml';
+        }
+        return array(
+          'format' => $format,
+          'basePath' => isset($matches[1]) ? $matches[1] : '',
+        );
+      }
+      return array(
+        'format' => null,
+        'basePath' => $path,
+      );
+    }
+    /**
+     * Variant content type map.
+     */
+    private function getRequestedVariantContentType($format = '')
+    {
+      switch ($format) {
+        case 'html':
+          return 'text/html; charset=utf-8';
+        break;
+        case 'md':
+          return 'text/markdown; charset=utf-8';
+        break;
+        case 'json':
+          return 'application/json; charset=utf-8';
+        break;
+        case 'yaml':
+          return 'application/yaml; charset=utf-8';
+        break;
+        case 'xml':
+          return 'application/xml; charset=utf-8';
+        break;
+      }
+      return 'text/plain; charset=utf-8';
+    }
+    /**
+     * Determine format from Accept header for negotiation.
+     */
+    private function getNegotiatedVariantFormat()
+    {
+      $accept = '';
+      if (isset($_SERVER['HTTP_ACCEPT']) && is_string($_SERVER['HTTP_ACCEPT'])) {
+        $accept = strtolower($_SERVER['HTTP_ACCEPT']);
+      }
+      $acceptsHtml =
+        strpos($accept, 'text/html') !== false ||
+        strpos($accept, 'application/xhtml+xml') !== false;
+      if ($acceptsHtml) {
+        return null;
+      }
+      if (strpos($accept, 'text/markdown') !== false) {
+        return 'md';
+      }
+      if (
+        strpos($accept, 'application/yaml') !== false ||
+        strpos($accept, 'application/x-yaml') !== false ||
+        strpos($accept, 'text/yaml') !== false
+      ) {
+        return 'yaml';
+      }
+      if (
+        strpos($accept, 'application/xml') !== false ||
+        strpos($accept, 'text/xml') !== false
+      ) {
+        return 'xml';
+      }
+      if (
+        strpos($accept, 'application/json') !== false &&
+        strpos($accept, 'text/html') === false
+      ) {
+        return 'json';
+      }
+      return null;
+    }
+    /**
+     * Build route path to a slug from current script directory context.
+     */
+    private function getCanonicalPagePathForSlug($slug = '')
+    {
+      $scriptDirectory = '';
+      if (isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME'])) {
+        $scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+      }
+      if ($scriptDirectory == '.' || $scriptDirectory == '/') {
+        $scriptDirectory = '';
+      }
+      $scriptDirectory = rtrim($scriptDirectory, '/');
+      $normalizedSlug = trim((string) $slug, '/');
+      if ($normalizedSlug == '') {
+        if ($scriptDirectory != '') {
+          return $scriptDirectory;
+        }
+        return '/';
+      }
+      if ($scriptDirectory != '') {
+        return $scriptDirectory . '/' . $normalizedSlug;
+      }
+      return '/' . $normalizedSlug;
+    }
+    /**
+     * Resolve sidecar file path for a page and format.
+     */
+    private function getAlternateFilePathForPageFormat($page, $format = 'json')
+    {
+      if (!isset($page) || !isset($page->location) || !is_string($page->location) || $page->location == '') {
+        return null;
+      }
+      $variantLocation = $this->getPageAlternateLocation($page->location, $format);
+      if (!is_string($variantLocation) || $variantLocation == '') {
+        return null;
+      }
+      $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      $filePath = $siteDirectory . $variantLocation;
+      if (file_exists($filePath) && is_file($filePath)) {
+        return $filePath;
+      }
+      return null;
+    }
+    /**
+     * Resolve a manifest item by slug without requiring JSONOutlineSchema helper methods.
+     */
+    private function getManifestItemBySlug($slug = '')
+    {
+      if (
+        !isset($this->manifest) ||
+        !isset($this->manifest->items) ||
+        !is_array($this->manifest->items) ||
+        !is_string($slug) ||
+        $slug == ''
+      ) {
+        return null;
+      }
+      foreach ($this->manifest->items as $item) {
+        if (isset($item->slug) && $item->slug === $slug) {
+          return $item;
+        }
+      }
+      return null;
+    }
+    /**
+     * Serve a requested page variant response early when explicit or negotiated format is requested.
+     */
+    public function respondWithRequestedPageVariant()
+    {
+      $relativePath = $this->getRequestRelativePath();
+      if (strpos($relativePath, '/x/') === 0) {
+        return false;
+      }
+      $variantInfo = $this->getRequestedVariantInfo($relativePath);
+      $slug = trim($variantInfo['basePath'], '/');
+      if ($slug == '') {
+        return false;
+      }
+      $page = $this->getManifestItemBySlug($slug);
+      if (!$page) {
+        if ($variantInfo['format']) {
+          http_response_code(404);
+          header('Content-Type: text/plain; charset=utf-8');
+          print 'Not found';
+          return true;
+        }
+        return false;
+      }
+      $canonicalPath = $this->getCanonicalPagePathForSlug($slug);
+      if ($variantInfo['format']) {
+        $filePath = $this->getAlternateFilePathForPageFormat($page, $variantInfo['format']);
+        if ($filePath) {
+          header('Content-Type: ' . $this->getRequestedVariantContentType($variantInfo['format']));
+          header('Content-Location: ' . $canonicalPath . '.' . $variantInfo['format']);
+          readfile($filePath);
+          return true;
+        }
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        print 'Not found';
+        return true;
+      }
+      $negotiatedFormat = $this->getNegotiatedVariantFormat();
+      if ($negotiatedFormat) {
+        $filePath = $this->getAlternateFilePathForPageFormat($page, $negotiatedFormat);
+        if ($filePath) {
+          header('Vary: Accept');
+          header('Content-Type: ' . $this->getRequestedVariantContentType($negotiatedFormat));
+          header('Content-Location: ' . $canonicalPath . '.' . $negotiatedFormat);
+          readfile($filePath);
+          return true;
+        }
+      }
+      return false;
+    }
+    /**
+     * Send Link headers advertising available alternate page formats.
+     */
+    public function sendPageAlternateHeaders($page = null)
+    {
+      if (!isset($page) || !isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
+        return;
+      }
+      $canonicalPath = $this->getCanonicalPagePathForSlug($page->slug);
+      $formats = array('html', 'md', 'json', 'yaml', 'xml');
+      $linkParts = array();
+      foreach ($formats as $format) {
+        $filePath = $this->getAlternateFilePathForPageFormat($page, $format);
+        if ($filePath) {
+          $linkParts[] = '<' . $canonicalPath . '.' . $format . '>; rel="alternate"; type="' . str_replace('; charset=utf-8', '', $this->getRequestedVariantContentType($format)) . '"';
+        }
+      }
+      if (count($linkParts) > 0) {
+        header('Link: ' . implode(', ', $linkParts));
+        header('Vary: Accept');
+      }
+    }
+    /**
+     * Build HTML <link rel="alternate"> tags for available page sidecar formats.
+     */
+    private function getPageAlternateLinkTags($page = null)
+    {
+      if (!isset($page) || !isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
+        return '';
+      }
+      $canonicalPath = $this->getCanonicalPagePathForSlug($page->slug);
+      $formats = array('html', 'md', 'json', 'yaml', 'xml');
+      $tags = '';
+      foreach ($formats as $format) {
+        $filePath = $this->getAlternateFilePathForPageFormat($page, $format);
+        if ($filePath) {
+          $mimeType = str_replace('; charset=utf-8', '', $this->getRequestedVariantContentType($format));
+          $tags .=
+            '  <link rel="alternate" type="' .
+            SanitizeContent::escapeHTMLAttribute($mimeType) .
+            '" href="' .
+            SanitizeContent::escapeHTMLAttribute($canonicalPath . '.' . $format) .
+            '" />' .
+            "\n";
+        }
+      }
+      return $tags;
+    }
+    /**
+     * HTML to markdown conversion with tolerant handling of custom tags.
+     */
+    private function htmlToMarkdown($html = '')
+    {
+      if (!is_string($html) || trim($html) == '') {
+        return '';
+      }
+      $markdown = str_replace("\r\n", "\n", $html);
+      $markdown = preg_replace_callback('/<pre[^>]*>\\s*<code[^>]*>([\\s\\S]*?)<\\/code>\\s*<\\/pre>/i', function ($matches) {
+        return "\n```\n" . trim($matches[1], "\n") . "\n```\n";
+      }, $markdown);
+      $markdown = preg_replace('/<img[^>]*src=["\']([^"\']+)["\'][^>]*alt=["\']([^"\']*)["\'][^>]*>/i', '![$2]($1)', $markdown);
+      $markdown = preg_replace('/<img[^>]*alt=["\']([^"\']*)["\'][^>]*src=["\']([^"\']+)["\'][^>]*>/i', '![$1]($2)', $markdown);
+      $markdown = preg_replace('/<img[^>]*src=["\']([^"\']+)["\'][^>]*>/i', '![]($1)', $markdown);
+      $markdown = preg_replace('/<a[^>]*href=["\']([^"\']+)["\'][^>]*>([\\s\\S]*?)<\\/a>/i', '[$2]($1)', $markdown);
+      $markdown = preg_replace('/<(strong|b)[^>]*>([\\s\\S]*?)<\\/\\1>/i', '**$2**', $markdown);
+      $markdown = preg_replace('/<(em|i)[^>]*>([\\s\\S]*?)<\\/\\1>/i', '*$2*', $markdown);
+      $markdown = preg_replace('/<code[^>]*>([\\s\\S]*?)<\\/code>/i', '`$1`', $markdown);
+      $markdown = preg_replace('/<br\\s*\\/?\\s*>/i', "\n", $markdown);
+      for ($level = 6; $level > 0; $level--) {
+        $markdown = preg_replace(
+          '/<h' . $level . '[^>]*>([\\s\\S]*?)<\\/h' . $level . '>/i',
+          "\n" . str_repeat('#', $level) . " $1\n\n",
+          $markdown
+        );
+      }
+      $markdown = preg_replace_callback('/<li[^>]*>([\\s\\S]*?)<\\/li>/i', function ($matches) {
+        return "\n- " . trim($matches[1]);
+      }, $markdown);
+      $markdown = preg_replace('/<\\/?(ul|ol)[^>]*>/i', "\n", $markdown);
+      $markdown = preg_replace('/<p[^>]*>([\\s\\S]*?)<\\/p>/i', "\n$1\n\n", $markdown);
+      $markdown = preg_replace('/<\\/?(div|section|article|main)[^>]*>/i', "\n", $markdown);
+      $markdown = preg_replace('/<\\/?span[^>]*>/i', '', $markdown);
+      $markdown = preg_replace('/[ \t]+\n/', "\n", $markdown);
+      $markdown = preg_replace('/\n{3,}/', "\n\n", $markdown);
+      return trim($markdown);
+    }
+    /**
+     * Encode payload as YAML. Falls back to JSON (valid YAML 1.2) if ext-yaml is unavailable.
+     */
+    private function encodePageAlternateYaml($payload)
+    {
+      if (function_exists('yaml_emit')) {
+        $yamlOutput = @yaml_emit($payload);
+        if (is_string($yamlOutput) && $yamlOutput != '') {
+          return $yamlOutput;
+        }
+      }
+      return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+    /**
+     * Build XML output from structured payload.
+     */
+    private function getPageAlternateXml($payload)
+    {
+      $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<item>";
+      foreach ($payload as $key => $value) {
+        $xml .= $this->getPageAlternateXmlNode($key, $value);
+      }
+      $xml .= "\n</item>\n";
+      return $xml;
+    }
+    /**
+     * XML recursive serializer.
+     */
+    private function getPageAlternateXmlNode($key, $value)
+    {
+      $tagName = $this->getSafeXmlTagName($key);
+      if ($key === 'content') {
+        return "\n<" . $tagName . "><![CDATA[" . $this->getSafeXmlCdata($value) . "]]></" . $tagName . ">";
+      }
+      if (is_object($value)) {
+        $value = get_object_vars($value);
+      }
+      if (is_array($value)) {
+        $output = '';
+        $isAssoc = array_keys($value) !== range(0, count($value) - 1);
+        if ($isAssoc) {
+          foreach ($value as $childKey => $childValue) {
+            $output .= $this->getPageAlternateXmlNode($childKey, $childValue);
+          }
+        }
+        else {
+          foreach ($value as $childValue) {
+            $output .= $this->getPageAlternateXmlNode('item', $childValue);
+          }
+        }
+        return "\n<" . $tagName . ">" . $output . "\n</" . $tagName . ">";
+      }
+      if (is_null($value)) {
+        return "\n<" . $tagName . "></" . $tagName . ">";
+      }
+      return "\n<" . $tagName . ">" . SanitizeContent::escapeXMLValue((string) $value) . "</" . $tagName . ">";
+    }
+    /**
+     * Ensure generated XML tags are valid.
+     */
+    private function getSafeXmlTagName($name = '')
+    {
+      $tagName = preg_replace('/[^A-Za-z0-9_-]/', '-', (string) $name);
+      if ($tagName == '') {
+        $tagName = 'item';
+      }
+      if (preg_match('/^[0-9]/', $tagName)) {
+        $tagName = 'item-' . $tagName;
+      }
+      return $tagName;
+    }
+    /**
+     * Prevent CDATA close token breakouts.
+     */
+    private function getSafeXmlCdata($value = '')
+    {
+      return str_replace(']]>', ']]]]><![CDATA[>', (string) $value);
+    }
+    /**
      * Return accurate, rendered site metadata
      * @var JSONOutlineSchemaItem $page - a loaded page object, most likely whats active
      * @return string an html chunk of tags for the head section
@@ -1285,71 +1939,61 @@ class HAXCMSSite
               $tag = str_replace('>', '', str_replace('</', '', $match));
               $preloadTags[$tag] = $tag;
             }
-          }  
+          }
         }
       }
-      // domain's need to inject their own full path for OG metadata (which is edge case)
-      // most of the time this is the actual usecase so use the active path
       if (is_null($domain)) {
         $domain = $GLOBALS['HAXCMS']->getURI();
       }
-      // support preconnecting CDNs, sets us up for dynamic CDN switching too
       $preconnect = '';
       $base = './';
       if ($cdn == '' && $GLOBALS['HAXCMS']->cdn != './') {
         $cdn = $GLOBALS['HAXCMS']->cdn;
       }
       if ($cdn != '') {
-        // preconnect for faster DNS lookup
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
-        // base is preload for the calls below
-        $base = $cdn;
+        $preconnect = '<link rel="preconnect" crossorigin href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($cdn, '')) . '">';
+        $base = SanitizeContent::sanitizeURLValue($cdn, '');
       }
       $contentPreload = '';
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
       foreach ($preloadTags as $tag) {
-        // means the tag is known in our registry
         if (isset($wcMap->{$tag})) {
           $contentPreload .= '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = filter_var($page->title, FILTER_SANITIZE_STRING);
-      $siteTitle = filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . ' | ' . filter_var($page->title, FILTER_SANITIZE_STRING);
-      $description = filter_var($page->description, FILTER_SANITIZE_STRING);;
+      $title = SanitizeContent::escapeHTMLAttribute($page->title);
+      $siteTitle = SanitizeContent::escapeHTMLAttribute($this->manifest->title) . ' | ' . SanitizeContent::escapeHTMLAttribute($page->title);
+      $description = SanitizeContent::escapeHTMLAttribute($page->description);
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
-      // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
         $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
-        $description = filter_var($this->manifest->description, FILTER_SANITIZE_STRING);
+        $description = SanitizeContent::escapeHTMLAttribute($this->manifest->description);
       }
       if ($title == '' || $title == 'New item') {
-        $title = filter_var($this->manifest->title, FILTER_SANITIZE_STRING);
+        $title = SanitizeContent::escapeHTMLAttribute($this->manifest->title);
         $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
-          $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
+        $hexCode = SanitizeContent::escapeHTMLAttribute($this->manifest->metadata->theme->variables->hexCode);
       }
-      // if we have a privacy flag, then tell robots not to index this were it to be found
-      // which in HAXiam this isn't possible
       if (isset($this->manifest->metadata->site->settings->private) && $this->manifest->metadata->site->settings->private) {
         $robots = '<meta name="robots" content="none" />';
       }
       else {
         $robots = '<meta name="robots" content="index, follow" />';
       }
-      // canonical flag, if set we use the domain field
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->manifest->metadata->site->domain . '/' . $page->slug, '')) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, '')) . '" />' . "\n";
         }
       }
       else {
@@ -1357,16 +2001,19 @@ class HAXCMSSite
       }
       $prevResource = '';
       $nextResource = '';
-      // if we have a place in the array bc it's a page, then we can get next / prev
       if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
         $currentId = $this->manifest->getItemKeyById($page->id);
         if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
-          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+          $prevResource = '  <link rel="prev" href="' . SanitizeContent::escapeHTMLAttribute($this->manifest->items[$currentId-1]->slug) . '" />' . "\n";
         }
         if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
-          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+          $nextResource = '  <link rel="next" href="' . SanitizeContent::escapeHTMLAttribute($this->manifest->items[$currentId+1]->slug) . '" />' . "\n";
         }
       }
+      $safeDomain = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, ''));
+      $safeSocialImage = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), ''));
+      $alternateLinks = $this->getPageAlternateLinkTags($page);
+      $canonical .= $alternateLinks;
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
@@ -1388,7 +2035,7 @@ class HAXCMSSite
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
   <title>' . $siteTitle . '</title>
-  <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+  <link rel="icon" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('16', '16'), '')) . '" />
   <meta name="theme-color" content="' . $hexCode . '" />
   ' . $robots . '
   <meta name="mobile-web-app-capable" content="yes" />
@@ -1396,36 +2043,34 @@ class HAXCMSSite
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="' . $title . '" />
-  <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
-  <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
-  <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
-  <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
-  <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
-  <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+  <link rel="apple-touch-icon" sizes="48x48" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('48', '48'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="72x72" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('72', '72'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="96x96" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('96', '96'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="144x144" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('144', '144'), '')) . '" />
+  <link rel="apple-touch-icon" sizes="192x192" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('192', '192'), '')) . '" />
+  <meta name="msapplication-TileImage" content="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLogoSize('144', '144'), '')) . '" />
   <meta name="msapplication-TileColor" content="' . $hexCode . '" />
   <meta name="msapplication-tap-highlight" content="no" />
   <meta name="description" content="' . $description . '" />
-  <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
+  <meta name="og:sitename" property="og:sitename" content="' . SanitizeContent::escapeHTMLAttribute($this->manifest->title) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
-  <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+  <meta name="og:url" property="og:url" content="' . $safeDomain . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
-  <meta name="og:image" property="og:image" content="' . $this->getSocialShareImage($page) . '" />
+  <meta name="og:image" property="og:image" content="' . $safeSocialImage . '" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+  <meta name="twitter:site" property="twitter:site" content="' . $safeDomain . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
-  <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
-      // mix in license metadata if we have it
+  <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />';
       $licenseData = $this->getLicenseData('all');
       if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
-          $metadata .= "\n" . '  <meta rel="cc:license" href="' . $licenseData[$this->manifest->license]['link'] . '" content="License: ' . $licenseData[$this->manifest->license]['name'] . '"/>' . "\n";
+        $metadata .= "\n" . '  <meta rel="cc:license" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($licenseData[$this->manifest->license]['link'], '')) . '" content="License: ' . SanitizeContent::escapeHTMLAttribute($licenseData[$this->manifest->license]['name']) . '"/>' . "\n";
       }
-      // add in twitter link if they provided one
       if (isset($this->manifest->metadata->author->socialLink) && (strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0 || strpos($this->manifest->metadata->author->socialLink, 'https://x.com/') === 0)) {
         $socialLink = str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink);
-        $socialLink = str_replace('https://x.com/', '@', $socialLink);  
-        $metadata .= '  <meta name="twitter:creator" content="' . filter_var($socialLink, FILTER_SANITIZE_STRING) . '" />';
+        $socialLink = str_replace('https://x.com/', '@', $socialLink);
+        $metadata .= '  <meta name="twitter:creator" content="' . SanitizeContent::escapeHTMLAttribute($socialLink) . '" />';
       }
       $GLOBALS['HAXCMS']->dispatchEvent('haxcms-site-metadata', $metadata);
       return $metadata;
