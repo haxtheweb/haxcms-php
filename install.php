@@ -141,6 +141,13 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
 <?php
   include_once 'system/backend/php/lib/Git.php';
   // add git library
+  $generateSecureSecret = function () {
+    $parts = array();
+    for ($i = 0; $i < 4; $i++) {
+      $parts[] = bin2hex(random_bytes(16));
+    }
+    return implode('-', $parts);
+  };
   if (!is_dir('_config')) {
     // gotta config some place now don't we
     if (!mkdir('_config')) {
@@ -187,7 +194,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     // set SALT
     file_put_contents(
       '_config/SALT.txt',
-      uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid()
+      $generateSecureSecret()
     );
 
     // set things in config file from the norm
@@ -195,13 +202,13 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     // private key
     $configFile = str_replace(
       'HAXTHEWEBPRIVATEKEY',
-      uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid(),
+      $generateSecureSecret(),
       $configFile
     );
     // refresh private key
     $configFile = str_replace(
       'HAXTHEWEBREFRESHPRIVATEKEY',
-      uniqid() . '-' . uniqid() . '-' . uniqid() . '-' . uniqid(),
+      $generateSecureSecret(),
       $configFile
     );
     // user
@@ -225,7 +232,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       $pass = array(); //remember to declare $pass as an array
       $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
       for ($i = 0; $i < 12; $i++) {
-          $n = rand(0, $alphaLength);
+          $n = random_int(0, $alphaLength);
           $pass[] = $alphabet[$n];
       }
       $pass = implode($pass);
