@@ -3,6 +3,7 @@ User-agent: *
 Disallow: /
 {% else %}
 Crawl-delay: 10
+Allow: /
 # CSS, JS, Images
 Allow: /assets/*.css$
 Allow: /assets/*.css?
@@ -28,4 +29,6 @@ Disallow: /dist/
 Disallow: /node_modules/
 Disallow: /pages/
 Disallow: /theme/
+Sitemap: {{ sitemapURL }}
+LLMS: {{ llmsURL }}
 {% endif %}

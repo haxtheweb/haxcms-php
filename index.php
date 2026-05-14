@@ -24,6 +24,8 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
     <meta name="generator" content="HAXcms">
+    <link rel="llms" href="<?php print $HAXCMS->basePath; ?>llms.txt" title="LLM Content Map">
+    <link rel="alternate" type="text/markdown" href="<?php print $HAXCMS->basePath; ?>llms.txt" title="Markdown Summary">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>Welcome to HAX</title>
     <meta name="description" content="My HAXCMS site list">

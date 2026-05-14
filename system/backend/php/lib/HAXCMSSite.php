@@ -444,6 +444,8 @@ class HAXCMSSite
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
           'lang' => $this->getLanguage(),
+          'sitemapURL' => $this->getLLMSResourceURL($this->getManagedSiteDiscoveryBaseURL(), 'sitemap.xml'),
+          'llmsURL' => $this->getLLMSResourceURL($this->getManagedSiteDiscoveryBaseURL(), 'llms.txt'),
           'logo512x512' => $this->getLogoSize('512','512'),
           'logo256x256' => $this->getLogoSize('256','256'),
           'logo192x192' => $this->getLogoSize('192','192'),
@@ -763,25 +765,7 @@ class HAXCMSSite
     {
       $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
       // Determine domain for feeds
-      $domain = NULL;
-      if (isset($this->manifest->metadata->site->domain) && !empty($this->manifest->metadata->site->domain)) {
-        $domain = $this->manifest->metadata->site->domain;
-      }
-      if (is_null($domain) || $domain == "") {
-        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
-        $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
-        if (empty($fallbackDomain)) {
-            // CLI fallback or when SERVER_NAME is not available - use root path
-            $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
-        } else {
-            $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
-            // Ensure we have a protocol
-            if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
-                $fallbackDomain = 'https://' . $fallbackDomain;
-            }
-            $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
-        }
-      }
+      $domain = $this->getManagedSiteDiscoveryBaseURL();
       
       if (is_null($format) || $format == 'rss') {
           try {
@@ -946,6 +930,31 @@ class HAXCMSSite
       $lines[] = '- [Atom feed](' . $this->getLLMSResourceURL($domain, 'atom.xml') . '): Site updates in Atom format.';
       $lines[] = '- [Sitemap](' . $this->getLLMSResourceURL($domain, 'sitemap.xml') . '): URL-level discovery map for the published site.';
       return implode("\n", $lines) . "\n";
+    }
+    /**
+     * Generate the base URL for managed discovery files like sitemaps and llms.txt.
+     */
+    public function getManagedSiteDiscoveryBaseURL()
+    {
+      $domain = '';
+      if (isset($this->manifest->metadata->site->domain) && !empty($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;
+      }
+      if ($domain == '') {
+        // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
+        $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
+        if (empty($fallbackDomain)) {
+            // CLI fallback or when SERVER_NAME is not available - use root path
+            $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
+        } else {
+            $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
+            if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
+                $fallbackDomain = 'https://' . $fallbackDomain;
+            }
+            $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
+        }
+      }
+      return $this->getLLMSBaseURL($domain);
     }
     /**
      * Build a normalized llms.txt link URL from domain/base and a relative resource path.
@@ -2012,6 +2021,7 @@ class HAXCMSSite
       }
       $safeDomain = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, ''));
       $safeSocialImage = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), ''));
+      $safeLLMSURL = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getLLMSResourceURL($this->getManagedSiteDiscoveryBaseURL(), 'llms.txt'), ''));
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
       $metadata = '
@@ -2032,6 +2042,8 @@ class HAXCMSSite
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms" />
+  <link rel="llms" href="' . $safeLLMSURL . '" title="LLM Content Map" />
+  <link rel="alternate" type="text/markdown" href="' . $safeLLMSURL . '" title="Markdown Summary" />
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
   <title>' . $siteTitle . '</title>
