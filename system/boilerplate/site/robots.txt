@@ -3,6 +3,9 @@ User-agent: *
 Disallow: /
 {% else %}
 Crawl-delay: 10
+Allow: /
+Sitemap: {{ domain }}sitemap.xml
+LLMS: {{ domain }}llms.txt
 # CSS, JS, Images
 Allow: /assets/*.css$
 Allow: /assets/*.css?

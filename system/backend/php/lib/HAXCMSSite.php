@@ -424,12 +424,30 @@ class HAXCMSSite
       if (isset($this->manifest->metadata->site->settings->private)) {
         $privateSetting = $this->manifest->metadata->site->settings->private;
       }
+      $domain = NULL;
+      if (isset($this->manifest->metadata->site->domain) && !empty($this->manifest->metadata->site->domain)) {
+        $domain = $this->manifest->metadata->site->domain;
+      }
+      if (is_null($domain) || $domain == "") {
+        $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
+        if (empty($fallbackDomain)) {
+          $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
+        } else {
+          $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
+          if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
+            $fallbackDomain = 'https://' . $fallbackDomain;
+          }
+          $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
+        }
+      }
+      $domain = rtrim($domain, '/') . '/';
       
       $templateVars = array(
           'hexCode' => HAXCMS_FALLBACK_HEX,
           'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
           'basePath' =>
               $this->basePath . $this->manifest->metadata->site->name . '/',
+          'domain' => $domain,
           'title' => $this->manifest->title,
           'short' => $this->manifest->metadata->site->name,
           'privateSite' => $privateSetting,
@@ -2031,6 +2049,8 @@ class HAXCMSSite
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/utils/utils.js" crossorigin="anonymous" />
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+  <link rel="llms" href="llms.txt" title="LLM Content Map" />
+  <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
   <meta name="generator" content="HAXcms" />
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
