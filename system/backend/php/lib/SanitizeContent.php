@@ -44,30 +44,31 @@ class SanitizeContent
         }
         $clean = $html;
         $clean = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $clean);
-        $clean = preg_replace('/\s+srcdoc\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i', '', $clean);
-        $clean = preg_replace('/\s+on[a-z0-9_-]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i', '', $clean);
+        $clean = preg_replace('/(\s+|(?<=[\"\']))srcdoc\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i', '$1', $clean);
+        $clean = preg_replace('/(\s+|(?<=[\"\']))on[a-z0-9_-]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/i', '$1', $clean);
         $clean = preg_replace_callback(
-            '/\s+([a-zA-Z_:][a-zA-Z0-9_.:-]*)\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/',
+            '/(\s+|(?<=[\"\']))([a-zA-Z_:][a-zA-Z0-9_.:-]*)\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/',
             function ($matches) {
-                $attributeName = strtolower($matches[1]);
+                $attributeBoundary = $matches[1];
+                $attributeName = strtolower($matches[2]);
                 if (preg_match('/^on[a-z0-9_-]+$/i', $attributeName)) {
-                    return '';
+                    return $attributeBoundary;
                 }
                 $value = '';
-                if (isset($matches[3]) && $matches[3] !== '') {
-                    $value = $matches[3];
-                }
-                else if (isset($matches[4]) && $matches[4] !== '') {
+                if (isset($matches[4]) && $matches[4] !== '') {
                     $value = $matches[4];
                 }
-                else if (isset($matches[5])) {
+                else if (isset($matches[5]) && $matches[5] !== '') {
                     $value = $matches[5];
+                }
+                else if (isset($matches[6])) {
+                    $value = $matches[6];
                 }
                 if (
                     preg_match('/(?:^|[-_:])(?:href|src|action|formaction|poster|data|url)(?:$|[-_:])/i', $attributeName) &&
                     self::sanitizeURLValue($value, '') === ''
                 ) {
-                    return '';
+                    return $attributeBoundary;
                 }
                 return $matches[0];
             },

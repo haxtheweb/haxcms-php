@@ -3932,6 +3932,412 @@ class Operations {
     return $files;
   }
   /**
+   * @OA\Get(
+   *    path="/siteSearch",
+   *    tags={"hax","authenticated","site"},
+   *    @OA\Parameter(
+   *         name="site_token",
+   *         description="Site-specific validation token",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="siteName",
+   *         description="Name of the site to search",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Parameter(
+   *         name="search",
+   *         description="Search query string",
+   *         in="query",
+   *         required=true,
+   *         @OA\Schema(type="string")
+   *    ),
+   *    @OA\Response(
+   *        response="200",
+   *        description="Search site content and metadata fields"
+   *   )
+   * )
+   */
+  public function siteSearch() {
+    $siteName = $this->getSiteSearchSiteName();
+    if ($siteName == '') {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'siteName is required',
+        )
+      );
+    }
+    if (!(isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName))) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        )
+      );
+    }
+    $searchTerm = isset($this->params['search']) ? trim((string) $this->params['search']) : '';
+    if ($searchTerm == '') {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Search query is required',
+        )
+      );
+    }
+    if (strlen($searchTerm) > 256) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Search query is too long (max 256 characters)',
+        )
+      );
+    }
+    $selectorMode = $this->parseSiteSearchBoolean(isset($this->params['searchSelector']) ? $this->params['searchSelector'] : false);
+    if (!$selectorMode && isset($this->params['searchMode']) && strtolower((string) $this->params['searchMode']) == 'selector') {
+      $selectorMode = true;
+    }
+    $caseSensitive = $this->parseSiteSearchBoolean(isset($this->params['searchCaseSensitive']) ? $this->params['searchCaseSensitive'] : false);
+    $searchLimit = $this->parseSiteSearchLimit(isset($this->params['searchLimit']) ? $this->params['searchLimit'] : null, 25);
+    $searchFields = $selectorMode
+      ? array('content')
+      : $this->normalizeSiteSearchFields(isset($this->params['searchField']) ? $this->params['searchField'] : null);
+    $mode = $selectorMode ? 'selector' : 'text';
+    $selectorData = null;
+    if ($selectorMode) {
+      $selectorData = $this->parseSimpleSiteSearchSelector($searchTerm);
+      if (!$selectorData['valid']) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => $selectorData['reason'],
+          )
+        );
+      }
+    }
+    $response = array(
+      'status' => 200,
+      'data' => array(
+        'query' => $searchTerm,
+        'fields' => $searchFields,
+        'mode' => $mode,
+        'caseSensitive' => $caseSensitive,
+        'limit' => $searchLimit,
+        'total' => 0,
+        'matches' => array(),
+      )
+    );
+    $site = $GLOBALS['HAXCMS']->loadSite($siteName);
+    if (!isset($site) || !isset($site->manifest) || !isset($site->manifest->items)) {
+      return $response;
+    }
+    $items = $site->manifest->orderTree($site->manifest->items);
+    $contentCache = array();
+    $matches = array();
+    foreach ($items as $item) {
+      if ($searchLimit > 0 && count($matches) >= $searchLimit) {
+        break;
+      }
+      $fieldMatches = array();
+      foreach ($searchFields as $field) {
+        $content = '';
+        if ($field == 'content') {
+          if (isset($item->id) && isset($contentCache[$item->id])) {
+            $content = $contentCache[$item->id];
+          }
+          else if (isset($item->id)) {
+            $page = $site->loadNode($item->id);
+            if ($page) {
+              $content = $site->getPageContent($page);
+            }
+            if (!is_string($content)) {
+              $content = '';
+            }
+            $contentCache[$item->id] = $content;
+          }
+        }
+        $fieldValue = $this->getSiteSearchFieldValue($field, $item, $content);
+        if ($selectorMode) {
+          $selectorMatch = $this->siteSearchSelectorMatch($fieldValue, $selectorData);
+          if (!is_null($selectorMatch)) {
+            $fieldMatches[] = array(
+              'field' => 'content',
+              'type' => 'selector',
+              'selector' => $selectorData['selector'],
+              'count' => $selectorMatch['count'],
+              'snippets' => $selectorMatch['snippets'],
+            );
+          }
+        }
+        else {
+          $textMatch = $this->siteSearchTextMatch($fieldValue, $searchTerm, $caseSensitive);
+          if (!is_null($textMatch)) {
+            $fieldMatches[] = array(
+              'field' => $field,
+              'type' => 'text',
+              'index' => $textMatch['index'],
+              'length' => $textMatch['length'],
+              'snippet' => $textMatch['snippet'],
+            );
+          }
+        }
+      }
+      if (count($fieldMatches) > 0) {
+        $matches[] = array(
+          'id' => isset($item->id) ? $item->id : null,
+          'title' => isset($item->title) ? $item->title : '',
+          'slug' => isset($item->slug) ? $item->slug : '',
+          'location' => isset($item->location) ? $item->location : '',
+          'parent' => isset($item->parent) ? $item->parent : null,
+          'description' => isset($item->description) ? $item->description : '',
+          'tags' => $this->siteSearchTagsValue($item),
+          'matches' => $fieldMatches,
+        );
+      }
+    }
+    $response['data']['matches'] = $matches;
+    $response['data']['total'] = count($matches);
+    return $response;
+  }
+  private function getSiteSearchSiteName() {
+    if (isset($this->params['site']) && isset($this->params['site']['name'])) {
+      return (string) $this->params['site']['name'];
+    }
+    if (isset($this->params['siteName'])) {
+      return (string) $this->params['siteName'];
+    }
+    return '';
+  }
+  private function parseSiteSearchBoolean($value) {
+    if (is_bool($value)) {
+      return $value;
+    }
+    if (is_numeric($value)) {
+      return intval($value) === 1;
+    }
+    if (is_string($value)) {
+      $normalized = strtolower(trim($value));
+      return in_array($normalized, array('1', 'true', 'yes', 'on'));
+    }
+    return false;
+  }
+  private function parseSiteSearchLimit($value, $fallback = 25) {
+    if (is_null($value) || $value === '') {
+      return $fallback;
+    }
+    if (!is_numeric($value)) {
+      return $fallback;
+    }
+    $limit = intval($value);
+    if ($limit < 0) {
+      return 0;
+    }
+    if ($limit > 200) {
+      return 200;
+    }
+    return $limit;
+  }
+  private function normalizeSiteSearchFields($searchFieldValue = null) {
+    $defaultFields = array('title', 'slug', 'description', 'tags', 'content');
+    $allowedFields = array('id', 'title', 'slug', 'description', 'tags', 'content', 'location', 'parent');
+    if (is_null($searchFieldValue) || $searchFieldValue === '') {
+      return $defaultFields;
+    }
+    $values = is_array($searchFieldValue) ? $searchFieldValue : explode(',', (string) $searchFieldValue);
+    $normalized = array();
+    foreach ($values as $value) {
+      $field = strtolower(trim((string) $value));
+      if ($field == '') {
+        continue;
+      }
+      if ($field == 'all') {
+        return $defaultFields;
+      }
+      if (in_array($field, $allowedFields) && !in_array($field, $normalized)) {
+        $normalized[] = $field;
+      }
+    }
+    if (count($normalized) === 0) {
+      return $defaultFields;
+    }
+    return $normalized;
+  }
+  private function parseSimpleSiteSearchSelector($selectorValue) {
+    $selector = trim((string) $selectorValue);
+    if ($selector == '') {
+      return array('valid' => false, 'reason' => 'Selector query is required');
+    }
+    if (
+      strpos($selector, ',') !== false ||
+      strpos($selector, ' ') !== false ||
+      strpos($selector, '>') !== false ||
+      strpos($selector, '+') !== false ||
+      strpos($selector, '~') !== false ||
+      strpos($selector, ':') !== false
+    ) {
+      return array('valid' => false, 'reason' => 'Only simple selectors are supported (tag, tag[attr], tag[attr="value"], [attr])');
+    }
+    $pattern = '/^([a-zA-Z][a-zA-Z0-9-]*)?(?:\[\s*([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*(?:=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\]\s"\']+)))?\s*\])?$/';
+    if (!preg_match($pattern, $selector, $matches)) {
+      return array('valid' => false, 'reason' => 'Invalid selector syntax');
+    }
+    $tag = isset($matches[1]) && $matches[1] != '' ? strtolower($matches[1]) : null;
+    $attr = isset($matches[2]) && $matches[2] != '' ? strtolower($matches[2]) : null;
+    $attrValue = null;
+    if (array_key_exists(3, $matches)) {
+      $attrValue = $matches[3];
+    }
+    else if (array_key_exists(4, $matches)) {
+      $attrValue = $matches[4];
+    }
+    else if (array_key_exists(5, $matches)) {
+      $attrValue = $matches[5];
+    }
+    if (is_null($tag) && is_null($attr)) {
+      return array('valid' => false, 'reason' => 'Selector must include at least a tag or attribute');
+    }
+    $selectorOut = '';
+    if (!is_null($tag)) {
+      $selectorOut .= $tag;
+    }
+    if (!is_null($attr)) {
+      $selectorOut .= '[' . $attr;
+      if (!is_null($attrValue)) {
+        $selectorOut .= '="' . $attrValue . '"]';
+      }
+      else {
+        $selectorOut .= ']';
+      }
+    }
+    $xpath = !is_null($tag) ? '//' . $tag : '//*';
+    if (!is_null($attr)) {
+      if (!is_null($attrValue)) {
+        $xpath .= '[@' . $attr . '=' . $this->siteSearchXPathLiteral($attrValue) . ']';
+      }
+      else {
+        $xpath .= '[@' . $attr . ']';
+      }
+    }
+    return array(
+      'valid' => true,
+      'selector' => $selectorOut,
+      'xpath' => $xpath,
+    );
+  }
+  private function siteSearchXPathLiteral($value) {
+    if (strpos($value, "'") === false) {
+      return "'" . $value . "'";
+    }
+    if (strpos($value, '"') === false) {
+      return '"' . $value . '"';
+    }
+    $parts = explode("'", $value);
+    $expression = 'concat(';
+    for ($i = 0; $i < count($parts); $i++) {
+      if ($i > 0) {
+        $expression .= ", \"'\", ";
+      }
+      $expression .= "'" . $parts[$i] . "'";
+    }
+    $expression .= ')';
+    return $expression;
+  }
+  private function siteSearchTagsValue($item) {
+    if (!isset($item->metadata) || !isset($item->metadata->tags) || is_null($item->metadata->tags)) {
+      return '';
+    }
+    if (is_array($item->metadata->tags)) {
+      return implode(', ', $item->metadata->tags);
+    }
+    if (is_string($item->metadata->tags)) {
+      return $item->metadata->tags;
+    }
+    return json_encode($item->metadata->tags);
+  }
+  private function getSiteSearchFieldValue($field, $item, $content = '') {
+    switch ($field) {
+      case 'id':
+      case 'title':
+      case 'slug':
+      case 'description':
+      case 'location':
+      case 'parent':
+        return isset($item->{$field}) ? (string) $item->{$field} : '';
+      case 'tags':
+        return $this->siteSearchTagsValue($item);
+      case 'content':
+        return is_string($content) ? $content : '';
+    }
+    return '';
+  }
+  private function siteSearchTextMatch($value, $searchTerm, $caseSensitive = false) {
+    if (!is_string($value) || $value === '') {
+      return null;
+    }
+    $needle = (string) $searchTerm;
+    $haystack = $value;
+    if (!$caseSensitive) {
+      $needle = strtolower($needle);
+      $haystack = strtolower($haystack);
+    }
+    $index = strpos($haystack, $needle);
+    if ($index === false) {
+      return null;
+    }
+    $length = strlen((string) $searchTerm);
+    $start = max($index - 60, 0);
+    $end = min($index + $length + 60, strlen($value));
+    $snippet = preg_replace('/\s+/', ' ', trim(substr($value, $start, $end - $start)));
+    return array(
+      'index' => $index,
+      'length' => $length,
+      'snippet' => $snippet,
+    );
+  }
+  private function siteSearchSelectorMatch($content, $selectorData) {
+    if (!is_string($content) || trim($content) == '') {
+      return null;
+    }
+    if (!isset($selectorData['xpath']) || $selectorData['xpath'] == '') {
+      return null;
+    }
+    $previousState = libxml_use_internal_errors(true);
+    $document = new DOMDocument();
+    $loaded = $document->loadHTML(
+      '<!doctype html><html><body><div id="hax-search-wrapper">' . $content . '</div></body></html>',
+      LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET
+    );
+    if (!$loaded) {
+      libxml_clear_errors();
+      libxml_use_internal_errors($previousState);
+      return null;
+    }
+    $xpath = new DOMXPath($document);
+    $nodes = $xpath->query($selectorData['xpath']);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previousState);
+    if (!$nodes || $nodes->length === 0) {
+      return null;
+    }
+    $snippets = array();
+    for ($i = 0; $i < $nodes->length && $i < 3; $i++) {
+      $snippet = $document->saveHTML($nodes->item($i));
+      $snippet = preg_replace('/\s+/', ' ', trim((string) $snippet));
+      if (strlen($snippet) > 180) {
+        $snippet = substr($snippet, 0, 177) . '...';
+      }
+      $snippets[] = $snippet;
+    }
+    return array(
+      'count' => $nodes->length,
+      'snippets' => $snippets,
+    );
+  }
+  /**
    * Return default skeleton directories in precedence order.
    */
   private function getDefaultSkeletonDirectories() {
