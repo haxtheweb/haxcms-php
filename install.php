@@ -46,7 +46,6 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         background-color:  yellow;
         display: inline-block;
         padding: 8px;
-        font-family: 'Press Start 2P', sans-serif;
         color: black;
         border-right: 3px solid black;
         border-top: 3px solid black;
@@ -60,7 +59,6 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         background-color: darkblue;
         border: 4px solid black;
         border-radius: 8px;
-        font-family: 'Press Start 2P', sans-serif;
       }
       button.hax-btn.smaller {
         font-size: 20px;
@@ -98,7 +96,6 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         padding: 4px;
       }
       ul li strong {
-        font-family: 'Press Start 2P', sans-serif;
         padding: 8px;
         font-size: 40px;
         line-height: 1.5;
@@ -129,7 +126,6 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         padding: 0;
         font-size: 30px;
         text-align: center;
-        font-family: 'Press Start 2P', sans-serif;
 
       }
     </style>

@@ -1583,10 +1583,15 @@ class HAXCMS
         $settings->saveEditorSettingsPath = $path . 'saveEditorSettings?site_token=' . $siteToken;
         $settings->saveSeoSettingsPath = $path . 'saveSeoSettings?site_token=' . $siteToken;
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
+        $settings->contentSearchPath = $path . 'siteSearch?site_token=' . $siteToken;
+        $settings->searchContentPath = $path . 'siteSearch?site_token=' . $siteToken;
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode?site_token=' . $siteToken;
         $settings->deleteNodePath = $path . 'deleteNode?site_token=' . $siteToken;
+        $settings->listFilesPath = $path . 'listFiles?site_token=' . $siteToken;
+        $settings->saveFilePath = $path . 'saveFile?site_token=' . $siteToken;
+        $settings->fileOperationPath = $path . 'fileOperation?site_token=' . $siteToken;
 
         $settings->getUserDataPath = $path . 'getUserData?user_token=' . $userToken;
         $settings->createSite = $path . 'createSite?user_token=' . $userToken;

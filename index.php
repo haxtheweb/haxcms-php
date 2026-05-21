@@ -60,7 +60,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       body {
         margin: 0;
         padding: 0;
-        font-family: 'Press Start 2P', sans-serif;
         overflow-x: hidden;
         --app-hax-accent-color: black;
         --app-hax-background-color: white;
@@ -85,7 +84,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         display: unset;
       }
       #loading {
-        font-family: 'Press Start 2P', sans-serif;
         text-align: center;
         margin-top: 100px;
       }
@@ -109,7 +107,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         margin-top: 2.5px;
         font-size: 2vw;
       }
-
+P2 ready
       #loading .bracket {
         font-size: 10vw;
         font-weight: normal;
@@ -151,22 +149,15 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         }
       }
       .version {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        background-color:  var(--simple-colors-default-theme-yellow-6);
-        display: inline-block;
-        padding: 8px;
-        color: var(--simple-colors-default-theme-grey-12);
-        border-right: 3px solid var(--simple-colors-default-theme-grey-12);
-        border-top: 3px solid  var(--simple-colors-default-theme-grey-12);
-      }
-      body.dark-mode .version {
-        background-color:  var(--simple-colors-default-theme-yellow-8);
-        color: var(--simple-colors-default-theme-grey-1);
-        border-right: 3px solid var(--simple-colors-default-theme-grey-1);
-        border-top: 3px solid  var(--simple-colors-default-theme-grey-1);
-      }
+          position: fixed;
+          right: 0;
+          bottom: 0;
+          background-color:  light-dark(var(--simple-colors-default-theme-yellow-2), var(--simple-colors-default-theme-yellow-10));
+          display: inline-block;
+          padding: 4px;
+          font-size: var(--ddd-font-size-6xs);
+          color: light-dark(black, white);
+        }
     </style>
   </head>
   <body>
@@ -200,19 +191,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         }
       ?>
       document.querySelector("#loading").remove();
-      // make sure we load the font if we have a good device
-      setTimeout(() => {
-        if (!document.body.classList.contains('bad-device')) {
-        const link = document.createElement("link");
-        link.setAttribute(
-          "href",
-          "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-        );
-        link.setAttribute("rel", "stylesheet");
-        link.setAttribute("fetchpriority", "low");
-        document.head.appendChild(link);
-      }
-      }, 50);
     });
     </script>
     <div id="visuallist"></div>

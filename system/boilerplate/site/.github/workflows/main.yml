@@ -1,7 +1,5 @@
 name: Build and Deploy
 on: [push]
-# Declare default permissions as read only.
-permissions: read-all
 jobs:
   build-and-deploy:
     permissions:
@@ -19,13 +17,13 @@ jobs:
         run: echo 'GITHUB_REPOSITORY=$GITHUB_REPOSITORY' >> $GITHUB_ENV
         
       - name: Checkout 🛎️
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v4.1.7
         with:
           persist-credentials: false
 
       - name: Read CNAME
         id: cname
-        uses: juliangruber/read-file-action@271ff311a4947af354c6abcd696a306553b9ec18 # v1.1.8
+        uses: juliangruber/read-file-action@v1
         with:
           path: ./CNAME
       - name: set env variable CNAME
@@ -34,7 +32,7 @@ jobs:
         run: |
           npm run ghpages:build
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@94f3c658273cf92fb48ef99e5fbc02bd2dc642b2 # v4.6.3
+        uses: JamesIves/github-pages-deploy-action@v4.6.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.base_ref }} # The branch the action should deploy to.

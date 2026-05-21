@@ -76,6 +76,37 @@ class Operations {
   public $params;
   public $rawParams;
   private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+  private $imageScalePresets = array(
+    'xs' => array('width' => 200, 'height' => 150),
+    'sm' => array('width' => 320, 'height' => 240),
+    'md' => array('width' => 400, 'height' => 300),
+    'lg' => array('width' => 800, 'height' => 600),
+    'xl' => array('width' => 1200, 'height' => 900),
+  );
+  private $allowedFileRenameExtensions = array(
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webm',
+    'webp',
+    'mp4',
+    'mp3',
+    'mov',
+    'csv',
+    'ppt',
+    'pptx',
+    'xlsx',
+    'doc',
+    'xls',
+    'docx',
+    'pdf',
+    'rtf',
+    'txt',
+    'vtt',
+    'html',
+    'md',
+  );
   
   /**
    * Check if a platform capability is allowed
@@ -487,6 +518,133 @@ class Operations {
       'themeVariables' => $themeVariables,
       'themeSettings' => $themeSettings,
       'useCaseImage' => $useCaseImage,
+    );
+  }
+  private function sanitizeFileRenameBaseName($value) {
+    if (!is_string($value)) {
+      return '';
+    }
+    $decodedValue = trim(urldecode($value));
+    $decodedValue = strtolower($decodedValue);
+    $decodedValue = preg_replace('/[^a-z0-9-]/', '-', $decodedValue);
+    $decodedValue = preg_replace('/-+/', '-', $decodedValue);
+    return trim($decodedValue, '-');
+  }
+  private function getAllowedRenameExtension($value) {
+    $extension = strtolower(trim(ltrim(strval($value), '.')));
+    if ($extension === '') {
+      return '';
+    }
+    if (!preg_match('/^[a-z0-9]+$/', $extension)) {
+      return '';
+    }
+    if (!in_array($extension, $this->allowedFileRenameExtensions, true)) {
+      return '';
+    }
+    return $extension;
+  }
+  private function buildRenamedFilePath($pathResult, $requestedName) {
+    if (!is_string($requestedName)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'New file name is required',
+      );
+    }
+    $sourceFileName = basename($pathResult['normalizedPath']);
+    $sourceExtension = $this->getAllowedRenameExtension(
+      pathinfo($sourceFileName, PATHINFO_EXTENSION)
+    );
+    if ($sourceExtension === '') {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Current file extension is not allowed for rename',
+      );
+    }
+    $normalizedInput = trim(urldecode($requestedName));
+    if ($normalizedInput === '') {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'New file name is required',
+      );
+    }
+    $segments = explode('.', $normalizedInput);
+    if (count($segments) > 2) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'File name can only include one extension',
+      );
+    }
+    $baseInput = $normalizedInput;
+    $extensionInput = '';
+    if (count($segments) === 2) {
+      $baseInput = $segments[0];
+      $extensionInput = $segments[1];
+    }
+    $safeBaseName = $this->sanitizeFileRenameBaseName($baseInput);
+    if ($safeBaseName === '') {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'New file name must include at least one alphanumeric character',
+      );
+    }
+    if ($extensionInput !== '') {
+      $allowedInputExtension = $this->getAllowedRenameExtension($extensionInput);
+      if ($allowedInputExtension === '') {
+        return array(
+          'valid' => false,
+          'status' => 400,
+          'message' => 'Requested extension is not allowed',
+        );
+      }
+      if ($allowedInputExtension !== $sourceExtension) {
+        return array(
+          'valid' => false,
+          'status' => 400,
+          'message' => 'Extension cannot be changed during rename and must remain .' . $sourceExtension,
+        );
+      }
+    }
+    $sourceDirectory = dirname($pathResult['normalizedPath']);
+    $outputFileName = $safeBaseName . '.' . $sourceExtension;
+    $relativeOutputPath = ($sourceDirectory === '.' || $sourceDirectory === '')
+      ? $outputFileName
+      : $sourceDirectory . '/' . $outputFileName;
+    $relativeOutputPath = ltrim($this->normalizeFilePathValue($relativeOutputPath), '/');
+    $outputPath = dirname($pathResult['resolvedPath']) . '/' . $outputFileName;
+    $normalizedOutputPath = rtrim($this->normalizeFilePathValue($outputPath), '/');
+    if (
+      $normalizedOutputPath !== $pathResult['filesRoot'] &&
+      strpos($normalizedOutputPath, $pathResult['filesRoot'] . '/') !== 0
+    ) {
+      return array(
+        'valid' => false,
+        'status' => 403,
+        'message' => 'Renamed file path is outside of allowed files directory',
+      );
+    }
+    if ($relativeOutputPath === $pathResult['normalizedPath']) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'New file name must be different from current name',
+      );
+    }
+    if (file_exists($outputPath)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'A file with this name already exists',
+      );
+    }
+    return array(
+      'valid' => true,
+      'outputPath' => $outputPath,
+      'relativePath' => $relativeOutputPath,
     );
   }
   /**
@@ -3893,43 +4051,838 @@ class Operations {
    * )
    */
   public function listFiles() {
-    $files = array();
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      $search = (isset($this->params['filename'])) ? $this->params['filename'] : '';
-      // build files directory path
-      $fileDir = $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
-      if ($handle = opendir($fileDir)) {
-        while (false !== ($file = readdir($handle))) {
-          // ignore system files
-            if (
-                $file != "." &&
-                $file != ".." &&
-                $file != '.gitkeep' &&
-                $file != '._.DS_Store' &&
-                $file != '.DS_Store'
-            ) {
-                // ensure this is a file and if we are searching for results then return only exact ones
-                if (is_file($fileDir . '/' . $file) && ($search == "" || strpos($file, $search) || strpos($file, $search) === 0)) {
-                  // @todo thumbnail support for non image media / thumbnails in general via internal cache / file call
-                  $files[] = array(
-                    'path' => 'files/' . $file,
-                    'fullUrl' =>
-                        $GLOBALS['HAXCMS']->basePath .
-                        $GLOBALS['HAXCMS']->sitesDirectory .
-                        $fileDir . '/' .
-                        $file,
-                    'url' => 'files/' . $file,
-                    'mimetype' => mime_content_type($fileDir . '/' . $file),
-                    'name' => $file
-                  );
-                }
-            }
-        }
-        closedir($handle);
+    if (isset($this->params['site_token']) && !isset($this->params['site']) && !isset($this->params['siteName'])) {
+      $tmp = explode('?siteName=', $this->params['site_token']);
+      if (count($tmp) == 2) {
+        $this->params['site_token'] = $tmp[0];
+        $this->params['siteName'] = $tmp[1];
       }
     }
+    $siteName = '';
+    if (isset($this->params['site']) && isset($this->params['site']['name'])) {
+      $siteName = (string) $this->params['site']['name'];
+    }
+    else if (isset($this->params['siteName'])) {
+      $siteName = (string) $this->params['siteName'];
+    }
+    if (
+      !isset($this->params['site_token']) ||
+      $siteName == '' ||
+      !$GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName)
+    ) {
+      return array();
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($siteName);
+    if (!$site) {
+      return array();
+    }
+    $search = (isset($this->params['filename'])) ? (string) $this->params['filename'] : '';
+    $fileDir = $this->getSiteFilesDirectory($site);
+    return $this->collectSiteFiles($site, $fileDir, $search);
+  }
+  private function normalizeFilePathValue($value) {
+    return str_replace('\\', '/', (string) $value);
+  }
+  private function getSiteFilesDirectory($site) {
+    return $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
+  }
+  private function isSiteInMultisiteContext($site) {
+    if (
+      isset($GLOBALS['HAXCMS']->operatingContext) &&
+      $GLOBALS['HAXCMS']->operatingContext == 'multisite'
+    ) {
+      return true;
+    }
+    $siteRoot = realpath($site->directory . '/' . $site->manifest->metadata->site->name);
+    if ($siteRoot !== false) {
+      $siteRoot = rtrim($this->normalizeFilePathValue($siteRoot), '/');
+      $multisiteBootstrap = $siteRoot . '/../../system/backend/php/bootstrapHAX.php';
+      if (file_exists($siteRoot . '/config.php') && !file_exists($multisiteBootstrap)) {
+        return false;
+      }
+    }
+    if (method_exists($GLOBALS['HAXCMS'], 'getDeploymentProfile')) {
+      return $GLOBALS['HAXCMS']->getDeploymentProfile() != 'single-site';
+    }
+    return false;
+  }
+  private function buildSiteFileUrl($site, $relativeFilePath) {
+    $normalizedRelativePath = ltrim($this->normalizeFilePathValue($relativeFilePath), '/');
+    $fullUrl = '/' . $normalizedRelativePath;
+    if ($this->isSiteInMultisiteContext($site)) {
+      $fullUrl = $GLOBALS['HAXCMS']->basePath .
+        $GLOBALS['HAXCMS']->sitesDirectory .
+        '/' .
+        $site->manifest->metadata->site->name .
+        '/' .
+        $normalizedRelativePath;
+    }
+    return $fullUrl;
+  }
+  private function buildSiteFileRecord($site, $absolutePath, $siteRelativePath = '') {
+    $safeRelativePath = ltrim($this->normalizeFilePathValue($siteRelativePath), '/');
+    $mimetype = @mime_content_type($absolutePath);
+    if (!$mimetype) {
+      $mimetype = '';
+    }
+    $size = @filesize($absolutePath);
+    if ($size === false) {
+      $size = 0;
+    }
+    $dateCreated = '';
+    $createdTimestamp = @filectime($absolutePath);
+    if ($createdTimestamp === false || $createdTimestamp <= 0) {
+      $createdTimestamp = @filemtime($absolutePath);
+    }
+    if ($createdTimestamp !== false && $createdTimestamp > 0) {
+      $dateCreated = gmdate('c', (int) $createdTimestamp);
+    }
+    return array(
+      'path' => $safeRelativePath,
+      'url' => $safeRelativePath,
+      'fullUrl' => $this->buildSiteFileUrl($site, $safeRelativePath),
+      'mimetype' => $mimetype,
+      'name' => basename($safeRelativePath),
+      'size' => $size,
+      'dateCreated' => $dateCreated,
+    );
+  }
+  private function collectSiteFiles($site, $fileDir, $search = '') {
+    $files = array();
+    if (!is_dir($fileDir)) {
+      return $files;
+    }
+    $searchValue = strtolower(trim((string) $search));
+    $ignoredFiles = array('.', '..', '.gitkeep', '.DS_Store', '._.DS_Store');
+    $rootPath = rtrim($this->normalizeFilePathValue($fileDir), '/');
+    try {
+      $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($fileDir, FilesystemIterator::SKIP_DOTS)
+      );
+      foreach ($iterator as $entry) {
+        if (!$entry->isFile() || $entry->isLink()) {
+          continue;
+        }
+        $entryName = $entry->getFilename();
+        if (in_array($entryName, $ignoredFiles, true)) {
+          continue;
+        }
+        $absolutePath = $entry->getPathname();
+        $normalizedAbsolutePath = $this->normalizeFilePathValue($absolutePath);
+        if (
+          $normalizedAbsolutePath !== $rootPath &&
+          strpos($normalizedAbsolutePath, $rootPath . '/') !== 0
+        ) {
+          continue;
+        }
+        $relativePath = substr($normalizedAbsolutePath, strlen($rootPath) + 1);
+        if ($relativePath === false || $relativePath === '') {
+          continue;
+        }
+        $relativePath = ltrim($relativePath, '/');
+        if (
+          $searchValue !== '' &&
+          strpos(strtolower($relativePath), $searchValue) === false &&
+          strpos(strtolower($entryName), $searchValue) === false
+        ) {
+          continue;
+        }
+        $siteRelativePath = 'files/' . $relativePath;
+        $files[] = $this->buildSiteFileRecord($site, $absolutePath, $siteRelativePath);
+      }
+    }
+    catch (Exception $e) {}
+    usort($files, function($a, $b) {
+      return strcmp($a['path'], $b['path']);
+    });
     return $files;
+  }
+  private function resolveSiteFileOperationPath($site, $requestedPath) {
+    if (!is_string($requestedPath)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Invalid file path',
+      );
+    }
+    $normalizedPath = trim(urldecode($requestedPath));
+    $normalizedPath = $this->normalizeFilePathValue($normalizedPath);
+    $normalizedPath = ltrim($normalizedPath, '/');
+    while (strpos($normalizedPath, './') === 0) {
+      $normalizedPath = substr($normalizedPath, 2);
+    }
+    if (
+      $normalizedPath === '' ||
+      strpos($normalizedPath, "\0") !== false ||
+      strpos($normalizedPath, '..') !== false
+    ) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Invalid file path',
+      );
+    }
+    if (strpos($normalizedPath, 'files/') !== 0) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'File path must start with files/',
+      );
+    }
+    $siteRoot = realpath($site->directory . '/' . $site->manifest->metadata->site->name);
+    if ($siteRoot === false) {
+      return array(
+        'valid' => false,
+        'status' => 500,
+        'message' => 'Unable to resolve site path',
+      );
+    }
+    $siteRoot = rtrim($this->normalizeFilePathValue($siteRoot), '/');
+    $filesRoot = $siteRoot . '/files';
+    if (!is_dir($filesRoot)) {
+      return array(
+        'valid' => false,
+        'status' => 404,
+        'message' => 'Files directory was not found',
+      );
+    }
+    $candidatePath = $siteRoot . '/' . $normalizedPath;
+    $resolvedPath = realpath($candidatePath);
+    if ($resolvedPath === false || !is_file($resolvedPath)) {
+      return array(
+        'valid' => false,
+        'status' => 404,
+        'message' => 'Requested file was not found',
+      );
+    }
+    $resolvedPath = rtrim($this->normalizeFilePathValue($resolvedPath), '/');
+    if (
+      $resolvedPath !== $filesRoot &&
+      strpos($resolvedPath, $filesRoot . '/') !== 0
+    ) {
+      return array(
+        'valid' => false,
+        'status' => 403,
+        'message' => 'File path is outside of allowed files directory',
+      );
+    }
+    if (is_link($resolvedPath)) {
+      return array(
+        'valid' => false,
+        'status' => 404,
+        'message' => 'Requested file path is not a valid file',
+      );
+    }
+    return array(
+      'valid' => true,
+      'normalizedPath' => $normalizedPath,
+      'resolvedPath' => $resolvedPath,
+      'siteRoot' => $siteRoot,
+      'filesRoot' => $filesRoot,
+    );
+  }
+  private function getScalePresetByKey($sizeKey) {
+    $key = strtolower(trim((string) $sizeKey));
+    if ($key == '' || !isset($this->imageScalePresets[$key])) {
+      $key = 'md';
+    }
+    return array(
+      'key' => $key,
+      'preset' => $this->imageScalePresets[$key],
+      'presets' => $this->imageScalePresets,
+    );
+  }
+  private function getSafeImageOpsBaseName($relativePath) {
+    $baseName = pathinfo($relativePath, PATHINFO_FILENAME);
+    $safeBaseName = preg_replace('/[^a-zA-Z0-9._-]/', '-', $baseName);
+    $safeBaseName = preg_replace('/-+/', '-', $safeBaseName);
+    $safeBaseName = trim($safeBaseName, '.-_');
+    if ($safeBaseName === '') {
+      $safeBaseName = 'image';
+    }
+    return $safeBaseName;
+  }
+  private function ensureImageOpsOutputDirectory($filesRoot) {
+    $outputDirectory = rtrim($filesRoot, '/') . '/imgops';
+    if (file_exists($outputDirectory) && is_link($outputDirectory)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Output path is not writable',
+      );
+    }
+    if (!is_dir($outputDirectory) && !@mkdir($outputDirectory, 0755, true)) {
+      return array(
+        'valid' => false,
+        'status' => 500,
+        'message' => 'Unable to prepare image operations directory',
+      );
+    }
+    $resolvedOutputDirectory = realpath($outputDirectory);
+    if ($resolvedOutputDirectory === false) {
+      return array(
+        'valid' => false,
+        'status' => 500,
+        'message' => 'Unable to prepare image operations directory',
+      );
+    }
+    $resolvedOutputDirectory = rtrim($this->normalizeFilePathValue($resolvedOutputDirectory), '/');
+    $normalizedFilesRoot = rtrim($this->normalizeFilePathValue($filesRoot), '/');
+    if (
+      $resolvedOutputDirectory !== $normalizedFilesRoot . '/imgops' &&
+      strpos($resolvedOutputDirectory, $normalizedFilesRoot . '/') !== 0
+    ) {
+      return array(
+        'valid' => false,
+        'status' => 403,
+        'message' => 'Invalid output file path',
+      );
+    }
+    return array(
+      'valid' => true,
+      'outputDirectory' => $resolvedOutputDirectory,
+    );
+  }
+  private function buildImageOpsOutputPath($filesRoot, $sourceRelativePath, $width, $height) {
+    $directoryResult = $this->ensureImageOpsOutputDirectory($filesRoot);
+    if (!$directoryResult['valid']) {
+      return $directoryResult;
+    }
+    $outputFileName = $this->getSafeImageOpsBaseName($sourceRelativePath) .
+      '-' . ((int) $width) .
+      'x' . ((int) $height) .
+      '.jpg';
+    $outputPath = $directoryResult['outputDirectory'] . '/' . $outputFileName;
+    if (file_exists($outputPath) && is_link($outputPath)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Output path is not writable',
+      );
+    }
+    return array(
+      'valid' => true,
+      'outputPath' => $outputPath,
+      'relativePath' => 'files/imgops/' . $outputFileName,
+    );
+  }
+  private function isImageProcessingAvailable() {
+    return
+      function_exists('imagecreatefromstring') &&
+      function_exists('imagecreatetruecolor') &&
+      function_exists('imagejpeg') &&
+      function_exists('imagecopy') &&
+      function_exists('imagecopyresampled') &&
+      function_exists('imagecolorallocate') &&
+      function_exists('imagefill');
+  }
+  private function createImageResourceFromPath($sourcePath) {
+    $contents = @file_get_contents($sourcePath);
+    if ($contents === false) {
+      return false;
+    }
+    return @imagecreatefromstring($contents);
+  }
+  private function convertImageToJpgFile($sourcePath, $outputPath, $transformMode = 'none') {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image conversion support is unavailable on this server',
+      );
+    }
+    $mode = strtolower(trim((string) $transformMode));
+    if ($mode == '') {
+      $mode = 'none';
+    }
+    if (!in_array($mode, array('none', 'sepia', 'black-and-white'), true)) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Unsupported transform operation',
+      );
+    }
+    if (
+      $mode != 'none' &&
+      (
+        !function_exists('imagefilter') ||
+        !defined('IMG_FILTER_GRAYSCALE') ||
+        !defined('IMG_FILTER_COLORIZE')
+      )
+    ) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image transform support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be converted to JPG',
+      );
+    }
+    $width = imagesx($sourceImage);
+    $height = imagesy($sourceImage);
+    if ($width <= 0 || $height <= 0) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to determine source image size',
+      );
+    }
+    $targetImage = imagecreatetruecolor($width, $height);
+    if (!$targetImage) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to prepare image conversion',
+      );
+    }
+    $background = imagecolorallocate($targetImage, 255, 255, 255);
+    imagefill($targetImage, 0, 0, $background);
+    imagecopy($targetImage, $sourceImage, 0, 0, 0, 0, $width, $height);
+    if ($mode == 'black-and-white') {
+      @imagefilter($targetImage, IMG_FILTER_GRAYSCALE);
+    }
+    else if ($mode == 'sepia') {
+      @imagefilter($targetImage, IMG_FILTER_GRAYSCALE);
+      @imagefilter($targetImage, IMG_FILTER_COLORIZE, 90, 55, 30);
+    }
+    $jpgQuality = ($mode == 'none') ? 90 : 82;
+    $saved = @imagejpeg($targetImage, $outputPath, $jpgQuality);
+    imagedestroy($sourceImage);
+    imagedestroy($targetImage);
+    if (!$saved) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save converted image',
+      );
+    }
+    return array(
+      'success' => true,
+      'width' => $width,
+      'height' => $height,
+    );
+  }
+  private function scaleImageToPresetFile($sourcePath, $outputPath, $targetWidth, $targetHeight) {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image scaling support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be scaled',
+      );
+    }
+    $sourceWidth = imagesx($sourceImage);
+    $sourceHeight = imagesy($sourceImage);
+    if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to determine source image size',
+      );
+    }
+    $targetWidth = max((int) $targetWidth, 1);
+    $targetHeight = max((int) $targetHeight, 1);
+    $ratio = min(
+      $targetWidth / $sourceWidth,
+      $targetHeight / $sourceHeight,
+      1
+    );
+    $outputWidth = max((int) floor($sourceWidth * $ratio), 1);
+    $outputHeight = max((int) floor($sourceHeight * $ratio), 1);
+    $targetImage = imagecreatetruecolor($outputWidth, $outputHeight);
+    if (!$targetImage) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to prepare image scaling',
+      );
+    }
+    $background = imagecolorallocate($targetImage, 255, 255, 255);
+    imagefill($targetImage, 0, 0, $background);
+    imagecopyresampled(
+      $targetImage,
+      $sourceImage,
+      0,
+      0,
+      0,
+      0,
+      $outputWidth,
+      $outputHeight,
+      $sourceWidth,
+      $sourceHeight
+    );
+    $saved = @imagejpeg($targetImage, $outputPath, 82);
+    imagedestroy($sourceImage);
+    imagedestroy($targetImage);
+    if (!$saved) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save scaled image',
+      );
+    }
+    return array(
+      'success' => true,
+      'width' => $outputWidth,
+      'height' => $outputHeight,
+    );
+  }
+  /**
+   * @OA\\Post(
+   *    path=\"/fileOperation\",
+   *    tags={\"hax\",\"authenticated\",\"file\"},
+   *    @OA\\Response(
+   *        response=\"200\",
+   *        description=\"Perform file operations for a site file\"
+   *   )
+   * )
+   */
+  public function fileOperation() {
+    if (isset($this->params['site_token']) && !isset($this->params['site']) && !isset($this->params['siteName'])) {
+      $tmp = explode('?siteName=', $this->params['site_token']);
+      if (count($tmp) == 2) {
+        $this->params['site_token'] = $tmp[0];
+        $this->params['siteName'] = $tmp[1];
+      }
+    }
+    $siteName = '';
+    if (isset($this->params['site']) && isset($this->params['site']['name'])) {
+      $siteName = (string) $this->params['site']['name'];
+    }
+    else if (isset($this->params['siteName'])) {
+      $siteName = (string) $this->params['siteName'];
+    }
+    if (!isset($this->params['site_token'])) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Missing site token',
+        )
+      );
+    }
+    if ($siteName == '') {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Missing site name',
+        )
+      );
+    }
+    if (!$GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName)) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Invalid site token',
+        )
+      );
+    }
+    $site = $GLOBALS['HAXCMS']->loadSite($siteName);
+    if (!$site) {
+      return array(
+        '__failed' => array(
+          'status' => 404,
+          'message' => 'Site not found',
+        )
+      );
+    }
+    if (!$this->platformAllows($site, 'uploadMedia')) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'File operations are disabled for this site',
+        )
+      );
+    }
+    $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
+    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white'), true)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Unsupported file operation',
+        )
+      );
+    }
+    $requestedPath = '';
+    if (isset($this->params['path'])) {
+      $requestedPath = $this->params['path'];
+    }
+    else if (isset($this->params['filePath'])) {
+      $requestedPath = $this->params['filePath'];
+    }
+    else if (isset($this->params['file'])) {
+      $requestedPath = $this->params['file'];
+    }
+    if (is_array($requestedPath) || is_object($requestedPath)) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Only a single file path is allowed per request',
+        )
+      );
+    }
+    $pathResult = $this->resolveSiteFileOperationPath($site, $requestedPath);
+    if (!$pathResult['valid']) {
+      return array(
+        '__failed' => array(
+          'status' => $pathResult['status'],
+          'message' => $pathResult['message'],
+        )
+      );
+    }
+    if ($operation == 'delete') {
+      if (!@unlink($pathResult['resolvedPath'])) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to delete file',
+          )
+        );
+      }
+      $site->gitCommit('File deleted: ' . $pathResult['normalizedPath']);
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'path' => $pathResult['normalizedPath'],
+          'deleted' => true,
+        )
+      );
+    }
+    if ($operation == 'rename') {
+      $renameValue = '';
+      if (isset($this->params['newName'])) {
+        $renameValue = $this->params['newName'];
+      }
+      else if (isset($this->params['name'])) {
+        $renameValue = $this->params['name'];
+      }
+      else if (isset($this->params['value'])) {
+        $renameValue = $this->params['value'];
+      }
+      $renameResult = $this->buildRenamedFilePath($pathResult, $renameValue);
+      if (!$renameResult['valid']) {
+        return array(
+          '__failed' => array(
+            'status' => $renameResult['status'],
+            'message' => $renameResult['message'],
+          )
+        );
+      }
+      if (!@rename($pathResult['resolvedPath'], $renameResult['outputPath'])) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to rename file',
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $renameResult['outputPath'],
+        $renameResult['relativePath']
+      );
+      $site->gitCommit(
+        'File renamed: ' .
+        $pathResult['normalizedPath'] .
+        ' -> ' .
+        $renameResult['relativePath']
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'source' => $pathResult['normalizedPath'],
+          'path' => $renameResult['relativePath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    if ($operation == 'convert-jpg') {
+      $sourceDimensions = @getimagesize($pathResult['resolvedPath']);
+      $targetWidth = (is_array($sourceDimensions) && isset($sourceDimensions[0]) && $sourceDimensions[0] > 0)
+        ? (int) $sourceDimensions[0]
+        : (int) $this->imageScalePresets['md']['width'];
+      $targetHeight = (is_array($sourceDimensions) && isset($sourceDimensions[1]) && $sourceDimensions[1] > 0)
+        ? (int) $sourceDimensions[1]
+        : (int) $this->imageScalePresets['md']['height'];
+      $outputResult = $this->buildImageOpsOutputPath(
+        $pathResult['filesRoot'],
+        $pathResult['normalizedPath'],
+        $targetWidth,
+        $targetHeight
+      );
+      if (!$outputResult['valid']) {
+        return array(
+          '__failed' => array(
+            'status' => $outputResult['status'],
+            'message' => $outputResult['message'],
+          )
+        );
+      }
+      $conversionResult = $this->convertImageToJpgFile(
+        $pathResult['resolvedPath'],
+        $outputResult['outputPath']
+      );
+      if (!$conversionResult['success']) {
+        return array(
+          '__failed' => array(
+            'status' => $conversionResult['status'],
+            'message' => $conversionResult['message'],
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $outputResult['outputPath'],
+        $outputResult['relativePath']
+      );
+      $site->gitCommit(
+        'File converted to JPG: ' .
+        $pathResult['normalizedPath'] .
+        ' -> ' .
+        $outputResult['relativePath']
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'source' => $pathResult['normalizedPath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    if ($operation == 'sepia' || $operation == 'black-and-white') {
+      $sourceDimensions = @getimagesize($pathResult['resolvedPath']);
+      $targetWidth = (is_array($sourceDimensions) && isset($sourceDimensions[0]) && $sourceDimensions[0] > 0)
+        ? (int) $sourceDimensions[0]
+        : (int) $this->imageScalePresets['md']['width'];
+      $targetHeight = (is_array($sourceDimensions) && isset($sourceDimensions[1]) && $sourceDimensions[1] > 0)
+        ? (int) $sourceDimensions[1]
+        : (int) $this->imageScalePresets['md']['height'];
+      $outputResult = $this->buildImageOpsOutputPath(
+        $pathResult['filesRoot'],
+        $pathResult['normalizedPath'] . '-' . $operation,
+        $targetWidth,
+        $targetHeight
+      );
+      if (!$outputResult['valid']) {
+        return array(
+          '__failed' => array(
+            'status' => $outputResult['status'],
+            'message' => $outputResult['message'],
+          )
+        );
+      }
+      $conversionResult = $this->convertImageToJpgFile(
+        $pathResult['resolvedPath'],
+        $outputResult['outputPath'],
+        $operation
+      );
+      if (!$conversionResult['success']) {
+        return array(
+          '__failed' => array(
+            'status' => $conversionResult['status'],
+            'message' => $conversionResult['message'],
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $outputResult['outputPath'],
+        $outputResult['relativePath']
+      );
+      $site->gitCommit(
+        'File transformed (' .
+        $operation .
+        '): ' .
+        $pathResult['normalizedPath'] .
+        ' -> ' .
+        $outputResult['relativePath']
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'source' => $pathResult['normalizedPath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    $presetResult = $this->getScalePresetByKey(
+      isset($this->params['size']) ? $this->params['size'] : ''
+    );
+    $outputResult = $this->buildImageOpsOutputPath(
+      $pathResult['filesRoot'],
+      $pathResult['normalizedPath'],
+      $presetResult['preset']['width'],
+      $presetResult['preset']['height']
+    );
+    if (!$outputResult['valid']) {
+      return array(
+        '__failed' => array(
+          'status' => $outputResult['status'],
+          'message' => $outputResult['message'],
+        )
+      );
+    }
+    $scaleResult = $this->scaleImageToPresetFile(
+      $pathResult['resolvedPath'],
+      $outputResult['outputPath'],
+      $presetResult['preset']['width'],
+      $presetResult['preset']['height']
+    );
+    if (!$scaleResult['success']) {
+      return array(
+        '__failed' => array(
+          'status' => $scaleResult['status'],
+          'message' => $scaleResult['message'],
+        )
+      );
+    }
+    $fileRecord = $this->buildSiteFileRecord(
+      $site,
+      $outputResult['outputPath'],
+      $outputResult['relativePath']
+    );
+    $site->gitCommit(
+      'File scaled (' .
+      $presetResult['key'] .
+      '): ' .
+      $pathResult['normalizedPath'] .
+      ' -> ' .
+      $outputResult['relativePath']
+    );
+    return array(
+      'status' => 200,
+      'data' => array(
+        'operation' => $operation,
+        'source' => $pathResult['normalizedPath'],
+        'size' => $presetResult['key'],
+        'dimensions' => array(
+          'width' => $presetResult['preset']['width'],
+          'height' => $presetResult['preset']['height'],
+        ),
+        'presets' => $presetResult['presets'],
+        'file' => $fileRecord,
+      )
+    );
   }
   /**
    * @OA\Get(
@@ -4929,8 +5882,41 @@ class Operations {
         $this->params['site']['name'] = $tmp[1];
       }
     }
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name']) && isset($_FILES['file-upload'])) {
-      $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+    $siteName = '';
+    if (isset($this->params['site']) && isset($this->params['site']['name'])) {
+      $siteName = (string) $this->params['site']['name'];
+    }
+    else if (isset($this->params['siteName'])) {
+      $siteName = (string) $this->params['siteName'];
+      $this->params['site']['name'] = $siteName;
+    }
+    else if (isset($this->params['site[name]'])) {
+      $siteName = (string) $this->params['site[name]'];
+      $this->params['site']['name'] = $siteName;
+    }
+    $nodeId = '';
+    if (isset($this->params['node']) && isset($this->params['node']['id'])) {
+      $nodeId = (string) $this->params['node']['id'];
+    }
+    else if (isset($this->params['nodeId'])) {
+      $nodeId = (string) $this->params['nodeId'];
+      $this->params['node']['id'] = $nodeId;
+    }
+    else if (isset($this->params['node[id]'])) {
+      $nodeId = (string) $this->params['node[id]'];
+      $this->params['node']['id'] = $nodeId;
+    }
+    if (
+      isset($this->params['site_token']) &&
+      $siteName != '' &&
+      $nodeId != '' &&
+      $GLOBALS['HAXCMS']->validateRequestToken(
+        $this->params['site_token'],
+        $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName
+      ) &&
+      isset($_FILES['file-upload'])
+    ) {
+      $site = $GLOBALS['HAXCMS']->loadSite($siteName);
       if (!$this->platformAllows($site, 'uploadMedia')) {
         return array(
           '__failed' => array(
@@ -4942,7 +5928,7 @@ class Operations {
       // update the page's content, using manifest to find it
       // this ensures that writing is always to what the file system
       // determines to be the correct page
-      $page = $site->loadNode($this->params['node']['id']);
+      $page = $site->loadNode($nodeId);
       $upload = $_FILES['file-upload'];
       $file = new HAXCMSFile();
       $fileResult = $file->save($upload, $site, $page);
