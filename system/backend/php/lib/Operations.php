@@ -4129,22 +4129,36 @@ class Operations {
     if ($size === false) {
       $size = 0;
     }
-    $dateCreated = '';
-    $createdTimestamp = @filectime($absolutePath);
+    $dateCreated = 0;
+    $createdTimestamp = @filemtime($absolutePath);
     if ($createdTimestamp === false || $createdTimestamp <= 0) {
-      $createdTimestamp = @filemtime($absolutePath);
+      $createdTimestamp = @filectime($absolutePath);
     }
     if ($createdTimestamp !== false && $createdTimestamp > 0) {
-      $dateCreated = gmdate('c', (int) $createdTimestamp);
+      $dateCreated = ((int) $createdTimestamp) * 1000;
+    }
+    $fullUrl = $this->buildSiteFileUrl($site, $safeRelativePath);
+    if ($dateCreated > 0) {
+      $fullUrl .= (strpos($fullUrl, '?') === false ? '?t=' : '&t=') . $dateCreated;
     }
     return array(
       'path' => $safeRelativePath,
       'url' => $safeRelativePath,
-      'fullUrl' => $this->buildSiteFileUrl($site, $safeRelativePath),
+      'fullUrl' => $fullUrl,
       'mimetype' => $mimetype,
       'name' => basename($safeRelativePath),
       'size' => $size,
       'dateCreated' => $dateCreated,
+    );
+  }
+  private function isManagedDerivativePath($relativePath = '') {
+    $normalizedRelativePath = ltrim(
+      $this->normalizeFilePathValue($relativePath),
+      '/'
+    );
+    return (
+      $normalizedRelativePath === 'haxcms-managed' ||
+      strpos($normalizedRelativePath, 'haxcms-managed/') === 0
     );
   }
   private function collectSiteFiles($site, $fileDir, $search = '') {
@@ -4180,6 +4194,9 @@ class Operations {
           continue;
         }
         $relativePath = ltrim($relativePath, '/');
+        if ($this->isManagedDerivativePath($relativePath)) {
+          continue;
+        }
         if (
           $searchValue !== '' &&
           strpos(strtolower($relativePath), $searchValue) === false &&
@@ -4544,6 +4561,124 @@ class Operations {
       'height' => $outputHeight,
     );
   }
+  private function getImageExtensionForRotation($sourcePath) {
+    $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
+    if ($extension == 'jpeg') {
+      $extension = 'jpg';
+    }
+    return $extension;
+  }
+  private function saveImageResourceByExtension($imageResource, $outputPath, $extension) {
+    if ($extension == 'jpg') {
+      if (!function_exists('imagejpeg')) {
+        return false;
+      }
+      return @imagejpeg($imageResource, $outputPath, 90);
+    }
+    if ($extension == 'png') {
+      if (!function_exists('imagepng')) {
+        return false;
+      }
+      return @imagepng($imageResource, $outputPath, 6);
+    }
+    if ($extension == 'gif') {
+      if (!function_exists('imagegif')) {
+        return false;
+      }
+      return @imagegif($imageResource, $outputPath);
+    }
+    if ($extension == 'webp') {
+      if (!function_exists('imagewebp')) {
+        return false;
+      }
+      return @imagewebp($imageResource, $outputPath, 90);
+    }
+    return false;
+  }
+  private function rotateImageInPlaceFile($sourcePath, $degrees = 90) {
+    if (
+      !$this->isImageProcessingAvailable() ||
+      !function_exists('imagerotate')
+    ) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image rotation support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be rotated',
+      );
+    }
+    $extension = $this->getImageExtensionForRotation($sourcePath);
+    if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Image format does not support in-place rotation',
+      );
+    }
+    $rotationDegrees = (int) $degrees;
+    if ($rotationDegrees <= 0) {
+      $rotationDegrees = 90;
+    }
+    $rotationDegrees = 360 - ($rotationDegrees % 360);
+    if ($rotationDegrees == 360) {
+      $rotationDegrees = 0;
+    }
+    $backgroundColor = imagecolorallocatealpha($sourceImage, 0, 0, 0, 127);
+    $rotatedImage = @imagerotate($sourceImage, $rotationDegrees, $backgroundColor);
+    imagedestroy($sourceImage);
+    if (!$rotatedImage) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to rotate image',
+      );
+    }
+    if (in_array($extension, array('png', 'gif', 'webp'), true)) {
+      @imagealphablending($rotatedImage, false);
+      @imagesavealpha($rotatedImage, true);
+    }
+    $temporaryPath = $sourcePath . '.rotate-' . uniqid('', true);
+    $saved = $this->saveImageResourceByExtension(
+      $rotatedImage,
+      $temporaryPath,
+      $extension
+    );
+    imagedestroy($rotatedImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save rotated image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace original image after rotation',
+        );
+      }
+    }
+    return array(
+      'success' => true,
+    );
+  }
   /**
    * @OA\\Post(
    *    path=\"/fileOperation\",
@@ -4611,7 +4746,7 @@ class Operations {
       );
     }
     $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
-    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white'), true)) {
+    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90'), true)) {
       return array(
         '__failed' => array(
           'status' => 400,
@@ -4710,6 +4845,34 @@ class Operations {
           'operation' => $operation,
           'source' => $pathResult['normalizedPath'],
           'path' => $renameResult['relativePath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    if ($operation == 'rotate-90') {
+      $rotateResult = $this->rotateImageInPlaceFile(
+        $pathResult['resolvedPath'],
+        90
+      );
+      if (!$rotateResult['success']) {
+        return array(
+          '__failed' => array(
+            'status' => $rotateResult['status'],
+            'message' => $rotateResult['message'],
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $pathResult['resolvedPath'],
+        $pathResult['normalizedPath']
+      );
+      $site->gitCommit('File rotated (90deg): ' . $pathResult['normalizedPath']);
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'path' => $pathResult['normalizedPath'],
           'file' => $fileRecord,
         )
       );
