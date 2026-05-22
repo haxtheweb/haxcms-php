@@ -4167,7 +4167,7 @@ class Operations {
       return $files;
     }
     $searchValue = strtolower(trim((string) $search));
-    $ignoredFiles = array('.', '..', '.gitkeep', '.DS_Store', '._.DS_Store');
+    $ignoredFiles = array('.', '..', '.gitkeep', '.DS_Store', '._.DS_Store', '.htaccess', '._htaccess');
     $rootPath = rtrim($this->normalizeFilePathValue($fileDir), '/');
     try {
       $iterator = new RecursiveIteratorIterator(
