@@ -14,6 +14,7 @@ trait OperationsRoutes {
   use OperationsRouteSaveNode;
   use OperationsRouteDeleteNode;
   use OperationsRouteSaveNodeDetails;
+  use OperationsRouteNodeRevisions;
   use OperationsRouteSiteUpdateAlternateFormats;
   use OperationsRouteConnectionSettings;
   use OperationsRouteGenerateAppStore;

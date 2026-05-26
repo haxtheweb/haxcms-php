@@ -9,6 +9,14 @@ trait OperationsRouteConnectionSettings {
    *        description="Generate the connection settings dynamically for implying we have a PHP backend"
    *   )
    * )
+   * @OA\Post(
+   *    path="/connectionSettings",
+   *    tags={"cms"},
+   *    @OA\Response(
+   *        response="200",
+   *        description="Generate the connection settings dynamically for implying we have a PHP backend"
+   *   )
+   * )
    */
   public function connectionSettings() {
     // In HAXiam mode, require an authenticated user and enforce
