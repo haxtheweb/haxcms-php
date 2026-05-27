@@ -578,7 +578,7 @@ class HAXCMSReportHelpers
       'type' => $type,
       'itemId' => $itemId,
     );
-    $mediaItem['status'] = self::mediaStatus($mediaItem);
+    $mediaItem['status'] = self::mediaStatus($mediaItem, $node);
     return $mediaItem;
   }
   private static function typeFromElement($element)
@@ -622,8 +622,69 @@ class HAXCMSReportHelpers
     }
     return 'other';
   }
-  private static function mediaStatus($mediaItem = array())
+  private static function transcriptTracksContainSource($tracks = array())
   {
+    if (!is_array($tracks)) {
+      return false;
+    }
+    if (isset($tracks['src']) && trim((string) $tracks['src']) != '') {
+      return true;
+    }
+    foreach ($tracks as $track) {
+      if (is_string($track) && trim($track) != '') {
+        return true;
+      }
+      if (is_array($track) && isset($track['src']) && trim((string) $track['src']) != '') {
+        return true;
+      }
+    }
+    return false;
+  }
+  private static function videoPlayerHasTranscript($element)
+  {
+    if (!($element instanceof DOMElement)) {
+      return true;
+    }
+    if (strtolower($element->tagName) != 'video-player') {
+      return true;
+    }
+    $track = '';
+    if ($element->hasAttribute('track')) {
+      $track = trim((string) $element->getAttribute('track'));
+    }
+    if ($track != '' && strtolower($track) != 'null') {
+      return true;
+    }
+    $tracks = '';
+    if ($element->hasAttribute('tracks')) {
+      $tracks = trim((string) $element->getAttribute('tracks'));
+    }
+    if ($tracks != '' && strtolower($tracks) != 'null') {
+      $parsedTracks = json_decode($tracks, true);
+      if (is_array($parsedTracks)) {
+        if (self::transcriptTracksContainSource($parsedTracks)) {
+          return true;
+        }
+      }
+      else if ($tracks != '[]' && $tracks != '{}') {
+        return true;
+      }
+    }
+    $trackNodes = $element->getElementsByTagName('track');
+    if ($trackNodes instanceof DOMNodeList && $trackNodes->length > 0) {
+      return true;
+    }
+    return false;
+  }
+  private static function mediaStatus($mediaItem = array(), $mediaNode = null)
+  {
+    if (
+      isset($mediaItem['type']) &&
+      $mediaItem['type'] == 'video' &&
+      !self::videoPlayerHasTranscript($mediaNode)
+    ) {
+      return 'warning';
+    }
     if (!isset($mediaItem['type']) || $mediaItem['type'] != 'image') {
       return 'info';
     }
