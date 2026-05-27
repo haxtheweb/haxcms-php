@@ -33,29 +33,6 @@ class HAXCMSReportHelpers
     }
     return $activeId;
   }
-  public static function normalizeSiteLocation($params = array())
-  {
-    $siteLocation = '';
-    if (isset($params['link']) && is_string($params['link']) && $params['link'] != '') {
-      $siteLocation = $params['link'];
-    }
-    else if (
-      isset($params['site']) &&
-      is_array($params['site']) &&
-      isset($params['site']['file']) &&
-      is_string($params['site']['file'])
-    ) {
-      $siteLocation = $params['site']['file'];
-    }
-    if ($siteLocation == '') {
-      return '';
-    }
-    $siteLocation = trim($siteLocation);
-    if (substr($siteLocation, -10) == '/site.json') {
-      $siteLocation = substr($siteLocation, 0, -10);
-    }
-    return rtrim($siteLocation, '/');
-  }
   public static function buildSummaryData($site, $params = array())
   {
     return self::buildReportData($site, $params, 'summary');
@@ -76,7 +53,7 @@ class HAXCMSReportHelpers
   {
     $mode = strtolower((string) $mode);
     $activeId = self::normalizeActiveId($params);
-    $siteLocation = self::normalizeSiteLocation($params);
+    $siteLocation = '';
     $items = self::getSelectedItems($site, $activeId);
     if ($mode == 'link') {
       $data = array('linkData' => array());
@@ -353,8 +330,12 @@ class HAXCMSReportHelpers
     $previousState = libxml_use_internal_errors(true);
     $dom = new DOMDocument();
     $html = '<!DOCTYPE html><html><body>' . $content . '</body></html>';
-    if (function_exists('mb_convert_encoding')) {
-      $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+    if (function_exists('mb_encode_numericentity')) {
+      $html = mb_encode_numericentity(
+        $html,
+        array(0x80, 0x10FFFF, 0, 0x10FFFF),
+        'UTF-8'
+      );
     }
     $loaded = $dom->loadHTML($html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET);
     if (!$loaded) {

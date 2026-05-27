@@ -818,7 +818,13 @@ class HAXCMS
     // https://stackoverflow.com/questions/3872423/php-problem-with-russian-language
     public function html_to_obj($html) {
       $dom = new DOMDocument();
-      $html = mb_convert_encoding($html, 'HTML-ENTITIES', "UTF-8");
+      if (function_exists('mb_encode_numericentity')) {
+        $html = mb_encode_numericentity(
+          $html,
+          array(0x80, 0x10FFFF, 0, 0x10FFFF),
+          'UTF-8'
+        );
+      }
       $dom->loadHTML($html);
       return $this->element_to_obj($dom->documentElement);
     }
