@@ -66,6 +66,17 @@ class Request {
         'getSkeleton'))) {
         $this->validateJWT = FALSE;
       }
+      if (
+        method_exists($GLOBALS['HAXCMS'], 'getDeploymentProfile') &&
+        $GLOBALS['HAXCMS']->getDeploymentProfile() == 'haxiam-managed' &&
+        OperationsRoutesMap::isSystemAdminRoute($op)
+      ) {
+        $this->status = 403;
+        $this->encodeData(array(
+          'status' => 403,
+          'data' => 'Route unavailable in haxiam-managed deployments',
+        ));
+      }
       if ($this->valid()) {
         // validated so lets mark it so in headers
         $this->status = 200;

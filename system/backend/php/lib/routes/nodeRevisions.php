@@ -126,6 +126,152 @@ trait OperationsRouteNodeRevisions {
     }
     return $offset;
   }
+  private function getNodeRevisionJSONVariantLocation($site, $page) {
+    if (
+      !isset($site) ||
+      !isset($page) ||
+      !isset($page->location) ||
+      !is_string($page->location) ||
+      $page->location === '' ||
+      !method_exists($site, 'getPageAlternateLocation')
+    ) {
+      return '';
+    }
+    $location = $site->getPageAlternateLocation($page->location, 'json');
+    if (!is_string($location)) {
+      return '';
+    }
+    return trim($location);
+  }
+  private function normalizeNodeRevisionItemMetadataPayload($payload) {
+    if (!is_array($payload)) {
+      return null;
+    }
+    $itemMetadata = array(
+      'metadata' => array(),
+    );
+    $simpleKeys = array(
+      'id',
+      'title',
+      'description',
+      'slug',
+      'parent',
+      'order',
+      'indent',
+    );
+    foreach ($simpleKeys as $key) {
+      if (array_key_exists($key, $payload)) {
+        $itemMetadata[$key] = $payload[$key];
+      }
+    }
+    if (array_key_exists('metadata', $payload) && is_array($payload['metadata'])) {
+      $itemMetadata['metadata'] = $payload['metadata'];
+    }
+    return $itemMetadata;
+  }
+  private function loadNodeRevisionItemMetadata($siteRoot, $hash, $jsonVariantLocation) {
+    if (
+      !is_string($jsonVariantLocation) ||
+      trim($jsonVariantLocation) === '' ||
+      !is_string($hash) ||
+      trim($hash) === ''
+    ) {
+      return null;
+    }
+    try {
+      $rawPayload = $this->runNodeRevisionGitCommand(
+        $siteRoot,
+        array(
+          'show',
+          trim($hash) . ':' . trim($jsonVariantLocation),
+        ),
+        false
+      );
+      if (trim($rawPayload) === '') {
+        return null;
+      }
+      $decoded = json_decode($rawPayload, true);
+      if (!is_array($decoded)) {
+        return null;
+      }
+      return $this->normalizeNodeRevisionItemMetadataPayload($decoded);
+    }
+    catch (Exception $e) {
+      return null;
+    }
+  }
+  private function ensureNodeRevisionPageMetadataObject($page) {
+    if (!isset($page->metadata) || !is_object($page->metadata)) {
+      $page->metadata = new stdClass();
+    }
+  }
+  private function setNodeRevisionBooleanMetadataField($page, $sourceMetadata, $fieldName) {
+    if (is_array($sourceMetadata) && array_key_exists($fieldName, $sourceMetadata)) {
+      $page->metadata->{$fieldName} = (bool) $sourceMetadata[$fieldName];
+    }
+    else if (isset($page->metadata->{$fieldName})) {
+      unset($page->metadata->{$fieldName});
+    }
+  }
+  private function setNodeRevisionURLMetadataField($page, $sourceMetadata, $fieldName) {
+    if (is_array($sourceMetadata) && array_key_exists($fieldName, $sourceMetadata)) {
+      $safeValue = SanitizeContent::sanitizeURLValue($sourceMetadata[$fieldName], '');
+      if ($safeValue !== '') {
+        $page->metadata->{$fieldName} = $safeValue;
+      }
+      else if (isset($page->metadata->{$fieldName})) {
+        unset($page->metadata->{$fieldName});
+      }
+    }
+    else if (isset($page->metadata->{$fieldName})) {
+      unset($page->metadata->{$fieldName});
+    }
+  }
+  private function setNodeRevisionURLArrayMetadataField($page, $sourceMetadata, $fieldName) {
+    if (
+      is_array($sourceMetadata) &&
+      array_key_exists($fieldName, $sourceMetadata) &&
+      is_array($sourceMetadata[$fieldName])
+    ) {
+      $values = array();
+      foreach ($sourceMetadata[$fieldName] as $value) {
+        $safeValue = SanitizeContent::sanitizeURLValue($value, '');
+        if ($safeValue !== '') {
+          $values[] = $safeValue;
+        }
+      }
+      $page->metadata->{$fieldName} = $values;
+    }
+    else if (isset($page->metadata->{$fieldName})) {
+      unset($page->metadata->{$fieldName});
+    }
+  }
+  private function applyNodeRevisionItemMetadataToPage($page, $itemMetadata) {
+    if (!is_array($itemMetadata)) {
+      return false;
+    }
+    if (array_key_exists('title', $itemMetadata)) {
+      $page->title = is_null($itemMetadata['title'])
+        ? ''
+        : strip_tags((string) $itemMetadata['title']);
+    }
+    if (array_key_exists('description', $itemMetadata)) {
+      $page->description = is_null($itemMetadata['description'])
+        ? ''
+        : strip_tags((string) $itemMetadata['description']);
+    }
+    $sourceMetadata = array();
+    if (array_key_exists('metadata', $itemMetadata) && is_array($itemMetadata['metadata'])) {
+      $sourceMetadata = $itemMetadata['metadata'];
+    }
+    $this->ensureNodeRevisionPageMetadataObject($page);
+    $this->setNodeRevisionBooleanMetadataField($page, $sourceMetadata, 'published');
+    $this->setNodeRevisionBooleanMetadataField($page, $sourceMetadata, 'locked');
+    $this->setNodeRevisionURLMetadataField($page, $sourceMetadata, 'image');
+    $this->setNodeRevisionURLArrayMetadataField($page, $sourceMetadata, 'images');
+    $this->setNodeRevisionURLArrayMetadataField($page, $sourceMetadata, 'videos');
+    return true;
+  }
   private function buildNodeRevisionContext($siteName, $nodeId) {
     if (
       !isset($this->params['site_token']) ||
@@ -271,11 +417,16 @@ trait OperationsRouteNodeRevisions {
         }
       }
       catch (Exception $e) {}
+      $jsonVariantLocation = $this->getNodeRevisionJSONVariantLocation(
+        $context['site'],
+        $context['page']
+      );
       return array(
         'status' => 200,
         'data' => array(
           'nodeId' => $context['page']->id,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
+          'jsonVariantLocation' => $jsonVariantLocation,
           'limit' => $limit,
           'offset' => $offset,
           'total' => $total,
@@ -371,6 +522,15 @@ trait OperationsRouteNodeRevisions {
         ),
         false
       );
+      $jsonVariantLocation = $this->getNodeRevisionJSONVariantLocation(
+        $context['site'],
+        $context['page']
+      );
+      $itemMetadata = $this->loadNodeRevisionItemMetadata(
+        $context['fileContext']['siteRoot'],
+        $hash,
+        $jsonVariantLocation
+      );
       return array(
         'status' => 200,
         'data' => array(
@@ -378,6 +538,9 @@ trait OperationsRouteNodeRevisions {
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'revision' => $revisionMetadata,
           'content' => $fileContent,
+          'jsonVariantLocation' => $jsonVariantLocation,
+          'hasItemMetadata' => is_array($itemMetadata),
+          'itemMetadata' => $itemMetadata,
         ),
       );
     }
@@ -459,6 +622,19 @@ trait OperationsRouteNodeRevisions {
       if ($bytes === false) {
         return $this->nodeRevisionFailed(500, 'Failed writing restored revision');
       }
+      $jsonVariantLocation = $this->getNodeRevisionJSONVariantLocation(
+        $context['site'],
+        $context['page']
+      );
+      $itemMetadata = $this->loadNodeRevisionItemMetadata(
+        $context['fileContext']['siteRoot'],
+        $hash,
+        $jsonVariantLocation
+      );
+      $itemMetadataRestored = $this->applyNodeRevisionItemMetadataToPage(
+        $context['page'],
+        $itemMetadata
+      );
       $context['site']->writePageAlternateFormats($context['page'], $revisionContent);
       if (!isset($context['page']->metadata) || !is_object($context['page']->metadata)) {
         $context['page']->metadata = new stdClass();
@@ -487,6 +663,9 @@ trait OperationsRouteNodeRevisions {
           'nodeId' => $context['page']->id,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'restoredFromHash' => $hash,
+          'jsonVariantLocation' => $jsonVariantLocation,
+          'hasItemMetadata' => is_array($itemMetadata),
+          'itemMetadataRestored' => $itemMetadataRestored,
         ),
       );
     }

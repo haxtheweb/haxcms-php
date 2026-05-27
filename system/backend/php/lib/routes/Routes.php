@@ -24,9 +24,16 @@ trait OperationsRoutes {
   use OperationsRouteListFiles;
   use OperationsRouteFileOperation;
   use OperationsRouteSiteSearch;
+  use OperationsRouteInsights;
+  use OperationsRouteLinkChecker;
+  use OperationsRouteContentBrowser;
+  use OperationsRouteMediaBrowser;
   use OperationsRouteLogin;
   use OperationsRouteLogout;
   use OperationsRouteRefreshAccessToken;
+  use OperationsRouteSystemStatus;
+  use OperationsRouteGetApiKeys;
+  use OperationsRouteSaveApiKeys;
   use OperationsRouteSaveFile;
   use OperationsRouteSkeletonsList;
   use OperationsRouteGetSkeleton;

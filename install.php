@@ -1,5 +1,68 @@
 <?php
 $failed = false;
+include_once __DIR__ . '/system/backend/php/lib/SystemStatusService.php';
+
+if (!function_exists('haxcmsInstallerStatusToneClass')) {
+  function haxcmsInstallerStatusToneClass($tone)
+  {
+    if ($tone === 'ok') {
+      return 'status-tone-ok';
+    }
+    if ($tone === 'warning') {
+      return 'status-tone-warning';
+    }
+    if ($tone === 'error') {
+      return 'status-tone-error';
+    }
+    return 'status-tone-info';
+  }
+}
+if (!function_exists('haxcmsInstallerStatusEscape')) {
+  function haxcmsInstallerStatusEscape($value)
+  {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+  }
+}
+if (!function_exists('haxcmsInstallerStatusRender')) {
+  function haxcmsInstallerStatusRender($statusReport)
+  {
+    if (!is_array($statusReport) || !isset($statusReport['rows']) || !is_array($statusReport['rows'])) {
+      return;
+    }
+    $summary = isset($statusReport['summary']) && is_array($statusReport['summary'])
+      ? $statusReport['summary']
+      : array();
+    $runtime = isset($summary['programmingLanguage']) ? $summary['programmingLanguage'] : 'unknown';
+    $server = isset($summary['serverVersion']) ? $summary['serverVersion'] : 'unknown';
+    $currentVersion = isset($summary['haxcmsVersionCurrent']) ? $summary['haxcmsVersionCurrent'] : 'unknown';
+    $latestVersion = isset($summary['haxcmsVersionLatest']) ? $summary['haxcmsVersionLatest'] : 'unknown';
+    print '<div class="status-panel">';
+    print '<h2>System status checks</h2>';
+    print '<p class="status-summary">';
+    print 'Runtime: ' . haxcmsInstallerStatusEscape($runtime);
+    print ' · Server: ' . haxcmsInstallerStatusEscape($server);
+    print ' · HAXcms: ' . haxcmsInstallerStatusEscape($currentVersion);
+    print ' (latest: ' . haxcmsInstallerStatusEscape($latestVersion) . ')';
+    print '</p>';
+    print '<table class="status-table" aria-label="Installer system status checks">';
+    print '<thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead><tbody>';
+    foreach ($statusReport['rows'] as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $tone = isset($row['tone']) ? $row['tone'] : 'info';
+      $title = isset($row['title']) ? $row['title'] : '';
+      $value = isset($row['value']) ? $row['value'] : '';
+      $description = isset($row['description']) ? $row['description'] : '';
+      print '<tr class="' . haxcmsInstallerStatusToneClass($tone) . '">';
+      print '<td>' . haxcmsInstallerStatusEscape($title) . '</td>';
+      print '<td>' . haxcmsInstallerStatusEscape($value) . '</td>';
+      print '<td>' . haxcmsInstallerStatusEscape($description) . '</td>';
+      print '</tr>';
+    }
+    print '</tbody></table></div>';
+  }
+}
 if (file_exists(__DIR__ . '/VERSION.txt')) {
   $version = filter_var(file_get_contents(__DIR__ . '/VERSION.txt'));
 }
@@ -127,6 +190,45 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
         font-size: 30px;
         text-align: center;
 
+      }
+      .status-panel {
+        margin-top: 32px;
+        background-color: #f6f6f6;
+        border: 2px solid #d8d8d8;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .status-panel h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+      .status-summary {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+      .status-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .status-table th,
+      .status-table td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #cfcfcf;
+        vertical-align: top;
+      }
+      .status-table tbody tr.status-tone-ok td:first-child {
+        border-left: 4px solid #2e7d32;
+      }
+      .status-table tbody tr.status-tone-warning td:first-child {
+        border-left: 4px solid #f9a825;
+      }
+      .status-table tbody tr.status-tone-error td:first-child {
+        border-left: 4px solid #c62828;
+      }
+      .status-table tbody tr.status-tone-info td:first-child {
+        border-left: 4px solid #1565c0;
       }
     </style>
   </head>
@@ -273,6 +375,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     @chgrp('_archived', get_current_user());
   }
 }
+$installerStatusReport = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
 if ($failed) { ?>
         <hax-logo hide-hax>install-issue</hax-logo><div class="version">V<?php print $version;?></div>
         <h1>HAXcms folder needs to be writeable</h1>
@@ -285,6 +388,7 @@ if ($failed) { ?>
           <a href="https://haxtheweb.org/installation" target="_blank"  rel="noopener noreferrer">
           <button raised><iron-icon icon="icons:build"></iron-icon> HAXTheWeb</simple-button></a>.
         </p>
+        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
 <?php } else { ?>
         <hax-logo hide-hax>HAX</hax-logo><div class="version">V<?php print $version;?></div>
         <h1>Install successful</h1>
@@ -297,6 +401,7 @@ if ($failed) { ?>
         <a href="index.php" tabindex="-1"><button class="hax-btn">Access HAXcms</button></a>
         <p>Ideas to share or experiencing issues? <a href="http://github.com/elmsln/issues/issues" target="_blank" rel="noopener noreferrer" tabindex="-1">
         <button class="hax-btn smaller">Join our community</button></a></p>
+        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
 <?php } ?>
 </div>
     </div>

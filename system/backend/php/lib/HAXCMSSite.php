@@ -1525,7 +1525,7 @@ class HAXCMSSite
     /**
      * Derive sidecar file location from page location.
      */
-    private function getPageAlternateLocation($location = '', $extension = 'json')
+    public function getPageAlternateLocation($location = '', $extension = 'json')
     {
       if (!is_string($location) || $location == '') {
         return '';

@@ -1585,6 +1585,10 @@ class HAXCMS
         $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->contentSearchPath = $path . 'siteSearch?site_token=' . $siteToken;
         $settings->searchContentPath = $path . 'siteSearch?site_token=' . $siteToken;
+        $settings->insightsPath = $path . 'insights?site_token=' . $siteToken;
+        $settings->linkCheckerPath = $path . 'linkChecker?site_token=' . $siteToken;
+        $settings->contentBrowserPath = $path . 'contentBrowser?site_token=' . $siteToken;
+        $settings->mediaBrowserPath = $path . 'mediaBrowser?site_token=' . $siteToken;
         // form token to validate form submissions as unique to the session
         $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode?site_token=' . $siteToken;
@@ -1604,6 +1608,11 @@ class HAXCMS
         $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
         $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
         $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
+        if ($this->getDeploymentProfile() != 'haxiam-managed') {
+          $settings->systemStatus = $path . 'systemStatus?user_token=' . $userToken;
+          $settings->getApiKeys = $path . 'getApiKeys?user_token=' . $userToken;
+          $settings->saveApiKeys = $path . 'saveApiKeys?user_token=' . $userToken;
+        }
         // Skeletons list endpoint for App HAX v2 dashboard
         $settings->skeletonsList = $path . 'skeletonsList?user_token=' . $userToken;
         // HAXIAM specific endpoints - only add if HAXIAM mode is enabled

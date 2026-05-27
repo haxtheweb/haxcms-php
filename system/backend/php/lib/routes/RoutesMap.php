@@ -28,9 +28,16 @@ class OperationsRoutesMap {
       'listFiles' => dirname(__FILE__) . '/listFiles.php',
       'fileOperation' => dirname(__FILE__) . '/fileOperation.php',
       'siteSearch' => dirname(__FILE__) . '/siteSearch.php',
+      'insights' => dirname(__FILE__) . '/insights.php',
+      'linkChecker' => dirname(__FILE__) . '/linkChecker.php',
+      'contentBrowser' => dirname(__FILE__) . '/contentBrowser.php',
+      'mediaBrowser' => dirname(__FILE__) . '/mediaBrowser.php',
       'login' => dirname(__FILE__) . '/login.php',
       'logout' => dirname(__FILE__) . '/logout.php',
       'refreshAccessToken' => dirname(__FILE__) . '/refreshAccessToken.php',
+      'systemStatus' => dirname(__FILE__) . '/systemStatus.php',
+      'getApiKeys' => dirname(__FILE__) . '/getApiKeys.php',
+      'saveApiKeys' => dirname(__FILE__) . '/saveApiKeys.php',
       'saveFile' => dirname(__FILE__) . '/saveFile.php',
       'skeletonsList' => dirname(__FILE__) . '/skeletonsList.php',
       'getSkeleton' => dirname(__FILE__) . '/getSkeleton.php',
@@ -44,5 +51,15 @@ class OperationsRoutesMap {
       'haxiamAddUserAccess' => dirname(__FILE__) . '/haxiamAddUserAccess.php',
       'openapi/json' => dirname(__FILE__) . '/openapi.php',
     );
+  }
+  public static function getSystemAdminRoutes() {
+    return array(
+      'systemStatus',
+      'getApiKeys',
+      'saveApiKeys',
+    );
+  }
+  public static function isSystemAdminRoute($routeName) {
+    return in_array($routeName, self::getSystemAdminRoutes(), true);
   }
 }
