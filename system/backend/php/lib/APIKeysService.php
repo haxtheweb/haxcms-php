@@ -78,7 +78,7 @@ class HAXCMSAPIKeysService
     ) {
       $configDirectory = $haxcms->configDirectory;
     }
-    return rtrim($configDirectory, '/') . '/apiKeys.json';
+    return rtrim($configDirectory, '/') . '/settings/apiKeys.json';
   }
 
   public static function readAPIKeys($haxcms)

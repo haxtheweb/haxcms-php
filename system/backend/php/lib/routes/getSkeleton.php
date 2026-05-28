@@ -1,5 +1,26 @@
 <?php
 trait OperationsRouteGetSkeleton {
+  private function normalizeSkeletonLookupName($value)
+  {
+    if (!is_string($value)) {
+      return '';
+    }
+    $safeValue = basename($value);
+    $safeValue = preg_replace('/\\.json$/i', '', $safeValue);
+    $safeValue = trim($safeValue);
+    if ($safeValue === '') {
+      return '';
+    }
+    $normalized = $GLOBALS['HAXCMS']->generateMachineName($safeValue);
+    if (
+      !is_string($normalized) ||
+      $normalized === '' ||
+      ($normalized === 'default' && strtolower($safeValue) !== 'default')
+    ) {
+      return '';
+    }
+    return $normalized;
+  }
   /**
    * Get a specific skeleton file by name.
    * Returns the skeleton JSON data.
@@ -57,35 +78,67 @@ trait OperationsRouteGetSkeleton {
       );
     }
 
-    // Sanitize the skeleton name to prevent directory traversal
-    $safeName = basename($this->params['name']);
-    $fileName = (substr($safeName, -5) === '.json') ? $safeName : $safeName . '.json';
+    $normalizedTarget = $this->normalizeSkeletonLookupName($this->params['name']);
+    if ($normalizedTarget === '') {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'invalid skeleton name',
+        )
+      );
+    }
 
     // directories to search for skeleton files
     $dirs = $this->getSkeletonDirectories();
 
     // Search for the skeleton file
     foreach ($dirs as $dir) {
-      $filePath = $dir . '/' . $fileName;
-      
-      if (file_exists($filePath)) {
+      if (!($handle = opendir($dir))) {
+        continue;
+      }
+      while (false !== ($file = readdir($handle))) {
+        if ($file === '.' || $file === '..') { continue; }
+        $filePath = $dir . '/' . $file;
+        if (!is_file($filePath) || strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'json') {
+          continue;
+        }
         $json = @file_get_contents($filePath);
         $skeleton = json_decode($json);
-        
-        if ($skeleton === null) {
+        if (!is_object($skeleton)) {
+          continue;
+        }
+        $normalizedFileName = $this->normalizeSkeletonLookupName(
+          pathinfo($file, PATHINFO_FILENAME)
+        );
+        $normalizedMetaMachineName = '';
+        $normalizedMetaName = '';
+        if (isset($skeleton->meta) && is_object($skeleton->meta)) {
+          if (isset($skeleton->meta->machineName)) {
+            $normalizedMetaMachineName = $this->normalizeSkeletonLookupName(
+              $skeleton->meta->machineName
+            );
+          }
+          if (isset($skeleton->meta->name)) {
+            $normalizedMetaName = $this->normalizeSkeletonLookupName(
+              $skeleton->meta->name
+            );
+          }
+        }
+        if (
+          $normalizedTarget === $normalizedFileName ||
+          ($normalizedMetaMachineName !== '' &&
+            $normalizedTarget === $normalizedMetaMachineName) ||
+          ($normalizedMetaName !== '' &&
+            $normalizedTarget === $normalizedMetaName)
+        ) {
+          closedir($handle);
           return array(
-            '__failed' => array(
-              'status' => 500,
-              'message' => 'Failed to parse skeleton file',
-            )
+            'status' => 200,
+            'data' => $skeleton
           );
         }
-        
-        return array(
-          'status' => 200,
-          'data' => $skeleton
-        );
       }
+      closedir($handle);
     }
 
     return array(

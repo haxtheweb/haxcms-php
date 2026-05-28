@@ -9,6 +9,7 @@ trait OperationsRoutes {
   use OperationsRouteSavePlatformSettings;
   use OperationsRouteSaveEditorSettings;
   use OperationsRouteSaveAllowedBlocks;
+  use OperationsRouteSaveEnabledBlocks;
   use OperationsRouteSaveOutline;
   use OperationsRouteCreateNode;
   use OperationsRouteSaveNode;
@@ -18,6 +19,7 @@ trait OperationsRoutes {
   use OperationsRouteSiteUpdateAlternateFormats;
   use OperationsRouteConnectionSettings;
   use OperationsRouteGenerateAppStore;
+  use OperationsRouteSystemBlocksList;
   use OperationsRouteGetUserData;
   use OperationsRouteFormLoad;
   use OperationsRouteFormProcess;
@@ -34,8 +36,12 @@ trait OperationsRoutes {
   use OperationsRouteSystemStatus;
   use OperationsRouteGetApiKeys;
   use OperationsRouteSaveApiKeys;
+  use OperationsRouteSaveEnabledSkeletons;
+  use OperationsRouteSchemaFileOperation;
+  use OperationsRouteSaveEnabledThemes;
   use OperationsRouteSaveFile;
   use OperationsRouteSkeletonsList;
+  use OperationsRouteThemesList;
   use OperationsRouteGetSkeleton;
   use OperationsRouteListSites;
   use OperationsRouteCreateSite;

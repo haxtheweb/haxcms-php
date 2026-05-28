@@ -84,6 +84,34 @@ trait OperationsRouteGenerateAppStore {
         ]
         ');
       }
+      $enabledBlocksFile = $GLOBALS['HAXCMS']->configDirectory . '/settings/enabledBlocks.json';
+      if (file_exists($enabledBlocksFile)) {
+        $enabledRaw = json_decode(file_get_contents($enabledBlocksFile));
+        if (is_array($enabledRaw)) {
+          $enabledLookup = array();
+          foreach ($enabledRaw as $tag) {
+            if (is_string($tag)) {
+              $normalized = strtolower(trim($tag));
+              if ($normalized !== '' && preg_match('/^[a-z][a-z0-9-]*$/', $normalized)) {
+                $enabledLookup[$normalized] = true;
+              }
+            }
+          }
+          if (count($enabledLookup) > 0) {
+            $filteredAutoloader = array();
+            foreach ($autoloaderList as $tag) {
+              if (!is_string($tag)) {
+                continue;
+              }
+              $normalized = strtolower(trim($tag));
+              if ($normalized !== '' && isset($enabledLookup[$normalized])) {
+                $filteredAutoloader[] = $normalized;
+              }
+            }
+            $autoloaderList = array_values(array_unique($filteredAutoloader));
+          }
+        }
+      }
       return array(
           'status' => 200,
           'apps' => $appStore,

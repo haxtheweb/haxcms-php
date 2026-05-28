@@ -21,6 +21,8 @@ include_once 'Git.php';
 include_once 'Request.php';
 // basic cache writing to file system
 include_once 'Cache.php';
+// system-level theme settings helpers
+include_once 'ThemeSettingsService.php';
 // composer...ugh
 include_once dirname(__FILE__) . "/../vendor/autoload.php";
 use Symfony\Component\Filesystem\Filesystem;
@@ -172,6 +174,9 @@ class HAXCMS
         // set default config directory to look in if there
         if (is_dir(HAXCMS_ROOT . '/_config')) {
             $this->configDirectory = HAXCMS_ROOT . '/_config';
+            if (!is_dir($this->configDirectory . '/settings')) {
+                @mkdir($this->configDirectory . '/settings', 0777, true);
+            }
             // setup cache bin
             try {
               $this->cache = new Cache(array(
@@ -1618,15 +1623,69 @@ class HAXCMS
           $settings->systemStatus = $path . 'systemStatus?user_token=' . $userToken;
           $settings->getApiKeys = $path . 'getApiKeys?user_token=' . $userToken;
           $settings->saveApiKeys = $path . 'saveApiKeys?user_token=' . $userToken;
+          $settings->saveEnabledSkeletons = $path . 'saveEnabledSkeletons?user_token=' . $userToken;
+          $settings->schemaFileOperation = $path . 'schemaFileOperation?user_token=' . $userToken;
+          $settings->saveEnabledThemes = $path . 'saveEnabledThemes?user_token=' . $userToken;
+          $settings->saveEnabledBlocks = $path . 'saveEnabledBlocks?user_token=' . $userToken;
+          $settings->systemBlocksList = $path . 'systemBlocksList?user_token=' . $userToken;
         }
         // Skeletons list endpoint for App HAX v2 dashboard
         $settings->skeletonsList = $path . 'skeletonsList?user_token=' . $userToken;
+        // Themes list endpoint for App HAX v2 dashboard
+        $settings->themesList = $path . 'themesList?user_token=' . $userToken;
         // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
         if (isset($this->config->iam) && $this->config->iam) {
             $settings->haxiamAddUserAccess = $path . 'haxiamAddUserAccess?user_token=' . $userToken;
         }
         $settings->appStore = $this->appStoreConnection($siteToken, $sitename);
-        $settings->themes = $this->getThemes();
+        try {
+          $discoveredThemes = HAXCMSThemeSettingsService::discoverThemes($this);
+          $detectedThemeNames = array();
+          foreach ($discoveredThemes as $item) {
+            if (is_array($item) && isset($item['machineName'])) {
+              $detectedThemeNames[] = $item['machineName'];
+            }
+          }
+          $enabledThemes = HAXCMSThemeSettingsService::readEnabledThemeMap($this);
+          $withDefaults = HAXCMSThemeSettingsService::applyDetectedThemeDefaults(
+            $this,
+            $enabledThemes,
+            $detectedThemeNames
+          );
+          $enabledThemes = isset($withDefaults['enabledThemes'])
+            ? $withDefaults['enabledThemes']
+            : array();
+          if (isset($withDefaults['changed']) && $withDefaults['changed']) {
+            HAXCMSThemeSettingsService::writeEnabledThemeMap(
+              $this,
+              $enabledThemes
+            );
+          }
+          $themes = array();
+          foreach ($discoveredThemes as $item) {
+            if (!is_array($item)) {
+              continue;
+            }
+            $machineName = isset($item['machineName']) ? $item['machineName'] : '';
+            $enabled = HAXCMSThemeSettingsService::isThemeEnabled(
+              $this,
+              $machineName,
+              $enabledThemes
+            );
+            $item['enabled'] = $enabled;
+            $item['hidden'] = (
+              (isset($item['hidden']) && $item['hidden']) ||
+              !$enabled
+            );
+            $themes[] = $item;
+          }
+          $settings->themes = json_decode(
+            json_encode(HAXCMSThemeSettingsService::themesToMap($themes))
+          );
+        }
+        catch (Exception $e) {
+          $settings->themes = $this->getThemes();
+        }
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
             foreach ($this->config->appJWTConnectionSettings as $key => $value) {
