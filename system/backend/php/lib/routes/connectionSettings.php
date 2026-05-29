@@ -19,38 +19,15 @@ trait OperationsRouteConnectionSettings {
    * )
    */
   public function connectionSettings() {
-    // In HAXiam mode, require an authenticated user and enforce
-    // /<username>/system/api/* path alignment with authenticated principal.
-    if (isset($GLOBALS['HAXCMS']->config->iam) && $GLOBALS['HAXCMS']->config->iam) {
-      $tenantUser = $GLOBALS['HAXCMS']->getIAMTenantUserName();
-      $pathUser = $GLOBALS['HAXCMS']->getRequestPathUserName();
-      // If both are present they must agree.
-      if (!is_null($tenantUser) && $tenantUser != '' && !is_null($pathUser) && $pathUser != '' && $tenantUser !== $pathUser) {
+    if (method_exists($GLOBALS['HAXCMS'], 'validateIAMRouteAuthorization')) {
+      $authorization = $GLOBALS['HAXCMS']->validateIAMRouteAuthorization(TRUE);
+      if (is_array($authorization) && isset($authorization['allowed']) && !$authorization['allowed']) {
         return array(
           '__failed' => array(
-            'status' => 403,
-            'message' => 'Access denied',
+            'status' => isset($authorization['status']) ? (int) $authorization['status'] : 403,
+            'message' => isset($authorization['message']) && $authorization['message'] != '' ? $authorization['message'] : 'Access denied',
           )
         );
-      }
-      // Expected IAM user identity for this request.
-      $expectedUser = null;
-      if (!is_null($tenantUser) && $tenantUser != '') {
-        $expectedUser = $tenantUser;
-      }
-      else if (!is_null($pathUser) && $pathUser != '') {
-        $expectedUser = $pathUser;
-      }
-      if (!is_null($expectedUser) && $expectedUser != '') {
-        $authenticatedUser = $GLOBALS['HAXCMS']->getAuthenticatedUserName();
-        if (is_null($authenticatedUser) || $authenticatedUser == '' || $authenticatedUser !== $expectedUser) {
-          return array(
-            '__failed' => array(
-              'status' => 403,
-              'message' => 'Access denied',
-            )
-          );
-        }
       }
     }
     // need to return this as if it was a javascript file, weird looking for sure
