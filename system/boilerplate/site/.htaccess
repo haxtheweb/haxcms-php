@@ -23,6 +23,11 @@ DirectoryIndex index.php index.html
   php_value mbstring.http_output            pass
   php_flag mbstring.encoding_translation    off
 </IfModule>
+<IfModule mod_mime.c>
+  <Files "api-catalog">
+    ForceType application/linkset+json
+  </Files>
+</IfModule>
 # Requires mod_expires to be enabled.
 <IfModule mod_expires.c>
   # Enable expirations.
@@ -76,4 +81,7 @@ DirectoryIndex index.php index.html
 <IfModule mod_headers.c>
   # Disable content sniffing, since it's an attack vector.
   Header always set X-Content-Type-Options nosniff
+  <Files "api-catalog">
+    Header set Content-Type "application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""
+  </Files>
 </IfModule>

@@ -1623,6 +1623,8 @@ class HAXCMS
           $settings->systemStatus = $path . 'systemStatus?user_token=' . $userToken;
           $settings->getApiKeys = $path . 'getApiKeys?user_token=' . $userToken;
           $settings->saveApiKeys = $path . 'saveApiKeys?user_token=' . $userToken;
+          $settings->getMediaSettings = $path . 'getMediaSettings?user_token=' . $userToken;
+          $settings->saveMediaSettings = $path . 'saveMediaSettings?user_token=' . $userToken;
           $settings->saveEnabledSkeletons = $path . 'saveEnabledSkeletons?user_token=' . $userToken;
           $settings->schemaFileOperation = $path . 'schemaFileOperation?user_token=' . $userToken;
           $settings->saveEnabledThemes = $path . 'saveEnabledThemes?user_token=' . $userToken;

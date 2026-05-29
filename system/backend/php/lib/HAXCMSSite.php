@@ -10,6 +10,7 @@ class HAXCMSSite
     public $manifest;
     public $directory;
     public $basePath = '/';
+    public $lastPathLookupMiss = false;
     /**
      * Load a site based on directory and name
      */
@@ -377,6 +378,8 @@ class HAXCMSSite
             'push' => 'push-manifest.json',
             'robots' => 'robots.txt',
             'llms' => 'llms.txt',
+            'securitytxt' => '.well-known/security.txt',
+            'apicatalog' => '.well-known/api-catalog',
             // pwa related files
             'msbc' => 'browserconfig.xml',
             'manifest' => 'manifest.json',
@@ -412,7 +415,12 @@ class HAXCMSSite
       $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
       $boilerPath = HAXCMS_ROOT . '/system/boilerplate/site/';
       foreach ($templates as $file) {
-        copy($boilerPath . $file, $siteDirectoryPath . '/' . $file);
+        $destinationPath = $siteDirectoryPath . '/' . $file;
+        $destinationDirectory = dirname($destinationPath);
+        if (!is_dir($destinationDirectory)) {
+          @mkdir($destinationDirectory, 0775, TRUE);
+        }
+        copy($boilerPath . $file, $destinationPath);
       }
       $licenseData = $this->getLicenseData('all');
       $licenseLink = '';
@@ -432,14 +440,15 @@ class HAXCMSSite
       }
       if (is_null($domain) || $domain == "") {
         $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
+        $siteBasePath = $this->getDefaultSiteBasePath();
         if (empty($fallbackDomain)) {
-          $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
+          $domain = $siteBasePath;
         } else {
           $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
           if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
             $fallbackDomain = 'https://' . $fallbackDomain;
           }
-          $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
+          $domain = rtrim($fallbackDomain, '/') . '/' . ltrim($siteBasePath, '/');
         }
       }
       $domain = rtrim($domain, '/') . '/';
@@ -460,6 +469,7 @@ class HAXCMSSite
           'ghPagesURLParamCount' => 0,
           'licenseLink' => $licenseLink,
           'licenseName' => $licenseName,
+          'securityTxtExpires' => gmdate('Y-m-d\TH:i:s\Z', strtotime('+180 days')),
           'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
@@ -776,12 +786,104 @@ class HAXCMSSite
       $this->manifest->save();
     }
     /**
+     * Build the default public base path for this site without protocol/host.
+     */
+    private function getDefaultSiteBasePath()
+    {
+      $basePath = '/';
+      if (isset($this->basePath) && is_string($this->basePath) && $this->basePath != '') {
+        $basePath = $this->basePath;
+      }
+      if (substr($basePath, 0, 1) != '/') {
+        $basePath = '/' . $basePath;
+      }
+      if (substr($basePath, -1) != '/') {
+        $basePath .= '/';
+      }
+      return $basePath . $this->manifest->metadata->site->name . '/';
+    }
+    /**
+     * Ensure we can build an absolute URL for sitemap generation.
+     */
+    private function getAbsoluteSiteDomainForSitemap($domain = '')
+    {
+      if (is_string($domain) && preg_match('/^https?:\\/\\//i', $domain)) {
+        return $domain;
+      }
+      $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
+      if (!empty($fallbackDomain)) {
+        if (!preg_match('/^https?:\\/\\//i', $fallbackDomain)) {
+          $fallbackDomain = 'https://' . $fallbackDomain;
+        }
+        $relativePath = is_string($domain) && $domain != ''
+          ? $domain
+          : $this->getDefaultSiteBasePath();
+        $relativePath = '/' . ltrim($relativePath, '/');
+        return rtrim($fallbackDomain, '/') . $relativePath;
+      }
+      return '';
+    }
+    /**
+     * Fallback sitemap XML writer when absolute-domain sitemap generation is unavailable.
+     */
+    private function buildSitemapFallbackXml($domain = '')
+    {
+      $base = is_string($domain) ? $domain : '';
+      if ($base == '') {
+        $base = $this->getDefaultSiteBasePath();
+      }
+      $base = rtrim($base, '/') . '/';
+      $xml = array();
+      $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
+      $xml[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      foreach ($this->manifest->items as $item) {
+        if (!isset($item->slug) || $item->slug == '') {
+          continue;
+        }
+        $loc = rtrim($base, '/') . '/' . ltrim($item->slug, '/');
+        $lastmod = '';
+        if (isset($item->metadata->updated) && is_numeric($item->metadata->updated)) {
+          $lastmod = gmdate('c', intval($item->metadata->updated));
+        }
+        $xml[] = '  <url>';
+        $xml[] = '    <loc>' . htmlspecialchars($loc, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>';
+        if ($lastmod != '') {
+          $xml[] = '    <lastmod>' . htmlspecialchars($lastmod, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</lastmod>';
+        }
+        $xml[] = '  </url>';
+      }
+      $xml[] = '</urlset>';
+      return implode("\n", $xml) . "\n";
+    }
+    /**
+     * Fallback sitemap-index XML writer when absolute-domain sitemap generation is unavailable.
+     */
+    private function buildSitemapIndexFallbackXml($domain = '')
+    {
+      $base = is_string($domain) ? $domain : '';
+      if ($base == '') {
+        $base = $this->getDefaultSiteBasePath();
+      }
+      $base = rtrim($base, '/') . '/';
+      $loc = $base . 'sitemap.xml';
+      $xml = array();
+      $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
+      $xml[] = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      $xml[] = '  <sitemap>';
+      $xml[] = '    <loc>' . htmlspecialchars($loc, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>';
+      $xml[] = '    <lastmod>' . gmdate('c') . '</lastmod>';
+      $xml[] = '  </sitemap>';
+      $xml[] = '</sitemapindex>';
+      return implode("\n", $xml) . "\n";
+    }
+    /**
      * Update RSS, Atom feeds, site map, legacy outline, search index
      * which are physical files and need rebuilt on chnages to data structure
      */
     public function updateAlternateFormats($format = NULL)
     {
       $siteDirectory = $this->directory . '/' . $this->manifest->metadata->site->name . '/';
+      $siteBasePath = $this->getDefaultSiteBasePath();
       // Determine domain for feeds
       $domain = NULL;
       if (isset($this->manifest->metadata->site->domain) && !empty($this->manifest->metadata->site->domain)) {
@@ -791,15 +893,15 @@ class HAXCMSSite
         // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
         $fallbackDomain = $GLOBALS['HAXCMS']->getDomain();
         if (empty($fallbackDomain)) {
-            // CLI fallback or when SERVER_NAME is not available - use root path
-            $domain = "/sites/" . $this->manifest->metadata->site->name . "/";
+            // CLI fallback or when SERVER_NAME is not available - use base path
+            $domain = $siteBasePath;
         } else {
             $fallbackDomain = str_replace('iam.','oer.', $fallbackDomain);
             // Ensure we have a protocol
             if (!preg_match('/^https?:\/\//', $fallbackDomain)) {
                 $fallbackDomain = 'https://' . $fallbackDomain;
             }
-            $domain = rtrim($fallbackDomain, '/') . "/sites/" . $this->manifest->metadata->site->name . "/";
+            $domain = rtrim($fallbackDomain, '/') . '/' . ltrim($siteBasePath, '/');
         }
       }
       
@@ -821,9 +923,10 @@ class HAXCMSSite
       // build a sitemap if we have a domain, kinda required...
       if (is_null($format) || $format == 'sitemap') {
           try {
-              if (!empty($domain)) {
+              $sitemapDomain = $this->getAbsoluteSiteDomainForSitemap($domain);
+              if (!empty($sitemapDomain) && preg_match('/^https?:\\/\\//i', $sitemapDomain)) {
                   $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                      $domain,
+                      $sitemapDomain,
                       $siteDirectory
                   );
                   // will create also compressed (gzipped) sitemap
@@ -848,7 +951,7 @@ class HAXCMSSite
                       $updatedTime->setTimestamp($item->metadata->updated);
                       $updatedTime->format(DateTime::ATOM);
                       @$generator->addUrl(
-                          rtrim($domain, '/') . '/' . ltrim($item->slug, '/'),
+                          rtrim($sitemapDomain, '/') . '/' . ltrim($item->slug, '/'),
                           $updatedTime,
                           'daily',
                           $priority
@@ -857,6 +960,16 @@ class HAXCMSSite
                   // writing early generated sitemap to file
                   @$generator->flush();
                   @$generator->finalize();
+              }
+              else if (!empty($domain)) {
+                  @file_put_contents(
+                      $siteDirectory . 'sitemap.xml',
+                      $this->buildSitemapFallbackXml($domain)
+                  );
+                  @file_put_contents(
+                      $siteDirectory . 'sitemap-index.xml',
+                      $this->buildSitemapIndexFallbackXml($domain)
+                  );
               }
           } catch (Exception $e) {
               // some of these XML parsers are a bit unstable
@@ -1978,25 +2091,36 @@ class HAXCMSSite
       $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
       foreach ($preloadTags as $tag) {
         if (isset($wcMap->{$tag})) {
-          $contentPreload .= '
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
+          $contentPreload .= "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = SanitizeContent::escapeHTMLAttribute($page->title);
-      $siteTitle = SanitizeContent::escapeHTMLAttribute($this->manifest->title) . ' | ' . SanitizeContent::escapeHTMLAttribute($page->title);
-      $description = SanitizeContent::escapeHTMLAttribute($page->description);
+      $rawTitle = '';
+      if (isset($page->title)) {
+        $rawTitle = (string) $page->title;
+      }
+      $rawDescription = '';
+      if (isset($page->description)) {
+        $rawDescription = (string) $page->description;
+      }
+      $title = SanitizeContent::escapeHTMLAttribute($rawTitle);
+      $siteTitle = SanitizeContent::escapeHTMLAttribute($this->manifest->title) . ' | ' . SanitizeContent::escapeHTMLAttribute($rawTitle);
+      $description = SanitizeContent::escapeHTMLAttribute($rawDescription);
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       if (isset($this->manifest->metadata->theme->path)) {
         $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
   <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
-      if ($description == '') {
-        $description = SanitizeContent::escapeHTMLAttribute($this->manifest->description);
+      if ($rawDescription == '' && isset($this->manifest->description)) {
+        $rawDescription = (string) $this->manifest->description;
       }
-      if ($title == '' || $title == 'New item') {
-        $title = SanitizeContent::escapeHTMLAttribute($this->manifest->title);
+      if ($description == '') {
+        $description = SanitizeContent::escapeHTMLAttribute($rawDescription);
+      }
+      if ($rawTitle == '' || $rawTitle == 'New item') {
+        $rawTitle = (string) $this->manifest->title;
+        $title = SanitizeContent::escapeHTMLAttribute($rawTitle);
         $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
@@ -2008,16 +2132,34 @@ class HAXCMSSite
       else {
         $robots = '<meta name="robots" content="index, follow" />';
       }
+      $canonicalBase = SanitizeContent::sanitizeURLValue($domain, '');
+      if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
+        $canonicalBase = SanitizeContent::sanitizeURLValue($this->manifest->metadata->site->domain, '');
+      }
+      $siteUrlForStructuredData = $canonicalBase;
+      $pageUrlForStructuredData = SanitizeContent::sanitizeURLValue($domain, '');
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->manifest->metadata->site->domain . '/' . $page->slug, '')) . '" />' . "\n";
+          $pageSlug = '';
+          if (isset($page->slug)) {
+            $pageSlug = ltrim((string) $page->slug, '/');
+          }
+          $pageUrlForStructuredData = SanitizeContent::sanitizeURLValue(rtrim((string) $this->manifest->metadata->site->domain, '/') . '/' . $pageSlug, '');
+          $canonical = '  <link rel="canonical" href="' . SanitizeContent::escapeHTMLAttribute($pageUrlForStructuredData) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, '')) . '" />' . "\n";
+          $pageUrlForStructuredData = SanitizeContent::sanitizeURLValue($domain, '');
+          $canonical = '  <link rel="canonical" href="' . SanitizeContent::escapeHTMLAttribute($pageUrlForStructuredData) . '" />' . "\n";
         }
       }
       else {
         $canonical = '';
+      }
+      if ($siteUrlForStructuredData == '') {
+        $siteUrlForStructuredData = $pageUrlForStructuredData;
+      }
+      if ($pageUrlForStructuredData == '') {
+        $pageUrlForStructuredData = $siteUrlForStructuredData;
       }
       $prevResource = '';
       $nextResource = '';
@@ -2030,7 +2172,7 @@ class HAXCMSSite
           $nextResource = '  <link rel="next" href="' . SanitizeContent::escapeHTMLAttribute($this->manifest->items[$currentId+1]->slug) . '" />' . "\n";
         }
       }
-      $safeDomain = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($domain, ''));
+      $safeDomain = SanitizeContent::escapeHTMLAttribute($pageUrlForStructuredData);
       $safeSocialImage = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), ''));
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
@@ -2085,6 +2227,60 @@ class HAXCMSSite
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
   <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />';
+      $pageUpdatedISO = '';
+      if (isset($page->metadata) && isset($page->metadata->updated) && is_numeric($page->metadata->updated)) {
+        $updatedTimestamp = intval($page->metadata->updated);
+        if ($updatedTimestamp > 0) {
+          $pageUpdatedISO = gmdate('c', $updatedTimestamp);
+        }
+      }
+      $siteStructuredDataId = rtrim((string) $siteUrlForStructuredData, '/') . '#website';
+      $pageStructuredDataId = rtrim((string) $pageUrlForStructuredData, '/') . '#webpage';
+      $jsonLdGraph = array();
+      if ($siteUrlForStructuredData != '') {
+        $jsonLdGraph[] = array(
+          '@type' => 'WebSite',
+          '@id' => $siteStructuredDataId,
+          'url' => $siteUrlForStructuredData,
+          'name' => (string) $this->manifest->title,
+        );
+      }
+      if ($pageUrlForStructuredData != '') {
+        $webPageNode = array(
+          '@type' => 'WebPage',
+          '@id' => $pageStructuredDataId,
+          'url' => $pageUrlForStructuredData,
+          'name' => $rawTitle,
+          'description' => $rawDescription,
+        );
+        if ($siteUrlForStructuredData != '') {
+          $webPageNode['isPartOf'] = array(
+            '@id' => $siteStructuredDataId,
+          );
+        }
+        $socialImageForStructuredData = SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), '');
+        if ($socialImageForStructuredData != '') {
+          $webPageNode['primaryImageOfPage'] = array(
+            '@type' => 'ImageObject',
+            'url' => $socialImageForStructuredData,
+          );
+        }
+        if ($pageUpdatedISO != '') {
+          $webPageNode['dateModified'] = $pageUpdatedISO;
+        }
+        $jsonLdGraph[] = $webPageNode;
+      }
+      if (count($jsonLdGraph) > 0) {
+        $jsonLdData = array(
+          '@context' => 'https://schema.org',
+          '@graph' => $jsonLdGraph,
+        );
+        $jsonLdString = json_encode($jsonLdData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($jsonLdString !== FALSE) {
+          $jsonLdString = str_replace('<', '\\u003c', $jsonLdString);
+          $metadata .= "\n  <script type=\"application/ld+json\">" . $jsonLdString . "</script>";
+        }
+      }
       $licenseData = $this->getLicenseData('all');
       if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
         $metadata .= "\n" . '  <meta rel="cc:license" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($licenseData[$this->manifest->license]['link'], '')) . '" content="License: ' . SanitizeContent::escapeHTMLAttribute($licenseData[$this->manifest->license]['name']) . '"/>' . "\n";
@@ -2103,6 +2299,8 @@ class HAXCMSSite
      * @return new JSONOutlineSchemaItem() a blank JOS item
      */
     public function loadNodeByLocation($path = NULL) {
+        $this->lastPathLookupMiss = false;
+        $opPath = '';
         // load from the active address if we have one
         if (is_null($path)) {
           $opPath = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
@@ -2110,15 +2308,19 @@ class HAXCMSSite
             $opPath = str_replace(getenv('HAXSITE_BASE_URL'), '', $opPath);
           }
           $path = $opPath;
+        } else {
+          $opPath = trim($path, '/');
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
         $path = 'pages/' . str_replace('//', '/', $path);
         foreach ($this->manifest->items as $item) {
             if ($item->location == $path || $item->slug == $opPath) {
+                $this->lastPathLookupMiss = false;
                 return $item;
             }
         }
+       $this->lastPathLookupMiss = true;
        return new JSONOutlineSchemaItem();
     }
     /**

@@ -36,6 +36,8 @@ trait OperationsRoutes {
   use OperationsRouteSystemStatus;
   use OperationsRouteGetApiKeys;
   use OperationsRouteSaveApiKeys;
+  use OperationsRouteGetMediaSettings;
+  use OperationsRouteSaveMediaSettings;
   use OperationsRouteSaveEnabledSkeletons;
   use OperationsRouteSchemaFileOperation;
   use OperationsRouteSaveEnabledThemes;

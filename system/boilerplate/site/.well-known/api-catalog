@@ -1,0 +1,9 @@
+{
+  "linkset": [
+    {
+      "anchor": "{{ domain }}.well-known/api-catalog",
+      "item": [],
+      "service-desc": []
+    }
+  ]
+}

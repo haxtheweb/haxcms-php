@@ -106,6 +106,7 @@ class Operations {
     'lg' => array('width' => 800, 'height' => 600),
     'xl' => array('width' => 1200, 'height' => 900),
   );
+  private $defaultJpegQuality = 90;
   private $allowedFileRenameExtensions = array(
     'jpg',
     'jpeg',
@@ -1267,7 +1268,30 @@ class Operations {
     }
     return @imagecreatefromstring($contents);
   }
-  private function convertImageToJpgFile($sourcePath, $outputPath, $transformMode = 'none') {
+  private function normalizeJpegQualityValue($value) {
+    if (is_null($value) || $value === '') {
+      return null;
+    }
+    $quality = filter_var($value, FILTER_VALIDATE_INT);
+    if ($quality === false) {
+      return null;
+    }
+    if ($quality < 1) {
+      $quality = 1;
+    }
+    if ($quality > 100) {
+      $quality = 100;
+    }
+    return $quality;
+  }
+  private function resolveJpegQualityValue($value) {
+    $configured = $this->normalizeJpegQualityValue($value);
+    if (!is_null($configured)) {
+      return $configured;
+    }
+    return $this->defaultJpegQuality;
+  }
+  private function convertImageToJpgFile($sourcePath, $outputPath, $transformMode = 'none', $jpgQuality = null) {
     if (!$this->isImageProcessingAvailable()) {
       return array(
         'success' => false,
@@ -1337,7 +1361,7 @@ class Operations {
       @imagefilter($targetImage, IMG_FILTER_GRAYSCALE);
       @imagefilter($targetImage, IMG_FILTER_COLORIZE, 90, 55, 30);
     }
-    $jpgQuality = ($mode == 'none') ? 90 : 82;
+    $jpgQuality = $this->resolveJpegQualityValue($jpgQuality);
     $saved = @imagejpeg($targetImage, $outputPath, $jpgQuality);
     imagedestroy($sourceImage);
     imagedestroy($targetImage);
@@ -1354,7 +1378,7 @@ class Operations {
       'height' => $height,
     );
   }
-  private function scaleImageToPresetFile($sourcePath, $outputPath, $targetWidth, $targetHeight) {
+  private function scaleImageToPresetFile($sourcePath, $outputPath, $targetWidth, $targetHeight, $jpgQuality = null) {
     if (!$this->isImageProcessingAvailable()) {
       return array(
         'success' => false,
@@ -1412,7 +1436,8 @@ class Operations {
       $sourceWidth,
       $sourceHeight
     );
-    $saved = @imagejpeg($targetImage, $outputPath, 82);
+    $jpgQuality = $this->resolveJpegQualityValue($jpgQuality);
+    $saved = @imagejpeg($targetImage, $outputPath, $jpgQuality);
     imagedestroy($sourceImage);
     imagedestroy($targetImage);
     if (!$saved) {

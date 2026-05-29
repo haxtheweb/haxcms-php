@@ -180,7 +180,18 @@ else {
     </div>
   </section>
   <haxcms-site-builder id="site" file="site.json<?php print $HAXSiteConfig->cacheBusterHash();?>">
-    <?php print $HAXSiteConfig->getPageContent($HAXSiteConfig->page); ?>
+    <?php
+      if (
+        method_exists($HAXSiteConfig, 'isPageNotFound') &&
+        $HAXSiteConfig->isPageNotFound() &&
+        method_exists($HAXSiteConfig, 'getPageMissShellMarkup')
+      ) {
+        print $HAXSiteConfig->getPageMissShellMarkup();
+      }
+      else {
+        print $HAXSiteConfig->getPageContent($HAXSiteConfig->page);
+      }
+    ?>
   </haxcms-site-builder>
   <script>
     <?php 

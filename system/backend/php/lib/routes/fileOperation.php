@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../MediaSettingsService.php';
 trait OperationsRouteFileOperation {
   /**
    * @OA\\Post(
@@ -65,6 +66,17 @@ trait OperationsRouteFileOperation {
           'message' => 'File operations are disabled for this site',
         )
       );
+    }
+    $mediaSettings = array();
+    try {
+      $mediaSettings = HAXCMSMediaSettingsService::readMediaSettings($GLOBALS['HAXCMS']);
+    }
+    catch (Exception $e) {
+      $mediaSettings = array();
+    }
+    $jpegQuality = null;
+    if (is_array($mediaSettings) && array_key_exists('jpegQuality', $mediaSettings)) {
+      $jpegQuality = $mediaSettings['jpegQuality'];
     }
     $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
     if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90'), true)) {
@@ -222,7 +234,9 @@ trait OperationsRouteFileOperation {
       }
       $conversionResult = $this->convertImageToJpgFile(
         $pathResult['resolvedPath'],
-        $outputResult['outputPath']
+        $outputResult['outputPath'],
+        'none',
+        $jpegQuality
       );
       if (!$conversionResult['success']) {
         return array(
@@ -277,7 +291,8 @@ trait OperationsRouteFileOperation {
       $conversionResult = $this->convertImageToJpgFile(
         $pathResult['resolvedPath'],
         $outputResult['outputPath'],
-        $operation
+        $operation,
+        $jpegQuality
       );
       if (!$conversionResult['success']) {
         return array(
@@ -330,7 +345,8 @@ trait OperationsRouteFileOperation {
       $pathResult['resolvedPath'],
       $outputResult['outputPath'],
       $presetResult['preset']['width'],
-      $presetResult['preset']['height']
+      $presetResult['preset']['height'],
+      $jpegQuality
     );
     if (!$scaleResult['success']) {
       return array(
