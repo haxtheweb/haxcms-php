@@ -1192,11 +1192,40 @@ class HAXCMS
           $token = $_POST['token'];
         }
         if ($token != null) {
-          if ($token == $this->getRequestToken($value)) {
+          $normalizedValue = $this->normalizeIAMTokenValue($value);
+          if ($token == $this->getRequestToken($normalizedValue)) {
             return TRUE;
           }
         }
         return FALSE;
+    }
+    /**
+     * In IAM mode, bind user-scoped token checks to the authenticated principal
+     * instead of fallback active-user values.
+     */
+    private function normalizeIAMTokenValue($value = '') {
+      if (!(isset($this->config->iam) && $this->config->iam)) {
+        return $value;
+      }
+      if (!is_string($value) || $value == '') {
+        return $value;
+      }
+      $tokenUser = $this->getRequestTokenUserName();
+      if (is_null($tokenUser) || $tokenUser == '') {
+        return $value;
+      }
+      $activeUser = $this->getActiveUserName();
+      if (is_null($activeUser) || $activeUser == '' || $activeUser === $tokenUser) {
+        return $value;
+      }
+      if ($value === $activeUser) {
+        return $tokenUser;
+      }
+      $activePrefix = $activeUser . ':';
+      if (strpos($value, $activePrefix) === 0) {
+        return $tokenUser . ':' . substr($value, strlen($activePrefix));
+      }
+      return $value;
     }
     /**
      * Generate machine name (for folder names, usernames - must be filesystem safe)
@@ -1368,6 +1397,17 @@ class HAXCMS
       }
     }
     /**
+     * Resolve the user identity to bind request tokens to.
+     * Prefer authenticated principal and fallback to active user.
+     */
+    public function getRequestTokenUserName() {
+      $authenticatedUser = $this->getAuthenticatedUserName();
+      if (!is_null($authenticatedUser) && $authenticatedUser != '') {
+        return $authenticatedUser;
+      }
+      return $this->getActiveUserName();
+    }
+    /**
      * Resolve authenticated username from refresh token or JWT without ending request.
      */
     public function getAuthenticatedUserName() {
@@ -1461,6 +1501,53 @@ class HAXCMS
         }
       }
       return $this->getRequestPathUserName();
+    }
+    /**
+     * Validate IAM authorization by binding authenticated principal
+     * to the resolved IAM tenant identity.
+     */
+    public function validateIAMRouteAuthorization($requireAuthenticatedUser = TRUE) {
+      $allow = array(
+        'allowed' => TRUE,
+        'status' => 200,
+        'message' => '',
+      );
+      if (!(isset($this->config->iam) && $this->config->iam)) {
+        return $allow;
+      }
+      $tenantUser = $this->getIAMTenantUserName();
+      $pathUser = $this->getRequestPathUserName();
+      // If both are present they must agree.
+      if (!is_null($tenantUser) && $tenantUser != '' && !is_null($pathUser) && $pathUser != '' && $tenantUser !== $pathUser) {
+        return array(
+          'allowed' => FALSE,
+          'status' => 403,
+          'message' => 'Access denied',
+        );
+      }
+      $authenticatedUser = $this->getAuthenticatedUserName();
+      if (
+        $requireAuthenticatedUser &&
+        (is_null($authenticatedUser) || $authenticatedUser == '')
+      ) {
+        return array(
+          'allowed' => FALSE,
+          'status' => 403,
+          'message' => 'Access denied',
+        );
+      }
+      if (
+        !is_null($tenantUser) &&
+        $tenantUser != '' &&
+        (is_null($authenticatedUser) || $authenticatedUser == '' || $authenticatedUser !== $tenantUser)
+      ) {
+        return array(
+          'allowed' => FALSE,
+          'status' => 403,
+          'message' => 'Access denied',
+        );
+      }
+      return $allow;
     }
     /**
      * Get a secure key based on session and two private values
@@ -1573,10 +1660,11 @@ class HAXCMS
           // should always be at the base here
           $sitename = $siteparts[0];
         }
+        $requestTokenUser = $this->getRequestTokenUserName();
         // user token includes user and site name of the request
-        $siteToken = $this->getRequestToken($GLOBALS['HAXCMS']->getActiveUserName() . ':' . $sitename);
+        $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
         // user token is just the name of the logged in user
-        $userToken = $this->getRequestToken($GLOBALS['HAXCMS']->getActiveUserName());
+        $userToken = $this->getRequestToken($requestTokenUser);
         $path = $base . $this->systemRequestBase . '/';
         $settings = new stdClass();
         $settings->login = $path . 'login';

@@ -23,6 +23,26 @@ class Request {
         if (!$GLOBALS['HAXCMS']->validateJWT()) {
           return FALSE;
         }
+        if (method_exists($GLOBALS['HAXCMS'], 'validateIAMRouteAuthorization')) {
+          $authorization = $GLOBALS['HAXCMS']->validateIAMRouteAuthorization(TRUE);
+          if (
+            is_array($authorization) &&
+            isset($authorization['allowed']) &&
+            !$authorization['allowed']
+          ) {
+            $this->status = isset($authorization['status'])
+              ? (int) $authorization['status']
+              : 403;
+            $message = isset($authorization['message']) && $authorization['message'] != ''
+              ? $authorization['message']
+              : 'Access denied';
+            $this->encodeData(array(
+              'status' => $this->status,
+              'data' => $message,
+            ));
+            return FALSE;
+          }
+        }
       }
       return TRUE;
     }
