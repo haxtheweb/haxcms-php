@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . "/../vendor/autoload.php";
+include_once dirname(__FILE__) . "/MediaSettingsService.php";
 use \Gumlet\ImageResize;
 
 // a site object
@@ -166,8 +167,14 @@ class HAXCMSFile
         return false;
     }
 
-    private function validateUploadMimeAndContent($name, $tmpPath, &$errorMessage)
+    private function validateUploadMimeAndContent(
+        $name,
+        $tmpPath,
+        &$errorMessage,
+        &$detectedMimeOutput = null
+    )
     {
+        $detectedMimeOutput = null;
         $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         if ($extension === '' || !isset($this->allowedMimeByExtension[$extension])) {
             $errorMessage = 'File type not allowed';
@@ -186,7 +193,66 @@ class HAXCMSFile
             $errorMessage = 'Invalid image file content';
             return false;
         }
+        $detectedMimeOutput = $detectedMime;
         return true;
+    }
+    private function normalizeJpegQualityValue($value)
+    {
+        if (is_null($value) || $value === '') {
+            return null;
+        }
+        $quality = filter_var($value, FILTER_VALIDATE_INT);
+        if ($quality === false) {
+            return null;
+        }
+        if ($quality < 1) {
+            $quality = 1;
+        }
+        if ($quality > 100) {
+            $quality = 100;
+        }
+        return $quality;
+    }
+    private function applyConfiguredJpegUploadQuality($fullpath)
+    {
+        global $HAXCMS;
+        if (
+            !is_string($fullpath) ||
+            $fullpath === '' ||
+            !file_exists($fullpath) ||
+            !function_exists('imagecreatefromjpeg') ||
+            !function_exists('imagejpeg')
+        ) {
+            return false;
+        }
+        $mediaSettings = array();
+        try {
+            $mediaSettings = HAXCMSMediaSettingsService::readMediaSettings(
+                $HAXCMS
+            );
+        }
+        catch (Exception $e) {
+            return false;
+        }
+        if (
+            !is_array($mediaSettings) ||
+            !array_key_exists('jpegQuality', $mediaSettings)
+        ) {
+            return false;
+        }
+        $jpegQuality = $this->normalizeJpegQualityValue(
+            $mediaSettings['jpegQuality']
+        );
+        if (is_null($jpegQuality)) {
+            return false;
+        }
+        $sourceImage = @imagecreatefromjpeg($fullpath);
+        if (!$sourceImage) {
+            return false;
+        }
+        $saved = @imagejpeg($sourceImage, $fullpath, $jpegQuality);
+        imagedestroy($sourceImage);
+        return ($saved === true);
     }
     public static function getBulkImportStagingRootPath()
     {
@@ -258,6 +324,7 @@ class HAXCMSFile
             $this->stripExecutableExtensionPatterns($upload['name'])
         );
         $validationError = '';
+        $detectedMimeType = null;
         $isBulkImport = isset($upload['bulk-import']);
         $isUploadSourceValid = false;
         if (isset($upload['tmp_name'])) {
@@ -271,7 +338,12 @@ class HAXCMSFile
         $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
         $passesMimeValidation = false;
         if ($isUploadSourceValid && $isAllowedExtension) {
-            $passesMimeValidation = $this->validateUploadMimeAndContent($name, $upload['tmp_name'], $validationError);
+            $passesMimeValidation = $this->validateUploadMimeAndContent(
+                $name,
+                $upload['tmp_name'],
+                $validationError,
+                $detectedMimeType
+            );
         }
         else if ($isUploadSourceValid && !$isAllowedExtension) {
             $validationError = 'File type not allowed';
@@ -338,10 +410,18 @@ class HAXCMSFile
                 $fullpath = $path . $name;
             }            
             if ($size = @file_put_contents($fullpath, $filedata)) {
+                $storedMimeType = $detectedMimeType;
+                if ($storedMimeType === 'image/jpeg') {
+                    $this->applyConfiguredJpegUploadQuality($fullpath);
+                    $compressedSize = @filesize($fullpath);
+                    if ($compressedSize !== false) {
+                        $size = $compressedSize;
+                    }
+                }
                 //@todo make a way of defining these as returns as well as number to take
                 // specialized support for images to do scale and crop stuff automatically
                 if (
-                    in_array(mime_content_type($fullpath), array(
+                    in_array($storedMimeType, array(
                         'image/png',
                         'image/jpeg',
                         'image/gif'
@@ -373,7 +453,7 @@ class HAXCMSFile
                                 $pathPart .
                                 $name,
                             'url' => 'files/' . $name,
-                            'type' => mime_content_type($fullpath),
+                            'type' => $storedMimeType,
                             'name' => $name,
                             'size' => $size
                         )
@@ -388,7 +468,7 @@ class HAXCMSFile
                                 $pathPart .
                                 $name,
                             'url' => 'files/' . $name,
-                            'type' => mime_content_type($fullpath),
+                            'type' => $storedMimeType,
                             'name' => $name,
                             'size' => $size
                         )
@@ -406,7 +486,7 @@ class HAXCMSFile
                             $pathPart .
                             $name,
                         'url' => 'files/' . $name,
-                        'type' => mime_content_type($fullpath),
+                        'type' => $storedMimeType,
                         'name' => $name,
                         'size' => $size
                     );

@@ -228,6 +228,12 @@ class HAXCMS
                 if (!isset($this->config->mcp->readOnly)) {
                     $this->config->mcp->readOnly = TRUE;
                 }
+                if (!isset($this->config->security)) {
+                    $this->config->security = new stdClass();
+                }
+                if (!isset($this->config->security->loginRateLimit)) {
+                    $this->config->security->loginRateLimit = new stdClass();
+                }
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(
@@ -1326,13 +1332,94 @@ class HAXCMS
         return $cleanTitle;
     }
     /**
+     * Convert configured integer values with fallback and bounds checking.
+     */
+    public function getIntConfigValue($value, $fallback, $min, $max)
+    {
+      if (!is_numeric($value)) {
+        $value = $fallback;
+      }
+      $value = intval($value);
+      if ($value < $min) {
+        $value = $min;
+      }
+      if ($value > $max) {
+        $value = $max;
+      }
+      return $value;
+    }
+    /**
+     * Get validated login rate-limit settings from backend config.
+     */
+    public function getLoginRateLimitSettings()
+    {
+      $defaults = new stdClass();
+      $defaults->enabled = TRUE;
+      $defaults->windowMs = 15 * 60 * 1000;
+      $defaults->maxAttempts = 5;
+      $defaults->blockMs = 15 * 60 * 1000;
+      $cfg = new stdClass();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->loginRateLimit)
+      ) {
+        $cfg = $this->config->security->loginRateLimit;
+      }
+      $settings = new stdClass();
+      $settings->enabled = $defaults->enabled;
+      if (isset($cfg->enabled)) {
+        $settings->enabled = $cfg->enabled === TRUE;
+      }
+      $settings->windowMs = $this->getIntConfigValue(
+        isset($cfg->windowMs) ? $cfg->windowMs : null,
+        $defaults->windowMs,
+        10 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      $settings->maxAttempts = $this->getIntConfigValue(
+        isset($cfg->maxAttempts) ? $cfg->maxAttempts : null,
+        $defaults->maxAttempts,
+        1,
+        1000
+      );
+      $settings->blockMs = $this->getIntConfigValue(
+        isset($cfg->blockMs) ? $cfg->blockMs : null,
+        $defaults->blockMs,
+        10 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      return $settings;
+    }
+    /**
+     * Timing-safe string comparison helper for credential checks.
+     */
+    public function safeStringCompare($stored, $submitted)
+    {
+      if (!is_string($stored) || !is_string($submitted)) {
+        return false;
+      }
+      if (function_exists('hash_equals')) {
+        return hash_equals($stored, $submitted);
+      }
+      if (strlen($stored) !== strlen($submitted)) {
+        return false;
+      }
+      $result = 0;
+      $max = strlen($stored);
+      for ($i = 0; $i < $max; $i++) {
+        $result |= ord($stored[$i]) ^ ord($submitted[$i]);
+      }
+      return $result === 0;
+    }
+    /**
      * test the active user login based on session.
      */
     public function testLogin($name, $pass, $adminFallback = false)
     {
         if (
-            $this->user->name === $name &&
-            $this->user->password === $pass
+            $this->safeStringCompare($this->user->name, $name) &&
+            $this->safeStringCompare($this->user->password, $pass)
         ) {
             return true;
         }
@@ -1341,8 +1428,8 @@ class HAXCMS
         // the fallback being allowable is useful for managed environments
         elseif (
             $adminFallback &&
-            $this->superUser->name === $name &&
-            $this->superUser->password === $pass
+            $this->safeStringCompare($this->superUser->name, $name) &&
+            $this->safeStringCompare($this->superUser->password, $pass)
         ) {
             return true;
         }

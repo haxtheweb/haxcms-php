@@ -1,0 +1,74 @@
+[
+  {
+    "name": "forbidden-tags-removed",
+    "input": "<div><script>alert(1)</script><svg><circle></circle></svg><style>.x{color:red;}</style><p>ok</p></div>",
+    "mustContain": [
+      "<p>ok</p>"
+    ],
+    "mustNotContain": [
+      "<script",
+      "<svg",
+      "<style"
+    ]
+  },
+  {
+    "name": "event-and-style-attributes-removed",
+    "input": "<div onclick=\"alert(1)\" style=\"color:red\"><a href=\"https://example.com\" onmouseover=\"alert(2)\">link</a></div>",
+    "mustContain": [
+      "<a href=\"https://example.com\">link</a>"
+    ],
+    "mustNotContain": [
+      "onclick",
+      "onmouseover",
+      "style="
+    ]
+  },
+  {
+    "name": "unsafe-url-schemes-removed",
+    "input": "<a href=\"javascript:alert(1)\">bad</a><img src=\"data:text/html;base64,AAAA\"><a href=\"mailto:test@example.com\">mail</a>",
+    "mustContain": [
+      "mailto:test@example.com"
+    ],
+    "mustNotContain": [
+      "javascript:",
+      "data:text/html"
+    ]
+  },
+  {
+    "name": "iframe-attribute-hardening",
+    "input": "<iframe src=\"https://example.com/embed\" width=\"640\" height=\"360\" data-test=\"no\" sandbox=\"allow-scripts allow-top-navigation allow-popups\" style=\"color:red\"></iframe>",
+    "mustContain": [
+      "<iframe",
+      "src=\"https://example.com/embed\"",
+      "sandbox=\"allow-scripts allow-popups\"",
+      "loading=\"lazy\"",
+      "referrerpolicy=\"no-referrer\""
+    ],
+    "mustNotContain": [
+      "data-test=",
+      "allow-top-navigation",
+      "style="
+    ]
+  },
+  {
+    "name": "text-template-host-keeps-code-inert",
+    "input": "<code-sample><template><svg><circle></circle></svg></template></code-sample>",
+    "mustContain": [
+      "&lt;svg&gt;"
+    ],
+    "mustNotContain": [
+      "<svg"
+    ]
+  },
+  {
+    "name": "non-text-template-host-recursive-sanitization",
+    "input": "<play-list><template><script>alert(1)</script><span onclick=\"alert(2)\">ok</span></template></play-list>",
+    "mustContain": [
+      "<span>ok</span>"
+    ],
+    "mustNotContain": [
+      "<script",
+      "onclick"
+    ]
+  }
+]

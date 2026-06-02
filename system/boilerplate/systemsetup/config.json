@@ -4,6 +4,14 @@
     "enabled": true,
     "readOnly": true
   },
+  "security": {
+    "loginRateLimit": {
+      "enabled": true,
+      "windowMs": 900000,
+      "maxAttempts": 5,
+      "blockMs": 900000
+    }
+  },
   "themes": {},
   "appStore": {
     "stax": [
