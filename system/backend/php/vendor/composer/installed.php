@@ -3,22 +3,13 @@
         'name' => 'haxtheweb/haxcms',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '990f27441d0816eb21f3f193aa10dd0fc015132a',
+        'reference' => '8b5b7b97e62f6277934a1f4ef11b0a368cf227cc',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
-        'cweagans/composer-patches' => array(
-            'pretty_version' => '1.7.3',
-            'version' => '1.7.3.0',
-            'reference' => 'e190d4466fe2b103a55467dfa83fc2fecfcaf2db',
-            'type' => 'composer-plugin',
-            'install_path' => __DIR__ . '/../cweagans/composer-patches',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'doctrine/annotations' => array(
             'pretty_version' => '1.14.4',
             'version' => '1.14.4.0',
@@ -85,7 +76,7 @@
         'haxtheweb/haxcms' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '990f27441d0816eb21f3f193aa10dd0fc015132a',
+            'reference' => '8b5b7b97e62f6277934a1f4ef11b0a368cf227cc',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
