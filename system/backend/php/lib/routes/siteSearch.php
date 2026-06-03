@@ -41,7 +41,15 @@ trait OperationsRouteSiteSearch {
         )
       );
     }
-    if (!(isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName))) {
+    if (
+      !(
+        isset($this->params['site_token']) &&
+        $GLOBALS['HAXCMS']->validateRequestToken(
+          $this->params['site_token'],
+          $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName
+        )
+      )
+    ) {
       return array(
         '__failed' => array(
           'status' => 403,
@@ -66,16 +74,53 @@ trait OperationsRouteSiteSearch {
         )
       );
     }
-    $selectorMode = $this->parseSiteSearchBoolean(isset($this->params['searchSelector']) ? $this->params['searchSelector'] : false);
-    if (!$selectorMode && isset($this->params['searchMode']) && strtolower((string) $this->params['searchMode']) == 'selector') {
-      $selectorMode = true;
+    $operation = $this->normalizeSiteSearchOperation(
+      isset($this->params['operation']) ? $this->params['operation'] : null
+    );
+    if ($operation == 'replace' && strlen($searchTerm) <= 1) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Search text must be more than 1 character for replacement operations',
+        )
+      );
     }
-    $caseSensitive = $this->parseSiteSearchBoolean(isset($this->params['searchCaseSensitive']) ? $this->params['searchCaseSensitive'] : false);
-    $searchLimit = $this->parseSiteSearchLimit(isset($this->params['searchLimit']) ? $this->params['searchLimit'] : null, 25);
-    $searchFields = $selectorMode
-      ? array('content')
-      : $this->normalizeSiteSearchFields(isset($this->params['searchField']) ? $this->params['searchField'] : null);
-    $mode = $selectorMode ? 'selector' : 'text';
+    $selectorMode = false;
+    if ($operation != 'replace') {
+      $selectorMode = $this->parseSiteSearchBoolean(
+        isset($this->params['searchSelector']) ? $this->params['searchSelector'] : false
+      );
+      if (
+        !$selectorMode &&
+        isset($this->params['searchMode']) &&
+        strtolower((string) $this->params['searchMode']) == 'selector'
+      ) {
+        $selectorMode = true;
+      }
+    }
+    $caseSensitive = $this->parseSiteSearchBoolean(
+      isset($this->params['searchCaseSensitive']) ? $this->params['searchCaseSensitive'] : false
+    );
+    $searchLimit = $this->parseSiteSearchLimit(
+      isset($this->params['searchLimit']) ? $this->params['searchLimit'] : null,
+      25
+    );
+    $searchFields = $this->normalizeSiteSearchFields(
+      isset($this->params['searchField']) ? $this->params['searchField'] : null
+    );
+    if ($selectorMode) {
+      $searchFields = array('content');
+    }
+    if ($operation == 'replace') {
+      $searchFields = array('content');
+    }
+    $mode = 'text';
+    if ($selectorMode) {
+      $mode = 'selector';
+    }
+    if ($operation == 'replace') {
+      $mode = 'replace';
+    }
     $selectorData = null;
     if ($selectorMode) {
       $selectorData = $this->parseSimpleSiteSearchSelector($searchTerm);
@@ -91,6 +136,7 @@ trait OperationsRouteSiteSearch {
     $response = array(
       'status' => 200,
       'data' => array(
+        'operation' => $operation,
         'query' => $searchTerm,
         'fields' => $searchFields,
         'mode' => $mode,
@@ -105,6 +151,162 @@ trait OperationsRouteSiteSearch {
       return $response;
     }
     $items = $site->manifest->orderTree($site->manifest->items);
+    if ($operation == 'replace') {
+      $replacement = '';
+      if (isset($this->params['replace'])) {
+        $replacement = trim((string) $this->params['replace']);
+      }
+      if (strlen($replacement) == 1) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Replacement text must be empty or more than 1 character',
+          )
+        );
+      }
+      $replaceConfirmed = $this->parseSiteSearchBoolean(
+        isset($this->params['replaceConfirm']) ? $this->params['replaceConfirm'] : false
+      );
+      if (!$replaceConfirmed) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Replacement requires confirmation',
+          )
+        );
+      }
+      if ($replacement === '') {
+        $destroyConfirmed = $this->parseSiteSearchBoolean(
+          isset($this->params['replaceDestroyConfirm']) ? $this->params['replaceDestroyConfirm'] : false
+        );
+        if (!$destroyConfirmed) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Removing matched text requires a second confirmation',
+            )
+          );
+        }
+      }
+      $siteDirectory = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name . '/';
+      $totalMatches = 0;
+      $updatedItems = 0;
+      $totalReplacements = 0;
+      $changedItems = array();
+      foreach ($items as $item) {
+        if (!isset($item->id) || $item->id == '') {
+          continue;
+        }
+        $page = $site->loadNode($item->id);
+        if (!$page) {
+          continue;
+        }
+        $content = $site->getPageContent($page);
+        if (!is_string($content)) {
+          $content = '';
+        }
+        $replacementData = $this->siteSearchTextReplace(
+          $content,
+          $searchTerm,
+          $replacement,
+          $caseSensitive
+        );
+        $replacementCount = isset($replacementData['total'])
+          ? intval($replacementData['total'])
+          : 0;
+        if ($replacementCount < 1) {
+          continue;
+        }
+        $totalMatches += $replacementCount;
+        $replacedContent = isset($replacementData['content'])
+          ? $replacementData['content']
+          : '';
+        $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($replacedContent);
+        $writeResult = $page->writeLocation($sanitizedContent, $siteDirectory);
+        if ($writeResult === false) {
+          continue;
+        }
+        $updatedItems++;
+        $totalReplacements += $replacementCount;
+        if (!isset($page->metadata) || !is_object($page->metadata)) {
+          $page->metadata = new stdClass();
+        }
+        $page->metadata->updated = time();
+        if (isset($page->location) && $page->location != '') {
+          $GLOBALS['HAXCMS']->staticCache(
+            'getPageContent' . $page->location,
+            null,
+            true
+          );
+        }
+        $changedItems[] = array(
+          'id' => isset($item->id) ? $item->id : '',
+          'title' => isset($item->title) ? $item->title : '',
+          'slug' => isset($item->slug) ? $item->slug : '',
+          'replacements' => $replacementCount,
+        );
+        try {
+          $site->writePageAlternateFormats($page, $sanitizedContent);
+        }
+        catch (Exception $e) {}
+      }
+      if ($totalMatches < 1) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Search term not found in site content',
+          )
+        );
+      }
+      if ($updatedItems < 1) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'No pages could be updated',
+          )
+        );
+      }
+      if (!isset($site->manifest->metadata) || !is_object($site->manifest->metadata)) {
+        $site->manifest->metadata = new stdClass();
+      }
+      if (!isset($site->manifest->metadata->site) || !is_object($site->manifest->metadata->site)) {
+        $site->manifest->metadata->site = new stdClass();
+      }
+      $site->manifest->metadata->site->updated = time();
+      $site->manifest->save();
+      $site->updateAlternateFormats();
+      $commitReplacement = $replacement;
+      if ($commitReplacement === '') {
+        $commitReplacement = '[removed]';
+      }
+      $pageLabelSuffix = '';
+      if ($updatedItems !== 1) {
+        $pageLabelSuffix = 's';
+      }
+      $site->gitCommit(
+        'Bulk replace "' .
+        $searchTerm .
+        '" -> "' .
+        $commitReplacement .
+        '" across ' .
+        $updatedItems .
+        ' page' .
+        $pageLabelSuffix
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => 'replace',
+          'query' => $searchTerm,
+          'replace' => $replacement,
+          'caseSensitive' => $caseSensitive,
+          'total' => $totalMatches,
+          'updatedItems' => $updatedItems,
+          'totalReplacements' => $totalReplacements,
+          'items' => $changedItems,
+        ),
+      );
+    }
     $contentCache = array();
     $matches = array();
     foreach ($items as $item) {
@@ -143,7 +345,11 @@ trait OperationsRouteSiteSearch {
           }
         }
         else {
-          $textMatch = $this->siteSearchTextMatch($fieldValue, $searchTerm, $caseSensitive);
+          $textMatch = $this->siteSearchTextMatch(
+            $fieldValue,
+            $searchTerm,
+            $caseSensitive
+          );
           if (!is_null($textMatch)) {
             $fieldMatches[] = array(
               'field' => $field,

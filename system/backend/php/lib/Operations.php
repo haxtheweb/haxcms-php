@@ -1634,6 +1634,63 @@ class Operations {
     }
     return $normalized;
   }
+  private function normalizeSiteSearchOperation($value = null) {
+    if (!is_string($value)) {
+      return 'search';
+    }
+    $operation = strtolower(trim($value));
+    if ($operation == 'replace') {
+      return 'replace';
+    }
+    return 'search';
+  }
+  private function siteSearchTextReplace($value, $searchTerm, $replacement = '', $caseSensitive = false) {
+    if (!is_string($value) || $value === '') {
+      return array(
+        'content' => '',
+        'total' => 0,
+      );
+    }
+    if (!is_string($searchTerm) || $searchTerm === '') {
+      return array(
+        'content' => $value,
+        'total' => 0,
+      );
+    }
+    if ($caseSensitive) {
+      $total = substr_count($value, $searchTerm);
+      return array(
+        'content' => str_replace($searchTerm, $replacement, $value),
+        'total' => $total,
+      );
+    }
+    $source = (string) $value;
+    $sourceLower = strtolower($source);
+    $searchLower = strtolower((string) $searchTerm);
+    $searchLength = strlen((string) $searchTerm);
+    if ($searchLength < 1) {
+      return array(
+        'content' => $value,
+        'total' => 0,
+      );
+    }
+    $cursor = 0;
+    $total = 0;
+    $output = '';
+    $foundAt = strpos($sourceLower, $searchLower, $cursor);
+    while ($foundAt !== false) {
+      $output .= substr($source, $cursor, $foundAt - $cursor);
+      $output .= $replacement;
+      $cursor = $foundAt + $searchLength;
+      $total++;
+      $foundAt = strpos($sourceLower, $searchLower, $cursor);
+    }
+    $output .= substr($source, $cursor);
+    return array(
+      'content' => $output,
+      'total' => $total,
+    );
+  }
   private function parseSimpleSiteSearchSelector($selectorValue) {
     $selector = trim((string) $selectorValue);
     if ($selector == '') {
