@@ -12,21 +12,14 @@
 namespace Twig\Extension;
 
 /**
- * Enables usage of the deprecated Twig\Extension\AbstractExtension::getGlobals() method.
- *
- * Explicitly implement this interface if you really need to implement the
- * deprecated getGlobals() method in your extensions.
+ * Allows Twig extensions to add globals to the context.
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
 interface GlobalsInterface
 {
     /**
-     * Returns a list of global variables to add to the existing list.
-     *
-     * @return array An array of global variables
+     * @return array<string, mixed>
      */
-    public function getGlobals();
+    public function getGlobals(): array;
 }
-
-class_alias('Twig\Extension\GlobalsInterface', 'Twig_Extension_GlobalsInterface');

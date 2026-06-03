@@ -6,44 +6,53 @@
 
 namespace OpenApi\Processors;
 
+use OpenApi\Analysis;
 use OpenApi\Annotations\MediaType;
+use OpenApi\Annotations\Parameter;
 use OpenApi\Annotations\RequestBody;
 use OpenApi\Annotations\Response;
-use OpenApi\Analysis;
 use OpenApi\Annotations\XmlContent;
 use OpenApi\Context;
+use OpenApi\Generator;
 
 /**
- * Split XmlContent into Schema and MediaType
+ * Split XmlContent into Schema and MediaType.
  */
 class MergeXmlContent
 {
     public function __invoke(Analysis $analysis)
     {
+        /** @var XmlContent[] $annotations */
         $annotations = $analysis->getAnnotationsOfType(XmlContent::class);
+
         foreach ($annotations as $xmlContent) {
-            $response = $xmlContent->_context->nested;
-            if (!($response instanceof Response) && !($response instanceof RequestBody)) {
+            $parent = $xmlContent->_context->nested;
+            if (!($parent instanceof Response) && !($parent instanceof RequestBody) && !($parent instanceof Parameter)) {
+                if ($parent) {
+                    $xmlContent->_context->logger->warning('Unexpected ' . $xmlContent->identity() . ' in ' . $parent->identity() . ' in ' . $parent->_context);
+                } else {
+                    $xmlContent->_context->logger->warning('Unexpected ' . $xmlContent->identity() . ' must be nested');
+                }
                 continue;
             }
-            if ($response->content === UNDEFINED) {
-                $response->content = [];
+            if ($parent->content === Generator::UNDEFINED) {
+                $parent->content = [];
             }
-            $response->content['application/xml'] = new MediaType(
-                [
-                    'mediaType' => 'application/xml',
-                    'schema' => $xmlContent,
-                    'example' => $xmlContent->example,
-                    'examples' => $xmlContent->examples,
-                    '_context' => new Context(['generated' => true], $xmlContent->_context)
-                ]
-            );
-            $xmlContent->example = UNDEFINED;
-            $xmlContent->examples = UNDEFINED;
+            $parent->content['application/xml'] = new MediaType([
+                'schema' => $xmlContent,
+                'example' => $xmlContent->example,
+                'examples' => $xmlContent->examples,
+                '_context' => new Context(['generated' => true], $xmlContent->_context),
+            ]);
+            if (!$parent instanceof Parameter) {
+                $parent->content['application/xml']->mediaType = 'application/xml';
+            }
+            $xmlContent->example = Generator::UNDEFINED;
+            $xmlContent->examples = Generator::UNDEFINED;
 
-            $index = array_search($xmlContent, $response->_unmerged, true);
+            $index = array_search($xmlContent, $parent->_unmerged, true);
             if ($index !== false) {
-                array_splice($response->_unmerged, $index, 1);
+                array_splice($parent->_unmerged, $index, 1);
             }
         }
     }

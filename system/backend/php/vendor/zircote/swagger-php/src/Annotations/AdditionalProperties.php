@@ -19,7 +19,8 @@ class AdditionalProperties extends Schema
         Property::class,
         Items::class,
         JsonContent::class,
-        XmlContent::class
+        XmlContent::class,
+        AdditionalProperties::class,
     ];
 
     /**
@@ -31,5 +32,7 @@ class AdditionalProperties extends Schema
         Property::class => ['properties', 'property'],
         ExternalDocumentation::class => 'externalDocs',
         Xml::class => 'xml',
+        AdditionalProperties::class => 'additionalProperties',
+        Attachable::class => ['attachables'],
     ];
 }

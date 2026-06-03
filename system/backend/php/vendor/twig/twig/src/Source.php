@@ -18,20 +18,16 @@ namespace Twig;
  */
 final class Source
 {
-    private $code;
-    private $name;
-    private $path;
-
     /**
      * @param string $code The template source code
      * @param string $name The template logical name
      * @param string $path The filesystem path of the template if any
      */
-    public function __construct(string $code, string $name, string $path = '')
-    {
-        $this->code = $code;
-        $this->name = $name;
-        $this->path = $path;
+    public function __construct(
+        private string $code,
+        private string $name,
+        private string $path = '',
+    ) {
     }
 
     public function getCode(): string
@@ -39,7 +35,7 @@ final class Source
         return $this->code;
     }
 
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -49,5 +45,3 @@ final class Source
         return $this->path;
     }
 }
-
-class_alias('Twig\Source', 'Twig_Source');

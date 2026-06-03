@@ -279,7 +279,330 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
           <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
           <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
-          <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';  
+          <meta name="twitter:image" property="twitter:image" content="' . $this->getSocialShareImage($page) . '" />';
+      $inLanguage = $this->getLanguage();
+      $siteUrlForStructuredData = filter_var($domain, FILTER_SANITIZE_URL);
+      if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
+        $siteUrlForStructuredData = filter_var($this->manifest->metadata->site->domain, FILTER_SANITIZE_URL);
+      }
+      $pageUrlForStructuredData = filter_var($domain, FILTER_SANITIZE_URL);
+      if (
+        isset($this->manifest->metadata->site->settings->canonical) &&
+        $this->manifest->metadata->site->settings->canonical &&
+        isset($this->manifest->metadata->site->domain) &&
+        $this->manifest->metadata->site->domain != '' &&
+        isset($page->slug) &&
+        $page->slug != ''
+      ) {
+        $pageUrlForStructuredData = filter_var(
+          rtrim((string) $this->manifest->metadata->site->domain, '/') . '/' . ltrim((string) $page->slug, '/'),
+          FILTER_SANITIZE_URL
+        );
+      }
+      if ($siteUrlForStructuredData == '') {
+        $siteUrlForStructuredData = $pageUrlForStructuredData;
+      }
+      if ($pageUrlForStructuredData == '') {
+        $pageUrlForStructuredData = $siteUrlForStructuredData;
+      }
+      $joinStructuredDataUrl = function ($baseValue = '', $segmentValue = '') {
+        $normalizedBase = (string) $baseValue;
+        $normalizedSegment = (string) $segmentValue;
+        if ($normalizedSegment == '') {
+          return $normalizedBase;
+        }
+        if (preg_match('/^https?:\\/\\//i', $normalizedSegment)) {
+          return $normalizedSegment;
+        }
+        if ($normalizedBase == '') {
+          return $normalizedSegment;
+        }
+        return rtrim($normalizedBase, '/') . '/' . ltrim($normalizedSegment, '/');
+      };
+      $toAbsoluteStructuredDataUrl = function ($value = '') use ($siteUrlForStructuredData, $joinStructuredDataUrl) {
+        $sanitizedValue = filter_var((string) $value, FILTER_SANITIZE_URL);
+        if ($sanitizedValue == '') {
+          return '';
+        }
+        if (preg_match('/^https?:\\/\\//i', $sanitizedValue)) {
+          return $sanitizedValue;
+        }
+        if ($siteUrlForStructuredData != '') {
+          return filter_var($joinStructuredDataUrl($siteUrlForStructuredData, $sanitizedValue), FILTER_SANITIZE_URL);
+        }
+        return $sanitizedValue;
+      };
+      $socialImageForStructuredData = $toAbsoluteStructuredDataUrl($this->getSocialShareImage($page));
+      $siteLogoForStructuredData = $toAbsoluteStructuredDataUrl($this->getLogoSize('512', '512'));
+      $pageUpdatedISO = '';
+      if (isset($page->metadata->updated) && is_numeric($page->metadata->updated)) {
+        $updatedTimestamp = intval($page->metadata->updated);
+        if ($updatedTimestamp > 0) {
+          $pageUpdatedISO = gmdate('c', $updatedTimestamp);
+        }
+      }
+      $pageCreatedISO = '';
+      if (isset($page->metadata->created) && is_numeric($page->metadata->created)) {
+        $createdTimestamp = intval($page->metadata->created);
+        if ($createdTimestamp > 0) {
+          $pageCreatedISO = gmdate('c', $createdTimestamp);
+        }
+      }
+      $authorName = '';
+      if (isset($this->manifest->metadata->author->name) && trim((string) $this->manifest->metadata->author->name) != '') {
+        $authorName = trim((string) $this->manifest->metadata->author->name);
+      }
+      else if (isset($this->manifest->author) && is_string($this->manifest->author) && trim((string) $this->manifest->author) != '') {
+        $authorName = trim((string) $this->manifest->author);
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->name) && trim((string) $this->manifest->author->name) != '') {
+        $authorName = trim((string) $this->manifest->author->name);
+      }
+      $authorEmail = '';
+      if (isset($this->manifest->metadata->author->email) && trim((string) $this->manifest->metadata->author->email) != '') {
+        $authorEmail = trim((string) $this->manifest->metadata->author->email);
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->email) && trim((string) $this->manifest->author->email) != '') {
+        $authorEmail = trim((string) $this->manifest->author->email);
+      }
+      $authorSocialLink = '';
+      if (isset($this->manifest->metadata->author->socialLink) && trim((string) $this->manifest->metadata->author->socialLink) != '') {
+        $authorSocialLink = filter_var(trim((string) $this->manifest->metadata->author->socialLink), FILTER_SANITIZE_URL);
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->socialLink) && trim((string) $this->manifest->author->socialLink) != '') {
+        $authorSocialLink = filter_var(trim((string) $this->manifest->author->socialLink), FILTER_SANITIZE_URL);
+      }
+      $authorImageForStructuredData = '';
+      if (isset($this->manifest->metadata->author->image) && trim((string) $this->manifest->metadata->author->image) != '') {
+        $authorImageForStructuredData = $toAbsoluteStructuredDataUrl(trim((string) $this->manifest->metadata->author->image));
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->image) && trim((string) $this->manifest->author->image) != '') {
+        $authorImageForStructuredData = $toAbsoluteStructuredDataUrl(trim((string) $this->manifest->author->image));
+      }
+      $itemById = array();
+      if (isset($this->manifest->items) && is_array($this->manifest->items)) {
+        foreach ($this->manifest->items as $manifestItem) {
+          if (isset($manifestItem->id)) {
+            $itemById[(string) $manifestItem->id] = $manifestItem;
+          }
+        }
+      }
+      $breadcrumbTrail = array();
+      if (isset($page->id) && $page->id && isset($itemById[(string) $page->id])) {
+        $itemBuilder = $itemById[(string) $page->id];
+        $safetyCounter = 0;
+        while ($itemBuilder && $safetyCounter < 200) {
+          array_unshift($breadcrumbTrail, $itemBuilder);
+          if (!isset($itemBuilder->parent) || is_null($itemBuilder->parent) || $itemBuilder->parent === '') {
+            break;
+          }
+          $parentKey = (string) $itemBuilder->parent;
+          if (!isset($itemById[$parentKey])) {
+            break;
+          }
+          $itemBuilder = $itemById[$parentKey];
+          $safetyCounter++;
+        }
+      }
+      else if (isset($page->title) || isset($page->slug)) {
+        $breadcrumbTrail[] = $page;
+      }
+      $breadcrumbListElements = array();
+      $breadcrumbPosition = 1;
+      if ($siteUrlForStructuredData != '') {
+        $breadcrumbListElements[] = array(
+          '@type' => 'ListItem',
+          'position' => $breadcrumbPosition,
+          'name' => isset($this->manifest->title) ? (string) $this->manifest->title : 'Home',
+          'item' => $siteUrlForStructuredData,
+        );
+        $breadcrumbPosition++;
+      }
+      foreach ($breadcrumbTrail as $index => $breadcrumbItem) {
+        $breadcrumbName = '';
+        if (isset($breadcrumbItem->title) && trim((string) $breadcrumbItem->title) != '') {
+          $breadcrumbName = trim((string) $breadcrumbItem->title);
+        }
+        else if (isset($breadcrumbItem->slug) && trim((string) $breadcrumbItem->slug) != '') {
+          $breadcrumbName = trim((string) $breadcrumbItem->slug);
+        }
+        else {
+          $breadcrumbName = $title;
+        }
+        $breadcrumbUrl = '';
+        if (isset($breadcrumbItem->slug) && trim((string) $breadcrumbItem->slug) != '') {
+          $breadcrumbUrl = $toAbsoluteStructuredDataUrl($breadcrumbItem->slug);
+        }
+        if ($breadcrumbUrl == '' && $index === (count($breadcrumbTrail) - 1)) {
+          $breadcrumbUrl = $pageUrlForStructuredData;
+        }
+        if ($breadcrumbUrl == '') {
+          $breadcrumbUrl = $siteUrlForStructuredData;
+        }
+        if ($breadcrumbPosition === 2 && $siteUrlForStructuredData != '' && $breadcrumbUrl == $siteUrlForStructuredData) {
+          continue;
+        }
+        if ($breadcrumbUrl == '') {
+          continue;
+        }
+        $breadcrumbListElements[] = array(
+          '@type' => 'ListItem',
+          'position' => $breadcrumbPosition,
+          'name' => $breadcrumbName,
+          'item' => $breadcrumbUrl,
+        );
+        $breadcrumbPosition++;
+      }
+      $structuredDataBaseUrl = $siteUrlForStructuredData != '' ? $siteUrlForStructuredData : $pageUrlForStructuredData;
+      $siteStructuredDataId = rtrim((string) $siteUrlForStructuredData, '/') . '#website';
+      $pageStructuredDataId = rtrim((string) $pageUrlForStructuredData, '/') . '#webpage';
+      $breadcrumbStructuredDataId = rtrim((string) $pageUrlForStructuredData, '/') . '#breadcrumb';
+      $authorStructuredDataId = rtrim((string) $structuredDataBaseUrl, '/') . '#author';
+      $publisherStructuredDataId = rtrim((string) $structuredDataBaseUrl, '/') . '#publisher';
+      $jsonLdGraph = array();
+      $authorNode = null;
+      $publisherNode = null;
+      if ($authorName != '' || $authorEmail != '' || $authorSocialLink != '' || $authorImageForStructuredData != '') {
+        $authorNode = array(
+          '@type' => 'Person',
+          '@id' => $authorStructuredDataId,
+        );
+        if ($authorName != '') {
+          $authorNode['name'] = $authorName;
+        }
+        if ($authorEmail != '') {
+          $authorNode['email'] = $authorEmail;
+        }
+        if ($authorSocialLink != '') {
+          $authorNode['sameAs'] = array($authorSocialLink);
+        }
+        if ($authorImageForStructuredData != '') {
+          $authorNode['image'] = array(
+            '@type' => 'ImageObject',
+            'url' => $authorImageForStructuredData,
+          );
+        }
+        $jsonLdGraph[] = $authorNode;
+      }
+      if ($siteUrlForStructuredData != '') {
+        $publisherNode = array(
+          '@type' => 'Organization',
+          '@id' => $publisherStructuredDataId,
+          'url' => $siteUrlForStructuredData,
+          'name' => isset($this->manifest->title) ? (string) $this->manifest->title : $title,
+        );
+        if ($siteLogoForStructuredData != '') {
+          $publisherNode['logo'] = array(
+            '@type' => 'ImageObject',
+            'url' => $siteLogoForStructuredData,
+          );
+        }
+        if ($authorNode !== null && isset($authorNode['@id'])) {
+          $publisherNode['founder'] = array(
+            '@id' => $authorNode['@id'],
+          );
+        }
+        $jsonLdGraph[] = $publisherNode;
+      }
+      if ($siteUrlForStructuredData != '') {
+        $webSiteNode = array(
+          '@type' => 'WebSite',
+          '@id' => $siteStructuredDataId,
+          'url' => $siteUrlForStructuredData,
+          'name' => isset($this->manifest->title) ? (string) $this->manifest->title : $title,
+          'inLanguage' => $inLanguage,
+          'potentialAction' => array(
+            '@type' => 'SearchAction',
+            'target' => array(
+              '@type' => 'EntryPoint',
+              'urlTemplate' => rtrim((string) $siteUrlForStructuredData, '/') . '/x/search?search={search_term_string}',
+            ),
+            'query-input' => 'required name=search_term_string',
+          ),
+        );
+        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+          $webSiteNode['publisher'] = array(
+            '@id' => $publisherNode['@id'],
+          );
+        }
+        if ($authorNode !== null && isset($authorNode['@id'])) {
+          $webSiteNode['author'] = array(
+            '@id' => $authorNode['@id'],
+          );
+        }
+        if ($siteLogoForStructuredData != '') {
+          $webSiteNode['image'] = array(
+            '@type' => 'ImageObject',
+            'url' => $siteLogoForStructuredData,
+          );
+        }
+        $jsonLdGraph[] = $webSiteNode;
+      }
+      if (count($breadcrumbListElements) > 0 && $pageUrlForStructuredData != '') {
+        $jsonLdGraph[] = array(
+          '@type' => 'BreadcrumbList',
+          '@id' => $breadcrumbStructuredDataId,
+          'itemListElement' => $breadcrumbListElements,
+        );
+      }
+      if ($pageUrlForStructuredData != '') {
+        $webPageNode = array(
+          '@type' => 'WebPage',
+          '@id' => $pageStructuredDataId,
+          'url' => $pageUrlForStructuredData,
+          'name' => $title,
+          'description' => $description,
+          'inLanguage' => $inLanguage,
+        );
+        if ($siteUrlForStructuredData != '') {
+          $webPageNode['isPartOf'] = array(
+            '@id' => $siteStructuredDataId,
+          );
+        }
+        if ($socialImageForStructuredData != '') {
+          $webPageNode['primaryImageOfPage'] = array(
+            '@type' => 'ImageObject',
+            'url' => $socialImageForStructuredData,
+          );
+          $webPageNode['image'] = $socialImageForStructuredData;
+        }
+        if ($pageCreatedISO != '') {
+          $webPageNode['datePublished'] = $pageCreatedISO;
+        }
+        if ($pageUpdatedISO != '') {
+          $webPageNode['dateModified'] = $pageUpdatedISO;
+        }
+        if ($authorNode !== null && isset($authorNode['@id'])) {
+          $webPageNode['author'] = array(
+            '@id' => $authorNode['@id'],
+          );
+        }
+        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+          $webPageNode['publisher'] = array(
+            '@id' => $publisherNode['@id'],
+          );
+        }
+        if (count($breadcrumbListElements) > 0) {
+          $webPageNode['breadcrumb'] = array(
+            '@id' => $breadcrumbStructuredDataId,
+          );
+        }
+        if (isset($page->id) && $page->id) {
+          $webPageNode['identifier'] = (string) $page->id;
+        }
+        $jsonLdGraph[] = $webPageNode;
+      }
+      if (count($jsonLdGraph) > 0) {
+        $jsonLdData = array(
+          '@context' => 'https://schema.org',
+          '@graph' => $jsonLdGraph,
+        );
+        $jsonLdString = json_encode($jsonLdData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($jsonLdString !== FALSE) {
+          $jsonLdString = str_replace('<', '\\u003c', $jsonLdString);
+          $metadata .= "\n  <script type=\"application/ld+json\">" . $jsonLdString . "</script>";
+        }
+      }
       // mix in license metadata if we have it
       $licenseData = $this->getLicenseData('all');
       if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
