@@ -506,7 +506,8 @@ class HAXCMSSite
                   $file != ".." &&
                   $file != '.gitkeep' &&
                   $file != '._.DS_Store' &&
-                  $file != '.DS_Store'
+                  $file != '.DS_Store' &&
+                  $file != '.htaccess'
               ) {
                   // ensure this is a file
                   if (

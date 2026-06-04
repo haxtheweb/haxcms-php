@@ -15,8 +15,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <meta charset="utf-8">
     <base href="<?php print $HAXCMS->basePath;?>" />
     <link rel="preconnect" crossorigin href="<?php print $HAXCMS->getCDNForDynamic();?>">
-    <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build.js" as="script" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>wc-registry.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
@@ -67,6 +65,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       body {
         margin: 0;
         padding: 0;
+        font-family: var(--ddd-font-primary, sans-serif);
         overflow-x: hidden;
         --app-hax-accent-color: black;
         --app-hax-background-color: white;
@@ -90,9 +89,20 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       body.app-loaded div[slot="externalproviders"] {
         display: unset;
       }
+      app-hax {
+        display: block;
+        min-height: 100vh;
+      }
       #loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-        margin-top: 100px;
+        background-color: var(--app-hax-background-color, white);
+        z-index: 1000;
       }
 
       #loading .title {
@@ -162,6 +172,9 @@ P2 ready
           background-color:  light-dark(var(--simple-colors-default-theme-yellow-2), var(--simple-colors-default-theme-yellow-10));
           display: inline-block;
           padding: 4px;
+          min-width: 10ch;
+          box-sizing: border-box;
+          text-align: right;
           font-size: var(--ddd-font-size-6xs);
           color: light-dark(black, white);
         }
@@ -188,7 +201,11 @@ P2 ready
       }
     }
     // remove loading text
-    window.addEventListener('app-hax-loaded',() => {
+    function applyRuntimeOverrides() {
+      if (window.__haxRuntimeOverridesApplied) {
+        return;
+      }
+      window.__haxRuntimeOverridesApplied = true;
       // support for overriding values in the registry via config object
       // fire testing in local dev
       <?php 
@@ -197,8 +214,44 @@ P2 ready
           include_once '_config/.local.microservice.config.php';
         }
       ?>
-      document.querySelector("#loading").remove();
+    }
+    var loadingResolved = false;
+    function resolveDashboardLoading() {
+      if (loadingResolved) {
+        return;
+      }
+      loadingResolved = true;
+      applyRuntimeOverrides();
+      var loadingEl = document.querySelector("#loading");
+      if (loadingEl) {
+        loadingEl.remove();
+      }
+    }
+    window.addEventListener('app-hax-loaded', function() {
+      resolveDashboardLoading();
     });
+    if (window.customElements && window.customElements.whenDefined) {
+      window.customElements.whenDefined('app-hax').then(function() {
+        setTimeout(function() {
+          var appHaxEl = document.querySelector('app-hax');
+          if (appHaxEl) {
+            resolveDashboardLoading();
+          }
+        }, 0);
+      });
+    }
+    setTimeout(function() {
+      if (loadingResolved) {
+        return;
+      }
+      if (window.customElements && window.customElements.get) {
+        var appHaxDefinition = window.customElements.get('app-hax');
+        var appHaxEl = document.querySelector('app-hax');
+        if (appHaxDefinition && appHaxEl) {
+          resolveDashboardLoading();
+        }
+      }
+    }, 4000);
     </script>
     <div id="visuallist"></div>
     <app-hax token="<?php print $HAXCMS->getRequestToken(); ?>" base-path="<?php print $HAXCMS->basePath; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
@@ -207,6 +260,9 @@ P2 ready
     <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
+    <script type="module">
+      import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/app-hax.js";
+    </script>
     <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
     <?php $bottom = ''; $HAXCMS->dispatchEvent('haxcms-app-bottom', $bottom); print $bottom;?>
   </body>

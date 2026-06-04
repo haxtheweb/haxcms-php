@@ -5,8 +5,6 @@
     <script type="text/javascript">
       document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
     </script>
-    <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-    <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
     <link rel="preload" href="./build.js" as="script" />
     <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
@@ -57,6 +55,7 @@
       body {
         margin: 0;
         padding: 0;
+        font-family: var(--ddd-font-primary, sans-serif);
         overflow-x: hidden;
         --app-hax-accent-color: black;
         --app-hax-background-color: white;
@@ -82,10 +81,21 @@
       body.app-loaded div[slot="externalproviders"] {
         display: unset;
       }
+      app-hax {
+        display: block;
+        min-height: 100vh;
+      }
 
       #loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-        margin-top: 100px;
+        background-color: var(--app-hax-background-color, white);
+        z-index: 1000;
       }
 
       #loading .title {
@@ -160,6 +170,9 @@
           background-color:  light-dark(var(--simple-colors-default-theme-yellow-2), var(--simple-colors-default-theme-yellow-10));
           display: inline-block;
           padding: 4px;
+          min-width: 10ch;
+          box-sizing: border-box;
+          text-align: right;
           font-size: var(--ddd-font-size-6xs);
           color: light-dark(black, white);
         }
@@ -202,15 +215,51 @@
       }
     }
     // remove loading text
-    window.addEventListener('app-hax-loaded',() => {
-      document.querySelector("#loading").remove();
+    var loadingResolved = false;
+    function resolveDashboardLoading() {
+      if (loadingResolved) {
+        return;
+      }
+      loadingResolved = true;
+      var loadingEl = document.querySelector("#loading");
+      if (loadingEl) {
+        loadingEl.remove();
+      }
+    }
+    window.addEventListener('app-hax-loaded', function() {
+      resolveDashboardLoading();
     });
+    if (window.customElements && window.customElements.whenDefined) {
+      window.customElements.whenDefined('app-hax').then(function() {
+        setTimeout(function() {
+          var appHaxEl = document.querySelector('app-hax');
+          if (appHaxEl) {
+            resolveDashboardLoading();
+          }
+        }, 0);
+      });
+    }
+    setTimeout(function() {
+      if (loadingResolved) {
+        return;
+      }
+      if (window.customElements && window.customElements.get) {
+        var appHaxDefinition = window.customElements.get('app-hax');
+        var appHaxEl = document.querySelector('app-hax');
+        if (appHaxDefinition && appHaxEl) {
+          resolveDashboardLoading();
+        }
+      }
+    }, 4000);
     </script>
     <div id="visuallist"></div>
     <app-hax base-path="/"></app-hax>
     <div class="version">V</div>
     <noscript>Enable JavaScript to use HAX</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN ="./";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
+    <script type="module">
+      import './build/es6/node_modules/@haxtheweb/app-hax/app-hax.js'
+    </script>
     <script src="./build.js"></script>
   </body>
 </html>
