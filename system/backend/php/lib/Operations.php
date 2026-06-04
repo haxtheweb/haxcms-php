@@ -1567,6 +1567,7 @@ class Operations {
         );
       }
     }
+    @touch($sourcePath);
     return array(
       'success' => true,
     );

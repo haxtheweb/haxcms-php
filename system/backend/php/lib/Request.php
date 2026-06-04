@@ -7,13 +7,39 @@ include_once 'Operations.php';
 class Request {
     private $status;
     private $contentType;
+    private $disableResponseCache;
     public $validateJWT;
     public function __construct() {
         // status is dead, something has to escalate it
         $this->status = 500;
         $this->contentType = "application/json";
+        $this->disableResponseCache = false;
         // default to validation of both though not everything needs it
         $this->validateJWT = true;
+    }
+    private function setNoStoreResponseHeaders() {
+      header('Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate');
+      header('Pragma: no-cache');
+      header('Expires: 0');
+      header('Surrogate-Control: no-store');
+    }
+    private function hasCacheDisableMarker($value) {
+      if (is_object($value)) {
+        $value = (array) $value;
+      }
+      if (!is_array($value)) {
+        return false;
+      }
+      return array_key_exists('cb', $value) || array_key_exists('t', $value);
+    }
+    private function shouldDisableResponseCache($op, $params = array(), $rawParams = array()) {
+      if ($this->hasCacheDisableMarker($params) || $this->hasCacheDisableMarker($rawParams)) {
+        return true;
+      }
+      if (is_string($op) && trim($op) !== '') {
+        return true;
+      }
+      return false;
     }
     /**
      * Validate the current request
@@ -51,6 +77,9 @@ class Request {
      */
     private function encodeData($response, $dataOnly = FALSE, $encode = TRUE) {
       if (!$dataOnly) {
+        if ($this->disableResponseCache) {
+          $this->setNoStoreResponseHeaders();
+        }
         http_response_code($this->status);
         header('Content-Type: ' . $this->contentType);
       }
@@ -69,6 +98,11 @@ class Request {
      * @todo need to support custom / modular callbacks
      */
     public function execute($op, $params = array(), $rawParams = array()) {
+      $this->disableResponseCache = $this->shouldDisableResponseCache(
+        $op,
+        $params,
+        $rawParams
+      );
       // we only skip JWT validation on edge cases
       // @todo add support for supplying these pass throughs via object if we find we need a lot
       if (in_array($op, array(
