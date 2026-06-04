@@ -1758,6 +1758,7 @@ class HAXCMS
         $settings->refreshUrl = $path . 'refreshAccessToken';
         $settings->logout = $path . 'logout';
         $settings->connectionSettings = $path . 'connectionSettings';
+        $settings->connectionTest = $path . 'connectionTest';
         $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
         $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
         $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;

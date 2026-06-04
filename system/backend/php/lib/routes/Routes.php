@@ -18,6 +18,7 @@ trait OperationsRoutes {
   use OperationsRouteNodeRevisions;
   use OperationsRouteSiteUpdateAlternateFormats;
   use OperationsRouteConnectionSettings;
+  use OperationsRouteConnectionTest;
   use OperationsRouteGenerateAppStore;
   use OperationsRouteSystemBlocksList;
   use OperationsRouteGetUserData;

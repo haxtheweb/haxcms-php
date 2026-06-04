@@ -44,10 +44,6 @@ else {
     haxcms-site-builder {
       display: block;
     }
-    body {
-      background-color: #ffffff;
-      color: rgba(0,0,0, 0.2);
-    }
     #loading {
       background-color: #ffffff;
       inset: 0;

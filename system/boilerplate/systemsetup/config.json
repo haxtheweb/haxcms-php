@@ -92,7 +92,12 @@
         "date-card": "@haxtheweb/date-card/date-card.js",
         "h5p-element": "@haxtheweb/h5p-element/h5p-element.js",
         "md-block": "@haxtheweb/md-block/md-block.js",
-        "rpg-character": "@haxtheweb/rpg-character/rpg-character.js"
+        "rpg-character": "@haxtheweb/rpg-character/rpg-character.js",
+        "career-org-item": "@haxtheweb/career-timeline/lib/career-org-item.js",
+        "career-role-item": "@haxtheweb/career-timeline/lib/career-role-item.js",
+        "career-timeline": "@haxtheweb/career-timeline/career-timeline.js",
+        "bibliography-builder": "@haxtheweb/bibliography-builder/bibliography-builder.js",
+        "bibliography-item": "@haxtheweb/bibliography-builder/lib/bibliography-item.js"
     },
       "apiKeys": {
           "youtube": "",

@@ -108,6 +108,7 @@ class Request {
       if (in_array($op, array(
         'generateAppStore',
         'connectionSettings',
+        'connectionTest',
         'login',
         'logout',
         'api',
