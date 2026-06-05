@@ -531,6 +531,136 @@ class HAXAppStoreService
     }';
         $tmp = json_decode($jsonstring);
         array_push($json, $tmp);
+        // dailymotion
+        $jsonstring = '{
+      "details": {
+        "title": "Dailymotion",
+        "icon": "av:play-circle-filled",
+        "color": "blue",
+        "author": "Dailymotion",
+        "description": "A crowdsourced video platform that is ad supported.",
+        "status": "available",
+        "tags": ["video", "crowdsourced"]
+      },
+      "connection": {
+        "protocol": "https",
+        "url": "api.dailymotion.com",
+        "operations": {
+          "browse": {
+            "method": "GET",
+            "endPoint": "videos",
+            "pagination": {
+              "style": "page",
+              "props": {
+                "total_items": "total",
+                "total_pages": "total_pages",
+                "page": "page"
+              }
+            },
+            "search": {
+              "search": {
+                "title": "Search",
+                "type": "string"
+              }
+            },
+            "data": {
+              "fields": "description,embed_url,thumbnail_240_url,title,id",
+              "no_live": "1",
+              "ssl_assets": "true",
+              "sort": "relevance",
+              "limit": "20"
+            },
+            "resultMap": {
+              "defaultGizmoType": "video",
+              "items": "list",
+              "preview": {
+                "title": "title",
+                "details": "description",
+                "image": "thumbnail_240_url",
+                "id": "id"
+              },
+              "gizmo": {
+                "title": "title",
+                "description": "description",
+                "source": "embed_url",
+                "alt": "description",
+                "caption": "description"
+              }
+            }
+          }
+        }
+      }
+    }';
+        $tmp = json_decode($jsonstring);
+        array_push($json, $tmp);
+        // cc-mixter
+        $jsonstring = '{
+      "details": {
+        "title": "CC Mixter",
+        "icon": "av:library-music",
+        "color": "purple",
+        "author": "CC Mixter",
+        "description": "User submitted audio files and music.",
+        "status": "available",
+        "tags": ["audio", "crowdsourced"]
+      },
+      "connection": {
+        "protocol": "https",
+        "url": "ccmixter.org",
+        "data": {
+          "format": "json",
+          "sort": "name",
+          "limit": "20"
+        },
+        "operations": {
+          "browse": {
+            "method": "GET",
+            "endPoint": "api/query",
+            "pagination": {
+              "style": "link",
+              "props": {
+                "first": "paging.first",
+                "next": "paging.next",
+                "previous": "paging.previous",
+                "last": "paging.last"
+              }
+            },
+            "search": {
+              "tags": {
+                "title": "Search",
+                "type": "string"
+              }
+            },
+            "data": {
+              "direction": "asc",
+              "sort": "alphabetical",
+              "filter": "CC",
+              "per_page": "20"
+            },
+            "resultMap": {
+              "defaultGizmoType": "audio",
+              "items": "",
+              "preview": {
+                "title": "upload_name",
+                "details": "upload_description_plain",
+                "image": "license_logo_url",
+                "id": "upload_id"
+              },
+              "gizmo": {
+                "source": "files.0.download_url",
+                "id": "upload_id",
+                "title": "upload_name",
+                "caption": "upload_description_plain",
+                "description": "upload_description_plain",
+                "citation": "license_name"
+              }
+            }
+          }
+        }
+      }
+    }';
+        $tmp = json_decode($jsonstring);
+        array_push($json, $tmp);
         // wikipedia
         $jsonstring = '{
       "details": {

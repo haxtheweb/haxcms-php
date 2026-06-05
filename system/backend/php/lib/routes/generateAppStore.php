@@ -1,5 +1,169 @@
 <?php
+include_once dirname(__FILE__) . '/../APIKeysService.php';
 trait OperationsRouteGenerateAppStore {
+  private function generateAppStoreProviderConnectionMap() {
+    return array(
+      'www.googleapis.com/youtube/v3|search' => 'youtube',
+      'api.vimeo.com|videos' => 'vimeo',
+      'api.giphy.com|v1/gifs/search' => 'giphy',
+      'api.unsplash.com|search/photos' => 'unsplash',
+      'api.flickr.com|services/rest' => 'flickr',
+      'images-api.nasa.gov|search' => 'nasa',
+      'api.sketchfab.com|v3/search' => 'sketchfab',
+      'api.dailymotion.com|videos' => 'dailymotion',
+      'en.wikipedia.org|w/api.php' => 'wikipedia',
+      'ccmixter.org|api/query' => 'ccmixter',
+    );
+  }
+
+  private function normalizeAppStoreConnectionSegment($value = '') {
+    return strtolower(trim(trim((string) $value, '/')));
+  }
+
+  private function resolveProviderForAppStoreItem($app, $providerConnectionMap) {
+    if (
+      !is_object($app) ||
+      !isset($app->connection) ||
+      !is_object($app->connection) ||
+      !isset($app->connection->operations) ||
+      !is_object($app->connection->operations) ||
+      !isset($app->connection->operations->browse) ||
+      !is_object($app->connection->operations->browse)
+    ) {
+      return '';
+    }
+    $connectionUrl = $this->normalizeAppStoreConnectionSegment(
+      isset($app->connection->url) ? $app->connection->url : ''
+    );
+    $browseEndPoint = $this->normalizeAppStoreConnectionSegment(
+      isset($app->connection->operations->browse->endPoint)
+        ? $app->connection->operations->browse->endPoint
+        : ''
+    );
+    $signature = $connectionUrl . '|' . $browseEndPoint;
+    if (isset($providerConnectionMap[$signature])) {
+      return $providerConnectionMap[$signature];
+    }
+    return '';
+  }
+
+  private function parseAppStoreConnectionQueryParams($urlString = '') {
+    $parseTarget = trim((string) $urlString);
+    if ($parseTarget === '') {
+      return array();
+    }
+    if (!preg_match('/^[a-z]+:\/\//i', $parseTarget)) {
+      $parseTarget = 'https://' . ltrim($parseTarget, '/');
+    }
+    $parts = parse_url($parseTarget);
+    if (!is_array($parts) || !isset($parts['query'])) {
+      return array();
+    }
+    $params = array();
+    parse_str($parts['query'], $params);
+    return is_array($params) ? $params : array();
+  }
+
+  private function mergeAppStoreConnectionData($base = array(), $extra = array()) {
+    $merged = array();
+    if (is_object($base)) {
+      $base = (array) $base;
+    }
+    if (is_object($extra)) {
+      $extra = (array) $extra;
+    }
+    if (is_array($base)) {
+      foreach ($base as $key => $value) {
+        $merged[$key] = $value;
+      }
+    }
+    if (is_array($extra)) {
+      foreach ($extra as $key => $value) {
+        $merged[$key] = $value;
+      }
+    }
+    return $merged;
+  }
+
+  private function sanitizeAppStoreBrokerConnectionData($input = array()) {
+    if (is_object($input)) {
+      $input = (array) $input;
+    }
+    if (!is_array($input)) {
+      return array();
+    }
+    $blockedAuthParams = array(
+      'key' => true,
+      'access_token' => true,
+      'api_key' => true,
+      'client_id' => true,
+    );
+    $sanitized = array();
+    foreach ($input as $key => $value) {
+      if (isset($blockedAuthParams[$key])) {
+        continue;
+      }
+      $sanitized[$key] = $value;
+    }
+    return $sanitized;
+  }
+
+  private function rewriteConnectionToAppStoreBroker($connection, $provider, $siteName) {
+    $queryParams = $this->parseAppStoreConnectionQueryParams(
+      isset($connection->url) ? $connection->url : ''
+    );
+    $existingData = array();
+    if (isset($connection->data)) {
+      if (is_array($connection->data)) {
+        $existingData = $connection->data;
+      }
+      else if (is_object($connection->data)) {
+        $existingData = (array) $connection->data;
+      }
+    }
+    $mergedData = $this->sanitizeAppStoreBrokerConnectionData(
+      $this->mergeAppStoreConnectionData($queryParams, $existingData)
+    );
+    $mergedData['provider'] = $provider;
+    $mergedData['appstore_token'] = isset($this->params['appstore_token'])
+      ? $this->params['appstore_token']
+      : '';
+    $mergedData['site_token'] = isset($this->params['site_token'])
+      ? $this->params['site_token']
+      : '';
+    $mergedData['siteName'] = $siteName;
+    $mergedData['__HAXJWT__'] = true;
+    $rewritten = clone $connection;
+    $rewritten->protocol = $GLOBALS['HAXCMS']->protocol;
+    $normalizedDomain = rtrim((string) $GLOBALS['HAXCMS']->domain, '/');
+    $normalizedBasePath = trim((string) $GLOBALS['HAXCMS']->basePath, '/');
+    if ($normalizedBasePath !== '') {
+      $rewritten->url = $normalizedDomain . '/' . $normalizedBasePath;
+    }
+    else {
+      $rewritten->url = $normalizedDomain;
+    }
+    $rewritten->data = (object) $mergedData;
+    if (!isset($rewritten->operations) || !is_object($rewritten->operations)) {
+      $rewritten->operations = new stdClass();
+    }
+    if (
+      !isset($rewritten->operations->browse) ||
+      !is_object($rewritten->operations->browse)
+    ) {
+      $rewritten->operations->browse = new stdClass();
+    }
+    if (
+      !isset($rewritten->operations->browse->method) ||
+      trim((string) $rewritten->operations->browse->method) === ''
+    ) {
+      $rewritten->operations->browse->method = 'GET';
+    }
+    $rewritten->operations->browse->endPoint =
+      $GLOBALS['HAXCMS']->systemRequestBase . '/appStoreSearch';
+    return $rewritten;
+  }
+
   /**
    * @OA\GET(
    *    path="/generateAppStore",
@@ -18,24 +182,72 @@ trait OperationsRouteGenerateAppStore {
    * )
    */
   public function generateAppStore() {
-    // test if this is a valid user login with this specialty token that HAX looks for
+    $siteName = '';
+    if (
+      isset($this->params['site']) &&
+      is_array($this->params['site']) &&
+      isset($this->params['site']['name'])
+    ) {
+      $siteName = $this->params['site']['name'];
+    }
+    else if (isset($this->params['siteName'])) {
+      $siteName = $this->params['siteName'];
+    }
+    $tokenUser = method_exists($GLOBALS['HAXCMS'], 'getRequestTokenUserName')
+      ? $GLOBALS['HAXCMS']->getRequestTokenUserName()
+      : $GLOBALS['HAXCMS']->getActiveUserName();
     if (
       isset($this->params['appstore_token']) &&
       $GLOBALS['HAXCMS']->validateRequestToken($this->params['appstore_token'], 'appstore') &&
-      isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+      isset($this->params['site_token']) &&
+      $siteName !== '' &&
+      $GLOBALS['HAXCMS']->validateRequestToken(
+        $this->params['site_token'],
+        $tokenUser . ':' . $siteName
+      )
+    ) {
       $haxService = new HAXAppStoreService();
-      $apikeys = array();
+      $effectiveAPIKeys = HAXCMSAPIKeysService::readEffectiveAPIKeys($GLOBALS['HAXCMS']);
       $baseApps = $haxService->baseSupportedApps();
+      $loadKeys = array();
       foreach ($baseApps as $key => $app) {
         if (
-          isset($GLOBALS['HAXCMS']->config->appStore->apiKeys->{$key}) &&
-          $GLOBALS['HAXCMS']->config->appStore->apiKeys->{$key} != ''
+          isset($effectiveAPIKeys[$key]) &&
+          trim((string) $effectiveAPIKeys[$key]) !== ''
         ) {
-          $apikeys[$key] = $GLOBALS['HAXCMS']->config->appStore->apiKeys->{$key};
+          $loadKeys[$key] = trim((string) $effectiveAPIKeys[$key]);
         }
       }
-      $appStore = $haxService->loadBaseAppStore($apikeys);
-      // pull in the core one we supply, though only upload works currently
+      $appStore = $haxService->loadBaseAppStore($loadKeys);
+      $providerConnectionMap = $this->generateAppStoreProviderConnectionMap();
+      $rewrittenApps = array();
+      foreach ($appStore as $app) {
+        if (!is_object($app)) {
+          $rewrittenApps[] = $app;
+          continue;
+        }
+        $provider = $this->resolveProviderForAppStoreItem(
+          $app,
+          $providerConnectionMap
+        );
+        if (
+          $provider !== '' &&
+          isset($app->connection) &&
+          is_object($app->connection)
+        ) {
+          $updatedApp = clone $app;
+          $updatedApp->connection = $this->rewriteConnectionToAppStoreBroker(
+            $app->connection,
+            $provider,
+            $siteName
+          );
+          $rewrittenApps[] = $updatedApp;
+        }
+        else {
+          $rewrittenApps[] = $app;
+        }
+      }
+      $appStore = $rewrittenApps;
       $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON($this->params['site_token']));
       array_push($appStore, $tmp);
       if (isset($GLOBALS['HAXCMS']->config->appStore->stax)) {

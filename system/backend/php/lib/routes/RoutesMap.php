@@ -23,6 +23,7 @@ class OperationsRoutesMap {
       'siteUpdateAlternateFormats' => dirname(__FILE__) . '/siteUpdateAlternateFormats.php',
       'connectionSettings' => dirname(__FILE__) . '/connectionSettings.php',
       'connectionTest' => dirname(__FILE__) . '/connectionTest.php',
+      'appStoreSearch' => dirname(__FILE__) . '/appStoreSearch.php',
       'generateAppStore' => dirname(__FILE__) . '/generateAppStore.php',
       'systemBlocksList' => dirname(__FILE__) . '/systemBlocksList.php',
       'getUserData' => dirname(__FILE__) . '/getUserData.php',

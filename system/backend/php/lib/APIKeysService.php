@@ -97,6 +97,43 @@ class HAXCMSAPIKeysService
     return self::normalizeAPIKeys($existing);
   }
 
+  public static function readConfigAPIKeys($haxcms)
+  {
+    if (
+      !is_object($haxcms) ||
+      !isset($haxcms->config) ||
+      !is_object($haxcms->config) ||
+      !isset($haxcms->config->appStore) ||
+      !is_object($haxcms->config->appStore) ||
+      !isset($haxcms->config->appStore->apiKeys)
+    ) {
+      return self::normalizeAPIKeys(array());
+    }
+    return self::normalizeAPIKeys($haxcms->config->appStore->apiKeys);
+  }
+
+  public static function readEffectiveAPIKeys($haxcms)
+  {
+    $configAPIKeys = self::readConfigAPIKeys($haxcms);
+    $filePath = self::getAPIKeysFilePath($haxcms);
+    if (!(file_exists($filePath) && is_file($filePath))) {
+      return $configAPIKeys;
+    }
+    $fileAPIKeys = self::readAPIKeys($haxcms);
+    $mergedAPIKeys = $configAPIKeys;
+    $providers = self::getSupportedProviders();
+    foreach ($providers as $provider) {
+      if (!array_key_exists($provider, $fileAPIKeys)) {
+        continue;
+      }
+      $value = self::normalizeAPIKeyValue($fileAPIKeys[$provider]);
+      if ($value !== '') {
+        $mergedAPIKeys[$provider] = $value;
+      }
+    }
+    return self::normalizeAPIKeys($mergedAPIKeys);
+  }
+
   public static function writeAPIKeys($haxcms, $keys = array())
   {
     $filePath = self::getAPIKeysFilePath($haxcms);
