@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/siteRoutes/SiteApiRouter.php';
 // HAXSiteConfig
 // this is a bridge between HAXcms, HAXsite and page rendering in index.php
 class HAXSiteConfig {
@@ -11,6 +12,13 @@ class HAXSiteConfig {
   
   public function __construct($site = null) {
     $this->site = $site;
+    if (
+      isset($this->site) &&
+      class_exists('SiteApiRouter') &&
+      SiteApiRouter::dispatch($this->site)
+    ) {
+      exit;
+    }
     if (
       isset($this->site) &&
       method_exists($this->site, 'respondWithRequestedPageVariant') &&

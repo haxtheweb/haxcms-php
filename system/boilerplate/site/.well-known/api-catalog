@@ -1,9 +1,27 @@
 {
   "linkset": [
     {
-      "anchor": "{{ domain }}.well-known/api-catalog",
-      "item": [],
-      "service-desc": []
+      "anchor": "{{ domain }}",
+      "item": [
+        {
+          "href": "{{ domain }}x/api",
+          "rel": "service"
+        }
+      ],
+      "service-desc": [
+        {
+          "href": "{{ domain }}x/api/openapi",
+          "type": "application/json"
+        },
+        {
+          "href": "{{ domain }}x/api/openapi.json",
+          "type": "application/json"
+        },
+        {
+          "href": "{{ domain }}x/api/openapi.yaml",
+          "type": "application/yaml"
+        }
+      ]
     }
   ]
 }

@@ -90,12 +90,339 @@ if (!isset($GLOBALS['HAXCMS'])) {
                 $this->manifest->items[$key] = $newItem;
             }
         }
+        if (isset($this->manifest->metadata->site->name)) {
+          $this->name = $this->manifest->metadata->site->name;
+        }
+        else {
+          $this->name = '';
+        }
+        if ($this->dispatchSiteApiIfRequested()) {
+          exit;
+        }
         $this->page = $this->loadNodeByLocation();
         if (isset($this->manifest->metadata->theme->variables->cssVariable)) {
           $this->color = 'var(' . $this->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
         }
-        $this->name = $this->manifest->metadata->site->name;
       }
+    }
+    private function dispatchSiteApiIfRequested() {
+      $requestPath = $this->getSiteApiRequestPath();
+      $matched = array();
+      if (preg_match('/^(.*\\/x\\/api)(?:\\/.*)?$/', $requestPath, $matched) !== 1 || !isset($matched[1])) {
+        return false;
+      }
+      $apiBasePath = (string) $matched[1];
+      $routeSuffix = ltrim((string) substr($requestPath, strlen($apiBasePath)), '/');
+      $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+      if ($method === 'OPTIONS') {
+        http_response_code(200);
+        header('Allow: GET, OPTIONS');
+        header('Content-Type: application/json; charset=utf-8');
+        print json_encode(array('status' => 200, 'data' => array('methods' => array('GET', 'OPTIONS'))));
+        return true;
+      }
+      if ($method !== 'GET') {
+        $this->sendSiteApiJsonResponse(
+          array('message' => 'Unsupported request method', 'method' => $method),
+          405
+        );
+        return true;
+      }
+      if ($routeSuffix === '') {
+        $this->sendSiteApiDiscoveryResponse($apiBasePath);
+        return true;
+      }
+      if (
+        $routeSuffix === 'openapi' ||
+        $routeSuffix === 'openapi.json' ||
+        $routeSuffix === 'openapi.yaml'
+      ) {
+        $this->sendSiteApiOpenapiResponse($apiBasePath, $routeSuffix);
+        return true;
+      }
+      $this->sendSiteApiJsonResponse(
+        array(
+          'message' => 'Unknown site API route',
+          'route' => $routeSuffix,
+        ),
+        404
+      );
+      return true;
+    }
+    private function getSiteApiRequestPath() {
+      if (isset($_SERVER['REQUEST_URI'])) {
+        $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        if (is_string($requestPath) && $requestPath != '') {
+          return $requestPath;
+        }
+      }
+      $requestPath = parse_url($this->request_uri(), PHP_URL_PATH);
+      if (is_string($requestPath) && $requestPath != '') {
+        return $requestPath;
+      }
+      return '/';
+    }
+    private function getSiteApiVersion() {
+      return '0.0.0';
+    }
+    private function getSiteApiAbsoluteBasePath($apiBasePath = '/x/api') {
+      $protocol = 'http';
+      if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] != '') {
+        $protoParts = explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO']);
+        $protocol = trim($protoParts[0]);
+      }
+      else if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] != '') {
+        $protocol = $_SERVER['REQUEST_SCHEME'];
+      }
+      else if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] && strtolower($_SERVER['HTTPS']) != 'off') {
+        $protocol = 'https';
+      }
+      $host = '';
+      if (isset($_SERVER['HTTP_X_FORWARDED_HOST']) && $_SERVER['HTTP_X_FORWARDED_HOST'] != '') {
+        $hostParts = explode(',', $_SERVER['HTTP_X_FORWARDED_HOST']);
+        $host = trim($hostParts[0]);
+      }
+      else if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] != '') {
+        $host = $_SERVER['HTTP_HOST'];
+      }
+      if ($host == '') {
+        return $apiBasePath;
+      }
+      return $protocol . '://' . $host . $apiBasePath;
+    }
+    private function sendSiteApiDiscoveryResponse($apiBasePath = '/x/api') {
+      $absoluteApiBasePath = $this->getSiteApiAbsoluteBasePath($apiBasePath);
+      $buildLinkMap = function ($basePath) {
+        return array(
+          'self' => $basePath,
+          'openapi' => $basePath . '/openapi',
+          'openapiJson' => $basePath . '/openapi.json',
+          'openapiYaml' => $basePath . '/openapi.yaml',
+          'entities' => $basePath . '/v1/entities',
+          'schemas' => $basePath . '/v1/schemas',
+          'site' => $basePath . '/v1/site',
+        );
+      };
+      $this->sendSiteApiJsonResponse(
+        array(
+          'name' => 'HAXcms Site API',
+          'version' => $this->getSiteApiVersion(),
+          'mode' => 'read-only',
+          'links' => $buildLinkMap($apiBasePath),
+          'absoluteLinks' => $buildLinkMap($absoluteApiBasePath),
+          'supports' => array(
+            'formats' => array(
+              'application/json',
+              'text/markdown',
+              'application/yaml',
+              'application/xml',
+              'text/html',
+            ),
+            'modes' => array('bundle', 'concat'),
+            'queryGrammar' => array(
+              'filter.*',
+              'page.limit',
+              'page.offset',
+              'sort',
+              'fields',
+              'include',
+              'format',
+              'mode',
+            ),
+          ),
+          'openapi' => array(
+            'source' => 'siteRoutes/openapi/site-spec.yaml',
+            'routeDriven' => true,
+          ),
+        ),
+        200
+      );
+    }
+    private function detectSiteApiOpenapiFormat($routeSuffix = 'openapi') {
+      $suffix = strtolower(trim((string) $routeSuffix));
+      if (preg_match('/\.yaml$/', $suffix)) {
+        return 'yaml';
+      }
+      if (preg_match('/\.json$/', $suffix)) {
+        return 'json';
+      }
+      if (isset($_GET['format'])) {
+        $format = strtolower(trim((string) $_GET['format']));
+        if ($format == 'yaml' || $format == 'yml') {
+          return 'yaml';
+        }
+        if ($format == 'json') {
+          return 'json';
+        }
+      }
+      if (isset($_SERVER['HTTP_ACCEPT']) && is_string($_SERVER['HTTP_ACCEPT'])) {
+        $accept = strtolower($_SERVER['HTTP_ACCEPT']);
+        if (
+          strpos($accept, 'application/yaml') !== false ||
+          strpos($accept, 'application/x-yaml') !== false ||
+          strpos($accept, 'text/yaml') !== false
+        ) {
+          return 'yaml';
+        }
+      }
+      return 'json';
+    }
+    private function loadStandaloneOpenapiSpec($apiBasePath = '/x/api') {
+      $spec = array();
+      $candidatePaths = array(
+        __DIR__ . '/../../backend/php/lib/siteRoutes/openapi/site-spec.yaml',
+        __DIR__ . '/system/backend/php/lib/siteRoutes/openapi/site-spec.yaml',
+        __DIR__ . '/siteRoutes/openapi/site-spec.yaml',
+      );
+      foreach ($candidatePaths as $specPath) {
+        if (!file_exists($specPath)) {
+          continue;
+        }
+        $specContents = @file_get_contents($specPath);
+        if (!is_string($specContents) || trim($specContents) == '') {
+          continue;
+        }
+        $parsedSpec = null;
+        if (function_exists('yaml_parse')) {
+          $yamlParsed = @yaml_parse($specContents);
+          if (is_array($yamlParsed)) {
+            $parsedSpec = $yamlParsed;
+          }
+        }
+        if (!is_array($parsedSpec)) {
+          $jsonParsed = json_decode($specContents, true);
+          if (is_array($jsonParsed)) {
+            $parsedSpec = $jsonParsed;
+          }
+        }
+        if (is_array($parsedSpec)) {
+          $spec = $parsedSpec;
+          break;
+        }
+      }
+      if (!is_array($spec) || count($spec) == 0) {
+        $spec = array(
+          'openapi' => '3.1.0',
+          'info' => array(
+            'title' => 'HAXcms Site API',
+            'version' => $this->getSiteApiVersion(),
+            'description' => 'Route-driven read-only site API discovery surface for standalone HAXsite mode.',
+          ),
+          'paths' => array(
+            '/x/api' => array(
+              'get' => array(
+                'summary' => 'Site API discovery',
+                'responses' => array(
+                  '200' => array('description' => 'Site API discovery response'),
+                ),
+              ),
+            ),
+            '/x/api/openapi' => array(
+              'get' => array(
+                'summary' => 'Site API OpenAPI document',
+                'responses' => array(
+                  '200' => array('description' => 'OpenAPI specification'),
+                ),
+              ),
+            ),
+            '/x/api/v1/site' => array(
+              'get' => array(
+                'summary' => 'Site summary',
+                'responses' => array(
+                  '200' => array('description' => 'Site summary payload'),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      if (!isset($spec['info']) || !is_array($spec['info'])) {
+        $spec['info'] = array();
+      }
+      $spec['info']['version'] = $this->getSiteApiVersion();
+      $serverBasePath = preg_replace('/\/x\/api$/', '/', $apiBasePath);
+      if (!is_string($serverBasePath) || $serverBasePath == '') {
+        $serverBasePath = '/';
+      }
+      if (substr($serverBasePath, -1) != '/') {
+        $serverBasePath .= '/';
+      }
+      $spec['servers'] = array(
+        array(
+          'url' => $serverBasePath,
+          'description' => 'HAXcms site base URL',
+        ),
+      );
+      return $spec;
+    }
+    private function sendSiteApiOpenapiResponse($apiBasePath = '/x/api', $routeSuffix = 'openapi') {
+      $spec = $this->loadStandaloneOpenapiSpec($apiBasePath);
+      $format = $this->detectSiteApiOpenapiFormat($routeSuffix);
+      if ($format == 'yaml') {
+        http_response_code(200);
+        header('Content-Type: application/yaml; charset=utf-8');
+        print $this->siteApiArrayToYaml($spec);
+        return;
+      }
+      http_response_code(200);
+      header('Content-Type: application/json; charset=utf-8');
+      print json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+    private function sendSiteApiJsonResponse($data, $statusCode = 200) {
+      http_response_code(intval($statusCode));
+      header('Content-Type: application/json; charset=utf-8');
+      print json_encode(
+        array(
+          'status' => intval($statusCode),
+          'data' => $data,
+        ),
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+      );
+    }
+    private function siteApiArrayToYaml($value, $level = 0) {
+      $indent = str_repeat('  ', $level);
+      if (is_null($value)) {
+        return "null\n";
+      }
+      if (is_bool($value)) {
+        return ($value ? 'true' : 'false') . "\n";
+      }
+      if (is_numeric($value)) {
+        return (string) $value . "\n";
+      }
+      if (is_string($value)) {
+        $escaped = str_replace('"', '\\"', $value);
+        return '"' . $escaped . "\"\n";
+      }
+      if (is_object($value)) {
+        $value = (array) $value;
+      }
+      if (is_array($value)) {
+        $isAssociative = array_keys($value) !== range(0, count($value) - 1);
+        $output = '';
+        if ($isAssociative) {
+          foreach ($value as $key => $item) {
+            if (is_array($item) || is_object($item)) {
+              $output .= $indent . $key . ":\n" . $this->siteApiArrayToYaml($item, $level + 1);
+            }
+            else {
+              $output .= $indent . $key . ': ' . rtrim($this->siteApiArrayToYaml($item, 0)) . "\n";
+            }
+          }
+        }
+        else {
+          foreach ($value as $item) {
+            if (is_array($item) || is_object($item)) {
+              $output .= $indent . "-\n" . $this->siteApiArrayToYaml($item, $level + 1);
+            }
+            else {
+              $output .= $indent . '- ' . rtrim($this->siteApiArrayToYaml($item, 0)) . "\n";
+            }
+          }
+        }
+        return $output;
+      }
+      return "\n";
     }
     /**
      * Return the base tag accurately which helps with the PWA / SW side of things
