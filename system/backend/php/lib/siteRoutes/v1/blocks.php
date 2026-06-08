@@ -129,10 +129,82 @@ return function ($context) {
             ),
             'haxElementSchema' => array(
                 'tag' => $tag,
-                'properties' => array(),
+                'properties' => new stdClass(),
                 'content' => '',
             ),
         );
+    };
+    $buildContextualHaxElementSchema = function ($tag, $element) {
+        $properties = new stdClass();
+        if ($element instanceof DOMElement && $element->hasAttributes()) {
+            foreach ($element->attributes as $attribute) {
+                if (!($attribute instanceof DOMAttr)) {
+                    continue;
+                }
+                $name = (string) $attribute->name;
+                if ($name == '') {
+                    continue;
+                }
+                $value = (string) $attribute->value;
+                if (strtolower($value) === strtolower($name)) {
+                    $value = '';
+                }
+                $properties->{$name} = $value;
+            }
+        }
+        $content = '';
+        if ($element instanceof DOMElement && $element->hasChildNodes()) {
+            foreach ($element->childNodes as $childNode) {
+                if (isset($element->ownerDocument) && $element->ownerDocument instanceof DOMDocument) {
+                    $content .= $element->ownerDocument->saveHTML($childNode);
+                }
+            }
+        }
+        return array(
+            'tag' => $tag,
+            'properties' => $properties,
+            'content' => is_string($content) ? $content : '',
+        );
+    };
+    $extractTagUsageInstances = function ($tag, $html = '') use ($buildContextualHaxElementSchema) {
+        $cleanTag = strtolower(trim((string) $tag));
+        if ($cleanTag == '' || !is_string($html) || $html == '') {
+            return array();
+        }
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $wrappedHtml = '<div data-block-usage-wrapper="true">' . $html . '</div>';
+        $priorUseErrors = libxml_use_internal_errors(true);
+        $loaded = $dom->loadHTML(
+            '<?xml encoding="utf-8" ?>' . $wrappedHtml,
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+        libxml_clear_errors();
+        libxml_use_internal_errors($priorUseErrors);
+        if (!$loaded) {
+            return array();
+        }
+        $xpath = new DOMXPath($dom);
+        $query = sprintf(
+            '//*[translate(local-name(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz") = "%s"]',
+            $cleanTag
+        );
+        $nodes = $xpath->query($query);
+        if (!($nodes instanceof DOMNodeList) || $nodes->length < 1) {
+            return array();
+        }
+        $instances = array();
+        $instanceNumber = 1;
+        foreach ($nodes as $node) {
+            if (!($node instanceof DOMElement)) {
+                continue;
+            }
+            $instances[] = array(
+                'instance' => $instanceNumber,
+                'haxElementSchema' => $buildContextualHaxElementSchema($cleanTag, $node),
+            );
+            $instanceNumber++;
+        }
+        return $instances;
     };
     $getBlockSchemaLinks = function ($tag) use ($apiBasePath) {
         $encoded = rawurlencode($tag);
@@ -253,12 +325,12 @@ return function ($context) {
         }
         return $records;
     };
-    $buildBlockUsageDetails = function ($items, $webcomponentName) use ($site, $apiBasePath, $countTagUsageInHtml) {
+    $buildBlockUsageDetails = function ($items, $webcomponentName) use ($site, $apiBasePath, $extractTagUsageInstances) {
         $details = array();
         foreach ($items as $item) {
             $html = SiteRouteUtils::getItemContent($site, $item);
-            $usageCount = $countTagUsageInHtml($webcomponentName, $html);
-            if ($usageCount < 1) {
+            $instances = $extractTagUsageInstances($webcomponentName, $html);
+            if (count($instances) < 1) {
                 continue;
             }
             $summary = SiteRouteUtils::itemToSummary($item, $apiBasePath);
@@ -267,7 +339,8 @@ return function ($context) {
                 'slug' => $summary['slug'],
                 'title' => $summary['title'],
                 'location' => $summary['location'],
-                'usageCount' => $usageCount,
+                'usageCount' => count($instances),
+                'instances' => $instances,
                 'links' => array(
                     'self' => $summary['links']['self'],
                     'content' => $summary['links']['content'],
