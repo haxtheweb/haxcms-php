@@ -3,13 +3,29 @@ include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
-    if (!isset($site) || !isset($site->manifest)) {
+    $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
+    $sendTopLevelError = function ($statusCode, $message, $extra = array()) use ($routeSuffix, $apiBasePath) {
+        $payload = array_merge(
+            array(
+                'status' => intval($statusCode),
+                'message' => (string) $message,
+            ),
+            is_array($extra) ? $extra : array()
+        );
         SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Unable to resolve site context for export endpoint'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
+            $payload,
+            array(
+                'statusCode' => intval($statusCode),
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+                'envelope' => false,
+            ),
+            $routeSuffix,
             $apiBasePath
         );
+    };
+    if (!isset($site) || !isset($site->manifest)) {
+        $sendTopLevelError(404, 'Unable to resolve site context for export endpoint');
         return;
     }
     $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'skeleton');
@@ -75,27 +91,17 @@ return function ($context) {
         );
         return array_key_exists($format, $descriptors) ? $descriptors[$format] : null;
     };
-    $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
     $format = isset($context->params['format']) ? $normalizeFormatValue($context->params['format']) : '';
     if ($format == '') {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Export format is required'),
-            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $routeSuffix,
-            $apiBasePath
-        );
+        $sendTopLevelError(400, 'Export format is required');
         return;
     }
     if (strpos($routeSuffix, 'v1/site/export/') === 0) {
         if (!in_array($format, $SITE_EXPORT_FORMATS, true)) {
-            SiteRouteUtils::sendFormattedResponse(
-                array(
-                    'message' => 'Unsupported site export format "' . $format . '"',
-                    'supportedFormats' => $SITE_EXPORT_FORMATS,
-                ),
-                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-                $routeSuffix,
-                $apiBasePath
+            $sendTopLevelError(
+                400,
+                'Unsupported site export format \"' . $format . '\"',
+                array('supportedFormats' => $SITE_EXPORT_FORMATS)
             );
             return;
         }
@@ -118,23 +124,14 @@ return function ($context) {
     $idOrSlug = isset($context->params['idOrSlug']) ? (string) $context->params['idOrSlug'] : '';
     $item = SiteRouteUtils::findItemByIdOrSlug($site, $idOrSlug);
     if (!$item) {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Item not found for idOrSlug "' . $idOrSlug . '"'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $routeSuffix,
-            $apiBasePath
-        );
+        $sendTopLevelError(404, 'Item not found for idOrSlug \"' . $idOrSlug . '\"');
         return;
     }
     if (!in_array($format, $ITEM_EXPORT_FORMATS, true)) {
-        SiteRouteUtils::sendFormattedResponse(
-            array(
-                'message' => 'Unsupported item export format "' . $format . '"',
-                'supportedFormats' => $ITEM_EXPORT_FORMATS,
-            ),
-            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $routeSuffix,
-            $apiBasePath
+        $sendTopLevelError(
+            400,
+            'Unsupported item export format \"' . $format . '\"',
+            array('supportedFormats' => $ITEM_EXPORT_FORMATS)
         );
         return;
     }

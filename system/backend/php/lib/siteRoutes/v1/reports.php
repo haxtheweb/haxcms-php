@@ -1,15 +1,28 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../ReportHelpers.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
-    if (!isset($site) || !isset($site->manifest)) {
+    $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
+    $sendTopLevelError = function ($statusCode, $message) use ($routeSuffix, $apiBasePath) {
         SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Unable to resolve site context for /x/api/v1/reports'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
+            array(
+                'status' => intval($statusCode),
+                'message' => (string) $message,
+            ),
+            array(
+                'statusCode' => intval($statusCode),
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+                'envelope' => false,
+            ),
+            $routeSuffix,
             $apiBasePath
         );
+    };
+    if (!isset($site) || !isset($site->manifest)) {
+        $sendTopLevelError(404, 'Unable to resolve site context for /x/api/v1/reports/:report');
         return;
     }
     $REPORT_DEFINITIONS = array(
@@ -17,108 +30,33 @@ return function ($context) {
             'id' => 'overview',
             'title' => 'Overview report',
             'description' => 'Aggregate site statistics for dashboard overview cards.',
+            'includes' => null,
         ),
         'insights' => array(
             'id' => 'insights',
             'title' => 'Insights report',
             'description' => 'Content insight metrics including readability and structure counts.',
+            'includes' => null,
         ),
         'content' => array(
             'id' => 'content',
             'title' => 'Content report',
             'description' => 'Detailed page-by-page content metrics for admin review.',
+            'includes' => array('contentData'),
         ),
         'links' => array(
             'id' => 'links',
             'title' => 'Links report',
             'description' => 'External link usage and grouping details.',
+            'includes' => array('linkData'),
         ),
         'media' => array(
             'id' => 'media',
             'title' => 'Media report',
             'description' => 'Media usage and accessibility signal summary.',
+            'includes' => array('mediaData'),
         ),
     );
-    $stripAndNormalizeText = function ($html = '') {
-        $stripped = trim((string) strip_tags((string) $html));
-        if ($stripped == '') {
-            return '';
-        }
-        return trim((string) preg_replace('/\s+/', ' ', $stripped));
-    };
-    $extractLinks = function ($html = '') {
-        $output = array();
-        $count = preg_match_all('/<a\b[^>]*href\s*=\s*(["\'])(.*?)\1/i', (string) $html, $matches);
-        if (!is_numeric($count) || !isset($matches[2]) || !is_array($matches[2])) {
-            return $output;
-        }
-        foreach ($matches[2] as $href) {
-            $hrefValue = trim((string) $href);
-            if ($hrefValue != '') {
-                $output[] = $hrefValue;
-            }
-        }
-        return $output;
-    };
-    $calculateItemMetrics = function ($item, $html = '') use ($stripAndNormalizeText, $extractLinks, $apiBasePath) {
-        $text = $stripAndNormalizeText($html);
-        $wordCount = $text == '' ? 0 : count(preg_split('/\s+/', $text));
-        $sentenceCount = 0;
-        $sentenceMatchCount = preg_match_all('/[.!?]+/', $text, $sentenceMatches);
-        if (is_numeric($sentenceMatchCount)) {
-            $sentenceCount = intval($sentenceMatchCount);
-        }
-        $headingCount = 0;
-        $headingMatchCount = preg_match_all('/<h[1-6]\b/i', (string) $html, $headingMatches);
-        if (is_numeric($headingMatchCount)) {
-            $headingCount = intval($headingMatchCount);
-        }
-        $imageCount = 0;
-        $imageMatchCount = preg_match_all('/<img\b/i', (string) $html, $imageMatches);
-        if (is_numeric($imageMatchCount)) {
-            $imageCount = intval($imageMatchCount);
-        }
-        $videoCount = 0;
-        $videoMatchCount = preg_match_all('/<video\b/i', (string) $html, $videoMatches);
-        if (is_numeric($videoMatchCount)) {
-            $videoCount = intval($videoMatchCount);
-        }
-        $audioCount = 0;
-        $audioMatchCount = preg_match_all('/<audio\b/i', (string) $html, $audioMatches);
-        if (is_numeric($audioMatchCount)) {
-            $audioCount = intval($audioMatchCount);
-        }
-        $iframeCount = 0;
-        $iframeMatchCount = preg_match_all('/<iframe\b/i', (string) $html, $iframeMatches);
-        if (is_numeric($iframeMatchCount)) {
-            $iframeCount = intval($iframeMatchCount);
-        }
-        $links = $extractLinks($html);
-        $lookup = SiteRouteUtils::getItemLookupValue($item);
-        return array(
-            'id' => isset($item->id) ? $item->id : null,
-            'title' => isset($item->title) ? $item->title : '',
-            'slug' => isset($item->slug) ? $item->slug : '',
-            'location' => isset($item->location) ? $item->location : '',
-            'wordCount' => $wordCount,
-            'sentenceCount' => $sentenceCount,
-            'headingCount' => $headingCount,
-            'charCount' => strlen($text),
-            'linkCount' => count($links),
-            'links' => $links,
-            'media' => array(
-                'images' => $imageCount,
-                'video' => $videoCount,
-                'audio' => $audioCount,
-                'iframe' => $iframeCount,
-            ),
-            'apiLinks' => array(
-                'item' => $apiBasePath . '/v1/items/' . rawurlencode($lookup),
-                'content' => $apiBasePath . '/v1/content/' . rawurlencode($lookup),
-            ),
-        );
-    };
-    $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
     $reportName = isset($context->params['report']) ? trim((string) $context->params['report']) : '';
     if ($reportName == '') {
         $reports = array();
@@ -147,176 +85,130 @@ return function ($context) {
         return;
     }
     if (!array_key_exists($reportName, $REPORT_DEFINITIONS)) {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Unknown report "' . $reportName . '"'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $routeSuffix,
-            $apiBasePath
-        );
+        $sendTopLevelError(404, 'Unknown report "' . $reportName . '"');
         return;
     }
-    $orderedItems = SiteRouteUtils::getOrderedItems($site);
-    $filteredItems = SiteRouteUtils::applyItemFilters($orderedItems, $site);
-    $tagMap = array();
-    $regionMap = array();
-    $publishedItemCount = 0;
-    $itemMetrics = array();
-    $totalWords = 0;
-    $totalSentences = 0;
-    $totalHeadings = 0;
-    $totalLinks = 0;
-    foreach ($filteredItems as $item) {
-        $published = !(
-            isset($item->metadata) &&
-            is_object($item->metadata) &&
-            isset($item->metadata->published) &&
-            $item->metadata->published === false
+    $ancestor = SiteRouteUtils::getQueryValue('filter.ancestor', '');
+    if (!is_string($ancestor) || trim($ancestor) == '') {
+        $ancestor = SiteRouteUtils::getQueryValue('filter.parent', '');
+    }
+    $ancestor = is_string($ancestor) && trim($ancestor) != '' ? trim($ancestor) : null;
+    $definition = $REPORT_DEFINITIONS[$reportName];
+    $includes = (
+        isset($definition['includes']) &&
+        is_array($definition['includes']) &&
+        count($definition['includes']) > 0
+    ) ? $definition['includes'] : null;
+    $reportParams = array();
+    if (!is_null($ancestor)) {
+        $reportParams['activeId'] = $ancestor;
+    }
+    if ($includes === null) {
+        $rawData = HAXCMSReportHelpers::buildSummaryData($site, $reportParams);
+        $summaryKeys = array(
+            'pages',
+            'audio',
+            'pageType',
+            'selfChecks',
+            'objectives',
+            'authorNotes',
+            'images',
+            'h5p',
+            'headings',
+            'dataTables',
+            'specialTags',
+            'links',
+            'placeholders',
+            'siteremotecontent',
+            'readTime',
+            'video',
+            'videoLength',
         );
-        if ($published) {
-            $publishedItemCount++;
+        $data = array();
+        foreach ($summaryKeys as $key) {
+            $value = array_key_exists($key, $rawData) ? $rawData[$key] : 0;
+            $data[$key] = is_numeric($value) ? intval($value) : 0;
         }
-        if (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->tags)) {
-            $itemTags = SiteRouteUtils::normalizeTagList($item->metadata->tags);
-            foreach ($itemTags as $tag) {
-                if (!array_key_exists($tag, $tagMap)) {
-                    $tagMap[$tag] = 0;
-                }
-                $tagMap[$tag] += 1;
+    }
+    else if (in_array('contentData', $includes, true)) {
+        $data = HAXCMSReportHelpers::buildContentData($site, $reportParams);
+    }
+    else if (in_array('linkData', $includes, true)) {
+        $data = HAXCMSReportHelpers::buildLinkData($site, $reportParams);
+    }
+    else if (in_array('mediaData', $includes, true)) {
+        $data = HAXCMSReportHelpers::buildMediaData($site, $reportParams);
+    }
+    else {
+        $data = array();
+    }
+    if ($reportName == 'overview' || $reportName == 'insights') {
+        $items = SiteRouteUtils::getOrderedItems($site);
+        if (!is_null($ancestor) && isset($site->manifest) && method_exists($site->manifest, 'findBranch')) {
+            $branchItems = $site->manifest->findBranch($ancestor);
+            if (is_array($branchItems)) {
+                $items = $branchItems;
             }
         }
-        $region = (
-            isset($item->metadata) &&
-            is_object($item->metadata) &&
-            isset($item->metadata->region) &&
-            trim((string) $item->metadata->region) != ''
-        ) ? trim((string) $item->metadata->region) : 'default';
-        if (!array_key_exists($region, $regionMap)) {
-            $regionMap[$region] = 0;
+        $textParts = array();
+        foreach ($items as $item) {
+            if (
+                isset($item->metadata) &&
+                is_object($item->metadata) &&
+                isset($item->metadata->published) &&
+                $item->metadata->published === false
+            ) {
+                continue;
+            }
+            $textParts[] = trim(strip_tags(SiteRouteUtils::getItemContent($site, $item)));
         }
-        $regionMap[$region] += 1;
-        $html = SiteRouteUtils::getItemContent($site, $item);
-        $metrics = $calculateItemMetrics($item, $html);
-        $itemMetrics[] = $metrics;
-        $totalWords += $metrics['wordCount'];
-        $totalSentences += $metrics['sentenceCount'];
-        $totalHeadings += $metrics['headingCount'];
-        $totalLinks += $metrics['linkCount'];
-    }
-    $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
-    $files = SiteRouteUtils::collectSiteFiles($site, $siteDirectory . '/files');
-    $buildReadabilityGrade = function ($avgSentenceLength) {
-        if ($avgSentenceLength <= 12) {
-            return 'elementary';
-        }
-        if ($avgSentenceLength <= 18) {
-            return 'middle/high school';
-        }
-        return 'college level reading';
-    };
-    $data = array();
-    if ($reportName == 'overview') {
-        $customElementUsage = SiteRouteUtils::collectCustomElementUsage($site, $filteredItems);
-        $data = array(
-            'itemCount' => count($filteredItems),
-            'publishedItemCount' => $publishedItemCount,
-            'tagCount' => count($tagMap),
-            'regionCount' => count($regionMap),
-            'fileCount' => count($files),
-            'customElementCount' => count($customElementUsage),
-            'wordCount' => $totalWords,
-            'estimatedReadingTimeMinutes' => $totalWords > 0 ? intval(ceil($totalWords / 200)) : 0,
-        );
-    }
-    else if ($reportName == 'insights') {
-        $averageWordsPerItem = count($filteredItems) > 0 ? $totalWords / count($filteredItems) : 0;
-        $averageSentenceLength = $totalSentences > 0 ? ($totalWords / $totalSentences) : 0;
-        $data = array(
-            'averageWordsPerItem' => round($averageWordsPerItem, 2),
-            'averageSentenceLength' => round($averageSentenceLength, 2),
-            'headingDensityPerItem' => count($filteredItems) > 0 ? round($totalHeadings / count($filteredItems), 2) : 0,
-            'linkDensityPerItem' => count($filteredItems) > 0 ? round($totalLinks / count($filteredItems), 2) : 0,
-            'readability' => array(
-                'gradeLevel' => $buildReadabilityGrade($averageSentenceLength),
-                'wordCount' => $totalWords,
-                'sentenceCount' => $totalSentences,
-            ),
-            'topTags' => SiteRouteUtils::sortRecords(
-                array_map(function ($tagName) use ($tagMap) {
-                    return array('tag' => $tagName, 'count' => $tagMap[$tagName]);
-                }, array_keys($tagMap)),
-                '',
-                '-count'
-            ),
-        );
-    }
-    else if ($reportName == 'content') {
-        $pages = SiteRouteUtils::sortRecords($itemMetrics, SiteRouteUtils::getQueryValue('sort', ''), '-wordCount');
-        $paged = SiteRouteUtils::paginateRecords($pages, 25, 500);
-        $data = array(
-            'count' => count($paged['records']),
-            'total' => $paged['page']['total'],
-            'page' => $paged['page'],
-            'pages' => $paged['records'],
-        );
-    }
-    else if ($reportName == 'links') {
-        $externalMap = array();
-        $perItem = array();
-        foreach ($itemMetrics as $metrics) {
-            $externalLinks = array();
-            foreach ($metrics['links'] as $href) {
-                if (preg_match('/^https?:\/\//i', $href) !== 1) {
+        $readabilityText = trim(preg_replace('/\\s+/', ' ', implode(' ', $textParts)));
+        $tokens = $readabilityText == '' ? array() : preg_split('/\\s+/', $readabilityText);
+        $lexiconCount = is_array($tokens) ? count($tokens) : 0;
+        $difficultWords = 0;
+        $syllableCount = 0;
+        if (is_array($tokens)) {
+            foreach ($tokens as $token) {
+                $word = strtolower(trim(preg_replace('/[^a-z]/i', '', (string) $token)));
+                if ($word == '') {
                     continue;
                 }
-                $externalLinks[] = $href;
-                if (!array_key_exists($href, $externalMap)) {
-                    $externalMap[$href] = 0;
+                if (strlen($word) >= 7) {
+                    $difficultWords++;
                 }
-                $externalMap[$href] += 1;
+                $wordSyllables = preg_match_all('/[aeiouy]+/i', $word, $matches);
+                $syllableCount += is_numeric($wordSyllables) && intval($wordSyllables) > 0 ? intval($wordSyllables) : 1;
             }
-            $perItem[] = array(
-                'id' => $metrics['id'],
-                'title' => $metrics['title'],
-                'slug' => $metrics['slug'],
-                'externalLinkCount' => count($externalLinks),
-                'externalLinks' => $externalLinks,
-                'apiLinks' => $metrics['apiLinks'],
-            );
         }
-        $externalRecords = array();
-        foreach ($externalMap as $href => $count) {
-            $externalRecords[] = array('href' => $href, 'count' => $count);
+        $sentenceCount = preg_match_all('/[.!?]+/', $readabilityText, $sentenceMatches);
+        if (!is_numeric($sentenceCount)) {
+            $sentenceCount = 0;
         }
-        $externalRecords = SiteRouteUtils::sortRecords($externalRecords, SiteRouteUtils::getQueryValue('sort', ''), '-count');
-        $data = array(
-            'externalLinkCount' => array_sum($externalMap),
-            'uniqueExternalLinkCount' => count($externalRecords),
-            'topExternalLinks' => $externalRecords,
-            'pages' => $perItem,
+        $daleChallScore = 0;
+        $gradeLevel = 'college level reading';
+        if ($daleChallScore <= 4.9) {
+            $gradeLevel = '4th grade or lower';
+        }
+        else if ($daleChallScore <= 5.9) {
+            $gradeLevel = '5th / 6th grade';
+        }
+        else if ($daleChallScore <= 6.9) {
+            $gradeLevel = '7th / 8th grade';
+        }
+        else if ($daleChallScore <= 7.9) {
+            $gradeLevel = '9th / 10th grade';
+        }
+        else if ($daleChallScore <= 8.9) {
+            $gradeLevel = '11th / 12th grade';
+        }
+        $data['readability'] = array(
+            'gradeLevel' => $gradeLevel,
+            'difficultWords' => intval($difficultWords),
+            'syllableCount' => intval($syllableCount),
+            'lexiconCount' => intval($lexiconCount),
+            'sentenceCount' => intval($sentenceCount),
         );
     }
-    else if ($reportName == 'media') {
-        $totals = array('images' => 0, 'video' => 0, 'audio' => 0, 'iframe' => 0);
-        $pages = array();
-        foreach ($itemMetrics as $metrics) {
-            $totals['images'] += $metrics['media']['images'];
-            $totals['video'] += $metrics['media']['video'];
-            $totals['audio'] += $metrics['media']['audio'];
-            $totals['iframe'] += $metrics['media']['iframe'];
-            $pages[] = array(
-                'id' => $metrics['id'],
-                'title' => $metrics['title'],
-                'slug' => $metrics['slug'],
-                'media' => $metrics['media'],
-                'apiLinks' => $metrics['apiLinks'],
-            );
-        }
-        $data = array(
-            'totals' => $totals,
-            'pages' => $pages,
-        );
-    }
-    $definition = $REPORT_DEFINITIONS[$reportName];
     $payload = array(
         'id' => $definition['id'],
         'title' => $definition['title'],
@@ -332,8 +224,9 @@ return function ($context) {
     if (count($fields) > 0) {
         $projected = array();
         foreach ($fields as $field) {
-            if (array_key_exists($field, $payload)) {
-                $projected[$field] = $payload[$field];
+            $key = trim((string) $field);
+            if ($key != '' && array_key_exists($key, $payload)) {
+                $projected[$key] = $payload[$key];
             }
         }
         if (count($projected) > 0) {

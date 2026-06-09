@@ -3,32 +3,34 @@ include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
-    if (!isset($site) || !isset($site->manifest)) {
+    $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
+    $sendTopLevelError = function ($statusCode, $message) use ($routeSuffix, $apiBasePath) {
         SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Unable to resolve site context for /x/api/v1/search'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
+            array(
+                'status' => intval($statusCode),
+                'message' => (string) $message,
+            ),
+            array(
+                'statusCode' => intval($statusCode),
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+                'envelope' => false,
+            ),
+            $routeSuffix,
             $apiBasePath
         );
+    };
+    if (!isset($site) || !isset($site->manifest)) {
+        $sendTopLevelError(404, 'Unable to resolve site context for /x/api/v1/search');
         return;
     }
     $query = trim((string) SiteRouteUtils::getQueryValue('q', ''));
     if ($query == '') {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Query parameter "q" is required'),
-            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
-            $apiBasePath
-        );
+        $sendTopLevelError(400, 'Query parameter \"q\" is required');
         return;
     }
     if (strlen($query) > 256) {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Query parameter "q" exceeds 256 characters'),
-            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
-            $apiBasePath
-        );
+        $sendTopLevelError(400, 'Query parameter \"q\" exceeds 256 characters');
         return;
     }
     $normalizeSearchFields = function ($fields = array()) {
@@ -151,7 +153,7 @@ return function ($context) {
             'links' => array('self' => $apiBasePath . '/v1/search'),
         ),
         array('allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-        $context->routeSuffix,
+        $routeSuffix,
         $apiBasePath
     );
 };

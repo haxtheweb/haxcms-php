@@ -88,6 +88,53 @@ return function ($context) {
             'description' => isset($site->manifest->description) ? (string) $site->manifest->description : '',
             'url' => $links['self'],
             'inLanguage' => SiteRouteUtils::getSiteLanguage($site),
+            'distribution' => array(
+                array(
+                    '@type' => 'DataDownload',
+                    'name' => 'Site manifest (site.json)',
+                    'encodingFormat' => 'application/json',
+                    'contentUrl' => $links['siteJson'],
+                ),
+                array(
+                    '@type' => 'DataDownload',
+                    'name' => 'RSS feed',
+                    'encodingFormat' => 'application/rss+xml',
+                    'contentUrl' => $links['rss'],
+                ),
+                array(
+                    '@type' => 'DataDownload',
+                    'name' => 'Sitemap',
+                    'encodingFormat' => 'application/xml',
+                    'contentUrl' => $links['sitemap'],
+                ),
+            ),
+            'variableMeasured' => array(
+                array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'items',
+                    'value' => intval(count($items)),
+                ),
+                array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'publishedItems',
+                    'value' => intval($publishedItems),
+                ),
+                array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'tags',
+                    'value' => intval(count($tagSet)),
+                ),
+                array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'regions',
+                    'value' => intval(count($regionSet)),
+                ),
+                array(
+                    '@type' => 'PropertyValue',
+                    'name' => 'files',
+                    'value' => intval(count($siteFiles)),
+                ),
+            ),
         ),
     );
     SiteRouteUtils::sendFormattedResponse(

@@ -231,15 +231,14 @@ return function ($context) {
         $records = SiteRouteUtils::sortRecords($views, SiteRouteUtils::getQueryValue('sort', ''), 'id');
         $paged = SiteRouteUtils::paginateRecords($records, 50, 500);
         $outputRecords = SiteRouteUtils::projectCollection($paged['records'], $fields);
-        $topKey = strpos($routeSuffix, 'v1/displays') === 0 ? 'displays' : 'views';
         SiteRouteUtils::sendFormattedResponse(
             array(
                 'count' => count($outputRecords),
                 'total' => $paged['page']['total'],
                 'page' => $paged['page'],
-                $topKey => $outputRecords,
+                'views' => $outputRecords,
                 'links' => array(
-                    'self' => strpos($routeSuffix, 'v1/displays') === 0 ? $apiBasePath . '/v1/displays' : $apiBasePath . '/v1/views',
+                    'self' => $apiBasePath . '/v1/views',
                 ),
             ),
             array('allowedFormats' => array('json'), 'defaultFormat' => 'json'),
