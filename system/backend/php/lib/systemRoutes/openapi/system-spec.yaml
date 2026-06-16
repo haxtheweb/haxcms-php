@@ -1,0 +1,1297 @@
+openapi: 3.0.3
+info:
+  title: HAXcms System API
+  description: Control-plane API for authentication, lifecycle/admin,
+    discovery/meta, and system settings/configuration.
+  version: 1.0.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: /
+    description: System API base path
+tags:
+  - name: discovery
+    description: System API discovery and OpenAPI document endpoints
+  - name: session
+    description: Authentication, token, and dashboard session bootstrap endpoints
+  - name: lifecycle
+    description: Site lifecycle management operations
+  - name: settings
+    description: System configuration and integration endpoints
+paths:
+  /system/api/v1:
+    get:
+      tags:
+        - discovery
+      operationId: systemApiDiscovery
+      summary: Discover top-level system API links and capabilities
+      security: []
+      responses:
+        "200":
+          description: Discovery metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/openapi:
+    get:
+      tags:
+        - discovery
+      operationId: systemOpenapi
+      summary: Return the system OpenAPI document (JSON default, YAML supported)
+      security: []
+      responses:
+        "200":
+          description: OpenAPI document
+          content:
+            application/json:
+              schema:
+                type: object
+            application/yaml:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/openapi.json:
+    get:
+      tags:
+        - discovery
+      operationId: systemOpenapiJson
+      summary: Return the system OpenAPI document as JSON
+      security: []
+      responses:
+        "200":
+          description: OpenAPI JSON document
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/openapi.yaml:
+    get:
+      tags:
+        - discovery
+      operationId: systemOpenapiYaml
+      summary: Return the system OpenAPI document as YAML
+      security: []
+      responses:
+        "200":
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/session/login:
+    post:
+      tags:
+        - session
+      operationId: sessionLogin
+      summary: Authenticate a user and establish a dashboard session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /system/api/v1/session:
+    get:
+      tags:
+        - session
+      operationId: sessionAuthGet
+      summary: Validate a JWT and return authenticated session details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - session
+      operationId: sessionAuthPost
+      summary: Validate a JWT and return authenticated session details
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jwt:
+                  type: string
+      responses:
+        "200":
+          description: Authenticated session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/session/logout:
+    post:
+      tags:
+        - session
+      operationId: sessionLogout
+      summary: Log out the active dashboard session
+      security: []
+      responses:
+        "200":
+          description: Logout response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/session/refresh:
+    get:
+      tags:
+        - session
+      operationId: sessionRefreshGet
+      summary: Refresh dashboard access token
+      security: []
+      responses:
+        "200":
+          description: Refresh response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags:
+        - session
+      operationId: sessionRefreshPost
+      summary: Refresh dashboard access token
+      security: []
+      responses:
+        "200":
+          description: Refresh response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /system/api/v1/session/user:
+    get:
+      tags:
+        - session
+      operationId: sessionUserGet
+      summary: Return active user profile and dashboard preference data
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Active user profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - session
+      operationId: sessionUserPost
+      summary: Return active user profile and dashboard preference data
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Active user profile data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/session/connection-settings:
+    get:
+      tags:
+        - session
+      operationId: sessionConnectionSettingsGet
+      summary: Return frontend connection settings bootstrap payload
+      security: []
+      responses:
+        "200":
+          description: Frontend connection settings payload
+          content:
+            application/javascript:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags:
+        - session
+      operationId: sessionConnectionSettingsPost
+      summary: Return frontend connection settings bootstrap payload
+      security: []
+      responses:
+        "200":
+          description: Frontend connection settings payload
+          content:
+            application/javascript:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/session/connection-test:
+    get:
+      tags:
+        - session
+      operationId: sessionConnectionTestGet
+      summary: Validate current auth state for dashboard bootstrap
+      security: []
+      responses:
+        "200":
+          description: Session validity state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags:
+        - session
+      operationId: sessionConnectionTestPost
+      summary: Validate current auth state for dashboard bootstrap
+      security: []
+      responses:
+        "200":
+          description: Session validity state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/sites:
+    get:
+      tags:
+        - lifecycle
+      operationId: listSites
+      summary: List all sites available to the authenticated user
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Site listing payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - lifecycle
+      operationId: createSite
+      summary: Create a new site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Site creation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/sites/{siteName}:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    get:
+      tags:
+        - lifecycle
+      operationId: siteInfoGet
+      summary: Return metadata for a specific site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Site metadata response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - lifecycle
+      operationId: siteInfoPost
+      summary: Return metadata for a specific site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Site metadata response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /system/api/v1/sites/{siteName}/clone:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    post:
+      tags:
+        - lifecycle
+      operationId: cloneSite
+      summary: Clone an existing site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Site clone response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/sites/{siteName}/archive:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    post:
+      tags:
+        - lifecycle
+      operationId: archiveSite
+      summary: Archive a site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Site archive response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/sites/{siteName}/download:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    post:
+      tags:
+        - lifecycle
+      operationId: downloadSite
+      summary: Generate and return a downloadable site archive reference
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Site download response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/sites/{siteName}/download-skeleton:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    post:
+      tags:
+        - lifecycle
+      operationId: downloadSiteSkeleton
+      summary: Generate and return a reusable skeleton for a site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Site skeleton response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/sites/{siteName}/save-as-template:
+    parameters:
+      - $ref: "#/components/parameters/SiteName"
+    post:
+      tags:
+        - lifecycle
+      operationId: saveSiteAsTemplate
+      summary: Save a site as a reusable system template
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteActionRequest"
+      responses:
+        "200":
+          description: Save-as-template response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/integrations/app-store:
+    get:
+      tags:
+        - settings
+      operationId: generateAppStore
+      summary: Generate app-store provider manifest for the editor
+      parameters:
+        - name: siteName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Site machine name used to validate site token scope
+      security:
+        - siteTokenHeader: []
+      responses:
+        "200":
+          description: App-store payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/status:
+    get:
+      tags:
+        - settings
+      operationId: systemStatusGet
+      summary: Return system status and environment diagnostics
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System status data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: systemStatusPost
+      summary: Return system status and environment diagnostics
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System status data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/system/version:
+    get:
+      tags:
+        - settings
+      operationId: systemVersionGet
+      summary: Return installed system version details
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System version details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: systemVersionPost
+      summary: Return installed system version details
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System version details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/entities:
+    get:
+      tags:
+        - settings
+      operationId: systemEntitiesGet
+      summary: Return system entity descriptors and links
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System entity descriptors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: systemEntitiesPost
+      summary: Return system entity descriptors and links
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System entity descriptors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/schemas:
+    get:
+      tags:
+        - settings
+      operationId: systemSchemasGet
+      summary: Return system schema descriptors and links
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System schema descriptors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: systemSchemasPost
+      summary: Return system schema descriptors and links
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: System schema descriptors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/configuration/api-keys:
+    get:
+      tags:
+        - settings
+      operationId: getApiKeys
+      summary: Return configured API keys and provider statuses
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: API key settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: saveApiKeysPost
+      summary: Update API key settings
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeysSettings"
+      responses:
+        "200":
+          description: API key update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveApiKeysPatch
+      summary: Update API key settings
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeysSettings"
+      responses:
+        "200":
+          description: API key update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/configuration/media:
+    get:
+      tags:
+        - settings
+      operationId: getMediaSettings
+      summary: Return media and upload configuration
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Media settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: saveMediaSettingsPost
+      summary: Update media and upload configuration
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaSettings"
+      responses:
+        "200":
+          description: Media settings update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveMediaSettingsPatch
+      summary: Update media and upload configuration
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaSettings"
+      responses:
+        "200":
+          description: Media settings update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/configuration/schema-files/operations:
+    post:
+      tags:
+        - settings
+      operationId: schemaFileOperation
+      summary: Perform schema file operation in system configuration storage
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Schema file operation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/blocks:
+    get:
+      tags:
+        - settings
+      operationId: systemBlocksGet
+      summary: Return available system blocks
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Available block list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: saveEnabledBlocksPost
+      summary: Update enabled block configuration using the blocks collection endpoint
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledCollectionSettings"
+      responses:
+        "200":
+          description: Enabled collection update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveEnabledBlocksPatch
+      summary: Update enabled block configuration using the blocks collection endpoint
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledCollectionSettings"
+      responses:
+        "200":
+          description: Enabled collection update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/skeletons:
+    get:
+      tags:
+        - settings
+      operationId: systemSkeletonsGet
+      summary: Return available system skeletons
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Available skeleton list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: systemSkeletonsPost
+      summary: Upload a skeleton resource or perform skeleton collection operations
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SkeletonUploadRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkeletonMutationRequest"
+      responses:
+        "200":
+          description: Skeleton resource operation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveEnabledSkeletonsPatch
+      summary: Update enabled skeleton configuration using the skeletons collection
+        endpoint
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledCollectionSettings"
+      responses:
+        "200":
+          description: Enabled collection update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/skeletons/{skeletonName}:
+    parameters:
+      - $ref: "#/components/parameters/SkeletonName"
+    get:
+      tags:
+        - settings
+      operationId: systemSkeletonDetailGet
+      summary: Return details for a named skeleton
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Skeleton details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - settings
+      operationId: systemSkeletonDetailPatch
+      summary: Rename a named skeleton
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkeletonRenameRequest"
+      responses:
+        "200":
+          description: Skeleton rename response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Target skeleton name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    put:
+      tags:
+        - settings
+      operationId: systemSkeletonDetailPut
+      summary: Rename a named skeleton (compatibility alias for PATCH)
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkeletonRenameRequest"
+      responses:
+        "200":
+          description: Skeleton rename response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Target skeleton name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      tags:
+        - settings
+      operationId: systemSkeletonDetailDelete
+      summary: Delete a named skeleton
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Skeleton delete response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /system/api/v1/themes:
+    get:
+      tags:
+        - settings
+      operationId: systemThemesGet
+      summary: Return available system themes
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Available theme list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: saveEnabledThemesPost
+      summary: Update enabled theme configuration using the themes collection endpoint
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledCollectionSettings"
+      responses:
+        "200":
+          description: Enabled collection update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveEnabledThemesPatch
+      summary: Update enabled theme configuration using the themes collection endpoint
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledCollectionSettings"
+      responses:
+        "200":
+          description: Enabled collection update response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+components:
+  parameters:
+    SiteName:
+      in: path
+      name: siteName
+      required: true
+      schema:
+        type: string
+      description: Machine name of the site
+    SkeletonName:
+      in: path
+      name: skeletonName
+      required: true
+      schema:
+        type: string
+      description: Machine name of the skeleton
+  responses:
+    BadRequest:
+      description: Request payload was invalid or incomplete
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unauthorized:
+      description: Authentication is required or failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Forbidden:
+      description: Authenticated user is not authorized for this route
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    userTokenHeader:
+      type: apiKey
+      in: header
+      name: X-HAXCMS-User-Token
+    siteTokenHeader:
+      type: apiKey
+      in: header
+      name: X-HAXCMS-Site-Token
+  schemas:
+    ApiEnvelope:
+      type: object
+      properties:
+        status:
+          type: integer
+        data: {}
+      additionalProperties: true
+    ErrorEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            message:
+              type: string
+    LoginRequest:
+      type: object
+      properties:
+        u:
+          type: string
+          description: Username
+        p:
+          type: string
+          description: Password
+      additionalProperties: true
+    SiteActionRequest:
+      type: object
+      properties:
+        site:
+          type: object
+      additionalProperties: true
+    ApiKeysSettings:
+      type: object
+      description: API key settings payload
+      additionalProperties: true
+    MediaSettings:
+      type: object
+      description: Media settings payload
+      additionalProperties: true
+    EnabledCollectionSettings:
+      type: object
+      description: Enabled item map payload
+      additionalProperties: true
+    SkeletonUploadRequest:
+      type: object
+      description: Multipart payload for uploading a new skeleton resource
+      properties:
+        file:
+          type: string
+          format: binary
+          description: Skeleton JSON file upload
+        name:
+          type: string
+          description: Optional target skeleton machine name override
+        schema:
+          type: string
+          description: Optional schema selector (defaults to skeleton)
+        action:
+          type: string
+          description: Optional action hint (upload)
+      additionalProperties: true
+    SkeletonMutationRequest:
+      type: object
+      description: JSON mutation payload for skeleton resource operations
+      properties:
+        schema:
+          type: string
+        action:
+          type: string
+        name:
+          type: string
+        oldName:
+          type: string
+        skeletonName:
+          type: string
+        newName:
+          type: string
+        displayName:
+          type: string
+      additionalProperties: true
+    SkeletonRenameRequest:
+      type: object
+      description: Rename payload for skeleton resource detail mutation
+      required:
+        - newName
+      properties:
+        newName:
+          type: string
+        displayName:
+          type: string
+      additionalProperties: true

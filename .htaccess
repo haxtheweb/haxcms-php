@@ -72,6 +72,11 @@ DirectoryIndex index.php index.html
   RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   
   
+  # Route system API v1 requests to the v1 handler
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^system/api/v1/(.*)$ system/api/v1/index.php [L]
+
   # Pass all requests not referring directly to files in the filesystem to
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

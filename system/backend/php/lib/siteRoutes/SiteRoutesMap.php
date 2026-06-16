@@ -25,6 +25,8 @@ class SiteRoutesMap
                 'v1/items' => dirname(__FILE__) . '/v1/items.php',
                 'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/items.php',
                 'v1/items/:idOrSlug/export/:format' => dirname(__FILE__) . '/v1/exports.php',
+                'v1/items/:idOrSlug/revisions' => dirname(__FILE__) . '/v1/revisions.php',
+                'v1/items/:idOrSlug/revisions/:revisionId' => dirname(__FILE__) . '/v1/revisions.php',
                 'v1/content' => dirname(__FILE__) . '/v1/content.php',
                 'v1/content/:idOrSlug' => dirname(__FILE__) . '/v1/content.php',
                 'v1/files' => dirname(__FILE__) . '/v1/files.php',
@@ -48,6 +50,28 @@ class SiteRoutesMap
                 'v1/views/:viewId/results' => dirname(__FILE__) . '/v1/views.php',
                 'v1/displays' => dirname(__FILE__) . '/v1/views.php',
                 'v1/displays/:viewId/results' => dirname(__FILE__) . '/v1/views.php',
+            ),
+            'POST' => array(
+                'v1/items' => dirname(__FILE__) . '/v1/itemsMutation.php',
+                'v1/items/:idOrSlug/revisions/:revisionId/restore' => dirname(__FILE__) . '/v1/revisionsMutation.php',
+                'v1/files' => dirname(__FILE__) . '/v1/filesMutation.php',
+                'v1/site/export/:format' => dirname(__FILE__) . '/v1/exportsMutation.php',
+            ),
+            'PATCH' => array(
+                'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/itemsMutation.php',
+                'v1/content/:idOrSlug' => dirname(__FILE__) . '/v1/contentMutation.php',
+                'v1/site' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/appearance' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/platform' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/blocks' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/editor' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/seo' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/site/outline' => dirname(__FILE__) . '/v1/siteMutation.php',
+                'v1/files/:fileUuid' => dirname(__FILE__) . '/v1/filesMutation.php',
+            ),
+            'DELETE' => array(
+                'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/itemsMutation.php',
+                'v1/files/:fileUuid' => dirname(__FILE__) . '/v1/filesMutation.php',
             ),
         );
     }

@@ -74,6 +74,46 @@ class SiteRouteUtils
         }
         return 'GET';
     }
+    public static function getBearerTokenFromRequest()
+    {
+        $auth = null;
+        if (isset($_SERVER['HTTP_AUTHORIZATION']) && is_string($_SERVER['HTTP_AUTHORIZATION'])) {
+            $auth = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        if ($auth === null && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            if (is_array($headers)) {
+                foreach ($headers as $key => $value) {
+                    if (strcasecmp($key, 'Authorization') === 0) {
+                        $auth = $value;
+                        break;
+                    }
+                }
+            }
+        }
+        if ($auth === null || $auth === '') {
+            return null;
+        }
+        $parts = explode(' ', trim($auth));
+        if (count($parts) === 2 && strcasecmp($parts[0], 'Bearer') === 0) {
+            $token = trim($parts[1]);
+            return $token !== '' ? $token : null;
+        }
+        return null;
+    }
+    public static function validateSiteToken($siteName, $token)
+    {
+        if (
+            isset($GLOBALS['HAXCMS']) &&
+            is_object($GLOBALS['HAXCMS']) &&
+            method_exists($GLOBALS['HAXCMS'], 'validateRequestToken')
+        ) {
+            $userName = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+            $tokenValue = $userName . ':' . (string) $siteName;
+            return $GLOBALS['HAXCMS']->validateRequestToken($token, $tokenValue);
+        }
+        return false;
+    }
     public static function getQueryValue($key, $fallbackValue = '')
     {
         if (!isset($_GET) || !is_array($_GET) || !array_key_exists($key, $_GET)) {

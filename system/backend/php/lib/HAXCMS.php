@@ -1649,6 +1649,105 @@ class HAXCMS
         return $this->hmacBase64($value, $this->privateKey . $this->salt);
     }
     /**
+     * Read Authorization header and extract Bearer token
+     */
+    public function getBearerTokenFromRequest()
+    {
+        $authorization = '';
+        if (isset($_SERVER['HTTP_AUTHORIZATION']) && $_SERVER['HTTP_AUTHORIZATION'] != '') {
+            $authorization = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        else if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] != '') {
+            $authorization = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+        else if (function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            if (is_array($headers)) {
+                if (isset($headers['Authorization']) && $headers['Authorization'] != '') {
+                    $authorization = $headers['Authorization'];
+                }
+                else if (isset($headers['authorization']) && $headers['authorization'] != '') {
+                    $authorization = $headers['authorization'];
+                }
+            }
+        }
+        if (preg_match('/Bearer\s+(\S+)/', $authorization, $matches) === 1 && isset($matches[1])) {
+            return $matches[1];
+        }
+        return '';
+    }
+    /**
+     * Decode Bearer token and return username
+     */
+    public function getBearerTokenUserName($bearer = '')
+    {
+        if ($bearer === '') {
+            $bearer = $this->getBearerTokenFromRequest();
+        }
+        if ($bearer === '') {
+            return '';
+        }
+        try {
+            $decoded = JWT::decode($bearer, $this->privateKey . $this->salt);
+            if (isset($decoded->user) && $decoded->user != '') {
+                return $this->generateMachineName($decoded->user);
+            }
+        }
+        catch (Exception $e) {
+        }
+        return '';
+    }
+    /**
+     * Authenticate Basic Authorization header
+     */
+    public function authenticateBasicAuthorization()
+    {
+        $authorization = '';
+        if (isset($_SERVER['HTTP_AUTHORIZATION']) && $_SERVER['HTTP_AUTHORIZATION'] != '') {
+            $authorization = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        else if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] != '') {
+            $authorization = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+        $result = array(
+            'authenticated' => false,
+            'userName' => '',
+        );
+        if (strpos($authorization, 'Basic ') === 0) {
+            $credentials = base64_decode(substr($authorization, 6));
+            if ($credentials !== false && strpos($credentials, ':') !== false) {
+                list($name, $pass) = explode(':', $credentials, 2);
+                if ($this->testLogin($name, $pass, true)) {
+                    $result['authenticated'] = true;
+                    $result['userName'] = $this->generateMachineName($name);
+                }
+            }
+        }
+        return $result;
+    }
+    /**
+     * Simple rate-limit check stub
+     */
+    public function isLoginBlocked($attemptKey)
+    {
+        return false;
+    }
+    /**
+     * Generate site token for a given site name
+     */
+    public function getSiteTokenForSiteName($siteName)
+    {
+        $requestTokenUser = $this->getRequestTokenUserName();
+        return $this->getRequestToken($requestTokenUser . ':' . $siteName);
+    }
+    /**
+     * Validate a site token against a site name
+     */
+    public function validateSiteToken($siteName, $siteToken)
+    {
+        return $this->safeStringCompare($siteToken, $this->getSiteTokenForSiteName($siteName));
+    }
+    /**
      * Get user's JWT
      */
     public function getJWT($name = null)
@@ -1758,64 +1857,70 @@ class HAXCMS
         // user token is just the name of the logged in user
         $userToken = $this->getRequestToken($requestTokenUser);
         $path = $base . $this->systemRequestBase . '/';
+        $v1Path = $base . 'system/api/v1/';
+        $siteV1Path = $base . 'x/api/v1/';
         $settings = new stdClass();
-        $settings->login = $path . 'login';
-        $settings->refreshUrl = $path . 'refreshAccessToken';
-        $settings->logout = $path . 'logout';
-        $settings->connectionSettings = $path . 'connectionSettings';
-        $settings->connectionTest = $path . 'connectionTest';
+        // Legacy op route paths (kept for internal compatibility)
+        $settings->legacyLogin = $path . 'login';
+        $settings->legacyRefreshUrl = $path . 'refreshAccessToken';
+        $settings->legacyLogout = $path . 'logout';
+        $settings->legacyConnectionSettings = $path . 'connectionSettings';
+        $settings->legacyConnectionTest = $path . 'connectionTest';
+        // v1 system API paths (front-end primary)
+        $settings->login = $v1Path . 'session/login';
+        $settings->refreshUrl = $v1Path . 'session/refresh';
+        $settings->logout = $v1Path . 'session/logout';
+        $settings->connectionSettings = $v1Path . 'session/connection-settings';
+        $settings->connectionTest = $v1Path . 'session/connection-test';
         $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
-        $settings->saveNodePath = $path . 'saveNode?site_token=' . $siteToken;
-        $settings->saveManifestPath = $path . 'saveManifest?site_token=' . $siteToken;
-        $settings->saveAppearanceSettingsPath = $path . 'saveAppearanceSettings?site_token=' . $siteToken;
-        $settings->saveOutlinePath = $path . 'saveOutline?site_token=' . $siteToken;
-        $settings->saveNodeDetailsPath = $path . 'saveNodeDetails?site_token=' . $siteToken;
-        $settings->savePlatformSettingsPath = $path . 'savePlatformSettings?site_token=' . $siteToken;
-        $settings->saveAllowedBlocksPath = $path . 'saveAllowedBlocks?site_token=' . $siteToken;
-        $settings->saveEditorSettingsPath = $path . 'saveEditorSettings?site_token=' . $siteToken;
-        $settings->saveSeoSettingsPath = $path . 'saveSeoSettings?site_token=' . $siteToken;
-        $settings->contentSearchPath = $path . 'siteSearch?site_token=' . $siteToken;
-        $settings->searchContentPath = $path . 'siteSearch?site_token=' . $siteToken;
-        $settings->insightsPath = $path . 'insights?site_token=' . $siteToken;
-        $settings->linkCheckerPath = $path . 'linkChecker?site_token=' . $siteToken;
-        $settings->contentBrowserPath = $path . 'contentBrowser?site_token=' . $siteToken;
-        $settings->mediaBrowserPath = $path . 'mediaBrowser?site_token=' . $siteToken;
-        $settings->createNodePath = $path . 'createNode?site_token=' . $siteToken;
-        $settings->deleteNodePath = $path . 'deleteNode?site_token=' . $siteToken;
-        $settings->getNodeRevisionsPath = $path . 'getNodeRevisions?site_token=' . $siteToken;
-        $settings->getNodeRevisionPath = $path . 'getNodeRevision?site_token=' . $siteToken;
-        $settings->restoreNodeRevisionPath = $path . 'restoreNodeRevision?site_token=' . $siteToken;
-        $settings->listFilesPath = $path . 'listFiles?site_token=' . $siteToken;
-        $settings->saveFilePath = $path . 'saveFile?site_token=' . $siteToken;
-        $settings->fileOperationPath = $path . 'fileOperation?site_token=' . $siteToken;
-
-        $settings->getUserDataPath = $path . 'getUserData?user_token=' . $userToken;
-        $settings->createSite = $path . 'createSite?user_token=' . $userToken;
-        $settings->downloadSite = $path . 'downloadSite?user_token=' . $userToken;
-        $settings->downloadSiteSkeleton = $path . 'downloadSiteSkeleton?user_token=' . $userToken;
-        $settings->saveSiteAsTemplate = $path . 'saveSiteAsTemplate?user_token=' . $userToken;
-        $settings->archiveSite = $path . 'archiveSite?user_token=' . $userToken;
-        $settings->copySite = $path . 'cloneSite?user_token=' . $userToken;
-        $settings->getSitesList = $path . 'listSites?user_token=' . $userToken;
+        // v1 site API paths (front-end primary) - no query tokens, use Authorization: Bearer + X-HAXCMS-Site-Token headers
+        $settings->saveNodePath = $siteV1Path . 'content/{idOrSlug}';
+        $settings->saveManifestPath = $siteV1Path . 'site';
+        $settings->saveAppearanceSettingsPath = $siteV1Path . 'site/appearance';
+        $settings->saveOutlinePath = $siteV1Path . 'site/outline';
+        $settings->saveNodeDetailsPath = $siteV1Path . 'items/{idOrSlug}';
+        $settings->savePlatformSettingsPath = $siteV1Path . 'site/platform';
+        $settings->saveAllowedBlocksPath = $siteV1Path . 'site/blocks';
+        $settings->saveEditorSettingsPath = $siteV1Path . 'site/editor';
+        $settings->saveSeoSettingsPath = $siteV1Path . 'site/seo';
+        $settings->contentSearchPath = $siteV1Path . 'search';
+        $settings->searchContentPath = $siteV1Path . 'search';
+        $settings->createNodePath = $siteV1Path . 'items';
+        $settings->deleteNodePath = $siteV1Path . 'items/{idOrSlug}';
+        $settings->getNodeRevisionsPath = $siteV1Path . 'items/{idOrSlug}/revisions';
+        $settings->getNodeRevisionPath = $siteV1Path . 'items/{idOrSlug}/revisions/{revisionId}';
+        $settings->restoreNodeRevisionPath = $siteV1Path . 'items/{idOrSlug}/revisions/{revisionId}/restore';
+        $settings->listFilesPath = $siteV1Path . 'files';
+        $settings->saveFilePath = $siteV1Path . 'files';
+        $settings->fileOperationPath = $siteV1Path . 'files/{fileUuid}';
+        // v1 system API paths (front-end primary)
+        $settings->getUserDataPath = $v1Path . 'session/user';
+        $settings->createSite = $v1Path . 'sites';
+        $settings->downloadSite = $v1Path . 'sites/{siteName}/download';
+        $settings->downloadSiteSkeleton = $v1Path . 'sites/{siteName}/download-skeleton';
+        $settings->saveSiteAsTemplate = $v1Path . 'sites/{siteName}/save-as-template';
+        $settings->archiveSite = $v1Path . 'sites/{siteName}/archive';
+        $settings->cloneSite = $v1Path . 'sites/{siteName}/clone';
+        $settings->getSitesList = $v1Path . 'sites';
         if ($this->getDeploymentProfile() != 'haxiam-managed') {
-          $settings->systemStatus = $path . 'systemStatus?user_token=' . $userToken;
-          $settings->getApiKeys = $path . 'getApiKeys?user_token=' . $userToken;
-          $settings->saveApiKeys = $path . 'saveApiKeys?user_token=' . $userToken;
-          $settings->getMediaSettings = $path . 'getMediaSettings?user_token=' . $userToken;
-          $settings->saveMediaSettings = $path . 'saveMediaSettings?user_token=' . $userToken;
-          $settings->saveEnabledSkeletons = $path . 'saveEnabledSkeletons?user_token=' . $userToken;
-          $settings->schemaFileOperation = $path . 'schemaFileOperation?user_token=' . $userToken;
-          $settings->saveEnabledThemes = $path . 'saveEnabledThemes?user_token=' . $userToken;
-          $settings->saveEnabledBlocks = $path . 'saveEnabledBlocks?user_token=' . $userToken;
-          $settings->systemBlocksList = $path . 'systemBlocksList?user_token=' . $userToken;
+          $settings->systemStatus = $v1Path . 'status';
+          $settings->getApiKeys = $v1Path . 'configuration/api-keys';
+          $settings->saveApiKeys = $v1Path . 'configuration/api-keys';
+          $settings->getMediaSettings = $v1Path . 'configuration/media';
+          $settings->saveMediaSettings = $v1Path . 'configuration/media';
+          $settings->saveEnabledSkeletons = $v1Path . 'skeletons';
+          $settings->schemaFileOperation = $v1Path . 'configuration/schema-files/operations';
+          $settings->saveEnabledThemes = $v1Path . 'themes';
+          $settings->saveEnabledBlocks = $v1Path . 'blocks';
+          $settings->systemBlocksList = $v1Path . 'blocks';
         }
         // Skeletons list endpoint for App HAX v2 dashboard
-        $settings->skeletonsList = $path . 'skeletonsList?user_token=' . $userToken;
+        $settings->skeletonsList = $v1Path . 'skeletons';
         // Themes list endpoint for App HAX v2 dashboard
-        $settings->themesList = $path . 'themesList?user_token=' . $userToken;
+        $settings->themesList = $v1Path . 'themes';
         // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
         if (isset($this->config->iam) && $this->config->iam) {
-            $settings->haxiamAddUserAccess = $path . 'haxiamAddUserAccess?user_token=' . $userToken;
+            $settings->haxiamAddUserAccess = $v1Path . 'haxiamAddUserAccess';
         }
         $settings->appStore = $this->appStoreConnection($siteToken, $sitename);
         try {

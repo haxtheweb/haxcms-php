@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/SiteApiRequestContext.php';
 include_once dirname(__FILE__) . '/SiteRoutesMap.php';
 include_once dirname(__FILE__) . '/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/SiteApiSecurity.php';
 class SiteApiRouter
 {
     public static function dispatch($site)
@@ -10,8 +11,18 @@ class SiteApiRouter
         if (!$context->isSiteApiRequest()) {
             return false;
         }
+        $allRoutes = SiteRoutesMap::getRoutesMap();
+        $allowedMethods = array();
+        foreach ($allRoutes as $method => $routes) {
+            if (self::matchRoute($context->routeSuffix, $routes) !== null) {
+                $allowedMethods[] = $method;
+            }
+        }
+        if (count($allowedMethods) === 0) {
+            $allowedMethods[] = 'GET';
+        }
         if ($context->method == 'OPTIONS') {
-            self::sendOptionsResponse();
+            self::sendOptionsResponse($allowedMethods);
             return true;
         }
         $routes = SiteRoutesMap::getRoutesForMethod($context->method);
@@ -47,6 +58,32 @@ class SiteApiRouter
             );
             return true;
         }
+        $authResult = SiteApiSecurity::validateSiteApiAccess(
+            $context,
+            is_string($context->routeSuffix) ? $context->routeSuffix : '',
+            $context->method
+        );
+        if (!$authResult['allowed']) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'status' => intval($authResult['status']),
+                    'message' => $authResult['message'],
+                ),
+                array(
+                    'statusCode' => intval($authResult['status']),
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                    'envelope' => false,
+                ),
+                is_string($context->routeSuffix) ? $context->routeSuffix : '',
+                $context->apiBasePath
+            );
+            return true;
+        }
+        $context->auth = array(
+            'authenticated' => true,
+            'userName' => isset($authResult['userName']) ? $authResult['userName'] : '',
+        );
         $handler = include $match['file'];
         if (!is_callable($handler)) {
             SiteRouteUtils::sendFormattedResponse(
@@ -90,17 +127,32 @@ class SiteApiRouter
     {
         $specialCases = array(
             array(
-                'pattern' => '/^v1\/items\/(.+)\/export\/([^\/]+)$/',
+                'pattern' => '/^v1\/items\/([^\/]+)\/export\/([^\/]+)$/',
                 'route' => 'v1/items/:idOrSlug/export/:format',
                 'paramMap' => array('idOrSlug' => 1, 'format' => 2),
             ),
             array(
-                'pattern' => '/^v1\/items\/(.+)$/',
+                'pattern' => '/^v1\/items\/([^\/]+)\/revisions\/([^\/]+)\/restore$/',
+                'route' => 'v1/items/:idOrSlug/revisions/:revisionId/restore',
+                'paramMap' => array('idOrSlug' => 1, 'revisionId' => 2),
+            ),
+            array(
+                'pattern' => '/^v1\/items\/([^\/]+)\/revisions\/([^\/]+)$/',
+                'route' => 'v1/items/:idOrSlug/revisions/:revisionId',
+                'paramMap' => array('idOrSlug' => 1, 'revisionId' => 2),
+            ),
+            array(
+                'pattern' => '/^v1\/items\/([^\/]+)\/revisions$/',
+                'route' => 'v1/items/:idOrSlug/revisions',
+                'paramMap' => array('idOrSlug' => 1),
+            ),
+            array(
+                'pattern' => '/^v1\/items\/([^\/]+)$/',
                 'route' => 'v1/items/:idOrSlug',
                 'paramMap' => array('idOrSlug' => 1),
             ),
             array(
-                'pattern' => '/^v1\/content\/(.+)$/',
+                'pattern' => '/^v1\/content\/([^\/]+)$/',
                 'route' => 'v1/content/:idOrSlug',
                 'paramMap' => array('idOrSlug' => 1),
             ),
@@ -157,11 +209,19 @@ class SiteApiRouter
         }
         return $params;
     }
-    private static function sendOptionsResponse()
+    private static function sendOptionsResponse($methods = array('GET', 'OPTIONS'))
     {
+        $normalized = array('OPTIONS');
+        foreach ($methods as $m) {
+            $upper = strtoupper((string) $m);
+            if ($upper !== 'OPTIONS' && !in_array($upper, $normalized, true)) {
+                $normalized[] = $upper;
+            }
+        }
+        sort($normalized);
         http_response_code(200);
-        header('Allow: GET, OPTIONS');
+        header('Allow: ' . implode(', ', $normalized));
         header('Content-Type: application/json; charset=utf-8');
-        print json_encode(array('status' => 200, 'data' => array('methods' => array('GET', 'OPTIONS'))));
+        print json_encode(array('status' => 200, 'data' => array('methods' => $normalized)));
     }
 }

@@ -2,27 +2,49 @@ openapi: 3.0.3
 info:
   title: HAXcms Site API
   description: Read-only site API for discovery, metadata, and content/query surfaces.
-  version: 0.0.0
+  version: 1.0.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
   - url: /
     description: Site base path
 tags:
   - name: discovery
+    description: API discovery and OpenAPI document endpoints.
   - name: site
+    description: Site-level metadata and configuration operations.
   - name: entities
+    description: Entity catalog and descriptor endpoints.
   - name: schemas
+    description: Schema descriptor and JSON schema endpoints.
   - name: items
+    description: Outline item records, revisions, and export endpoints.
   - name: content
+    description: Content retrieval and content mutation endpoints.
   - name: files
+    description: File listing, upload, retrieval, and management endpoints.
   - name: tags
+    description: Tag listing and tag frequency endpoints.
   - name: search
+    description: Full-text and metadata search endpoints.
   - name: custom-elements
+    description: Custom element registry and descriptor endpoints.
   - name: blocks
+    description: Block catalog, usage analytics, and block descriptor endpoints.
   - name: regions
+    description: Region listing and region member endpoints.
   - name: themes
+    description: Theme listing and active theme endpoints.
   - name: reports
+    description: Report descriptor and report payload endpoints.
   - name: analytics
+    description: Analytics capability and integration metadata endpoints.
   - name: views
+    description: Saved view definitions and resolved results endpoints.
+  - name: integrations
+    description: Third-party integration and provider broker endpoints.
+security: []
 paths:
   /x/api:
     get:
@@ -42,6 +64,8 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/ApiCapabilities"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/openapi:
     get:
       tags:
@@ -60,6 +84,8 @@ paths:
             application/yaml:
               schema:
                 type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/openapi.json:
     get:
       tags:
@@ -73,6 +99,8 @@ paths:
             application/json:
               schema:
                 type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/openapi.yaml:
     get:
       tags:
@@ -89,6 +117,8 @@ paths:
             text/yaml:
               schema:
                 type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
   /.well-known/api-catalog:
     get:
       tags:
@@ -102,6 +132,8 @@ paths:
             application/linkset+json:
               schema:
                 $ref: "#/components/schemas/ApiCatalogLinkset"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/site:
     get:
       tags:
@@ -120,6 +152,280 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/SiteSummary"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - site
+      operationId: updateSiteSummary
+      summary: Update site summary and manifest-level metadata
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site summary update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/updateAlternativeFormats:
+    post:
+      tags:
+        - site
+      operationId: updateSiteAlternativeFormats
+      summary: Regenerate alternative output formats for the current site
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              properties:
+                format:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Alternative format generation result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          updated:
+                            type: boolean
+                          site:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                          format:
+                            type: string
+                            nullable: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/appearance:
+    patch:
+      tags:
+        - site
+      operationId: updateSiteAppearance
+      summary: Update site appearance settings
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site appearance update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/platform:
+    patch:
+      tags:
+        - site
+      operationId: updateSitePlatform
+      summary: Update site platform feature settings
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site platform update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/blocks:
+    patch:
+      tags:
+        - site
+      operationId: updateSiteAllowedBlocks
+      summary: Update site allowed blocks settings
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site allowed blocks update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/editor:
+    patch:
+      tags:
+        - site
+      operationId: updateSiteEditorSettings
+      summary: Update site editor settings
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site editor settings update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/seo:
+    patch:
+      tags:
+        - site
+      operationId: updateSiteSeo
+      summary: Update site SEO and author settings
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Site SEO update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/outline:
+    patch:
+      tags:
+        - site
+      operationId: updateSiteOutline
+      summary: Update site outline structure as a single atomic operation
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        "200":
+          description: Site outline update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}/export/{format}:
@@ -196,6 +502,8 @@ paths:
         - items
       operationId: listItems
       summary: List outline items
+      description: Anonymous requests only return published items that are not hidden from navigation.
+      security: []
       parameters:
         - $ref: "#/components/parameters/FilterParent"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -243,6 +551,36 @@ paths:
                 type: string
         "404":
           $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - items
+      operationId: createItem
+      summary: Create a new item in the outline
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Item creation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/site/export/{format}:
     get:
       tags:
@@ -282,6 +620,8 @@ paths:
         - items
       operationId: getItemByIdOrSlug
       summary: Get an item by id or slug
+      description: Anonymous requests only return items that are published and not hidden from navigation.
+      security: []
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
         - $ref: "#/components/parameters/Fields"
@@ -320,12 +660,223 @@ paths:
                 type: string
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - items
+      operationId: updateItem
+      summary: Update an item using outline and page detail operations
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - operation
+              properties:
+                operation:
+                  type: string
+                  enum:
+                    - moveUp
+                    - moveDown
+                    - indent
+                    - outdent
+                    - setParent
+                    - setTitle
+                    - setDescription
+                    - setTags
+                    - setIcon
+                    - setMedia
+                    - setImage
+                    - setRelatedItems
+                    - setLocked
+                    - setPublished
+                    - setHideInMenu
+                    - setSlug
+                parent:
+                  type: string
+                  nullable: true
+                order:
+                  type: integer
+                title:
+                  type: string
+                description:
+                  type: string
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                icon:
+                  type: string
+                media:
+                  type: string
+                image:
+                  type: string
+                relatedItems:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                locked:
+                  type: boolean
+                published:
+                  type: boolean
+                hideInMenu:
+                  type: boolean
+                slug:
+                  type: string
+      responses:
+        "200":
+          description: Item update result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ItemRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - items
+      operationId: deleteItem
+      summary: Delete an item by id or slug
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+      responses:
+        "200":
+          description: Item deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/items/{idOrSlug}/revisions:
+    get:
+      tags:
+        - items
+      operationId: listItemRevisions
+      summary: List git-backed revision history for one item
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+        - $ref: "#/components/parameters/PageLimit"
+        - $ref: "#/components/parameters/PageOffset"
+      responses:
+        "200":
+          description: Revision collection
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RevisionCollection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/items/{idOrSlug}/revisions/{revisionId}:
+    get:
+      tags:
+        - items
+      operationId: getItemRevisionById
+      summary: Get one item revision payload by git hash
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+        - $ref: "#/components/parameters/RevisionId"
+      responses:
+        "200":
+          description: Revision detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RevisionDetailRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/items/{idOrSlug}/revisions/{revisionId}/restore:
+    post:
+      tags:
+        - items
+      operationId: restoreItemRevision
+      summary: Restore one item revision as a new commit
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+        - $ref: "#/components/parameters/RevisionId"
+      responses:
+        "200":
+          description: Revision restore result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RevisionRestoreRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/content:
     get:
       tags:
         - content
       operationId: listContent
       summary: List content records
+      description: Anonymous requests only return content for published items that are not hidden from navigation.
+      security: []
       parameters:
         - $ref: "#/components/parameters/FilterParent"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -373,12 +924,61 @@ paths:
                 type: string
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - content
+      operationId: replaceContent
+      summary: Replace text across site content in a single operation
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - search
+                - replace
+              properties:
+                operation:
+                  type: string
+                  enum:
+                    - replace
+                search:
+                  type: string
+                replace:
+                  type: string
+                replaceConfirm:
+                  type: boolean
+                replaceDestroyConfirm:
+                  type: boolean
+                searchCaseSensitive:
+                  type: boolean
+      responses:
+        "200":
+          description: Content replace operation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/content/{idOrSlug}:
     get:
       tags:
         - content
       operationId: getContentByIdOrSlug
       summary: Get content for an item by id or slug
+      description: Anonymous requests only return content for items that are published and not hidden from navigation.
+      security: []
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
         - $ref: "#/components/parameters/Fields"
@@ -417,12 +1017,62 @@ paths:
                 type: string
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - content
+      operationId: updateContentByIdOrSlug
+      summary: Update one item content payload by id or slug
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                content:
+                  type: string
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                details:
+                  type: object
+                  additionalProperties: true
+                node:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Content update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/files:
     get:
       tags:
         - files
       operationId: listFiles
       summary: List site files and metadata
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
       parameters:
         - $ref: "#/components/parameters/FilterType"
         - $ref: "#/components/parameters/FilterExtension"
@@ -461,8 +1111,213 @@ paths:
             application/xml:
               schema:
                 type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - files
+      operationId: createFile
+      summary: Upload a file to the site files directory
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file-upload:
+                  type: string
+                  format: binary
+                upload:
+                  type: string
+                  format: binary
+                file:
+                  type: string
+                  format: binary
+                nodeId:
+                  type: string
+      responses:
+        "200":
+          description: Uploaded file result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/files/{fileUuid}:
+    get:
+      tags:
+        - files
+      operationId: getFileByUuid
+      summary: Get one file record by UUID
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/FileUuid"
+        - $ref: "#/components/parameters/Fields"
+        - $ref: "#/components/parameters/Format"
+      responses:
+        "200":
+          description: File detail
+          headers:
+            Vary:
+              $ref: "#/components/headers/VaryAccept"
+            Content-Location:
+              $ref: "#/components/headers/ContentLocation"
+            Link:
+              $ref: "#/components/headers/AlternateLink"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/FileRecord"
+            text/markdown:
+              schema:
+                type: string
+            application/yaml:
+              schema:
+                type: string
+            application/xml:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - files
+      operationId: updateFileByUuid
+      summary: Update or transform a file by UUID
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/FileUuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - operation
+              properties:
+                operation:
+                  type: string
+                size:
+                  type: string
+                newName:
+                  type: string
+      responses:
+        "200":
+          description: File operation result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - files
+      operationId: deleteFileByUuid
+      summary: Delete a file by UUID
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/FileUuid"
+      responses:
+        "200":
+          description: File deletion result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/integrations/app-store/providers/{provider}/search:
+    get:
+      tags:
+        - integrations
+      operationId: searchAppStoreProvider
+      summary: Broker provider search through app-store integrations
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/AppStoreProvider"
+      responses:
+        "200":
+          description: Provider search response payload
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    additionalProperties: true
+                  - type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "502":
+          $ref: "#/components/responses/BadRequest"
   /x/api/v1/tags:
     get:
       tags:
@@ -496,6 +1351,8 @@ paths:
         - search
       operationId: searchContent
       summary: Search item metadata and content
+      description: Anonymous requests only search published items that are not hidden from navigation.
+      security: []
       parameters:
         - $ref: "#/components/parameters/RequiredSearchQuery"
         - $ref: "#/components/parameters/FilterParent"
@@ -756,6 +1613,9 @@ paths:
         - reports
       operationId: listReports
       summary: List report descriptors
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
       responses:
         "200":
           description: Report descriptor collection
@@ -768,6 +1628,10 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/ReportCollection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /x/api/v1/reports/{report}:
@@ -776,6 +1640,9 @@ paths:
         - reports
       operationId: getReportByName
       summary: Get one report payload
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
       parameters:
         - $ref: "#/components/parameters/ReportName"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -803,6 +1670,10 @@ paths:
             application/xml:
               schema:
                 type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /x/api/v1/analytics:
@@ -1020,6 +1891,15 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    siteTokenHeader:
+      type: apiKey
+      in: header
+      name: X-HAXCMS-Site-Token
   headers:
     VaryAccept:
       description: Representation varies by Accept header
@@ -1043,6 +1923,21 @@ components:
       required: true
       schema:
         type: string
+    RevisionId:
+      name: revisionId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 7
+        maxLength: 64
+    FileUuid:
+      name: fileUuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     SiteExportFormat:
       name: format
       in: path
@@ -1091,6 +1986,12 @@ components:
         type: string
     ViewId:
       name: viewId
+      in: path
+      required: true
+      schema:
+        type: string
+    AppStoreProvider:
+      name: provider
       in: path
       required: true
       schema:
@@ -1259,6 +2160,18 @@ components:
   responses:
     BadRequest:
       description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Unauthorized:
+      description: Authentication required or bearer token invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    Forbidden:
+      description: Authenticated request missing required site token header
       content:
         application/json:
           schema:
@@ -1640,6 +2553,9 @@ components:
           type: string
         name:
           type: string
+        uuid:
+          type: string
+          format: uuid
         size:
           type: integer
         dateCreated:
@@ -1952,6 +2868,10 @@ components:
       properties:
         id:
           type: string
+        label:
+          type: string
+        icon:
+          type: string
         title:
           type: string
         description:
@@ -1965,6 +2885,10 @@ components:
       properties:
         id:
           type: string
+        label:
+          type: string
+        icon:
+          type: string
         title:
           type: string
         description:
@@ -1975,6 +2899,96 @@ components:
         data:
           type: object
           additionalProperties: true
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    RevisionCollection:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        nodeSlug:
+          type: string
+        nodeTitle:
+          type: string
+        jsonVariantLocation:
+          type: string
+        count:
+          type: integer
+        total:
+          type: integer
+        page:
+          $ref: "#/components/schemas/PageInfo"
+        revisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevisionRecord"
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    RevisionRecord:
+      type: object
+      properties:
+        revisionNumber:
+          type: integer
+        hash:
+          type: string
+        shortHash:
+          type: string
+        author:
+          type: string
+        authorEmail:
+          type: string
+        timestamp:
+          type: integer
+        date:
+          type: string
+        message:
+          type: string
+    RevisionDetailRecord:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        nodeSlug:
+          type: string
+        nodeTitle:
+          type: string
+        revision:
+          $ref: "#/components/schemas/RevisionRecord"
+        content:
+          type: string
+        jsonVariantLocation:
+          type: string
+        hasItemMetadata:
+          type: boolean
+        itemMetadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    RevisionRestoreRecord:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        nodeSlug:
+          type: string
+        nodeTitle:
+          type: string
+        restoredFromHash:
+          type: string
+        jsonVariantLocation:
+          type: string
+        hasItemMetadata:
+          type: boolean
+        itemMetadataRestored:
+          type: boolean
         links:
           type: object
           additionalProperties:

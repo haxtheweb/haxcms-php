@@ -1,8 +1,7 @@
 <?php
-include_once dirname(__FILE__) . '/SiteRouteUtils.php';
-class SiteApiRequestContext
+include_once dirname(__FILE__) . '/../siteRoutes/SiteRouteUtils.php';
+class SystemApiRequestContext
 {
-    public $site;
     public $method;
     public $requestPath;
     public $relativePath;
@@ -10,24 +9,28 @@ class SiteApiRequestContext
     public $absoluteApiBasePath;
     public $routeSuffix;
     public $params;
-    public function __construct($site)
+    public $body;
+    public $rawBody;
+    public function __construct()
     {
-        $this->site = $site;
         $this->method = SiteRouteUtils::getRequestMethod();
         $this->requestPath = SiteRouteUtils::getRequestPath();
         $this->relativePath = SiteRouteUtils::getRelativePathFromScript($this->requestPath);
-        $this->apiBasePath = SiteRouteUtils::getApiBasePathFromRequestPath($this->requestPath);
+        $this->apiBasePath = self::getApiBasePathFromRequestPath($this->requestPath);
         $this->absoluteApiBasePath = $this->getAbsoluteApiBasePath($this->apiBasePath);
-        $this->routeSuffix = SiteRouteUtils::getRouteSuffixFromRelativePath($this->relativePath);
+        $this->routeSuffix = self::getRouteSuffixFromRelativePath($this->relativePath);
         $this->params = array();
+        $this->body = array();
+        $this->rawBody = array();
+        $this->parseBody();
     }
-    public static function fromSite($site)
+    public static function create()
     {
-        return new self($site);
+        return new self();
     }
-    public function isSiteApiRequest()
+    public function isSystemApiRequest()
     {
-        return SiteRouteUtils::isSiteApiPath($this->relativePath);
+        return self::isSystemApiPath($this->relativePath);
     }
     public function setRouteParams($params = array())
     {
@@ -42,40 +45,50 @@ class SiteApiRequestContext
         }
         return $this->params[$name];
     }
-    public function getBody()
+    private function parseBody()
     {
-        $raw = file_get_contents('php://input');
-        if ($raw === false || $raw === '') {
-            return array();
-        }
-        $decoded = json_decode($raw, true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
-        return array();
-    }
-    public function getRawBody()
-    {
-        $raw = file_get_contents('php://input');
-        return $raw === false ? '' : $raw;
-    }
-    public function getHeader($name)
-    {
-        $normalizedName = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-        if (isset($_SERVER[$normalizedName])) {
-            return $_SERVER[$normalizedName];
-        }
-        $headers = function_exists('getallheaders') ? getallheaders() : array();
-        if (is_array($headers)) {
-            foreach ($headers as $key => $value) {
-                if (strcasecmp($key, $name) === 0) {
-                    return $value;
-                }
+        $input = file_get_contents('php://input');
+        if (is_string($input) && $input !== '') {
+            $decoded = json_decode($input, true);
+            if (is_array($decoded)) {
+                $this->body = $decoded;
             }
+            $this->rawBody = $input;
         }
-        return null;
     }
-    private function getAbsoluteApiBasePath($apiBasePath = '/x/api')
+    public static function isSystemApiPath($relativePath = '')
+    {
+        $path = is_string($relativePath) && $relativePath != ''
+            ? $relativePath
+            : SiteRouteUtils::getRelativePathFromScript();
+        return (bool) preg_match('/^\/system\/api(?:\/|$)/', $path);
+    }
+    public static function getApiBasePathFromRequestPath($requestPath = '')
+    {
+        $path = is_string($requestPath) && $requestPath != ''
+            ? $requestPath
+            : SiteRouteUtils::getRequestPath();
+        $matched = array();
+        if (preg_match('/^(.*\/system\/api)(?:\/.*)?$/', $path, $matched) === 1 && isset($matched[1])) {
+            return $matched[1];
+        }
+        return '/system/api';
+    }
+    public static function getRouteSuffixFromRelativePath($relativePath = '')
+    {
+        $path = is_string($relativePath) && $relativePath != ''
+            ? $relativePath
+            : SiteRouteUtils::getRelativePathFromScript();
+        if (!self::isSystemApiPath($path)) {
+            return null;
+        }
+        $suffix = preg_replace('/^\/system\/api\/?/', '', $path);
+        if (!is_string($suffix)) {
+            return '';
+        }
+        return trim($suffix, '/');
+    }
+    private function getAbsoluteApiBasePath($apiBasePath = '/system/api')
     {
         $protocol = 'http';
         if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] != '') {
