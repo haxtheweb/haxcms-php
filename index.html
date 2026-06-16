@@ -163,19 +163,6 @@
           background-size: auto, 37% auto, 37% auto;
         }
       }
-      .version {
-          position: fixed;
-          right: 0;
-          bottom: 0;
-          background-color:  light-dark(var(--simple-colors-default-theme-yellow-2), var(--simple-colors-default-theme-yellow-10));
-          display: inline-block;
-          padding: 4px;
-          min-width: 10ch;
-          box-sizing: border-box;
-          text-align: right;
-          font-size: var(--ddd-font-size-6xs);
-          color: light-dark(black, white);
-        }
     </style>
   </head>
   <body>
@@ -195,15 +182,6 @@
         if (response.status != 404) {
           document.documentElement.appendChild(script);
         }
-      });
-      // get the version
-      fetch("/VERSION.txt")
-      .then(function(response) {
-        return response.text();
-      })
-      .then(function(version) {
-        document.getElementsByClassName('version')[0].innerHTML = 'V' + version;
-        return version;
       });
       // reduce FOUC for dark mode so it starts in dark rapidly if selected
     if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
@@ -254,7 +232,6 @@
     </script>
     <div id="visuallist"></div>
     <app-hax base-path="/"></app-hax>
-    <div class="version">V</div>
     <noscript>Enable JavaScript to use HAX</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN ="./";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script type="module">

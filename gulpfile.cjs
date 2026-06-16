@@ -7,8 +7,8 @@ const path = require("path");
 gulp.task(
   "version-match", async () => {
     const packageVm = require("./node_modules/@haxtheweb/haxcms-elements/package.json");
-    fs.writeFileSync('./VERSION.txt', packageVm.version , {encoding:'utf8',flag:'w'});
-    console.log(`${packageVm.version} written to VERSION.txt`);
+    fs.writeFileSync('./.version', packageVm.version , {encoding:'utf8',flag:'w'});
+    console.log(`${packageVm.version} written to .version`);
   }
 );
 gulp.task(

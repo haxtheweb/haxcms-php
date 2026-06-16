@@ -456,10 +456,17 @@ class HAXCMSSystemStatusService
         if ($normalizedRootPath === '') {
             $normalizedRootPath = getcwd();
         }
-        $versionFile = self::joinPath($normalizedRootPath, 'VERSION.txt');
-        $currentVersion = file_exists($versionFile)
-            ? self::normalizeVersion(@file_get_contents($versionFile))
-            : 'unknown';
+        $versionFiles = array(
+            self::joinPath($normalizedRootPath, '.version'),
+            self::joinPath($normalizedRootPath, 'VERSION.txt'),
+        );
+        $currentVersion = 'unknown';
+        foreach ($versionFiles as $versionFile) {
+            if (file_exists($versionFile)) {
+                $currentVersion = self::normalizeVersion(@file_get_contents($versionFile));
+                break;
+            }
+        }
         $latestVersion = self::normalizeVersion(self::fetchLatestReleaseVersionFromGitHub());
         if ($latestVersion === '') {
             $latestVersion = $currentVersion;

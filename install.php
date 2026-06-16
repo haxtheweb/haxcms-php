@@ -63,8 +63,16 @@ if (!function_exists('haxcmsInstallerStatusRender')) {
     print '</tbody></table></div>';
   }
 }
-if (file_exists(__DIR__ . '/VERSION.txt')) {
-  $version = filter_var(file_get_contents(__DIR__ . '/VERSION.txt'));
+$version = '';
+$versionFiles = array(
+  __DIR__ . '/.version',
+  __DIR__ . '/VERSION.txt',
+);
+foreach ($versionFiles as $versionFile) {
+  if (file_exists($versionFile)) {
+    $version = filter_var(file_get_contents($versionFile));
+    break;
+  }
 }
 // check for core directories existing, redirect if we do
 if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_archived')) {

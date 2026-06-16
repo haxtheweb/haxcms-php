@@ -676,10 +676,15 @@ class HAXCMS
     {
       $version = &$this->staticCache(__FUNCTION__);
       if (!isset($version)) {
-        // sanity
-        $vFile = HAXCMS_ROOT . '/VERSION.txt';
-        if (file_exists($vFile)) {
-          $version = filter_var(file_get_contents($vFile));
+        $versionFiles = array(
+          HAXCMS_ROOT . '/.version',
+          HAXCMS_ROOT . '/VERSION.txt',
+        );
+        foreach ($versionFiles as $vFile) {
+          if (file_exists($vFile)) {
+            $version = filter_var(file_get_contents($vFile));
+            break;
+          }
         }
       }
       return $version;
@@ -1769,15 +1774,12 @@ class HAXCMS
         $settings->saveAllowedBlocksPath = $path . 'saveAllowedBlocks?site_token=' . $siteToken;
         $settings->saveEditorSettingsPath = $path . 'saveEditorSettings?site_token=' . $siteToken;
         $settings->saveSeoSettingsPath = $path . 'saveSeoSettings?site_token=' . $siteToken;
-        $settings->getSiteFieldsPath = $path . 'formLoad?haxcms_form_id=siteSettings';
         $settings->contentSearchPath = $path . 'siteSearch?site_token=' . $siteToken;
         $settings->searchContentPath = $path . 'siteSearch?site_token=' . $siteToken;
         $settings->insightsPath = $path . 'insights?site_token=' . $siteToken;
         $settings->linkCheckerPath = $path . 'linkChecker?site_token=' . $siteToken;
         $settings->contentBrowserPath = $path . 'contentBrowser?site_token=' . $siteToken;
         $settings->mediaBrowserPath = $path . 'mediaBrowser?site_token=' . $siteToken;
-        // form token to validate form submissions as unique to the session
-        $settings->getFormToken = $this->getRequestToken('form');
         $settings->createNodePath = $path . 'createNode?site_token=' . $siteToken;
         $settings->deleteNodePath = $path . 'deleteNode?site_token=' . $siteToken;
         $settings->getNodeRevisionsPath = $path . 'getNodeRevisions?site_token=' . $siteToken;

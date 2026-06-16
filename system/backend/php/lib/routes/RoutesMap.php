@@ -27,8 +27,6 @@ class OperationsRoutesMap {
       'generateAppStore' => dirname(__FILE__) . '/generateAppStore.php',
       'systemBlocksList' => dirname(__FILE__) . '/systemBlocksList.php',
       'getUserData' => dirname(__FILE__) . '/getUserData.php',
-      'formLoad' => dirname(__FILE__) . '/formLoad.php',
-      'formProcess' => dirname(__FILE__) . '/formProcess.php',
       'listFiles' => dirname(__FILE__) . '/listFiles.php',
       'fileOperation' => dirname(__FILE__) . '/fileOperation.php',
       'siteSearch' => dirname(__FILE__) . '/siteSearch.php',
