@@ -176,8 +176,23 @@ return function ($context) {
         );
         return;
     }
+    // If the response already has a top-level status key (legacy v1 route shape),
+    // emit it as-is to avoid double-wrapping. Otherwise wrap in a data envelope.
     if (!is_array($response) || !isset($response['status'])) {
         $response = array('status' => 200, 'data' => $response);
+    }
+    // Prevent double-wrapping: if response already has status and data, assume it is already enveloped
+    else if (isset($response['data']) && !isset($response['__failed']) && !isset($response['__noencode'])) {
+        // response is already enveloped (e.g. from getApiKeys, getMediaSettings), keep as-is
+    }
+    else {
+        // response has status but no data (e.g. systemBlocksList, themesList, skeletonsList) —
+        // NodeJS v1 returns flat shape, so wrap its body as data to keep the envelope consistent
+        $response = array('status' => $response['status'], 'data' => $response);
+        // Remove the original status from the nested data so it isn't duplicated
+        if (isset($response['data']['status'])) {
+            unset($response['data']['status']);
+        }
     }
     SiteRouteUtils::sendFormattedResponse(
         $response,

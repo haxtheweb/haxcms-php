@@ -694,7 +694,7 @@ class SiteRouteUtils
             ? $options['rawByFormat']
             : array();
         $format = self::detectResponseFormat($allowedFormats, $defaultFormat, $routeSuffix);
-        // Avoid double-wrapping responses that are already enveloped (legacy routes return {status, data})
+        // If the data is already an enveloped v1 response, pass it through directly
         if ($envelope && is_array($data) && isset($data['status']) && isset($data['data']) && !isset($data['__failed']) && !isset($data['__noencode'])) {
             $payload = $data;
         }
