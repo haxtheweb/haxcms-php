@@ -21,6 +21,57 @@
       seoTag.setAttribute('content', document.location.href);
     }
   </script>
+  <script>
+    (function() {
+      var cdn = "./";
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('HEAD', './build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js', false);
+        xhr.send();
+        if (xhr.status >= 400) {
+          cdn = "https://cdn.hax.cloud/cdn/";
+        }
+      } catch (e) {}
+      globalThis.__appCDN = cdn;
+      if (cdn !== "./") {
+        var cdns = [
+          'https://cdn.hax.cloud/cdn/',
+          'https://cdn.webcomponents.psu.edu/cdn/',
+          'https://cdn.waxam.io/'
+        ];
+        var preloads = document.querySelectorAll('link[rel="modulepreload"]');
+        for (var i = 0; i < preloads.length; i++) {
+          var href = preloads[i].getAttribute('href');
+          if (href && href.indexOf('./build/') === 0) {
+            preloads[i].setAttribute('href', cdn + href.substring(2));
+          }
+        }
+        var baseCss = document.querySelector('link[rel="preload"][as="style"]');
+        if (baseCss && baseCss.getAttribute('href') && baseCss.getAttribute('href').indexOf('./build/') === 0) {
+          baseCss.setAttribute('href', cdn + baseCss.getAttribute('href').substring(2));
+        }
+        var importmap = document.querySelector('script[type="importmap"]');
+        if (importmap) {
+          try {
+            var map = JSON.parse(importmap.textContent);
+            if (map.scopes) {
+              Object.keys(map.scopes).forEach(function(scope) {
+                Object.keys(map.scopes[scope]).forEach(function(key) {
+                  var val = map.scopes[scope][key];
+                  cdns.forEach(function(oldCdn) {
+                    if (val.indexOf(oldCdn) === 0) {
+                      map.scopes[scope][key] = cdn + val.substring(oldCdn.length);
+                    }
+                  });
+                });
+              });
+            }
+            importmap.textContent = JSON.stringify(map);
+          } catch (e) {}
+        }
+      }
+    })();
+  </script>
   <script type="importmap">
     {
       "scopes": {
@@ -259,7 +310,7 @@
   <haxcms-site-builder id="site" file="site.json?2GQKWcJ3ni0xrL2X4_Dw_Sr9SeXqY2Sk3XblmvHVArA"></haxcms-site-builder>
   <script>
     globalThis.MicroFrontendRegistryConfig = globalThis.MicroFrontendRegistryConfig || {};
-    globalThis.HAXCMSContext="php";globalThis.__appCDN="./";</script>
+    globalThis.HAXCMSContext="php";globalThis.__appCDN=globalThis.__appCDN || "./";</script>
   <script src="./build-haxcms.js"></script>
   <script src="./build.js"></script>
 </body>
