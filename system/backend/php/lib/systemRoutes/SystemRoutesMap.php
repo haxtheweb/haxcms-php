@@ -20,6 +20,7 @@ class SystemRoutesMap
                 'openapi.yaml' => dirname(__FILE__) . '/discovery/openapi.php',
                 'v1/session' => dirname(__FILE__) . '/v1/session.php',
                 'v1/session/refresh' => dirname(__FILE__) . '/v1/session.php',
+                'v1/session/login' => dirname(__FILE__) . '/v1/session.php',
                 'v1/session/logout' => dirname(__FILE__) . '/v1/session.php',
                 'v1/sites' => dirname(__FILE__) . '/v1/lifecycle.php',
                 'v1/sites/:siteName' => dirname(__FILE__) . '/v1/lifecycle.php',
@@ -56,6 +57,7 @@ class SystemRoutesMap
                 'v1/blocks' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/themes' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/haxiamAddUserAccess' => dirname(__FILE__) . '/v1/haxiam.php',
             ),
             'PATCH' => array(
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',

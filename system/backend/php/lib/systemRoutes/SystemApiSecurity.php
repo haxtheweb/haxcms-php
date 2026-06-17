@@ -96,6 +96,7 @@ class SystemApiSecurity
             'v1/system/version',
             'v1/entities',
             'v1/schemas',
+            'v1/haxiamAddUserAccess',
         );
         if (in_array($route, $adminRoutes, true)) {
             return 'admin';
