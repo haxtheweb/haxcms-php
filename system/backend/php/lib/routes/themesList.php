@@ -68,16 +68,25 @@ trait OperationsRouteThemesList
       $includeDisabled = $this->includeDisabledThemesRequest();
       $discovered = $this->discoverThemesListItems();
       $detectedNames = array();
+      $visibleNames = array();
       foreach ($discovered as $item) {
         if (isset($item['machineName'])) {
-          $detectedNames[] = $item['machineName'];
+          $machineName = $item['machineName'];
+          $detectedNames[] = $machineName;
+          if (
+            !HAXCMSThemeSettingsService::isThemeHidden($item) &&
+            !HAXCMSThemeSettingsService::isThemeTerrible($item, $machineName)
+          ) {
+            $visibleNames[] = $machineName;
+          }
         }
       }
       $enabledThemes = HAXCMSThemeSettingsService::readEnabledThemeMap($GLOBALS['HAXCMS']);
-      $withDefaults = HAXCMSThemeSettingsService::applyDetectedThemeDefaults(
+      $withDefaults = HAXCMSThemeSettingsService::reconcileDetectedThemeMap(
         $GLOBALS['HAXCMS'],
         $enabledThemes,
-        $detectedNames
+        $detectedNames,
+        $visibleNames
       );
       $enabledThemes = isset($withDefaults['enabledThemes'])
         ? $withDefaults['enabledThemes']

@@ -142,10 +142,18 @@ trait OperationsRouteSaveEnabledThemes
     try {
       $discoveredThemes = $this->discoverThemeRecords();
       $detectedNames = array_keys($discoveredThemes);
+      $detectedNameLookup = array_flip($detectedNames);
+      $enabledThemes = array_values(array_filter(
+        $enabledThemes,
+        function ($machineName) use ($detectedNameLookup) {
+          return array_key_exists($machineName, $detectedNameLookup);
+        }
+      ));
       $existingMap = HAXCMSThemeSettingsService::readEnabledThemeMap($GLOBALS['HAXCMS']);
-      $withDefaults = HAXCMSThemeSettingsService::applyDetectedThemeDefaults(
+      $withDefaults = HAXCMSThemeSettingsService::reconcileDetectedThemeMap(
         $GLOBALS['HAXCMS'],
         $existingMap,
+        $detectedNames,
         $detectedNames
       );
       $existingMap = isset($withDefaults['enabledThemes'])

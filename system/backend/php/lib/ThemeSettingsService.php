@@ -132,6 +132,55 @@ class HAXCMSThemeSettingsService
     );
   }
 
+  public static function reconcileDetectedThemeMap(
+    $haxcms,
+    $enabledThemes = array(),
+    $detectedNames = array(),
+    $visibleNames = array()
+  ) {
+    $map = self::normalizeEnabledThemeMap($haxcms, $enabledThemes);
+    $detected = self::normalizeMachineNameList($haxcms, $detectedNames);
+    $visible = self::normalizeMachineNameList($haxcms, $visibleNames);
+    if (count($visible) === 0) {
+      $visible = $detected;
+    }
+    $changed = false;
+    $detectedLookup = array_flip($detected);
+    foreach (array_keys($map) as $machineName) {
+      if (!array_key_exists($machineName, $detectedLookup)) {
+        unset($map[$machineName]);
+        $changed = true;
+      }
+    }
+    foreach ($detected as $machineName) {
+      if (!array_key_exists($machineName, $map)) {
+        $map[$machineName] = true;
+        $changed = true;
+      }
+    }
+    if (count($visible) > 0) {
+      $hasVisibleEnabledTheme = false;
+      foreach ($visible as $machineName) {
+        if (array_key_exists($machineName, $map) && $map[$machineName] !== false) {
+          $hasVisibleEnabledTheme = true;
+          break;
+        }
+      }
+      if (!$hasVisibleEnabledTheme) {
+        foreach ($visible as $machineName) {
+          if (!array_key_exists($machineName, $map) || $map[$machineName] === false) {
+            $map[$machineName] = true;
+            $changed = true;
+          }
+        }
+      }
+    }
+    return array(
+      'enabledThemes' => $map,
+      'changed' => $changed,
+    );
+  }
+
   public static function getEnabledThemesFilePath($haxcms)
   {
     $defaultConfigDirectory = rtrim(getcwd(), '/') . '/_config';

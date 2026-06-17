@@ -87,10 +87,24 @@ return function ($context) {
                 }
             }
             $enabledThemes = HAXCMSThemeSettingsService::readEnabledThemeMap($GLOBALS['HAXCMS']);
-            $withDefaults = HAXCMSThemeSettingsService::applyDetectedThemeDefaults(
+            $visibleThemeNames = array();
+            foreach ($discovered as $item) {
+                if (!is_array($item) || !isset($item['machineName'])) {
+                    continue;
+                }
+                $machineName = (string) $item['machineName'];
+                if (
+                    !HAXCMSThemeSettingsService::isThemeHidden($item) &&
+                    !HAXCMSThemeSettingsService::isThemeTerrible($item, $machineName)
+                ) {
+                    $visibleThemeNames[] = $machineName;
+                }
+            }
+            $withDefaults = HAXCMSThemeSettingsService::reconcileDetectedThemeMap(
                 $GLOBALS['HAXCMS'],
                 $enabledThemes,
-                $detectedThemeNames
+                $detectedThemeNames,
+                $visibleThemeNames
             );
             if (isset($withDefaults['enabledThemes']) && is_array($withDefaults['enabledThemes'])) {
                 $enabledThemes = $withDefaults['enabledThemes'];
