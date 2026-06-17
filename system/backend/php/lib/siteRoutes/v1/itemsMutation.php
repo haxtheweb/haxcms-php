@@ -33,6 +33,31 @@ return function ($context) {
     $method = strtoupper((string) $context->method);
     $operations = new Operations();
     $result = null;
+    $resolvedItem = null;
+    $resolvedItemId = $idOrSlug;
+    if (($method === 'PATCH' || $method === 'DELETE') && $idOrSlug !== '' && isset($context->site)) {
+        $resolvedItem = SiteRouteUtils::findItemByIdOrSlug($context->site, $idOrSlug);
+        if (!$resolvedItem) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'status' => 404,
+                    'message' => 'Item not found for idOrSlug "' . $idOrSlug . '"',
+                ),
+                array(
+                    'statusCode' => 404,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                    'envelope' => false,
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        if (isset($resolvedItem->id) && is_string($resolvedItem->id) && $resolvedItem->id !== '') {
+            $resolvedItemId = $resolvedItem->id;
+        }
+    }
     if ($method === 'POST') {
         $operations->params = $body;
         $operations->rawParams = $body;
@@ -42,17 +67,78 @@ return function ($context) {
             $body['node'] = array();
         }
         if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $idOrSlug;
+            $body['node']['id'] = $resolvedItemId;
+        }
+        $operation = '';
+        if (isset($body['operation']) && is_string($body['operation'])) {
+            $operation = trim($body['operation']);
+        }
+        if (
+            $operation === '' &&
+            isset($body['node']['details']) &&
+            is_array($body['node']['details']) &&
+            isset($body['node']['details']['operation']) &&
+            is_string($body['node']['details']['operation'])
+        ) {
+            $operation = trim($body['node']['details']['operation']);
+        }
+        if ($operation === '') {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'status' => 400,
+                    'message' => 'Operation is required',
+                ),
+                array(
+                    'statusCode' => 400,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                    'envelope' => false,
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        if (!isset($body['node']['details']) || !is_array($body['node']['details'])) {
+            $body['node']['details'] = array();
+        }
+        $body['node']['details']['operation'] = $operation;
+        $operationDetailKeys = array(
+            'parent',
+            'order',
+            'title',
+            'description',
+            'tags',
+            'icon',
+            'media',
+            'image',
+            'relatedItems',
+            'locked',
+            'published',
+            'hideInMenu',
+            'slug',
+        );
+        foreach ($operationDetailKeys as $detailKey) {
+            if (array_key_exists($detailKey, $body) && !array_key_exists($detailKey, $body['node']['details'])) {
+                $body['node']['details'][$detailKey] = $body[$detailKey];
+            }
+        }
+        if (
+            $operation === 'setMedia' &&
+            !array_key_exists('image', $body['node']['details']) &&
+            array_key_exists('media', $body['node']['details'])
+        ) {
+            $body['node']['details']['image'] = $body['node']['details']['media'];
         }
         $operations->params = $body;
         $operations->rawParams = $body;
-        $result = $operations->saveNode();
+        $result = $operations->saveNodeDetails();
     } else if ($method === 'DELETE') {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
         if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $idOrSlug;
+            $body['node']['id'] = $resolvedItemId;
         }
         $operations->params = $body;
         $operations->rawParams = $body;
