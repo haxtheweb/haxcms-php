@@ -36,7 +36,7 @@ return function ($context) {
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveAppearanceSettings();
-    } else if (substr($routeSuffix, -10) === '/platform') {
+    } else if (substr($routeSuffix, -9) === '/platform') {
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->savePlatformSettings();

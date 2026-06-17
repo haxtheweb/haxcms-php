@@ -114,7 +114,6 @@ trait OperationsRouteAppStoreSearch
       'site',
       'jwt',
       'token',
-      '__HAXJWT__',
     );
     $blockedAuth = array(
       'key',

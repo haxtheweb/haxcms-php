@@ -946,7 +946,6 @@ class HAXCMS
                   ),
                 ),
                 'data' => array(
-                  '__HAXJWT__' => true,
                   '__HAXAPPENDUPLOADENDPOINT__' => true,
                 ),
                 'resultMap' => array(

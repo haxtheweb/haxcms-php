@@ -13,7 +13,7 @@
   },
   "scripts": {
     "start": "npm run serve",
-    "ghpages:build": "rm index.html && mv ghpages.html index.html && rm assets/babel* && rm build && rm wc-registry.json",
+    "ghpages:build": "rm -f index.html && mv ghpages.html index.html && rm -f assets/babel* && rm -f build && rm -f wc-registry.json",
     "serve": "npx @haxtheweb/haxcms-nodejs",
     "dev": "NODE_ENV=development npm run serve"
   }

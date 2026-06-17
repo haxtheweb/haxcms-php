@@ -63,6 +63,7 @@ class SiteRoutesMap
             ),
             'PATCH' => array(
                 'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/itemsMutation.php',
+                'v1/content' => dirname(__FILE__) . '/v1/contentMutation.php',
                 'v1/content/:idOrSlug' => dirname(__FILE__) . '/v1/contentMutation.php',
                 'v1/site' => dirname(__FILE__) . '/v1/siteMutation.php',
                 'v1/site/appearance' => dirname(__FILE__) . '/v1/siteMutation.php',

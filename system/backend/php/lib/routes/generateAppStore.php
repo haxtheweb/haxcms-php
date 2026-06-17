@@ -102,7 +102,6 @@ trait OperationsRouteGenerateAppStore {
       'site_token' => true,
       'siteToken' => true,
       'siteName' => true,
-      '__HAXJWT__' => true,
     );
     $sanitized = array();
     foreach ($input as $key => $value) {
@@ -131,7 +130,6 @@ trait OperationsRouteGenerateAppStore {
       $this->mergeAppStoreConnectionData($queryParams, $existingData)
     );
     $mergedData['siteName'] = $siteName;
-    $mergedData['__HAXJWT__'] = true;
     $rewritten = clone $connection;
     $rewritten->protocol = $GLOBALS['HAXCMS']->protocol;
     $normalizedDomain = rtrim((string) $GLOBALS['HAXCMS']->domain, '/');

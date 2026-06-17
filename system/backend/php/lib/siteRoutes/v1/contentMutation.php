@@ -29,17 +29,31 @@ return function ($context) {
         $siteToken = '';
     }
     $body['site_token'] = $siteToken;
-    $idOrSlug = $context->getParam('idOrSlug', '');
-    if (!isset($body['node']) || !is_array($body['node'])) {
-        $body['node'] = array();
-    }
-    if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-        $body['node']['id'] = $idOrSlug;
-    }
     $operations = new Operations();
-    $operations->params = $body;
-    $operations->rawParams = $body;
-    $result = $operations->saveNode();
+    $idOrSlug = $context->getParam('idOrSlug', '');
+    $result = null;
+    if ($idOrSlug === '') {
+        if (!isset($body['operation']) || !is_string($body['operation']) || trim($body['operation']) === '') {
+            $body['operation'] = 'replace';
+        }
+        else {
+            $body['operation'] = trim($body['operation']);
+        }
+        $operations->params = $body;
+        $operations->rawParams = $body;
+        $result = $operations->siteSearch();
+    }
+    else {
+        if (!isset($body['node']) || !is_array($body['node'])) {
+            $body['node'] = array();
+        }
+        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
+            $body['node']['id'] = $idOrSlug;
+        }
+        $operations->params = $body;
+        $operations->rawParams = $body;
+        $result = $operations->saveNode();
+    }
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
