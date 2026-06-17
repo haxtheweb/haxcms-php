@@ -86,8 +86,10 @@ class SiteApiSecurity
         }
         $publicPatterns = array(
             '/^$/',
-            '/^openapi(\.json|\.yaml)?$/',
-            '/^v1\/site$/',
+            '/^openapi(\\.json|\\.yaml)?$/',
+            '/^v1$/',
+            '/^v1\\/openapi(\\.json|\\.yaml)?$/',
+            '/^v1\\/site$/',
             '/^v1\/items$/',
             '/^v1\/items\/[^\/]+$/',
             '/^v1\/content$/',

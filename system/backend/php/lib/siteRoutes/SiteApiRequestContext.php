@@ -10,6 +10,7 @@ class SiteApiRequestContext
     public $absoluteApiBasePath;
     public $routeSuffix;
     public $params;
+    public $auth;
     public function __construct($site)
     {
         $this->site = $site;
@@ -20,6 +21,10 @@ class SiteApiRequestContext
         $this->absoluteApiBasePath = $this->getAbsoluteApiBasePath($this->apiBasePath);
         $this->routeSuffix = SiteRouteUtils::getRouteSuffixFromRelativePath($this->relativePath);
         $this->params = array();
+        $this->auth = array(
+            'authenticated' => false,
+            'userName' => '',
+        );
     }
     public static function fromSite($site)
     {

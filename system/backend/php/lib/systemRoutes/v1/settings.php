@@ -22,9 +22,25 @@ return function ($context) {
     $operations = new Operations();
     $operations->params = array();
     $operations->rawParams = array();
+    $queryParams = array();
+    if (
+        isset($GLOBALS['HAXCMS']) &&
+        is_object($GLOBALS['HAXCMS']) &&
+        isset($GLOBALS['HAXCMS']->safeGet) &&
+        is_array($GLOBALS['HAXCMS']->safeGet)
+    ) {
+        $queryParams = $GLOBALS['HAXCMS']->safeGet;
+    }
+    else if (is_array($_GET)) {
+        $queryParams = $_GET;
+    }
+    if (count($queryParams) > 0) {
+        $operations->params = array_merge($operations->params, $queryParams);
+        $operations->rawParams = array_merge($operations->rawParams, $queryParams);
+    }
     if (is_array($context->body)) {
-        $operations->params = $context->body;
-        $operations->rawParams = $context->body;
+        $operations->params = array_merge($operations->params, $context->body);
+        $operations->rawParams = array_merge($operations->rawParams, $context->body);
     }
     unset($operations->params['jwt']);
     unset($operations->params['user_token']);

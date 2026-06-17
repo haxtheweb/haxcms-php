@@ -1901,8 +1901,35 @@ class HAXCMS
         $basePathPrefix = ($normalizedBasePath === '/')
           ? ''
           : rtrim($normalizedBasePath, '/');
-        $systemApiBase = $basePathPrefix . '/system/api/v1';
-        $siteApiBase = $basePathPrefix . '/x/api';
+        $systemRequestBase = trim((string) $this->systemRequestBase, '/');
+        if ($systemRequestBase === '') {
+          $systemRequestBase = 'system/api';
+        }
+        $isDashboardRequest = FALSE;
+        if ($this->getDeploymentProfile() !== 'single-site') {
+          $sitesDirectorySegment = '/' . trim((string) $this->sitesDirectory, '/') . '/';
+          if (isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
+            $requestReferer = trim($_SERVER['HTTP_REFERER']);
+            if ($requestReferer !== '') {
+              $isDashboardRequest = (strpos($requestReferer, $sitesDirectorySegment) === FALSE);
+            }
+          }
+          else if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
+            $requestUri = trim($_SERVER['REQUEST_URI']);
+            if ($requestUri !== '') {
+              $isDashboardRequest = (strpos($requestUri, $sitesDirectorySegment) === FALSE);
+            }
+          }
+        }
+        $systemApiBase = $systemRequestBase . '/v1';
+        if (!$isDashboardRequest && $normalizedBasePath !== '/') {
+          $systemApiBase =
+            rtrim($normalizedBasePath, '/') .
+            '/' .
+            $systemRequestBase .
+            '/v1';
+        }
+        $siteApiBase = $basePathPrefix . '/x/api/v1';
         if ($multisiteUrlName !== '') {
           $siteApiBase =
             $basePathPrefix .
@@ -1910,7 +1937,7 @@ class HAXCMS
             trim((string) $this->sitesDirectory, '/') .
             '/' .
             rawurlencode($multisiteUrlName) .
-            '/x/api';
+            '/x/api/v1';
         }
         $settings = new stdClass();
         // Core v1 connection tokens (minimal, mirror NodeJS output)
