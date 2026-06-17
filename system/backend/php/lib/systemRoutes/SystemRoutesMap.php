@@ -14,10 +14,10 @@ class SystemRoutesMap
     {
         return array(
             'GET' => array(
-                '' => dirname(__FILE__) . '/discovery/api.php',
-                'openapi' => dirname(__FILE__) . '/discovery/openapi.php',
-                'openapi.json' => dirname(__FILE__) . '/discovery/openapi.php',
-                'openapi.yaml' => dirname(__FILE__) . '/discovery/openapi.php',
+                'v1' => dirname(__FILE__) . '/discovery/api.php',
+                'v1/openapi' => dirname(__FILE__) . '/discovery/openapi.php',
+                'v1/openapi.json' => dirname(__FILE__) . '/discovery/openapi.php',
+                'v1/openapi.yaml' => dirname(__FILE__) . '/discovery/openapi.php',
                 'v1/session' => dirname(__FILE__) . '/v1/session.php',
                 'v1/session/refresh' => dirname(__FILE__) . '/v1/session.php',
                 'v1/session/login' => dirname(__FILE__) . '/v1/session.php',

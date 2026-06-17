@@ -77,6 +77,10 @@ class SystemApiSecurity
     private static function getRouteSecurity($route, $method)
     {
         $publicRoutes = array(
+            'v1',
+            'v1/openapi',
+            'v1/openapi.json',
+            'v1/openapi.yaml',
             'v1/session/login',
             'v1/session/logout',
             'v1/session/refresh',
