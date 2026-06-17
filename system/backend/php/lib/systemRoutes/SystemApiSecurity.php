@@ -45,8 +45,7 @@ class SystemApiSecurity
             );
         }
         if ($security === 'admin') {
-            $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
-            if ($userName !== $activeUser && $userName !== $GLOBALS['HAXCMS']->superUser->name) {
+            if ($userName !== $GLOBALS['HAXCMS']->superUser->name) {
                 return array(
                     'allowed' => false,
                     'status' => 403,

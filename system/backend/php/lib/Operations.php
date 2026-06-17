@@ -5,6 +5,9 @@ include_once dirname(__FILE__) . '/routes/RoutesMap.php';
 foreach (OperationsRoutesMap::getRoutesMap() as $operationsRouteFile) {
   include_once $operationsRouteFile;
 }
+// Stubs for pre-existing missing trait files referenced in Routes.php
+include_once dirname(__FILE__) . '/routes/formLoad.php';
+include_once dirname(__FILE__) . '/routes/formProcess.php';
 include_once dirname(__FILE__) . '/routes/Routes.php';
 /**
  * @OA\Info(

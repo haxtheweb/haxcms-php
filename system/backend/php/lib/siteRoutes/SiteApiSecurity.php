@@ -78,6 +78,12 @@ class SiteApiSecurity
     {
         $suffix = trim((string) $routeSuffix, '/');
         $upperMethod = strtoupper((string) $method);
+        if ($upperMethod === 'OPTIONS') {
+            return 'public';
+        }
+        if (in_array($upperMethod, array('POST', 'PATCH', 'PUT', 'DELETE'), true)) {
+            return 'authenticated-site';
+        }
         $publicPatterns = array(
             '/^$/',
             '/^openapi(\.json|\.yaml)?$/',
@@ -108,9 +114,6 @@ class SiteApiSecurity
             }
         }
         if (preg_match('/^v1\/items\/[^\/]+\/revisions/', $suffix)) {
-            return 'authenticated-site';
-        }
-        if (in_array($upperMethod, array('POST', 'PATCH', 'PUT', 'DELETE'), true)) {
             return 'authenticated-site';
         }
         return 'authenticated';

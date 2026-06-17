@@ -61,7 +61,7 @@ class SystemApiRequestContext
         $path = is_string($relativePath) && $relativePath != ''
             ? $relativePath
             : SiteRouteUtils::getRelativePathFromScript();
-        return (bool) preg_match('/^\/system\/api(?:\/|$)/', $path);
+        return (bool) preg_match('/^\/(?:system\/)?api(?:\/|$)/', $path);
     }
     public static function getApiBasePathFromRequestPath($requestPath = '')
     {
@@ -82,7 +82,7 @@ class SystemApiRequestContext
         if (!self::isSystemApiPath($path)) {
             return null;
         }
-        $suffix = preg_replace('/^\/system\/api\/?/', '', $path);
+        $suffix = preg_replace('/^\/(?:system\/)?api\/?/', '', $path);
         if (!is_string($suffix)) {
             return '';
         }
