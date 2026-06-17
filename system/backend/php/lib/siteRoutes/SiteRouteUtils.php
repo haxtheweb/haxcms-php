@@ -694,7 +694,13 @@ class SiteRouteUtils
             ? $options['rawByFormat']
             : array();
         $format = self::detectResponseFormat($allowedFormats, $defaultFormat, $routeSuffix);
-        $payload = $envelope ? array('status' => $statusCode, 'data' => $data) : $data;
+        // Avoid double-wrapping responses that are already enveloped (legacy routes return {status, data})
+        if ($envelope && is_array($data) && isset($data['status']) && isset($data['data']) && !isset($data['__failed']) && !isset($data['__noencode'])) {
+            $payload = $data;
+        }
+        else {
+            $payload = $envelope ? array('status' => $statusCode, 'data' => $data) : $data;
+        }
         $resourcePath = $routeSuffix == '' ? $apiBasePath : $apiBasePath . '/' . $routeSuffix;
         self::setRepresentationHeaders($resourcePath, $allowedFormats, $format);
         http_response_code($statusCode);

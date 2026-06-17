@@ -1863,83 +1863,55 @@ class HAXCMS
         $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
         // user token is just the name of the logged in user
         $userToken = $this->getRequestToken($requestTokenUser);
-        $path = $base . $this->systemRequestBase . '/';
-        $v1Path = $base . 'system/api/v1/';
-        $siteV1Path = $base . 'x/api/v1/';
+        $normalizedBase = rtrim($base, '/');
+        $systemApiBase = ($normalizedBase === '' ? '' : $normalizedBase . '/') . 'system/api/v1';
+        $siteApiBase = ($normalizedBase === '' ? '/' : $normalizedBase . '/') . 'x/api';
         $settings = new stdClass();
-        // Core v1 connection tokens (match NodeJS v1 response structure)
+        // Core v1 connection tokens (minimal, mirror NodeJS output)
         $settings->token = $this->getRequestToken();
         $settings->siteToken = $siteToken;
         $settings->userToken = $userToken;
-        $settings->siteApiBasePath = $siteV1Path;
-        $settings->siteOpenApiPath = $siteV1Path . 'openapi.json';
-        $settings->systemApiBasePath = rtrim($v1Path, '/');
-        $settings->systemOpenApiPath = $v1Path . 'openapi.json';
-        // v1 system API session paths
-        $settings->login = $v1Path . 'session/login';
-        $settings->refreshUrl = $v1Path . 'session/refresh';
-        $settings->logout = $v1Path . 'session/logout';
-        $settings->connectionTest = $v1Path . 'session/connection-test';
-        $settings->getUserDataPath = $v1Path . 'session/user';
+        $settings->siteApiBasePath = $siteApiBase;
+        $settings->siteOpenApiPath = $siteApiBase . '/openapi.json';
+        $settings->systemApiBasePath = $systemApiBase;
+        $settings->systemOpenApiPath = $systemApiBase . '/openapi.json';
+        // Resolve system API paths from OpenAPI spec by operationId (mirrors NodeJS behavior)
+        $systemApiV1BasePath = $systemApiBase . '/';
+        $settings->login = $this->resolveSystemOperationPath(
+          'sessionLogin', $systemApiV1BasePath, 'session/login'
+        );
+        $settings->refreshUrl = $this->resolveSystemOperationPath(
+          'sessionRefreshGet', $systemApiV1BasePath, 'session/refresh'
+        );
+        $settings->logout = $this->resolveSystemOperationPath(
+          'sessionLogout', $systemApiV1BasePath, 'session/logout'
+        );
+        $settings->connectionTest = $this->resolveSystemOperationPath(
+          'sessionConnectionTestGet', $systemApiV1BasePath, 'session/connection-test'
+        );
+        $settings->getUserDataPath = $this->resolveSystemOperationPath(
+          'sessionUserGet', $systemApiV1BasePath, 'session/user'
+        );
         $settings->getUserDataHeaders = new stdClass();
         $settings->getUserDataHeaders->{'X-HAXCMS-User-Token'} = $userToken;
         $settings->userTokenHeader = 'X-HAXCMS-User-Token';
         $settings->redirectUrl = $this->basePath;
-        // v1 site API paths (front-end primary) - no query tokens, use Authorization: Bearer + X-HAXCMS-Site-Token headers
-        $settings->saveNodePath = $siteV1Path . 'content/{idOrSlug}';
-        $settings->saveManifestPath = $siteV1Path . 'site';
-        $settings->saveAppearanceSettingsPath = $siteV1Path . 'site/appearance';
-        $settings->saveOutlinePath = $siteV1Path . 'site/outline';
-        $settings->saveNodeDetailsPath = $siteV1Path . 'items/{idOrSlug}';
-        $settings->savePlatformSettingsPath = $siteV1Path . 'site/platform';
-        $settings->saveAllowedBlocksPath = $siteV1Path . 'site/blocks';
-        $settings->saveEditorSettingsPath = $siteV1Path . 'site/editor';
-        $settings->saveSeoSettingsPath = $siteV1Path . 'site/seo';
-        $settings->contentSearchPath = $siteV1Path . 'search';
-        $settings->searchContentPath = $siteV1Path . 'search';
-        $settings->createNodePath = $siteV1Path . 'items';
-        $settings->deleteNodePath = $siteV1Path . 'items/{idOrSlug}';
-        $settings->getNodeRevisionsPath = $siteV1Path . 'items/{idOrSlug}/revisions';
-        $settings->getNodeRevisionPath = $siteV1Path . 'items/{idOrSlug}/revisions/{revisionId}';
-        $settings->restoreNodeRevisionPath = $siteV1Path . 'items/{idOrSlug}/revisions/{revisionId}/restore';
-        $settings->listFilesPath = $siteV1Path . 'files';
-        $settings->saveFilePath = $siteV1Path . 'files';
-        $settings->fileOperationPath = $siteV1Path . 'files/{fileUuid}';
-        // v1 system API paths (front-end primary)
-        $settings->createSite = $v1Path . 'sites';
-        $settings->downloadSite = $v1Path . 'sites/{siteName}/download';
-        $settings->downloadSiteSkeleton = $v1Path . 'sites/{siteName}/download-skeleton';
-        $settings->saveSiteAsTemplate = $v1Path . 'sites/{siteName}/save-as-template';
-        $settings->archiveSite = $v1Path . 'sites/{siteName}/archive';
-        $settings->cloneSite = $v1Path . 'sites/{siteName}/clone';
-        $settings->getSitesList = $v1Path . 'sites';
-        if ($this->getDeploymentProfile() != 'haxiam-managed') {
-          $settings->systemStatus = $v1Path . 'status';
-          $settings->getApiKeys = $v1Path . 'configuration/api-keys';
-          $settings->saveApiKeys = $v1Path . 'configuration/api-keys';
-          $settings->getMediaSettings = $v1Path . 'configuration/media';
-          $settings->saveMediaSettings = $v1Path . 'configuration/media';
-          $settings->saveEnabledSkeletons = $v1Path . 'skeletons';
-          $settings->schemaFileOperation = $v1Path . 'configuration/schema-files/operations';
-          $settings->saveEnabledThemes = $v1Path . 'themes';
-          $settings->saveEnabledBlocks = $v1Path . 'blocks';
-          $settings->systemBlocksList = $v1Path . 'blocks';
-        }
-        // Skeletons list endpoint for App HAX v2 dashboard
-        $settings->skeletonsList = $v1Path . 'skeletons';
-        // Themes list endpoint for App HAX v2 dashboard
-        $settings->themesList = $v1Path . 'themes';
-        // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
-        if (isset($this->config->iam) && $this->config->iam) {
-            $settings->haxiamAddUserAccess = $v1Path . 'haxiamAddUserAccess';
-        }
         // v1 appStore (match NodeJS structure: url, params, headers)
+        $appStorePath = $this->resolveSystemOperationPath(
+          'generateAppStore', $systemApiV1BasePath, 'integrations/app-store'
+        );
         $settings->appStore = new stdClass();
-        $settings->appStore->url = $v1Path . 'integrations/app-store';
+        $settings->appStore->url = $appStorePath;
         $settings->appStore->params = new stdClass();
         $settings->appStore->params->siteName = $sitename;
         $settings->appStore->headers = new stdClass();
         $settings->appStore->headers->{'X-HAXCMS-Site-Token'} = $siteToken;
+        // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
+        if (isset($this->config->iam) && $this->config->iam) {
+            $settings->haxiamAddUserAccess = $this->resolveSystemOperationPath(
+              'haxiamAddUserAccess', $systemApiV1BasePath, 'haxiamAddUserAccess'
+            );
+        }
         try {
           $discoveredThemes = HAXCMSThemeSettingsService::discoverThemes($this);
           $detectedThemeNames = array();
@@ -1999,6 +1971,107 @@ class HAXCMS
         }
         $this->dispatchEvent('haxcms-connection-settings', $settings);
         return $settings;
+    }
+    /**
+     * Resolve a system API path by operationId from the OpenAPI spec.
+     * Mirrors NodeJS resolveSystemOperationPath behavior.
+     */
+    private function resolveSystemOperationPath(
+        $operationId = '',
+        $systemApiV1BasePath = '',
+        $fallbackRelativePath = ''
+    ) {
+        $normalizedSystemBasePath = rtrim($systemApiV1BasePath, '/') . '/';
+        $fallbackPath = ltrim($fallbackRelativePath, '/');
+        $fallbackRoute = $normalizedSystemBasePath . $fallbackPath;
+        $operationPaths = $this->getSystemOpenApiOperationPaths();
+        if (!is_array($operationPaths) || !isset($operationPaths[$operationId])) {
+            return $fallbackRoute;
+        }
+        $configuredPath = trim($operationPaths[$operationId]);
+        if ($configuredPath === '') {
+            return $fallbackRoute;
+        }
+        $normalizedConfiguredPath = $this->normalizePath($configuredPath);
+        $normalizedSpecBasePath = '/system/api/v1';
+        if ($normalizedConfiguredPath === $normalizedSpecBasePath) {
+            return rtrim($normalizedSystemBasePath, '/');
+        }
+        if (strpos($normalizedConfiguredPath, $normalizedSpecBasePath . '/') === 0) {
+            $routeSuffix = ltrim(
+                substr($normalizedConfiguredPath, strlen($normalizedSpecBasePath)),
+                '/'
+            );
+            return $normalizedSystemBasePath . $routeSuffix;
+        }
+        return $fallbackRoute;
+    }
+    /**
+     * Normalize a path string for safe comparison.
+     */
+    private function normalizePath($pathValue = '') {
+        $normalized = (string) $pathValue;
+        if ($normalized === '') {
+            return '/';
+        }
+        $normalized = preg_replace('/\/+/', '/', $normalized);
+        if ($normalized[0] !== '/') {
+            $normalized = '/' . $normalized;
+        }
+        if (strlen($normalized) > 1 && substr($normalized, -1) === '/') {
+            $normalized = substr($normalized, 0, -1);
+        }
+        return $normalized;
+    }
+    /**
+     * Parse system OpenAPI spec and return operationId => path map.
+     * Parsed once per request and cached in a static variable.
+     */
+    private function getSystemOpenApiOperationPaths() {
+        static $cachedPaths = null;
+        if ($cachedPaths !== null) {
+            return $cachedPaths;
+        }
+        $operationPaths = array();
+        $specFile = dirname(__FILE__) . '/systemRoutes/openapi/system-spec.yaml';
+        if (!file_exists($specFile)) {
+            $cachedPaths = $operationPaths;
+            return $cachedPaths;
+        }
+        $raw = @file_get_contents($specFile);
+        if ($raw === false) {
+            $cachedPaths = $operationPaths;
+            return $cachedPaths;
+        }
+        $lines = explode("\n", $raw);
+        $currentPath = '';
+        $httpMethods = array('get', 'post', 'put', 'patch', 'delete');
+        foreach ($lines as $line) {
+            $trimmed = rtrim($line);
+            // Detect path lines: they start with "  /path:" or "  /path:"
+            if (preg_match('/^(\s*)\/\S+:\s*$/', $trimmed, $matches)) {
+                $indent = strlen($matches[1]);
+                // Only treat as a new path if indent is 2 (top-level under paths)
+                if ($indent === 2) {
+                    $currentPath = trim(substr($trimmed, 0, strpos($trimmed, ':')));
+                }
+                continue;
+            }
+            // Detect method lines under the current path: 4-space indent
+            if ($currentPath !== '' && preg_match('/^    (get|post|put|patch|delete):\s*$/', $trimmed, $methodMatches)) {
+                $currentMethod = $methodMatches[1];
+                continue;
+            }
+            // Detect operationId lines under a method
+            if ($currentPath !== '' && preg_match('/^      operationId:\s*(\S+)\s*$/', $trimmed, $opMatches)) {
+                $opId = $opMatches[1];
+                if ($opId !== '' && !isset($operationPaths[$opId])) {
+                    $operationPaths[$opId] = $currentPath;
+                }
+            }
+        }
+        $cachedPaths = $operationPaths;
+        return $cachedPaths;
     }
     /**
      * Get cache data from file system

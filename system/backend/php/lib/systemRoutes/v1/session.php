@@ -16,6 +16,12 @@ return function ($context) {
     $response = null;
     if ($route === 'v1/session/login') {
         $response = $operations->login();
+        // If login returns a flat {status, jwt} envelope, emit it directly
+        if (is_array($response) && isset($response['status']) && isset($response['jwt']) && !isset($response['__failed'])) {
+            header('Content-Type: application/json');
+            print json_encode($response);
+            exit;
+        }
     }
     else if ($route === 'v1/session') {
         if ($method === 'GET') {
@@ -33,6 +39,13 @@ return function ($context) {
     }
     else if ($route === 'v1/session/connection-settings') {
         $response = $operations->connectionSettings();
+        // connectionSettings returns __noencode with JS content; emit it directly
+        if (is_array($response) && isset($response['__noencode'])) {
+            $contentType = isset($response['__noencode']['contentType']) ? $response['__noencode']['contentType'] : 'application/javascript';
+            header('Content-Type: ' . $contentType);
+            print $response['__noencode']['message'];
+            exit;
+        }
     }
     else if ($route === 'v1/session/connection-test') {
         $response = $operations->connectionTest();
