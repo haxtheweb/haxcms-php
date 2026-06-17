@@ -1867,19 +1867,24 @@ class HAXCMS
         $v1Path = $base . 'system/api/v1/';
         $siteV1Path = $base . 'x/api/v1/';
         $settings = new stdClass();
-        // Legacy op route paths (kept for internal compatibility)
-        $settings->legacyLogin = $path . 'login';
-        $settings->legacyRefreshUrl = $path . 'refreshAccessToken';
-        $settings->legacyLogout = $path . 'logout';
-        $settings->legacyConnectionSettings = $path . 'connectionSettings';
-        $settings->legacyConnectionTest = $path . 'connectionTest';
-        // v1 system API paths (front-end primary)
+        // Core v1 connection tokens (match NodeJS v1 response structure)
+        $settings->token = $this->getRequestToken();
+        $settings->siteToken = $siteToken;
+        $settings->userToken = $userToken;
+        $settings->siteApiBasePath = $siteV1Path;
+        $settings->siteOpenApiPath = $siteV1Path . 'openapi.json';
+        $settings->systemApiBasePath = rtrim($v1Path, '/');
+        $settings->systemOpenApiPath = $v1Path . 'openapi.json';
+        // v1 system API session paths
         $settings->login = $v1Path . 'session/login';
         $settings->refreshUrl = $v1Path . 'session/refresh';
         $settings->logout = $v1Path . 'session/logout';
-        $settings->connectionSettings = $v1Path . 'session/connection-settings';
         $settings->connectionTest = $v1Path . 'session/connection-test';
-        $settings->redirectUrl = $this->basePath; // enables redirecting back to site root if JWT really is dead
+        $settings->getUserDataPath = $v1Path . 'session/user';
+        $settings->getUserDataHeaders = new stdClass();
+        $settings->getUserDataHeaders->{'X-HAXCMS-User-Token'} = $userToken;
+        $settings->userTokenHeader = 'X-HAXCMS-User-Token';
+        $settings->redirectUrl = $this->basePath;
         // v1 site API paths (front-end primary) - no query tokens, use Authorization: Bearer + X-HAXCMS-Site-Token headers
         $settings->saveNodePath = $siteV1Path . 'content/{idOrSlug}';
         $settings->saveManifestPath = $siteV1Path . 'site';
@@ -1901,7 +1906,6 @@ class HAXCMS
         $settings->saveFilePath = $siteV1Path . 'files';
         $settings->fileOperationPath = $siteV1Path . 'files/{fileUuid}';
         // v1 system API paths (front-end primary)
-        $settings->getUserDataPath = $v1Path . 'session/user';
         $settings->createSite = $v1Path . 'sites';
         $settings->downloadSite = $v1Path . 'sites/{siteName}/download';
         $settings->downloadSiteSkeleton = $v1Path . 'sites/{siteName}/download-skeleton';
@@ -1929,7 +1933,13 @@ class HAXCMS
         if (isset($this->config->iam) && $this->config->iam) {
             $settings->haxiamAddUserAccess = $v1Path . 'haxiamAddUserAccess';
         }
-        $settings->appStore = $this->appStoreConnection($siteToken, $sitename);
+        // v1 appStore (match NodeJS structure: url, params, headers)
+        $settings->appStore = new stdClass();
+        $settings->appStore->url = $v1Path . 'integrations/app-store';
+        $settings->appStore->params = new stdClass();
+        $settings->appStore->params->siteName = $sitename;
+        $settings->appStore->headers = new stdClass();
+        $settings->appStore->headers->{'X-HAXCMS-Site-Token'} = $siteToken;
         try {
           $discoveredThemes = HAXCMSThemeSettingsService::discoverThemes($this);
           $detectedThemeNames = array();
