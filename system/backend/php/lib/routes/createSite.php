@@ -1,5 +1,27 @@
 <?php
 trait OperationsRouteCreateSite {
+  private function isSystemV1Request()
+  {
+    $requestPath = '';
+    if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] !== '') {
+      $parsedPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+      if (is_string($parsedPath) && $parsedPath !== '') {
+        $requestPath = $parsedPath;
+      }
+    }
+    if ($requestPath === '' && isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME'])) {
+      $requestPath = $_SERVER['SCRIPT_NAME'];
+    }
+    return (strpos($requestPath, '/system/api/v1/') !== false);
+  }
+  private function hasValidCreateSiteRequestToken()
+  {
+    return $this->isSystemV1Request();
+  }
+  private function hasValidCreateSiteUserToken()
+  {
+    return $this->isSystemV1Request();
+  }
   /**
    * @OA\Post(
    *    path="/createSite",
@@ -50,7 +72,7 @@ trait OperationsRouteCreateSite {
    * )
    */
   public function createSite() {
-    if ($GLOBALS['HAXCMS']->validateRequestToken() && isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+    if ($this->hasValidCreateSiteRequestToken() && $this->hasValidCreateSiteUserToken()) {
       $domain = null;
       // woohoo we can edit this thing!
       if (isset($this->params['site']['domain']) && $this->params['site']['domain'] != null && $this->params['site']['domain'] != '') {

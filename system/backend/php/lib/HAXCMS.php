@@ -1922,14 +1922,14 @@ class HAXCMS
           }
         }
         $systemApiBase = $systemRequestBase . '/v1';
-        if (!$isDashboardRequest && $normalizedBasePath !== '/') {
+        if (!$isDashboardRequest) {
           $systemApiBase =
             rtrim($normalizedBasePath, '/') .
             '/' .
             $systemRequestBase .
             '/v1';
         }
-        $siteApiBase = $basePathPrefix . '/x/api/v1';
+        $siteApiBase = $basePathPrefix . '/x/api';
         if ($multisiteUrlName !== '') {
           $siteApiBase =
             $basePathPrefix .
@@ -1937,7 +1937,7 @@ class HAXCMS
             trim((string) $this->sitesDirectory, '/') .
             '/' .
             rawurlencode($multisiteUrlName) .
-            '/x/api/v1';
+            '/x/api';
         }
         $settings = new stdClass();
         // Core v1 connection tokens (minimal, mirror NodeJS output)

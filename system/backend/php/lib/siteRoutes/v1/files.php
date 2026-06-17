@@ -1,5 +1,62 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+if (!function_exists('haxcmsSiteFileCanonicalPath')) {
+    function haxcmsSiteFileCanonicalPath($relativePath = '')
+    {
+        $normalizedPath = ltrim(SiteRouteUtils::normalizePathForResponse((string) $relativePath), '/');
+        if ($normalizedPath == '') {
+            return 'files';
+        }
+        if (strpos($normalizedPath, 'files/') === 0) {
+            return $normalizedPath;
+        }
+        return 'files/' . $normalizedPath;
+    }
+}
+if (!function_exists('haxcmsSiteFileUuidFromHash')) {
+    function haxcmsSiteFileUuidFromHash($hash = '')
+    {
+        $normalizedHash = strtolower((string) $hash);
+        if (strlen($normalizedHash) < 32) {
+            return '';
+        }
+        return
+            substr($normalizedHash, 0, 8) . '-' .
+            substr($normalizedHash, 8, 4) . '-' .
+            substr($normalizedHash, 12, 4) . '-' .
+            substr($normalizedHash, 16, 4) . '-' .
+            substr($normalizedHash, 20, 12);
+    }
+}
+if (!function_exists('haxcmsSiteFileUuidSiteName')) {
+    function haxcmsSiteFileUuidSiteName($site)
+    {
+        if (
+            isset($site) &&
+            isset($site->manifest) &&
+            isset($site->manifest->metadata) &&
+            isset($site->manifest->metadata->site) &&
+            isset($site->manifest->metadata->site->name) &&
+            is_string($site->manifest->metadata->site->name) &&
+            $site->manifest->metadata->site->name != ''
+        ) {
+            return $site->manifest->metadata->site->name;
+        }
+        if (isset($site) && isset($site->name) && is_string($site->name) && $site->name != '') {
+            return $site->name;
+        }
+        return 'site';
+    }
+}
+if (!function_exists('haxcmsSiteDeterministicFileUuid')) {
+    function haxcmsSiteDeterministicFileUuid($site, $relativePath = '', $fileSize = 0)
+    {
+        $canonicalPath = haxcmsSiteFileCanonicalPath($relativePath);
+        $canonicalSize = (is_numeric($fileSize) && intval($fileSize) > 0) ? intval($fileSize) : 0;
+        $identityString = haxcmsSiteFileUuidSiteName($site) . ':' . $canonicalPath . ':' . $canonicalSize;
+        return haxcmsSiteFileUuidFromHash(hash('sha256', $identityString));
+    }
+}
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
@@ -68,6 +125,7 @@ return function ($context) {
             'url' => $apiPath,
             'mimetype' => $mimetype,
             'name' => basename($apiPath),
+            'uuid' => haxcmsSiteDeterministicFileUuid($site, $apiPath, isset($file['stats']['size']) ? intval($file['stats']['size']) : 0),
             'size' => isset($file['stats']['size']) ? intval($file['stats']['size']) : 0,
             'dateCreated' => $dateCreated,
         );

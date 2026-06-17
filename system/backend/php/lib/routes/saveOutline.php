@@ -37,6 +37,67 @@ trait OperationsRouteSaveOutline {
         $originalLocationMap[$originalItem->id] = $this->normalizeOutlineLocation($originalItem->location);
       }
       $safeLocationMap = array();
+      if (!isset($this->rawParams['items']) || !is_array($this->rawParams['items'])) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Missing outline items payload',
+          )
+        );
+      }
+      $normalizedItems = array();
+      foreach ($this->rawParams['items'] as $itemIndex => $rawItem) {
+        if (is_array($rawItem)) {
+          $rawItem = json_decode(json_encode($rawItem));
+        }
+        if (!is_object($rawItem)) {
+          continue;
+        }
+        if (!isset($rawItem->id) || !is_string($rawItem->id) || trim($rawItem->id) == '') {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Each outline item requires an id',
+            )
+          );
+        }
+        $rawItem->id = trim((string) $rawItem->id);
+        if (!isset($rawItem->title) || !is_string($rawItem->title)) {
+          $rawItem->title = '';
+        }
+        if (!isset($rawItem->parent)) {
+          $rawItem->parent = null;
+        }
+        if (!isset($rawItem->indent) || !is_numeric($rawItem->indent)) {
+          $rawItem->indent = 0;
+        }
+        if (!isset($rawItem->order) || !is_numeric($rawItem->order)) {
+          $rawItem->order = (int) $itemIndex;
+        }
+        if (!isset($rawItem->slug) || !is_string($rawItem->slug)) {
+          $rawItem->slug = '';
+        }
+        if (!isset($rawItem->metadata) || is_null($rawItem->metadata)) {
+          $rawItem->metadata = new stdClass();
+        }
+        else if (is_array($rawItem->metadata)) {
+          $rawItem->metadata = json_decode(json_encode($rawItem->metadata));
+        }
+        else if (!is_object($rawItem->metadata)) {
+          $rawItem->metadata = new stdClass();
+        }
+        if (isset($rawItem->contents) && !is_string($rawItem->contents)) {
+          $rawItem->contents = '';
+        }
+        if (isset($rawItem->duplicate) && !is_string($rawItem->duplicate)) {
+          $rawItem->duplicate = '';
+        }
+        if (isset($rawItem->delete)) {
+          $rawItem->delete = ($rawItem->delete === true);
+        }
+        $normalizedItems[] = $rawItem;
+      }
+      $this->rawParams['items'] = $normalizedItems;
       $items = $this->rawParams['items'];
       $itemMap = array();
       $pageAlternateContentMap = array();
@@ -158,8 +219,10 @@ trait OperationsRouteSaveOutline {
         }
         $safeLocationMap[$page->id] = $page->location;
         // check for any metadata keys that did come over
-        foreach ($item->metadata as $key => $value) {
-            $page->metadata->{$key} = $value;
+        if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
+          foreach ($item->metadata as $key => $value) {
+              $page->metadata->{$key} = $value;
+          }
         }
         // safety check for new things
         if (!isset($page->metadata->created)) {

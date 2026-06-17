@@ -1,5 +1,97 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
+if (!function_exists('haxcmsSiteFileCanonicalPath')) {
+    function haxcmsSiteFileCanonicalPath($relativePath = '')
+    {
+        $normalizedPath = ltrim(SiteRouteUtils::normalizePathForResponse((string) $relativePath), '/');
+        if ($normalizedPath == '') {
+            return 'files';
+        }
+        if (strpos($normalizedPath, 'files/') === 0) {
+            return $normalizedPath;
+        }
+        return 'files/' . $normalizedPath;
+    }
+}
+if (!function_exists('haxcmsSiteFileUuidFromHash')) {
+    function haxcmsSiteFileUuidFromHash($hash = '')
+    {
+        $normalizedHash = strtolower((string) $hash);
+        if (strlen($normalizedHash) < 32) {
+            return '';
+        }
+        return
+            substr($normalizedHash, 0, 8) . '-' .
+            substr($normalizedHash, 8, 4) . '-' .
+            substr($normalizedHash, 12, 4) . '-' .
+            substr($normalizedHash, 16, 4) . '-' .
+            substr($normalizedHash, 20, 12);
+    }
+}
+if (!function_exists('haxcmsSiteFileUuidSiteName')) {
+    function haxcmsSiteFileUuidSiteName($site)
+    {
+        if (
+            isset($site) &&
+            isset($site->manifest) &&
+            isset($site->manifest->metadata) &&
+            isset($site->manifest->metadata->site) &&
+            isset($site->manifest->metadata->site->name) &&
+            is_string($site->manifest->metadata->site->name) &&
+            $site->manifest->metadata->site->name != ''
+        ) {
+            return $site->manifest->metadata->site->name;
+        }
+        if (isset($site) && isset($site->name) && is_string($site->name) && $site->name != '') {
+            return $site->name;
+        }
+        return 'site';
+    }
+}
+if (!function_exists('haxcmsSiteDeterministicFileUuid')) {
+    function haxcmsSiteDeterministicFileUuid($site, $relativePath = '', $fileSize = 0)
+    {
+        $canonicalPath = haxcmsSiteFileCanonicalPath($relativePath);
+        $canonicalSize = (is_numeric($fileSize) && intval($fileSize) > 0) ? intval($fileSize) : 0;
+        $identityString = haxcmsSiteFileUuidSiteName($site) . ':' . $canonicalPath . ':' . $canonicalSize;
+        return haxcmsSiteFileUuidFromHash(hash('sha256', $identityString));
+    }
+}
+if (!function_exists('haxcmsResolveRequestedFilePathFromUuid')) {
+    function haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid = '')
+    {
+        $rawToken = trim(rawurldecode((string) $fileUuid));
+        if ($rawToken == '') {
+            return '';
+        }
+        $site = isset($context->site) ? $context->site : null;
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $rawToken) === 1) {
+            $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
+            if ($siteDirectory == '') {
+                return '';
+            }
+            $siteFilePath = $siteDirectory . '/files';
+            $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, '');
+            foreach ($files as $file) {
+                $relativePath = isset($file['relativePath']) ? (string) $file['relativePath'] : '';
+                if ($relativePath == '') {
+                    continue;
+                }
+                $apiPath = 'files/' . $relativePath;
+                $candidateUuid = haxcmsSiteDeterministicFileUuid(
+                    $site,
+                    $apiPath,
+                    isset($file['stats']['size']) ? intval($file['stats']['size']) : 0
+                );
+                if ($candidateUuid != '' && strcasecmp($candidateUuid, $rawToken) === 0) {
+                    return $apiPath;
+                }
+            }
+            return '';
+        }
+        return haxcmsSiteFileCanonicalPath($rawToken);
+    }
+}
 return function ($context) {
     $body = $context->getBody();
     if (!is_array($body)) {
@@ -59,7 +151,7 @@ return function ($context) {
         }
         if (!isset($body['path']) || $body['path'] === '') {
             if ($fileUuid !== '') {
-                $body['path'] = 'files/' . $fileUuid;
+                $body['path'] = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
             }
         }
         $operations->params = $body;
