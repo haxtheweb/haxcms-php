@@ -5,6 +5,9 @@ return function ($context) {
     if (!is_array($body)) {
         $body = array();
     }
+    unset($body['jwt']);
+    unset($body['user_token']);
+    unset($body['site_token']);
     $siteName = '';
     if (
         isset($context->site) &&
@@ -27,9 +30,10 @@ return function ($context) {
             $body['site']['name'] = $siteName;
         }
         $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
-        if (!isset($body['site_token']) || $body['site_token'] === '') {
-            $body['site_token'] = $siteToken;
+        if (!is_string($siteToken)) {
+            $siteToken = '';
         }
+        $body['site_token'] = $siteToken;
         if (isset($body['nodeId']) && (!isset($body['node']) || !isset($body['node']['id']))) {
             if (!isset($body['node']) || !is_array($body['node'])) {
                 $body['node'] = array();
@@ -44,9 +48,10 @@ return function ($context) {
             $body['siteName'] = $siteName;
         }
         $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
-        if (!isset($body['site_token']) || $body['site_token'] === '') {
-            $body['site_token'] = $siteToken;
+        if (!is_string($siteToken)) {
+            $siteToken = '';
         }
+        $body['site_token'] = $siteToken;
         if ($method === 'DELETE') {
             if (!isset($body['operation']) || $body['operation'] === '') {
                 $body['operation'] = 'delete';

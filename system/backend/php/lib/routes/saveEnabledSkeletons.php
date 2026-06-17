@@ -110,9 +110,8 @@ trait OperationsRouteSaveEnabledSkeletons
       );
     }
     try {
-      $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
       $discovered = method_exists($this, 'discoverSkeletonsListItems')
-        ? $this->discoverSkeletonsListItems($userToken)
+        ? $this->discoverSkeletonsListItems()
         : array();
       $enabledSet = array_flip($enabledSkeletons);
       $enabledMap = array();

@@ -2,6 +2,21 @@
 include_once dirname(__FILE__) . '/../../routes/RoutesMap.php';
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+if (!function_exists('haxcmsSystemSettingsInvokeAsPost')) {
+    function haxcmsSystemSettingsInvokeAsPost($operationCallback)
+    {
+        $savedMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : null;
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $response = call_user_func($operationCallback);
+        if ($savedMethod === null) {
+            unset($_SERVER['REQUEST_METHOD']);
+        }
+        else {
+            $_SERVER['REQUEST_METHOD'] = $savedMethod;
+        }
+        return $response;
+    }
+}
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
     $operations = new Operations();
@@ -11,10 +26,15 @@ return function ($context) {
         $operations->params = $context->body;
         $operations->rawParams = $context->body;
     }
+    unset($operations->params['jwt']);
+    unset($operations->params['user_token']);
+    unset($operations->params['site_token']);
+    unset($operations->rawParams['jwt']);
+    unset($operations->rawParams['user_token']);
+    unset($operations->rawParams['site_token']);
     $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
     $userToken = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
     $operations->params['user_token'] = $userToken;
-    $operations->rawParams['user_token'] = $userToken;
     $route = $context->routeSuffix;
     $method = $context->method;
     $response = null;
@@ -84,22 +104,32 @@ return function ($context) {
     }
     else if ($route === 'v1/configuration/api-keys') {
         if ($method === 'GET' || $method === 'POST') {
-            $response = $operations->getApiKeys();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'getApiKeys')
+            );
         }
         else {
-            $response = $operations->saveApiKeys();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'saveApiKeys')
+            );
         }
     }
     else if ($route === 'v1/configuration/media') {
         if ($method === 'GET' || $method === 'POST') {
-            $response = $operations->getMediaSettings();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'getMediaSettings')
+            );
         }
         else {
-            $response = $operations->saveMediaSettings();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'saveMediaSettings')
+            );
         }
     }
     else if ($route === 'v1/configuration/schema-files/operations') {
-        $response = $operations->schemaFileOperation();
+        $response = haxcmsSystemSettingsInvokeAsPost(
+            array($operations, 'schemaFileOperation')
+        );
     }
     else if ($route === 'v1/blocks') {
         if ($method === 'GET' || $method === 'POST') {
@@ -114,13 +144,20 @@ return function ($context) {
             $response = $operations->skeletonsList();
         }
         else if ($method === 'POST') {
-            $response = $operations->schemaFileOperation();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'schemaFileOperation')
+            );
         }
         else {
-            $response = $operations->saveEnabledSkeletons();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'saveEnabledSkeletons')
+            );
         }
     }
-    else if ($route === 'v1/skeletons/:skeletonName') {
+    else if (
+        $route === 'v1/skeletons/:skeletonName' ||
+        preg_match('/^v1\\/skeletons\\/[^\\/]+$/', $route) === 1
+    ) {
         if ($method === 'GET') {
             $operations->params['name'] = $context->params['skeletonName'];
             $operations->rawParams['name'] = $context->params['skeletonName'];
@@ -155,7 +192,9 @@ return function ($context) {
             $response = $operations->themesList();
         }
         else {
-            $response = $operations->saveEnabledThemes();
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'saveEnabledThemes')
+            );
         }
     }
     else {

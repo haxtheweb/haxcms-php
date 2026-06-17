@@ -4,27 +4,22 @@ return function ($context) {
     $operations = new Operations();
     $operations->params = array();
     $operations->rawParams = array();
-    $body = file_get_contents('php://input');
-    if ($body) {
-        $decoded = json_decode($body, true);
-        if (is_array($decoded)) {
-            $operations->params = $decoded;
-            $operations->rawParams = $decoded;
-        }
-    }
-    if (isset($_GET) && is_array($_GET)) {
-        $operations->params = array_merge($operations->params, $_GET);
-        $operations->rawParams = array_merge($operations->rawParams, $_GET);
-    }
-    if (isset($_POST) && is_array($_POST)) {
-        $operations->params = array_merge($operations->params, $_POST);
-        $operations->rawParams = array_merge($operations->rawParams, $_POST);
+    if (isset($context->body) && is_array($context->body)) {
+        $operations->params = $context->body;
+        $operations->rawParams = $context->body;
     }
     if (isset($context->params) && is_array($context->params)) {
         $operations->params = array_merge($operations->params, $context->params);
     }
+    unset($operations->params['jwt']);
+    unset($operations->params['user_token']);
+    unset($operations->params['site_token']);
+    unset($operations->rawParams['jwt']);
+    unset($operations->rawParams['user_token']);
+    unset($operations->rawParams['site_token']);
     $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
     $operations->params['user_token'] = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
+    $operations->rawParams['user_token'] = $operations->params['user_token'];
     $response = $operations->haxiamAddUserAccess();
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');

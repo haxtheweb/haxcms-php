@@ -26,7 +26,7 @@ trait OperationsRouteSkeletonsList {
     return ($queryFlag || $bodyFlag) ? true : false;
   }
 
-  private function discoverSkeletonsListItems($userToken = '')
+  private function discoverSkeletonsListItems()
   {
     $items = array();
     $seen = array();
@@ -97,10 +97,7 @@ trait OperationsRouteSkeletonsList {
         // Ensure base API path ends with a trailing slash so route
         // concatenation does not produce `/system/apigetSkeleton`.
         $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
-        $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($skeletonName);
-        if ($userToken !== '') {
-          $skeletonUrl .= '&user_token=' . urlencode($userToken);
-        }
+        $skeletonUrl = $baseAPIPath . 'v1/skeletons/' . rawurlencode($skeletonName);
         $items[] = array(
           'title' => $title,
           'description' => $description,
@@ -146,8 +143,7 @@ trait OperationsRouteSkeletonsList {
     }
 
     $includeDisabled = $this->includeDisabledSkeletonsRequest();
-    $userToken = isset($this->params['user_token']) ? $this->params['user_token'] : '';
-    $discovered = $this->discoverSkeletonsListItems($userToken);
+    $discovered = $this->discoverSkeletonsListItems();
     $detectedNames = array();
     foreach ($discovered as $item) {
       if (isset($item['machineName'])) {

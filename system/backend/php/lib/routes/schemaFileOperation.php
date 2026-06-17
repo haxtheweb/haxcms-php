@@ -165,6 +165,12 @@ trait OperationsRouteSchemaFileOperation {
     $schema = $this->normalizeSchemaOperationValue(
       $this->schemaOperationParam('schema', '')
     );
+    if ($schema === '') {
+      $schema = 'skeleton';
+    }
+    if ($schema === 'skeletons') {
+      $schema = 'skeleton';
+    }
     $schemaConfigs = $this->schemaOperationConfigs();
     if (!array_key_exists($schema, $schemaConfigs)) {
       return $this->schemaOperationFail(400, 'invalid schema');

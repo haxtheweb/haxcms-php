@@ -58,7 +58,7 @@ class HAXCMS
     public $safeGet;                // sanitized _GET data
     public $safeCLI;                // sanitized data from CLI arguments
     public $safeInputStream;        // sanitized php input stream
-    public $sessionJwt;             // session jwt; set via POST if it exists
+    public $sessionJwt;             // session jwt resolved from Authorization bearer token
     public $sessionToken;           // token for the request coming in; not a JWT but for form validation / XSS
     public $siteListing;            // additional attributes / slots allowed to be injected into the site-listing page
     public $systemRequestBase;      // base path to the API backend
@@ -86,8 +86,9 @@ class HAXCMS
         $_POST = (array) json_decode(file_get_contents('php://input'));
         // handle sanitization on request data, drop security things
         $this->safePost = $this->object_to_array($this->sanitizeArrayValues($_POST));
-        if (isset($this->safePost['jwt']) && is_string($this->safePost['jwt'])) {
-          $this->sessionJwt = $this->safePost['jwt'];
+        $bearerSessionToken = $this->getBearerTokenFromRequest();
+        if (is_string($bearerSessionToken) && $bearerSessionToken != '') {
+          $this->sessionJwt = $bearerSessionToken;
         }
         unset($this->safePost['jwt']);
         if (isset($this->safePost['token']) && is_string($this->safePost['token'])) {
@@ -899,76 +900,89 @@ class HAXCMS
     /**
      * Generate a valid HAX App store specification schema for connecting to this site via JSON.
      */
-    public function siteConnectionJSON($siteToken = '')
+    public function siteConnectionJSON($siteToken = '', $siteName = '')
     {
-        return '{
-      "details": {
-        "title": "Local uploads",
-        "icon": "perm-media",
-        "color": "light-blue",
-        "author": "HAXCMS",
-        "description": "HAXCMS integration for HAX",
-        "tags": ["media"]
-      },
-      "connection": {
-        "protocol": "' . $this->protocol . '",
-        "url": "' . $this->domain . $this->basePath . '",
-        "operations": {
-          "browse": {
-            "method": "GET",
-            "endPoint": "system/api/listFiles?site_token=' . $siteToken . '",
-            "pagination": {
-              "style": "link",
-              "props": {
-                "first": "page.first",
-                "next": "page.next",
-                "previous": "page.previous",
-                "last": "page.last"
-              }
-            },
-            "search": {
-              "filename": {
-                "title": "File name",
-                "type": "string"
-              }
-            },
-            "data": {
-              "__HAXJWT__": true,
-              "__HAXAPPENDUPLOADENDPOINT__": true
-            },
-            "resultMap": {
-              "defaultGizmoType": "image",
-              "items": "list",
-              "preview": {
-                "title": "name",
-                "details": "mime",
-                "image": "url",
-                "id": "uuid"
-              },
-              "gizmo": {
-                "source": "url",
-                "id": "uuid",
-                "title": "name",
-                "mimetype": "mimetype"
-              }
-            }
-          },
-          "add": {
-            "method": "POST",
-            "endPoint": "system/api/saveFile?site_token=' . $siteToken .'",
-            "acceptsGizmoTypes": ' . json_encode($this->acceptedHAXFileTypes) . ',
-            "resultMap": {
-              "item": "data.file",
-              "defaultGizmoType": "image",
-              "gizmo": {
-                "source": "url",
-                "id": "uuid"
-              }
-            }
-          }
+        $normalizedSiteName = trim((string) $siteName);
+        $browseEndPoint = 'x/api/v1/files';
+        if ($normalizedSiteName !== '') {
+          $browseEndPoint =
+            $this->sitesDirectory .
+            '/' .
+            rawurlencode($normalizedSiteName) .
+            '/x/api/v1/files';
         }
-      }
-    }';
+        $connection = array(
+          'details' => array(
+            'title' => 'Local files',
+            'icon' => 'perm-media',
+            'color' => 'light-blue',
+            'author' => 'HAXCMS',
+            'description' => 'HAXCMS integration for HAX',
+            'tags' => array('media', 'hax'),
+          ),
+          'connection' => array(
+            'protocol' => $this->protocol,
+            'url' => $this->domain . $this->basePath,
+            'headers' => array(
+              'X-HAXCMS-Site-Token' => (string) $siteToken,
+            ),
+            'operations' => array(
+              'browse' => array(
+                'method' => 'GET',
+                'endPoint' => $browseEndPoint,
+                'pagination' => array(
+                  'style' => 'link',
+                  'props' => array(
+                    'first' => 'page.first',
+                    'next' => 'page.next',
+                    'previous' => 'page.previous',
+                    'last' => 'page.last',
+                  ),
+                ),
+                'search' => array(
+                  'filename' => array(
+                    'title' => 'File name',
+                    'type' => 'string',
+                  ),
+                ),
+                'data' => array(
+                  '__HAXJWT__' => true,
+                  '__HAXAPPENDUPLOADENDPOINT__' => true,
+                ),
+                'resultMap' => array(
+                  'defaultGizmoType' => 'image',
+                  'items' => 'data.files',
+                  'preview' => array(
+                    'title' => 'name',
+                    'details' => 'mimetype',
+                    'image' => 'fullUrl',
+                    'id' => 'uuid',
+                  ),
+                  'gizmo' => array(
+                    'source' => 'fullUrl',
+                    'id' => 'uuid',
+                    'title' => 'name',
+                    'mimetype' => 'mimetype',
+                  ),
+                ),
+              ),
+              'add' => array(
+                'method' => 'POST',
+                'endPoint' => $browseEndPoint,
+                'acceptsGizmoTypes' => $this->acceptedHAXFileTypes,
+                'resultMap' => array(
+                  'item' => 'data.file',
+                  'defaultGizmoType' => 'image',
+                  'gizmo' => array(
+                    'source' => 'url',
+                    'id' => 'uuid',
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        return json_encode($connection);
     }
     /**
      * Generate appstore connection information. This has to happen at run time.
@@ -978,13 +992,18 @@ class HAXCMS
         $connection = new stdClass();
         // support for remote appstores if a developer overrides the location
         // of the appstore then we can't assume it exists on this server
-        if ($this->appStoreFile == $this->systemRequestBase . '/generateAppStore') {
-          $connection->url = $this->basePath . $this->appStoreFile;
-          $connection->params = array(
-            'appstore_token' => $this->getRequestToken('appstore'),
-            'site_token' => $siteToken,
-            'siteName' => $siteName,
-          );
+        if (
+          $this->appStoreFile == $this->systemRequestBase . '/generateAppStore' ||
+          $this->appStoreFile == $this->systemRequestBase . '/v1/integrations/app-store'
+        ) {
+          $normalizedBasePath = rtrim((string) $this->basePath, '/');
+          $connection->url =
+            ($normalizedBasePath === '' ? '' : $normalizedBasePath . '/') .
+            'system/api/v1/integrations/app-store';
+          $connection->params = new stdClass();
+          $connection->params->siteName = trim((string) $siteName);
+          $connection->headers = new stdClass();
+          $connection->headers->{'X-HAXCMS-Site-Token'} = trim((string) $siteToken);
         }
         else {
           $connection->url = $this->appStoreFile;
@@ -1521,10 +1540,6 @@ class HAXCMS
       $request = FALSE;
       if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
       }
-      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $request = $this->decodeJWT($_POST['jwt'])) {
-      }
-      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
-      }
       if (
         $request != FALSE &&
         isset($request->id) &&
@@ -1851,21 +1866,52 @@ class HAXCMS
     public function appJWTConnectionSettings($base = '/')
     {
         $sitename = '';
-        // pull out the site name from the base path
-        if (isset($_SERVER['HTTP_REFERER'])) {
-          $sitepath = str_replace($this->protocol . '://' . $this->domain . $this->basePath . $this->sitesDirectory . '/', '', $_SERVER['HTTP_REFERER']);
-          $siteparts = explode('/', $sitepath);
-          // should always be at the base here
-          $sitename = $siteparts[0];
+        $multisiteUrlName = '';
+        if (isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
+          $referer = trim($_SERVER['HTTP_REFERER']);
+          $normalizedBasePath = '/' . trim((string) $this->basePath, '/');
+          if ($normalizedBasePath !== '/') {
+            $normalizedBasePath .= '/';
+          }
+          $siteContextPrefix =
+            $this->protocol .
+            '://' .
+            $this->domain .
+            $normalizedBasePath .
+            trim((string) $this->sitesDirectory, '/') .
+            '/';
+          if (strpos($referer, $siteContextPrefix) === 0) {
+            $sitepath = substr($referer, strlen($siteContextPrefix));
+            $siteparts = explode('/', $sitepath);
+            if (isset($siteparts[0]) && is_string($siteparts[0])) {
+              $multisiteUrlName = trim($siteparts[0]);
+            }
+          }
         }
+        $sitename = $multisiteUrlName;
         $requestTokenUser = $this->getRequestTokenUserName();
         // user token includes user and site name of the request
         $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
         // user token is just the name of the logged in user
         $userToken = $this->getRequestToken($requestTokenUser);
-        $normalizedBase = rtrim($base, '/');
-        $systemApiBase = ($normalizedBase === '' ? '' : $normalizedBase . '/') . 'system/api/v1';
-        $siteApiBase = ($normalizedBase === '' ? '/' : $normalizedBase . '/') . 'x/api';
+        $normalizedBasePath = '/' . trim((string) $this->basePath, '/');
+        if ($normalizedBasePath !== '/') {
+          $normalizedBasePath .= '/';
+        }
+        $basePathPrefix = ($normalizedBasePath === '/')
+          ? ''
+          : rtrim($normalizedBasePath, '/');
+        $systemApiBase = $basePathPrefix . '/system/api/v1';
+        $siteApiBase = $basePathPrefix . '/x/api';
+        if ($multisiteUrlName !== '') {
+          $siteApiBase =
+            $basePathPrefix .
+            '/' .
+            trim((string) $this->sitesDirectory, '/') .
+            '/' .
+            rawurlencode($multisiteUrlName) .
+            '/x/api';
+        }
         $settings = new stdClass();
         // Core v1 connection tokens (minimal, mirror NodeJS output)
         $settings->token = $this->getRequestToken();
@@ -1911,54 +1957,6 @@ class HAXCMS
             $settings->haxiamAddUserAccess = $this->resolveSystemOperationPath(
               'haxiamAddUserAccess', $systemApiV1BasePath, 'haxiamAddUserAccess'
             );
-        }
-        try {
-          $discoveredThemes = HAXCMSThemeSettingsService::discoverThemes($this);
-          $detectedThemeNames = array();
-          foreach ($discoveredThemes as $item) {
-            if (is_array($item) && isset($item['machineName'])) {
-              $detectedThemeNames[] = $item['machineName'];
-            }
-          }
-          $enabledThemes = HAXCMSThemeSettingsService::readEnabledThemeMap($this);
-          $withDefaults = HAXCMSThemeSettingsService::applyDetectedThemeDefaults(
-            $this,
-            $enabledThemes,
-            $detectedThemeNames
-          );
-          $enabledThemes = isset($withDefaults['enabledThemes'])
-            ? $withDefaults['enabledThemes']
-            : array();
-          if (isset($withDefaults['changed']) && $withDefaults['changed']) {
-            HAXCMSThemeSettingsService::writeEnabledThemeMap(
-              $this,
-              $enabledThemes
-            );
-          }
-          $themes = array();
-          foreach ($discoveredThemes as $item) {
-            if (!is_array($item)) {
-              continue;
-            }
-            $machineName = isset($item['machineName']) ? $item['machineName'] : '';
-            $enabled = HAXCMSThemeSettingsService::isThemeEnabled(
-              $this,
-              $machineName,
-              $enabledThemes
-            );
-            $item['enabled'] = $enabled;
-            $item['hidden'] = (
-              (isset($item['hidden']) && $item['hidden']) ||
-              !$enabled
-            );
-            $themes[] = $item;
-          }
-          $settings->themes = json_decode(
-            json_encode(HAXCMSThemeSettingsService::themesToMap($themes))
-          );
-        }
-        catch (Exception $e) {
-          $settings->themes = $this->getThemes();
         }
         // allow for overrides in config.php
         if (isset($this->config->appJWTConnectionSettings)) {
@@ -2178,10 +2176,6 @@ class HAXCMS
       }
       $request = FALSE;
       if (isset($this->sessionJwt) && $this->sessionJwt != null && $request = $this->decodeJWT($this->sessionJwt)) {
-      }
-      else if (isset($_POST['jwt']) && $_POST['jwt'] != null && $request = $this->decodeJWT($_POST['jwt'])) {
-      }
-      else if (isset($_GET['jwt']) && $_GET['jwt'] != null && $request = $this->decodeJWT($_GET['jwt'])) {
       }
       // if we were able to find a valid JWT in that mess, try and validate it
       if (  

@@ -97,6 +97,12 @@ trait OperationsRouteGenerateAppStore {
       'access_token' => true,
       'api_key' => true,
       'client_id' => true,
+      'provider' => true,
+      'appstore_token' => true,
+      'site_token' => true,
+      'siteToken' => true,
+      'siteName' => true,
+      '__HAXJWT__' => true,
     );
     $sanitized = array();
     foreach ($input as $key => $value) {
@@ -124,13 +130,6 @@ trait OperationsRouteGenerateAppStore {
     $mergedData = $this->sanitizeAppStoreBrokerConnectionData(
       $this->mergeAppStoreConnectionData($queryParams, $existingData)
     );
-    $mergedData['provider'] = $provider;
-    $mergedData['appstore_token'] = isset($this->params['appstore_token'])
-      ? $this->params['appstore_token']
-      : '';
-    $mergedData['site_token'] = isset($this->params['site_token'])
-      ? $this->params['site_token']
-      : '';
     $mergedData['siteName'] = $siteName;
     $mergedData['__HAXJWT__'] = true;
     $rewritten = clone $connection;
@@ -143,6 +142,27 @@ trait OperationsRouteGenerateAppStore {
     else {
       $rewritten->url = $normalizedDomain;
     }
+    $rewrittenHeaders = array();
+    if (isset($rewritten->headers)) {
+      if (is_object($rewritten->headers)) {
+        $rewrittenHeaders = (array) $rewritten->headers;
+      }
+      else if (is_array($rewritten->headers)) {
+        $rewrittenHeaders = $rewritten->headers;
+      }
+    }
+    $siteToken = isset($this->params['site_token'])
+      ? trim((string) $this->params['site_token'])
+      : '';
+    if ($siteToken !== '') {
+      if (
+        !isset($rewrittenHeaders['X-HAXCMS-Site-Token']) &&
+        !isset($rewrittenHeaders['x-haxcms-site-token'])
+      ) {
+        $rewrittenHeaders['X-HAXCMS-Site-Token'] = $siteToken;
+      }
+    }
+    $rewritten->headers = (object) $rewrittenHeaders;
     $rewritten->data = (object) $mergedData;
     if (!isset($rewritten->operations) || !is_object($rewritten->operations)) {
       $rewritten->operations = new stdClass();
@@ -160,7 +180,10 @@ trait OperationsRouteGenerateAppStore {
       $rewritten->operations->browse->method = 'GET';
     }
     $rewritten->operations->browse->endPoint =
-      $GLOBALS['HAXCMS']->systemRequestBase . '/appStoreSearch';
+      $GLOBALS['HAXCMS']->systemRequestBase .
+      '/v1/integrations/app-store/providers/' .
+      rawurlencode($provider) .
+      '/search';
     return $rewritten;
   }
 
@@ -197,8 +220,6 @@ trait OperationsRouteGenerateAppStore {
       ? $GLOBALS['HAXCMS']->getRequestTokenUserName()
       : $GLOBALS['HAXCMS']->getActiveUserName();
     if (
-      isset($this->params['appstore_token']) &&
-      $GLOBALS['HAXCMS']->validateRequestToken($this->params['appstore_token'], 'appstore') &&
       isset($this->params['site_token']) &&
       $siteName !== '' &&
       $GLOBALS['HAXCMS']->validateRequestToken(
@@ -248,7 +269,12 @@ trait OperationsRouteGenerateAppStore {
         }
       }
       $appStore = $rewrittenApps;
-      $tmp = json_decode($GLOBALS['HAXCMS']->siteConnectionJSON($this->params['site_token']));
+      $tmp = json_decode(
+        $GLOBALS['HAXCMS']->siteConnectionJSON(
+          $this->params['site_token'],
+          $siteName
+        )
+      );
       array_push($appStore, $tmp);
       if (isset($GLOBALS['HAXCMS']->config->appStore->stax)) {
           $staxList = $GLOBALS['HAXCMS']->config->appStore->stax;
@@ -331,5 +357,14 @@ trait OperationsRouteGenerateAppStore {
           'autoloader' => $autoloaderList
       );
     }
+    return array(
+      '__failed' => array(
+        'status' => 403,
+        'message' => array(
+          'status' => 403,
+          'message' => 'invalid request token',
+        ),
+      ),
+    );
   }
 }

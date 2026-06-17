@@ -15,6 +15,9 @@ return function ($context) {
     $idOrSlug = $context->getParam('idOrSlug', '');
     $revisionId = $context->getParam('revisionId', '');
     $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
+    if (!is_string($siteToken)) {
+        $siteToken = '';
+    }
     if ($revisionId !== '') {
         $body = array(
             'site' => array('name' => $siteName),

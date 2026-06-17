@@ -35,7 +35,10 @@ trait OperationsRouteConnectionSettings {
       '__noencode' => array(
         'status' => 200,
         'contentType' => 'application/javascript',
-        'message' => 'window.appSettings = ' . json_encode($GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath)) . ';',
+        'message' => 'window.appSettings = ' . json_encode(
+          $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath),
+          JSON_UNESCAPED_SLASHES
+        ) . ';',
       )
     );
   }

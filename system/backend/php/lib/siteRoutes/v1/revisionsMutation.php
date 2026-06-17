@@ -5,6 +5,9 @@ return function ($context) {
     if (!is_array($body)) {
         $body = array();
     }
+    unset($body['jwt']);
+    unset($body['user_token']);
+    unset($body['site_token']);
     $siteName = '';
     if (
         isset($context->site) &&
@@ -18,6 +21,9 @@ return function ($context) {
     $idOrSlug = $context->getParam('idOrSlug', '');
     $revisionId = $context->getParam('revisionId', '');
     $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
+    if (!is_string($siteToken)) {
+        $siteToken = '';
+    }
     $payload = array(
         'site' => array('name' => $siteName),
         'node' => array('id' => $idOrSlug),

@@ -121,8 +121,7 @@ trait OperationsRouteSaveSiteAsTemplate {
         );
       }
       $baseAPIPath = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->systemRequestBase . '/';
-      $userToken = $this->params['user_token'];
-      $skeletonUrl = $baseAPIPath . 'getSkeleton?name=' . urlencode($machineName) . '&user_token=' . urlencode($userToken);
+      $skeletonUrl = $baseAPIPath . 'v1/skeletons/' . rawurlencode($machineName);
       return array(
         'status' => 200,
         'data' => array(

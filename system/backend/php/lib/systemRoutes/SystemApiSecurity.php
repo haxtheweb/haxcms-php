@@ -86,6 +86,8 @@ class SystemApiSecurity
             'v1/session/refresh',
             'v1/session/connection-settings',
             'v1/session/connection-test',
+            'v1/integrations/app-store',
+            'v1/integrations/app-store/providers/:provider/search',
         );
         if (in_array($route, $publicRoutes, true)) {
             return 'public';

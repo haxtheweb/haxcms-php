@@ -11,6 +11,12 @@ return function ($context) {
         $operations->params = $context->body;
         $operations->rawParams = $context->body;
     }
+    unset($operations->params['jwt']);
+    unset($operations->params['user_token']);
+    unset($operations->params['site_token']);
+    unset($operations->rawParams['jwt']);
+    unset($operations->rawParams['user_token']);
+    unset($operations->rawParams['site_token']);
     $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
     $userToken = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
     $operations->params['user_token'] = $userToken;
@@ -34,7 +40,10 @@ return function ($context) {
             $response = $operations->createSite();
         }
     }
-    else if ($route === 'v1/sites/:siteName') {
+    else if (
+        $route === 'v1/sites/:siteName' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+$/', $route) === 1
+    ) {
         if ($method === 'GET' || $method === 'POST') {
             $response = array('status' => 200, 'data' => array('siteName' => $context->params['siteName']));
         }
@@ -42,19 +51,34 @@ return function ($context) {
             $response = array('status' => 405, 'data' => 'Method not allowed');
         }
     }
-    else if ($route === 'v1/sites/:siteName/clone') {
+    else if (
+        $route === 'v1/sites/:siteName/clone' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+\\/clone$/', $route) === 1
+    ) {
         $response = $operations->cloneSite();
     }
-    else if ($route === 'v1/sites/:siteName/archive') {
+    else if (
+        $route === 'v1/sites/:siteName/archive' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+\\/archive$/', $route) === 1
+    ) {
         $response = $operations->archiveSite();
     }
-    else if ($route === 'v1/sites/:siteName/download') {
+    else if (
+        $route === 'v1/sites/:siteName/download' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+\\/download$/', $route) === 1
+    ) {
         $response = $operations->downloadSite();
     }
-    else if ($route === 'v1/sites/:siteName/download-skeleton') {
+    else if (
+        $route === 'v1/sites/:siteName/download-skeleton' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+\\/download-skeleton$/', $route) === 1
+    ) {
         $response = $operations->downloadSiteSkeleton();
     }
-    else if ($route === 'v1/sites/:siteName/save-as-template') {
+    else if (
+        $route === 'v1/sites/:siteName/save-as-template' ||
+        preg_match('/^v1\\/sites\\/[^\\/]+\\/save-as-template$/', $route) === 1
+    ) {
         $response = $operations->saveSiteAsTemplate();
     }
     else {

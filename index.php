@@ -165,19 +165,6 @@ P2 ready
           background-size: auto, 37% auto, 37% auto;
         }
       }
-      .version {
-          position: fixed;
-          right: 0;
-          bottom: 0;
-          background-color:  light-dark(var(--simple-colors-default-theme-yellow-2), var(--simple-colors-default-theme-yellow-10));
-          display: inline-block;
-          padding: 4px;
-          min-width: 10ch;
-          box-sizing: border-box;
-          text-align: right;
-          font-size: var(--ddd-font-size-6xs);
-          color: light-dark(black, white);
-        }
     </style>
   </head>
   <body>
@@ -257,7 +244,6 @@ P2 ready
     <app-hax token="<?php print $HAXCMS->getRequestToken(); ?>" base-path="<?php print $HAXCMS->basePath; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
       <?php print $HAXCMS->siteListing->slot; ?>
     </app-hax>
-    <div class="version">V<?php print $HAXCMS->getHAXCMSVersion();?></div>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script type="module">

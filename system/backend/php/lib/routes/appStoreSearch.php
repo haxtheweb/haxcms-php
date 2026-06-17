@@ -114,6 +114,7 @@ trait OperationsRouteAppStoreSearch
       'site',
       'jwt',
       'token',
+      '__HAXJWT__',
     );
     $blockedAuth = array(
       'key',
@@ -138,6 +139,34 @@ trait OperationsRouteAppStoreSearch
       $forwarded[$key] = $value;
     }
     return $forwarded;
+  }
+
+  private function appStoreSearchResolveSiteToken($requestParams = array())
+  {
+    if (
+      isset($requestParams['site_token']) &&
+      trim((string) $requestParams['site_token']) !== ''
+    ) {
+      return trim((string) $requestParams['site_token']);
+    }
+    if (
+      isset($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']) &&
+      is_string($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']) &&
+      trim($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']) !== ''
+    ) {
+      return trim($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']);
+    }
+    if (function_exists('getallheaders')) {
+      $headers = getallheaders();
+      if (is_array($headers)) {
+        foreach ($headers as $name => $value) {
+          if (strcasecmp($name, 'X-HAXCMS-Site-Token') === 0) {
+            return trim((string) $value);
+          }
+        }
+      }
+    }
+    return '';
   }
 
   /**
@@ -175,12 +204,7 @@ trait OperationsRouteAppStoreSearch
     ) {
       return $this->appStoreSearchFail(400, 'Unsupported app store provider');
     }
-    $appStoreToken = isset($requestParams['appstore_token'])
-      ? trim((string) $requestParams['appstore_token'])
-      : '';
-    $siteToken = isset($requestParams['site_token'])
-      ? trim((string) $requestParams['site_token'])
-      : '';
+    $siteToken = $this->appStoreSearchResolveSiteToken($requestParams);
     $siteName = '';
     if (isset($requestParams['siteName'])) {
       $siteName = trim((string) $requestParams['siteName']);
@@ -196,8 +220,6 @@ trait OperationsRouteAppStoreSearch
       ? $GLOBALS['HAXCMS']->getRequestTokenUserName()
       : $GLOBALS['HAXCMS']->getActiveUserName();
     if (
-      $appStoreToken === '' ||
-      !$GLOBALS['HAXCMS']->validateRequestToken($appStoreToken, 'appstore') ||
       $siteToken === '' ||
       $siteName === '' ||
       !$GLOBALS['HAXCMS']->validateRequestToken(
