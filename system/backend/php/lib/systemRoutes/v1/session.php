@@ -36,8 +36,18 @@ return function ($context) {
     }
     else if ($route === 'v1/session/connection-test') {
         $response = $operations->connectionTest();
+        // If the operation returns a flat jwt/token structure, emit it directly
+        if (is_array($response) && isset($response['jwt']) && !isset($response['__failed'])) {
+            header('Content-Type: application/json');
+            print json_encode($response);
+            exit;
+        }
     }
     else if ($route === 'v1/session/user') {
+        $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+        $userToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
+        $operations->params['user_token'] = $userToken;
+        $operations->rawParams['user_token'] = $userToken;
         $response = $operations->getUserData();
     }
     else {

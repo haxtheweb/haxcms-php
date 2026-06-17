@@ -21,15 +21,40 @@ trait OperationsRouteConnectionTest {
   public function connectionTest() {
     $jwt = null;
     $refreshed = FALSE;
-    // if a JWT is present, validate it first
-    if (isset($this->params['jwt']) && $this->params['jwt'] != '' && $GLOBALS['HAXCMS']->validateJWT(FALSE)) {
-      $jwt = $this->params['jwt'];
+    $user = '';
+    // Extract a JWT string from the request, handling nested JSON from legacy login responses
+    $jwtInput = null;
+    if (isset($this->params['jwt'])) {
+      if (is_string($this->params['jwt']) && $this->params['jwt'] != '') {
+        $jwtInput = $this->params['jwt'];
+      } else if (is_array($this->params['jwt'])) {
+        if (isset($this->params['jwt']['data']['jwt']) && is_string($this->params['jwt']['data']['jwt'])) {
+          $jwtInput = $this->params['jwt']['data']['jwt'];
+        } else if (isset($this->params['jwt']['jwt']) && is_string($this->params['jwt']['jwt'])) {
+          $jwtInput = $this->params['jwt']['jwt'];
+        }
+      }
+    }
+    // If a JWT string is present, validate it directly and capture the user
+    if ($jwtInput !== null && $jwtInput !== '') {
+      $decoded = $GLOBALS['HAXCMS']->decodeJWT($jwtInput);
+      if (
+        $decoded !== FALSE &&
+        isset($decoded->id) &&
+        $decoded->id == $GLOBALS['HAXCMS']->getRequestToken('user') &&
+        isset($decoded->user) &&
+        $GLOBALS['HAXCMS']->validateUser($decoded->user)
+      ) {
+        $jwt = $jwtInput;
+        $user = $GLOBALS['HAXCMS']->generateMachineName($decoded->user);
+      }
     }
     // otherwise attempt to recover from refresh token
     if (!$jwt) {
       $validRefresh = $GLOBALS['HAXCMS']->validateRefreshToken(FALSE);
       if ($validRefresh && isset($validRefresh->user) && $validRefresh->user != '') {
         $jwt = $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
+        $user = $GLOBALS['HAXCMS']->generateMachineName($validRefresh->user);
         $refreshed = TRUE;
       }
     }
@@ -63,19 +88,10 @@ trait OperationsRouteConnectionTest {
         );
       }
     }
-    $user = '';
-    if (method_exists($GLOBALS['HAXCMS'], 'getAuthenticatedUserName')) {
-      $tmpUser = $GLOBALS['HAXCMS']->getAuthenticatedUserName();
-      if (!is_null($tmpUser) && $tmpUser != '') {
-        $user = $tmpUser;
-      }
-    }
+    $token = $user != '' ? $GLOBALS['HAXCMS']->getRequestToken($user) : '';
     return array(
-      'status' => 200,
-      'authenticated' => TRUE,
       'jwt' => $jwt,
-      'refreshed' => $refreshed,
-      'user' => $user,
+      'token' => $token,
     );
   }
 }

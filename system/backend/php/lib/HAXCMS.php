@@ -86,11 +86,11 @@ class HAXCMS
         $_POST = (array) json_decode(file_get_contents('php://input'));
         // handle sanitization on request data, drop security things
         $this->safePost = $this->object_to_array($this->sanitizeArrayValues($_POST));
-        if (isset($this->safePost['jwt'])) {
+        if (isset($this->safePost['jwt']) && is_string($this->safePost['jwt'])) {
           $this->sessionJwt = $this->safePost['jwt'];
         }
         unset($this->safePost['jwt']);
-        if (isset($this->safePost['token'])) {
+        if (isset($this->safePost['token']) && is_string($this->safePost['token'])) {
           $this->sessionToken = $this->safePost['token'];
         }
         unset($this->safePost['token']);
@@ -1453,7 +1453,7 @@ class HAXCMS
     /**
      * Validate that a user name that came across in a JWT decode is legit
      */
-    private function validateUser($name)
+    public function validateUser($name)
     {
         if (
             $this->user->name === $name
@@ -1768,8 +1768,10 @@ class HAXCMS
     /**
      * Decode the JWT to ensure accuracy, return false if an error happens
      */
-    private function decodeJWT($key) {
-      // if it can decode, it'll be an object, otherwise it's false
+    public function decodeJWT($key) {
+      if (!is_string($key) || $key === '') {
+        return FALSE;
+      }
       try {
         return JWT::decode($key, $this->privateKey . $this->salt);
       }
@@ -1791,8 +1793,10 @@ class HAXCMS
     /**
      * Decode the JWT to ensure accuracy, return false if an error happens
      */
-    private function decodeRefreshToken($key) {
-      // if it can decode, it'll be an object, otherwise it's false
+    public function decodeRefreshToken($key) {
+      if (!is_string($key) || $key === '') {
+        return FALSE;
+      }
       try {
         return JWT::decode($key, $this->refreshPrivateKey . $this->salt);
       }
@@ -1808,12 +1812,15 @@ class HAXCMS
         return TRUE;
       }
       // get the refresh token from cookie
-      $refreshToken = $_COOKIE['haxcms_refresh_token'];
+      $refreshToken = isset($_COOKIE['haxcms_refresh_token']) ? $_COOKIE['haxcms_refresh_token'] : '';
       // if there isn't one then we have to bail hard
       if (!$refreshToken) {
-        header('Status: 401');
-        print 'haxcms_refresh_token:not_found';
-        exit();
+        if ($endOnInvalid) {
+          header('Status: 401');
+          print 'haxcms_refresh_token:not_found';
+          exit();
+        }
+        return FALSE;
       }
       // if there is a refresh token then decode it
       $refreshTokenDecoded = $this->decodeRefreshToken($refreshToken);

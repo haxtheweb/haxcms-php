@@ -84,6 +84,8 @@ class SystemApiSecurity
             'v1/session/login',
             'v1/session/logout',
             'v1/session/refresh',
+            'v1/session/connection-settings',
+            'v1/session/connection-test',
         );
         if (in_array($route, $publicRoutes, true)) {
             return 'public';
@@ -96,10 +98,6 @@ class SystemApiSecurity
             'v1/skeletons',
             'v1/skeletons/:skeletonName',
             'v1/themes',
-            'v1/status',
-            'v1/system/version',
-            'v1/entities',
-            'v1/schemas',
             'v1/haxiamAddUserAccess',
         );
         if (in_array($route, $adminRoutes, true)) {

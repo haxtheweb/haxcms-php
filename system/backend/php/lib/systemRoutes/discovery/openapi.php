@@ -1,5 +1,5 @@
 <?php
-include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
     $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : 'openapi';

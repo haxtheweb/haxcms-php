@@ -19,7 +19,10 @@ return function ($context) {
     $method = $context->method;
     $response = null;
     if ($route === 'v1/status') {
+        $savedMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
+        $_SERVER['REQUEST_METHOD'] = 'POST';
         $response = $operations->systemStatus();
+        $_SERVER['REQUEST_METHOD'] = $savedMethod;
     }
     else if ($route === 'v1/system/version') {
         $response = array(
