@@ -56,7 +56,7 @@ return function ($context) {
         if ($machineName == '') {
             $machineName = trim((string) $readValue($theme, 'name', ''));
         }
-        return array(
+        $record = array(
             'machineName' => $machineName,
             'name' => trim((string) $readValue($theme, 'name', $machineName)),
             'description' => (string) $readValue($theme, 'description', ''),
@@ -70,6 +70,11 @@ return function ($context) {
                 'self' => $apiBasePath . '/v1/themes/' . rawurlencode($machineName),
             ),
         );
+        $supportedPalettes = $readValue($theme, 'supportedPalettes', null);
+        if (is_array($supportedPalettes) && count($supportedPalettes) > 0) {
+            $record['supportedPalettes'] = $supportedPalettes;
+        }
+        return $record;
     };
     $discoverThemeRecords = function () use ($site, $apiBasePath, $getActiveThemeName, $normalizeThemeRecord) {
         $records = array();
