@@ -23,7 +23,7 @@
                 "vendor": "github",
                 "branch": "gh-pages",
                 "url": "git@github.com:elmsln\/neato.git",
-                "cdn": "cdn.waxam.io"
+                "cdn": "cdn.hax.cloud"
             }
         }
     }

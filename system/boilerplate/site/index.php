@@ -36,9 +36,7 @@ else {
       display: block;
       min-height: 100svh;
     }
-    body[no-js] haxcms-site-builder {
-      display: none !important;
-    }
+
   </style>
   <style id="loadingstyles">
     haxcms-site-builder {

@@ -245,7 +245,7 @@ P2 ready
       <?php print $HAXCMS->siteListing->slot; ?>
     </app-hax>
     <noscript>Enable JavaScript to use HAXcms.</noscript>
-    <script>document.body.removeAttribute('no-js');window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
+    <script>window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script type="module">
       import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/app-hax.js";
     </script>

@@ -183,9 +183,8 @@
 					"inputMethod": "select",
 					"required": true,
 					"options": {
+						"cdn.hax.cloud": "HAX Cloud CDN",
 						"cdn.webcomponents.psu.edu": "Penn State CDN",
-						"cdn.hax.cloud": "Penn State CDN",
-						"cdn.waxam.io": "Waxam CDN",
 						"build": "Local (no CDN)"
 					},
 					"icon": "link"
@@ -230,7 +229,7 @@
 					"manifest-metadata-site-settings-forceUpgrade": null
 				},
 				"static": {
-					"manifest-metadata-site-static-cdn": "cdn.waxam.io",
+					"manifest-metadata-site-static-cdn": "cdn.hax.cloud",
 					"manifest-metadata-site-static-offline": null
 				}
 			},

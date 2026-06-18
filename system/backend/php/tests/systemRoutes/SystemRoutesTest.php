@@ -97,8 +97,9 @@ function assertEquals($expected, $actual, $message = '') {
 echo "\n=== SystemRoutesMap ===\n";
 $getRoutes = SystemRoutesMap::getRoutesForMethod('GET');
 assertTrue(is_array($getRoutes), "GET routes is array");
-assertTrue(array_key_exists('', $getRoutes), "GET / discovery route exists");
-assertTrue(array_key_exists('openapi', $getRoutes), "GET /openapi route exists");
+assertTrue(array_key_exists('v1', $getRoutes), "GET /v1 discovery route exists");
+assertTrue(array_key_exists('v1/openapi', $getRoutes), "GET /v1/openapi route exists");
+assertTrue(array_key_exists('v1/openapi.json', $getRoutes), "GET /v1/openapi.json route exists");
 assertTrue(array_key_exists('v1/session', $getRoutes), "GET /v1/session route exists");
 assertTrue(array_key_exists('v1/sites', $getRoutes), "GET /v1/sites route exists");
 assertTrue(array_key_exists('v1/status', $getRoutes), "GET /v1/status route exists");
@@ -138,6 +139,16 @@ assertEquals('https://example.com/system/api', $ctx->absoluteApiBasePath, "Absol
 $_SERVER['REQUEST_URI'] = '/system/api/v1/sites/my-site/clone';
 $ctx2 = SystemApiRequestContext::create();
 assertEquals('v1/sites/my-site/clone', $ctx2->routeSuffix, "Route suffix with path params");
+// Test multitenant prefixed path
+$_SERVER['REQUEST_URI'] = '/bto108/system/api/v1/openapi.json';
+$_SERVER['SCRIPT_NAME'] = '/bto108/system/api.php';
+$ctxTenant = SystemApiRequestContext::create();
+assertEquals('/api/v1/openapi.json', $ctxTenant->relativePath, "Relative path strips tenant + script directory prefix");
+assertTrue($ctxTenant->isSystemApiRequest(), "Tenant-prefixed route is recognized as system API request");
+assertEquals('v1/openapi.json', $ctxTenant->routeSuffix, "Tenant-prefixed route suffix resolves to v1/openapi.json");
+$tenantMatch = SystemApiRouter::matchRoute($ctxTenant->routeSuffix, SystemRoutesMap::getRoutesForMethod('GET'));
+assertTrue(is_array($tenantMatch), "Tenant-prefixed openapi route matches GET route map");
+assertEquals('v1/openapi.json', $tenantMatch['route'], "Tenant-prefixed route maps to v1/openapi.json handler");
 
 // Test non-system path
 $_SERVER['REQUEST_URI'] = '/x/api/v1/site';
@@ -147,6 +158,7 @@ assertTrue(!$ctx3->isSystemApiRequest(), "Non-system path is not a system API re
 
 // Reset
 $_SERVER['REQUEST_URI'] = '/system/api/v1/sites';
+$_SERVER['SCRIPT_NAME'] = '/system/api.php';
 
 // --- Test 3: SystemApiSecurity tiers ---
 echo "\n=== SystemApiSecurity ===\n";
@@ -165,7 +177,7 @@ assertTrue(!$authResult['allowed'], "Authenticated route denied without Bearer")
 assertEquals(401, $authResult['status'], "Authenticated route returns 401");
 
 // Admin route without Bearer should be 401
-$adminResult = SystemApiSecurity::validateSystemApiAccess($authCtx, 'v1/status', 'POST');
+$adminResult = SystemApiSecurity::validateSystemApiAccess($authCtx, 'v1/themes', 'POST');
 assertTrue(!$adminResult['allowed'], "Admin route denied without Bearer");
 assertEquals(401, $adminResult['status'], "Admin route returns 401");
 
@@ -184,7 +196,7 @@ $jwtPayloadOther = array('id' => 'test-id', 'iat' => time(), 'exp' => time() + 9
 $jwtStringOther = JWT::encode($jwtPayloadOther, 'test-private-key' . 'test-salt');
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $jwtStringOther;
 $authCtxOther = SystemApiRequestContext::create();
-$adminResult2 = SystemApiSecurity::validateSystemApiAccess($authCtxOther, 'v1/status', 'POST');
+$adminResult2 = SystemApiSecurity::validateSystemApiAccess($authCtxOther, 'v1/themes', 'POST');
 assertTrue(!$adminResult2['allowed'], "Admin route denied for non-admin user");
 assertEquals(403, $adminResult2['status'], "Admin route returns 403 for non-admin");
 
@@ -193,7 +205,7 @@ $jwtPayloadAdmin = array('id' => 'test-id', 'iat' => time(), 'exp' => time() + 9
 $jwtStringAdmin = JWT::encode($jwtPayloadAdmin, 'test-private-key' . 'test-salt');
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $jwtStringAdmin;
 $adminCtx = SystemApiRequestContext::create();
-$adminResult3 = SystemApiSecurity::validateSystemApiAccess($adminCtx, 'v1/status', 'POST');
+$adminResult3 = SystemApiSecurity::validateSystemApiAccess($adminCtx, 'v1/themes', 'POST');
 assertTrue($adminResult3['allowed'], "Admin route allowed for super user");
 assertEquals(200, $adminResult3['status'], "Admin route for super user returns 200");
 

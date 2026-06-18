@@ -240,7 +240,7 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       }
     </style>
   </head>
-  <body no-js>
+  <body>
     <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms"></git-corner>
     <div class="wrapper">
       <div class="card">
@@ -415,23 +415,8 @@ if ($failed) { ?>
 </div>
     </div>
     <noscript>Enable JavaScript to experience HAXcms.</noscript>
-    <script>document.body.removeAttribute('no-js');var cdn="";var old=false;var ancient=false;
-      if (typeof Symbol == "undefined") { // IE 11, at least try to serve a watered down site
-        ancient = true;
-      }
-      try {
-        new Function('let a;'); // bizarre but needed for Safari 9 bc of when it was made
-      }
-      catch (err) {
-        ancient = true;
-      }
-    </script>
-    <script>if(old)document.write('<!--');</script>
     <script type="module">
       import "./build/es6/dist/build-install.js";
-    </script>
-    <script>
-    //<!--! do not remove -->
     </script>
   </body>
 </html>

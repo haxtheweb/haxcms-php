@@ -15,7 +15,7 @@ class SystemApiRequestContext
     {
         $this->method = SiteRouteUtils::getRequestMethod();
         $this->requestPath = SiteRouteUtils::getRequestPath();
-        $this->relativePath = $this->requestPath;
+        $this->relativePath = SiteRouteUtils::getRelativePathFromScript($this->requestPath);
         $this->apiBasePath = self::getApiBasePathFromRequestPath($this->requestPath);
         $this->absoluteApiBasePath = $this->getAbsoluteApiBasePath($this->apiBasePath);
         $this->routeSuffix = self::getRouteSuffixFromRelativePath($this->relativePath);
