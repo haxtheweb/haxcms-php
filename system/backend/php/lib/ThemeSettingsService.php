@@ -373,6 +373,10 @@ class HAXCMSThemeSettingsService
     $normalized['priority'] = self::normalizeThemePriority(
       isset($source['priority']) ? $source['priority'] : 0
     );
+    $supportedPalettes = self::readThemeValue($source, 'supportedPalettes');
+    if (is_array($supportedPalettes) && count($supportedPalettes) > 0) {
+      $normalized['supportedPalettes'] = $supportedPalettes;
+    }
     return $normalized;
   }
 
