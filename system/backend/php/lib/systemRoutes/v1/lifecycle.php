@@ -17,8 +17,11 @@ return function ($context) {
     unset($operations->rawParams['jwt']);
     unset($operations->rawParams['user_token']);
     unset($operations->rawParams['site_token']);
-    $activeUser = $GLOBALS['HAXCMS']->getActiveUserName();
-    $userToken = $GLOBALS['HAXCMS']->getRequestToken($activeUser);
+    $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+    if (!is_string($tokenUser) || $tokenUser === '') {
+        $tokenUser = $GLOBALS['HAXCMS']->getActiveUserName();
+    }
+    $userToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
     $operations->params['user_token'] = $userToken;
     $operations->rawParams['user_token'] = $userToken;
     if (isset($context->params['siteName'])) {

@@ -72,7 +72,14 @@ assertTrue(strpos($settings->login, '?site_token=') === false, 'login v1 path ha
 assertTrue(strpos($settings->logout, '?site_token=') === false, 'logout v1 path has no query token');
 assertTrue(strpos($settings->systemApiBasePath, '?user_token=') === false, 'systemApiBasePath has no query token');
 $existingReferer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : null;
- $existingRequestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null;
+$existingRequestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null;
+$existingAuthHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : null;
+$existingRefreshCookie = isset($_COOKIE['haxcms_refresh_token']) ? $_COOKIE['haxcms_refresh_token'] : null;
+$existingSessionJwt = isset($HAXCMS->sessionJwt) ? $HAXCMS->sessionJwt : null;
+$existingIamSetting = isset($HAXCMS->config->iam) ? $HAXCMS->config->iam : null;
+$existingUserName = isset($HAXCMS->user->name) ? $HAXCMS->user->name : null;
+$existingUserPassword = isset($HAXCMS->user->password) ? $HAXCMS->user->password : null;
+$existingServerSoftware = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : null;
 $_SERVER['REQUEST_URI'] = '/';
 $_SERVER['HTTP_REFERER'] = 'https://example.com/';
 $dashboardRefererSettings = $HAXCMS->appJWTConnectionSettings();
@@ -108,6 +115,51 @@ if ($HAXCMS->basePath === '/') {
     assertTrue(strpos($siteRefererSettings->logout, '/') === 0, 'site-context logout path is root-absolute at root install');
     assertTrue(strpos($siteRefererSettings->systemApiBasePath, '/') === 0, 'site-context systemApiBasePath is root-absolute at root install');
 }
+$HAXCMS->config->iam = true;
+$HAXCMS->user->name = null;
+$HAXCMS->user->password = null;
+$_SERVER['SERVER_SOFTWARE'] = 'TestServer';
+$HAXCMS->addEventListener('haxcms-validate-user', function (&$usr) {
+    if (isset($usr->name) && $usr->name === 'tenant-user') {
+        $usr->grantAccess = true;
+    }
+});
+$tenantJwt = $HAXCMS->getJWT('tenant-user');
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $tenantJwt;
+$_COOKIE['haxcms_refresh_token'] = $HAXCMS->getRefreshToken('tenant-user');
+$HAXCMS->sessionJwt = $tenantJwt;
+$_SERVER['REQUEST_URI'] = '/tenant-user/system/api/v1/sites';
+$_SERVER['HTTP_REFERER'] = 'https://example.com/tenant-user/';
+$iamActiveUser = $HAXCMS->getActiveUserName();
+$legacyIamUserToken = $HAXCMS->getRequestToken($iamActiveUser);
+assertTrue(
+    !$HAXCMS->validateRequestToken($legacyIamUserToken, $iamActiveUser),
+    'IAM token mismatch: active-user token is invalid when authenticated tenant differs'
+);
+$requestTokenUser = $HAXCMS->getRequestTokenUserName();
+$requestScopedToken = $HAXCMS->getRequestToken($requestTokenUser);
+assertTrue(
+    $HAXCMS->validateRequestToken($requestScopedToken, $iamActiveUser),
+    'IAM token match: request-token user token validates for legacy active-user value'
+);
+$lifecycleHandler = include $repoRoot . '/system/backend/php/lib/systemRoutes/v1/lifecycle.php';
+$lifecycleContext = new stdClass();
+$lifecycleContext->apiBasePath = '/tenant-user/system/api';
+$lifecycleContext->body = array();
+$lifecycleContext->params = array();
+$lifecycleContext->routeSuffix = 'v1/sites';
+$lifecycleContext->method = 'GET';
+ob_start();
+$lifecycleHandler($lifecycleContext);
+$iamSitesResponseRaw = ob_get_clean();
+$iamSitesResponse = json_decode($iamSitesResponseRaw, true);
+assertTrue(is_array($iamSitesResponse), 'IAM lifecycle listSites returns JSON');
+assertEquals(
+    200,
+    isset($iamSitesResponse['status']) ? $iamSitesResponse['status'] : null,
+    'IAM lifecycle listSites returns 200 with request-scoped token user'
+);
+$HAXCMS->addEventListener('haxcms-validate-user', false);
 if ($existingReferer !== null) {
     $_SERVER['HTTP_REFERER'] = $existingReferer;
 }
@@ -119,6 +171,38 @@ if ($existingRequestUri !== null) {
 }
 else {
     unset($_SERVER['REQUEST_URI']);
+}
+if ($existingAuthHeader !== null) {
+    $_SERVER['HTTP_AUTHORIZATION'] = $existingAuthHeader;
+}
+else {
+    unset($_SERVER['HTTP_AUTHORIZATION']);
+}
+if ($existingRefreshCookie !== null) {
+    $_COOKIE['haxcms_refresh_token'] = $existingRefreshCookie;
+}
+else {
+    unset($_COOKIE['haxcms_refresh_token']);
+}
+if ($existingSessionJwt !== null) {
+    $HAXCMS->sessionJwt = $existingSessionJwt;
+}
+else {
+    $HAXCMS->sessionJwt = null;
+}
+if ($existingIamSetting !== null) {
+    $HAXCMS->config->iam = $existingIamSetting;
+}
+else {
+    unset($HAXCMS->config->iam);
+}
+$HAXCMS->user->name = $existingUserName;
+$HAXCMS->user->password = $existingUserPassword;
+if ($existingServerSoftware !== null) {
+    $_SERVER['SERVER_SOFTWARE'] = $existingServerSoftware;
+}
+else {
+    unset($_SERVER['SERVER_SOFTWARE']);
 }
 
 // Test 3: SystemApiRouter file existence and route map
@@ -161,7 +245,11 @@ assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys is admin');
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/blocks', 'GET'), 'v1/blocks is admin');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites', 'GET'), 'v1/sites is authenticated');
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/haxiamAddUserAccess', 'POST'), 'haxiamAddUserAccess is admin');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/themes', 'GET'), 'v1/themes GET is authenticated');
+assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/themes', 'POST'), 'v1/themes POST is admin');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/skeletons', 'GET'), 'v1/skeletons GET is authenticated');
+assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/skeletons', 'POST'), 'v1/skeletons POST is admin');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/haxiamAddUserAccess', 'POST'), 'haxiamAddUserAccess is authenticated');
 
 // Test 6: SystemApiSecurity bearer token validation stub (no real token)
 echo "[6/13] SystemApiSecurity bearer validation (no token)...\n";

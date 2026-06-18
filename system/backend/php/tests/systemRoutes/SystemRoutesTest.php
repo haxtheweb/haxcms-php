@@ -196,9 +196,15 @@ $jwtPayloadOther = array('id' => 'test-id', 'iat' => time(), 'exp' => time() + 9
 $jwtStringOther = JWT::encode($jwtPayloadOther, 'test-private-key' . 'test-salt');
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $jwtStringOther;
 $authCtxOther = SystemApiRequestContext::create();
+$themesReadResult = SystemApiSecurity::validateSystemApiAccess($authCtxOther, 'v1/themes', 'GET');
+assertTrue($themesReadResult['allowed'], "Themes GET allowed for authenticated dashboard user");
+assertEquals(200, $themesReadResult['status'], "Themes GET returns 200 for authenticated dashboard user");
 $adminResult2 = SystemApiSecurity::validateSystemApiAccess($authCtxOther, 'v1/themes', 'POST');
 assertTrue(!$adminResult2['allowed'], "Admin route denied for non-admin user");
 assertEquals(403, $adminResult2['status'], "Admin route returns 403 for non-admin");
+$shareAccessResult = SystemApiSecurity::validateSystemApiAccess($authCtxOther, 'v1/haxiamAddUserAccess', 'POST');
+assertTrue($shareAccessResult['allowed'], "haxiamAddUserAccess allowed for authenticated dashboard user");
+assertEquals(200, $shareAccessResult['status'], "haxiamAddUserAccess returns 200 for authenticated dashboard user");
 
 // Admin route with super user should be allowed
 $jwtPayloadAdmin = array('id' => 'test-id', 'iat' => time(), 'exp' => time() + 900, 'user' => 'admin');

@@ -76,6 +76,7 @@ class SystemApiSecurity
     }
     private static function getRouteSecurity($route, $method)
     {
+        $normalizedMethod = strtoupper((string) $method);
         $publicRoutes = array(
             'v1',
             'v1/openapi',
@@ -92,6 +93,23 @@ class SystemApiSecurity
         if (in_array($route, $publicRoutes, true)) {
             return 'public';
         }
+        $authenticatedRoutes = array(
+            'v1/haxiamAddUserAccess',
+        );
+        if (in_array($route, $authenticatedRoutes, true)) {
+            return 'authenticated';
+        }
+        $dashboardReadRoutes = array(
+            'v1/skeletons',
+            'v1/skeletons/:skeletonName',
+            'v1/themes',
+        );
+        if (
+            $normalizedMethod === 'GET' &&
+            in_array($route, $dashboardReadRoutes, true)
+        ) {
+            return 'authenticated';
+        }
         $adminRoutes = array(
             'v1/configuration/api-keys',
             'v1/configuration/media',
@@ -100,7 +118,6 @@ class SystemApiSecurity
             'v1/skeletons',
             'v1/skeletons/:skeletonName',
             'v1/themes',
-            'v1/haxiamAddUserAccess',
         );
         if (in_array($route, $adminRoutes, true)) {
             return 'admin';
