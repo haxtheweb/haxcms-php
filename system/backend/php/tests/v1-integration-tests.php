@@ -71,6 +71,55 @@ assertTrue(isset($settings->appStore->headers) && is_object($settings->appStore-
 assertTrue(strpos($settings->login, '?site_token=') === false, 'login v1 path has no query token');
 assertTrue(strpos($settings->logout, '?site_token=') === false, 'logout v1 path has no query token');
 assertTrue(strpos($settings->systemApiBasePath, '?user_token=') === false, 'systemApiBasePath has no query token');
+$existingReferer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : null;
+ $existingRequestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : null;
+$_SERVER['REQUEST_URI'] = '/';
+$_SERVER['HTTP_REFERER'] = 'https://example.com/';
+$dashboardRefererSettings = $HAXCMS->appJWTConnectionSettings();
+assertContains('system/api/v1/session/login', $dashboardRefererSettings->login, 'dashboard-page login path is v1');
+assertContains('system/api/v1/session/logout', $dashboardRefererSettings->logout, 'dashboard-page logout path is v1');
+assertTrue(strpos($dashboardRefererSettings->login, '//') !== 0, 'dashboard-page login path does not start with protocol-relative //');
+assertTrue(strpos($dashboardRefererSettings->logout, '//') !== 0, 'dashboard-page logout path does not start with protocol-relative //');
+if ($HAXCMS->basePath === '/') {
+    assertTrue(strpos($dashboardRefererSettings->login, '/') !== 0, 'dashboard-page login path remains base-path relative at root install');
+    assertTrue(strpos($dashboardRefererSettings->logout, '/') !== 0, 'dashboard-page logout path remains base-path relative at root install');
+    assertTrue(strpos($dashboardRefererSettings->systemApiBasePath, '/') !== 0, 'dashboard-page systemApiBasePath remains base-path relative at root install');
+}
+$_SERVER['HTTP_REFERER'] = 'https://example.com/sites/demo/';
+$dashboardWithSiteReferer = $HAXCMS->appJWTConnectionSettings();
+assertContains('system/api/v1/session/login', $dashboardWithSiteReferer->login, 'dashboard-page with site referer login path is v1');
+assertContains('system/api/v1/session/logout', $dashboardWithSiteReferer->logout, 'dashboard-page with site referer logout path is v1');
+assertTrue(strpos($dashboardWithSiteReferer->login, '//') !== 0, 'dashboard-page with site referer login path does not start with protocol-relative //');
+assertTrue(strpos($dashboardWithSiteReferer->logout, '//') !== 0, 'dashboard-page with site referer logout path does not start with protocol-relative //');
+if ($HAXCMS->basePath === '/') {
+    assertTrue(strpos($dashboardWithSiteReferer->login, '/') !== 0, 'dashboard-page with site referer login path remains base-path relative at root install');
+    assertTrue(strpos($dashboardWithSiteReferer->logout, '/') !== 0, 'dashboard-page with site referer logout path remains base-path relative at root install');
+    assertTrue(strpos($dashboardWithSiteReferer->systemApiBasePath, '/') !== 0, 'dashboard-page with site referer systemApiBasePath remains base-path relative at root install');
+}
+$_SERVER['REQUEST_URI'] = '/system/api/v1/session/connection-settings';
+$_SERVER['HTTP_REFERER'] = 'https://example.com/sites/demo/';
+$siteRefererSettings = $HAXCMS->appJWTConnectionSettings();
+assertContains('system/api/v1/session/login', $siteRefererSettings->login, 'site-context login path is v1');
+assertContains('system/api/v1/session/logout', $siteRefererSettings->logout, 'site-context logout path is v1');
+assertTrue(strpos($siteRefererSettings->login, '//') !== 0, 'site-context login path does not start with protocol-relative //');
+assertTrue(strpos($siteRefererSettings->logout, '//') !== 0, 'site-context logout path does not start with protocol-relative //');
+if ($HAXCMS->basePath === '/') {
+    assertTrue(strpos($siteRefererSettings->login, '/') === 0, 'site-context login path is root-absolute at root install');
+    assertTrue(strpos($siteRefererSettings->logout, '/') === 0, 'site-context logout path is root-absolute at root install');
+    assertTrue(strpos($siteRefererSettings->systemApiBasePath, '/') === 0, 'site-context systemApiBasePath is root-absolute at root install');
+}
+if ($existingReferer !== null) {
+    $_SERVER['HTTP_REFERER'] = $existingReferer;
+}
+else {
+    unset($_SERVER['HTTP_REFERER']);
+}
+if ($existingRequestUri !== null) {
+    $_SERVER['REQUEST_URI'] = $existingRequestUri;
+}
+else {
+    unset($_SERVER['REQUEST_URI']);
+}
 
 // Test 3: SystemApiRouter file existence and route map
 echo "[3/13] SystemApiRouter route map...\n";

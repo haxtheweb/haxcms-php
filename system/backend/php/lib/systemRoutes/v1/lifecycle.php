@@ -38,6 +38,49 @@ return function ($context) {
         }
         else {
             $response = $operations->createSite();
+            if (
+                is_array($response) &&
+                isset($response['data']) &&
+                is_object($response['data'])
+            ) {
+                $createdSite = $response['data'];
+                if (
+                    (!isset($createdSite->slug) || !is_string($createdSite->slug) || $createdSite->slug === '') &&
+                    isset($createdSite->location) &&
+                    is_string($createdSite->location) &&
+                    $createdSite->location !== ''
+                ) {
+                    $createdSite->slug = $createdSite->location;
+                }
+                if (
+                    (!isset($createdSite->slug) || !is_string($createdSite->slug) || $createdSite->slug === '') &&
+                    isset($createdSite->metadata) &&
+                    is_object($createdSite->metadata) &&
+                    isset($createdSite->metadata->site) &&
+                    is_object($createdSite->metadata->site) &&
+                    isset($createdSite->metadata->site->name) &&
+                    is_string($createdSite->metadata->site->name) &&
+                    $createdSite->metadata->site->name !== ''
+                ) {
+                    $createdSite->slug =
+                        $GLOBALS['HAXCMS']->basePath .
+                        trim((string) $GLOBALS['HAXCMS']->sitesDirectory, '/') .
+                        '/' .
+                        $createdSite->metadata->site->name .
+                        '/';
+                }
+                if (!isset($response['id']) && isset($createdSite->id)) {
+                    $response['id'] = $createdSite->id;
+                }
+                if (
+                    !isset($response['slug']) &&
+                    isset($createdSite->slug) &&
+                    is_string($createdSite->slug) &&
+                    $createdSite->slug !== ''
+                ) {
+                    $response['slug'] = $createdSite->slug;
+                }
+            }
         }
     }
     else if (

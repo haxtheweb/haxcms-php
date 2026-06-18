@@ -1866,33 +1866,21 @@ class HAXCMS
     {
         $sitename = '';
         $multisiteUrlName = '';
+        $refererPath = '';
         if (isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
           $referer = trim($_SERVER['HTTP_REFERER']);
-          $normalizedBasePath = '/' . trim((string) $this->basePath, '/');
-          if ($normalizedBasePath !== '/') {
-            $normalizedBasePath .= '/';
-          }
-          $siteContextPrefix =
-            $this->protocol .
-            '://' .
-            $this->domain .
-            $normalizedBasePath .
-            trim((string) $this->sitesDirectory, '/') .
-            '/';
-          if (strpos($referer, $siteContextPrefix) === 0) {
-            $sitepath = substr($referer, strlen($siteContextPrefix));
-            $siteparts = explode('/', $sitepath);
-            if (isset($siteparts[0]) && is_string($siteparts[0])) {
-              $multisiteUrlName = trim($siteparts[0]);
-            }
+          $parsedRefererPath = parse_url($referer, PHP_URL_PATH);
+          if (is_string($parsedRefererPath)) {
+            $refererPath = $parsedRefererPath;
           }
         }
-        $sitename = $multisiteUrlName;
-        $requestTokenUser = $this->getRequestTokenUserName();
-        // user token includes user and site name of the request
-        $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
-        // user token is just the name of the logged in user
-        $userToken = $this->getRequestToken($requestTokenUser);
+        $requestPath = '';
+        if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
+          $parsedRequestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+          if (is_string($parsedRequestPath)) {
+            $requestPath = $parsedRequestPath;
+          }
+        }
         $normalizedBasePath = '/' . trim((string) $this->basePath, '/');
         if ($normalizedBasePath !== '/') {
           $normalizedBasePath .= '/';
@@ -1904,30 +1892,79 @@ class HAXCMS
         if ($systemRequestBase === '') {
           $systemRequestBase = 'system/api';
         }
+        $sitesDirectorySegment = '/' . trim((string) $this->sitesDirectory, '/') . '/';
+        $sitePathSegments = array(
+          $sitesDirectorySegment,
+          '/sites/',
+          '/_sites/',
+        );
+        $extractSiteNameFromPath = function ($pathValue = '') use ($sitePathSegments) {
+          if (!is_string($pathValue) || $pathValue === '') {
+            return '';
+          }
+          foreach ($sitePathSegments as $segment) {
+            if ($segment === '' || strpos($pathValue, $segment) === FALSE) {
+              continue;
+            }
+            $sitepath = substr($pathValue, strpos($pathValue, $segment) + strlen($segment));
+            $siteparts = explode('/', trim($sitepath, '/'));
+            if (
+              isset($siteparts[0]) &&
+              is_string($siteparts[0]) &&
+              trim($siteparts[0]) !== ''
+            ) {
+              return trim($siteparts[0]);
+            }
+          }
+          return '';
+        };
+        $multisiteUrlName = $extractSiteNameFromPath($refererPath);
+        $sitename = $multisiteUrlName;
+        $requestTokenUser = $this->getRequestTokenUserName();
+        // user token includes user and site name of the request
+        $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
+        // user token is just the name of the logged in user
+        $userToken = $this->getRequestToken($requestTokenUser);
         $isDashboardRequest = FALSE;
         if ($this->getDeploymentProfile() !== 'single-site') {
-          $sitesDirectorySegment = '/' . trim((string) $this->sitesDirectory, '/') . '/';
-          if (isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
-            $requestReferer = trim($_SERVER['HTTP_REFERER']);
-            if ($requestReferer !== '') {
-              $isDashboardRequest = (strpos($requestReferer, $sitesDirectorySegment) === FALSE);
+          $pathContainsSiteSegment = function ($pathValue = '') use ($sitePathSegments) {
+            if (!is_string($pathValue) || $pathValue === '') {
+              return FALSE;
             }
+            foreach ($sitePathSegments as $segment) {
+              if ($segment !== '' && strpos($pathValue, $segment) !== FALSE) {
+                return TRUE;
+              }
+            }
+            return FALSE;
+          };
+          $systemRequestSegment = '/' . trim((string) $systemRequestBase, '/') . '/';
+          $requestLooksSystemApi = (
+            is_string($requestPath) &&
+            $requestPath !== '' &&
+            strpos($requestPath, $systemRequestSegment) !== FALSE
+          );
+          if (is_string($requestPath) && $requestPath !== '' && !$requestLooksSystemApi) {
+            $isDashboardRequest = !$pathContainsSiteSegment($requestPath);
           }
-          else if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
-            $requestUri = trim($_SERVER['REQUEST_URI']);
-            if ($requestUri !== '') {
-              $isDashboardRequest = (strpos($requestUri, $sitesDirectorySegment) === FALSE);
-            }
+          else if (is_string($refererPath) && $refererPath !== '') {
+            $isDashboardRequest = !$pathContainsSiteSegment($refererPath);
+          }
+          else if (is_string($requestPath) && $requestPath !== '') {
+            $isDashboardRequest = !$pathContainsSiteSegment($requestPath);
           }
         }
-        $systemApiBase = $systemRequestBase . '/v1';
+        $baseApiPath = $systemRequestBase . '/';
         if (!$isDashboardRequest) {
-          $systemApiBase =
-            rtrim($normalizedBasePath, '/') .
-            '/' .
-            $systemRequestBase .
-            '/v1';
+          if ($normalizedBasePath !== '/') {
+            $baseApiPath = rtrim($normalizedBasePath, '/') . '/' . $baseApiPath;
+          }
+          else {
+            $baseApiPath = '/' . $baseApiPath;
+          }
         }
+        $systemApiV1BasePath = $baseApiPath . 'v1/';
+        $systemApiBase = rtrim($systemApiV1BasePath, '/');
         $siteApiBase = $basePathPrefix . '/x/api';
         if ($multisiteUrlName !== '') {
           $siteApiBase =
@@ -1948,7 +1985,6 @@ class HAXCMS
         $settings->systemApiBasePath = $systemApiBase;
         $settings->systemOpenApiPath = $systemApiBase . '/openapi.json';
         // Resolve system API paths from OpenAPI spec by operationId (mirrors NodeJS behavior)
-        $systemApiV1BasePath = $systemApiBase . '/';
         $settings->login = $this->resolveSystemOperationPath(
           'sessionLogin', $systemApiV1BasePath, 'session/login'
         );

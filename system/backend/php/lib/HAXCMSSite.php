@@ -368,8 +368,6 @@ class HAXCMSSite
           // HAX core / application / PWA requirements
             'htaccess' => '.htaccess',
             'build' => 'build.js',
-            'buildlegacy' => 'assets/build-legacy.js',
-            'buildpolyfills' => 'assets/build-polyfills.js',
             'buildhaxcms' => 'build-haxcms.js',
             'outdated' => 'assets/upgrade-browser.html',
             'index' => 'index.html', // static published fallback
