@@ -1954,6 +1954,10 @@ class HAXCMS
             $isDashboardRequest = !$pathContainsSiteSegment($requestPath);
           }
         }
+        if ($isDashboardRequest) {
+          $sitename = '';
+          $multisiteUrlName = '';
+        }
         $baseApiPath = $systemRequestBase . '/';
         if (!$isDashboardRequest) {
           if ($normalizedBasePath !== '/') {
