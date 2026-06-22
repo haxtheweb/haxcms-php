@@ -80,6 +80,15 @@ class SiteRouteUtils
         if (isset($_SERVER['HTTP_AUTHORIZATION']) && is_string($_SERVER['HTTP_AUTHORIZATION'])) {
             $auth = $_SERVER['HTTP_AUTHORIZATION'];
         }
+        if ($auth === null && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && is_string($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $auth = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+        if ($auth === null) {
+            $envAuth = getenv('HTTP_AUTHORIZATION');
+            if (is_string($envAuth) && $envAuth !== '') {
+                $auth = $envAuth;
+            }
+        }
         if ($auth === null && function_exists('getallheaders')) {
             $headers = getallheaders();
             if (is_array($headers)) {

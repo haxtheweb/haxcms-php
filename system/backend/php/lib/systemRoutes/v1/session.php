@@ -216,6 +216,13 @@ return function ($context) {
     }
     else if ($route === 'v1/session/connection-test') {
         $requestedJWT = haxcmsResolveSessionBearerToken();
+        if ($requestedJWT === '') {
+            if (isset($context->body['jwt']) && is_string($context->body['jwt']) && $context->body['jwt'] !== '') {
+                $requestedJWT = $context->body['jwt'];
+            } else if (isset($context->body['token']) && is_string($context->body['token']) && $context->body['token'] !== '') {
+                $requestedJWT = $context->body['token'];
+            }
+        }
         $sessionContext = null;
         $refreshed = false;
         if ($requestedJWT !== '') {

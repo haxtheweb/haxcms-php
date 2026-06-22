@@ -22,18 +22,10 @@ trait OperationsRouteConnectionTest {
     $jwt = null;
     $refreshed = FALSE;
     $user = '';
-    // Extract a JWT string from the request, handling nested JSON from legacy login responses
+    // Extract a JWT string from the request; only flat string values are accepted
     $jwtInput = null;
-    if (isset($this->params['jwt'])) {
-      if (is_string($this->params['jwt']) && $this->params['jwt'] != '') {
-        $jwtInput = $this->params['jwt'];
-      } else if (is_array($this->params['jwt'])) {
-        if (isset($this->params['jwt']['data']['jwt']) && is_string($this->params['jwt']['data']['jwt'])) {
-          $jwtInput = $this->params['jwt']['data']['jwt'];
-        } else if (isset($this->params['jwt']['jwt']) && is_string($this->params['jwt']['jwt'])) {
-          $jwtInput = $this->params['jwt']['jwt'];
-        }
-      }
+    if (isset($this->params['jwt']) && is_string($this->params['jwt']) && $this->params['jwt'] !== '') {
+      $jwtInput = $this->params['jwt'];
     }
     // If a JWT string is present, validate it directly and capture the user
     if ($jwtInput !== null && $jwtInput !== '') {
