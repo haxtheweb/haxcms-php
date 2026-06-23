@@ -205,19 +205,25 @@ trait OperationsRouteSaveAppearanceSettings {
         );
       }
       if (array_key_exists('manifest-metadata-theme-variables-cssVariable', $themeParams)) {
-        $cssVariable = $this->normalizeAppearanceCssVariable(
-          $themeParams['manifest-metadata-theme-variables-cssVariable']
-        );
-        if ($cssVariable === false) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid cssVariable value',
-            )
-          );
+        $cssVariableValue = $themeParams['manifest-metadata-theme-variables-cssVariable'];
+        if (is_null($cssVariableValue) || (is_string($cssVariableValue) && trim($cssVariableValue) === '')) {
+          if (isset($site->manifest->metadata->theme->variables->cssVariable)) {
+            unset($site->manifest->metadata->theme->variables->cssVariable);
+          }
         }
-        $site->manifest->metadata->theme->variables->cssVariable =
-          '--simple-colors-default-theme-' . $cssVariable . '-7';
+        else {
+          $cssVariable = $this->normalizeAppearanceCssVariable($cssVariableValue);
+          if ($cssVariable === false) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid cssVariable value',
+              )
+            );
+          }
+          $site->manifest->metadata->theme->variables->cssVariable =
+            '--simple-colors-default-theme-' . $cssVariable . '-7';
+        }
       }
       if (array_key_exists('manifest-metadata-theme-variables-palette', $themeParams)) {
         $paletteValue = $themeParams['manifest-metadata-theme-variables-palette'];
