@@ -191,8 +191,8 @@ else {
     ?>
     globalThis.HAXCMSContext="php";globalThis.__appCDN="<?php print $HAXSiteConfig->getCDNForDynamic();?>";
   </script>
-  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build-haxcms.js" defer></script>
-  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build.js" defer></script>
+  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build-haxcms.js"></script>
+  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build.js"></script>
   <?php print $HAXSiteConfig->getGaCode(); ?>
 </body>
 </html>

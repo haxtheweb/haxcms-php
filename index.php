@@ -249,7 +249,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <script type="module">
       import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/app-hax.js";
     </script>
-    <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js" defer></script>
+    <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
     <?php $bottom = ''; $HAXCMS->dispatchEvent('haxcms-app-bottom', $bottom); print $bottom;?>
   </body>
 </html>
