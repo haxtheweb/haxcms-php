@@ -43,8 +43,7 @@
   <meta name="twitter:title" property="twitter:title" content="HAXcms" />
   <meta name="og:url" property="og:url" content="/" data-managed-seo />
   <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
-  <link rel="preload" href="./build.js" as="script" />
-  <link rel="preload" href="./build-haxcms.js" as="script" />
+  <!-- build.js and build-haxcms.js are loaded via defer; preloading them is redundant and adds to critical-path bandwidth -->
   <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
   <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
@@ -258,7 +257,7 @@
   <script>
     globalThis.MicroFrontendRegistryConfig = globalThis.MicroFrontendRegistryConfig || {};
     globalThis.HAXCMSContext="php";globalThis.__appCDN="./";</script>
-  <script src="./build-haxcms.js"></script>
-  <script src="./build.js"></script>
+  <script src="./build-haxcms.js" defer></script>
+  <script src="./build.js" defer></script>
 </body>
 </html>

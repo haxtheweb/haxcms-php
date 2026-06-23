@@ -285,9 +285,39 @@
           "inputMethod": "textfield"
         },
         {
+          "property": "manifest-metadata-author-phone",
+          "title": "Phone",
+          "description": "Phone number",
+          "inputMethod": "textfield"
+        },
+        {
+          "property": "manifest-metadata-author-location",
+          "title": "Location",
+          "description": "City, region, or country",
+          "inputMethod": "textfield"
+        },
+        {
+          "property": "manifest-metadata-author-website",
+          "title": "Website",
+          "description": "Personal or portfolio website",
+          "inputMethod": "textfield"
+        },
+        {
+          "property": "manifest-metadata-author-website2",
+          "title": "Website 2",
+          "description": "Additional website URL",
+          "inputMethod": "textfield"
+        },
+        {
           "property": "manifest-metadata-author-socialLink",
           "title": "Social media link",
           "description": "A primary social space / point of contact",
+          "inputMethod": "textfield"
+        },
+        {
+          "property": "manifest-metadata-author-socialLink2",
+          "title": "Social media link 2",
+          "description": "Additional social profile URL",
           "inputMethod": "textfield"
         }
       ]

@@ -5,7 +5,7 @@
     <script type="text/javascript">
       document.write("<base href='" + document.location.pathname.replace('index.html', '') + "' />");
     </script>
-    <link rel="preload" href="./build.js" as="script" />
+    <!-- build.js is loaded via defer; preloading it is redundant and adds to critical-path bandwidth -->
     <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />

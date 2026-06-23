@@ -405,6 +405,9 @@ trait OperationsRouteSaveOutline {
       }
       $site->manifest->metadata->site->updated = time();
       $site->manifest->save();
+      // rebuild managed files after manifest changes that may affect generated output
+      $site->rebuildManagedFiles();
+      $site->gitCommit('Managed files updated');
       // update alt formats like rss as we did massive changes
       $site->updateAlternateFormats();
       $site->gitCommit('Outline updated in bulk');

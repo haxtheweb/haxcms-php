@@ -152,6 +152,88 @@ trait OperationsRouteSaveSeoSettings {
         );
       }
 
+      $authorSocialLink2Value = null;
+      if (array_key_exists('socialLink2', $author)) {
+        $authorSocialLink2Value = $author['socialLink2'];
+      }
+      else if (array_key_exists('manifest.metadata.author.socialLink2', $manifestAuthor)) {
+        $authorSocialLink2Value = $manifestAuthor['manifest.metadata.author.socialLink2'];
+      }
+      if (!is_null($authorSocialLink2Value)) {
+        $site->manifest->metadata->author->socialLink2 = filter_var(
+          strval($authorSocialLink2Value),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->socialLink2 = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->socialLink2,
+          ''
+        );
+      }
+
+      $authorPhoneValue = null;
+      if (array_key_exists('phone', $author)) {
+        $authorPhoneValue = $author['phone'];
+      }
+      else if (array_key_exists('manifest.metadata.author.phone', $manifestAuthor)) {
+        $authorPhoneValue = $manifestAuthor['manifest.metadata.author.phone'];
+      }
+      if (!is_null($authorPhoneValue)) {
+        $site->manifest->metadata->author->phone = filter_var(
+          strval($authorPhoneValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $authorLocationValue = null;
+      if (array_key_exists('location', $author)) {
+        $authorLocationValue = $author['location'];
+      }
+      else if (array_key_exists('manifest.metadata.author.location', $manifestAuthor)) {
+        $authorLocationValue = $manifestAuthor['manifest.metadata.author.location'];
+      }
+      if (!is_null($authorLocationValue)) {
+        $site->manifest->metadata->author->location = filter_var(
+          strval($authorLocationValue),
+          FILTER_SANITIZE_FULL_SPECIAL_CHARS
+        );
+      }
+
+      $authorWebsiteValue = null;
+      if (array_key_exists('website', $author)) {
+        $authorWebsiteValue = $author['website'];
+      }
+      else if (array_key_exists('manifest.metadata.author.website', $manifestAuthor)) {
+        $authorWebsiteValue = $manifestAuthor['manifest.metadata.author.website'];
+      }
+      if (!is_null($authorWebsiteValue)) {
+        $site->manifest->metadata->author->website = filter_var(
+          strval($authorWebsiteValue),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->website = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->website,
+          ''
+        );
+      }
+
+      $authorWebsite2Value = null;
+      if (array_key_exists('website2', $author)) {
+        $authorWebsite2Value = $author['website2'];
+      }
+      else if (array_key_exists('manifest.metadata.author.website2', $manifestAuthor)) {
+        $authorWebsite2Value = $manifestAuthor['manifest.metadata.author.website2'];
+      }
+      if (!is_null($authorWebsite2Value)) {
+        $site->manifest->metadata->author->website2 = filter_var(
+          strval($authorWebsite2Value),
+          FILTER_SANITIZE_URL
+        );
+        $site->manifest->metadata->author->website2 = SanitizeContent::sanitizeURLValue(
+          $site->manifest->metadata->author->website2,
+          ''
+        );
+      }
+
       $descriptionValue = null;
       if (array_key_exists('description', $seo)) {
         $descriptionValue = $seo['description'];
@@ -316,6 +398,9 @@ trait OperationsRouteSaveSeoSettings {
 
       $site->manifest->metadata->site->updated = time();
       $site->manifest->save(false);
+      // rebuild managed files after manifest changes that may affect generated output
+      $site->rebuildManagedFiles();
+      $site->gitCommit('Managed files updated');
       $site->gitCommit('SEO settings updated');
       return $site->manifest;
     }

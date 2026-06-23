@@ -15,7 +15,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <meta charset="utf-8">
     <base href="<?php print $HAXCMS->basePath;?>" />
     <link rel="preconnect" crossorigin href="<?php print $HAXCMS->getCDNForDynamic();?>">
-    <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build.js" as="script" />
+    <!-- build.js is loaded via script at the end of body; removing redundant preload -->
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>wc-registry.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" />
@@ -249,7 +249,7 @@ P2 ready
     <script type="module">
       import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/app-hax.js";
     </script>
-    <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js"></script>
+    <script src="<?php print $HAXCMS->getCDNForDynamic();?>build.js" defer></script>
     <?php $bottom = ''; $HAXCMS->dispatchEvent('haxcms-app-bottom', $bottom); print $bottom;?>
   </body>
 </html>

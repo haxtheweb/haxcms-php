@@ -243,6 +243,48 @@ trait OperationsRouteSaveManifest {
               $site->manifest->metadata->author->socialLink,
               ''
             );
+            if (isset($this->params['manifest']['author']['manifest-metadata-author-socialLink2'])) {
+              $site->manifest->metadata->author->socialLink2 = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-socialLink2'],
+                FILTER_SANITIZE_URL
+              );
+              $site->manifest->metadata->author->socialLink2 = SanitizeContent::sanitizeURLValue(
+                $site->manifest->metadata->author->socialLink2,
+                ''
+              );
+            }
+            if (isset($this->params['manifest']['author']['manifest-metadata-author-phone'])) {
+              $site->manifest->metadata->author->phone = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-phone'],
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
+              );
+            }
+            if (isset($this->params['manifest']['author']['manifest-metadata-author-location'])) {
+              $site->manifest->metadata->author->location = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-location'],
+                FILTER_SANITIZE_FULL_SPECIAL_CHARS
+              );
+            }
+            if (isset($this->params['manifest']['author']['manifest-metadata-author-website'])) {
+              $site->manifest->metadata->author->website = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-website'],
+                FILTER_SANITIZE_URL
+              );
+              $site->manifest->metadata->author->website = SanitizeContent::sanitizeURLValue(
+                $site->manifest->metadata->author->website,
+                ''
+              );
+            }
+            if (isset($this->params['manifest']['author']['manifest-metadata-author-website2'])) {
+              $site->manifest->metadata->author->website2 = filter_var(
+                $this->params['manifest']['author']['manifest-metadata-author-website2'],
+                FILTER_SANITIZE_URL
+              );
+              $site->manifest->metadata->author->website2 = SanitizeContent::sanitizeURLValue(
+                $site->manifest->metadata->author->website2,
+                ''
+              );
+            }
         }
         if (isset($this->params['manifest']['seo']['manifest-metadata-site-settings-private'])) {
           $site->manifest->metadata->site->settings->private = filter_var(
