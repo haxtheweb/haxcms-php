@@ -124,7 +124,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         margin-top: 2.5px;
         font-size: 2vw;
       }
-P2 ready
+
       #loading .bracket {
         font-size: 10vw;
         font-weight: normal;
