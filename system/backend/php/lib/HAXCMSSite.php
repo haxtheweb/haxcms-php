@@ -386,7 +386,6 @@ class HAXCMSSite
             // local development tooling
             'webdevserverhaxcmsconfigcjs' => 'web-dev-server.haxcms.config.cjs',
             'package' => 'package.json',
-            'polymer' => 'polymer.json',
             // SCORM 1.2
             'imsmdrootv1p2p1' => 'imsmd_rootv1p2p1.xsd',
             'imscprootv1p1p2' => 'imscp_rootv1p1p2.xsd',
