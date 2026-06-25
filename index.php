@@ -27,7 +27,6 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/lib/v2/AppHaxStore.js" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/lib/v2/AppHaxBackendAPI.js" crossorigin="anonymous" />
     <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/lib/v2/AppHaxRouter.js" crossorigin="anonymous" />
-    <link rel="modulepreload" href="<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@vaadin/router/dist/vaadin-router.js" crossorigin="anonymous" />
     <meta name="generator" content="HAXcms">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
     <title>Welcome to HAX</title>

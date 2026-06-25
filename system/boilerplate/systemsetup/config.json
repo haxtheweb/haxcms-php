@@ -49,9 +49,6 @@
         "matching-question": "@haxtheweb/matching-question/matching-question.js",
         "mark-the-words": "@haxtheweb/mark-the-words/mark-the-words.js",
         "fill-in-the-blanks": "@haxtheweb/fill-in-the-blanks/fill-in-the-blanks.js",
-        "collection-item": "@haxtheweb/collection-list/lib/collection-item.js",
-        "collection-list": "@haxtheweb/collection-list/collection-list.js",
-        "site-collection-list": "@haxtheweb/haxcms-elements/lib/ui-components/magic/site-collection-list.js",
         "play-list": "@haxtheweb/play-list/play-list.js",
         "simple-cta": "@haxtheweb/simple-cta/simple-cta.js",
         "page-section": "@haxtheweb/page-section/page-section.js",
@@ -98,7 +95,8 @@
         "career-timeline": "@haxtheweb/career-timeline/career-timeline.js",
         "bibliography-builder": "@haxtheweb/bibliography-builder/bibliography-builder.js",
         "bibliography-item": "@haxtheweb/bibliography-builder/lib/bibliography-item.js",
-        "media-playlist": "@haxtheweb/media-playlist/media-playlist.js"
+        "media-playlist": "@haxtheweb/media-playlist/media-playlist.js",
+        "image-gallery": "@haxtheweb/image-gallery/image-gallery.js"
     },
       "apiKeys": {
           "youtube": "",
