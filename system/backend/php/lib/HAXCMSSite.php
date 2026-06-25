@@ -2559,9 +2559,14 @@ class HAXCMSSite
         $opPath = '';
         // load from the active address if we have one
         if (is_null($path)) {
-          $opPath = str_replace($GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $GLOBALS['HAXCMS']->request_uri());
+          $opPath = ltrim($this->getRequestRelativePath(), '/');
           if (getenv('HAXSITE_BASE_URL')) {
-            $opPath = str_replace(getenv('HAXSITE_BASE_URL'), '', $opPath);
+            $baseUrl = rtrim(getenv('HAXSITE_BASE_URL'), '/');
+            if ($baseUrl !== '' && strpos($opPath, $baseUrl . '/') === 0) {
+              $opPath = ltrim(substr($opPath, strlen($baseUrl) + 1), '/');
+            } elseif ($baseUrl !== '' && strpos($opPath, $baseUrl) === 0) {
+              $opPath = ltrim(substr($opPath, strlen($baseUrl)), '/');
+            }
           }
           $path = $opPath;
         } else {
