@@ -2581,6 +2581,21 @@ class HAXCMSSite
                 return $item;
             }
         }
+        // fallback for home page when path is empty (root request)
+        if ($opPath === '') {
+            if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId)) {
+                foreach ($this->manifest->items as $item) {
+                    if (isset($item->id) && $item->id === $this->manifest->metadata->site->homePageId) {
+                        $this->lastPathLookupMiss = false;
+                        return $item;
+                    }
+                }
+            }
+            if (isset($this->manifest->items) && is_array($this->manifest->items) && count($this->manifest->items) > 0) {
+                $this->lastPathLookupMiss = false;
+                return $this->manifest->items[0];
+            }
+        }
        $this->lastPathLookupMiss = true;
        return new JSONOutlineSchemaItem();
     }
