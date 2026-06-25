@@ -2569,7 +2569,7 @@ class HAXCMSSite
         }
         $path .= "/index.html";
         // failsafe in case someone had closing /
-        $path = 'pages/' . str_replace('//', '/', $path);
+        $path = 'pages/' . ltrim(str_replace('//', '/', $path), '/');
         foreach ($this->manifest->items as $item) {
             if ($item->location == $path || $item->slug == $opPath) {
                 $this->lastPathLookupMiss = false;
