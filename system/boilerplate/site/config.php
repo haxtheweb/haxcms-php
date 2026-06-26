@@ -725,29 +725,12 @@ if (!isset($GLOBALS['HAXCMS'])) {
     public function loadNodeByLocation($path = NULL) {
       // load from the active address if we have one
       if (is_null($path)) {
-        $requestPath = parse_url($this->request_uri(), PHP_URL_PATH);
-        $siteBase = rtrim($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name, '/');
-        $opPath = $requestPath;
-        if ($siteBase !== '' && strpos($opPath, $siteBase . '/') === 0) {
-          $opPath = ltrim(substr($opPath, strlen($siteBase) + 1), '/');
-        } elseif ($siteBase !== '' && strpos($opPath, $siteBase) === 0) {
-          $opPath = ltrim(substr($opPath, strlen($siteBase)), '/');
-        }
-        if (getenv('HAXSITE_BASE_URL')) {
-          $baseUrl = rtrim(getenv('HAXSITE_BASE_URL'), '/');
-          if ($baseUrl !== '' && strpos($opPath, $baseUrl . '/') === 0) {
-            $opPath = ltrim(substr($opPath, strlen($baseUrl) + 1), '/');
-          } elseif ($baseUrl !== '' && strpos($opPath, $baseUrl) === 0) {
-            $opPath = ltrim(substr($opPath, strlen($baseUrl)), '/');
-          }
-        }
+        $opPath = str_replace($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $this->request_uri());
         $path = $opPath;
-      } else {
-        $opPath = trim($path, '/');
       }
       $path .= "/index.html";
       // failsafe in case someone had closing /
-      $path = 'pages/' . ltrim(str_replace('//', '/', $path), '/');
+      $path = 'pages/' . str_replace('//', '/', $path);
       foreach ($this->manifest->items as $item) {
         if ($item->location == $path || $item->slug == $opPath) {
           return $item;
