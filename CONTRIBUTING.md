@@ -20,7 +20,7 @@ Beginner focused information can be found below in [Open a Pull Request](#openin
 ### Communication
 
 Reporting issues? Our unified issue queue is a good place for this: https://github.com/haxtheweb/issues/issues
-Need to discuss something via chat? Our [Discord can be joined here](https://bit.ly/hax-discord).
+Need to discuss something via chat? Our [Discord can be joined here](https://discord.gg/EKYJAjqGhf).
 
 ## GitHub workflow
 
@@ -49,7 +49,7 @@ When reviewing PRs from others [The Gentle Art of Patch Review](http://sage.thes
 - Is the contribution architected correctly?
 - Is the contribution polished?
 
-Note: if your pull request isn't getting enough attention, you can use our [Discord channel](https://bit.ly/hax-discord) to get help finding reviewers.
+Note: if your pull request isn't getting enough attention, you can use our [Discord channel](https://discord.gg/EKYJAjqGhf) to get help finding reviewers.
 
 ## Best practices
 

@@ -102,7 +102,7 @@ sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
   - `haxiam-managed` defaults MCP to disabled unless explicitly enabled.
   - Other profiles default to MCP enabled with read-only mode on.
 # Get Help / Issues / Support
-- Discord Channel - https://bit.ly/hax-discord
+- Discord Channel - https://discord.gg/EKYJAjqGhf
 - Unified issue queue - https://github.com/haxtheweb/issues/issues
 - Using Merlin directly in any HAX spaces and type "Issue" to jump start a report!
 

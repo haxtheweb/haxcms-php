@@ -293,7 +293,7 @@ For full HAXcms features:
 - **Merlin Integration**: Use "Issue" command in HAX for automated reporting
 
 ### Community Resources
-- **HAX Discord**: https://bit.ly/hax-discord
+- **HAX Discord**: https://discord.gg/EKYJAjqGhf
 - **Documentation**: https://haxtheweb.org/
 - **Component Gallery**: Explore available components
 - **CLI Help**: Run `hax help` for command reference
@@ -351,6 +351,6 @@ For full HAXcms features:
 ## Getting Help
 
 - **Local Help**: Run `hax help` for CLI assistance
-- **Community**: Join HAX Discord at https://bit.ly/hax-discord
+- **Community**: Join HAX Discord at https://discord.gg/EKYJAjqGhf
 - **Documentation**: Visit https://haxtheweb.org/ for comprehensive guides
 - **Issues**: Report problems at https://github.com/haxtheweb/issues

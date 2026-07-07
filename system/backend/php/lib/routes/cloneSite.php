@@ -41,8 +41,20 @@ trait OperationsRouteCloneSite {
       $originalPathForReplacement = "/sites/" . $site->manifest->metadata->site->name . "/files/";
       $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
       // ensure the path to the new folder is valid
+      // resolve symlinks so that mirror copies real contents instead of recreating links
+      $sourcePath = realpath(
+          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name
+      );
+      if ($sourcePath === false) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Source site path could not be resolved',
+          )
+        );
+      }
       $GLOBALS['fileSystem']->mirror(
-          HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+          $sourcePath,
           HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $cloneName
       );
       // we need to then load and rewrite the site name var or it will conflict given the name change
