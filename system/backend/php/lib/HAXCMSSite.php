@@ -119,6 +119,7 @@ class HAXCMSSite
         $this->manifest->metadata->site->settings->lang = 'en'; // default but changed via settings
         $this->manifest->metadata->site->settings->private = false; // default all sites are open
         $this->manifest->metadata->site->settings->canonical = true; // default all sites to include a canonical URL to reduce duplication
+        $this->manifest->metadata->site->settings->pathauto = true; // default to pathauto for readable slugs
         $this->manifest->metadata->site->name = $tmpname;
         $this->manifest->metadata->site->domain = $domain;
         $this->manifest->metadata->site->created = time();

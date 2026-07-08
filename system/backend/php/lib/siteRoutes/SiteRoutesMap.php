@@ -60,6 +60,7 @@ class SiteRoutesMap
                 'v1/items/:idOrSlug/revisions/:revisionId/restore' => dirname(__FILE__) . '/v1/revisionsMutation.php',
                 'v1/files' => dirname(__FILE__) . '/v1/filesMutation.php',
                 'v1/site/export/:format' => dirname(__FILE__) . '/v1/exportsMutation.php',
+                'v1/site/normalize-slugs' => dirname(__FILE__) . '/v1/siteNormalizeSlugs.php',
             ),
             'PATCH' => array(
                 'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/itemsMutation.php',

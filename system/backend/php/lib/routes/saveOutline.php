@@ -114,6 +114,7 @@ trait OperationsRouteSaveOutline {
         }
         return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
       };
+      $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -153,12 +154,22 @@ trait OperationsRouteSaveOutline {
           // generate a logical page slug
           $page->location = 'pages/' . $page->id . '/index.html';
         }
-        // keep slug if we get one already, but sanitize / normalize it
-        if (isset($item->slug) && $item->slug != '') {
-            $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
+        // Check for per-page overridePathauto flag
+        $overridePathauto = false;
+        if (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true) {
+          $overridePathauto = true;
+        }
+        // Determine slug based on pathauto and overridePathauto
+        if ($pathautoEnabled && !$overridePathauto) {
+          // Pathauto is on and user has not overridden: auto-generate from title
+          $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
         } else {
-            // generate a logical page slug
+          // Pathauto is off, or user has overridden: use client-provided slug or generate from title
+          if (isset($item->slug) && $item->slug != '') {
+            $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
+          } else {
             $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
+          }
         }
         // verify this exists, front end could have set what they wanted
         // or it could have just been renamed
@@ -180,7 +191,7 @@ trait OperationsRouteSaveOutline {
                     $tmpItem->slug != ''
                 ) {
                     // core support for automatically managing paths to make them nice
-                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
+                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto && !$overridePathauto) {
                         $moved = true;
                         $page->slug = $normalizeOutlineSlug(
                           $GLOBALS['HAXCMS']->cleanTitle($page->title),
@@ -201,7 +212,7 @@ trait OperationsRouteSaveOutline {
                 !file_exists($siteDirectory . '/' . $page->location)
             ) {
                 $pAuto = false;
-                if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto) {
+                if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto && !$overridePathauto) {
                   $pAuto = true;
                 }
                 $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);

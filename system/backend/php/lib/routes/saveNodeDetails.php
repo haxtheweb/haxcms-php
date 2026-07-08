@@ -165,11 +165,61 @@ trait OperationsRouteSaveNodeDetails {
             $parentNode = $site->loadNode($newParent);
             $page->indent = $parentNode && isset($parentNode->indent) ? ((int)$parentNode->indent + 1) : 1;
           }
+          // If pathauto is on and overridePathauto is not set, regenerate the slug and cascade
+          $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+          $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
+          if ($pathautoEnabled && !$overridePathauto) {
+            $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+            // Temporarily update manifest items so getUniqueSlugName can see parent changes
+            $site->manifest->items = $items;
+            $changedIds = array($page->id);
+            $keepGoing = true;
+            while ($keepGoing) {
+              $keepGoing = false;
+              foreach ($items as $item) {
+                if (in_array($item->parent, $changedIds) && !in_array($item->id, $changedIds)) {
+                  $childOverride = isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true;
+                  if (!$childOverride) {
+                    $childCleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+                    $item->slug = $site->getUniqueSlugName($childCleanTitle, $item, true);
+                    $changedIds[] = $item->id;
+                    $keepGoing = true;
+                  }
+                }
+              }
+            }
+          }
           break;
         // Singular field modification operations
         case 'setTitle':
           if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
             $page->title = strip_tags($this->params['node']['details']['title']);
+            // If pathauto is on and overridePathauto is not set, regenerate the slug and cascade
+            $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+            $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
+            if ($pathautoEnabled && !$overridePathauto) {
+              $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+              $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+              // Temporarily update manifest items so getUniqueSlugName can see parent changes
+              $site->manifest->items = $items;
+              $changedIds = array($page->id);
+              $keepGoing = true;
+              while ($keepGoing) {
+                $keepGoing = false;
+                foreach ($items as $item) {
+                  if (in_array($item->parent, $changedIds) && !in_array($item->id, $changedIds)) {
+                    $childOverride = isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true;
+                    if (!$childOverride) {
+                      $childCleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+                      $item->slug = $site->getUniqueSlugName($childCleanTitle, $item, true);
+                      $changedIds[] = $item->id;
+                      $keepGoing = true;
+                    }
+                  }
+                }
+              }
+            }
           }
           break;
         case 'setDescription':
@@ -276,6 +326,19 @@ trait OperationsRouteSaveNodeDetails {
               $newSlug = str_replace('x/', 'x-x/', $newSlug);
             }
             $page->slug = $GLOBALS['HAXCMS']->generateSlugName($newSlug);
+            // When user manually sets a slug, mark it as overridden so pathauto won't overwrite it
+            if (!isset($page->metadata)) {
+              $page->metadata = new stdClass();
+            }
+            $page->metadata->overridePathauto = true;
+          }
+          break;
+        case 'setOverridePathauto':
+          if (!isset($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          if (array_key_exists('overridePathauto', $this->params['node']['details'])) {
+            $page->metadata->overridePathauto = filter_var($this->params['node']['details']['overridePathauto'], FILTER_VALIDATE_BOOLEAN);
           }
           break;
         default:

@@ -403,6 +403,31 @@ class Operations {
     return $normalized;
   }
   /**
+   * Validate and normalize a site file path for theme/custom imports.
+   */
+  private function normalizeSiteFilePath($relativePath) {
+    if (!is_string($relativePath)) {
+      return false;
+    }
+    $normalized = trim(str_replace('\\', '/', $relativePath));
+    if (
+      $normalized === '' ||
+      strpos($normalized, "\0") !== false ||
+      strpos($normalized, '..') !== false ||
+      substr($normalized, 0, 1) === '/' ||
+      !(strpos($normalized, 'theme/') === 0 || strpos($normalized, 'custom/') === 0)
+    ) {
+      return false;
+    }
+    $parts = explode('/', $normalized);
+    foreach ($parts as $part) {
+      if ($part === '' || $part === '.' || $part === '..') {
+        return false;
+      }
+    }
+    return $normalized;
+  }
+  /**
    * Clone mixed data through JSON encoding into an associative array.
    */
   private function cloneTemplateArray($value, $fallback = array()) {

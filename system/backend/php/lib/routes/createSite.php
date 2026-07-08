@@ -477,6 +477,24 @@ trait OperationsRouteCreateSite {
           ), $site);
         }
       }
+      // download user-customized theme and custom files (imported from another instance)
+      if (isset($this->params['build']['siteFiles']) && is_array($this->params['build']['siteFiles'])) {
+        foreach ($this->params['build']['siteFiles'] as $relativePath => $downloadUrl) {
+          $normalizedPath = $this->normalizeSiteFilePath($relativePath);
+          if ($normalizedPath === false) {
+            continue;
+          }
+          $content = @file_get_contents($downloadUrl);
+          if ($content !== false && $content !== '') {
+            $targetPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/' . $normalizedPath;
+            $targetDir = dirname($targetPath);
+            if (!is_dir($targetDir)) {
+              mkdir($targetDir, 0755, true);
+            }
+            file_put_contents($targetPath, $content);
+          }
+        }
+      }
       // main site schema doesn't care about publishing settings
       unset($schema->metadata->site->git);
       $git = new Git();

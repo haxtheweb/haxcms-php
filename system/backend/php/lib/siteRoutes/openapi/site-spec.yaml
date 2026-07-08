@@ -428,6 +428,74 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/normalize-slugs:
+    post:
+      tags:
+        - site
+      operationId: normalizeSiteSlugs
+      summary: Bulk normalize all outline slugs based on current titles
+      description: Optionally preview changes without persisting. Respects overridePathauto per item when pathauto is enabled.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preview:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Slug normalization result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          changes:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                oldSlug:
+                                  type: string
+                                newSlug:
+                                  type: string
+                                parent:
+                                  type: string
+                                  nullable: true
+                          skipped:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                slug:
+                                  type: string
+                                reason:
+                                  type: string
+                          count:
+                            type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}/export/{format}:
     get:
       tags:
