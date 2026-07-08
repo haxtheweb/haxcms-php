@@ -170,6 +170,12 @@ $publicResult = SystemApiSecurity::validateSystemApiAccess($publicCtx, 'v1/sessi
 assertTrue($publicResult['allowed'], "Public route allowed without auth");
 assertEquals(200, $publicResult['status'], "Public route status 200");
 
+$publicCtx2 = SystemApiRequestContext::create();
+$publicCtx2->routeSuffix = 'v1/actions/docx-to-html';
+$publicResult2 = SystemApiSecurity::validateSystemApiAccess($publicCtx2, 'v1/actions/docx-to-html', 'POST');
+assertTrue($publicResult2['allowed'], "docx-to-html public route allowed without auth");
+assertEquals(200, $publicResult2['status'], "docx-to-html public route status 200");
+
 // Authenticated route without Bearer should be 401
 $authCtx = SystemApiRequestContext::create();
 $authResult = SystemApiSecurity::validateSystemApiAccess($authCtx, 'v1/sites', 'GET');

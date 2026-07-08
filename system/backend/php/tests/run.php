@@ -61,6 +61,7 @@ function runSiteRoutesMapTests()
     $runner->assert(isset($routes['POST']['v1/items/:idOrSlug/revisions/:revisionId/restore']), 'POST v1/items/:idOrSlug/revisions/:revisionId/restore exists');
     $runner->assert(isset($routes['POST']['v1/files']), 'POST v1/files exists');
     $runner->assert(isset($routes['POST']['v1/site/export/:format']), 'POST v1/site/export/:format exists');
+    $runner->assert(isset($routes['POST']['v1/site/import/docx']), 'POST v1/site/import/docx exists');
 
     $runner->assert(isset($routes['PATCH']['v1/items/:idOrSlug']), 'PATCH v1/items/:idOrSlug exists');
     $runner->assert(isset($routes['PATCH']['v1/content/:idOrSlug']), 'PATCH v1/content/:idOrSlug exists');
@@ -84,6 +85,7 @@ function runSiteRoutesMapTests()
         $routes['POST']['v1/items/:idOrSlug/revisions/:revisionId/restore'],
         $routes['POST']['v1/files'],
         $routes['POST']['v1/site/export/:format'],
+        $routes['POST']['v1/site/import/docx'],
         $routes['PATCH']['v1/items/:idOrSlug'],
         $routes['PATCH']['v1/content/:idOrSlug'],
         $routes['PATCH']['v1/site'],
@@ -183,6 +185,7 @@ function runMutationWrapperTests()
         'v1/revisions.php',
         'v1/revisionsMutation.php',
         'v1/exportsMutation.php',
+        'v1/importDocx.php',
     );
     foreach ($mutationWrappers as $file) {
         $path = $baseDir . '/lib/siteRoutes/' . $file;
@@ -194,6 +197,20 @@ function runMutationWrapperTests()
     return $runner->report('Mutation Wrapper Tests');
 }
 
+function runSystemRoutesMapTests()
+{
+    $runner = new SimpleTestRunner();
+
+    $routes = SystemRoutesMap::getRoutesMap();
+
+    $runner->assert(isset($routes['POST']['v1/actions/docx-to-html']), 'POST v1/actions/docx-to-html exists in SystemRoutesMap');
+    $runner->assert(file_exists($routes['POST']['v1/actions/docx-to-html']), 'System handler file exists for v1/actions/docx-to-html');
+    $contents = file_get_contents($routes['POST']['v1/actions/docx-to-html']);
+    $runner->assert(strpos($contents, 'return function') !== false, 'System handler contains closure');
+
+    return $runner->report('SystemRoutesMap Tests');
+}
+
 function runAllTests()
 {
     $results = array(
@@ -201,6 +218,7 @@ function runAllTests()
         runSiteRoutesMapTests(),
         runSiteApiRouterTests(),
         runMutationWrapperTests(),
+        runSystemRoutesMapTests(),
         runSecurityLayerTests(),
     );
     $allPassed = true;

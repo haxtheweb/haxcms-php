@@ -152,6 +152,10 @@ function runSecurityLayerTests()
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/site/export/zip', 'POST');
     $runner->assert($result['allowed'] === false, 'POST v1/site/export/:format requires auth');
 
+    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/site/import/docx', 'POST');
+    $runner->assert($result['allowed'] === false, 'POST v1/site/import/docx requires auth');
+    $runner->assertEquals(401, $result['status'], 'POST v1/site/import/docx returns 401');
+
     // --- 4. Authenticated with valid Bearer but missing site token ---
     $jwt = buildTestJWT('testuser', 'test-secret-key', 'test-salt');
     resetServerVars();
@@ -207,7 +211,7 @@ function runSecurityLayerTests()
     return $runner->report('Security Layer Tests');
 }
 
-if (php_sapi_name() === 'cli' || !isset($_SERVER['SERVER_SOFTWARE'])) {
+if ((php_sapi_name() === 'cli' || !isset($_SERVER['SERVER_SOFTWARE'])) && realpath(__FILE__) === realpath($_SERVER['SCRIPT_NAME'])) {
     $ok = runSecurityLayerTests();
     exit($ok ? 0 : 1);
 }

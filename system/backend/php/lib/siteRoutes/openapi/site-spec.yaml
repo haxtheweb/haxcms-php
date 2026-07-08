@@ -682,6 +682,64 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/import/docx:
+    post:
+      tags:
+        - site
+      operationId: importDocx
+      summary: Import a .docx file into site structure
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                  description: Word document (.docx or .doc) to import
+                method:
+                  type: string
+                  enum:
+                    - site
+                    - branch
+                    - page
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site structure
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              type: object
+                          filename:
+                            type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}:
     get:
       tags:

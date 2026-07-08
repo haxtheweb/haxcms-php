@@ -66,6 +66,8 @@ class SystemRoutesMap
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/themes' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/haxiamAddUserAccess' => dirname(__FILE__) . '/v1/haxiam.php',
+                'v1/actions/docx-to-html' => dirname(__FILE__) . '/v1/convertDocxToHtml.php',
+                'v1/actions/import-docx' => dirname(__FILE__) . '/v1/importDocx.php',
             ),
             'PATCH' => array(
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',

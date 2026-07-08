@@ -11,6 +11,7 @@ include_once $baseDir . '/lib/siteRoutes/SiteRouteUtils.php';
 include_once $baseDir . '/lib/siteRoutes/SiteApiRequestContext.php';
 include_once $baseDir . '/lib/siteRoutes/SiteApiSecurity.php';
 include_once $baseDir . '/lib/siteRoutes/SiteApiRouter.php';
+include_once $baseDir . '/lib/systemRoutes/SystemRoutesMap.php';
 
 // Minimal JWT stub for testing
 if (!class_exists('JWT')) {
@@ -90,6 +91,22 @@ class HAXCMSTestStub
     public function generateMachineName($name)
     {
         return strtolower(preg_replace('/[^a-z0-9_-]+/', '-', (string) $name));
+    }
+    public function cleanTitle($value, $stripPage = true)
+    {
+        $cleanTitle = trim($value);
+        if ($stripPage) {
+            $cleanTitle = str_replace('pages/', '', str_replace('/index.html', '', $cleanTitle));
+        }
+        $cleanTitle = str_replace('./', '', $cleanTitle);
+        $cleanTitle = str_replace('../', '', $cleanTitle);
+        $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
+        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
+        $cleanTitle = mb_strtolower(preg_replace('/--+/u', '-', $cleanTitle), 'UTF-8');
+        if ($cleanTitle == '') {
+            $cleanTitle = 'blank';
+        }
+        return $cleanTitle;
     }
     public function decodeJWT($key)
     {

@@ -141,7 +141,7 @@ class Operations {
    * @param string $capability The capability to check (e.g., 'delete', 'addPage', 'outlineDesigner', 'manifest')
    * @return bool Whether the capability is allowed
    */
-  private function platformAllows($site, $capability) {
+  public function platformAllows($site, $capability) {
     if (
       !isset($site->manifest->metadata->platform) ||
       (!is_object($site->manifest->metadata->platform) && !is_array($site->manifest->metadata->platform))
