@@ -124,6 +124,22 @@ function haxcmsCollectSiblingsUntil($elements, $startIndex, $stopTags)
 }
 
 /**
+ * Find the highest (lowest numeric) heading level present in parsed elements.
+ */
+function haxcmsGetHighestHeadingLevel($elements)
+{
+    for ($level = 1; $level <= 4; $level++) {
+        $tag = 'H' . $level;
+        foreach ($elements as $el) {
+            if ($el['tagName'] === $tag) {
+                return $level;
+            }
+        }
+    }
+    return null;
+}
+
+/**
  * Return fallback content based on type.
  */
 function haxcmsGetFallbackContent($type)
@@ -183,9 +199,9 @@ return function ($context) {
 
     $file = $_FILES[$fileKey];
     $filename = isset($file['name']) ? (string) $file['name'] : 'document.docx';
-    if (!preg_match('/\.(docx|doc)$/i', $filename)) {
+    if (!preg_match('/\.docx$/i', $filename)) {
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 400, 'message' => 'Invalid file type. Expected .docx or .doc, got: ' . $filename),
+            array('status' => 400, 'message' => 'Invalid file type. Expected .docx, got: ' . $filename),
             array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
             $apiBasePath
@@ -249,7 +265,7 @@ return function ($context) {
         return;
     }
 
-    $titleValue = preg_replace('/\.(docx|doc)$/i', '', $filename);
+    $titleValue = preg_replace('/\.docx$/i', '', $filename);
     $elements = haxcmsSimpleHtmlToElements($html);
     $items = array();
 
@@ -286,61 +302,67 @@ return function ($context) {
 
     switch ($method) {
         case 'site': {
-            $h1s = array();
-            foreach ($elements as $idx => $el) {
-                if ($el['tagName'] === 'H1') {
-                    $h1s[] = array('index' => $idx, 'el' => $el);
-                }
-            }
-            $h1Order = 0;
-            if (count($h1s) === 0) {
+            $highestLevel = haxcmsGetHighestHeadingLevel($elements);
+            $rootTag = $highestLevel ? 'H' . $highestLevel : null;
+            $childTag = ($highestLevel && $highestLevel < 4) ? 'H' . ($highestLevel + 1) : null;
+            $rootTagName = $rootTag ? $rootTag : null;
+            $childTagName = $childTag ? $childTag : null;
+
+            if (!$rootTag) {
                 $contents = '';
                 foreach ($elements as $el) {
                     $contents .= $el['html'];
                 }
                 $items[] = $buildItem($titleValue, $makeSlug($titleValue), 0, $parentId, 0, $contents !== '' ? $contents : '<p></p>');
             } else {
-                foreach ($h1s as $h1Data) {
-                    $h1 = $h1Data['el'];
-                    $idx = $h1Data['index'];
-                    $h1Title = $h1['text'];
-                    $h1Slug = $makeSlug($h1Title);
-                    $h1Siblings = haxcmsCollectSiblingsUntil($elements, $idx, array('H1'));
-                    $h1Contents = '';
-                    $h2 = null;
-                    $h2StartIdx = null;
-                    foreach ($h1Siblings as $sibIdx => $sib) {
-                        if ($sib['tagName'] === 'H2' && $h2 === null) {
-                            $h2 = $sib;
-                            $h2StartIdx = $idx + $sibIdx + 1;
+                $rootHeadings = array();
+                foreach ($elements as $idx => $el) {
+                    if ($el['tagName'] === $rootTagName) {
+                        $rootHeadings[] = array('index' => $idx, 'el' => $el);
+                    }
+                }
+                $rootOrder = 0;
+                foreach ($rootHeadings as $rootData) {
+                    $rootHeading = $rootData['el'];
+                    $idx = $rootData['index'];
+                    $rootTitle = $rootHeading['text'];
+                    $rootSlug = $makeSlug($rootTitle);
+                    $rootSiblings = haxcmsCollectSiblingsUntil($elements, $idx, array($rootTagName));
+                    $rootContents = '';
+                    $childHeading = null;
+                    $childStartIdx = null;
+                    foreach ($rootSiblings as $sibIdx => $sib) {
+                        if ($childTagName && $sib['tagName'] === $childTagName && $childHeading === null) {
+                            $childHeading = $sib;
+                            $childStartIdx = $idx + $sibIdx + 1;
                             break;
-                        } elseif ($h2 === null) {
-                            $h1Contents .= $sib['html'];
+                        } elseif ($childHeading === null) {
+                            $rootContents .= $sib['html'];
                         }
                     }
-                    $h1Item = $buildItem($h1Title, $h1Slug, $h1Order, $parentId, 0, $h1Contents !== '' ? $h1Contents : haxcmsGetFallbackContent($type));
-                    $items[] = $h1Item;
-                    $h1Order += 1;
+                    $rootItem = $buildItem($rootTitle, $rootSlug, $rootOrder, $parentId, 0, $rootContents !== '' ? $rootContents : haxcmsGetFallbackContent($type));
+                    $items[] = $rootItem;
+                    $rootOrder += 1;
 
-                    if ($h2 !== null) {
-                        $h2Order = 0;
-                        $currentH2Idx = $h2StartIdx - 1;
-                        while ($currentH2Idx < count($elements)) {
-                            if ($elements[$currentH2Idx]['tagName'] !== 'H2') {
-                                $currentH2Idx++;
+                    if ($childHeading !== null) {
+                        $childOrder = 0;
+                        $currentChildIdx = $childStartIdx - 1;
+                        while ($currentChildIdx < count($elements)) {
+                            if ($elements[$currentChildIdx]['tagName'] !== $childTagName) {
+                                $currentChildIdx++;
                                 continue;
                             }
-                            $h2Title = $elements[$currentH2Idx]['text'];
-                            $h2Slug = $h1Slug . '/' . $makeSlug($h2Title);
-                            $h2Siblings = haxcmsCollectSiblingsUntil($elements, $currentH2Idx, array('H1', 'H2'));
-                            $h2Contents = '';
-                            foreach ($h2Siblings as $sib) {
-                                $h2Contents .= $sib['html'];
+                            $childTitle = $elements[$currentChildIdx]['text'];
+                            $childSlug = $rootSlug . '/' . $makeSlug($childTitle);
+                            $childSiblings = haxcmsCollectSiblingsUntil($elements, $currentChildIdx, array($rootTagName, $childTagName));
+                            $childContents = '';
+                            foreach ($childSiblings as $sib) {
+                                $childContents .= $sib['html'];
                             }
-                            $h2Item = $buildItem($h2Title, $h2Slug, $h2Order, $h1Item['id'], 1, $h2Contents !== '' ? $h2Contents : '<p></p>');
-                            $items[] = $h2Item;
-                            $h2Order += 1;
-                            $currentH2Idx += count($h2Siblings) + 1;
+                            $childItem = $buildItem($childTitle, $childSlug, $childOrder, $rootItem['id'], 1, $childContents !== '' ? $childContents : '<p></p>');
+                            $items[] = $childItem;
+                            $childOrder += 1;
+                            $currentChildIdx += count($childSiblings) + 1;
                         }
                     }
                 }
@@ -348,32 +370,36 @@ return function ($context) {
             break;
         }
         case 'branch': {
-            $h1s = array();
-            foreach ($elements as $idx => $el) {
-                if ($el['tagName'] === 'H1') {
-                    $h1s[] = array('index' => $idx, 'el' => $el);
-                }
-            }
-            $order = 0;
-            if (count($h1s) === 0) {
+            $highestLevel = haxcmsGetHighestHeadingLevel($elements);
+            $rootTag = $highestLevel ? 'H' . $highestLevel : null;
+            $rootTagName = $rootTag ? $rootTag : null;
+
+            if (!$rootTag) {
                 $contents = '';
                 foreach ($elements as $el) {
                     $contents .= $el['html'];
                 }
                 $items[] = $buildItem($titleValue, $makeSlug($titleValue), 0, $parentId, 0, $contents !== '' ? $contents : '<p></p>');
             } else {
-                foreach ($h1s as $h1Data) {
-                    $h1 = $h1Data['el'];
-                    $idx = $h1Data['index'];
-                    $h1Title = $h1['text'];
-                    $h1Slug = $makeSlug($h1Title);
-                    $h1Siblings = haxcmsCollectSiblingsUntil($elements, $idx, array('H1'));
-                    $h1Contents = '';
-                    foreach ($h1Siblings as $sib) {
-                        $h1Contents .= $sib['html'];
+                $rootHeadings = array();
+                foreach ($elements as $idx => $el) {
+                    if ($el['tagName'] === $rootTagName) {
+                        $rootHeadings[] = array('index' => $idx, 'el' => $el);
                     }
-                    $h1Item = $buildItem($h1Title, $h1Slug, $order, $parentId, 0, $h1Contents !== '' ? $h1Contents : haxcmsGetFallbackContent($type));
-                    $items[] = $h1Item;
+                }
+                $order = 0;
+                foreach ($rootHeadings as $rootData) {
+                    $rootHeading = $rootData['el'];
+                    $idx = $rootData['index'];
+                    $rootTitle = $rootHeading['text'];
+                    $rootSlug = $makeSlug($rootTitle);
+                    $rootSiblings = haxcmsCollectSiblingsUntil($elements, $idx, array($rootTagName));
+                    $rootContents = '';
+                    foreach ($rootSiblings as $sib) {
+                        $rootContents .= $sib['html'];
+                    }
+                    $rootItem = $buildItem($rootTitle, $rootSlug, $order, $parentId, 0, $rootContents !== '' ? $rootContents : haxcmsGetFallbackContent($type));
+                    $items[] = $rootItem;
                     $order += 1;
                 }
             }

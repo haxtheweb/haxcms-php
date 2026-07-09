@@ -101,9 +101,9 @@ return function ($context) {
 
     $file = $_FILES[$fileKey];
     $filename = isset($file['name']) ? (string) $file['name'] : 'document.docx';
-    if (!preg_match('/\.(docx|doc)$/i', $filename)) {
+    if (!preg_match('/\.docx$/i', $filename)) {
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 400, 'message' => 'Invalid file type. Expected .docx or .doc, got: ' . $filename),
+            array('status' => 400, 'message' => 'Invalid file type. Expected .docx, got: ' . $filename),
             array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
             $apiBasePath
