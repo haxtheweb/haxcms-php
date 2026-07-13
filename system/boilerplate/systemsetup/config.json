@@ -96,7 +96,8 @@
         "bibliography-builder": "@haxtheweb/bibliography-builder/bibliography-builder.js",
         "bibliography-item": "@haxtheweb/bibliography-builder/lib/bibliography-item.js",
         "media-playlist": "@haxtheweb/media-playlist/media-playlist.js",
-        "image-gallery": "@haxtheweb/image-gallery/image-gallery.js"
+        "image-gallery": "@haxtheweb/image-gallery/image-gallery.js",
+        "tableau-embed": "@haxtheweb/tableau-embed/tableau-embed.js"
     },
       "apiKeys": {
           "youtube": "",
