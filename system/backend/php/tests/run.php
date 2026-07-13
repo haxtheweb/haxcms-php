@@ -61,7 +61,7 @@ function runSiteRoutesMapTests()
     $runner->assert(isset($routes['POST']['v1/items/:idOrSlug/revisions/:revisionId/restore']), 'POST v1/items/:idOrSlug/revisions/:revisionId/restore exists');
     $runner->assert(isset($routes['POST']['v1/files']), 'POST v1/files exists');
     $runner->assert(isset($routes['POST']['v1/site/export/:format']), 'POST v1/site/export/:format exists');
-    $runner->assert(isset($routes['POST']['v1/site/import/docx']), 'POST v1/site/import/docx exists');
+    $runner->assert(!isset($routes['POST']['v1/site/import/docx']), 'POST v1/site/import/docx is removed from SiteRoutesMap');
 
     $runner->assert(isset($routes['PATCH']['v1/items/:idOrSlug']), 'PATCH v1/items/:idOrSlug exists');
     $runner->assert(isset($routes['PATCH']['v1/content/:idOrSlug']), 'PATCH v1/content/:idOrSlug exists');
@@ -85,7 +85,6 @@ function runSiteRoutesMapTests()
         $routes['POST']['v1/items/:idOrSlug/revisions/:revisionId/restore'],
         $routes['POST']['v1/files'],
         $routes['POST']['v1/site/export/:format'],
-        $routes['POST']['v1/site/import/docx'],
         $routes['PATCH']['v1/items/:idOrSlug'],
         $routes['PATCH']['v1/content/:idOrSlug'],
         $routes['PATCH']['v1/site'],
@@ -185,8 +184,9 @@ function runMutationWrapperTests()
         'v1/revisions.php',
         'v1/revisionsMutation.php',
         'v1/exportsMutation.php',
-        'v1/importDocx.php',
     );
+    // Verify importDocx.php is gone (moved to system routes)
+    $runner->assert(!file_exists($baseDir . '/lib/siteRoutes/v1/importDocx.php'), 'importDocx.php removed from siteRoutes');
     foreach ($mutationWrappers as $file) {
         $path = $baseDir . '/lib/siteRoutes/' . $file;
         $runner->assert(file_exists($path), "Mutation wrapper exists: $file");
@@ -203,10 +203,59 @@ function runSystemRoutesMapTests()
 
     $routes = SystemRoutesMap::getRoutesMap();
 
+    // Existing
     $runner->assert(isset($routes['POST']['v1/actions/docx-to-html']), 'POST v1/actions/docx-to-html exists in SystemRoutesMap');
     $runner->assert(file_exists($routes['POST']['v1/actions/docx-to-html']), 'System handler file exists for v1/actions/docx-to-html');
     $contents = file_get_contents($routes['POST']['v1/actions/docx-to-html']);
     $runner->assert(strpos($contents, 'return function') !== false, 'System handler contains closure');
+
+    // Group A: text conversions (all under v1/actions/)
+    $groupA = array('v1/actions/md-to-html', 'v1/actions/html-to-md', 'v1/actions/json-to-yaml', 'v1/actions/yaml-to-json', 'v1/actions/pretty-html');
+    foreach ($groupA as $route) {
+        $runner->assert(isset($routes['POST'][$route]), "POST $route exists in SystemRoutesMap");
+        $runner->assert(file_exists($routes['POST'][$route]), "Handler file exists: $route");
+    }
+
+    // Group B: import routes (all under v1/actions/import-*)
+    $groupB = array('v1/actions/import-html', 'v1/actions/import-pptx', 'v1/actions/import-xlsx', 'v1/actions/import-pdf');
+    foreach ($groupB as $route) {
+        $runner->assert(isset($routes['POST'][$route]), "POST $route exists in SystemRoutesMap");
+        $runner->assert(file_exists($routes['POST'][$route]), "Handler file exists: $route");
+    }
+
+    // Group C: binary conversions (all under v1/actions/)
+    $groupC = array('v1/actions/pptx-to-html', 'v1/actions/xlsx-to-csv', 'v1/actions/pdf-to-html', 'v1/actions/html-to-docx', 'v1/actions/html-to-pdf', 'v1/actions/docx-to-pdf');
+    foreach ($groupC as $route) {
+        $runner->assert(isset($routes['POST'][$route]), "POST $route exists in SystemRoutesMap");
+        $runner->assert(file_exists($routes['POST'][$route]), "Handler file exists: $route");
+    }
+
+    // Site import dispatcher
+    $runner->assert(isset($routes['POST']['v1/site/import/:platform']), 'POST v1/site/import/:platform exists in SystemRoutesMap');
+    $runner->assert(file_exists($routes['POST']['v1/site/import/:platform']), 'siteImport.php dispatcher file exists');
+
+    // connection-settings POST
+    $runner->assert(isset($routes['POST']['v1/session/connection-settings']), 'POST v1/session/connection-settings exists in SystemRoutesMap');
+
+    // Verify platform converter files exist
+    $baseDir = dirname(dirname(__FILE__));
+    $platforms = array('haxcms', 'html', 'pressbooks', 'gitbook', 'notion', 'wordpress', 'elmsln', 'drupal-book', 'plone', 'recipe');
+    $platformMap = array(
+        'haxcms'     => 'convertHaxcmsToSite.php',
+        'html'       => 'convertHtmlToSite.php',
+        'pressbooks' => 'convertPressbooksToSite.php',
+        'gitbook'    => 'convertGitbookToSite.php',
+        'notion'     => 'convertNotionToSite.php',
+        'wordpress'  => 'convertWordpressToSite.php',
+        'elmsln'     => 'convertElmslnToSite.php',
+        'drupal-book' => 'convertDrupalBookToSite.php',
+        'plone'      => 'convertPloneToSite.php',
+        'recipe'     => 'convertRecipeToSite.php',
+    );
+    foreach ($platformMap as $platform => $file) {
+        $path = $baseDir . '/lib/systemRoutes/v1/imports/' . $file;
+        $runner->assert(file_exists($path), "Platform converter exists: $file");
+    }
 
     return $runner->report('SystemRoutesMap Tests');
 }

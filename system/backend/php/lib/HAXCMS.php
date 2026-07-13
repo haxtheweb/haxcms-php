@@ -1958,14 +1958,32 @@ class HAXCMS
           $sitename = '';
           $multisiteUrlName = '';
         }
+        // For the system API, strip any site-specific path segments (sites/{siteName}).
+        // The system API always lives at the HAXcms installation root, never under
+        // a sites/{siteName} subdirectory.
+        $systemOnlyBasePath = $normalizedBasePath;
+        foreach ($sitePathSegments as $segment) {
+          if ($segment !== '' && ($pos = strpos($systemOnlyBasePath, $segment)) !== FALSE) {
+            $stripped = rtrim(substr($systemOnlyBasePath, 0, $pos), '/');
+            $systemOnlyBasePath = ($stripped === '') ? '/' : $stripped . '/';
+            break;
+          }
+        }
         $baseApiPath = $systemRequestBase . '/';
         if (!$isDashboardRequest) {
-          if ($normalizedBasePath !== '/') {
-            $baseApiPath = rtrim($normalizedBasePath, '/') . '/' . $baseApiPath;
+          if ($systemOnlyBasePath !== '/') {
+            $baseApiPath = rtrim($systemOnlyBasePath, '/') . '/' . $baseApiPath;
           }
           else {
             $baseApiPath = '/' . $baseApiPath;
           }
+        }
+        // Always ensure the system API path is absolute. When this is a dashboard
+        // request the block above is skipped and $baseApiPath has no leading slash,
+        // so the browser would resolve it relative to the current page URL (which may
+        // be /sites/{siteName}/...) producing the wrong endpoint address.
+        if ($baseApiPath === '' || $baseApiPath[0] !== '/') {
+          $baseApiPath = '/' . $baseApiPath;
         }
         $systemApiV1BasePath = $baseApiPath . 'v1/';
         $systemApiBase = rtrim($systemApiV1BasePath, '/');

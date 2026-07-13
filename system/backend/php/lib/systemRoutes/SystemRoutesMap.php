@@ -67,7 +67,29 @@ class SystemRoutesMap
                 'v1/themes' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/haxiamAddUserAccess' => dirname(__FILE__) . '/v1/haxiam.php',
                 'v1/actions/docx-to-html' => dirname(__FILE__) . '/v1/convertDocxToHtml.php',
+                // Group A: text/data conversions
+                'v1/actions/md-to-html' => dirname(__FILE__) . '/v1/convertMdToHtml.php',
+                'v1/actions/html-to-md' => dirname(__FILE__) . '/v1/convertHtmlToMd.php',
+                'v1/actions/json-to-yaml' => dirname(__FILE__) . '/v1/convertJsonToYaml.php',
+                'v1/actions/yaml-to-json' => dirname(__FILE__) . '/v1/convertYamlToJson.php',
+                'v1/actions/pretty-html' => dirname(__FILE__) . '/v1/convertPrettyHtml.php',
+                // Group B: file upload to items
                 'v1/actions/import-docx' => dirname(__FILE__) . '/v1/importDocx.php',
+                'v1/actions/import-html' => dirname(__FILE__) . '/v1/importHtml.php',
+                'v1/actions/import-pptx' => dirname(__FILE__) . '/v1/importPptx.php',
+                'v1/actions/import-xlsx' => dirname(__FILE__) . '/v1/importXlsx.php',
+                'v1/actions/import-pdf' => dirname(__FILE__) . '/v1/importPdf.php',
+                // Group C: binary document conversions
+                'v1/actions/pptx-to-html' => dirname(__FILE__) . '/v1/convertPptxToHtml.php',
+                'v1/actions/xlsx-to-csv' => dirname(__FILE__) . '/v1/convertXlsxToCsv.php',
+                'v1/actions/pdf-to-html' => dirname(__FILE__) . '/v1/convertPdfToHtml.php',
+                'v1/actions/html-to-docx' => dirname(__FILE__) . '/v1/convertHtmlToDocx.php',
+                'v1/actions/html-to-pdf' => dirname(__FILE__) . '/v1/convertHtmlToPdf.php',
+                'v1/actions/docx-to-pdf' => dirname(__FILE__) . '/v1/convertDocxToPdf.php',
+                // Site import dispatcher (platform is a URL param)
+                'v1/site/import/:platform' => dirname(__FILE__) . '/v1/siteImport.php',
+                // connection-settings POST
+                'v1/session/connection-settings' => dirname(__FILE__) . '/v1/session.php',
             ),
             'PATCH' => array(
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',

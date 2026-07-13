@@ -1094,7 +1094,9 @@ paths:
         - actions
       operationId: docxToHtml
       summary: Convert an uploaded .docx or .doc file to clean HTML
-      security: []
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
       requestBody:
         required: true
         content:
@@ -1155,6 +1157,821 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/md-to-html:
+    post:
+      tags:
+        - actions
+      operationId: mdToHtml
+      summary: Convert Markdown text to HTML
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: Markdown text to convert
+      responses:
+        "200":
+          description: Converted HTML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/html-to-md:
+    post:
+      tags:
+        - actions
+      operationId: htmlToMd
+      summary: Convert HTML to Markdown text
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: HTML text to convert
+      responses:
+        "200":
+          description: Converted Markdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/json-to-yaml:
+    post:
+      tags:
+        - actions
+      operationId: jsonToYaml
+      summary: Convert JSON text to YAML
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: JSON text to convert
+      responses:
+        "200":
+          description: Converted YAML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/yaml-to-json:
+    post:
+      tags:
+        - actions
+      operationId: yamlToJson
+      summary: Convert YAML text to JSON
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: YAML text to convert
+      responses:
+        "200":
+          description: Converted JSON
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/pretty-html:
+    post:
+      tags:
+        - actions
+      operationId: prettyHtml
+      summary: Pretty-print / format HTML markup
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: HTML text to format
+      responses:
+        "200":
+          description: Formatted HTML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/import-html:
+    post:
+      tags:
+        - actions
+      operationId: importHtml
+      summary: Import an uploaded HTML file and return site schema items
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/import-pptx:
+    post:
+      tags:
+        - actions
+      operationId: importPptx
+      summary: Import an uploaded PPTX file and return site schema items
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/import-xlsx:
+    post:
+      tags:
+        - actions
+      operationId: importXlsx
+      summary: Import an uploaded XLSX file and return site schema items
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/import-pdf:
+    post:
+      tags:
+        - actions
+      operationId: importPdf
+      summary: Import an uploaded PDF file and return site schema items
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/html-to-docx:
+    post:
+      tags:
+        - actions
+      operationId: htmlToDocx
+      summary: Convert HTML to a DOCX file (returned as base64 or binary)
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: HTML content to convert
+      responses:
+        "200":
+          description: DOCX file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/pptx-to-html:
+    post:
+      tags:
+        - actions
+      operationId: pptxToHtml
+      summary: Convert an uploaded PPTX file to HTML
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Converted HTML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/xlsx-to-csv:
+    post:
+      tags:
+        - actions
+      operationId: xlsxToCsv
+      summary: Convert an uploaded XLSX file to CSV
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Converted CSV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/pdf-to-html:
+    post:
+      tags:
+        - actions
+      operationId: pdfToHtml
+      summary: Convert an uploaded PDF file to HTML
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Converted HTML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/html-to-pdf:
+    post:
+      tags:
+        - actions
+      operationId: htmlToPdf
+      summary: Convert HTML to a PDF file (returned as base64)
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                  description: HTML content to convert
+      responses:
+        "200":
+          description: PDF as base64
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/actions/docx-to-pdf:
+    post:
+      tags:
+        - actions
+      operationId: docxToPdf
+      summary: Convert an uploaded DOCX file to PDF
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: PDF binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/haxcms:
+    post:
+      tags:
+        - actions
+      operationId: haxcmsToSite
+      summary: Import a remote HAXcms site into the local site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/html:
+    post:
+      tags:
+        - actions
+      operationId: htmlToSite
+      summary: Import an HTML file or URL into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/pressbooks:
+    post:
+      tags:
+        - actions
+      operationId: pressbooksToSite
+      summary: Import a Pressbooks book into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/gitbook:
+    post:
+      tags:
+        - actions
+      operationId: gitbookToSite
+      summary: Import a GitBook GitHub repository into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/notion:
+    post:
+      tags:
+        - actions
+      operationId: notionToSite
+      summary: Import a Notion GitHub export into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/wordpress:
+    post:
+      tags:
+        - actions
+      operationId: wordpressToSite
+      summary: Import a WordPress site via REST API into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/elmsln:
+    post:
+      tags:
+        - actions
+      operationId: elmslnToSite
+      summary: Import a remote ELMSLN/HAXcms site into the local site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/drupal-book:
+    post:
+      tags:
+        - actions
+      operationId: drupalBookToSite
+      summary: Import a Drupal Book via JSON:API into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/plone:
+    post:
+      tags:
+        - actions
+      operationId: ploneToSite
+      summary: Import a Plone site via REST API into the site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                method:
+                  type: string
+                type:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /system/api/v1/site/import/recipe:
+    post:
+      tags:
+        - actions
+      operationId: recipeToSite
+      summary: Process a HAX recipe file into site schema items
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipe:
+                  type: object
+                repoUrl:
+                  type: string
+                parentId:
+                  type: string
+                  nullable: true
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+                parentId:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /system/api/v1/themes:
     get:
       tags:
