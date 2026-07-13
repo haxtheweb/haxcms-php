@@ -4,7 +4,7 @@
     "license": "Apache-2.0",
     "require": {
         "php": "^8.3",
-        "guzzlehttp/guzzle": "^6.3",
+        "guzzlehttp/guzzle": "^7.12",
         "twig/twig": "^3.27",
         "icamys/php-sitemap-generator": "^1.0",
         "symfony/filesystem": "^4.2",
