@@ -89,7 +89,6 @@ class SystemApiSecurity
             'v1/session/connection-test',
             'v1/integrations/app-store',
             'v1/integrations/app-store/providers/:provider/search',
-            'v1/actions/docx-to-html',
         );
         if (in_array($route, $publicRoutes, true)) {
             return 'public';
