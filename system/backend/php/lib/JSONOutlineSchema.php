@@ -172,32 +172,34 @@ class JSONOutlineSchema
         if (file_exists($location)) {
             $this->file = $location;
             $fileData = json_decode(file_get_contents($location));
-            $vars = get_object_vars($fileData);
-            foreach ($vars as $key => $var) {
-                if (isset($this->{$key}) && $key != 'items') {
-                    $this->{$key} = $var;
+            if (is_object($fileData)) {
+                $vars = get_object_vars($fileData);
+                foreach ($vars as $key => $var) {
+                    if (isset($this->{$key}) && $key != 'items') {
+                        $this->{$key} = $var;
+                    }
                 }
-            }
-            // check for items and escalate to full JSONOutlineSchemaItem object
-            // also ensures data matches only what is supported
-            if (isset($vars['items'])) {
-                foreach ($vars['items'] as $key => $item) {
-                    $newItem = new JSONOutlineSchemaItem();
-                    $newItem->id = $item->id;
-                    $newItem->indent = $item->indent;
-                    $newItem->location = $item->location;
-                    // support for legacy spec prior to slug existing
-                    $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
-                    $newItem->order = $item->order;
-                    $newItem->parent = $item->parent;
-                    $newItem->title = $item->title;
-                    $newItem->description = $item->description;
-                    // metadata can be anything so whatever
-                    $newItem->metadata = $item->metadata;
-                    $this->items[$key] = $newItem;
+                // check for items and escalate to full JSONOutlineSchemaItem object
+                // also ensures data matches only what is supported
+                if (isset($vars['items'])) {
+                    foreach ($vars['items'] as $key => $item) {
+                        $newItem = new JSONOutlineSchemaItem();
+                        $newItem->id = $item->id;
+                        $newItem->indent = $item->indent;
+                        $newItem->location = $item->location;
+                        // support for legacy spec prior to slug existing
+                        $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
+                        $newItem->order = $item->order;
+                        $newItem->parent = $item->parent;
+                        $newItem->title = $item->title;
+                        $newItem->description = $item->description;
+                        // metadata can be anything so whatever
+                        $newItem->metadata = $item->metadata;
+                        $this->items[$key] = $newItem;
+                    }
                 }
+                return true;
             }
-            return true;
         }
         return false;
     }
@@ -243,7 +245,7 @@ class JSONOutlineSchema
         }
         // ensure we have valid json object
         if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
-          return @file_put_contents($file,$output);
+          return @file_put_contents($file, $output, LOCK_EX);
         }
     }
     /**

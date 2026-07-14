@@ -54,7 +54,7 @@ class JSONOutlineSchemaItem
         // so you can't write outside of the current directory tree
         $tmpLoc = str_replace('./', '', str_replace('../','', $this->location));
         if (file_exists($basePath . $tmpLoc)) {
-            return @file_put_contents($basePath . $tmpLoc, $body);
+            return @file_put_contents($basePath . $tmpLoc, $body, LOCK_EX);
         }
         return false;
     }

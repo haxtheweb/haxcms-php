@@ -409,7 +409,7 @@ class HAXCMSFile
             else {
                 $fullpath = $path . $name;
             }            
-            if ($size = @file_put_contents($fullpath, $filedata)) {
+            if ($size = @file_put_contents($fullpath, $filedata, LOCK_EX)) {
                 $storedMimeType = $detectedMimeType;
                 if ($storedMimeType === 'image/jpeg') {
                     $this->applyConfiguredJpegUploadQuality($fullpath);
