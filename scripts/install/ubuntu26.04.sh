@@ -31,7 +31,7 @@ sudo apt-get -y install apache2
 # using apt-get to install the main packages
 sudo apt-get install -y sendmail uuid uuid-runtime curl policycoreutils unzip patch git nano gcc make autoconf libc-dev pkg-config
 # install php 8.5
-sudo apt-get install -y php8.5-fpm php8.5-zip php8.5-gd php8.5-xml php8.5-mbstring php8.5-yaml
+sudo apt-get install -y php8.5-fpm php8.5-curl php8.5-zip php8.5-gd php8.5-xml php8.5-mbstring php8.5-yaml
 # optional for development
 # sudo apt-get install -y composer nodejs
 sudo a2enmod proxy_fcgi

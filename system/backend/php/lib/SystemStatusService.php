@@ -279,6 +279,14 @@ class HAXCMSSystemStatusService
         $gitVersion = isset($options['gitVersion']) && is_string($options['gitVersion'])
             ? trim($options['gitVersion'])
             : self::detectGitVersion();
+        $curlLoaded = extension_loaded('curl');
+        $rows[] = array(
+            'key' => 'php-curl',
+            'tone' => $curlLoaded ? 'ok' : 'error',
+            'title' => 'PHP curl extension',
+            'value' => $curlLoaded ? 'Loaded' : 'Missing',
+            'description' => $curlLoaded ? 'Required for HTTP client operations.' : 'Install the PHP curl extension (e.g., php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '-curl).',
+        );
         $rows[] = array(
             'key' => 'git-installed',
             'tone' => $gitVersion !== '' ? 'ok' : 'warning',
