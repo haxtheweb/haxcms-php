@@ -501,7 +501,7 @@ paths:
       tags:
         - items
       operationId: downloadItemExport
-      summary: Download an item export file (PDF or DOCX)
+      summary: Download an item export file (HTML, Markdown, JSON, YAML, XML, PDF, DOCX, or EPUB)
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
         - $ref: "#/components/parameters/ItemExportFormat"
@@ -509,6 +509,25 @@ paths:
         "200":
           description: Item export download
           content:
+            text/html:
+              schema:
+                type: string
+            text/markdown:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: string
+            application/yaml:
+              schema:
+                type: string
+            application/xml:
+              schema:
+                type: string
+            application/epub+zip:
+              schema:
+                type: string
+                format: binary
             application/pdf:
               schema:
                 type: string
@@ -654,7 +673,7 @@ paths:
       tags:
         - site
       operationId: getSiteExport
-      summary: Download a site export file (PDF or DOCX) or get descriptor metadata
+      summary: Download a site export file (HTML, PDF, DOCX, or EPUB) or get descriptor metadata
       parameters:
         - $ref: "#/components/parameters/SiteExportFormat"
       responses:
@@ -670,11 +689,18 @@ paths:
                       data:
                         type: object
                         additionalProperties: true
+            text/html:
+              schema:
+                type: string
             application/pdf:
               schema:
                 type: string
                 format: binary
             application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            application/epub+zip:
               schema:
                 type: string
                 format: binary
@@ -2018,6 +2044,7 @@ components:
           - pdf
           - docx
           - epub
+          - html
           - skeleton
     ItemExportFormat:
       name: format
@@ -2028,6 +2055,12 @@ components:
         enum:
           - pdf
           - docx
+          - html
+          - md
+          - json
+          - yaml
+          - xml
+          - epub
     WebcomponentName:
       name: webcomponentName
       in: path

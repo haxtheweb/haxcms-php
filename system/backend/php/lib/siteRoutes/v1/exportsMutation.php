@@ -13,7 +13,7 @@ return function ($context) {
         return;
     }
     $format = isset($context->params['format']) ? strtolower(trim((string) $context->params['format'])) : '';
-    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'skeleton');
+    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'html', 'skeleton');
     if (!in_array($format, $SITE_EXPORT_FORMATS, true)) {
         SiteRouteUtils::sendFormattedResponse(
             array(
@@ -45,25 +45,24 @@ return function ($context) {
             'authenticatedEndpoint' => $systemApiBasePath . '/downloadSite',
         ),
         'pdf' => array(
-            'rel' => 'service',
+            'rel' => 'download',
             'mediaType' => 'application/pdf',
-            'href' => 'https://open-apis.hax.cloud/api/services/media/format/htmlToPdf',
-            'method' => 'POST',
-            'source' => $apiBasePath . '/v1/content?mode=concat',
+            'href' => $apiBasePath . '/v1/site/export/pdf',
         ),
         'docx' => array(
-            'rel' => 'service',
+            'rel' => 'download',
             'mediaType' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'href' => 'https://open-apis.hax.cloud/api/services/media/format/htmlToDocx',
-            'method' => 'POST',
-            'source' => $apiBasePath . '/v1/content?mode=concat',
+            'href' => $apiBasePath . '/v1/site/export/docx',
         ),
         'epub' => array(
-            'rel' => 'service',
+            'rel' => 'download',
             'mediaType' => 'application/epub+zip',
-            'href' => 'https://open-apis.hax.cloud/api/apps/haxcms/siteToEpub',
-            'method' => 'POST',
-            'source' => $siteBasePath . 'site.json',
+            'href' => $apiBasePath . '/v1/site/export/epub',
+        ),
+        'html' => array(
+            'rel' => 'download',
+            'mediaType' => 'text/html',
+            'href' => $apiBasePath . '/v1/site/export/html',
         ),
         'skeleton' => array(
             'rel' => 'download',

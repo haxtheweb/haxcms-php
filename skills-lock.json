@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "ddev": {
+      "source": "juvojustin/opencode-ddev",
+      "sourceType": "github",
+      "skillPath": "skills/ddev/SKILL.md",
+      "computedHash": "dca408a589c46aa418feeba811a556df680670e480c9eb7cbdf71f8946ac52e3"
+    }
+  }
+}

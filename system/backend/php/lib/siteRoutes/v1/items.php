@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/ExportConverters.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
@@ -97,6 +98,15 @@ return function ($context) {
             );
             return;
         }
+        if (SiteRouteUtils::isAnonymousSiteApiRequest($context) && !SiteRouteUtils::isItemVisibleToAnonymous($item)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => 'Item not found for idOrSlug "' . $context->params['idOrSlug'] . '"'),
+                array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+                $context->routeSuffix,
+                $apiBasePath
+            );
+            return;
+        }
         $record = SiteRouteUtils::itemToSummary($item, $apiBasePath);
         if (isset($record['id']) && array_key_exists((string) $record['id'], $navigationMap)) {
             $record['links']['previous'] = $navigationMap[(string) $record['id']]['previous'];
@@ -105,14 +115,15 @@ return function ($context) {
             $record['links']['children'] = $navigationMap[(string) $record['id']]['children'];
         }
         $lookupValue = SiteRouteUtils::getItemLookupValue($item);
-        $record['links']['exportDocx'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export/docx';
-        $record['links']['exportPdf'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export/pdf';
+        $exportBase = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export';
+        $record['exports'] = array();
+        foreach (ExportConverters::getItemExportFormats() as $exportFormat) {
+            $record['exports'][$exportFormat] = $exportBase . '/' . $exportFormat;
+        }
+        $record['links']['exportDocx'] = $record['exports']['docx'];
+        $record['links']['exportPdf'] = $record['exports']['pdf'];
         $record['links']['haxElementSchema'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '?include=haxElementSchema';
         $record['links']['jsonld'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '?include=jsonld';
-        $record['exports'] = array(
-            'docx' => $record['links']['exportDocx'],
-            'pdf' => $record['links']['exportPdf'],
-        );
         if (in_array('content', $includes, true) || in_array('haxElementSchema', $includes, true)) {
             $content = SiteRouteUtils::getItemContent($site, $item);
             if (in_array('content', $includes, true)) {
@@ -148,14 +159,15 @@ return function ($context) {
             $record['links']['children'] = $navigationMap[(string) $record['id']]['children'];
         }
         $lookupValue = SiteRouteUtils::getItemLookupValue($item);
-        $record['links']['exportDocx'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export/docx';
-        $record['links']['exportPdf'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export/pdf';
+        $exportBase = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export';
+        $record['exports'] = array();
+        foreach (ExportConverters::getItemExportFormats() as $exportFormat) {
+            $record['exports'][$exportFormat] = $exportBase . '/' . $exportFormat;
+        }
+        $record['links']['exportDocx'] = $record['exports']['docx'];
+        $record['links']['exportPdf'] = $record['exports']['pdf'];
         $record['links']['haxElementSchema'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '?include=haxElementSchema';
         $record['links']['jsonld'] = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '?include=jsonld';
-        $record['exports'] = array(
-            'docx' => $record['links']['exportDocx'],
-            'pdf' => $record['links']['exportPdf'],
-        );
         if (in_array('content', $includes, true) || in_array('haxElementSchema', $includes, true)) {
             $content = SiteRouteUtils::getItemContent($site, $item);
             if (in_array('content', $includes, true)) {

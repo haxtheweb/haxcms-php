@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/ExportConverters.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
@@ -28,8 +29,8 @@ return function ($context) {
         $sendTopLevelError(404, 'Unable to resolve site context for export endpoint');
         return;
     }
-    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'skeleton');
-    $ITEM_EXPORT_FORMATS = array('pdf', 'docx');
+    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'html', 'skeleton');
+    $ITEM_EXPORT_FORMATS = ExportConverters::getItemExportFormats();
     $normalizeFormatValue = function ($value = '') {
         return strtolower(trim((string) $value));
     };
@@ -61,25 +62,24 @@ return function ($context) {
                 'authenticatedEndpoint' => $systemApiBasePath . '/downloadSite',
             ),
             'pdf' => array(
-                'rel' => 'service',
+                'rel' => 'download',
                 'mediaType' => 'application/pdf',
-                'href' => 'https://open-apis.hax.cloud/api/services/media/format/htmlToPdf',
-                'method' => 'POST',
-                'source' => $apiBasePath . '/v1/content?mode=concat',
+                'href' => $apiBasePath . '/v1/site/export/pdf',
             ),
             'docx' => array(
-                'rel' => 'service',
+                'rel' => 'download',
                 'mediaType' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'href' => 'https://open-apis.hax.cloud/api/services/media/format/htmlToDocx',
-                'method' => 'POST',
-                'source' => $apiBasePath . '/v1/content?mode=concat',
+                'href' => $apiBasePath . '/v1/site/export/docx',
             ),
             'epub' => array(
-                'rel' => 'service',
+                'rel' => 'download',
                 'mediaType' => 'application/epub+zip',
-                'href' => 'https://open-apis.hax.cloud/api/apps/haxcms/siteToEpub',
-                'method' => 'POST',
-                'source' => $siteBasePath . 'site.json',
+                'href' => $apiBasePath . '/v1/site/export/epub',
+            ),
+            'html' => array(
+                'rel' => 'download',
+                'mediaType' => 'text/html',
+                'href' => $apiBasePath . '/v1/site/export/html',
             ),
             'skeleton' => array(
                 'rel' => 'download',
@@ -105,6 +105,51 @@ return function ($context) {
             );
             return;
         }
+        $ancestor = SiteRouteUtils::getQueryValue('filter.ancestor', '');
+        $magic = SiteRouteUtils::getQueryValue('magic', '');
+        $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
+        $siteFileBaseName = ExportConverters::getSiteExportFileBaseName($site);
+        if ($format == 'pdf' || $format == 'docx' || $format == 'epub') {
+            try {
+                if ($format == 'epub') {
+                    $output = ExportConverters::buildSiteEpubString($site, $siteBasePath, $ancestor);
+                }
+                else {
+                    $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, '');
+                    if ($format == 'pdf') {
+                        $output = ExportConverters::htmlToPdfString($siteHtml, $siteBasePath);
+                    }
+                    else {
+                        $output = ExportConverters::htmlToDocxString($siteHtml);
+                    }
+                }
+            }
+            catch (Exception $e) {
+                $sendTopLevelError(502, $e->getMessage());
+                return;
+            }
+            ExportConverters::sendFileDownload(
+                $output,
+                ExportConverters::resolveExportMediaType($format),
+                $siteFileBaseName . '.' . $format
+            );
+            return;
+        }
+        if ($format == 'html') {
+            try {
+                $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, $magic);
+            }
+            catch (Exception $e) {
+                $sendTopLevelError(500, 'Unable to build site export HTML: ' . $e->getMessage());
+                return;
+            }
+            ExportConverters::sendFileDownload(
+                $siteHtml,
+                'text/html; charset=utf-8',
+                $siteFileBaseName . '.html'
+            );
+            return;
+        }
         SiteRouteUtils::sendFormattedResponse(
             array(
                 'format' => $format,
@@ -127,6 +172,10 @@ return function ($context) {
         $sendTopLevelError(404, 'Item not found for idOrSlug \"' . $idOrSlug . '\"');
         return;
     }
+    if (SiteRouteUtils::isAnonymousSiteApiRequest($context) && !SiteRouteUtils::isItemVisibleToAnonymous($item)) {
+        $sendTopLevelError(404, 'Item not found for idOrSlug "' . $idOrSlug . '"');
+        return;
+    }
     if (!in_array($format, $ITEM_EXPORT_FORMATS, true)) {
         $sendTopLevelError(
             400,
@@ -136,35 +185,90 @@ return function ($context) {
         return;
     }
     $lookup = SiteRouteUtils::getItemLookupValue($item);
-    $mediaType = $format == 'pdf'
-        ? 'application/pdf'
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    SiteRouteUtils::sendFormattedResponse(
-        array(
-            'format' => $format,
-            'supportedFormats' => $ITEM_EXPORT_FORMATS,
-            'item' => array(
-                'id' => isset($item->id) ? $item->id : null,
-                'slug' => isset($item->slug) ? $item->slug : '',
-                'title' => isset($item->title) ? $item->title : '',
-            ),
-            'export' => array(
-                'rel' => 'service',
-                'mediaType' => $mediaType,
-                'href' => $format == 'pdf'
-                    ? 'https://open-apis.hax.cloud/api/services/media/format/htmlToPdf'
-                    : 'https://open-apis.hax.cloud/api/services/media/format/htmlToDocx',
-                'method' => 'POST',
-                'source' => $apiBasePath . '/v1/content/' . rawurlencode($lookup),
-            ),
-            'links' => array(
-                'self' => $apiBasePath . '/v1/items/' . rawurlencode($lookup) . '/export/' . rawurlencode($format),
-                'item' => $apiBasePath . '/v1/items/' . rawurlencode($lookup),
-                'content' => $apiBasePath . '/v1/content/' . rawurlencode($lookup),
-            ),
-        ),
-        array('allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-        $routeSuffix,
-        $apiBasePath
+    $fileBaseName = ExportConverters::getItemExportFileBaseName($item);
+    $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
+    if ($format == 'pdf' || $format == 'docx') {
+        try {
+            $content = SiteRouteUtils::getItemContent($site, $item);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+        }
+        catch (Exception $e) {
+            $sendTopLevelError(500, 'Unable to build item export HTML: ' . $e->getMessage());
+            return;
+        }
+        try {
+            if ($format == 'pdf') {
+                $output = ExportConverters::htmlToPdfString($itemHtml, $siteBasePath);
+            }
+            else {
+                $output = ExportConverters::htmlToDocxString($itemHtml);
+            }
+        }
+        catch (Exception $e) {
+            $sendTopLevelError(502, $e->getMessage());
+            return;
+        }
+        ExportConverters::sendFileDownload(
+            $output,
+            ExportConverters::resolveExportMediaType($format),
+            $fileBaseName . '.' . $format
+        );
+        return;
+    }
+    if ($format == 'html') {
+        try {
+            $content = SiteRouteUtils::getItemContent($site, $item);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+        }
+        catch (Exception $e) {
+            $sendTopLevelError(500, 'Unable to build item export HTML: ' . $e->getMessage());
+            return;
+        }
+        ExportConverters::sendFileDownload(
+            $itemHtml,
+            'text/html; charset=utf-8',
+            $fileBaseName . '.html'
+        );
+        return;
+    }
+    if ($format == 'md') {
+        $content = SiteRouteUtils::getItemContent($site, $item);
+        $markdown = ExportConverters::convertItemHtmlToMarkdown($item, $content);
+        ExportConverters::sendFileDownload(
+            $markdown,
+            'text/markdown; charset=utf-8',
+            $fileBaseName . '.md'
+        );
+        return;
+    }
+    if ($format == 'epub') {
+        try {
+            $output = ExportConverters::buildItemEpubString($site, $item, $siteBasePath);
+        }
+        catch (Exception $e) {
+            $sendTopLevelError(502, $e->getMessage());
+            return;
+        }
+        ExportConverters::sendFileDownload(
+            $output,
+            'application/epub+zip',
+            $fileBaseName . '.epub'
+        );
+        return;
+    }
+    try {
+        $content = SiteRouteUtils::getItemContent($site, $item);
+        $record = SiteRouteUtils::itemToSummary($item, $apiBasePath);
+        $record['content'] = $content;
+        $serialized = SiteRouteUtils::serializePayload($record, $format);
+    }
+    catch (Exception $e) {
+        $sendTopLevelError(500, 'Unable to build item export record: ' . $e->getMessage());
+        return;
+    }
+    ExportConverters::sendFileDownload(
+        $serialized,
+        ExportConverters::resolveExportMediaType($format),
+        $fileBaseName . '.' . $format
     );
 };

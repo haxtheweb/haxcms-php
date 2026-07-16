@@ -942,6 +942,87 @@ class SiteRouteUtils
             'body' => is_string($body) ? $body : '',
         );
     }
+    public static function isMetadataBooleanTrue($value = null)
+    {
+        if ($value === true || $value === 1) {
+            return true;
+        }
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (
+                $normalized === '1' ||
+                $normalized === 'true' ||
+                $normalized === 'yes' ||
+                $normalized === 'on'
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public static function isMetadataBooleanFalse($value = null)
+    {
+        if ($value === false || $value === 0) {
+            return true;
+        }
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (
+                $normalized === '0' ||
+                $normalized === 'false' ||
+                $normalized === 'no' ||
+                $normalized === 'off'
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public static function getItemMetadata($item = null)
+    {
+        if (
+            isset($item) &&
+            isset($item->metadata) &&
+            is_object($item->metadata)
+        ) {
+            return (array) $item->metadata;
+        }
+        return array();
+    }
+    public static function isItemPublished($item = null)
+    {
+        $metadata = self::getItemMetadata($item);
+        if (!array_key_exists('published', $metadata)) {
+            return true;
+        }
+        return !self::isMetadataBooleanFalse($metadata['published']);
+    }
+    public static function isItemHiddenFromMenu($item = null)
+    {
+        $metadata = self::getItemMetadata($item);
+        if (!array_key_exists('hideInMenu', $metadata)) {
+            return false;
+        }
+        return self::isMetadataBooleanTrue($metadata['hideInMenu']);
+    }
+    public static function isItemVisibleToAnonymous($item = null)
+    {
+        return self::isItemPublished($item) && !self::isItemHiddenFromMenu($item);
+    }
+    public static function isAnonymousSiteApiRequest($context)
+    {
+        if (
+            isset($context) &&
+            isset($context->auth) &&
+            is_array($context->auth) &&
+            array_key_exists('authenticated', $context->auth)
+        ) {
+            return $context->auth['authenticated'] !== true;
+        }
+        // Defensive fallback: when the auth context is not populated, treat
+        // the absence of a bearer token as an anonymous request.
+        return self::getBearerTokenFromRequest() === null;
+    }
     public static function encodeSlugPath($slug = '')
     {
         $parts = explode('/', (string) $slug);
