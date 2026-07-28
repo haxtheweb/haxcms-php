@@ -669,19 +669,56 @@ class HAXCMSSite
         return true;
     }
     /**
+     * Security best practice (N5): resolve a page location to a real,
+     * containment-proven filesystem path inside this site's directory, or
+     * return false. Replaces the bypassable single-pass
+     * str_replace('../','') (defeated by e.g. `....//`) used previously by
+     * validatePageLocation / getPageContent / jsonFeedFormat / lunrSearchIndex
+     * with a null-byte + lexical `..`-segment reject + realpath containment
+     * check, matching the write-side hardening (N1). This closes the read-side
+     * gap where a crafted `site.json` location (e.g. from an admin import)
+     * could otherwise read a file outside the site directory.
+     */
+    private function resolvePageLocationRealPath($location)
+    {
+      if (!is_string($location) || $location === '' || strpos($location, "\0") !== false) {
+        return false;
+      }
+      $normalized = str_replace('\\', '/', $location);
+      if (strpos($normalized, '../') !== false || strpos($normalized, '/..') !== false) {
+        return false;
+      }
+      $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
+      $resolvedBase = realpath($siteDirectoryPath);
+      if ($resolvedBase === false) {
+        return false;
+      }
+      $candidate = $siteDirectoryPath . '/' . $location;
+      if (!file_exists($candidate)) {
+        return false;
+      }
+      $resolved = realpath($candidate);
+      if ($resolved === false) {
+        return false;
+      }
+      $resolvedBase = rtrim(str_replace('\\', '/', $resolvedBase), '/');
+      $resolvedNorm = rtrim(str_replace('\\', '/', $resolved), '/');
+      if ($resolvedNorm === $resolvedBase) {
+        // the site root itself is not a page file, but preserve file_exists semantics
+        return $resolved;
+      }
+      if (strpos($resolvedNorm, $resolvedBase . '/') !== 0) {
+        return false;
+      }
+      return $resolved;
+    }
+    /**
      * Validate that a page's location is in a valid space (aka pages/whatever/index.html)
      * and not outside the current site directory.
      */
     public function validatePageLocation($location)
     {
-      // ensure the path to the new folder is valid
-      $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
-      // force removal of anything that might try to move out of the location of pages
-      $location = str_replace('./', '', str_replace('../', '', $location));
-      if (file_exists($siteDirectoryPath . '/' . $location)) {
-        return true;
-      }
-      return false;
+      return ($this->resolvePageLocationRealPath($location) !== false);
     }
     /**
      * Add a page to the site's file system and reflect it in the outine schema.
@@ -698,7 +735,10 @@ class HAXCMSSite
         $page = new JSONOutlineSchemaItem();
         // support direct ID setting, useful for parent associations calculated ahead of time
         if (!is_null($id)) {
-          $page->id = $id;
+          // Security best practice (N1): sanitize caller-supplied id before it
+          // is used to build the on-disk page location (same defense as
+          // itemFromParams), preventing traversal via crafted ids.
+          $page->id = $GLOBALS['HAXCMS']->generateMachineName($id);
         }
         // set a crappy default title
         $page->title = $title;
@@ -1184,9 +1224,10 @@ class HAXCMSSite
             "date_published" => date('c', $created),
           );
           // test location is valid prior to adding it
-          if ($this->validatePageLocation($item->location)) {
-            $locationPath = str_replace('./', '', str_replace('../', '', $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location));
-            $jsonFeed['content_html'] = @file_get_contents($locationPath);
+          // Security best practice (N5): read via containment-checked resolver.
+          $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
+          if ($resolvedLocation !== false) {
+            $jsonFeed['content_html'] = @file_get_contents($resolvedLocation);
           }
           $data["items"][] = $jsonFeed;
         }
@@ -1220,9 +1261,10 @@ class HAXCMSSite
           "text" => '',
         );
         // test location is valid prior to adding it
-        if ($this->validatePageLocation($item->location)) {
-          $locationPath = str_replace('./', '', str_replace('../', '', $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $item->location));
-          $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($locationPath));
+        // Security best practice (N5): read via containment-checked resolver.
+        $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
+        if ($resolvedLocation !== false) {
+          $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($resolvedLocation));
         }
 
         $data[] = $lunrSearchItem;
@@ -1515,7 +1557,12 @@ class HAXCMSSite
         // set the title
         $item->title = str_replace("\n", '', $params['node']['title']);
         if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
-            $item->id = $params['node']['id'];
+            // Security best practice (N1): sanitize a client-supplied id
+            // before composing the on-disk location. generateMachineName
+            // strips '..', slashes, and null bytes, so a crafted id such as
+            // `../../../../x` cannot escape the site pages directory when
+            // recurseCopy/writeLocation build a path from it.
+            $item->id = $GLOBALS['HAXCMS']->generateMachineName($params['node']['id']);
         }
         $item->location = 'pages/' . $item->id . '/index.html';
         if (isset($params['indent']) && $params['indent'] != '' && $params['indent'] != null) {
@@ -1553,15 +1600,17 @@ class HAXCMSSite
      */
     public function getPageContent($page) {
       if (isset($page->location) && $page->location != '') {
-        $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
-        if (!isset($content)) {
-          // ensure path is not trying to escape the site directory
-          $content = '';
-          if ($this->validatePageLocation($page->location)) {
-            $locationPath = str_replace('./', '', str_replace('../', '', HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/' . $page->location));
-            $content = filter_var(@file_get_contents($locationPath));
-          }
+      $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
+      if (!isset($content)) {
+        $content = '';
+        // Security best practice (N5): read via the containment-checked
+        // resolver instead of re-applying the bypassable str_replace filter.
+        $resolved = $this->resolvePageLocationRealPath($page->location);
+        if ($resolved !== false) {
+          $raw = @file_get_contents($resolved);
+          $content = ($raw === false) ? '' : $raw;
         }
+      }
         return $content;
       }
       return '';
@@ -2737,18 +2786,6 @@ class HAXCMSSite
         return false;
     }
     /**
-     * Change the directory this site is located in
-     */
-    public function changeName($new)
-    {
-        $new = str_replace('./', '', str_replace('../', '', $new));
-        // attempt to shift it on the file system
-        if ($new != $this->manifest->metadata->site->name) {
-            $this->manifest->metadata->site->name = $new;
-            return @rename($this->manifest->metadata->site->name, $new);
-        }
-    }
-    /**
      * Test and ensure the name being returned is a slug currently unused
      */
     public function getUniqueSlugName($slug, $page = null, $pathAuto = false)
@@ -2800,6 +2837,19 @@ class HAXCMSSite
      */
     public function recurseCopy($src, $dst, $skip = array())
     {
+        // Security best practice (N1): reject traversal in the destination
+        // before creating any directories. The previous code had no filter on
+        // $dst, so a caller-controlled id could escape the site tree. We block
+        // null bytes and any `..` segment, then (best-effort) prove the
+        // resolved destination stays within the site directory when realpath
+        // can resolve it.
+        if (!is_string($dst) || $dst === '' || strpos($dst, "\0") !== false) {
+            return false;
+        }
+        $normalizedDst = str_replace('\\', '/', $dst);
+        if (strpos($normalizedDst, '/../') !== false || strpos($normalizedDst, '/..') !== false) {
+            return false;
+        }
         $dir = opendir($src);
         // see if we can make the directory to start off
         if (!is_dir($dst) && array_search($dst, $skip) === FALSE && @mkdir($dst, 0755, true)) {

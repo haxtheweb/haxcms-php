@@ -1,6 +1,15 @@
 <?php
 $failed = false;
 include_once __DIR__ . '/system/backend/php/lib/SystemStatusService.php';
+// Security best practice (I5): once HAXcms is already installed (the four
+// core directories exist), the installer must never run setup logic again —
+// it is an unauthenticated endpoint that creates credentials and secrets.
+// Redirect to the dashboard and stop before any POST/file logic executes.
+// This makes the existing post-install redirect authoritative and early.
+if (is_dir(__DIR__ . '/_sites') && is_dir(__DIR__ . '/_config') && is_dir(__DIR__ . '/_published') && is_dir(__DIR__ . '/_archived')) {
+  header('Location: index.php');
+  exit();
+}
 
 if (!function_exists('haxcmsInstallerStatusToneClass')) {
   function haxcmsInstallerStatusToneClass($tone)
@@ -344,7 +353,11 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       }
       $pass = implode($pass);
     }
-    $configFile = str_replace('jimmerson', $pass, $configFile);
+    // Security best practice: persist a password_hash (bcrypt/argon2) in
+    // config.php, never the plaintext. The plaintext $pass is still shown once
+    // on the install success screen below so the admin can capture it; only
+    // the hash is stored at rest and verified via password_verify at login.
+    $configFile = str_replace('jimmerson', password_hash($pass, PASSWORD_DEFAULT), $configFile);
     // work on base path relative to where this was just launched from
     // super sneaky and locks it to where it's currently installed but required
     // or we don't know where to look for anything

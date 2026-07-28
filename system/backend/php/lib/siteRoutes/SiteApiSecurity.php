@@ -160,6 +160,26 @@ class SiteApiSecurity
                 isset($GLOBALS['HAXCMS']->salt)
             ) {
                 $payload = JWT::decode($token, $GLOBALS['HAXCMS']->privateKey . $GLOBALS['HAXCMS']->salt);
+                // Security best practice (N3): this fallback decode path must
+                // enforce access-token expiry just like the primary
+                // HAXCMS::getBearerTokenUserName path; otherwise a stolen token
+                // could be replayed indefinitely when this branch is reached.
+                // HAXCMS::validateAccessTokenClaims is private, so the same
+                // exp/nbf/iat logic (60s skew leeway) is mirrored inline here.
+                $now = time();
+                $leeway = 60;
+                if (!isset($payload->exp) || !is_numeric($payload->exp)) {
+                    return null;
+                }
+                if ($now >= ((int) $payload->exp + $leeway)) {
+                    return null;
+                }
+                if (isset($payload->nbf) && is_numeric($payload->nbf) && ($now + $leeway) < (int) $payload->nbf) {
+                    return null;
+                }
+                if (isset($payload->iat) && is_numeric($payload->iat) && ($now + $leeway) < (int) $payload->iat) {
+                    return null;
+                }
                 if (isset($payload->user) && $payload->user != '') {
                     return $GLOBALS['HAXCMS']->generateMachineName($payload->user);
                 }

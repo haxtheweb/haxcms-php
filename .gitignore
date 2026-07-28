@@ -14,3 +14,4 @@ yarn-error.log
 .local.microservice.config.php
 dist/wc-registry.json
 system/backend/nodejs/public/tmp
+security_best_practices_report.md

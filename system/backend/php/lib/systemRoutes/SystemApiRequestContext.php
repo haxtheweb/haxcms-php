@@ -90,18 +90,15 @@ class SystemApiRequestContext
     }
     private function getAbsoluteApiBasePath($apiBasePath = '/system/api')
     {
+        // Security best practice (M4): derive protocol and host from the
+        // HAXCMS bootstrap values, which are trusted-proxy/allowedHosts aware
+        // (see HAXCMS::resolveTrustedProtocol / resolveTrustedHost). This
+        // removes the previous unchecked trust of X-Forwarded-Proto / -Host
+        // here, so an attacker cannot inject a forged Host into response URLs.
+        // Direct header reads are only used as a fallback when HAXCMS is not
+        // available.
         $protocol = 'http';
-        if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] != '') {
-            $protoParts = explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO']);
-            $protocol = trim($protoParts[0]);
-        }
-        else if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] != '') {
-            $protocol = $_SERVER['REQUEST_SCHEME'];
-        }
-        else if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] && strtolower($_SERVER['HTTPS']) != 'off') {
-            $protocol = 'https';
-        }
-        else if (
+        if (
             isset($GLOBALS['HAXCMS']) &&
             is_object($GLOBALS['HAXCMS']) &&
             isset($GLOBALS['HAXCMS']->protocol) &&
@@ -109,13 +106,19 @@ class SystemApiRequestContext
         ) {
             $protocol = $GLOBALS['HAXCMS']->protocol;
         }
-        $host = '';
-        if (isset($_SERVER['HTTP_X_FORWARDED_HOST']) && $_SERVER['HTTP_X_FORWARDED_HOST'] != '') {
-            $hostParts = explode(',', $_SERVER['HTTP_X_FORWARDED_HOST']);
-            $host = trim($hostParts[0]);
+        else if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] && strtolower((string) $_SERVER['HTTPS']) != 'off') {
+            $protocol = 'https';
         }
-        else if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] != '') {
-            $host = $_SERVER['HTTP_HOST'];
+        else if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] != '') {
+            $protocol = (string) $_SERVER['REQUEST_SCHEME'];
+        }
+        $host = '';
+        if (
+            isset($GLOBALS['HAXCMS']) &&
+            is_object($GLOBALS['HAXCMS']) &&
+            method_exists($GLOBALS['HAXCMS'], 'resolveTrustedHost')
+        ) {
+            $host = $GLOBALS['HAXCMS']->resolveTrustedHost();
         }
         else if (
             isset($GLOBALS['HAXCMS']) &&
@@ -123,7 +126,10 @@ class SystemApiRequestContext
             isset($GLOBALS['HAXCMS']->domain) &&
             $GLOBALS['HAXCMS']->domain != ''
         ) {
-            $host = $GLOBALS['HAXCMS']->domain;
+            $host = (string) $GLOBALS['HAXCMS']->domain;
+        }
+        else if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] != '') {
+            $host = (string) $_SERVER['HTTP_HOST'];
         }
         if ($host == '') {
             return $apiBasePath;

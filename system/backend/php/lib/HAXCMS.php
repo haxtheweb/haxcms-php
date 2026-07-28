@@ -299,32 +299,38 @@ class HAXCMS
                   $this->userData = new stdClass();
                 }
             }
+            // Security best practice (M4): now that config (trustedProxies /
+            // allowedHosts) is loaded, re-finalize protocol and domain so that
+            // X-Forwarded-* and Host are only trusted behind a configured proxy
+            // and the host is validated against the allowlist. This only runs
+            // when the operator has opted in via config; deploys that don't set
+            // trustedProxies/allowedHosts keep the bootstrap values above.
+            if (count($this->getTrustedProxies()) > 0 || count($this->getAllowedHosts()) > 0) {
+                $this->protocol = $this->resolveTrustedProtocol();
+                $this->domain = $this->resolveTrustedHost();
+            }
             $this->dispatchEvent('haxcms-init', $this);
         }
     }
     /**
-     * Generate a UUID
+     * Generate a UUID (RFC 4122 v4).
+     *
+     * Security best practice (L4): uses random_bytes (CSPRNG) instead of
+     * mt_rand so identifiers are not predictable. These UUIDs are used for
+     * site/node IDs and are NOT treated as secrets — they may be exposed in
+     * URLs/metadata. CSPRNG output is a strict improvement over mt_rand at
+     * no cost and removes the small guessability window of mt_rand.
      */
     public function generateUUID()
     {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            // 32 bits for "time_low"
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            // 16 bits for "time_mid"
-            mt_rand(0, 0xffff),
-            // 16 bits for "time_hi_and_version",
-            // four most significant bits holds version number 4
-            mt_rand(0, 0x0fff) | 0x4000,
-            // 16 bits, 8 bits for "clk_seq_hi_res",
-            // 8 bits for "clk_seq_low",
-            // two most significant bits holds zero and one for variant DCE1.1
-            mt_rand(0, 0x3fff) | 0x8000,
-            // 48 bits for "node"
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff)
+        $bytes = random_bytes(16);
+        // Set version to 4 (random UUID) in the high nibble of byte 6
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        // Set variant to RFC 4122 (10xx) in the high bits of byte 8
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        return vsprintf(
+            '%s%s-%s-%s-%s-%s%s%s',
+            str_split(bin2hex($bytes), 4)
         );
     }
     /**
@@ -346,7 +352,18 @@ class HAXCMS
         }
     }
     /**
-     * Deep sanitize array values
+     * Recursively walk request input and normalize it to a plain array tree.
+     *
+     * Security note (M5): despite the legacy name, this does NOT sanitize for
+     * output. The previous scalar branch called filter_var($value) with no
+     * filter, which is FILTER_UNSAFE_RAW — a no-op that left the value
+     * unchanged and gave a false impression that safePost/safeGet were safe
+     * to print. They are NOT: the values here are only JSON-decoded/parsed.
+     * Every consumer MUST escape at output time (htmlspecialchars, the
+     * SanitizeContent DOM sanitizer, generateMachineName for filesystem/IDs,
+     * prepared statements for any SQL, etc.). Behavior is intentionally kept
+     * identical (scalars pass through unchanged) to avoid double-encoding
+     * regressions in downstream consumers that already escape.
      */
     public function sanitizeArrayValues($values) {
         foreach ($values as $key => $value) {
@@ -367,7 +384,11 @@ class HAXCMS
                 }
             }
             else {
-                $sanitizedValue = is_bool($value) ? $value : filter_var($value);
+                // M5: explicit pass-through. Do NOT add blanket escaping here —
+                // it would double-encode values that consumers already escape
+                // at output. Booleans are preserved; everything else passes
+                // through as-is (decoded, not sanitized).
+                $sanitizedValue = is_bool($value) ? $value : $value;
                 if (is_array($values)) {
                     $values[$key] = $sanitizedValue;
                 }
@@ -455,12 +476,31 @@ class HAXCMS
       $request->execute($op, $params, $rawParams);
     }
     /**
+     * Security best practice (I2): explicit allowlist of form ids that may be
+     * dynamically dispatched. Even though the call is bounded by method_exists,
+     * an allowlist makes the intent explicit and prevents any future *Form /
+     * *Value method from being accidentally reachable via a user-supplied
+     * form_id. Add new forms here when they are introduced.
+     */
+    private function getAllowedFormIds()
+    {
+      return array('siteSettings');
+    }
+    /**
      * load form and spitting out HAXschema + values in our standard transmission method
      */
     public function loadForm($form_id, $context = array()) {
       $fields = array();
       $value = new stdClass();
-      // @todo add future support for dependency injection as far as allowed forms
+      // Security best practice (I2): only dispatch known form ids.
+      if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Unknown form',
+          )
+        );
+      }
       if (method_exists($this, $form_id . "Form")) {
         $fields = $this->{$form_id . "Form"}($context);
       }
@@ -487,6 +527,15 @@ class HAXCMS
      * Process the form submission data
      */
     public function processForm($form_id, $params, $context = array()) {
+      // Security best practice (I2): only dispatch known form ids.
+      if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Unknown form',
+          )
+        );
+      }
       // make sure we have the original value / key pairs for the form
       if (method_exists($this, $form_id . "Value")) {
         $value = $this->{$form_id . "Value"}($context);
@@ -1415,6 +1464,182 @@ class HAXCMS
       return $settings;
     }
     /**
+     * Security best practice: read the trusted-proxy allowlist from
+     * config->security->trustedProxies (array of IPs). When empty, no proxy
+     * headers are trusted. Shared by M2 (client IP for rate limiting) and
+     * M4 (Host / X-Forwarded-Proto / X-Forwarded-Host validation).
+     */
+    public function getTrustedProxies()
+    {
+      $proxies = array();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->trustedProxies)
+      ) {
+        $raw = $this->config->security->trustedProxies;
+        if (is_string($raw)) {
+          $raw = array($raw);
+        }
+        if (is_array($raw)) {
+          foreach ($raw as $p) {
+            if (is_string($p) && trim($p) !== '') {
+              $proxies[] = trim($p);
+            }
+          }
+        }
+      }
+      return $proxies;
+    }
+    /**
+     * Security best practice: return TRUE only if $ip is in the trusted-proxy
+     * allowlist (exact match; list exact proxy IPs).
+     */
+    public function isTrustedProxy($ip)
+    {
+      if (!is_string($ip) || $ip === '') {
+        return false;
+      }
+      $trusted = $this->getTrustedProxies();
+      if (count($trusted) === 0) {
+        return false;
+      }
+      return in_array($ip, $trusted, true);
+    }
+    /**
+     * Security best practice: resolve the client IP without trusting
+     * X-Forwarded-For unless the immediate peer (REMOTE_ADDR) is a configured
+     * trusted proxy. Prevents header spoofing from bypassing the login
+     * rate limiter (M2). Walks XFF right-to-left past any chained trusted
+     * proxies to find the first untrusted hop.
+     */
+    public function resolveClientIP()
+    {
+      $remote = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+      if (!$this->isTrustedProxy($remote)) {
+        return $remote !== '' ? $remote : 'unknown';
+      }
+      $xff = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? (string) $_SERVER['HTTP_X_FORWARDED_FOR'] : '';
+      if ($xff !== '') {
+        $hops = array();
+        foreach (explode(',', $xff) as $h) {
+          $h = trim($h);
+          if ($h !== '') {
+            $hops[] = $h;
+          }
+        }
+        for ($i = count($hops) - 1; $i >= 0; $i--) {
+          if (!$this->isTrustedProxy($hops[$i])) {
+            return $hops[$i];
+          }
+        }
+        if (count($hops) > 0) {
+          return $hops[0];
+        }
+      }
+      return $remote !== '' ? $remote : 'unknown';
+    }
+    /**
+     * Security best practice (M4): read the allowed-host allowlist from
+     * config->security->allowedHosts (array of host strings, may include
+     * port). When empty, host-header validation is not applied (existing
+     * behavior preserved). Shared with the trusted-proxy logic (M2).
+     */
+    public function getAllowedHosts()
+    {
+      $hosts = array();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->allowedHosts)
+      ) {
+        $raw = $this->config->security->allowedHosts;
+        if (is_string($raw)) {
+          $raw = array($raw);
+        }
+        if (is_array($raw)) {
+          foreach ($raw as $h) {
+            if (is_string($h) && trim($h) !== '') {
+              $hosts[] = trim($h);
+            }
+          }
+        }
+      }
+      return $hosts;
+    }
+    /**
+     * Security best practice (M4): resolve the request protocol trusting only
+     * server-set signals (HTTPS env, REQUEST_SCHEME, the mod_rewrite `protossl`
+     * env var) directly, and the client-controllable X-Forwarded-Proto header
+     * ONLY when the immediate peer (REMOTE_ADDR) is a configured trusted proxy
+     * (M2 allowlist). Prevents an attacker who can set X-Forwarded-Proto from
+     * forcing 'https' in generated URLs when not behind a proxy.
+     */
+    public function resolveTrustedProtocol()
+    {
+      $protocol = 'http';
+      if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] && !in_array(strtolower((string) $_SERVER['HTTPS']), array('off', 'no'))) {
+        $protocol = 'https';
+      }
+      if ($protocol == 'http' && isset($_SERVER['REQUEST_SCHEME']) && strtolower((string) $_SERVER['REQUEST_SCHEME']) === 'https') {
+        $protocol = 'https';
+      }
+      // `protossl` is set by the root .htaccess RewriteRule (server-side), so
+      // it is safe to trust directly.
+      if ($protocol == 'http' && isset($_SERVER['protossl'])) {
+        $protocol = 'https';
+      }
+      if ($protocol == 'http') {
+        $remote = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+        if (
+          $this->isTrustedProxy($remote) &&
+          isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
+          $_SERVER['HTTP_X_FORWARDED_PROTO'] != ''
+        ) {
+          $protoParts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_PROTO']);
+          $candidate = strtolower(trim($protoParts[0]));
+          if ($candidate === 'https') {
+            $protocol = 'https';
+          }
+        }
+      }
+      return $protocol;
+    }
+    /**
+     * Security best practice (M4): resolve the request Host, trusting
+     * X-Forwarded-Host only behind a configured trusted proxy (M2 allowlist)
+     * and validating the resolved host against config->security->allowedHosts
+     * when present (falling back to the first allowed host on mismatch).
+     * When no allowlist is configured, existing behavior (use HTTP_HOST) is
+     * preserved so deploys that haven't opted in are unaffected.
+     */
+    public function resolveTrustedHost()
+    {
+      $remote = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+      $trusted = $this->isTrustedProxy($remote);
+      $candidate = '';
+      if ($trusted && isset($_SERVER['HTTP_X_FORWARDED_HOST']) && $_SERVER['HTTP_X_FORWARDED_HOST'] != '') {
+        $hostParts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_HOST']);
+        $candidate = trim($hostParts[0]);
+      }
+      if ($candidate === '' && isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] != '') {
+        $candidate = (string) $_SERVER['HTTP_HOST'];
+      }
+      $allowed = $this->getAllowedHosts();
+      if (count($allowed) > 0) {
+        // Security: validate the resolved host against the allowlist and fall
+        // back to the first allowed host on mismatch, preventing host-header
+        // injection into generated response URLs.
+        if (in_array($candidate, $allowed, true)) {
+          return $candidate;
+        }
+        return $allowed[0];
+      }
+      // no allowlist configured: preserve existing behavior (use the header
+      // value), falling back to the bootstrap domain when no header is present.
+      return $candidate !== '' ? $candidate : (is_string($this->domain) ? $this->domain : '');
+    }
+    /**
      * Timing-safe string comparison helper for credential checks.
      */
     public function safeStringCompare($stored, $submitted)
@@ -1436,14 +1661,104 @@ class HAXCMS
       return $result === 0;
     }
     /**
+     * Security best practice: verify a submitted password against a stored
+     * credential, transparently supporting both hashed (password_hash) and
+     * legacy plaintext storage. A stored value is treated as a hash when
+     * password_get_info() reports a recognized algorithm; otherwise it is
+     * compared in constant time as plaintext. IAM/HAXiam logins never reach
+     * here (they authenticate via the haxcms-login-test event), so this only
+     * governs self-hosted config.php credentials.
+     */
+    private function verifyStoredPassword($stored, $submitted)
+    {
+        if (!is_string($stored) || $stored === '' || !is_string($submitted)) {
+            return false;
+        }
+        $info = password_get_info($stored);
+        if (isset($info['algo']) && $info['algo'] !== null && $info['algo'] !== false) {
+            // stored value is a password_hash() output -> verify properly
+            return password_verify($submitted, $stored);
+        }
+        // legacy plaintext -> constant-time compare
+        return $this->safeStringCompare($stored, $submitted);
+    }
+    /**
+     * Security best practice (migration): opportunistically re-hash and
+     * persist a legacy plaintext password from config.php as a password_hash
+     * on the first successful plaintext login. Best-effort and non-fatal: if
+     * the config file is read-only (e.g. managed/immutable deploys) the login
+     * still succeeds and the value remains plaintext until it can be written.
+     * Only the single password assignment line is rewritten; the rest of
+     * config.php is left untouched. Called only from a verified-success path.
+     */
+    private function maybeUpgradePlaintextPassword($account, $submitted)
+    {
+        if (!is_string($account) || ($account !== 'user' && $account !== 'superUser')) {
+            return;
+        }
+        if (!isset($this->configDirectory) || !is_string($this->configDirectory) || $this->configDirectory === '') {
+            return;
+        }
+        if (!is_string($submitted) || $submitted === '') {
+            return;
+        }
+        $stored = isset($this->{$account}->password) ? $this->{$account}->password : null;
+        if (!is_string($stored) || $stored === '') {
+            return;
+        }
+        // only upgrade legacy plaintext, never an existing hash
+        $info = password_get_info($stored);
+        if (isset($info['algo']) && $info['algo'] !== null && $info['algo'] !== false) {
+            return;
+        }
+        $configPath = $this->configDirectory . '/config.php';
+        if (!file_exists($configPath) || !is_writable($configPath)) {
+            return;
+        }
+        $contents = @file_get_contents($configPath);
+        if ($contents === false || $contents === '') {
+            return;
+        }
+        $hash = password_hash($submitted, PASSWORD_DEFAULT);
+        if ($hash === false || $hash === '') {
+            return;
+        }
+        // Rewrite ONLY the single `$HAXCMS->{account}->password = '...';` line.
+        // preg_replace_callback is used so the hash's `$` characters (bcrypt/
+        // argon output) are not interpreted as regex backreferences in the
+        // replacement. The hash alphabet (./A-Za-z0-9$) has no quotes, so a
+        // single-quoted PHP string is safe.
+        $pattern = '/^(\s*\$HAXCMS->' . preg_quote($account, '/') . '->password\s*=\s*)(["\'])(.*)\2(\s*;\s*)$/m';
+        $count = 0;
+        $rewritten = preg_replace_callback(
+            $pattern,
+            function ($m) use ($hash) {
+                return $m[1] . "'" . $hash . "'" . $m[4];
+            },
+            $contents,
+            1,
+            $count
+        );
+        if ($count !== 1 || $rewritten === null || $rewritten === $contents) {
+            return;
+        }
+        $ok = @file_put_contents($configPath, $rewritten, LOCK_EX);
+        if ($ok !== false) {
+            // keep in-memory state in sync so subsequent calls see the hash
+            $this->{$account}->password = $hash;
+        }
+    }
+    /**
      * test the active user login based on session.
      */
     public function testLogin($name, $pass, $adminFallback = false)
     {
         if (
             $this->safeStringCompare($this->user->name, $name) &&
-            $this->safeStringCompare($this->user->password, $pass)
+            $this->verifyStoredPassword($this->user->password, $pass)
         ) {
+            // Security best practice: migrate legacy plaintext to a hash.
+            $this->maybeUpgradePlaintextPassword('user', $pass);
             return true;
         }
         // if fallback is allowed, meaning the super admin then let them in
@@ -1452,8 +1767,10 @@ class HAXCMS
         elseif (
             $adminFallback &&
             $this->safeStringCompare($this->superUser->name, $name) &&
-            $this->safeStringCompare($this->superUser->password, $pass)
+            $this->verifyStoredPassword($this->superUser->password, $pass)
         ) {
+            // Security best practice: migrate legacy plaintext to a hash.
+            $this->maybeUpgradePlaintextPassword('superUser', $pass);
             return true;
         }
         else {
@@ -1703,6 +2020,9 @@ class HAXCMS
         }
         try {
             $decoded = JWT::decode($bearer, $this->privateKey . $this->salt);
+            // Security best practice: enforce exp/nbf/iat so a stolen access
+            // bearer token cannot be replayed past its 15-minute lifetime.
+            $this->validateAccessTokenClaims($decoded);
             if (isset($decoded->user) && $decoded->user != '') {
                 return $this->generateMachineName($decoded->user);
             }
@@ -1740,13 +2060,6 @@ class HAXCMS
         return $result;
     }
     /**
-     * Simple rate-limit check stub
-     */
-    public function isLoginBlocked($attemptKey)
-    {
-        return false;
-    }
-    /**
      * Generate site token for a given site name
      */
     public function getSiteTokenForSiteName($siteName)
@@ -1780,6 +2093,42 @@ class HAXCMS
         return JWT::encode($token, $this->privateKey . $this->salt);
     }
     /**
+     * Security best practice: enforce JWT temporal claims (exp/nbf/iat) on
+     * access tokens so a stolen bearer token cannot be replayed indefinitely.
+     * The exp/iat claims are set at issue time in getJWT() but were previously
+     * never validated server-side, making the 15-minute expiry cosmetic.
+     * Throws on any validation failure; callers (decodeJWT /
+     * getBearerTokenUserName) catch Exception and treat the token as invalid.
+     */
+    private function validateAccessTokenClaims($payload)
+    {
+        if (!is_object($payload)) {
+            throw new UnexpectedValueException('Invalid token payload');
+        }
+        $now = time();
+        // small clock-skew leeway so tokens issued near a boundary still validate
+        $leeway = 60;
+        // exp is mandatory for access tokens; without it expiry is unenforceable
+        if (!isset($payload->exp) || !is_numeric($payload->exp)) {
+            throw new UnexpectedValueException('Token missing expiration');
+        }
+        if ($now >= ((int) $payload->exp + $leeway)) {
+            throw new UnexpectedValueException('Token has expired');
+        }
+        // nbf (not-before): reject tokens not yet active (with leeway)
+        if (isset($payload->nbf) && is_numeric($payload->nbf)) {
+            if (($now + $leeway) < (int) $payload->nbf) {
+                throw new UnexpectedValueException('Token is not yet valid');
+            }
+        }
+        // iat (issued-at): reject tokens issued in the future (with leeway)
+        if (isset($payload->iat) && is_numeric($payload->iat)) {
+            if (($now + $leeway) < (int) $payload->iat) {
+                throw new UnexpectedValueException('Token issued in the future');
+            }
+        }
+    }
+    /**
      * Decode the JWT to ensure accuracy, return false if an error happens
      */
     public function decodeJWT($key) {
@@ -1787,7 +2136,9 @@ class HAXCMS
         return FALSE;
       }
       try {
-        return JWT::decode($key, $this->privateKey . $this->salt);
+        $payload = JWT::decode($key, $this->privateKey . $this->salt);
+        $this->validateAccessTokenClaims($payload);
+        return $payload;
       }
       catch (Exception $e) {
         return FALSE;
@@ -1803,6 +2154,39 @@ class HAXCMS
       $token['exp'] = time() + (24 * 60 * 60);
       $this->dispatchEvent('haxcms-refresh-token-get', $token);
       return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
+    }
+    /**
+     * Security best practice (M3): centralize the haxcms_refresh_token cookie
+     * so the Secure and SameSite flags are applied consistently at every call
+     * site (login, logout, refresh, connection-test, invalid-session clear).
+     * `secure` is driven by the detected protocol so non-TLS dev/DDEV still
+     * works, with an optional config->security->forceSecureCookie override for
+     * TLS-terminating proxies. SameSite=Lax mitigates CSRF on cookie-bearing
+     * requests. Use value '' + expires 1 to delete the cookie.
+     */
+    public function setRefreshTokenCookie($value, $expires = 0)
+    {
+      $secure = ($this->protocol === 'https');
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->forceSecureCookie) &&
+        $this->config->security->forceSecureCookie === TRUE
+      ) {
+        $secure = TRUE;
+      }
+      return setcookie(
+        'haxcms_refresh_token',
+        (string) $value,
+        array(
+          'expires' => (int) $expires,
+          'path' => '/',
+          'domain' => '',
+          'secure' => $secure,
+          'httponly' => true,
+          'samesite' => 'Lax',
+        )
+      );
     }
     /**
      * Decode the JWT to ensure accuracy, return false if an error happens
@@ -1852,7 +2236,7 @@ class HAXCMS
       }
       // kick back the end if its invalid
       if ($endOnInvalid) {
-        setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
+        $this->setRefreshTokenCookie('', 1);
         header('Status: 401');
         print 'haxcms_refresh_token:invalid:end_on_invalid_flag';
         exit();

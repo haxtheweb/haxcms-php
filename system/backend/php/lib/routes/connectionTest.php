@@ -51,7 +51,7 @@ trait OperationsRouteConnectionTest {
       }
     }
     if (!$jwt) {
-      setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
+      $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(
           'status' => 401,

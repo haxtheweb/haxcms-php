@@ -21,8 +21,8 @@ trait OperationsRouteRefreshAccessToken {
       );
     }
     else {
-      // this failed so unset the cookie
-      setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
+      // this failed so unset the cookie via the centralized helper (M3)
+      $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(
           'status' => 401,

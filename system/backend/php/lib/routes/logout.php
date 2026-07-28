@@ -11,7 +11,10 @@ trait OperationsRouteLogout {
    * )
    */
   public function logout() {
-    setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
+    // Security best practice (M3): clear via the centralized helper so the
+    // Secure/SameSite flags match how the cookie was set (required for the
+    // browser to actually delete it).
+    $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
     return array(
       "status" => 200,
       "data" => 'loggedout',

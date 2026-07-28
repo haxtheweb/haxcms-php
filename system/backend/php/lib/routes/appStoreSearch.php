@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../APIKeysService.php';
+include_once dirname(__FILE__) . '/../SsrfGuard.php';
 
 trait OperationsRouteAppStoreSearch
 {
@@ -260,10 +261,28 @@ trait OperationsRouteAppStoreSearch
     if ($providerMethod !== 'POST' && $queryString !== '') {
       $requestUrl .= '?' . $queryString;
     }
+    // Security best practice (L2): validate the upstream URL against the SSRF
+    // guard so that even if a provider host is ever made configurable it
+    // cannot target a private/reserved/metadata address. The provider list is
+    // currently a static allowlist of public APIs, so this is defense in depth.
+    try {
+      SsrfGuard::validateUrlNotSSRF($requestUrl);
+    }
+    catch (SsrfGuardException $e) {
+      return $this->appStoreSearchFail(403, 'Blocked upstream request: ' . $e->getMessage());
+    }
     $curl = curl_init($requestUrl);
     curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $providerMethod);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    // Security best practice (L2): never follow redirects from upstream and
+    // pin protocols to http/https so a 302 cannot pivot to file:// / gopher://
+    // or to an internal address via redirect-rebinding.
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+    if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+      curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+      curl_setopt($curl, CURLOPT_REDIR_PROTOCOLS, 0);
+    }
     if ($providerMethod === 'POST') {
       $headers[] = 'Content-Type: application/x-www-form-urlencoded;charset=UTF-8';
       curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);

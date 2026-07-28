@@ -233,7 +233,7 @@ return function ($context) {
             $refreshed = $sessionContext !== null;
         }
         if ($sessionContext === null) {
-            setcookie('haxcms_refresh_token', '', 1, '/', '', true, true);
+            $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             SiteRouteUtils::sendFormattedResponse(
                 array(
                     'status' => 401,

@@ -1,1 +1,4 @@
-Allow from all
+# Apache 2.4 (mod_authz_core). User-uploaded files are public by design.
+# Use the modern directive; the legacy `Allow from all` is ignored by
+# Apache 2.4 unless mod_access_compat is loaded.
+Require all granted

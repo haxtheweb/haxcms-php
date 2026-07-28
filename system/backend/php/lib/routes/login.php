@@ -2,14 +2,19 @@
 trait OperationsRouteLogin {
   /**
    * Determine the client IP for request-scoped login attempt keys.
+   * Security best practice (M2): never trust X-Forwarded-For unless a
+   * trusted-proxy allowlist is configured (config->security->trustedProxies).
+   * Delegates to HAXCMS::resolveClientIP() so the proxy trust decision is
+   * shared with Host-header validation (M4). Without the allowlist, REMOTE_ADDR
+   * is used, preventing a spoofed XFF from rotating the rate-limit key.
    */
   private function getClientIP() {
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && $_SERVER['HTTP_X_FORWARDED_FOR'] != '') {
-      $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-      $forwarded = trim($parts[0]);
-      if ($forwarded != '') {
-        return $forwarded;
-      }
+    if (
+      isset($GLOBALS['HAXCMS']) &&
+      is_object($GLOBALS['HAXCMS']) &&
+      method_exists($GLOBALS['HAXCMS'], 'resolveClientIP')
+    ) {
+      return $GLOBALS['HAXCMS']->resolveClientIP();
     }
     if (isset($_SERVER['REMOTE_ADDR']) && $_SERVER['REMOTE_ADDR'] != '') {
       return $_SERVER['REMOTE_ADDR'];
@@ -113,8 +118,11 @@ trait OperationsRouteLogin {
       );
     }
     $this->clearLoginAttemptEntry($attemptKey);
-    // set a refresh_token COOKIE that will ship w/ all calls automatically
-    setcookie('haxcms_refresh_token', $GLOBALS['HAXCMS']->getRefreshToken($u), $_expires = 0, $_path = '/', $_domain = '', $_secure = true, $_httponly = true);
+    // set a refresh_token COOKIE that will ship w/ all calls automatically.
+    // Security best practice (M3): Secure flag is protocol-driven and
+    // SameSite=Lax is set via the centralized helper so flags are consistent
+    // across every call site and non-TLS dev/DDEV still works.
+    $GLOBALS['HAXCMS']->setRefreshTokenCookie($GLOBALS['HAXCMS']->getRefreshToken($u));
     if ($legacy) {
       return $GLOBALS['HAXCMS']->getJWT($u);
     }

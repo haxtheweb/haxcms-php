@@ -29,7 +29,7 @@ class JWT
      * @uses jsonDecode
      * @uses urlsafeB64Decode
      */
-    public static function decode($jwt, $key = null, $verify = true)
+    public static function decode($jwt, $key = null, $verify = true, array $allowedAlgorithms = null)
     {
         $tks = explode('.', $jwt);
         if (count($tks) != 3) {
@@ -53,7 +53,24 @@ class JWT
             if (empty($header->alg)) {
                 throw new DomainException('Empty algorithm');
             }
-            if ($sig != JWT::sign("$headb64.$bodyb64", $key, $header->alg)) {
+            // Security best practice (L1): pin the algorithm to an explicit
+            // allowlist so a token cannot select an unexpected alg. Defaults to
+            // the HMAC-SHA family that sign() supports (HS256/384/512). This is
+            // defense in depth: even though sign() rejects unknown algs, an
+            // explicit allowlist prevents alg-confusion attempts outright.
+            $alg = (string) $header->alg;
+            $allowed = is_array($allowedAlgorithms)
+                ? $allowedAlgorithms
+                : array('HS256', 'HS384', 'HS512');
+            if (!in_array($alg, $allowed, true)) {
+                throw new UnexpectedValueException('Algorithm not allowed');
+            }
+            // Security best practice: compare the HMAC signature in constant
+            // time via hash_equals so a timing side-channel cannot leak
+            // signature bytes. The length pre-check ensures hash_equals does
+            // not short-circuit differently for unequal-length inputs.
+            $expected = JWT::sign("$headb64.$bodyb64", $key, $header->alg);
+            if (strlen($sig) !== strlen($expected) || !hash_equals($expected, $sig)) {
                 throw new UnexpectedValueException(
                     'Signature verification failed'
                 );
