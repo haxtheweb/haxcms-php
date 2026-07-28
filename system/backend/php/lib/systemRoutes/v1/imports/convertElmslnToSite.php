@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertElmslnToSite')) {
     function haxcmsImportConvertElmslnToSite($context)
@@ -35,7 +36,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
 
         // Fetch site.json (JSON Outline Schema)
         try {
-            $resp     = $client->request('GET', $siteJsonUrl, ['headers' => ['Accept' => 'application/json']]);
+            $resp     = SsrfGuard::safeGuzzleRequest($client, 'GET', $siteJsonUrl, ['headers' => ['Accept' => 'application/json']]);
             $siteJson = json_decode((string) $resp->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
@@ -82,7 +83,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
             if ($location !== '') {
                 try {
                     $pageUrl  = $baseUrl . '/' . ltrim($location, '/');
-                    $pageResp = $client->request('GET', $pageUrl);
+                    $pageResp = SsrfGuard::safeGuzzleRequest($client, 'GET', $pageUrl);
                     $content  = (string) $pageResp->getBody();
                 } catch (\Exception $e) {
                     // leave content empty

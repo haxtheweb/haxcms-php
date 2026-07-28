@@ -18,10 +18,20 @@ class SiteApiSecurity
             $result['message'] = '';
             return $result;
         }
+        // Distinguish "no bearer at all" (401, genuine logged-out state) from
+        // "bearer present but invalid/expired" (403, refreshable). Mirrors the
+        // NodeJS site API split in app.js validateSiteApiRouteAccess.
+        $bearerToken = SiteRouteUtils::getBearerTokenFromRequest();
+        if (is_null($bearerToken)) {
+            $result['status'] = 401;
+            $result['message'] = 'Missing Bearer token';
+            return $result;
+        }
         $userName = self::resolveBearerUserName();
         if (is_null($userName) || $userName === '') {
-            $result['status'] = 401;
-            $result['message'] = 'Missing or invalid Bearer token';
+            // bearer was present but failed to decode / had no user -> invalid or expired
+            $result['status'] = 403;
+            $result['message'] = 'Invalid or expired Bearer token';
             return $result;
         }
         $result['userName'] = $userName;

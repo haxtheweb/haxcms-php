@@ -29,8 +29,33 @@ class HAXCMSFile
         'txt' => array('text/plain'),
         'vtt' => array('text/vtt', 'text/plain'),
         'html' => array('text/html', 'application/xhtml+xml'),
-        'md' => array('text/markdown', 'text/x-markdown', 'text/plain')
+        'md' => array('text/markdown', 'text/x-markdown', 'text/plain'),
+        'css' => array('text/css'),
+        'js' => array('text/javascript', 'application/javascript', 'application/x-javascript', 'text/ecmascript'),
+        'svg' => array('image/svg+xml'),
+        'woff' => array('font/woff', 'application/font-woff'),
+        'woff2' => array('font/woff2', 'application/font-woff2'),
+        'ttf' => array('font/ttf', 'application/font-sfnt', 'application/x-font-ttf'),
+        'eot' => array('application/vnd.ms-fontobject', 'application/octet-stream')
     );
+    /**
+     * Static accessor for the extension -> allowed-MIME map, so the createSite
+     * siteFiles content-type check can reuse the same table without exposing
+     * the private property. Returns the MIME array for an extension or null.
+     */
+    public static function getAllowedMimeByExtension($ext) {
+        static $map = null;
+        if ($map === null) {
+            // build once from a shared instance (the map is constant)
+            $inst = new self();
+            $ref = new ReflectionProperty(self::class, 'allowedMimeByExtension');
+            $ref->setAccessible(true);
+            $map = $ref->getValue($inst);
+        }
+        $ext = strtolower((string) $ext);
+        if ($ext === 'htm') { $ext = 'html'; }
+        return isset($map[$ext]) ? $map[$ext] : null;
+    }
     private $imageExtensions = array(
         'jpg',
         'jpeg',

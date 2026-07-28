@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../../../siteRoutes/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/importUtils.php';
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertRecipeToSite')) {
     function haxcmsImportConvertRecipeToSite($context)
@@ -32,15 +33,12 @@ if (!function_exists('haxcmsImportConvertRecipeToSite')) {
             $recipeContent = is_string($body['recipe']) ? $body['recipe'] : json_encode($body['recipe']);
             $filename      = 'recipe.json';
         } elseif (isset($body['repoUrl']) && $body['repoUrl'] !== '') {
-            // Fetch recipe from URL
+            // Fetch recipe from URL — SSRF guarded, redirects disabled
             try {
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, (string) $body['repoUrl']);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                $recipeContent = (string) curl_exec($ch);
-                curl_close($ch);
+                $recipeContent = (string) SsrfGuard::safeCurlExec(
+                    (string) $body['repoUrl'],
+                    array(CURLOPT_TIMEOUT => 30)
+                );
                 $parts    = explode('/', $body['repoUrl']);
                 $filename = end($parts) ?: 'recipe.json';
             } catch (\Exception $e) {

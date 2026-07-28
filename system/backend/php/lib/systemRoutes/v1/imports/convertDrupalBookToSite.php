@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
     function haxcmsImportConvertDrupalBookToSite($context)
@@ -40,7 +41,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
         foreach ($nodeTypes as $nodeType) {
             $url = $baseUrl . '/jsonapi/node/' . $nodeType . '?include=book&page[limit]=50';
             try {
-                $resp  = $client->request('GET', $url, [
+                $resp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $url, [
                     'headers' => ['Accept' => 'application/vnd.api+json'],
                 ]);
                 $data  = json_decode((string) $resp->getBody(), true);
@@ -56,7 +57,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
         // Also try generic JSON:API node endpoint
         if (empty($bookNodes)) {
             try {
-                $resp  = $client->request('GET', $baseUrl . '/jsonapi/node?page[limit]=50', [
+                $resp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $baseUrl . '/jsonapi/node?page[limit]=50', [
                     'headers' => ['Accept' => 'application/vnd.api+json'],
                 ]);
                 $data  = json_decode((string) $resp->getBody(), true);
@@ -112,7 +113,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
         // Try to get site name
         $siteName = 'drupal-import';
         try {
-            $siteResp = $client->request('GET', $baseUrl . '/jsonapi', ['headers' => ['Accept' => 'application/vnd.api+json']]);
+            $siteResp = SsrfGuard::safeGuzzleRequest($client, 'GET', $baseUrl . '/jsonapi', ['headers' => ['Accept' => 'application/vnd.api+json']]);
             $siteData = json_decode((string) $siteResp->getBody(), true);
             if (isset($siteData['meta']['links']['self']['href'])) {
                 $siteName = 'drupal-import';

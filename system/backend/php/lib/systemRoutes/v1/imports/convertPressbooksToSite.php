@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
     function haxcmsImportConvertPressbooksToSite($context)
@@ -63,7 +64,7 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
 
         try {
             $client      = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
-            $tocResponse = $client->request('GET', $tocUrl, [
+            $tocResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $tocUrl, [
                 'headers' => [
                     'Accept' => 'application/json',
                     'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',

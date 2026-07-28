@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertHtmlToSite')) {
     function haxcmsImportConvertHtmlToSite($context)
@@ -40,12 +41,12 @@ if (!function_exists('haxcmsImportConvertHtmlToSite')) {
             $html = (string) @file_get_contents($file['tmp_name']);
         } elseif (isset($body['repoUrl']) && $body['repoUrl'] !== '') {
             try {
-                $client   = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
-                $response = $client->request('GET', (string) $body['repoUrl']);
-                $html     = (string) $response->getBody();
-                $parts    = explode('/', $body['repoUrl']);
-                $filename = end($parts) ?: 'import.html';
-            } catch (\Exception $e) {
+            $client   = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', (string) $body['repoUrl']);
+            $html     = (string) $response->getBody();
+            $parts    = explode('/', $body['repoUrl']);
+            $filename = end($parts) ?: 'import.html';
+        } catch (\Exception $e) {
                 SiteRouteUtils::sendFormattedResponse(
                     array('status' => 400, 'data' => array('error' => 'Unable to fetch URL: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
                     array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),

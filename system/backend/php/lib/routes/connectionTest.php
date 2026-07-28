@@ -22,13 +22,13 @@ trait OperationsRouteConnectionTest {
     $jwt = null;
     $refreshed = FALSE;
     $user = '';
-    // Extract a JWT string from the request; only flat string values are accepted
-    $jwtInput = null;
-    if (isset($this->params['jwt']) && is_string($this->params['jwt']) && $this->params['jwt'] !== '') {
-      $jwtInput = $this->params['jwt'];
+    // JWT must arrive via the Authorization Bearer header, never request params.
+    // Mirrors NodeJS connectionTest.js getValidatedJWTFromRequest.
+    $jwtInput = '';
+    if (method_exists($GLOBALS['HAXCMS'], 'getBearerTokenFromRequest')) {
+      $jwtInput = (string) $GLOBALS['HAXCMS']->getBearerTokenFromRequest();
     }
-    // If a JWT string is present, validate it directly and capture the user
-    if ($jwtInput !== null && $jwtInput !== '') {
+    if ($jwtInput !== '') {
       $decoded = $GLOBALS['HAXCMS']->decodeJWT($jwtInput);
       if (
         $decoded !== FALSE &&

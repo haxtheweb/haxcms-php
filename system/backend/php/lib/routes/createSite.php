@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../SsrfGuard.php';
 trait OperationsRouteCreateSite {
   private function isSystemV1Request()
   {
@@ -484,14 +485,28 @@ trait OperationsRouteCreateSite {
           if ($normalizedPath === false) {
             continue;
           }
-          $content = @file_get_contents($downloadUrl);
+          if (!is_string($downloadUrl) || $downloadUrl === '') {
+            continue;
+          }
+          // SSRF guard: reject private/loopback/link-local/metadata targets
+          // before fetching, and disable redirects (matches the Node.js
+          // safeFetch baseline; closes the redirect-to-metadata window).
+          try {
+            $content = SsrfGuard::safeFileGetContents($downloadUrl);
+          } catch (SsrfGuardException $e) {
+            $content = false;
+          }
           if ($content !== false && $content !== '') {
-            $targetPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/' . $normalizedPath;
-            $targetDir = dirname($targetPath);
-            if (!is_dir($targetDir)) {
-              mkdir($targetDir, 0755, true);
+            // CWE-434: verify the fetched content's MIME matches the target
+            // extension before writing into the web-served site tree.
+            if ($this->siteFileContentMimeAcceptable($content, $normalizedPath)) {
+              $targetPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/' . $normalizedPath;
+              $targetDir = dirname($targetPath);
+              if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+              }
+              file_put_contents($targetPath, $content);
             }
-            file_put_contents($targetPath, $content);
           }
         }
       }

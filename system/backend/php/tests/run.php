@@ -1,6 +1,7 @@
 <?php
 include_once __DIR__ . '/bootstrap.php';
 include_once __DIR__ . '/testSecurityLayer.php';
+include_once __DIR__ . '/testSsrfGuard.php';
 
 function runRequestContextTests()
 {
@@ -269,6 +270,7 @@ function runAllTests()
         runMutationWrapperTests(),
         runSystemRoutesMapTests(),
         runSecurityLayerTests(),
+        runSsrfGuardTests(),
     );
     $allPassed = true;
     foreach ($results as $r) {

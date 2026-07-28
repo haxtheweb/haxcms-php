@@ -102,6 +102,12 @@ class Operations {
     return null;
   }
   private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+  // Extensions permitted for build.siteFiles downloads (theme/ and custom/
+  // assets imported from another HAXcms instance). Allow-listing rather than
+  // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
+  // asp/aspx/jsp/exe/etc. from being written into the web-served site tree
+  // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
+  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf)$/i';
   private $imageScalePresets = array(
     'xs' => array('width' => 200, 'height' => 150),
     'sm' => array('width' => 320, 'height' => 240),
@@ -425,7 +431,64 @@ class Operations {
         return false;
       }
     }
+    // gate the file extension before any remote fetch / write so executable
+    // extensions can never reach the web-served site directory (CWE-434)
+    if (preg_match($this->safeSiteFileExtensionPattern, $normalized) !== 1) {
+      return false;
+    }
     return $normalized;
+  }
+  /**
+   * Verify fetched siteFile content has a MIME consistent with its target
+   * extension (CWE-434). Mirrors the Node.js siteFileContentTypeAcceptable.
+   * Absent finfo returns true (the SSRF IP validation in safeFileGetContents
+   * already confirmed a public target); text/plain is accepted for text-type
+   * extensions since misconfigured servers commonly serve css/js/html/json
+   * as text/plain.
+   */
+  private function siteFileContentMimeAcceptable($content, $normalizedPath) {
+    $ext = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
+    if ($ext === 'htm') { $ext = 'html'; }
+    $allowedMimes = HAXCMSFile::getAllowedMimeByExtension($ext);
+    if (!is_array($allowedMimes) || count($allowedMimes) === 0) {
+      return true;
+    }
+    $detected = false;
+    if (function_exists('finfo_open')) {
+      $finfo = finfo_open(FILEINFO_MIME_TYPE);
+      if ($finfo !== false) {
+        $detected = finfo_buffer($finfo, $content);
+        finfo_close($finfo);
+      }
+    }
+    if (($detected === false || $detected === null || $detected === '') && function_exists('mime_content_type')) {
+      // mime_content_type needs a file; write a temp blob to sniff
+      $tmp = tempnam(sys_get_temp_dir(), 'haxcmssf');
+      if ($tmp !== false) {
+        @file_put_contents($tmp, $content);
+        $detected = @mime_content_type($tmp);
+        @unlink($tmp);
+      }
+    }
+    if (!is_string($detected) || $detected === '') {
+      return true;
+    }
+    $detected = strtolower(trim(explode(';', $detected)[0]));
+    foreach ($allowedMimes as $allowed) {
+      if (strtolower($allowed) === $detected) {
+        return true;
+      }
+      if (substr(strtolower($allowed), -2) === '/*') {
+        if (strpos($detected, substr(strtolower($allowed), 0, -1)) === 0) {
+          return true;
+        }
+      }
+    }
+    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'svg');
+    if ($detected === 'text/plain' && in_array($ext, $textExts, true)) {
+      return true;
+    }
+    return false;
   }
   /**
    * Clone mixed data through JSON encoding into an associative array.

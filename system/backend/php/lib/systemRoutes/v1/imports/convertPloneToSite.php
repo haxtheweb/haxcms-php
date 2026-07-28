@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertPloneToSite')) {
     function haxcmsImportConvertPloneToSite($context)
@@ -36,7 +37,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
         // Fetch site root info
         $siteTitle = 'plone-import';
         try {
-            $siteResp = $client->request('GET', $baseUrl . '/@site', ['headers' => $headers]);
+            $siteResp = SsrfGuard::safeGuzzleRequest($client, 'GET', $baseUrl . '/@site', ['headers' => $headers]);
             $siteData = json_decode((string) $siteResp->getBody(), true);
             if (isset($siteData['title'])) {
                 $siteTitle = (string) $siteData['title'];
@@ -48,7 +49,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
         // Search for all content
         $searchUrl = $baseUrl . '/@search?portal_type:list=Document&portal_type:list=Page&sort_on=getObjPositionInParent&b_size=100';
         try {
-            $searchResp = $client->request('GET', $searchUrl, ['headers' => $headers]);
+            $searchResp = SsrfGuard::safeGuzzleRequest($client, 'GET', $searchUrl, ['headers' => $headers]);
             $searchData = json_decode((string) $searchResp->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
@@ -79,7 +80,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
             // Fetch full item to get body content
             if ($itemUrl !== '') {
                 try {
-                    $itemResp = $client->request('GET', $itemUrl, ['headers' => $headers]);
+                    $itemResp = SsrfGuard::safeGuzzleRequest($client, 'GET', $itemUrl, ['headers' => $headers]);
                     $itemData = json_decode((string) $itemResp->getBody(), true);
                     if (isset($itemData['text']['data'])) {
                         $content = (string) $itemData['text']['data'];

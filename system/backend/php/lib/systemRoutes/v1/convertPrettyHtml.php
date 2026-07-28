@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../SsrfGuard.php';
 
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
@@ -29,7 +30,7 @@ return function ($context) {
     if (isset($body['type']) && $body['type'] === 'link' && $html !== '') {
         try {
             $client   = new \GuzzleHttp\Client(['timeout' => 30]);
-            $response = $client->request('GET', trim($html));
+            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', trim($html));
             $html     = (string) $response->getBody();
         } catch (\Exception $e) {
             $html = '';

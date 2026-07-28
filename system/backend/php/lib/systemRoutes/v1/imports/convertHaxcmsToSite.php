@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
     function haxcmsImportConvertHaxcmsToSite($context)
@@ -45,7 +46,7 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         $client     = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
         $siteJson   = null;
         try {
-            $response = $client->request('GET', $base . '/site.json');
+            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/site.json');
             $siteJson = json_decode((string) $response->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
@@ -73,7 +74,7 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         foreach ($siteJson['items'] as &$item) {
             if (isset($item['location']) && $item['location'] !== '') {
                 try {
-                    $resp = $client->request('GET', $base . '/' . $item['location']);
+                    $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $item['location']);
                     $item['contents'] = (string) $resp->getBody();
                 } catch (\Exception $e) {
                     $item['contents'] = '';
@@ -91,7 +92,7 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
 
         foreach ($siteFileKeys as $filePath) {
             try {
-                $resp = $client->request('GET', $base . '/' . $filePath);
+                $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $filePath);
                 $text = trim((string) $resp->getBody());
                 if ($text !== '') {
                     if ($filePath === 'custom/build/custom.es6.js' && $text === $boilerplateEs6) { continue; }

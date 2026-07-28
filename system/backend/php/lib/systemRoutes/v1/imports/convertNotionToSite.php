@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertNotionToSite')) {
     function haxcmsImportConvertNotionToSite($context)
@@ -49,7 +50,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
 
         // Fetch root contents
         try {
-            $contentsResponse = $client->request('GET', $apiBase, [
+            $contentsResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $apiBase, [
                 'headers' => ['Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'HAXcms-Import/1.0'],
                 'query'   => array('ref' => $branch),
             ]);
@@ -83,7 +84,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
                 $title   = preg_replace('/ [a-f0-9]{32}$/i', '', $title); // strip Notion hash
                 $content = '';
                 try {
-                    $mdResp  = $client->request('GET', $rawBase . $entry['name']);
+                    $mdResp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $rawBase . $entry['name']);
                     $mdText  = (string) $mdResp->getBody();
                     $content = \Michelf\Markdown::defaultTransform($mdText);
                 } catch (\Exception $e) {
@@ -116,7 +117,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
 
                 // Fetch sub-directory contents
                 try {
-                    $subResp     = $client->request('GET', $apiBase . $entry['name'], [
+                    $subResp     = SsrfGuard::safeGuzzleRequest($client, 'GET', $apiBase . $entry['name'], [
                         'headers' => ['Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'HAXcms-Import/1.0'],
                         'query'   => array('ref' => $branch),
                     ]);
@@ -128,8 +129,8 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
                                 $subTitle   = preg_replace('/ [a-f0-9]{32}$/i', '', $subTitle);
                                 $subContent = '';
                                 try {
-                                    $subMdResp  = $client->request('GET', $rawBase . $entry['name'] . '/' . $sub['name']);
-                                    $subMdText  = (string) $subMdResp->getBody();
+                    $subMdResp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $rawBase . $entry['name'] . '/' . $sub['name']);
+                    $subMdText  = (string) $subMdResp->getBody();
                                     $subContent = \Michelf\Markdown::defaultTransform($subMdText);
                                 } catch (\Exception $e) {
                                     // continue

@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertGitbookToSite')) {
     function haxcmsImportConvertGitbookToSite($context)
@@ -50,7 +51,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         // Locate SUMMARY.md (case-insensitive search)
         $summaryMd = null;
         try {
-            $contentsResponse = $client->request('GET', $apiBase, [
+            $contentsResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $apiBase, [
                 'headers' => ['Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'HAXcms-Import/1.0'],
                 'query'   => array('ref' => $branch),
             ]);
@@ -77,7 +78,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         }
 
         try {
-            $summaryResponse = $client->request('GET', $summaryMd);
+            $summaryResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $summaryMd);
             $summaryContent  = (string) $summaryResponse->getBody();
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
@@ -117,7 +118,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
             if ($relPath !== '' && $relPath !== '#') {
                 try {
                     $mdUrl   = $rawBase . ltrim($relPath, '/');
-                    $mdResp  = $client->request('GET', $mdUrl);
+                    $mdResp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $mdUrl);
                     $mdText  = (string) $mdResp->getBody();
                     $content = \Michelf\Markdown::defaultTransform($mdText);
                 } catch (\Exception $e) {

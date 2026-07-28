@@ -6,6 +6,7 @@ $__vendorAutoload = dirname(__FILE__) . '/../../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
     require_once $__vendorAutoload;
 }
+include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertWordpressToSite')) {
     function haxcmsImportConvertWordpressToSite($context)
@@ -39,7 +40,7 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
         $perPage   = 100;
         do {
             try {
-                $resp = $client->request('GET', $wpApi . '/pages', [
+                $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $wpApi . '/pages', [
                     'headers' => ['Accept' => 'application/json'],
                     'query'   => array('per_page' => $perPage, 'page' => $page, 'orderby' => 'menu_order', 'order' => 'asc'),
                 ]);
@@ -101,7 +102,7 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
         // Try to get site title
         $siteTitle = 'wordpress-import';
         try {
-            $siteResp  = $client->request('GET', $baseUrl . '/wp-json/', ['headers' => ['Accept' => 'application/json']]);
+            $siteResp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $baseUrl . '/wp-json/', ['headers' => ['Accept' => 'application/json']]);
             $siteData  = json_decode((string) $siteResp->getBody(), true);
             if (isset($siteData['name'])) {
                 $siteTitle = (string) $siteData['name'];

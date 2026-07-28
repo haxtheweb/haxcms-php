@@ -189,7 +189,7 @@ function runSecurityLayerTests()
     $context = new SiteApiRequestContext($site);
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items', 'POST');
     $runner->assert($result['allowed'] === false, 'Invalid Bearer token denied');
-    $runner->assertEquals(401, $result['status'], 'Invalid Bearer returns 401');
+    $runner->assertEquals(403, $result['status'], 'Invalid Bearer returns 403');
 
     // --- 7. OPTIONS preflight should be public regardless of route ---
     resetServerVars();

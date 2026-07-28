@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../SsrfGuard.php';
 
 $__vendorAutoload = dirname(__FILE__) . '/../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
@@ -30,7 +31,7 @@ return function ($context) {
     if (isset($body['type']) && $body['type'] === 'link' && is_string($jsonData) && $jsonData !== '') {
         try {
             $client   = new \GuzzleHttp\Client(['timeout' => 30]);
-            $response = $client->request('GET', trim($jsonData));
+            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', trim($jsonData));
             $fetched  = (string) $response->getBody();
             $decoded  = json_decode($fetched, true);
             if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
