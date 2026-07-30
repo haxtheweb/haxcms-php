@@ -24,6 +24,12 @@
 class SsrfGuard
 {
     /**
+     * Total timeout (seconds) for the safe-fetch wrappers, matching the
+     * SAFE_FETCH_TIMEOUT_MS constant in haxcms-nodejs src/lib/safeFetch.js
+     * (SEC-02). Prevents a slow/hanging upstream from holding a request open.
+     */
+    private static $SAFE_TIMEOUT = 15;
+    /**
      * True for private / reserved / loopback / link-local / metadata IPs.
      * Matches the Node.js isPrivateOrReservedIP list.
      */
@@ -50,6 +56,16 @@ class SsrfGuard
             // IPv4-mapped IPv6 (::ffff:a.b.c.d) — unpack and re-check the v4
             if (strpos($lower, '::ffff:') === 0) {
                 $v4 = substr($ip, 7);
+                return self::isPrivateOrReservedIPv4($v4);
+            }
+            // IPv4-compatible IPv6 (::a.b.c.d, deprecated ::/96) — same
+            // normalization as ::ffff: above. dns_get_record can return
+            // ::127.0.0.1 for a ::7f00:1 AAAA record; without this branch it
+            // falls through to "IPv6 → public" and bypasses the check. The
+            // dotted-quad guard avoids touching legit public v6 like
+            // 2001:db8::1.2.3.4. MUST run after the ::ffff: branch.
+            if (strpos($lower, '::') === 0 && strpos($ip, '.') !== false) {
+                $v4 = substr($ip, 2);
                 return self::isPrivateOrReservedIPv4($v4);
             }
             return false;
@@ -171,6 +187,7 @@ class SsrfGuard
                 'method' => 'GET',
                 'max_redirects' => 0,
                 'ignore_errors' => true,
+                'timeout' => self::$SAFE_TIMEOUT,
             ),
         ));
         return @file_get_contents($url, false, $ctx);
@@ -189,6 +206,9 @@ class SsrfGuard
         if (!isset($merged['allow_redirects'])) {
             $merged['allow_redirects'] = false;
         }
+        if (!isset($merged['timeout'])) {
+            $merged['timeout'] = self::$SAFE_TIMEOUT;
+        }
         return $client->request($method, $url, $merged);
     }
 
@@ -205,6 +225,8 @@ class SsrfGuard
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, self::$SAFE_TIMEOUT);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
         if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
             curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
             curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, 0);
