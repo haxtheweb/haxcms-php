@@ -1,6 +1,1 @@
-# Apache 2.4 (mod_authz_core). Block all direct web access to the _config
-# directory so SALT.txt, config.json, userData.json and other secrets are
-# never served. Security best practice: never depend on the legacy 2.2
-# `Deny from all` directive, which Apache 2.4 ignores unless mod_access_compat
-# is loaded.
-Require all denied
+Deny from all
