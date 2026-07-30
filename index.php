@@ -4,6 +4,11 @@ if (!is_dir('_config') || !is_dir('_sites') || !is_dir('_archived') || !is_dir('
 }
 // CSP to prevent click-jacking on login page
 header("Content-Security-Policy: frame-ancestors 'none'");
+// Phase 3 (M1): this page may embed a per-user access JWT via appSettings.jwt
+// (HAXiam / server-injected bootstrap). Prevent browser/proxy caching so the
+// token is never served to a different user from cache.
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
 
 include_once dirname(__FILE__) . '/system/backend/php/bootstrapHAX.php';
 include_once $HAXCMS->configDirectory . '/config.php';

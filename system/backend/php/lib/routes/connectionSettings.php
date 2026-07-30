@@ -31,6 +31,10 @@ trait OperationsRouteConnectionSettings {
       }
     }
     // need to return this as if it was a javascript file, weird looking for sure
+    // Phase 3 (M1): this response may embed a per-user access JWT via
+    // appSettings.jwt (HAXiam / server-injected bootstrap). Prevent caching.
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
     return array(
       '__noencode' => array(
         'status' => 200,

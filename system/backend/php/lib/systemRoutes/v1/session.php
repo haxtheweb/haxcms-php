@@ -61,8 +61,27 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         ) {
             return null;
         }
+        // Security (H1 rotation): reject a revoked/stolen refresh family before
+        // minting an access token. validateRefreshSession accepts legacy tokens
+        // (no family/jti) so deploys don't log users out during upgrade.
+        $sessionOk = $GLOBALS['HAXCMS']->validateRefreshSession(
+            $refreshTokenDecoded->user,
+            isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
+            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null
+        );
+        if (!$sessionOk) {
+            if (isset($refreshTokenDecoded->user)) {
+                $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user);
+            }
+            $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+            return null;
+        }
+        // Rotate the refresh cookie on recovery so a stolen cookie is bounded;
+        // fall back to a plain access token if rotation fails.
+        $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($refreshTokenDecoded);
+        $accessJwt = ($rotated !== null) ? $rotated : $GLOBALS['HAXCMS']->getJWT($refreshTokenDecoded->user);
         return array(
-            'jwt' => $GLOBALS['HAXCMS']->getJWT($refreshTokenDecoded->user),
+            'jwt' => $accessJwt,
             'user' => $GLOBALS['HAXCMS']->generateMachineName($refreshTokenDecoded->user),
         );
     }
@@ -215,14 +234,11 @@ return function ($context) {
         }
     }
     else if ($route === 'v1/session/connection-test') {
+        // Security (Phase 3 Bearer-only): JWT must arrive via the Authorization
+        // Bearer header, never request params/body. The body jwt/token fallback
+        // is removed so HAXiam and other clients use appSettings.jwt as a Bearer
+        // source instead of posting credentials in the body.
         $requestedJWT = haxcmsResolveSessionBearerToken();
-        if ($requestedJWT === '') {
-            if (isset($context->body['jwt']) && is_string($context->body['jwt']) && $context->body['jwt'] !== '') {
-                $requestedJWT = $context->body['jwt'];
-            } else if (isset($context->body['token']) && is_string($context->body['token']) && $context->body['token'] !== '') {
-                $requestedJWT = $context->body['token'];
-            }
-        }
         $sessionContext = null;
         $refreshed = false;
         if ($requestedJWT !== '') {

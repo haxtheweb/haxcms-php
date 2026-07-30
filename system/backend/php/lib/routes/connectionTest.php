@@ -45,9 +45,28 @@ trait OperationsRouteConnectionTest {
     if (!$jwt) {
       $validRefresh = $GLOBALS['HAXCMS']->validateRefreshToken(FALSE);
       if ($validRefresh && isset($validRefresh->user) && $validRefresh->user != '') {
-        $jwt = $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
-        $user = $GLOBALS['HAXCMS']->generateMachineName($validRefresh->user);
-        $refreshed = TRUE;
+        $userOk = $GLOBALS['HAXCMS']->validateUser($validRefresh->user);
+        $sessionOk = $GLOBALS['HAXCMS']->validateRefreshSession(
+          $validRefresh->user,
+          isset($validRefresh->family) ? $validRefresh->family : null,
+          isset($validRefresh->jti) ? $validRefresh->jti : null
+        );
+        if (!$userOk || !$sessionOk) {
+          if (!$sessionOk && isset($validRefresh->user)) {
+            $GLOBALS['HAXCMS']->revokeRefreshSession($validRefresh->user);
+          }
+          $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+          $validRefresh = FALSE;
+        }
+        else {
+          // Security (H1 rotation): rotate the refresh cookie on recovery so a
+          // stolen cookie is bounded; fall back to a plain access token if
+          // rotation fails (stateless mode / locked-down fs).
+          $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($validRefresh);
+          $jwt = ($rotated !== null) ? $rotated : $GLOBALS['HAXCMS']->getJWT($validRefresh->user);
+          $user = $GLOBALS['HAXCMS']->generateMachineName($validRefresh->user);
+          $refreshed = TRUE;
+        }
       }
     }
     if (!$jwt) {

@@ -2145,15 +2145,32 @@ class HAXCMS
       }
     }
     /**
-     * Get user's Refresh Token
+     * Get user's Refresh Token.
+     * Security (H1 rotation): when $storeRefreshSession is true the token is
+     * given a `family` (per login session) and `jti` (per issuance) and the jti
+     * hash is recorded server-side so a stolen old refresh token can be
+     * invalidated by the next rotation / logout. Mirrors NodeJS getRefreshToken.
      */
-    public function getRefreshToken($name = null) {
+    public function getRefreshToken($name = null, $storeRefreshSession = true) {
       $token = array();
       $token['user'] = $name;
       $token['iat'] = time();
       $token['exp'] = time() + (24 * 60 * 60);
+      if ($storeRefreshSession) {
+        $token['family'] = $this->generateUUID();
+        $token['jti'] = $this->generateUUID();
+      }
       $this->dispatchEvent('haxcms-refresh-token-get', $token);
-      return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
+      $signed = JWT::encode($token, $this->refreshPrivateKey . $this->salt);
+      if ($storeRefreshSession && $name !== null && $name !== '') {
+        try {
+          $this->recordRefreshSession($name, $token['family'], $token['jti'], $token['exp']);
+        }
+        catch (Exception $e) {
+          // non-fatal: stateless validation still works as a fallback
+        }
+      }
+      return $signed;
     }
     /**
      * Security best practice (M3): centralize the haxcms_refresh_token cookie
@@ -2187,6 +2204,196 @@ class HAXCMS
           'samesite' => 'Lax',
         )
       );
+    }
+    /**
+     * Security (H1 rotation): refresh-session store. A file-backed JSON under
+     * the protected _config/settings directory maps user -> { family,
+     * currentJtiHash, previousJtiHash, previousValidUntil, exp }. Only SHA-256
+     * hashes of jti are stored, never raw token ids. Lets refresh rotate the
+     * token (a stolen old copy dies on the legitimate user's next refresh) and
+     * lets logout revoke the whole family server-side. Mirrors NodeJS helpers.
+     */
+    protected function getRefreshSessionsPath() {
+      $dir = isset($this->configDirectory) ? $this->configDirectory : (HAXCMS_ROOT . '/_config');
+      return rtrim((string) $dir, '/') . '/settings/refreshSessions.json';
+    }
+    protected function hashJti($jti) {
+      return hash('sha256', (string) $jti);
+    }
+    protected function loadRefreshSessions() {
+      $path = $this->getRefreshSessionsPath();
+      if (!file_exists($path)) {
+        return array();
+      }
+      try {
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || $raw === '') {
+          return array();
+        }
+        $parsed = json_decode($raw, true);
+        return is_array($parsed) ? $parsed : array();
+      }
+      catch (Exception $e) {
+        return array();
+      }
+    }
+    protected function saveRefreshSessions($sessions) {
+      if (!is_array($sessions)) {
+        return;
+      }
+      $path = $this->getRefreshSessionsPath();
+      try {
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+          @mkdir($dir, 0700, true);
+        }
+        // prune expired entries before writing
+        $now = time();
+        $cleaned = array();
+        foreach ($sessions as $k => $entry) {
+          if (is_array($entry) && isset($entry['exp']) && (int) $entry['exp'] > $now) {
+            $cleaned[$k] = $entry;
+          }
+        }
+        @file_put_contents($path, json_encode($cleaned), LOCK_EX);
+        @chmod($path, 0600);
+      }
+      catch (Exception $e) {
+        // non-fatal: stateless validation still works as a fallback
+      }
+    }
+    /**
+     * Record a new refresh session (called on login / institutional issuance).
+     */
+    public function recordRefreshSession($user, $family, $jti, $exp) {
+      if ($user === null || $user === '' || $family === '' || $jti === '') {
+        return;
+      }
+      $sessions = $this->loadRefreshSessions();
+      $sessions[(string) $user] = array(
+        'family' => (string) $family,
+        'currentJtiHash' => $this->hashJti($jti),
+        'previousJtiHash' => null,
+        'previousValidUntil' => 0,
+        'exp' => (int) $exp,
+      );
+      $this->saveRefreshSessions($sessions);
+    }
+    /**
+     * Rotate a refresh session: validate family/jti against the store, then move
+     * the current jti to previous (with a grace window) and record a new
+     * current. Returns true on accept, false on mismatch (possible
+     * stolen/revoked/out-of-order token). A missing store entry is treated as
+     * legacy-accepted so deployments upgrade without logging users out.
+     */
+    public function rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp) {
+      if ($user === null || $user === '' || $family === '' || $oldJti === '' || $newJti === '') {
+        return false;
+      }
+      $sessions = $this->loadRefreshSessions();
+      $key = (string) $user;
+      $entry = isset($sessions[$key]) ? $sessions[$key] : null;
+      $now = time();
+      $oldHash = $this->hashJti($oldJti);
+      if (is_array($entry) && isset($entry['family']) && $entry['family'] === (string) $family) {
+        $currentMatch = isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $oldHash;
+        $previousMatch = isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $oldHash
+          && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0);
+        if (!$currentMatch && !$previousMatch) {
+          // possible token theft / replay of an older jti -> revoke the family
+          unset($sessions[$key]);
+          $this->saveRefreshSessions($sessions);
+          return false;
+        }
+      }
+      $next = is_array($entry) ? $entry : array();
+      $next['family'] = (string) $family;
+      $next['previousJtiHash'] = $oldHash;
+      $next['previousValidUntil'] = $now + (int) HAXCMS_REFRESH_GRACE_SECONDS;
+      $next['currentJtiHash'] = $this->hashJti($newJti);
+      $next['exp'] = (int) $newExp;
+      $sessions[$key] = $next;
+      $this->saveRefreshSessions($sessions);
+      return true;
+    }
+    /**
+     * Revoke a user's refresh family (called on logout). Best-effort.
+     */
+    public function revokeRefreshSession($user) {
+      if ($user === null || $user === '') {
+        return;
+      }
+      $sessions = $this->loadRefreshSessions();
+      $key = (string) $user;
+      if (array_key_exists($key, $sessions)) {
+        unset($sessions[$key]);
+        $this->saveRefreshSessions($sessions);
+      }
+    }
+    /**
+     * Validate a refresh token's family/jti against the store WITHOUT rotating.
+     * Used by connection-test recovery. Returns true when acceptable (including
+     * the legacy/missing-entry case so deploys don't log users out).
+     */
+    public function validateRefreshSession($user, $family, $jti) {
+      if ($user === null || $user === '' || $family === '' || $family === null || $jti === '' || $jti === null) {
+        // tokens without family/jti (legacy) are accepted for migration
+        return true;
+      }
+      $sessions = $this->loadRefreshSessions();
+      $key = (string) $user;
+      if (!isset($sessions[$key])) {
+        return true;
+      }
+      $entry = $sessions[$key];
+      if (!is_array($entry) || !isset($entry['family']) || $entry['family'] !== (string) $family) {
+        return false;
+      }
+      $now = time();
+      $hash = $this->hashJti($jti);
+      if (isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $hash) {
+        return true;
+      }
+      if (isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $hash
+        && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0)) {
+        return true;
+      }
+      return false;
+    }
+    /**
+     * Issue a rotated refresh token + cookie for a validated decoded refresh
+     * token, returning the new access JWT. Used by refreshAccessToken and
+     * connection-test recovery. On any rotation failure returns null so callers
+     * can clear the cookie and 401. Legacy tokens (no family/jti) are upgraded.
+     */
+    public function rotateRefreshTokenAndCookie($decodedRefresh) {
+      if (!is_object($decodedRefresh) || !isset($decodedRefresh->user) || $decodedRefresh->user === '') {
+        return null;
+      }
+      $user = $decodedRefresh->user;
+      $family = (isset($decodedRefresh->family) && $decodedRefresh->family !== '') ? $decodedRefresh->family : $this->generateUUID();
+      $oldJti = (isset($decodedRefresh->jti) && $decodedRefresh->jti !== '') ? $decodedRefresh->jti : $this->generateUUID();
+      // Generate a fresh jti + iat/exp for the rotated token. We build the
+      // payload directly (not via getRefreshToken) so we preserve the existing
+      // family and avoid recording a competing session entry.
+      $newJti = $this->generateUUID();
+      $newIat = time();
+      $newExp = $newIat + (24 * 60 * 60);
+      $newPayload = array(
+        'user' => $user,
+        'family' => $family,
+        'jti' => $newJti,
+        'iat' => $newIat,
+        'exp' => $newExp,
+      );
+      $rotated = JWT::encode($newPayload, $this->refreshPrivateKey . $this->salt);
+      $ok = $this->rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp);
+      if (!$ok) {
+        $this->revokeRefreshSession($user);
+        return null;
+      }
+      $this->setRefreshTokenCookie($rotated);
+      return $this->getJWT($user);
     }
     /**
      * Decode the JWT to ensure accuracy, return false if an error happens
