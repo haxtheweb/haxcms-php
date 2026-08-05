@@ -1,6 +1,8 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
+// D36: sanitize untrusted import HTML before it is parsed into items.
+include_once dirname(__FILE__) . '/../../SanitizeContent.php';
 
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
@@ -56,6 +58,8 @@ return function ($context) {
         : null;
 
     try {
+        // D36: sanitize untrusted HTML before parsing (parity with Node importHtml.js sanitizeUntrustedHtml).
+        $html = SanitizeContent::sanitizeHTMLForStorage($html);
         $titleValue = preg_replace('/\.(html|htm)$/i', '', $filename);
         $items = haxcmsImportHtmlToItems($html, array(
             'titleValue' => $titleValue,

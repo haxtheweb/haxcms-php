@@ -1,6 +1,8 @@
 <?php
 include_once dirname(__FILE__) . '/../../../JSONOutlineSchemaItem.php';
 include_once dirname(__FILE__) . '/../../../siteRoutes/SiteRouteUtils.php';
+// D36: sanitize untrusted HTML in the central import helper so every caller is covered.
+include_once dirname(__FILE__) . '/../../../SanitizeContent.php';
 
 /**
  * Generate a slug from a title.
@@ -206,6 +208,9 @@ if (!function_exists('haxcmsImportHtmlToItems')) {
         $type       = isset($options['type'])       ? $options['type']       : '';
         $parentId   = isset($options['parentId'])   ? $options['parentId']   : null;
         $titleValue = isset($options['titleValue']) ? $options['titleValue'] : 'import';
+
+        // D36: sanitize untrusted HTML once, centrally, so all import callers are protected.
+        $html = SanitizeContent::sanitizeHTMLForStorage($html);
 
         $elements = haxcmsImportSimpleHtmlToElements($html);
         $items    = array();

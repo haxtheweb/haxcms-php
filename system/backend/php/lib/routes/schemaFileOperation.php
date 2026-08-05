@@ -147,9 +147,14 @@ trait OperationsRouteSchemaFileOperation {
    */
   public function schemaFileOperation()
   {
+    $requestMethod = isset($_SERVER['REQUEST_METHOD'])
+      ? strtoupper((string) $_SERVER['REQUEST_METHOD'])
+      : '';
     if (
-      !isset($_SERVER['REQUEST_METHOD']) ||
-      strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST'
+      $requestMethod !== 'POST' &&
+      $requestMethod !== 'PATCH' &&
+      $requestMethod !== 'PUT' &&
+      $requestMethod !== 'DELETE'
     ) {
       return $this->schemaOperationFail(405, 'method not allowed');
     }
@@ -181,6 +186,14 @@ trait OperationsRouteSchemaFileOperation {
     );
     if ($action !== 'upload' && $action !== 'rename' && $action !== 'delete') {
       return $this->schemaOperationFail(400, 'invalid action');
+    }
+    // D26: PATCH/PUT on skeletons/:skeletonName only allows rename.
+    // DELETE only allows delete. Any other action is rejected with a D1 error.
+    if (($requestMethod === 'PATCH' || $requestMethod === 'PUT') && $action !== 'rename') {
+      return $this->schemaOperationFail(400, 'only rename is allowed for PATCH/PUT on skeletons');
+    }
+    if ($requestMethod === 'DELETE' && $action !== 'delete') {
+      return $this->schemaOperationFail(400, 'only delete is allowed for DELETE on skeletons');
     }
     $schemaDirectory = $this->schemaOperationDirectory($schema, $config);
     if ($action === 'upload') {

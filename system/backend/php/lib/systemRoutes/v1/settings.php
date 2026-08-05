@@ -73,51 +73,238 @@ return function ($context) {
         );
     }
     else if ($route === 'v1/entities') {
+        $entities = array(
+            array(
+                'name' => 'site',
+                'description' => 'System-level site lifecycle resources and site metadata.',
+                'primaryKey' => 'siteName',
+                'endpoints' => array(
+                    $apiBasePath . '/sites',
+                    $apiBasePath . '/sites/{siteName}',
+                    $apiBasePath . '/sites/{siteName}/clone',
+                    $apiBasePath . '/sites/{siteName}/archive',
+                    $apiBasePath . '/sites/{siteName}/download',
+                    $apiBasePath . '/sites/{siteName}/download-skeleton',
+                    $apiBasePath . '/sites/{siteName}/save-as-template',
+                ),
+                'auth' => 'authenticated-user',
+                'supportedOperations' => array('read', 'create', 'update'),
+            ),
+            array(
+                'name' => 'theme',
+                'description' => 'System theme catalog and enabled state configuration.',
+                'primaryKey' => 'machineName',
+                'endpoints' => array($apiBasePath . '/themes'),
+                'auth' => 'authenticated-user',
+                'supportedOperations' => array('read', 'update'),
+            ),
+            array(
+                'name' => 'block',
+                'description' => 'System block catalog and enabled block configuration.',
+                'primaryKey' => 'tag',
+                'endpoints' => array($apiBasePath . '/blocks'),
+                'auth' => 'authenticated-user',
+                'supportedOperations' => array('read', 'update'),
+            ),
+            array(
+                'name' => 'skeleton',
+                'description' => 'System skeleton catalog, detail, and enabled skeleton configuration.',
+                'primaryKey' => 'skeletonName',
+                'endpoints' => array(
+                    $apiBasePath . '/skeletons',
+                    $apiBasePath . '/skeletons/{skeletonName}',
+                ),
+                'auth' => 'authenticated-user',
+                'supportedOperations' => array('read', 'update'),
+            ),
+            array(
+                'name' => 'integration',
+                'description' => 'System integration providers and app store manifest.',
+                'primaryKey' => 'id',
+                'endpoints' => array($apiBasePath . '/integrations/app-store'),
+                'auth' => 'public',
+                'supportedOperations' => array('read'),
+            ),
+            array(
+                'name' => 'configuration',
+                'description' => 'System configuration resources for settings and schema files.',
+                'primaryKey' => 'id',
+                'endpoints' => array(
+                    $apiBasePath . '/configuration/api-keys',
+                    $apiBasePath . '/configuration/media',
+                    $apiBasePath . '/configuration/skeletons',
+                ),
+                'auth' => 'authenticated-user',
+                'supportedOperations' => array('read', 'update'),
+            ),
+        );
         $response = array(
             'status' => 200,
             'data' => array(
-                'entities' => array(
-                    array(
-                        'name' => 'site',
-                        'endpoints' => array($apiBasePath . '/v1/sites'),
-                    ),
-                    array(
-                        'name' => 'user',
-                        'endpoints' => array($apiBasePath . '/v1/session'),
-                    ),
-                    array(
-                        'name' => 'block',
-                        'endpoints' => array($apiBasePath . '/v1/blocks'),
-                    ),
-                    array(
-                        'name' => 'theme',
-                        'endpoints' => array($apiBasePath . '/v1/themes'),
-                    ),
-                    array(
-                        'name' => 'skeleton',
-                        'endpoints' => array($apiBasePath . '/v1/skeletons'),
-                    ),
+                'count' => count($entities),
+                'entities' => $entities,
+                'links' => array(
+                    'self' => $apiBasePath . '/entities',
+                    'schemas' => $apiBasePath . '/schemas',
+                    'sites' => $apiBasePath . '/sites',
+                    'configuration' => $apiBasePath . '/configuration',
+                    'integrations' => $apiBasePath . '/integrations',
+                    'system' => $apiBasePath . '/system',
                 ),
             ),
         );
     }
     else if ($route === 'v1/schemas') {
+        $schemas = array(
+            array(
+                'id' => 'json-outline-schema',
+                'title' => 'JSON Outline Schema',
+                'version' => '1.0.0',
+                'kind' => 'jsonOutlineSchema',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('site', 'site-template', 'skeleton'),
+                'links' => array(
+                    'spec' => 'https://github.com/haxtheweb/json-outline-schema',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'required' => array('id', 'title', 'items'),
+                    'properties' => array(
+                        'id' => array('type' => 'string'),
+                        'title' => array('type' => 'string'),
+                        'description' => array('type' => 'string'),
+                        'metadata' => array('type' => 'object'),
+                        'items' => array('type' => 'array', 'items' => array('type' => 'object')),
+                    ),
+                ),
+            ),
+            array(
+                'id' => 'json-outline-schema-item',
+                'title' => 'JSON Outline Schema Item',
+                'version' => '1.0.0',
+                'kind' => 'jsonOutlineSchemaItem',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('site', 'skeleton'),
+                'links' => array(
+                    'spec' => 'https://github.com/haxtheweb/json-outline-schema',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'required' => array('id', 'title', 'slug', 'location'),
+                    'properties' => array(
+                        'id' => array('type' => 'string'),
+                        'title' => array('type' => 'string'),
+                        'slug' => array('type' => 'string'),
+                        'location' => array('type' => 'string'),
+                        'parent' => array('type' => array('string', 'null')),
+                        'indent' => array('type' => 'number'),
+                        'order' => array('type' => 'number'),
+                        'description' => array('type' => 'string'),
+                        'metadata' => array('type' => 'object'),
+                    ),
+                ),
+            ),
+            array(
+                'id' => 'app-store-schema',
+                'title' => 'HAX App Store Schema',
+                'version' => '1.0.0',
+                'kind' => 'appStoreSchema',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('integration'),
+                'links' => array(
+                    'endpoint' => $apiBasePath . '/integrations/app-store',
+                    'spec' => 'https://github.com/haxtheweb/appstore-spec',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'properties' => array(
+                        'apps' => array('type' => 'array', 'items' => array('type' => 'object')),
+                        'stax' => array('type' => 'array', 'items' => array('type' => 'object')),
+                        'autoloader' => array('type' => array('array', 'object')),
+                    ),
+                ),
+            ),
+            array(
+                'id' => 'theme-configuration',
+                'title' => 'Theme Configuration Settings',
+                'version' => '1.0.0',
+                'kind' => 'themeConfiguration',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('configuration'),
+                'links' => array(
+                    'endpoint' => $apiBasePath . '/themes',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'additionalProperties' => array('type' => 'boolean'),
+                ),
+            ),
+            array(
+                'id' => 'block-configuration',
+                'title' => 'Block Configuration Settings',
+                'version' => '1.0.0',
+                'kind' => 'blockConfiguration',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('configuration'),
+                'links' => array(
+                    'endpoint' => $apiBasePath . '/blocks',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'properties' => array(
+                        'enabledBlocks' => array(
+                            'type' => 'array',
+                            'items' => array('type' => 'string'),
+                        ),
+                    ),
+                ),
+            ),
+            array(
+                'id' => 'skeleton-configuration',
+                'title' => 'Skeleton Configuration Settings',
+                'version' => '1.0.0',
+                'kind' => 'skeletonConfiguration',
+                'mediaType' => 'application/json',
+                'appliesTo' => array('configuration'),
+                'links' => array(
+                    'endpoint' => $apiBasePath . '/skeletons',
+                ),
+                'schema' => array(
+                    'type' => 'object',
+                    'additionalProperties' => array('type' => 'boolean'),
+                ),
+            ),
+        );
+        // D23: filter.kind support.
+        // PHP converts dots to underscores in $_GET, so check filter_kind.
+        // Also parse the raw query string to support filter.kind with the dot preserved.
+        $filterKind = '';
+        if (is_array($operations->params) && isset($operations->params['filter_kind'])) {
+            $filterKind = trim((string) $operations->params['filter_kind']);
+        }
+        if ($filterKind === '' && isset($_SERVER['QUERY_STRING']) && is_string($_SERVER['QUERY_STRING'])) {
+            $pairs = explode('&', $_SERVER['QUERY_STRING']);
+            foreach ($pairs as $pair) {
+                $items = explode('=', $pair, 2);
+                if (urldecode($items[0]) === 'filter.kind' && isset($items[1])) {
+                    $filterKind = trim(urldecode($items[1]));
+                    break;
+                }
+            }
+        }
+        if ($filterKind !== '') {
+            $schemas = array_values(array_filter($schemas, function ($schema) use ($filterKind) {
+                return isset($schema['kind']) && (string) $schema['kind'] === $filterKind;
+            }));
+        }
         $response = array(
             'status' => 200,
             'data' => array(
-                'schemas' => array(
-                    array(
-                        'id' => 'json-outline-schema',
-                        'title' => 'JSON Outline Schema',
-                    ),
-                    array(
-                        'id' => 'hax-properties',
-                        'title' => 'HAX Properties',
-                    ),
-                    array(
-                        'id' => 'hax-schema',
-                        'title' => 'HAX Schema',
-                    ),
+                'count' => count($schemas),
+                'schemas' => $schemas,
+                'links' => array(
+                    'self' => $apiBasePath . '/schemas',
+                    'entities' => $apiBasePath . '/entities',
                 ),
             ),
         );
@@ -160,13 +347,8 @@ return function ($context) {
         }
     }
     else if ($route === 'v1/skeletons') {
-        if ($method === 'GET') {
+        if ($method === 'GET' || $method === 'POST') {
             $response = $operations->skeletonsList();
-        }
-        else if ($method === 'POST') {
-            $response = haxcmsSystemSettingsInvokeAsPost(
-                array($operations, 'schemaFileOperation')
-            );
         }
         else {
             $response = haxcmsSystemSettingsInvokeAsPost(
@@ -189,6 +371,14 @@ return function ($context) {
             if (is_array($context->body)) {
                 $operations->params = array_merge($operations->params, $context->body);
                 $operations->rawParams = array_merge($operations->rawParams, $context->body);
+            }
+            // D26: PATCH/PUT on skeletons/:skeletonName infers rename if no
+            // action is explicitly provided (matches Node inference behavior).
+            if (!isset($operations->params['action'])) {
+                $operations->params['action'] = 'rename';
+            }
+            if (!isset($operations->rawParams['action'])) {
+                $operations->rawParams['action'] = 'rename';
             }
             $response = $operations->schemaFileOperation();
         }
