@@ -7,14 +7,12 @@ return function ($context) {
     $sendTopLevelError = function ($statusCode, $message) use ($routeSuffix, $apiBasePath) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($statusCode),
                 'message' => (string) $message,
             ),
             array(
                 'statusCode' => intval($statusCode),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $routeSuffix,
             $apiBasePath

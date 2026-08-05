@@ -6,14 +6,12 @@ return function ($context) {
     if (!isset($site) || !isset($site->manifest)) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => 404,
                 'message' => 'Unable to resolve site context for /x/api/v1/site/normalize-slugs',
             ),
             array(
                 'statusCode' => 404,
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $apiBasePath
@@ -26,14 +24,12 @@ return function ($context) {
     if ($siteName == '') {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => 400,
                 'message' => 'Unable to resolve site name for /x/api/v1/site/normalize-slugs',
             ),
             array(
                 'statusCode' => 400,
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $apiBasePath
@@ -44,14 +40,12 @@ return function ($context) {
     if (!is_string($siteToken) || $siteToken == '' || !SiteRouteUtils::validateSiteToken($siteName, $siteToken)) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => 403,
                 'message' => 'X-HAXCMS-Site-Token header is required for this endpoint',
             ),
             array(
                 'statusCode' => 403,
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $apiBasePath
@@ -62,14 +56,12 @@ return function ($context) {
     if (!$operations->platformAllows($site, 'outlineDesigner')) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => 403,
                 'message' => 'Outline operations are disabled for this site',
             ),
             array(
                 'statusCode' => 403,
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $apiBasePath

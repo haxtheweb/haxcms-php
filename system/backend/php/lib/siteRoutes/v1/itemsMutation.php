@@ -40,14 +40,12 @@ return function ($context) {
         if (!$resolvedItem) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => 404,
                     'message' => 'Item not found for idOrSlug "' . $idOrSlug . '"',
                 ),
                 array(
                     'statusCode' => 404,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
-                    'envelope' => false,
                 ),
                 $context->routeSuffix,
                 $context->apiBasePath
@@ -85,14 +83,12 @@ return function ($context) {
         if ($operation === '') {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => 400,
                     'message' => 'Operation is required',
                 ),
                 array(
                     'statusCode' => 400,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
-                    'envelope' => false,
                 ),
                 $context->routeSuffix,
                 $context->apiBasePath
@@ -155,14 +151,12 @@ return function ($context) {
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($result['__failed']['status']),
                 'message' => $result['__failed']['message'],
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $context->apiBasePath

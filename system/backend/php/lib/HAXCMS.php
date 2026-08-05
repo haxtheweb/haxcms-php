@@ -1812,10 +1812,19 @@ class HAXCMS
         return false;
     }
     /**
-     * Get the active user name based on the session
-     * or the super user if the session is not set
+     * Get the active user name for the current transaction: prefer the
+     * authenticated principal (Bearer/Basic resolved by getAuthenticatedUserName)
+     * and fall back to the configured user/superUser. Mirrors getRequestTokenUserName's
+     * preference order so the internal request-token dual-gate on legacy ops
+     * (listSites/cloneSite/archiveSite/downloadSite/downloadSiteSkeleton/
+     * saveSiteAsTemplate) validates against the actual caller in HAXiam tenant
+     * contexts, not the static config user.
      */
     public function getActiveUserName() {
+      $authenticatedUser = $this->getAuthenticatedUserName();
+      if (!is_null($authenticatedUser) && $authenticatedUser != '') {
+        return $authenticatedUser;
+      }
       if ($this->user->name != null && $this->user->name != '') {
         return $this->user->name;
       }

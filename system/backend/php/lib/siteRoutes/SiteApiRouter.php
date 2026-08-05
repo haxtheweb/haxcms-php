@@ -69,14 +69,12 @@ class SiteApiRouter
             }
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => intval($authResult['status']),
                     'message' => $authResult['message'],
                 ),
                 array(
                     'statusCode' => intval($authResult['status']),
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
-                    'envelope' => false,
                 ),
                 is_string($context->routeSuffix) ? $context->routeSuffix : '',
                 $context->apiBasePath

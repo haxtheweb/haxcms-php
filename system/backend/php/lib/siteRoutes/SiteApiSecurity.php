@@ -32,7 +32,7 @@ class SiteApiSecurity
             if (is_null($userName) || $userName === '') {
                 // bearer was present but failed to decode / had no user -> invalid or expired
                 $result['status'] = 403;
-                $result['message'] = 'Invalid or expired Bearer token';
+                $result['message'] = 'Invalid bearer token';
                 return $result;
             }
         }
@@ -58,7 +58,7 @@ class SiteApiSecurity
                 $result['status'] = 401;
                 $result['message'] = (is_array($basic) && !empty($basic['attempted']))
                     ? 'Invalid basic authorization credentials'
-                    : 'Missing Bearer token';
+                    : 'Authorization bearer token or basic credentials are required for this endpoint';
                 return $result;
             }
         }
@@ -86,7 +86,7 @@ class SiteApiSecurity
             }
             if (is_null($siteToken) || $siteToken === '') {
                 $result['status'] = 403;
-                $result['message'] = 'Missing X-HAXCMS-Site-Token header';
+                $result['message'] = 'X-HAXCMS-Site-Token header is required for this endpoint';
                 return $result;
             }
             $validToken = false;
@@ -102,7 +102,7 @@ class SiteApiSecurity
             }
             if (!$validToken) {
                 $result['status'] = 403;
-                $result['message'] = 'Invalid site token';
+                $result['message'] = 'Invalid X-HAXCMS-Site-Token header';
                 return $result;
             }
             $result['allowed'] = true;
