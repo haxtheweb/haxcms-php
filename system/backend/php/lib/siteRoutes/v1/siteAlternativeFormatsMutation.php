@@ -70,7 +70,7 @@ return function ($context) {
         }
     }
     if ($format !== null) {
-        $allowedFormats = array('rss', 'sitemap', 'search', 'llms');
+        $allowedFormats = array('rss', 'sitemap', 'search', 'llms', 'service-worker');
         if (!in_array($format, $allowedFormats, true)) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
