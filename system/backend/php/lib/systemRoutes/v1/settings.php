@@ -17,6 +17,39 @@ if (!function_exists('haxcmsSystemSettingsInvokeAsPost')) {
         return $response;
     }
 }
+if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
+    function haxcmsSystemSettingsRequiresUserTokenHeader($route, $method)
+    {
+        $normalizedMethod = strtoupper((string) $method);
+        // schemaFileOperation upload (POST) enforces the X-HAXCMS-User-Token header.
+        if ($route === 'v1/configuration/schema-files/operations') {
+            return true;
+        }
+        // Toggle PATCH writes (skeletons/themes/blocks + api-keys/media) enforce
+        // the header per the system-dashboard-write directive.
+        if (
+            $normalizedMethod === 'PATCH' &&
+            (
+                $route === 'v1/skeletons' ||
+                $route === 'v1/themes' ||
+                $route === 'v1/blocks' ||
+                $route === 'v1/configuration/api-keys' ||
+                $route === 'v1/configuration/media'
+            )
+        ) {
+            return true;
+        }
+        // Skeleton detail PATCH/PUT/DELETE (rename/delete via schemaFileOperation).
+        if (
+            ($normalizedMethod === 'PATCH' || $normalizedMethod === 'PUT' || $normalizedMethod === 'DELETE') &&
+            ($route === 'v1/skeletons/:skeletonName' ||
+                preg_match('/^v1\/skeletons\/[^\/]+$/', (string) $route) === 1)
+        ) {
+            return true;
+        }
+        return false;
+    }
+}
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
     $operations = new Operations();
@@ -52,11 +85,26 @@ return function ($context) {
     if (!is_string($tokenUser) || $tokenUser === '') {
         $tokenUser = $GLOBALS['HAXCMS']->getActiveUserName();
     }
-    $userToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
-    $operations->params['user_token'] = $userToken;
-    $operations->rawParams['user_token'] = $userToken;
+    $serverUserToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
+    $headerUserToken = '';
+    if (isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) && is_string($_SERVER['HTTP_X_HAXCMS_USER_TOKEN'])) {
+        $headerUserToken = $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'];
+    }
     $route = $context->routeSuffix;
     $method = $context->method;
+    // D10/D59 + system-dashboard-write directive: skeleton/theme/block reads
+    // are bearer-only (no X-HAXCMS-User-Token), so keep the legacy
+    // server-resolved token for reads + out-of-scope routes so the handlers'
+    // internal validateRequestToken checks stay satisfied (bearer-only -> 200).
+    // Every system-dashboard write (toggles, schema-file operations, skeleton
+    // detail mutations, api-keys/media PATCH) validates the client
+    // X-HAXCMS-User-Token header, matching the OpenAPI security declarations
+    // and NodeJS parity.
+    $userToken = haxcmsSystemSettingsRequiresUserTokenHeader($route, $method)
+        ? $headerUserToken
+        : $serverUserToken;
+    $operations->params['user_token'] = $userToken;
+    $operations->rawParams['user_token'] = $userToken;
     $response = null;
     if ($route === 'v1/status') {
         $savedMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';

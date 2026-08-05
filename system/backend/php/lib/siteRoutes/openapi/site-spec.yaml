@@ -2293,12 +2293,16 @@ components:
       type: object
       required:
         - status
-        - message
+        - data
       properties:
         status:
           type: integer
-        message:
-          type: string
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            message:
+              type: string
     ApiCapabilities:
       type: object
       properties:
