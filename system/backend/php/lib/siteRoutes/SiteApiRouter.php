@@ -64,6 +64,9 @@ class SiteApiRouter
             $context->method
         );
         if (!$authResult['allowed']) {
+            if (intval($authResult['status']) === 429 && isset($authResult['retryAfterSeconds']) && intval($authResult['retryAfterSeconds']) > 0) {
+                header('Retry-After: ' . intval($authResult['retryAfterSeconds']));
+            }
             SiteRouteUtils::sendFormattedResponse(
                 array(
                     'status' => intval($authResult['status']),

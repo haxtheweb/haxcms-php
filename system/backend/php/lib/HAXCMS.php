@@ -2044,17 +2044,79 @@ class HAXCMS
             $authorization = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
         }
         $result = array(
+            'attempted' => false,
             'authenticated' => false,
             'userName' => '',
+            'blocked' => false,
+            'retryAfterSeconds' => 0,
         );
-        if (strpos($authorization, 'Basic ') === 0) {
-            $credentials = base64_decode(substr($authorization, 6));
-            if ($credentials !== false && strpos($credentials, ':') !== false) {
-                list($name, $pass) = explode(':', $credentials, 2);
-                if ($this->testLogin($name, $pass, true)) {
-                    $result['authenticated'] = true;
-                    $result['userName'] = $this->generateMachineName($name);
+        if (strpos($authorization, 'Basic ') !== 0) {
+            return $result;
+        }
+        $credentials = base64_decode(substr($authorization, 6));
+        if ($credentials === false || strpos($credentials, ':') === false) {
+            $result['attempted'] = true;
+            return $result;
+        }
+        list($name, $pass) = explode(':', $credentials, 2);
+        $name = is_string($name) ? $name : '';
+        $pass = is_string($pass) ? $pass : '';
+        if ($name === '' || $pass === '') {
+            $result['attempted'] = true;
+            return $result;
+        }
+        $result['attempted'] = true;
+        // Brute-force throttle shared with the username/password login route
+        // (parity with Node loginRateLimiter). Reuses the same IP::username
+        // cache key as OperationsRouteLogin so basic-auth and login attempts
+        // share counters and an attacker cannot dodge the limiter by alternating.
+        $settings = $this->getLoginRateLimitSettings();
+        $nowMs = intval(round(microtime(true) * 1000));
+        $attemptKey = 'login-rate:' . sha1($this->resolveClientIP() . '::' . strval($name));
+        $entry = null;
+        if (isset($this->cache) && $this->cache) {
+            $entry = $this->cache->retrieve($attemptKey);
+        }
+        if (!is_array($entry)) {
+            $entry = array(
+                'firstAttempt' => $nowMs,
+                'failedAttempts' => 0,
+                'blockedUntil' => 0,
+            );
+        }
+        if (($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
+            $entry['firstAttempt'] = $nowMs;
+            $entry['failedAttempts'] = 0;
+            if (intval($entry['blockedUntil']) <= $nowMs) {
+                $entry['blockedUntil'] = 0;
+            }
+        }
+        if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
+            $result['blocked'] = true;
+            $result['retryAfterSeconds'] = intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000));
+            return $result;
+        }
+        if ($this->testLogin($name, $pass, true) && $this->validateUser($name)) {
+            if ($settings->enabled && isset($this->cache) && $this->cache) {
+                try {
+                    $this->cache->erase($attemptKey);
                 }
+                catch (Exception $e) {}
+            }
+            $result['authenticated'] = true;
+            $result['userName'] = $this->generateMachineName($name);
+            return $result;
+        }
+        if ($settings->enabled) {
+            $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
+            if (intval($entry['failedAttempts']) >= intval($settings->maxAttempts)) {
+                $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
+                $entry['failedAttempts'] = 0;
+                $entry['firstAttempt'] = $nowMs;
+            }
+            if (isset($this->cache) && $this->cache) {
+                $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
+                $this->cache->store($attemptKey, $entry, $ttlSeconds);
             }
         }
         return $result;

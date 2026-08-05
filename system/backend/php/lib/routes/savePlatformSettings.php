@@ -21,6 +21,25 @@ trait OperationsRouteSavePlatformSettings {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      if (!$site || !isset($site->manifest)) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'invalid site',
+          )
+        );
+      }
+      // Mirror Node assertSiteFeature(site, res, 'siteManifest', ...): when a
+      // site has platform.features.siteManifest === false, platform settings
+      // edits are blocked. platformAllows() treats an unset platform as allowed.
+      if (!$this->platformAllows($site, 'siteManifest')) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Platform settings are disabled for this site',
+          )
+        );
+      }
       if (!isset($this->rawParams['platform'])) {
         return array(
           '__failed' => array(
