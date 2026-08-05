@@ -44,12 +44,33 @@ return function ($context) {
         $result = $operations->siteSearch();
     }
     else {
+        // D63: resolve slug to UUID before delegating (Node canonical).
+        // Previously this set body.node.id to the raw idOrSlug without
+        // resolution. Now it resolves via findItemByIdOrSlug first and
+        // uses the resolved UUID, returning 404 if not found.
+        $resolvedItem = null;
+        if (isset($context->site) && $idOrSlug !== '') {
+            $resolvedItem = SiteRouteUtils::findItemByIdOrSlug($context->site, $idOrSlug);
+        }
+        if (!$resolvedItem) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'Content not found for idOrSlug "' . $idOrSlug . '"',
+                ),
+                array(
+                    'statusCode' => 404,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $idOrSlug;
-        }
+        $body['node']['id'] = (string) $resolvedItem->id;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveNode();

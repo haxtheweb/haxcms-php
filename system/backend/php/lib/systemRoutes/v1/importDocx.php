@@ -197,27 +197,27 @@ return function ($context) {
     $html = '';
     $error = '';
 
-    // Detect if the file is actually HTML disguised as .docx
-    $firstBytes = @file_get_contents($tmpPath, false, null, 0, 512);
-    $looksLikeHtml = false;
-    if ($firstBytes !== false) {
-        $trimmed = ltrim(strtolower($firstBytes));
-        $looksLikeHtml = (
-            strpos($trimmed, '<!doctype') === 0 ||
-            strpos($trimmed, '<html') === 0 ||
-            strpos($trimmed, '<head') === 0 ||
-            strpos($trimmed, '<body') === 0
+    // Follow-up #2: Validate ZIP magic number (DOCX files are ZIP archives
+    // starting with PK\x03\x04 = bytes 0x50 0x4B 0x03 0x04). Reject non-ZIP
+    // with a 400 error matching Node's importDocx.js:73-82 message.
+    // This replaces the previous HTML-disguised detection that allowed
+    // .docx files containing raw HTML.
+    $firstBytes = @file_get_contents($tmpPath, false, null, 0, 4);
+    if (
+        $firstBytes === false || strlen($firstBytes) < 4 ||
+        ord($firstBytes[0]) !== 0x50 || ord($firstBytes[1]) !== 0x4B ||
+        ord($firstBytes[2]) !== 0x03 || ord($firstBytes[3]) !== 0x04
+    ) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('status' => 400, 'data' => array('error' => 'Uploaded file is not a valid .docx file (missing ZIP signature). If this is a .doc file, convert it to .docx first.')),
+            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+            $context->routeSuffix,
+            $apiBasePath
         );
+        return;
     }
 
-    if ($looksLikeHtml) {
-        $raw = @file_get_contents($tmpPath);
-        if ($raw === false) {
-            $error = 'Unable to read uploaded file';
-        } else {
-            $html = trim($raw);
-        }
-    } elseif (class_exists('ZipArchive')) {
+    if (class_exists('ZipArchive')) {
         $zip = new ZipArchive();
         if ($zip->open($tmpPath) === true) {
             $xmlIndex = $zip->locateName('word/document.xml');

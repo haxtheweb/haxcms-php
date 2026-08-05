@@ -555,6 +555,78 @@ paths:
                 $ref: "#/components/schemas/ApiEnvelope"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /system/api/v1/integrations/app-store/providers/{provider}/search:
+    get:
+      tags:
+        - settings
+      operationId: searchAppStoreProvider
+      summary: Broker a provider search through app-store integrations
+      description: >
+        Proxies a search request to a registered app-store provider (e.g.
+        product-card, media, etc.) and returns the provider's response payload.
+        Moved to the system API in D38; documented here per D57.
+      parameters:
+        - $ref: "#/components/parameters/AppStoreProvider"
+      security: []
+      responses:
+        "200":
+          description: Provider search response payload
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    additionalProperties: true
+                  - type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          description: Upstream provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /system/api/v1/haxiamAddUserAccess:
+    post:
+      tags:
+        - settings
+      operationId: haxiamAddUserAccess
+      summary: Grant a user access to a site (HAXiam managed deployments)
+      description: >
+        PHP-only route exposed by HAXiam-managed deployments to add user access
+        to a site. Documented here per D57 for cross-platform spec parity;
+        NodeJS deployments that do not run HAXiam will return 404.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                site:
+                  type: string
+                  description: Site machine name to grant access to
+                user:
+                  type: string
+                  description: User name to grant access for
+              additionalProperties: true
+      responses:
+        "200":
+          description: User access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /system/api/v1/status:
     get:
       tags:
@@ -2052,6 +2124,13 @@ components:
       schema:
         type: string
       description: Machine name of the skeleton
+    AppStoreProvider:
+      in: path
+      name: provider
+      required: true
+      schema:
+        type: string
+      description: Registered app-store provider machine name
   responses:
     BadRequest:
       description: Request payload was invalid or incomplete

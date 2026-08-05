@@ -1411,38 +1411,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-  /x/api/v1/integrations/app-store/providers/{provider}/search:
-    get:
-      tags:
-        - integrations
-      operationId: searchAppStoreProvider
-      summary: Broker provider search through app-store integrations
-      security:
-        - bearerAuth: []
-          siteTokenHeader: []
-      parameters:
-        - $ref: "#/components/parameters/AppStoreProvider"
-      responses:
-        "200":
-          description: Provider search response payload
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    additionalProperties: true
-                  - type: array
-                    items:
-                      type: object
-                      additionalProperties: true
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "502":
-          $ref: "#/components/responses/BadRequest"
   /x/api/v1/tags:
     get:
       tags:
@@ -2118,12 +2086,6 @@ components:
         type: string
     ViewId:
       name: viewId
-      in: path
-      required: true
-      schema:
-        type: string
-    AppStoreProvider:
-      name: provider
       in: path
       required: true
       schema:

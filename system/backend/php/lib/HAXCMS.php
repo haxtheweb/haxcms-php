@@ -2247,34 +2247,56 @@ class HAXCMS
      * Security best practice (M3): centralize the haxcms_refresh_token cookie
      * so the Secure and SameSite flags are applied consistently at every call
      * site (login, logout, refresh, connection-test, invalid-session clear).
-     * `secure` is driven by the detected protocol so non-TLS dev/DDEV still
-     * works, with an optional config->security->forceSecureCookie override for
-     * TLS-terminating proxies. SameSite=Lax mitigates CSRF on cookie-bearing
-     * requests. Use value '' + expires 1 to delete the cookie.
+     *
+     * D56: `secure` is now driven by isProductionRuntime() (parity with Node's
+     * setRefreshTokenCookie in HAXCMS.js:4380-4394) instead of the request
+     * protocol. This means dev environments get non-Secure cookies even on
+     * HTTPS (so they work on HTTP too), and production always gets Secure
+     * cookies regardless of whether PHP sees the request as HTTP behind a
+     * TLS-terminating proxy. The config.security.forceSecureCookie override
+     * remains for non-production environments that need Secure cookies.
+     *
+     * D56: the default cookie lifetime is now 24 hours (matching Node's
+     * maxAge=24*60*60*1000) instead of a session cookie (expires=0). Pass a
+     * small value (e.g. 1) to clear the cookie.
      */
-    public function setRefreshTokenCookie($value, $expires = 0)
+    public function isProductionRuntime()
     {
-      $secure = ($this->protocol === 'https');
-      if (
-        isset($this->config) &&
-        isset($this->config->security) &&
-        isset($this->config->security->forceSecureCookie) &&
-        $this->config->security->forceSecureCookie === TRUE
-      ) {
-        $secure = TRUE;
-      }
-      return setcookie(
-        'haxcms_refresh_token',
-        (string) $value,
-        array(
-          'expires' => (int) $expires,
-          'path' => '/',
-          'domain' => '',
-          'secure' => $secure,
-          'httponly' => true,
-          'samesite' => 'Lax',
-        )
-      );
+        // D56: mirrors Node's isProductionRuntime() (HAXCMS.js:2952-2954) so
+        // both backends share the same production-mode detection: true only
+        // when NODE_ENV is explicitly set to 'production'.
+        $nodeEnv = getenv('NODE_ENV');
+        return is_string($nodeEnv) && strtolower(trim($nodeEnv)) === 'production';
+    }
+    public function setRefreshTokenCookie($value, $expires = null)
+    {
+        $secure = $this->isProductionRuntime();
+        if (
+            isset($this->config) &&
+            isset($this->config->security) &&
+            isset($this->config->security->forceSecureCookie) &&
+            $this->config->security->forceSecureCookie === TRUE
+        ) {
+            $secure = TRUE;
+        }
+        // D56: default to a 24-hour cookie (matching Node's maxAge=24*60*60*1000)
+        // instead of a session cookie. When $expires is null, compute the
+        // expiry as now + 24h. Pass a small value (e.g. 1) to clear the cookie.
+        if ($expires === null) {
+            $expires = time() + (24 * 60 * 60);
+        }
+        return setcookie(
+            'haxcms_refresh_token',
+            (string) $value,
+            array(
+                'expires' => (int) $expires,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            )
+        );
     }
     /**
      * Security (H1 rotation): refresh-session store. A file-backed JSON under
