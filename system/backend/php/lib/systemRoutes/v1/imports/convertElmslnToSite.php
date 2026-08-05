@@ -23,7 +23,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -40,7 +40,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
             $siteJson = json_decode((string) $resp->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Unable to fetch site.json from ' . $baseUrl . ': ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Unable to fetch site.json from ' . $baseUrl . ': ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -49,7 +49,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
 
         if (!is_array($siteJson) || !isset($siteJson['items'])) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid site.json structure at ' . $baseUrl, 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Invalid site.json structure at ' . $baseUrl, 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -68,6 +68,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
         }
 
         $items = array();
+        $downloads = array();
         $order = 0;
         foreach ($sourceItems as $si) {
             $oldId    = isset($si['id'])     ? (string) $si['id']     : '';
@@ -100,11 +101,18 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
                 'description' => isset($si['description']) ? (string) $si['description'] : '',
                 'metadata'    => isset($si['metadata']) && is_array($si['metadata']) ? $si['metadata'] : array(),
             );
+            if (isset($si['metadata']) && is_array($si['metadata']) && isset($si['metadata']['files']) && is_array($si['metadata']['files'])) {
+                foreach ($si['metadata']['files'] as $file) {
+                    if (is_array($file) && isset($file['url']) && is_string($file['url']) && $file['url'] !== '') {
+                        $downloads[$file['url']] = $baseUrl . '/' . $file['url'];
+                    }
+                }
+            }
             $order++;
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle, 'files' => $downloads)),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

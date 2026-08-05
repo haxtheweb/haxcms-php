@@ -23,7 +23,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -33,7 +33,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
         // Parse github.com/owner/repo URL
         if (!preg_match('#github\.com/([^/]+)/([^/]+)(?:/tree/([^/]+))?#', $repoUrl, $m)) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository URL: ' . $repoUrl, 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository URL: ' . $repoUrl, 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -57,7 +57,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
             $contents = json_decode((string) $contentsResponse->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Unable to access GitHub repository: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Unable to access GitHub repository: ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -66,7 +66,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
 
         if (!is_array($contents)) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository contents', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository contents', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -155,7 +155,7 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $repo)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $repo, 'files' => array())),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

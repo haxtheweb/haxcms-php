@@ -69,10 +69,10 @@ class SystemApiRequestContext
             ? $requestPath
             : SiteRouteUtils::getRequestPath();
         $matched = array();
-        if (preg_match('/^(.*\/system\/api)(?:\/.*)?$/', $path, $matched) === 1 && isset($matched[1])) {
+        if (preg_match('/^(.*\/system\/api\/v1)(?:\/.*)?$/', $path, $matched) === 1 && isset($matched[1])) {
             return $matched[1];
         }
-        return '/system/api';
+        return '/system/api/v1';
     }
     public static function getRouteSuffixFromRelativePath($relativePath = '')
     {

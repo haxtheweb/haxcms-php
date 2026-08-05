@@ -18,16 +18,40 @@ class SiteApiRouter
                 $allowedMethods[] = $method;
             }
         }
-        if (count($allowedMethods) === 0) {
-            $allowedMethods[] = 'GET';
-        }
+        $hasAllowedMethods = count($allowedMethods) > 0;
         if ($context->method == 'OPTIONS') {
-            self::sendOptionsResponse($allowedMethods);
+            $optionsMethods = $allowedMethods;
+            if (count($optionsMethods) === 0) {
+                $optionsMethods[] = 'GET';
+            }
+            self::sendOptionsResponse($optionsMethods);
             return true;
         }
         $routes = SiteRoutesMap::getRoutesForMethod($context->method);
         $match = self::matchRoute($context->routeSuffix, $routes);
         if (!$match) {
+            // D60: 405+Allow dispatch mirroring SystemApiRouter. If the route
+            // exists for another method, return 405 + Allow header + the list
+            // of allowed methods. If no method matches, return 404.
+            if ($hasAllowedMethods) {
+                sort($allowedMethods);
+                header('Allow: ' . implode(', ', $allowedMethods));
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'message' => 'Method not allowed',
+                        'route' => $context->routeSuffix,
+                        'methods' => $allowedMethods,
+                    ),
+                    array(
+                        'statusCode' => 405,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                    ),
+                    is_string($context->routeSuffix) ? $context->routeSuffix : '',
+                    $context->apiBasePath
+                );
+                return true;
+            }
             SiteRouteUtils::sendFormattedResponse(
                 array(
                     'message' => 'Unknown site API route',

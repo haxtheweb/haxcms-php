@@ -25,7 +25,7 @@ return function ($context) {
     };
     $regionName = isset($context->params['regionName']) ? trim((string) $context->params['regionName']) : '';
     if ($regionName != '') {
-        $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+        $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
         $regionItems = array_values(array_filter($filteredItems, function ($item) use ($regionName, $getRegionName) {
             return $getRegionName($item) === $regionName;
         }));
@@ -64,7 +64,7 @@ return function ($context) {
         );
         return;
     }
-    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
     $regionMap = array();
     foreach ($filteredItems as $item) {
         $name = $getRegionName($item);

@@ -98,7 +98,7 @@ return function ($context) {
     };
     $searchFields = $normalizeSearchFields(SiteRouteUtils::getCsvQuery('fields'));
     $queryLower = strtolower($query);
-    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
     $results = array();
     foreach ($filteredItems as $item) {
         $content = in_array('content', $searchFields, true) ? SiteRouteUtils::getItemContent($site, $item) : '';

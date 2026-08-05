@@ -57,23 +57,9 @@ if (!function_exists('haxcmsSiteDeterministicFileUuid')) {
         return haxcmsSiteFileUuidFromHash(hash('sha256', $identityString));
     }
 }
-return function ($context) {
-    $site = isset($context->site) ? $context->site : null;
-    $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
-    if (!isset($site) || !isset($site->manifest)) {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => 'Unable to resolve site context for /x/api/v1/files'),
-            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
-            $apiBasePath
-        );
-        return;
-    }
-    $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
-    $siteFilePath = $siteDirectory . '/files';
-    $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, SiteRouteUtils::getQueryValue('filename', ''));
-    $records = array();
-    foreach ($files as $file) {
+if (!function_exists('haxcmsBuildFileRecord')) {
+    function haxcmsBuildFileRecord($site, $file)
+    {
         $relativePath = isset($file['relativePath']) ? (string) $file['relativePath'] : '';
         $apiPath = 'files/' . $relativePath;
         $baseFileUrl = $apiPath;
@@ -119,7 +105,7 @@ return function ($context) {
                 $mimetype = 'text/markdown';
             }
         }
-        $records[] = array(
+        return array(
             'path' => $apiPath,
             'fullUrl' => $baseFileUrl . ($dateCreated > 0 ? ((strpos($baseFileUrl, '?') === false ? '?t=' : '&t=') . $dateCreated) : ''),
             'url' => $apiPath,
@@ -129,6 +115,74 @@ return function ($context) {
             'size' => isset($file['stats']['size']) ? intval($file['stats']['size']) : 0,
             'dateCreated' => $dateCreated,
         );
+    }
+}
+return function ($context) {
+    $site = isset($context->site) ? $context->site : null;
+    $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
+    if (!isset($site) || !isset($site->manifest)) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Unable to resolve site context for /x/api/v1/files'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
+    $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
+    $siteFilePath = $siteDirectory . '/files';
+    // D45: GET v1/files/:fileUuid detail handler. Mirrors Node files.js
+    // fileDetail (files.js:1077-1116) + resolveRequestedFilePath: validates
+    // the UUID format, collects all site files, computes each file's
+    // deterministic UUID, and returns the matching record (or 404). This
+    // reuses collectSiteFiles so the security boundary (files within the
+    // site's files/ directory only) is identical to the list endpoint.
+    if (isset($context->params['fileUuid']) && $context->params['fileUuid'] != '') {
+        $fileUuid = strtolower(trim((string) $context->params['fileUuid']));
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $fileUuid)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => 'File uuid is required and must be a valid UUID'),
+                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+                $context->routeSuffix,
+                $apiBasePath
+            );
+            return;
+        }
+        $detailFiles = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, '');
+        $matchingRecord = null;
+        foreach ($detailFiles as $detailFile) {
+            $candidateRecord = haxcmsBuildFileRecord($site, $detailFile);
+            if (strtolower((string) $candidateRecord['uuid']) === $fileUuid) {
+                $matchingRecord = $candidateRecord;
+                break;
+            }
+        }
+        if ($matchingRecord === null) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => 'Requested file was not found'),
+                array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+                $context->routeSuffix,
+                $apiBasePath
+            );
+            return;
+        }
+        $detailFields = SiteRouteUtils::getCsvQuery('fields');
+        $outputRecord = SiteRouteUtils::projectRecord($matchingRecord, $detailFields);
+        SiteRouteUtils::sendFormattedResponse(
+            $outputRecord,
+            array(
+                'allowedFormats' => array('json', 'md', 'yaml', 'xml'),
+                'defaultFormat' => 'json',
+            ),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
+    $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, SiteRouteUtils::getQueryValue('filename', ''));
+    $records = array();
+    foreach ($files as $file) {
+        $records[] = haxcmsBuildFileRecord($site, $file);
     }
     $filterType = strtolower(trim((string) SiteRouteUtils::getQueryValue('filter.type', '')));
     $filterExtension = strtolower(ltrim(trim((string) SiteRouteUtils::getQueryValue('filter.extension', '')), '.'));

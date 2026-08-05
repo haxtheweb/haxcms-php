@@ -148,7 +148,7 @@ return function ($context) {
         );
         return;
     }
-    $filteredItems = SiteRouteUtils::applyItemFilters($orderedItems, $site);
+    $filteredItems = SiteRouteUtils::applyItemFilters($orderedItems, $site, $context);
     $records = array();
     foreach ($filteredItems as $item) {
         $record = SiteRouteUtils::itemToSummary($item, $apiBasePath);

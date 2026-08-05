@@ -23,7 +23,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -53,7 +53,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
             $searchData = json_decode((string) $searchResp->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Unable to search Plone site: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Unable to search Plone site: ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -62,7 +62,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
 
         if (!is_array($searchData) || !isset($searchData['items'])) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid Plone search response', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Invalid Plone search response', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -118,7 +118,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle, 'files' => array())),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

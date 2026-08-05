@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/../../ReportHelpers.php';
+include_once dirname(__FILE__) . '/../../DaleChallWordList.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
@@ -26,30 +27,40 @@ return function ($context) {
     $REPORT_DEFINITIONS = array(
         'overview' => array(
             'id' => 'overview',
+            'label' => 'Stats',
+            'icon' => 'hax:graph',
             'title' => 'Overview report',
             'description' => 'Aggregate site statistics for dashboard overview cards.',
             'includes' => null,
         ),
         'insights' => array(
             'id' => 'insights',
+            'label' => 'Insights',
+            'icon' => 'icons:assessment',
             'title' => 'Insights report',
             'description' => 'Content insight metrics including readability and structure counts.',
             'includes' => null,
         ),
         'content' => array(
             'id' => 'content',
+            'label' => 'Content',
+            'icon' => 'icons:view-module',
             'title' => 'Content report',
             'description' => 'Detailed page-by-page content metrics for admin review.',
             'includes' => array('contentData'),
         ),
         'links' => array(
             'id' => 'links',
+            'label' => 'Links',
+            'icon' => 'icons:link',
             'title' => 'Links report',
             'description' => 'External link usage and grouping details.',
             'includes' => array('linkData'),
         ),
         'media' => array(
             'id' => 'media',
+            'label' => 'Media',
+            'icon' => 'icons:perm-media',
             'title' => 'Media report',
             'description' => 'Media usage and accessibility signal summary.',
             'includes' => array('mediaData'),
@@ -61,6 +72,8 @@ return function ($context) {
         foreach ($REPORT_DEFINITIONS as $id => $definition) {
             $reports[] = array(
                 'id' => $id,
+                'label' => $definition['label'],
+                'icon' => $definition['icon'],
                 'title' => $definition['title'],
                 'description' => $definition['description'],
                 'links' => array(
@@ -162,16 +175,17 @@ return function ($context) {
         }
         $readabilityText = trim(preg_replace('/\\s+/', ' ', implode(' ', $textParts)));
         $tokens = $readabilityText == '' ? array() : preg_split('/\\s+/', $readabilityText);
-        $lexiconCount = is_array($tokens) ? count($tokens) : 0;
+        $lexiconCount = 0;
         $difficultWords = 0;
         $syllableCount = 0;
         if (is_array($tokens)) {
             foreach ($tokens as $token) {
-                $word = strtolower(trim(preg_replace('/[^a-z]/i', '', (string) $token)));
+                $word = strtolower(trim(preg_replace('/^[^a-z\']+|[^a-z\']+$/i', '', (string) $token)));
                 if ($word == '') {
                     continue;
                 }
-                if (strlen($word) >= 7) {
+                $lexiconCount++;
+                if (!DaleChallWordList::isFamiliarWord($word)) {
                     $difficultWords++;
                 }
                 $wordSyllables = preg_match_all('/[aeiouy]+/i', $word, $matches);
@@ -182,7 +196,14 @@ return function ($context) {
         if (!is_numeric($sentenceCount)) {
             $sentenceCount = 0;
         }
-        $daleChallScore = 0;
+        $daleChallScore = 0.0;
+        if ($lexiconCount > 0 && $sentenceCount > 0) {
+            $difficultPercent = ($difficultWords / $lexiconCount) * 100;
+            $daleChallScore = (0.1579 * $difficultPercent) + (0.0496 * ($lexiconCount / $sentenceCount));
+            if ($difficultWords == 0) {
+                $daleChallScore += 3.6365;
+            }
+        }
         $gradeLevel = 'college level reading';
         if ($daleChallScore <= 4.9) {
             $gradeLevel = '4th grade or lower';
@@ -209,6 +230,8 @@ return function ($context) {
     }
     $payload = array(
         'id' => $definition['id'],
+        'label' => $definition['label'],
+        'icon' => $definition['icon'],
         'title' => $definition['title'],
         'description' => $definition['description'],
         'generatedAt' => gmdate('c'),

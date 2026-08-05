@@ -1042,9 +1042,21 @@ class SiteRouteUtils
         }
         return $normalizedBasePath . '/' . $encodedSlugPath;
     }
-    public static function applyItemFilters($items = array(), $site = null)
+    public static function applyItemFilters($items = array(), $site = null, $context = null)
     {
         $output = $items;
+        // D41: anonymous-visibility filtering. When a context is supplied and
+        // the request is anonymous, remove unpublished / hidden-from-menu items
+        // before any other query filters are applied. Mirrors the Node side's
+        // filterItemsForAnonymousAccess + enforceAnonymousVisibility option so
+        // list/search/content-list endpoints never leak invisible items to
+        // unauthenticated callers. Detail endpoints guard separately via
+        // isAnonymousSiteApiRequest + isItemVisibleToAnonymous (see items.php).
+        if (isset($context) && self::isAnonymousSiteApiRequest($context)) {
+            $output = array_values(array_filter($output, function ($item) {
+                return self::isItemVisibleToAnonymous($item);
+            }));
+        }
         $filterParent = (string) self::getQueryValue('filter.parent', '');
         $filterAncestor = (string) self::getQueryValue('filter.ancestor', '');
         $filterDepth = self::getNumberQuery('filter.depth', null, 0);

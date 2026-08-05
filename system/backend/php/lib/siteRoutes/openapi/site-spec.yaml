@@ -708,6 +708,37 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - site
+      operationId: createSiteExport
+      summary: Get a site export descriptor for a format (metadata only, no binary download)
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/SiteExportFormat"
+      responses:
+        "200":
+          description: Site export descriptor metadata
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}:
     get:
       tags:

@@ -23,7 +23,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -66,7 +66,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
                 }
             } catch (\Exception $e) {
                 SiteRouteUtils::sendFormattedResponse(
-                    array('status' => 400, 'data' => array('error' => 'Unable to access Drupal JSON:API at ' . $baseUrl . ': ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
+                    array('status' => 400, 'data' => array('error' => 'Unable to access Drupal JSON:API at ' . $baseUrl . ': ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
                     array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                     $context->routeSuffix, $apiBasePath
                 );
@@ -76,7 +76,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
 
         if (empty($bookNodes)) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'No content found at ' . $baseUrl, 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'No content found at ' . $baseUrl, 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -123,7 +123,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteName)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteName, 'files' => array())),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

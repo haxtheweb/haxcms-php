@@ -148,7 +148,7 @@ return function ($context) {
         $records = $buildCustomElementRecords($include);
         $target = null;
         foreach ($records as $record) {
-            if (strtolower((string) $record['tag']) === strtolower($webcomponentName)) {
+            if ((string) $record['tag'] === $webcomponentName) {
                 $target = $record;
                 break;
             }
