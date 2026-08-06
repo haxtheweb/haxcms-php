@@ -128,6 +128,7 @@ return function ($context) {
     unset($operations->rawParams['user_token']);
     unset($operations->rawParams['site_token']);
     $route = $context->routeSuffix;
+    $method = $context->method;
     $response = null;
     if ($route === 'v1/session/login') {
         $response = $operations->login();
@@ -317,10 +318,27 @@ return function ($context) {
         return;
     }
     else if ($route === 'v1/session/user') {
-        $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
-        $userToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
-        $operations->params['user_token'] = $userToken;
-        $operations->rawParams['user_token'] = $userToken;
+        // Canonical system READ userToken enforcement (security alignment with
+        // the OpenAPI spec + NodeJS parity). sessionUserGet/Post declare
+        // userTokenHeader; validate the client X-HAXCMS-User-Token header and
+        // emit the canonical D1 403 strings for missing/invalid headers before
+        // feeding the token to getUserData.
+        $headerUserToken = '';
+        if (isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) && is_string($_SERVER['HTTP_X_HAXCMS_USER_TOKEN'])) {
+            $headerUserToken = $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'];
+        }
+        $readTokenFailure = SystemApiSecurity::enforceSystemReadUserTokenHeader($route, $method, $headerUserToken);
+        if ($readTokenFailure !== null) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => $readTokenFailure['message']),
+                array('statusCode' => $readTokenFailure['status'], 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+                $context->routeSuffix,
+                $apiBasePath
+            );
+            return;
+        }
+        $operations->params['user_token'] = $headerUserToken;
+        $operations->rawParams['user_token'] = $headerUserToken;
         $response = $operations->getUserData();
     }
     else {

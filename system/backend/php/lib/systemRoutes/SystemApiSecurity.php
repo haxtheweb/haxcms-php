@@ -222,4 +222,77 @@ class SystemApiSecurity
         }
         return 'authenticated';
     }
+    /**
+     * Canonical system READ operations that declare userTokenHeader in the
+     * OpenAPI spec (security alignment). Both backends enforce the
+     * X-HAXCMS-User-Token header on these reads. Skeleton/theme/block reads
+     * stay bearer-only (D10) and are NOT listed here. Map of parameterized
+     * route => allowed methods.
+     */
+    public static function getSystemReadUserTokenRoutes()
+    {
+        return array(
+            'v1/sites' => array('GET'),
+            'v1/sites/:siteName' => array('GET', 'POST'),
+            'v1/status' => array('GET', 'POST'),
+            'v1/system/version' => array('GET', 'POST'),
+            'v1/entities' => array('GET', 'POST'),
+            'v1/schemas' => array('GET', 'POST'),
+            'v1/configuration/api-keys' => array('GET'),
+            'v1/configuration/media' => array('GET'),
+            'v1/session/user' => array('GET', 'POST'),
+        );
+    }
+    /**
+     * True when the route+method is one of the canonical system READ operations
+     * that require the X-HAXCMS-User-Token header (security alignment with the
+     * OpenAPI spec + NodeJS parity). Handles the parameterized :siteName form
+     * and the actual resolved path form (e.g. v1/sites/mysite).
+     */
+    public static function isSystemReadUserTokenRoute($route, $method)
+    {
+        $normalizedMethod = strtoupper((string) $method);
+        $routeString = (string) $route;
+        $readRoutes = self::getSystemReadUserTokenRoutes();
+        if (isset($readRoutes[$routeString]) && in_array($normalizedMethod, $readRoutes[$routeString], true)) {
+            return true;
+        }
+        if (preg_match('/^v1\/sites\/[^\/]+$/', $routeString) === 1) {
+            if (in_array($normalizedMethod, $readRoutes['v1/sites/:siteName'], true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * Enforce the X-HAXCMS-User-Token header for canonical system READ routes.
+     * Returns null when the route does not require the header or the supplied
+     * token is valid. Returns a 403 failure payload (status + message) when the
+     * header is missing or invalid, matching the Node site-API enforcement
+     * strings + D1 envelope for cross-repo parity.
+     */
+    public static function enforceSystemReadUserTokenHeader($route, $method, $headerUserToken)
+    {
+        if (!self::isSystemReadUserTokenRoute($route, $method)) {
+            return null;
+        }
+        $token = is_string($headerUserToken) ? $headerUserToken : '';
+        if ($token === '') {
+            return array(
+                'status' => 403,
+                'message' => 'X-HAXCMS-User-Token header is required for this endpoint',
+            );
+        }
+        $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+        if (!is_string($tokenUser) || $tokenUser === '') {
+            $tokenUser = $GLOBALS['HAXCMS']->getActiveUserName();
+        }
+        if (!$GLOBALS['HAXCMS']->validateRequestToken($token, $tokenUser)) {
+            return array(
+                'status' => 403,
+                'message' => 'Invalid X-HAXCMS-User-Token header',
+            );
+        }
+        return null;
+    }
 }
