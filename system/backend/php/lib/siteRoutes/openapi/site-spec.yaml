@@ -433,8 +433,7 @@ paths:
       tags:
         - site
       operationId: normalizeSiteSlugs
-      summary: Bulk normalize all outline slugs based on current titles
-      description: Optionally preview changes without persisting. Respects overridePathauto per item when pathauto is enabled.
+      summary: Normalize all site page slugs based on current titles and pathauto settings
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -448,6 +447,8 @@ paths:
                 preview:
                   type: boolean
                   default: false
+                  description: When true, compute and return slug changes without persisting them
+              additionalProperties: true
       responses:
         "200":
           description: Slug normalization result
@@ -461,6 +462,10 @@ paths:
                       data:
                         type: object
                         properties:
+                          changed:
+                            type: boolean
+                          preview:
+                            type: boolean
                           changes:
                             type: array
                             items:
@@ -468,13 +473,12 @@ paths:
                               properties:
                                 id:
                                   type: string
+                                title:
+                                  type: string
                                 oldSlug:
                                   type: string
                                 newSlug:
                                   type: string
-                                parent:
-                                  type: string
-                                  nullable: true
                           skipped:
                             type: array
                             items:
@@ -482,12 +486,12 @@ paths:
                               properties:
                                 id:
                                   type: string
-                                slug:
+                                title:
+                                  type: string
+                                oldSlug:
                                   type: string
                                 reason:
                                   type: string
-                          count:
-                            type: integer
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -524,15 +528,15 @@ paths:
             application/xml:
               schema:
                 type: string
-            application/epub+zip:
-              schema:
-                type: string
-                format: binary
             application/pdf:
               schema:
                 type: string
                 format: binary
             application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            application/epub+zip:
               schema:
                 type: string
                 format: binary
@@ -673,9 +677,16 @@ paths:
       tags:
         - site
       operationId: getSiteExport
-      summary: Download a site export file (HTML, PDF, DOCX, or EPUB) or get descriptor metadata
+      summary: Download a site export file (PDF, DOCX, EPUB, or HTML) or get descriptor metadata
       parameters:
         - $ref: "#/components/parameters/SiteExportFormat"
+        - $ref: "#/components/parameters/FilterAncestor"
+        - name: magic
+          in: query
+          required: false
+          schema:
+            type: string
+          description: CDN URL for HTML document wrapping mode (only used with html format)
       responses:
         "200":
           description: Site export download or descriptor metadata

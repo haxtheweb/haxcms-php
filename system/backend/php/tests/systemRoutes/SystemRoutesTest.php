@@ -72,6 +72,34 @@ class MockHAXCMS {
         }
         return '';
     }
+    // Basic-auth fallback parity with NodeJS (SystemApiSecurity falls back to
+    // authenticateBasicAuthorization() when no Bearer is present). Mirrors the
+    // real HAXCMS::authenticateBasicAuthorization contract + the HAXCMS stub
+    // defined later in this file so the security middleware can exercise the
+    // Basic-auth branch under the mock.
+    public function authenticateBasicAuthorization() {
+        $result = array('authenticated' => false, 'userName' => '');
+        if (!isset($_SERVER['HTTP_AUTHORIZATION']) || $_SERVER['HTTP_AUTHORIZATION'] == '') {
+            return $result;
+        }
+        $auth = $_SERVER['HTTP_AUTHORIZATION'];
+        if (strpos($auth, 'Basic ') !== 0) {
+            return $result;
+        }
+        $creds = base64_decode(substr($auth, 6));
+        if ($creds === false) {
+            return $result;
+        }
+        list($name, $pass) = explode(':', $creds, 2) + array('', '');
+        if (
+            ($name === $this->user->name && $pass === $this->user->password) ||
+            ($name === $this->superUser->name && $pass === $this->superUser->password)
+        ) {
+            $result['authenticated'] = true;
+            $result['userName'] = $name;
+        }
+        return $result;
+    }
 }
 
 $GLOBALS['HAXCMS'] = new MockHAXCMS();
@@ -131,9 +159,9 @@ $_SERVER['HTTPS'] = 'on';
 $ctx = SystemApiRequestContext::create();
 assertEquals('GET', $ctx->method, "Context method is GET");
 assertEquals('v1/sites', $ctx->routeSuffix, "Route suffix for /system/api/v1/sites");
-assertEquals('/system/api', $ctx->apiBasePath, "API base path");
+assertEquals('/system/api/v1', $ctx->apiBasePath, "API base path");
 assertTrue($ctx->isSystemApiRequest(), "Recognizes system API request");
-assertEquals('https://example.com/system/api', $ctx->absoluteApiBasePath, "Absolute base path includes protocol and host");
+assertEquals('https://example.com/system/api/v1', $ctx->absoluteApiBasePath, "Absolute base path includes protocol and host");
 
 // Test with path params
 $_SERVER['REQUEST_URI'] = '/system/api/v1/sites/my-site/clone';
@@ -173,8 +201,11 @@ assertEquals(200, $publicResult['status'], "Public route status 200");
 $publicCtx2 = SystemApiRequestContext::create();
 $publicCtx2->routeSuffix = 'v1/actions/docx-to-html';
 $publicResult2 = SystemApiSecurity::validateSystemApiAccess($publicCtx2, 'v1/actions/docx-to-html', 'POST');
-assertTrue($publicResult2['allowed'], "docx-to-html public route allowed without auth");
-assertEquals(200, $publicResult2['status'], "docx-to-html public route status 200");
+// Action routes require authentication (spec declares bearerAuth +
+// userTokenHeader); they are NOT public. Without any credentials the security
+// middleware returns 401 (no credentials present), matching NodeJS.
+assertTrue(!$publicResult2['allowed'], "docx-to-html action route denied without auth");
+assertEquals(401, $publicResult2['status'], "docx-to-html action route returns 401 without auth");
 
 // Authenticated route without Bearer should be 401
 $authCtx = SystemApiRequestContext::create();
@@ -221,12 +252,14 @@ $adminResult3 = SystemApiSecurity::validateSystemApiAccess($adminCtx, 'v1/themes
 assertTrue($adminResult3['allowed'], "Admin route allowed for super user");
 assertEquals(200, $adminResult3['status'], "Admin route for super user returns 200");
 
-// Invalid Bearer should be 401
+// Invalid Bearer should be 403 (D1b parity with NodeJS + site API): a
+// present-but-invalid/expired bearer is refreshable, so 403 is returned
+// instead of 401 (401 is reserved for the no-credentials-present case).
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer invalid-token';
 $invalidCtx = SystemApiRequestContext::create();
 $invalidResult = SystemApiSecurity::validateSystemApiAccess($invalidCtx, 'v1/sites', 'GET');
 assertTrue(!$invalidResult['allowed'], "Invalid Bearer denied");
-assertEquals(401, $invalidResult['status'], "Invalid Bearer returns 401");
+assertEquals(403, $invalidResult['status'], "Invalid Bearer returns 403 (refreshable, NodeJS parity)");
 
 // Reset auth header
 unset($_SERVER['HTTP_AUTHORIZATION']);

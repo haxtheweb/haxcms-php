@@ -39,19 +39,13 @@ return function ($context) {
         : $serverUserToken;
     $operations->params['user_token'] = $userToken;
     $operations->rawParams['user_token'] = $userToken;
-    // Canonical system READ userToken enforcement (security alignment with the
-    // OpenAPI spec + NodeJS parity). Emits the canonical D1 403 strings for
-    // missing/invalid headers before any lifecycle handler runs.
-    $readTokenFailure = SystemApiSecurity::enforceSystemReadUserTokenHeader($route, $method, $headerUserToken);
-    if ($readTokenFailure !== null) {
-        SiteRouteUtils::sendFormattedResponse(
-            array('message' => $readTokenFailure['message']),
-            array('statusCode' => $readTokenFailure['status'], 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
-            $context->routeSuffix,
-            $apiBasePath
-        );
-        return;
-    }
+    // X-HAXCMS-User-Token enforcement is now handled centrally by
+    // SystemApiRouter::dispatch() via the spec-derived policy map
+    // (getSystemUserTokenPolicyMap), which covers every route declaring
+    // userTokenHeader in system-spec.yaml. The token selection logic above
+    // still feeds the client header (or server token for write routes) into
+    // params['user_token'] for the handlers' internal validateRequestToken
+    // checks.
     if (isset($context->params['siteName'])) {
         $operations->params['site'] = array('name' => $context->params['siteName']);
         $operations->rawParams['site'] = array('name' => $context->params['siteName']);

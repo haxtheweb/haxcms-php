@@ -295,4 +295,207 @@ class SystemApiSecurity
         }
         return null;
     }
+    /**
+     * Cached spec-derived map of METHOD:routeKey => requiresUserToken (bool).
+     * Parses system-spec.yaml once per request via SiteRouteUtils::parseYaml,
+     * converting each /system/api/v1/.../{param} path to the PHP route-key
+     * form v1/.../:param (mirror Node convertOpenApiPathToSystemRoute) and
+     * reading each operation's security array for userTokenHeader presence.
+     * Parity with Node readSystemApiAuthPoliciesFromOpenApiSpec +
+     * normalizeSiteApiSecurityPolicy (app.js:1622,1734).
+     */
+    private static $systemUserTokenPolicyMap = null;
+    public static function getSystemUserTokenPolicyMap()
+    {
+        if (self::$systemUserTokenPolicyMap !== null) {
+            return self::$systemUserTokenPolicyMap;
+        }
+        $map = array();
+        $specPath = dirname(__FILE__) . '/openapi/system-spec.yaml';
+        if (!file_exists($specPath)) {
+            self::$systemUserTokenPolicyMap = $map;
+            return $map;
+        }
+        $specContents = file_get_contents($specPath);
+        if (!is_string($specContents) || $specContents === '') {
+            self::$systemUserTokenPolicyMap = $map;
+            return $map;
+        }
+        $parsedSpec = SiteRouteUtils::parseYaml($specContents);
+        if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
+            self::$systemUserTokenPolicyMap = $map;
+            return $map;
+        }
+        $methods = array('get', 'post', 'put', 'patch', 'delete');
+        foreach ($parsedSpec['paths'] as $openApiPath => $pathConfig) {
+            if (strpos((string) $openApiPath, '/system/api/v1') !== 0) {
+                continue;
+            }
+            if (!is_array($pathConfig)) {
+                continue;
+            }
+            $routeKey = self::convertOpenApiPathToSystemRouteKey($openApiPath);
+            if ($routeKey === '') {
+                continue;
+            }
+            $pathLevelRequiresUserToken = self::securityRequiresUserToken(
+                isset($pathConfig['security']) ? $pathConfig['security'] : null
+            );
+            foreach ($methods as $method) {
+                if (!array_key_exists($method, $pathConfig)) {
+                    continue;
+                }
+                $operation = $pathConfig[$method];
+                if (!is_array($operation)) {
+                    continue;
+                }
+                if (array_key_exists('security', $operation)) {
+                    $requiresUserToken = self::securityRequiresUserToken($operation['security']);
+                }
+                else {
+                    $requiresUserToken = $pathLevelRequiresUserToken;
+                }
+                $lookupKey = strtoupper($method) . ':' . $routeKey;
+                $map[$lookupKey] = $requiresUserToken;
+            }
+        }
+        self::$systemUserTokenPolicyMap = $map;
+        return $map;
+    }
+    /**
+     * Convert an OpenAPI path (/system/api/v1/.../{param}) to the PHP
+     * route-key form (v1/.../:param) used by SystemRoutesMap. Mirrors Node
+     * convertOpenApiPathToSystemRoute (app.js:1724) but preserves the v1/
+     * prefix to match PHP route map keys.
+     */
+    private static function convertOpenApiPathToSystemRouteKey($openApiPath)
+    {
+        $route = (string) $openApiPath;
+        if (strpos($route, '/system/api/v1') !== 0) {
+            return '';
+        }
+        $route = preg_replace('#^/system/api/?#', '', $route);
+        $route = preg_replace('#^/#', '', $route);
+        $route = preg_replace('/\{([A-Za-z0-9_]+)\}/', ':$1', $route);
+        return is_string($route) ? $route : '';
+    }
+    /**
+     * Determine whether a security config array declares userTokenHeader.
+     * Mirrors Node normalizeSiteApiSecurityPolicy (app.js:1622): an empty
+     * array or a requirement with no keys is public (false); a requirement
+     * with siteTokenHeader is authenticated-site (false); otherwise true if
+     * any requirement has userTokenHeader.
+     */
+    private static function securityRequiresUserToken($securityConfig)
+    {
+        if (!is_array($securityConfig) || count($securityConfig) === 0) {
+            return false;
+        }
+        $requiresUserToken = false;
+        foreach ($securityConfig as $requirement) {
+            if (!is_array($requirement)) {
+                continue;
+            }
+            if (count($requirement) === 0) {
+                return false;
+            }
+            if (array_key_exists('siteTokenHeader', $requirement)) {
+                return false;
+            }
+            if (array_key_exists('userTokenHeader', $requirement)) {
+                $requiresUserToken = true;
+            }
+        }
+        return $requiresUserToken;
+    }
+    /**
+     * Spec-driven X-HAXCMS-User-Token enforcement for all system v1 routes.
+     * Looks up the policy for route+method in the cached spec-derived map;
+     * if the route does not require the header, returns null. Otherwise reads
+     * the X-HAXCMS-User-Token header from the context, validates it via
+     * HAXCMS::validateRequestToken, and returns a 403 payload with the
+     * NodeJS-identical message strings on missing/invalid. Returns null on
+     * success. Parity with Node enforceSystemApiUserTokenPolicy (app.js:1806).
+     *
+     * For parameterized routes (e.g. v1/site/import/:platform) where the spec
+     * declares concrete paths (e.g. /site/import/haxcms) rather than a
+     * {platform} path, the :param placeholders are resolved from the
+     * context's route params and the concrete key is looked up. This ensures
+     * every route that declares userTokenHeader in the spec is enforced
+     * (full-parity coverage for all ~46 routes), even when the spec uses
+     * per-value paths instead of a parameterized path.
+     */
+    public static function enforceSystemApiUserTokenHeader($routeName, $method, $context)
+    {
+        $policyMap = self::getSystemUserTokenPolicyMap();
+        $requiresUserToken = self::routeRequiresUserToken($policyMap, $routeName, $method, $context);
+        if (!$requiresUserToken) {
+            return null;
+        }
+        $token = '';
+        if (is_object($context) && method_exists($context, 'getHeader')) {
+            $headerValue = $context->getHeader('X-HAXCMS-User-Token');
+            if (is_string($headerValue)) {
+                $token = $headerValue;
+            }
+        }
+        if ($token === '') {
+            return array(
+                'status' => 403,
+                'message' => 'X-HAXCMS-User-Token header is required for this endpoint',
+            );
+        }
+        $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+        if (!is_string($tokenUser) || $tokenUser === '') {
+            $tokenUser = $GLOBALS['HAXCMS']->getActiveUserName();
+        }
+        if (!$GLOBALS['HAXCMS']->validateRequestToken($token, $tokenUser)) {
+            return array(
+                'status' => 403,
+                'message' => 'Invalid X-HAXCMS-User-Token header',
+            );
+        }
+        return null;
+    }
+    /**
+     * Look up whether a route+method requires the X-HAXCMS-User-Token header
+     * in the spec-derived policy map. Tries the direct METHOD:routeKey first;
+     * if not found and the route has :param placeholders, resolves them from
+     * the context's route params and looks up the concrete key (handles specs
+     * that declare per-value paths like /site/import/haxcms instead of a
+     * parameterized /site/import/{platform}).
+     */
+    private static function routeRequiresUserToken($policyMap, $routeName, $method, $context)
+    {
+        $lookupKey = strtoupper((string) $method) . ':' . (string) $routeName;
+        if (isset($policyMap[$lookupKey])) {
+            return (bool) $policyMap[$lookupKey];
+        }
+        $route = (string) $routeName;
+        if (strpos($route, ':') === false) {
+            return false;
+        }
+        $params = array();
+        if (is_object($context) && isset($context->params) && is_array($context->params)) {
+            $params = $context->params;
+        }
+        if (count($params) === 0) {
+            return false;
+        }
+        $concreteRoute = $route;
+        foreach ($params as $paramName => $paramValue) {
+            if (!is_string($paramName) || $paramName === '') {
+                continue;
+            }
+            $concreteRoute = str_replace(':' . $paramName, (string) $paramValue, $concreteRoute);
+        }
+        if ($concreteRoute === $route) {
+            return false;
+        }
+        $concreteKey = strtoupper((string) $method) . ':' . $concreteRoute;
+        if (isset($policyMap[$concreteKey])) {
+            return (bool) $policyMap[$concreteKey];
+        }
+        return false;
+    }
 }

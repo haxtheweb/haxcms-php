@@ -45,6 +45,22 @@ class SystemApiRequestContext
         }
         return $this->params[$name];
     }
+    public function getHeader($name)
+    {
+        $normalizedName = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
+        if (isset($_SERVER[$normalizedName])) {
+            return $_SERVER[$normalizedName];
+        }
+        $headers = function_exists('getallheaders') ? getallheaders() : array();
+        if (is_array($headers)) {
+            foreach ($headers as $key => $value) {
+                if (strcasecmp($key, $name) === 0) {
+                    return $value;
+                }
+            }
+        }
+        return null;
+    }
     private function parseBody()
     {
         $input = file_get_contents('php://input');

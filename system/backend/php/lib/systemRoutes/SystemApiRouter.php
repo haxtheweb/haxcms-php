@@ -60,6 +60,10 @@ class SystemApiRouter
             return true;
         }
         $routeName = $match['route'];
+        // Set route params early so the spec-driven userToken enforcement
+        // can resolve :param placeholders (e.g. site/import/:platform) to
+        // concrete spec paths for policy lookup.
+        $context->setRouteParams(isset($match['params']) ? $match['params'] : array());
         // D1b parity with Node validateSystemV1RouteAccess: block site-scoped
         // requests (URL under /{sitesDirectory}/) from a site-scoped referer
         // from reaching system v1 admin routes. Emits the same 403 + message +
@@ -86,6 +90,24 @@ class SystemApiRouter
                 array('message' => $security['message']),
                 array(
                     'statusCode' => $security['status'],
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                is_string($context->routeSuffix) ? $context->routeSuffix : '',
+                $context->apiBasePath
+            );
+            return true;
+        }
+        // Spec-driven X-HAXCMS-User-Token enforcement (full parity with Node
+        // enforceSystemApiUserTokenPolicy). The policy map is built from
+        // system-spec.yaml, so this central check covers every route that
+        // declares userTokenHeader (~46 routes) without per-handler calls.
+        $userTokenFailure = SystemApiSecurity::enforceSystemApiUserTokenHeader($routeName, $context->method, $context);
+        if ($userTokenFailure !== null) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => $userTokenFailure['message']),
+                array(
+                    'statusCode' => 403,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
                 ),
@@ -121,7 +143,6 @@ class SystemApiRouter
             );
             return true;
         }
-        $context->setRouteParams(isset($match['params']) ? $match['params'] : array());
         call_user_func($handler, $context);
         return true;
     }
