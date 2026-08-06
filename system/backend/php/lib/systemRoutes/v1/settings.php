@@ -47,6 +47,35 @@ if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
         ) {
             return true;
         }
+        // Canonical system READ operations that declare userTokenHeader in the
+        // OpenAPI spec (security alignment). The dispatcher feeds the client
+        // X-HAXCMS-User-Token header into params['user_token'] for these reads
+        // so the handler validateRequestToken checks validate the actual client
+        // header. Skeleton/theme/block reads stay bearer-only (D10).
+        if ($normalizedMethod === 'GET' || $normalizedMethod === 'POST') {
+            $readRoutesGetPost = array(
+                'v1/status',
+                'v1/system/version',
+                'v1/entities',
+                'v1/schemas',
+            );
+            if (in_array($route, $readRoutesGetPost, true)) {
+                return true;
+            }
+        }
+        // GET-only reads: api-keys/media GET declare userTokenHeader, but the
+        // POST aliases (saveApiKeysPost / saveMediaSettingsPost) are bearer-only
+        // per the spec, so only GET feeds the client header. PATCH writes are
+        // already handled above.
+        if ($normalizedMethod === 'GET') {
+            $readRoutesGetOnly = array(
+                'v1/configuration/api-keys',
+                'v1/configuration/media',
+            );
+            if (in_array($route, $readRoutesGetOnly, true)) {
+                return true;
+            }
+        }
         return false;
     }
 }
@@ -105,6 +134,21 @@ return function ($context) {
         : $serverUserToken;
     $operations->params['user_token'] = $userToken;
     $operations->rawParams['user_token'] = $userToken;
+    // Canonical system READ userToken enforcement (security alignment with the
+    // OpenAPI spec + NodeJS parity). Validating the client header here covers
+    // the inline read routes (version/entities/schemas) that build responses
+    // directly and pre-empts the legacy handler message with the canonical D1
+    // 403 strings. Skeleton/theme/block reads stay bearer-only (D10).
+    $readTokenFailure = SystemApiSecurity::enforceSystemReadUserTokenHeader($route, $method, $headerUserToken);
+    if ($readTokenFailure !== null) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => $readTokenFailure['message']),
+            array('statusCode' => $readTokenFailure['status'], 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     $response = null;
     if ($route === 'v1/status') {
         $savedMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';

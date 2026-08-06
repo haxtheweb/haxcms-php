@@ -17,13 +17,41 @@ return function ($context) {
     unset($operations->rawParams['jwt']);
     unset($operations->rawParams['user_token']);
     unset($operations->rawParams['site_token']);
+    $route = $context->routeSuffix;
+    $method = $context->method;
     $tokenUser = $GLOBALS['HAXCMS']->getRequestTokenUserName();
     if (!is_string($tokenUser) || $tokenUser === '') {
         $tokenUser = $GLOBALS['HAXCMS']->getActiveUserName();
     }
-    $userToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
+    $serverUserToken = $GLOBALS['HAXCMS']->getRequestToken($tokenUser);
+    $headerUserToken = '';
+    if (isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) && is_string($_SERVER['HTTP_X_HAXCMS_USER_TOKEN'])) {
+        $headerUserToken = $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'];
+    }
+    // D10/D59 + system-read userToken directive: canonical system READ routes
+    // (listSites, siteInfoGet/Post) feed the client X-HAXCMS-User-Token header
+    // into params['user_token'] so the handler validateRequestToken check
+    // validates the actual client header. Site lifecycle writes keep the
+    // server-resolved token (writes already enforce userToken from the last
+    // pass and are not changed here).
+    $userToken = SystemApiSecurity::isSystemReadUserTokenRoute($route, $method)
+        ? $headerUserToken
+        : $serverUserToken;
     $operations->params['user_token'] = $userToken;
     $operations->rawParams['user_token'] = $userToken;
+    // Canonical system READ userToken enforcement (security alignment with the
+    // OpenAPI spec + NodeJS parity). Emits the canonical D1 403 strings for
+    // missing/invalid headers before any lifecycle handler runs.
+    $readTokenFailure = SystemApiSecurity::enforceSystemReadUserTokenHeader($route, $method, $headerUserToken);
+    if ($readTokenFailure !== null) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => $readTokenFailure['message']),
+            array('statusCode' => $readTokenFailure['status'], 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     if (isset($context->params['siteName'])) {
         $operations->params['site'] = array('name' => $context->params['siteName']);
         $operations->rawParams['site'] = array('name' => $context->params['siteName']);
@@ -32,8 +60,6 @@ return function ($context) {
             $operations->rawParams['site'] = array_merge($operations->rawParams['site'], $context->body);
         }
     }
-    $route = $context->routeSuffix;
-    $method = $context->method;
     $response = null;
     if ($route === 'v1/sites') {
         if ($method === 'GET') {
