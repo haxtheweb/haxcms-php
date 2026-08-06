@@ -20,10 +20,22 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
         $type     = isset($body['type'])     ? (string) $body['type']     : '';
         $parentId = (isset($body['parentId']) && $body['parentId'] !== null && $body['parentId'] !== 'null')
             ? (string) $body['parentId'] : null;
+        // D35: adapter param (parity with Node convertWordpressToSite). Only `pages` supported.
+        $adapter       = isset($body['adapter']) ? (string) $body['adapter'] : 'pages';
+        $validAdapters = array('pages');
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
+                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
+
+        if (!in_array($adapter, $validAdapters, true)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 400, 'data' => array('error' => 'unknown adapter `' . $adapter . '`; valid adapters: ' . implode(', ', $validAdapters), 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -47,8 +59,8 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
                 $batch = json_decode((string) $resp->getBody(), true);
             } catch (\Exception $e) {
                 SiteRouteUtils::sendFormattedResponse(
-                    array('status' => 400, 'data' => array('error' => 'Unable to fetch WordPress pages: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
-                    array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                    array('status' => 422, 'data' => array('error' => 'Unable to fetch WordPress pages: ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
+                    array('statusCode' => 422, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                     $context->routeSuffix, $apiBasePath
                 );
                 return;
@@ -60,8 +72,8 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
 
         if (empty($pages)) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'No pages found at ' . $baseUrl, 'items' => array(), 'filename' => null)),
-                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                array('status' => 422, 'data' => array('error' => 'No pages found at ' . $baseUrl, 'items' => array(), 'filename' => null, 'files' => array())),
+                array('statusCode' => 422, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
             return;
@@ -112,7 +124,7 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $siteTitle, 'files' => array(), 'wordpress' => array('baseUrl' => $baseUrl, 'adapter' => $adapter, 'pageCount' => count($items)))),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

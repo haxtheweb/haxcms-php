@@ -51,7 +51,7 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -73,8 +73,8 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
             $toc         = json_decode((string) $tocResponse->getBody(), true);
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Unable to fetch Pressbooks TOC: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
-                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                array('status' => 422, 'data' => array('error' => 'Unable to fetch Pressbooks TOC: ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
+                array('statusCode' => 422, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
             return;
@@ -82,8 +82,8 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
 
         if (!is_array($toc)) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid Pressbooks TOC response', 'items' => array(), 'filename' => null)),
-                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                array('status' => 422, 'data' => array('error' => 'Invalid Pressbooks TOC response', 'items' => array(), 'filename' => null, 'files' => array())),
+                array('statusCode' => 422, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
             return;
@@ -148,8 +148,18 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
 
         $bookTitle = isset($toc['title']['rendered']) ? (string) $toc['title']['rendered'] : 'pressbooks-import';
 
+        // D35: 422 when discovery succeeded but no pages were produced (parity with Node).
+        if (empty($items)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 422, 'data' => array('error' => 'Pressbooks import produced no pages to import', 'items' => array(), 'filename' => null, 'files' => array())),
+                array('statusCode' => 422, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
+
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $bookTitle)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $bookTitle, 'files' => array(), 'site' => array('baseUrl' => $baseUrl, 'title' => $bookTitle))),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

@@ -129,7 +129,6 @@ trait OperationsRouteGenerateAppStore {
     $mergedData = $this->sanitizeAppStoreBrokerConnectionData(
       $this->mergeAppStoreConnectionData($queryParams, $existingData)
     );
-    $mergedData['siteName'] = $siteName;
     $rewritten = clone $connection;
     $rewritten->protocol = $GLOBALS['HAXCMS']->protocol;
     $normalizedDomain = rtrim((string) $GLOBALS['HAXCMS']->domain, '/');
@@ -360,7 +359,7 @@ trait OperationsRouteGenerateAppStore {
         'status' => 403,
         'message' => array(
           'status' => 403,
-          'message' => 'invalid request token',
+          'data' => array('message' => 'invalid request token'),
         ),
       ),
     );

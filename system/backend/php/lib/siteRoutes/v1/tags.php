@@ -14,7 +14,7 @@ return function ($context) {
     }
     $includeItems = in_array('items', SiteRouteUtils::getCsvQuery('include'), true);
     $tagFilter = array_map('strtolower', SiteRouteUtils::getCsvQuery('filter.tags'));
-    $items = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+    $items = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
     $byTag = array();
     foreach ($items as $item) {
         $itemTags = SiteRouteUtils::normalizeTagList(

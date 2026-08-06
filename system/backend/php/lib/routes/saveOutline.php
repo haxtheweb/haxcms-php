@@ -422,7 +422,10 @@ trait OperationsRouteSaveOutline {
       // update alt formats like rss as we did massive changes
       $site->updateAlternateFormats();
       $site->gitCommit('Outline updated in bulk');
-      return $site->manifest->items;
+      // D49: return items wrapped in an object with 'items' key so the
+      // siteMutation.php wrapper produces {status:200, data:{items:[...]}}
+      // matching the Node canonical outline success shape.
+      return array('items' => $site->manifest->items);
     } else {
       return array(
         '__failed' => array(

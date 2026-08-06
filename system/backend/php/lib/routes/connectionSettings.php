@@ -35,14 +35,25 @@ trait OperationsRouteConnectionSettings {
     // appSettings.jwt (HAXiam / server-injected bootstrap). Prevent caching.
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
+    // D55: match Node's connectionSettings.js output format exactly — prepend
+    // the MicroFrontendRegistryConfig initialization line and append the dev-jwt
+    // line when HAXCMS_DISABLE_JWT_CHECKS is set (parity with Node).
+    $returnData = json_encode(
+      $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath),
+      JSON_UNESCAPED_SLASHES
+    );
+    $after = '';
+    if (getenv('HAXCMS_DISABLE_JWT_CHECKS')) {
+      $superUserName = isset($GLOBALS['HAXCMS']->superUser->name)
+        ? $GLOBALS['HAXCMS']->superUser->name
+        : null;
+      $after = 'window.appSettings.jwt = "' . $GLOBALS['HAXCMS']->getJWT($superUserName) . '"';
+    }
     return array(
       '__noencode' => array(
         'status' => 200,
         'contentType' => 'application/javascript',
-        'message' => 'window.appSettings = ' . json_encode(
-          $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath),
-          JSON_UNESCAPED_SLASHES
-        ) . ';',
+        'message' => "window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};\nwindow.appSettings =" . $returnData . ';' . $after,
       )
     );
   }

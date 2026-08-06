@@ -64,14 +64,12 @@ return function ($context) {
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($result['__failed']['status']),
                 'message' => $result['__failed']['message'],
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $context->apiBasePath

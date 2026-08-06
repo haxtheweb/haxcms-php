@@ -64,32 +64,36 @@ if (!function_exists('haxcmsResolveRequestedFilePathFromUuid')) {
         if ($rawToken == '') {
             return '';
         }
+        // D52: strict UUID only (Node canonical). Reject non-UUID tokens.
+        // Previously this fell through to haxcmsSiteFileCanonicalPath for
+        // non-UUID tokens, allowing raw file paths. Now returns false to
+        // signal an invalid UUID format so the caller can send a 400 error.
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $rawToken) !== 1) {
+            return false;
+        }
         $site = isset($context->site) ? $context->site : null;
-        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $rawToken) === 1) {
-            $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
-            if ($siteDirectory == '') {
-                return '';
-            }
-            $siteFilePath = $siteDirectory . '/files';
-            $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, '');
-            foreach ($files as $file) {
-                $relativePath = isset($file['relativePath']) ? (string) $file['relativePath'] : '';
-                if ($relativePath == '') {
-                    continue;
-                }
-                $apiPath = 'files/' . $relativePath;
-                $candidateUuid = haxcmsSiteDeterministicFileUuid(
-                    $site,
-                    $apiPath,
-                    isset($file['stats']['size']) ? intval($file['stats']['size']) : 0
-                );
-                if ($candidateUuid != '' && strcasecmp($candidateUuid, $rawToken) === 0) {
-                    return $apiPath;
-                }
-            }
+        $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
+        if ($siteDirectory == '') {
             return '';
         }
-        return haxcmsSiteFileCanonicalPath($rawToken);
+        $siteFilePath = $siteDirectory . '/files';
+        $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, '');
+        foreach ($files as $file) {
+            $relativePath = isset($file['relativePath']) ? (string) $file['relativePath'] : '';
+            if ($relativePath == '') {
+                continue;
+            }
+            $apiPath = 'files/' . $relativePath;
+            $candidateUuid = haxcmsSiteDeterministicFileUuid(
+                $site,
+                $apiPath,
+                isset($file['stats']['size']) ? intval($file['stats']['size']) : 0
+            );
+            if ($candidateUuid != '' && strcasecmp($candidateUuid, $rawToken) === 0) {
+                return $apiPath;
+            }
+        }
+        return '';
     }
 }
 return function ($context) {
@@ -151,7 +155,24 @@ return function ($context) {
         }
         if (!isset($body['path']) || $body['path'] === '') {
             if ($fileUuid !== '') {
-                $body['path'] = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
+                $resolvedPath = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
+                // D52: reject non-UUID tokens with a 400 error (Node canonical)
+                if ($resolvedPath === false) {
+                    SiteRouteUtils::sendFormattedResponse(
+                        array(
+                            'message' => 'File uuid is required and must be a valid UUID',
+                        ),
+                        array(
+                            'statusCode' => 400,
+                            'allowedFormats' => array('json'),
+                            'defaultFormat' => 'json',
+                        ),
+                        $context->routeSuffix,
+                        $context->apiBasePath
+                    );
+                    return;
+                }
+                $body['path'] = $resolvedPath;
             }
         }
         $operations->params = $body;
@@ -169,14 +190,12 @@ return function ($context) {
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($result['__failed']['status']),
                 'message' => $result['__failed']['message'],
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $context->apiBasePath

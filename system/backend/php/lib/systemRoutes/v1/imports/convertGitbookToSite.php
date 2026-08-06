@@ -23,7 +23,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
 
         if ($repoUrl === '') {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'missing `repoUrl` param', 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -34,7 +34,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         $parsedRepo = haxcmsParseGithubRepoUrl($repoUrl);
         if (!$parsedRepo) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository URL: ' . $repoUrl, 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Invalid GitHub repository URL: ' . $repoUrl, 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -70,7 +70,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
 
         if (!$summaryMd) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Could not find SUMMARY.md in ' . $repoUrl, 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Could not find SUMMARY.md in ' . $repoUrl, 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -82,7 +82,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
             $summaryContent  = (string) $summaryResponse->getBody();
         } catch (\Exception $e) {
             SiteRouteUtils::sendFormattedResponse(
-                array('status' => 400, 'data' => array('error' => 'Failed to fetch SUMMARY.md: ' . $e->getMessage(), 'items' => array(), 'filename' => null)),
+                array('status' => 400, 'data' => array('error' => 'Failed to fetch SUMMARY.md: ' . $e->getMessage(), 'items' => array(), 'filename' => null, 'files' => array())),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
                 $context->routeSuffix, $apiBasePath
             );
@@ -143,7 +143,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         }
 
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 200, 'data' => array('items' => $items, 'filename' => $repo)),
+            array('status' => 200, 'data' => array('items' => $items, 'filename' => $repo, 'files' => array())),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
         );

@@ -222,6 +222,15 @@ return function ($context) {
     }
     else if ($route === 'v1/session/refresh') {
         $response = $operations->refreshAccessToken();
+        // If refresh returns a flat {status, jwt} envelope, emit it directly
+        // (same bypass as login — sendFormattedResponse would otherwise
+        // double-wrap to {status, data:{status, jwt}} breaking the frontend's
+        // response.jwt extraction). Fixes finding 4.7 / NEW-10.
+        if (is_array($response) && isset($response['status']) && isset($response['jwt']) && !isset($response['__failed'])) {
+            header('Content-Type: application/json');
+            print json_encode($response);
+            exit;
+        }
     }
     else if ($route === 'v1/session/connection-settings') {
         $response = $operations->connectionSettings();

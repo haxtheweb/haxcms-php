@@ -83,6 +83,23 @@ return function ($context) {
                 ) {
                     $response['slug'] = $createdSite->slug;
                 }
+                if (
+                    !isset($response['link']) &&
+                    isset($createdSite->metadata) &&
+                    is_object($createdSite->metadata) &&
+                    isset($createdSite->metadata->site) &&
+                    is_object($createdSite->metadata->site) &&
+                    isset($createdSite->metadata->site->name) &&
+                    is_string($createdSite->metadata->site->name) &&
+                    $createdSite->metadata->site->name !== ''
+                ) {
+                    $response['link'] =
+                        $GLOBALS['HAXCMS']->basePath .
+                        $GLOBALS['HAXCMS']->sitesDirectory .
+                        '/' .
+                        $createdSite->metadata->site->name .
+                        '/';
+                }
             }
         }
     }
@@ -91,7 +108,77 @@ return function ($context) {
         preg_match('/^v1\\/sites\\/[^\\/]+$/', $route) === 1
     ) {
         if ($method === 'GET' || $method === 'POST') {
-            $response = array('status' => 200, 'data' => array('siteName' => $context->params['siteName']));
+            $siteName = $context->params['siteName'];
+            $loadedSite = $GLOBALS['HAXCMS']->loadSite($siteName);
+            if (!$loadedSite || !isset($loadedSite->manifest)) {
+                $response = array(
+                    '__failed' => array(
+                        'status' => 404,
+                        'message' => 'Site not found',
+                    )
+                );
+            }
+            else {
+                $manifest = $loadedSite->manifest;
+                $encodedSiteName = rawurlencode($siteName);
+                $basePath = isset($GLOBALS['HAXCMS']->basePath) ? $GLOBALS['HAXCMS']->basePath : '/';
+                $systemBase = isset($GLOBALS['HAXCMS']->systemRequestBase) ? $GLOBALS['HAXCMS']->systemRequestBase : 'system/api/';
+                $normalizePath = function ($pathValue) {
+                    $normalized = ($pathValue === null) ? '' : (string)$pathValue;
+                    if ($normalized === '') {
+                        return '/';
+                    }
+                    $normalized = preg_replace('#/+#', '/', $normalized);
+                    if (strlen($normalized) > 0 && $normalized[0] !== '/') {
+                        $normalized = '/' . $normalized;
+                    }
+                    if (strlen($normalized) > 1 && substr($normalized, -1) === '/') {
+                        $normalized = substr($normalized, 0, -1);
+                    }
+                    return $normalized;
+                };
+                $systemApiBase = $normalizePath($basePath . '/' . $systemBase . 'v1');
+                $sitesDirectory = isset($GLOBALS['HAXCMS']->sitesDirectory) ? $GLOBALS['HAXCMS']->sitesDirectory : '_sites';
+                $sitesDirectory = trim($sitesDirectory, '/');
+                $normalizedBasePath = $normalizePath($basePath);
+                $links = array(
+                    'self' => $systemApiBase . '/sites/' . $encodedSiteName,
+                    'clone' => $systemApiBase . '/sites/' . $encodedSiteName . '/clone',
+                    'archive' => $systemApiBase . '/sites/' . $encodedSiteName . '/archive',
+                    'download' => $systemApiBase . '/sites/' . $encodedSiteName . '/download',
+                    'downloadSkeleton' => $systemApiBase . '/sites/' . $encodedSiteName . '/download-skeleton',
+                    'saveAsTemplate' => $systemApiBase . '/sites/' . $encodedSiteName . '/save-as-template',
+                    'siteApi' => $normalizedBasePath . '/' . $sitesDirectory . '/' . $encodedSiteName . '/x/api',
+                );
+                $siteMetadata = isset($manifest->metadata->site) ? $manifest->metadata->site : null;
+                $pageCount = 0;
+                if (isset($manifest->items)) {
+                    $pageCount = count($manifest->items);
+                }
+                $toIsoDate = function ($value) {
+                    if (!is_numeric($value) || (int)$value <= 0) {
+                        return null;
+                    }
+                    return gmdate('Y-m-d\TH:i:s.000\Z', (int)$value);
+                };
+                $location = $normalizedBasePath . '/' . $sitesDirectory . '/' . $encodedSiteName . '/';
+                $response = array(
+                    'status' => 200,
+                    'data' => array(
+                        'id' => isset($manifest->id) ? $manifest->id : null,
+                        'name' => $siteName,
+                        'title' => isset($manifest->title) ? $manifest->title : $siteName,
+                        'description' => isset($manifest->description) ? $manifest->description : '',
+                        'location' => $location,
+                        'metadata' => array(
+                            'pageCount' => $pageCount,
+                            'created' => ($siteMetadata && isset($siteMetadata->created)) ? $toIsoDate($siteMetadata->created) : null,
+                            'updated' => ($siteMetadata && isset($siteMetadata->updated)) ? $toIsoDate($siteMetadata->updated) : null,
+                        ),
+                        'links' => $links,
+                    ),
+                );
+            }
         }
         else {
             $response = array('status' => 405, 'data' => 'Method not allowed');

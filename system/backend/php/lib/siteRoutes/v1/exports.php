@@ -8,7 +8,6 @@ return function ($context) {
     $sendTopLevelError = function ($statusCode, $message, $extra = array()) use ($routeSuffix, $apiBasePath) {
         $payload = array_merge(
             array(
-                'status' => intval($statusCode),
                 'message' => (string) $message,
             ),
             is_array($extra) ? $extra : array()
@@ -19,7 +18,6 @@ return function ($context) {
                 'statusCode' => intval($statusCode),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $routeSuffix,
             $apiBasePath

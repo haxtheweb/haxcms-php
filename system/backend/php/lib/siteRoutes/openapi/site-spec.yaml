@@ -708,6 +708,37 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - site
+      operationId: createSiteExport
+      summary: Get a site export descriptor for a format (metadata only, no binary download)
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/SiteExportFormat"
+      responses:
+        "200":
+          description: Site export descriptor metadata
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}:
     get:
       tags:
@@ -1380,38 +1411,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-  /x/api/v1/integrations/app-store/providers/{provider}/search:
-    get:
-      tags:
-        - integrations
-      operationId: searchAppStoreProvider
-      summary: Broker provider search through app-store integrations
-      security:
-        - bearerAuth: []
-          siteTokenHeader: []
-      parameters:
-        - $ref: "#/components/parameters/AppStoreProvider"
-      responses:
-        "200":
-          description: Provider search response payload
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    additionalProperties: true
-                  - type: array
-                    items:
-                      type: object
-                      additionalProperties: true
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "502":
-          $ref: "#/components/responses/BadRequest"
   /x/api/v1/tags:
     get:
       tags:
@@ -2091,12 +2090,6 @@ components:
       required: true
       schema:
         type: string
-    AppStoreProvider:
-      name: provider
-      in: path
-      required: true
-      schema:
-        type: string
     RequiredSearchQuery:
       name: q
       in: query
@@ -2300,12 +2293,16 @@ components:
       type: object
       required:
         - status
-        - message
+        - data
       properties:
         status:
           type: integer
-        message:
-          type: string
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            message:
+              type: string
     ApiCapabilities:
       type: object
       properties:

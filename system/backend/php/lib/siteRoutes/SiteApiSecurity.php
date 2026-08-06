@@ -18,21 +18,49 @@ class SiteApiSecurity
             $result['message'] = '';
             return $result;
         }
-        // Distinguish "no bearer at all" (401, genuine logged-out state) from
-        // "bearer present but invalid/expired" (403, refreshable). Mirrors the
-        // NodeJS site API split in app.js validateSiteApiRouteAccess.
+        // Resolve authenticated userName from Bearer (primary) or Basic (fallback).
+        // Distinguish "no credentials at all" (401, genuine logged-out state)
+        // from "credentials present but invalid/expired" (403, refreshable).
+        // Mirrors the NodeJS site API split in app.js validateSiteApiRouteAccess;
+        // the Basic fallback shares the login rate-limit counters (429 + Retry-After)
+        // and the site-token check below still applies, so basic-auth alone never
+        // grants site-scoped access.
         $bearerToken = SiteRouteUtils::getBearerTokenFromRequest();
-        if (is_null($bearerToken)) {
-            $result['status'] = 401;
-            $result['message'] = 'Missing Bearer token';
-            return $result;
+        $userName = null;
+        if (!is_null($bearerToken)) {
+            $userName = self::resolveBearerUserName();
+            if (is_null($userName) || $userName === '') {
+                // bearer was present but failed to decode / had no user -> invalid or expired
+                $result['status'] = 403;
+                $result['message'] = 'Invalid bearer token';
+                return $result;
+            }
         }
-        $userName = self::resolveBearerUserName();
-        if (is_null($userName) || $userName === '') {
-            // bearer was present but failed to decode / had no user -> invalid or expired
-            $result['status'] = 403;
-            $result['message'] = 'Invalid or expired Bearer token';
-            return $result;
+        else {
+            $basic = null;
+            if (
+                isset($GLOBALS['HAXCMS']) &&
+                is_object($GLOBALS['HAXCMS']) &&
+                method_exists($GLOBALS['HAXCMS'], 'authenticateBasicAuthorization')
+            ) {
+                $basic = $GLOBALS['HAXCMS']->authenticateBasicAuthorization();
+            }
+            if (is_array($basic) && !empty($basic['blocked'])) {
+                $result['status'] = 429;
+                $result['message'] = 'Too many failed login attempts. Please try again later.';
+                $result['retryAfterSeconds'] = isset($basic['retryAfterSeconds']) ? (int) $basic['retryAfterSeconds'] : 0;
+                return $result;
+            }
+            if (is_array($basic) && !empty($basic['authenticated']) && !empty($basic['userName'])) {
+                $userName = $basic['userName'];
+            }
+            else {
+                $result['status'] = 401;
+                $result['message'] = (is_array($basic) && !empty($basic['attempted']))
+                    ? 'Invalid basic authorization credentials'
+                    : 'Authorization bearer token or basic credentials are required for this endpoint';
+                return $result;
+            }
         }
         $result['userName'] = $userName;
         if ($policy === 'authenticated') {
@@ -58,7 +86,7 @@ class SiteApiSecurity
             }
             if (is_null($siteToken) || $siteToken === '') {
                 $result['status'] = 403;
-                $result['message'] = 'Missing X-HAXCMS-Site-Token header';
+                $result['message'] = 'X-HAXCMS-Site-Token header is required for this endpoint';
                 return $result;
             }
             $validToken = false;
@@ -74,7 +102,7 @@ class SiteApiSecurity
             }
             if (!$validToken) {
                 $result['status'] = 403;
-                $result['message'] = 'Invalid site token';
+                $result['message'] = 'Invalid X-HAXCMS-Site-Token header';
                 return $result;
             }
             $result['allowed'] = true;
@@ -104,14 +132,12 @@ class SiteApiSecurity
             '/^v1\/items\/[^\/]+$/',
             '/^v1\/content$/',
             '/^v1\/content\/[^\/]+$/',
-            '/^v1\/files$/',
             '/^v1\/tags$/',
             '/^v1\/search$/',
             '/^v1\/custom-elements/',
             '/^v1\/blocks/',
             '/^v1\/regions/',
             '/^v1\/themes/',
-            '/^v1\/reports/',
             '/^v1\/analytics$/',
             '/^v1\/views/',
             '/^v1\/displays/',

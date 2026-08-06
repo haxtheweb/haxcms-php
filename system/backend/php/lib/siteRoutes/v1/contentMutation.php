@@ -44,12 +44,33 @@ return function ($context) {
         $result = $operations->siteSearch();
     }
     else {
+        // D63: resolve slug to UUID before delegating (Node canonical).
+        // Previously this set body.node.id to the raw idOrSlug without
+        // resolution. Now it resolves via findItemByIdOrSlug first and
+        // uses the resolved UUID, returning 404 if not found.
+        $resolvedItem = null;
+        if (isset($context->site) && $idOrSlug !== '') {
+            $resolvedItem = SiteRouteUtils::findItemByIdOrSlug($context->site, $idOrSlug);
+        }
+        if (!$resolvedItem) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'Content not found for idOrSlug "' . $idOrSlug . '"',
+                ),
+                array(
+                    'statusCode' => 404,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $idOrSlug;
-        }
+        $body['node']['id'] = (string) $resolvedItem->id;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveNode();
@@ -57,14 +78,12 @@ return function ($context) {
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($result['__failed']['status']),
                 'message' => $result['__failed']['message'],
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $context->apiBasePath

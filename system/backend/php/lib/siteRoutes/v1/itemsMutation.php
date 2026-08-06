@@ -40,14 +40,12 @@ return function ($context) {
         if (!$resolvedItem) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => 404,
                     'message' => 'Item not found for idOrSlug "' . $idOrSlug . '"',
                 ),
                 array(
                     'statusCode' => 404,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
-                    'envelope' => false,
                 ),
                 $context->routeSuffix,
                 $context->apiBasePath
@@ -69,30 +67,21 @@ return function ($context) {
         if (!isset($body['node']['id']) || $body['node']['id'] === '') {
             $body['node']['id'] = $resolvedItemId;
         }
+        // D51: read top-level body.operation only (Node canonical).
+        // The previous fallback to body.node.details.operation has been removed.
         $operation = '';
         if (isset($body['operation']) && is_string($body['operation'])) {
             $operation = trim($body['operation']);
         }
-        if (
-            $operation === '' &&
-            isset($body['node']['details']) &&
-            is_array($body['node']['details']) &&
-            isset($body['node']['details']['operation']) &&
-            is_string($body['node']['details']['operation'])
-        ) {
-            $operation = trim($body['node']['details']['operation']);
-        }
         if ($operation === '') {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => 400,
                     'message' => 'Operation is required',
                 ),
                 array(
                     'statusCode' => 400,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
-                    'envelope' => false,
                 ),
                 $context->routeSuffix,
                 $context->apiBasePath
@@ -133,6 +122,64 @@ return function ($context) {
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveNodeDetails();
+        // D50: build projected summary with navigation links (Node canonical).
+        // Node's items.js updateItem returns itemToSummary + appendItemNavigationLinks
+        // instead of the raw item. Replicate that projected shape here so PHP
+        // returns the same fields: id, title, slug, parent, indent, order,
+        // location, description, metadata, region, tags, published, links
+        // (self, content, parent, children, previous, next), related.
+        if (
+            is_array($result) && !isset($result['__failed']) &&
+            isset($result['status']) && intval($result['status']) === 200 &&
+            isset($result['data'])
+        ) {
+            $updatedItem = $result['data'];
+            $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
+            $record = SiteRouteUtils::itemToSummary($updatedItem, $apiBasePath);
+            // Build navigation map from ordered items and append links,
+            // mirroring items.php read route and Node's buildItemNavigationMap +
+            // appendItemNavigationLinks.
+            $orderedItems = SiteRouteUtils::getOrderedItems($context->site);
+            $itemById = array();
+            foreach ($orderedItems as $navItem) {
+                if (isset($navItem->id)) {
+                    $itemById[(string) $navItem->id] = $navItem;
+                }
+            }
+            $navMap = array();
+            for ($i = 0; $i < count($orderedItems); $i++) {
+                $navItem = $orderedItems[$i];
+                if (!isset($navItem->id)) {
+                    continue;
+                }
+                $navId = (string) $navItem->id;
+                $prevLookup = $i > 0 ? SiteRouteUtils::getItemLookupValue($orderedItems[$i - 1]) : '';
+                $nextLookup = ($i + 1) < count($orderedItems) ? SiteRouteUtils::getItemLookupValue($orderedItems[$i + 1]) : '';
+                $parentLookup = '';
+                if (isset($navItem->parent) && $navItem->parent != '') {
+                    $parentId = (string) $navItem->parent;
+                    if (isset($itemById[$parentId])) {
+                        $parentLookup = SiteRouteUtils::getItemLookupValue($itemById[$parentId]);
+                    } else {
+                        $parentLookup = $parentId;
+                    }
+                }
+                $navMap[$navId] = array(
+                    'previous' => $prevLookup !== '' ? $apiBasePath . '/v1/items/' . rawurlencode($prevLookup) : null,
+                    'next' => $nextLookup !== '' ? $apiBasePath . '/v1/items/' . rawurlencode($nextLookup) : null,
+                    'parent' => $parentLookup !== '' ? $apiBasePath . '/v1/items/' . rawurlencode($parentLookup) : null,
+                    'children' => $apiBasePath . '/v1/items?filter.parent=' . rawurlencode($navId),
+                );
+            }
+            $recordId = isset($record['id']) ? (string) $record['id'] : '';
+            if ($recordId !== '' && isset($navMap[$recordId])) {
+                $record['links']['previous'] = $navMap[$recordId]['previous'];
+                $record['links']['next'] = $navMap[$recordId]['next'];
+                $record['links']['parent'] = $navMap[$recordId]['parent'];
+                $record['links']['children'] = $navMap[$recordId]['children'];
+            }
+            $result = array('status' => 200, 'data' => $record);
+        }
     } else if ($method === 'DELETE') {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
@@ -155,14 +202,12 @@ return function ($context) {
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
             array(
-                'status' => intval($result['__failed']['status']),
                 'message' => $result['__failed']['message'],
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),
                 'defaultFormat' => 'json',
-                'envelope' => false,
             ),
             $context->routeSuffix,
             $context->apiBasePath

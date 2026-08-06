@@ -45,16 +45,29 @@ return function ($context) {
         $openapi['info'] = array();
     }
     $openapi['info']['version'] = SiteRouteUtils::getVersion();
-    $serverBasePath = preg_replace('/\/system\/api$/', '/', $apiBasePath);
-    if (!is_string($serverBasePath) || $serverBasePath == '') {
-        $serverBasePath = '/';
+    // D54: produce an absolute servers[] URL matching Node's getServerBaseUrl
+    // (openapi.js:93-101) so both backends emit ${protocol}://${host}${basePath}
+    // instead of a relative path. Falls back to the relative basePath when the
+    // host is unavailable (CLI edge case) so the spec is still valid.
+    $haxcms = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
+    $protocol = ($haxcms && isset($haxcms->protocol)) ? $haxcms->protocol : 'http';
+    $host = ($haxcms && isset($haxcms->domain)) ? (string) $haxcms->domain : '';
+    $basePath = ($haxcms && isset($haxcms->basePath)) ? (string) $haxcms->basePath : '/';
+    if (strlen($basePath) > 0 && $basePath[0] !== '/') {
+        $basePath = '/' . $basePath;
     }
-    if (substr($serverBasePath, -1) != '/') {
-        $serverBasePath .= '/';
+    if (substr($basePath, -1) !== '/') {
+        $basePath .= '/';
+    }
+    if ($host !== '') {
+        $serverBaseUrl = $protocol . '://' . $host . $basePath;
+    }
+    else {
+        $serverBaseUrl = $basePath;
     }
     $openapi['servers'] = array(
         array(
-            'url' => $serverBasePath,
+            'url' => $serverBaseUrl,
             'description' => 'HAXcms system base URL',
         ),
     );

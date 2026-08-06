@@ -34,6 +34,7 @@ class SiteRoutesMap
                 'v1/content' => dirname(__FILE__) . '/v1/content.php',
                 'v1/content/:idOrSlug' => dirname(__FILE__) . '/v1/content.php',
                 'v1/files' => dirname(__FILE__) . '/v1/files.php',
+                'v1/files/:fileUuid' => dirname(__FILE__) . '/v1/files.php',
                 'v1/tags' => dirname(__FILE__) . '/v1/tags.php',
                 'v1/search' => dirname(__FILE__) . '/v1/search.php',
                 'v1/custom-elements' => dirname(__FILE__) . '/v1/customElements.php',
@@ -61,6 +62,7 @@ class SiteRoutesMap
                 'v1/files' => dirname(__FILE__) . '/v1/filesMutation.php',
                 'v1/site/export/:format' => dirname(__FILE__) . '/v1/exportsMutation.php',
                 'v1/site/normalize-slugs' => dirname(__FILE__) . '/v1/siteNormalizeSlugs.php',
+                'v1/site/updateAlternativeFormats' => dirname(__FILE__) . '/v1/siteAlternativeFormatsMutation.php',
             ),
             'PATCH' => array(
                 'v1/items/:idOrSlug' => dirname(__FILE__) . '/v1/itemsMutation.php',

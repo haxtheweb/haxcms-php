@@ -303,6 +303,63 @@ trait OperationsRouteNodeRevisions {
       'fileContext' => $fileContext,
     );
   }
+  private function resolveNodeRevisionItemSlug($site, $nodeId) {
+    if (!isset($site) || !isset($site->manifest)) {
+      return '';
+    }
+    if (!is_string($nodeId) || $nodeId === '') {
+      return '';
+    }
+    if (method_exists($site->manifest, 'getItemById')) {
+      $found = $site->manifest->getItemById($nodeId);
+      if ($found && isset($found->slug)) {
+        return (string) $found->slug;
+      }
+    }
+    if (isset($site->manifest->items)) {
+      $items = $site->manifest->items;
+      if (is_array($items)) {
+        foreach ($items as $item) {
+          if (is_object($item) && isset($item->id) && (string) $item->id === (string) $nodeId) {
+            return isset($item->slug) ? (string) $item->slug : '';
+          }
+        }
+      } elseif (is_object($items)) {
+        foreach ($items as $item) {
+          if (is_object($item) && isset($item->id) && (string) $item->id === (string) $nodeId) {
+            return isset($item->slug) ? (string) $item->slug : '';
+          }
+        }
+      }
+    }
+    return '';
+  }
+  private function resolveNodeRevisionApiBasePath() {
+    if (
+      isset($this->params['apiBasePath']) &&
+      is_string($this->params['apiBasePath']) &&
+      $this->params['apiBasePath'] !== ''
+    ) {
+      return $this->params['apiBasePath'];
+    }
+    $requestPath = '';
+    if (isset($_SERVER['REQUEST_URI'])) {
+      $requestUri = (string) $_SERVER['REQUEST_URI'];
+      $questionPos = strpos($requestUri, '?');
+      if ($questionPos !== false) {
+        $requestPath = substr($requestUri, 0, $questionPos);
+      } else {
+        $requestPath = $requestUri;
+      }
+    }
+    if ($requestPath !== '') {
+      $matched = array();
+      if (preg_match('/^(.*\/x\/api)(?:\/.*)?$/', $requestPath, $matched) === 1 && isset($matched[1])) {
+        return $matched[1];
+      }
+    }
+    return '/x/api';
+  }
   /**
    * @OA\Post(
    *    path="/getNodeRevisions",
@@ -421,16 +478,28 @@ trait OperationsRouteNodeRevisions {
         $context['site'],
         $context['page']
       );
+      $nodeSlug = $this->resolveNodeRevisionItemSlug($context['site'], $context['page']->id);
+      $lookupValue = $nodeSlug !== '' ? $nodeSlug : (string) $context['page']->id;
+      $revisionApiBasePath = $this->resolveNodeRevisionApiBasePath();
       return array(
         'status' => 200,
         'data' => array(
           'nodeId' => $context['page']->id,
+          'nodeSlug' => $nodeSlug,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'jsonVariantLocation' => $jsonVariantLocation,
-          'limit' => $limit,
-          'offset' => $offset,
+          'count' => count($revisions),
           'total' => $total,
+          'page' => array(
+            'limit' => $limit,
+            'offset' => $offset,
+            'total' => $total,
+          ),
           'revisions' => $revisions,
+          'links' => array(
+            'self' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions',
+            'item' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue),
+          ),
         ),
       );
     }
@@ -531,16 +600,26 @@ trait OperationsRouteNodeRevisions {
         $hash,
         $jsonVariantLocation
       );
+      $nodeSlug = $this->resolveNodeRevisionItemSlug($context['site'], $context['page']->id);
+      $lookupValue = $nodeSlug !== '' ? $nodeSlug : (string) $context['page']->id;
+      $revisionApiBasePath = $this->resolveNodeRevisionApiBasePath();
       return array(
         'status' => 200,
         'data' => array(
           'nodeId' => $context['page']->id,
+          'nodeSlug' => $nodeSlug,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'revision' => $revisionMetadata,
           'content' => $fileContent,
           'jsonVariantLocation' => $jsonVariantLocation,
           'hasItemMetadata' => is_array($itemMetadata),
           'itemMetadata' => $itemMetadata,
+          'links' => array(
+            'self' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions/' . rawurlencode($hash),
+            'revisions' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions',
+            'restore' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions/' . rawurlencode($hash) . '/restore',
+            'item' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue),
+          ),
         ),
       );
     }
@@ -657,15 +736,25 @@ trait OperationsRouteNodeRevisions {
         ') from ' .
         substr($hash, 0, 12)
       );
+      $nodeSlug = $this->resolveNodeRevisionItemSlug($context['site'], $context['page']->id);
+      $lookupValue = $nodeSlug !== '' ? $nodeSlug : (string) $context['page']->id;
+      $revisionApiBasePath = $this->resolveNodeRevisionApiBasePath();
       return array(
         'status' => 200,
         'data' => array(
           'nodeId' => $context['page']->id,
+          'nodeSlug' => $nodeSlug,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'restoredFromHash' => $hash,
           'jsonVariantLocation' => $jsonVariantLocation,
           'hasItemMetadata' => is_array($itemMetadata),
           'itemMetadataRestored' => $itemMetadataRestored,
+          'links' => array(
+            'self' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions/' . rawurlencode($hash) . '/restore',
+            'revision' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions/' . rawurlencode($hash),
+            'revisions' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions',
+            'item' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue),
+          ),
         ),
       );
     }

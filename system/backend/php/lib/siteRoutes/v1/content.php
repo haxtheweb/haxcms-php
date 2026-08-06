@@ -59,6 +59,18 @@ return function ($context) {
             );
             return;
         }
+        // D41: detail-path anon-visibility guard. Mirrors items.php and the
+        // Node contentDetail handler: an anonymous caller must not be told an
+        // unpublished / hidden item exists, so return the same 404 as a miss.
+        if (SiteRouteUtils::isAnonymousSiteApiRequest($context) && !SiteRouteUtils::isItemVisibleToAnonymous($item)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => 'Content not found for idOrSlug "' . $context->params['idOrSlug'] . '"'),
+                array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+                $context->routeSuffix,
+                $apiBasePath
+            );
+            return;
+        }
         $body = SiteRouteUtils::getItemContent($site, $item);
         $record = SiteRouteUtils::contentToRecord($item, $body);
         $record['mode'] = $mode;
@@ -85,7 +97,7 @@ return function ($context) {
         return;
     }
     $orderedItems = SiteRouteUtils::getOrderedItems($site);
-    $filteredItems = SiteRouteUtils::applyItemFilters($orderedItems, $site);
+    $filteredItems = SiteRouteUtils::applyItemFilters($orderedItems, $site, $context);
     $records = array();
     foreach ($filteredItems as $item) {
         $body = SiteRouteUtils::getItemContent($site, $item);

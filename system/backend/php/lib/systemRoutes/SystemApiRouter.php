@@ -60,8 +60,28 @@ class SystemApiRouter
             return true;
         }
         $routeName = $match['route'];
+        // D1b parity with Node validateSystemV1RouteAccess: block site-scoped
+        // requests (URL under /{sitesDirectory}/) from a site-scoped referer
+        // from reaching system v1 admin routes. Emits the same 403 + message +
+        // D1 envelope as the Node system route handler.
+        if (!SystemApiSecurity::validateSystemV1RouteAccess($context, $routeName)) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => 'system admin route requires system dashboard access'),
+                array(
+                    'statusCode' => 403,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                is_string($context->routeSuffix) ? $context->routeSuffix : '',
+                $context->apiBasePath
+            );
+            return true;
+        }
         $security = SystemApiSecurity::validateSystemApiAccess($context, $routeName, $context->method);
         if (!$security['allowed']) {
+            if (intval($security['status']) === 429 && isset($security['retryAfterSeconds']) && intval($security['retryAfterSeconds']) > 0) {
+                header('Retry-After: ' . intval($security['retryAfterSeconds']));
+            }
             SiteRouteUtils::sendFormattedResponse(
                 array('message' => $security['message']),
                 array(

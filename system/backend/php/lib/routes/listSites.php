@@ -17,9 +17,11 @@ trait OperationsRouteListSites {
         "id" => "123-123-123-123",
         "title" => "My sites",
         "author" => "me",
-        "description" => "All of my micro sites I know and love.",
+        "description" => "All of my micro sites I know and love",
         "license" => "by-sa",
-        "metadata" => array(),
+        "metadata" => array(
+          "pageCount" => 0
+        ),
         "items" => array()
       );
       // loop through files directory so we can cache those things too
@@ -29,25 +31,11 @@ trait OperationsRouteListSites {
             $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
             $site = json_decode($json);
             if (isset($site->title)) {
-              $site->indent = 0;
-              $site->order = 0;
-              $site->parent = null;
               $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
               $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
               $site->metadata->pageCount = count($site->items);
               // we don't need all items stored here
               unset($site->items);
-              // unset other things we don't need to send across in this meta site.json response
-              if (isset($site->metadata->dynamicElementLoader)) {
-                unset($site->metadata->dynamicElementLoader);
-              }
-              
-              if (isset($site->metadata->node)) {
-                unset($site->metadata->node);
-              }
-              if (isset($site->metadata->build->items)) {
-                unset($site->metadata->build->items);
-              }
               $return['items'][] = $site;
             }
           }
