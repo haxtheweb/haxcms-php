@@ -370,7 +370,9 @@ return function ($context) {
             );
             return;
         }
-        $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+        // A4: pass $context so anon-visibility filtering fires (mirror Node
+        // blocks.js:502-504).
+        $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
         $usageTotals = SiteRouteUtils::collectCustomElementUsage($site, $filteredItems);
         $known = $wcMapHasTag($wcMap, $webcomponentName) ||
             array_key_exists($webcomponentName, $usageTotals) ||
@@ -407,7 +409,9 @@ return function ($context) {
         return;
     }
     if ($webcomponentName != '') {
-        $orderedItems = SiteRouteUtils::getOrderedItems($site);
+        // A4: apply anon-visibility filtering so anon callers don't see usage
+        // details from unpublished/hidden items (mirror Node blocks.js:428-430).
+        $orderedItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
         $usageDetails = $buildBlockUsageDetails($orderedItems, $webcomponentName);
         $usageItemIds = array();
         $usageCount = 0;
@@ -448,7 +452,9 @@ return function ($context) {
         );
         return;
     }
-    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site);
+    // A4: pass $context so anon-visibility filtering fires (mirror Node
+    // blocks.js:345-347).
+    $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
     $usage = SiteRouteUtils::collectCustomElementUsage($site, $filteredItems);
     $filterTag = strtolower(trim((string) SiteRouteUtils::getQueryValue('filter.tag', '')));
     $tagSet = array();
