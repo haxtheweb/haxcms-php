@@ -169,6 +169,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site summary update result
@@ -251,6 +254,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site appearance update result
@@ -282,6 +288,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site platform update result
@@ -313,6 +322,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site allowed blocks update result
@@ -344,6 +356,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site editor settings update result
@@ -375,6 +390,9 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
       responses:
         "200":
           description: Site SEO update result
@@ -408,6 +426,8 @@ paths:
               required:
                 - items
               properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
                 items:
                   type: array
                   items:
@@ -419,7 +439,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/ItemRecord"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -444,6 +474,8 @@ paths:
             schema:
               type: object
               properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
                 preview:
                   type: boolean
                   default: false
@@ -657,6 +689,88 @@ paths:
             schema:
               type: object
               additionalProperties: true
+              description: >
+                The back-end requires either a non-empty items array (bulk
+                create, e.g. docx import) or a node object (single page
+                create); site.name is injected by the v1 wrapper from the
+                request path when omitted.
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
+                node:
+                  type: object
+                  additionalProperties: true
+                  description: Single page to create.
+                  properties:
+                    id:
+                      type: string
+                      nullable: true
+                    title:
+                      type: string
+                    location:
+                      type: string
+                      nullable: true
+                    duplicate:
+                      type: string
+                      nullable: true
+                      description: id of an existing item to copy content from.
+                    contents:
+                      type: string
+                      nullable: true
+                      description: HTML body to seed the new page with.
+                items:
+                  type: array
+                  description: Bulk page create payload (import flows).
+                  items:
+                    type: object
+                    additionalProperties: true
+                    properties:
+                      id:
+                        type: string
+                        nullable: true
+                      title:
+                        type: string
+                      slug:
+                        type: string
+                        nullable: true
+                      parent:
+                        type: string
+                        nullable: true
+                      indent:
+                        type: number
+                        nullable: true
+                      order:
+                        type: number
+                        nullable: true
+                      content:
+                        type: string
+                        nullable: true
+                      contents:
+                        type: string
+                        nullable: true
+                      metadata:
+                        type: object
+                        additionalProperties: true
+                        nullable: true
+                      delete:
+                        type: boolean
+                        nullable: true
+                indent:
+                  type: number
+                  nullable: true
+                order:
+                  type: number
+                  nullable: true
+                parent:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                metadata:
+                  type: object
+                  additionalProperties: true
+                  nullable: true
       responses:
         "200":
           description: Item creation result
@@ -815,6 +929,8 @@ paths:
               required:
                 - operation
               properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
                 operation:
                   type: string
                   enum:
@@ -899,6 +1015,26 @@ paths:
           siteTokenHeader: []
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
+      requestBody:
+        required: false
+        description: >
+          The v1 wrapper resolves the item from the path and injects
+          node.id from it; site.name is injected from the request path
+          when omitted. The body is documented for transparency — the
+          back-end consumes site.name (for token validation) and node.id.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
+                node:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: id of the item to delete (injected from the path).
       responses:
         "200":
           description: Item deletion result
@@ -1078,6 +1214,8 @@ paths:
                 - search
                 - replace
               properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
                 operation:
                   type: string
                   enum:
@@ -1092,6 +1230,29 @@ paths:
                   type: boolean
                 searchCaseSensitive:
                   type: boolean
+                searchMode:
+                  type: string
+                  description: >
+                    Search mode; the back-end siteSearchRoute treats
+                    "selector" (case-insensitive) as CSS-selector search.
+                  enum:
+                    - text
+                    - selector
+                searchSelector:
+                  type: boolean
+                  description: >
+                    When true, force selector mode regardless of searchMode.
+                searchField:
+                  type: string
+                  description: >
+                    Comma-separated list of fields to search
+                    (id,title,slug,description,tags,content,location,parent);
+                    "all" resets to the default field set.
+                searchLimit:
+                  type: integer
+                  description: >
+                    Maximum number of matched items to return (capped at 200
+                    by the back-end).
       responses:
         "200":
           description: Content replace operation result
@@ -1170,6 +1331,8 @@ paths:
             schema:
               type: object
               properties:
+                site:
+                  $ref: "#/components/schemas/SiteReference"
                 body:
                   type: string
                 content:
@@ -1191,7 +1354,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ItemRecord"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2325,6 +2493,18 @@ components:
           properties:
             message:
               type: string
+    SiteReference:
+      type: object
+      description: >
+        Site context injected by the v1 mutation wrappers. The back-end
+        resolves the site name from the request path and populates
+        body.site.name when the front-end omits it; the legacy handlers use
+        this value together with the X-HAXCMS-Site-Token header for
+        validateRequestToken.
+      properties:
+        name:
+          type: string
+          description: Machine name of the site to mutate.
     ApiCapabilities:
       type: object
       properties:
@@ -2966,6 +3146,31 @@ components:
           type: string
         element:
           type: string
+        supportedPalettes:
+          type: array
+          description: >
+            Palette machine names the theme declares support for. Emitted by
+            the back-end normalizeThemeRecord only when the theme supplies a
+            non-empty list; read by the appearance dialog and
+            theme-preview-panel to populate palette options.
+          items:
+            type: string
+        priority:
+          type: integer
+          description: >
+            Sort priority from theme discovery; the appearance dialog sorts
+            themes by priority (ascending) before label.
+        terrible:
+          type: boolean
+          description: >
+            Flag from theme discovery marking themes that should be hidden
+            from standard listings; the back-end filters terrible themes out
+            of listThemes unless includeDisabled is set.
+        legacy:
+          type: boolean
+          description: >
+            Flag from theme metadata read by the appearance dialog to flag
+            legacy themes.
         links:
           type: object
           additionalProperties:
