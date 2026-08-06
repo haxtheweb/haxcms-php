@@ -865,6 +865,262 @@ class SiteRouteUtils
         }
         return null;
     }
+    /**
+     * Normalize an OpenAPI security config array into a policy string.
+     * Mirrors Node normalizeSiteApiSecurityPolicy (app.js:1622):
+     * - empty array or requirement with no keys => 'public'
+     * - requirement with siteTokenHeader => 'authenticated-site'
+     * - requirement with userTokenHeader => 'authenticated-user' (precedence over bearer)
+     * - requirement with bearerAuth => 'authenticated'
+     * - default => 'public'
+     */
+    public static function normalizeSecurityPolicy($securityConfig)
+    {
+        if (!is_array($securityConfig) || count($securityConfig) === 0) {
+            return 'public';
+        }
+        $requiresBearer = false;
+        $requiresUserToken = false;
+        foreach ($securityConfig as $requirement) {
+            if (!is_array($requirement)) {
+                continue;
+            }
+            if (count($requirement) === 0) {
+                return 'public';
+            }
+            if (array_key_exists('siteTokenHeader', $requirement)) {
+                return 'authenticated-site';
+            }
+            if (array_key_exists('userTokenHeader', $requirement)) {
+                $requiresUserToken = true;
+            }
+            if (array_key_exists('bearerAuth', $requirement)) {
+                $requiresBearer = true;
+            }
+        }
+        if ($requiresUserToken) {
+            return 'authenticated-user';
+        }
+        if ($requiresBearer) {
+            return 'authenticated';
+        }
+        return 'public';
+    }
+    /**
+     * Convert an OpenAPI path (/x/api/v1/.../{param}) to the PHP site route-key
+     * form (v1/.../:param) used by SiteRoutesMap. Mirrors Node
+     * convertOpenApiPathToSiteRoute (app.js:1612) but preserves the v1/ prefix
+     * to match PHP route map keys.
+     */
+    public static function convertOpenApiPathToSiteRoute($openApiPath)
+    {
+        $route = (string) $openApiPath;
+        if (strpos($route, '/x/api') !== 0) {
+            return '';
+        }
+        $route = preg_replace('#^/x/api/?#', '', $route);
+        $route = preg_replace('#^/#', '', $route);
+        $route = preg_replace('/\{([A-Za-z0-9_]+)\}/', ':$1', $route);
+        return is_string($route) ? $route : '';
+    }
+    /**
+     * Convert an OpenAPI path (/system/api/v1/.../{param}) to the PHP system
+     * route-key form (v1/.../:param) used by SystemRoutesMap. Mirrors Node
+     * convertOpenApiPathToSystemRoute (app.js:1724) but preserves the v1/
+     * prefix to match PHP route map keys.
+     */
+    public static function convertOpenApiPathToSystemRoute($openApiPath)
+    {
+        $route = (string) $openApiPath;
+        if (strpos($route, '/system/api/v1') !== 0) {
+            return '';
+        }
+        $route = preg_replace('#^/system/api/?#', '', $route);
+        $route = preg_replace('#^/#', '', $route);
+        $route = preg_replace('/\{([A-Za-z0-9_]+)\}/', ':$1', $route);
+        return is_string($route) ? $route : '';
+    }
+    private static $siteApiAuthPolicies = null;
+    /**
+     * Read site-spec.yaml once per request and build a map of
+     * 'method:routeKey => policy' mirroring Node
+     * readSiteApiAuthPoliciesFromOpenApiSpec (app.js:1658). Cached in a
+     * static property so repeated lookups in the same request skip re-parsing.
+     */
+    public static function readSiteApiAuthPoliciesFromOpenApiSpec()
+    {
+        if (self::$siteApiAuthPolicies !== null) {
+            return self::$siteApiAuthPolicies;
+        }
+        $policies = array();
+        $specPath = dirname(__FILE__) . '/openapi/site-spec.yaml';
+        if (!file_exists($specPath)) {
+            self::$siteApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $specContents = file_get_contents($specPath);
+        if (!is_string($specContents) || $specContents === '') {
+            self::$siteApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $parsedSpec = self::parseYaml($specContents);
+        if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
+            self::$siteApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $methods = array('get', 'post', 'put', 'patch', 'delete', 'options', 'head');
+        foreach ($parsedSpec['paths'] as $openApiPath => $pathConfig) {
+            if (strpos((string) $openApiPath, '/x/api') !== 0) {
+                continue;
+            }
+            $routeKey = self::convertOpenApiPathToSiteRoute($openApiPath);
+            if ($routeKey === '') {
+                continue;
+            }
+            if (!is_array($pathConfig)) {
+                continue;
+            }
+            $pathLevelPolicy = self::normalizeSecurityPolicy(
+                isset($pathConfig['security']) ? $pathConfig['security'] : null
+            );
+            foreach ($methods as $method) {
+                if (!array_key_exists($method, $pathConfig)) {
+                    continue;
+                }
+                $operation = $pathConfig[$method];
+                if (!is_array($operation)) {
+                    continue;
+                }
+                $policy = $pathLevelPolicy;
+                if (array_key_exists('security', $operation)) {
+                    $policy = self::normalizeSecurityPolicy($operation['security']);
+                }
+                $policies[$method . ':' . $routeKey] = $policy;
+            }
+        }
+        self::$siteApiAuthPolicies = $policies;
+        return $policies;
+    }
+    private static $systemApiAuthPolicies = null;
+    /**
+     * Read system-spec.yaml once per request and build a map of
+     * 'method:routeKey => policy' mirroring Node
+     * readSystemApiAuthPoliciesFromOpenApiSpec (app.js:1734).
+     */
+    public static function readSystemApiAuthPoliciesFromOpenApiSpec()
+    {
+        if (self::$systemApiAuthPolicies !== null) {
+            return self::$systemApiAuthPolicies;
+        }
+        $policies = array();
+        $specPath = dirname(__FILE__) . '/../systemRoutes/openapi/system-spec.yaml';
+        if (!file_exists($specPath)) {
+            self::$systemApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $specContents = file_get_contents($specPath);
+        if (!is_string($specContents) || $specContents === '') {
+            self::$systemApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $parsedSpec = self::parseYaml($specContents);
+        if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
+            self::$systemApiAuthPolicies = $policies;
+            return $policies;
+        }
+        $methods = array('get', 'post', 'put', 'patch', 'delete', 'options', 'head');
+        foreach ($parsedSpec['paths'] as $openApiPath => $pathConfig) {
+            if (strpos((string) $openApiPath, '/system/api/v1') !== 0) {
+                continue;
+            }
+            $routeKey = self::convertOpenApiPathToSystemRoute($openApiPath);
+            if ($routeKey === '') {
+                continue;
+            }
+            if (!is_array($pathConfig)) {
+                continue;
+            }
+            $pathLevelPolicy = self::normalizeSecurityPolicy(
+                isset($pathConfig['security']) ? $pathConfig['security'] : null
+            );
+            foreach ($methods as $method) {
+                if (!array_key_exists($method, $pathConfig)) {
+                    continue;
+                }
+                $operation = $pathConfig[$method];
+                if (!is_array($operation)) {
+                    continue;
+                }
+                $policy = $pathLevelPolicy;
+                if (array_key_exists('security', $operation)) {
+                    $policy = self::normalizeSecurityPolicy($operation['security']);
+                }
+                $policies[$method . ':' . $routeKey] = $policy;
+            }
+        }
+        self::$systemApiAuthPolicies = $policies;
+        return $policies;
+    }
+    /**
+     * Look up the spec-driven auth policy for a site API route+method.
+     * Fail-closed to 'authenticated' for any route not declared in the spec.
+     * Mirrors Node getSiteApiRouteAuthPolicy (app.js:1709).
+     */
+    public static function getSiteApiRouteAuthPolicy($route, $method)
+    {
+        $policies = self::readSiteApiAuthPoliciesFromOpenApiSpec();
+        $lookupKey = strtolower((string) $method) . ':' . (string) $route;
+        if (array_key_exists($lookupKey, $policies)) {
+            return $policies[$lookupKey];
+        }
+        return 'authenticated';
+    }
+    /**
+     * Look up the spec-driven auth policy for a system API route+method.
+     * Fail-closed to 'authenticated' for any route not declared in the spec.
+     * Mirrors Node getSystemApiRouteAuthPolicy (app.js:1785).
+     */
+    public static function getSystemApiRouteAuthPolicy($route, $method)
+    {
+        $policies = self::readSystemApiAuthPoliciesFromOpenApiSpec();
+        $lookupKey = strtolower((string) $method) . ':' . (string) $route;
+        if (array_key_exists($lookupKey, $policies)) {
+            return $policies[$lookupKey];
+        }
+        return 'authenticated';
+    }
+    /**
+     * Startup mutation-security guard mirroring Node
+     * assertSiteApiMutationRoutesAreSecured (app.js:1829). Checks that every
+     * non-GET/HEAD/OPTIONS route in the site route map resolves to a non-public
+     * auth policy via the spec-driven reader. Logs offending routes via
+     * error_log so a misconfigured spec is surfaced without blocking boot.
+     */
+    public static function assertSiteApiMutationRoutesAreSecured($routesMap = null)
+    {
+        $registry = is_array($routesMap) ? $routesMap : array();
+        $offendingRoutes = array();
+        foreach ($registry as $method => $routeMap) {
+            $lowerMethod = strtolower((string) $method);
+            if ($lowerMethod === 'get' || $lowerMethod === 'head' || $lowerMethod === 'options') {
+                continue;
+            }
+            if (!is_array($routeMap)) {
+                continue;
+            }
+            foreach (array_keys($routeMap) as $route) {
+                if (self::getSiteApiRouteAuthPolicy($route, $method) === 'public') {
+                    $offendingRoutes[] = strtoupper((string) $method) . ' ' . (string) $route;
+                }
+            }
+        }
+        if (count($offendingRoutes) > 0) {
+            error_log(
+                'SECURITY: site API mutation routes resolve to a public auth policy and must declare security in site-spec.yaml: ' . implode(', ', $offendingRoutes)
+            );
+        }
+        return $offendingRoutes;
+    }
     public static function getItemLookupValue($item)
     {
         if (isset($item) && isset($item->slug) && $item->slug != '') {

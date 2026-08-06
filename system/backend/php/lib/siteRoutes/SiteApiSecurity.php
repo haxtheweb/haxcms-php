@@ -110,51 +110,56 @@ class SiteApiSecurity
             $result['message'] = '';
             return $result;
         }
+        if ($policy === 'authenticated-user') {
+            // C1: spec-driven user-token enforcement for site API routes that
+            // declare userTokenHeader. Mirrors Node validateSiteApiRouteAccess
+            // authenticated-user branch (app.js:2328-2354).
+            $userToken = null;
+            if (
+                isset($context) &&
+                is_object($context) &&
+                method_exists($context, 'getHeader')
+            ) {
+                $userToken = $context->getHeader('X-HAXCMS-User-Token');
+            }
+            if (is_null($userToken) || $userToken === '') {
+                $result['status'] = 403;
+                $result['message'] = 'X-HAXCMS-User-Token header is required for this endpoint';
+                return $result;
+            }
+            $validUserToken = false;
+            if (
+                isset($GLOBALS['HAXCMS']) &&
+                is_object($GLOBALS['HAXCMS']) &&
+                method_exists($GLOBALS['HAXCMS'], 'validateRequestToken')
+            ) {
+                $validUserToken = $GLOBALS['HAXCMS']->validateRequestToken($userToken, $userName);
+            }
+            if (!$validUserToken) {
+                $result['status'] = 403;
+                $result['message'] = 'Invalid X-HAXCMS-User-Token header';
+                return $result;
+            }
+            $result['allowed'] = true;
+            $result['status'] = 200;
+            $result['message'] = '';
+            return $result;
+        }
         return $result;
     }
     private static function getRoutePolicy($routeSuffix, $method)
     {
-        $suffix = trim((string) $routeSuffix, '/');
         $upperMethod = strtoupper((string) $method);
         if ($upperMethod === 'OPTIONS') {
             return 'public';
         }
-        if (in_array($upperMethod, array('POST', 'PATCH', 'PUT', 'DELETE'), true)) {
-            return 'authenticated-site';
-        }
-        $publicPatterns = array(
-            '/^$/',
-            '/^openapi(\\.json|\\.yaml)?$/',
-            '/^v1$/',
-            '/^v1\\/openapi(\\.json|\\.yaml)?$/',
-            '/^v1\\/site$/',
-            '/^v1\/items$/',
-            '/^v1\/items\/[^\/]+$/',
-            '/^v1\/content$/',
-            '/^v1\/content\/[^\/]+$/',
-            '/^v1\/tags$/',
-            '/^v1\/search$/',
-            '/^v1\/custom-elements/',
-            '/^v1\/blocks/',
-            '/^v1\/regions/',
-            '/^v1\/themes/',
-            '/^v1\/analytics$/',
-            '/^v1\/views/',
-            '/^v1\/displays/',
-            '/^v1\/entities$/',
-            '/^v1\/schemas$/',
-            '/^v1\/site\/export\/[^\/]+$/',
-            '/^v1\/items\/[^\/]+\/export\/[^\/]+$/',
-        );
-        foreach ($publicPatterns as $pattern) {
-            if (preg_match($pattern, $suffix)) {
-                return 'public';
-            }
-        }
-        if (preg_match('/^v1\/items\/[^\/]+\/revisions/', $suffix)) {
-            return 'authenticated-site';
-        }
-        return 'authenticated';
+        // C1/Q6: spec-driven auth policy. Read the security declaration from
+        // site-spec.yaml at runtime and fail-closed to 'authenticated' for any
+        // route not declared in the spec. Mirrors Node getSiteApiRouteAuthPolicy
+        // (app.js:1709). This resolves A1 structurally: files/reports GETs
+        // inherit bearer+siteToken from the spec (authenticated-site) instead of
+        // the old regex table which left them as bare 'authenticated'.
+        return SiteRouteUtils::getSiteApiRouteAuthPolicy($routeSuffix, $upperMethod);
     }
     private static function resolveBearerUserName()
     {

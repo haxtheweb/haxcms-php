@@ -153,12 +153,20 @@ return function ($context) {
         }
         return $records;
     };
-    $resolveViewResults = function ($view) use ($site, $apiBasePath, $applyViewQueryFilters) {
+    $resolveViewResults = function ($view) use ($site, $apiBasePath, $applyViewQueryFilters, $context) {
         $viewQuery = (isset($view['query']) && is_array($view['query'])) ? $view['query'] : array();
         $source = isset($viewQuery['source']) ? (string) $viewQuery['source'] : 'items';
         if ($source === 'tags') {
             $tagMap = array();
             $items = SiteRouteUtils::getOrderedItems($site);
+            // A4: anon callers must not see tags from unpublished/hidden items
+            // (mirror Node views.js:155-158). Only the anon-visibility filter
+            // is applied here, not the full applyItemFilters query filters.
+            if (SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+                $items = array_values(array_filter($items, function ($item) {
+                    return SiteRouteUtils::isItemVisibleToAnonymous($item);
+                }));
+            }
             foreach ($items as $item) {
                 $tags = SiteRouteUtils::normalizeTagList(
                     (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->tags))
@@ -188,6 +196,14 @@ return function ($context) {
             }
             $queryLower = strtolower($query);
             $items = SiteRouteUtils::getOrderedItems($site);
+            // A4: anon callers must not search unpublished/hidden items
+            // (mirror Node views.js:183-186). Only the anon-visibility filter
+            // is applied here, not the full applyItemFilters query filters.
+            if (SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+                $items = array_values(array_filter($items, function ($item) {
+                    return SiteRouteUtils::isItemVisibleToAnonymous($item);
+                }));
+            }
             $records = array();
             foreach ($items as $item) {
                 $body = SiteRouteUtils::getItemContent($site, $item);
@@ -212,7 +228,9 @@ return function ($context) {
         }
         $items = SiteRouteUtils::getOrderedItems($site);
         $items = $applyViewQueryFilters($items, $viewQuery);
-        $items = SiteRouteUtils::applyItemFilters($items, $site);
+        // A4: pass the anonymous-visibility context so unpublished/hidden items
+        // are filtered out for anonymous callers, matching items/search parity.
+        $items = SiteRouteUtils::applyItemFilters($items, $site, $context);
         $records = array();
         foreach ($items as $item) {
             $records[] = SiteRouteUtils::itemToSummary($item, $apiBasePath);

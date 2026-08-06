@@ -30,10 +30,14 @@ trait OperationsRouteListSites {
           if ($item != "." && $item != ".." && is_dir(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item) && file_exists(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json')) {
             $json = file_get_contents(HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/site.json');
             $site = json_decode($json);
-            if (isset($site->title)) {
+            // F6: don't filter by title (Node listSites.js includes all valid
+            // sites). Just verify the json_decode produced a valid site object.
+            if ($site && is_object($site)) {
               $site->location = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
               $site->slug = $GLOBALS['HAXCMS']->basePath . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $item . '/';
-              $site->metadata->pageCount = count($site->items);
+              if (isset($site->metadata) && is_object($site->metadata)) {
+                $site->metadata->pageCount = isset($site->items) && is_array($site->items) ? count($site->items) : 0;
+              }
               // we don't need all items stored here
               unset($site->items);
               $return['items'][] = $site;

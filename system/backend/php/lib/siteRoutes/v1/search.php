@@ -24,11 +24,11 @@ return function ($context) {
     }
     $query = trim((string) SiteRouteUtils::getQueryValue('q', ''));
     if ($query == '') {
-        $sendTopLevelError(400, 'Query parameter \"q\" is required');
+        $sendTopLevelError(400, 'Query parameter "q" is required');
         return;
     }
     if (strlen($query) > 256) {
-        $sendTopLevelError(400, 'Query parameter \"q\" exceeds 256 characters');
+        $sendTopLevelError(400, 'Query parameter "q" exceeds 256 characters');
         return;
     }
     $normalizeSearchFields = function ($fields = array()) {

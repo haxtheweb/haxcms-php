@@ -121,10 +121,11 @@ return function ($context) {
         $operations->params = $context->body;
         $operations->rawParams = $context->body;
     }
-    unset($operations->params['jwt']);
+    // D2/Q7: keep jwt in params so the login revalidate branch fires (Node
+    // supports jwt from body/query). user_token and site_token are still
+    // stripped — those are header-based, not body params.
     unset($operations->params['user_token']);
     unset($operations->params['site_token']);
-    unset($operations->rawParams['jwt']);
     unset($operations->rawParams['user_token']);
     unset($operations->rawParams['site_token']);
     $route = $context->routeSuffix;

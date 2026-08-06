@@ -1214,6 +1214,7 @@ paths:
         - $ref: "#/components/parameters/FilterExtension"
         - $ref: "#/components/parameters/FilterStartsWith"
         - $ref: "#/components/parameters/FilterNameContains"
+        - $ref: "#/components/parameters/FileName"
         - $ref: "#/components/parameters/PageLimit"
         - $ref: "#/components/parameters/PageOffset"
         - $ref: "#/components/parameters/Sort"
@@ -2188,6 +2189,16 @@ components:
       required: false
       schema:
         type: string
+    FileName:
+      name: filename
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >
+        Substring filter applied to both the file relative path and the file
+        name. When supplied, only files whose path or name contains the value
+        (case-insensitive) are returned.
     FilterKind:
       name: filter.kind
       in: query

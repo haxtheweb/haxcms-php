@@ -57,6 +57,26 @@ return function ($context) {
         }
     }
     if ($method === 'POST') {
+        // E11: validate node/items payload presence mirroring Node items.js
+        // createItem (555-563). Previously PHP delegated with no 400, so an
+        // empty POST body silently created a blank node.
+        $hasItemsPayload = isset($body['items']) && is_array($body['items']) && count($body['items']) > 0;
+        $hasNodePayload = isset($body['node']) && is_array($body['node']);
+        if (!$hasItemsPayload && !$hasNodePayload) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'Node payload is required',
+                ),
+                array(
+                    'statusCode' => 400,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->createNode();
@@ -91,6 +111,11 @@ return function ($context) {
         if (!isset($body['node']['details']) || !is_array($body['node']['details'])) {
             $body['node']['details'] = array();
         }
+        // E10: stop honoring legacy nested node.details.* — reset to only the
+        // operation so client-supplied node.details values are not preserved.
+        // Align to the spec's top-level shape, matching Node
+        // nodeDetailOperations.js which reads from the top-level payload only.
+        $body['node']['details'] = array();
         $body['node']['details']['operation'] = $operation;
         $operationDetailKeys = array(
             'parent',
@@ -106,6 +131,7 @@ return function ($context) {
             'published',
             'hideInMenu',
             'slug',
+            'overridePathauto',
         );
         foreach ($operationDetailKeys as $detailKey) {
             if (array_key_exists($detailKey, $body) && !array_key_exists($detailKey, $body['node']['details'])) {
