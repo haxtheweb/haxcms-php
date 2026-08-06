@@ -50,13 +50,58 @@ return function ($context) {
         return $navigationMap;
     };
     $buildHaxElementSchemaFromHtml = function ($html = '') {
-        $tags = SiteRouteUtils::extractCustomElementTagsFromHtml($html);
+        // E2: rich per-element haxElementSchema mirroring Node items.js
+        // buildHaxElementSchemaFromHtml (260-302). Previously this returned
+        // empty stubs (tag + empty properties + empty content). Now parses
+        // the HTML and for each top-level element extracts tag + attributes
+        // (as properties) + innerHTML (as content), matching Node's shape.
+        $source = trim((string) $html);
+        if ($source === '') {
+            return array();
+        }
+        if (!class_exists('DOMDocument')) {
+            return array();
+        }
+        $dom = new DOMDocument();
+        $previousLibxmlState = libxml_use_internal_errors(true);
+        // Wrap in a root div so we can walk top-level children reliably;
+        // prepend the XML encoding declaration so UTF-8 is preserved.
+        $wrapped = '<?xml encoding="UTF-8"><div data-hax-element-schema-root>' . $source . '</div>';
+        $dom->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousLibxmlState);
+        $root = null;
+        if ($dom->documentElement && strtolower($dom->documentElement->tagName) === 'div') {
+            $root = $dom->documentElement;
+        }
+        if (!$root) {
+            return array();
+        }
         $schema = array();
-        foreach ($tags as $tag => $count) {
+        foreach ($root->childNodes as $node) {
+            if (!($node instanceof DOMElement)) {
+                continue;
+            }
+            $tagName = strtolower($node->tagName);
+            if ($tagName === '') {
+                continue;
+            }
+            $properties = array();
+            if ($node->attributes && $node->attributes->length > 0) {
+                foreach ($node->attributes as $attr) {
+                    $properties[$attr->name] = ($attr->value === null) ? true : $attr->value;
+                }
+            }
+            // innerHTML: concatenate saveHTML of each child node (mirrors
+            // Node's node.innerHTML)
+            $innerHTML = '';
+            foreach ($node->childNodes as $child) {
+                $innerHTML .= $dom->saveHTML($child);
+            }
             $schema[] = array(
-                'tag' => $tag,
-                'properties' => array(),
-                'content' => '',
+                'tag' => $tagName,
+                'properties' => $properties,
+                'content' => $innerHTML,
             );
         }
         return $schema;

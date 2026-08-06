@@ -98,7 +98,7 @@ return function ($context) {
         if (!in_array($format, $SITE_EXPORT_FORMATS, true)) {
             $sendTopLevelError(
                 400,
-                'Unsupported site export format \"' . $format . '\"',
+                'Unsupported site export format "' . $format . '"',
                 array('supportedFormats' => $SITE_EXPORT_FORMATS)
             );
             return;
@@ -167,7 +167,7 @@ return function ($context) {
     $idOrSlug = isset($context->params['idOrSlug']) ? (string) $context->params['idOrSlug'] : '';
     $item = SiteRouteUtils::findItemByIdOrSlug($site, $idOrSlug);
     if (!$item) {
-        $sendTopLevelError(404, 'Item not found for idOrSlug \"' . $idOrSlug . '\"');
+        $sendTopLevelError(404, 'Item not found for idOrSlug "' . $idOrSlug . '"');
         return;
     }
     if (SiteRouteUtils::isAnonymousSiteApiRequest($context) && !SiteRouteUtils::isItemVisibleToAnonymous($item)) {
@@ -177,7 +177,7 @@ return function ($context) {
     if (!in_array($format, $ITEM_EXPORT_FORMATS, true)) {
         $sendTopLevelError(
             400,
-            'Unsupported item export format \"' . $format . '\"',
+            'Unsupported item export format "' . $format . '"',
             array('supportedFormats' => $ITEM_EXPORT_FORMATS)
         );
         return;

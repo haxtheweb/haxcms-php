@@ -153,28 +153,81 @@ return function ($context) {
                 $body['operation'] = 'delete';
             }
         }
-        if (!isset($body['path']) || $body['path'] === '') {
-            if ($fileUuid !== '') {
-                $resolvedPath = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
-                // D52: reject non-UUID tokens with a 400 error (Node canonical)
-                if ($resolvedPath === false) {
-                    SiteRouteUtils::sendFormattedResponse(
-                        array(
-                            'message' => 'File uuid is required and must be a valid UUID',
-                        ),
-                        array(
-                            'statusCode' => 400,
-                            'allowedFormats' => array('json'),
-                            'defaultFormat' => 'json',
-                        ),
-                        $context->routeSuffix,
-                        $context->apiBasePath
-                    );
-                    return;
-                }
-                $body['path'] = $resolvedPath;
+        else if ($method === 'PATCH') {
+            // D1: reject {operation:'delete'} on PATCH mirroring Node files.js
+            // (1148-1153). File deletion must use DELETE /v1/files/{fileUuid}.
+            $patchOperation = '';
+            if (isset($body['operation']) && is_string($body['operation'])) {
+                $patchOperation = strtolower(trim($body['operation']));
+            }
+            if ($patchOperation === 'delete') {
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'message' => 'Use DELETE /x/api/v1/files/{fileUuid} for file deletion',
+                    ),
+                    array(
+                        'statusCode' => 400,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                    ),
+                    $context->routeSuffix,
+                    $context->apiBasePath
+                );
+                return;
             }
         }
+        // D1: always resolve the file path from the UUID path param; stop
+        // honoring a client-supplied body.path (spec defines fileUuid only,
+        // not a body path — Node canonical). Previously a client could bypass
+        // UUID resolution by supplying body.path directly.
+        if ($fileUuid === '') {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'File uuid is required',
+                ),
+                array(
+                    'statusCode' => 400,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        $resolvedPath = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
+        // D52: reject non-UUID tokens with a 400 error (Node canonical)
+        if ($resolvedPath === false) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'File uuid is required and must be a valid UUID',
+                ),
+                array(
+                    'statusCode' => 400,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        if ($resolvedPath === '') {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'File not found for fileUuid',
+                ),
+                array(
+                    'statusCode' => 404,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        $body['path'] = $resolvedPath;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->fileOperation();

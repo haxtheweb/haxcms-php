@@ -7,6 +7,15 @@ class SiteApiRouter
 {
     public static function dispatch($site)
     {
+        // C1: startup mutation-security guard mirroring Node
+        // assertSiteApiMutationRoutesAreSecured (app.js:1829). Runs once per
+        // process so a misconfigured spec (a mutation route resolving to
+        // public) is surfaced via error_log without blocking request handling.
+        static $mutationGuardChecked = false;
+        if (!$mutationGuardChecked) {
+            $mutationGuardChecked = true;
+            SiteRouteUtils::assertSiteApiMutationRoutesAreSecured(SiteRoutesMap::getRoutesMap());
+        }
         $context = SiteApiRequestContext::fromSite($site);
         if (!$context->isSiteApiRequest()) {
             return false;
@@ -82,9 +91,13 @@ class SiteApiRouter
             );
             return true;
         }
+        // C1: pass the matched route PATTERN (e.g. v1/items/:idOrSlug) so the
+        // spec-driven auth policy reader can look up the security declaration
+        // by route key. Mirrors Node validateSiteApiRouteAccess(req, siteRoute)
+        // where siteRoute is the Express route pattern, not the concrete path.
         $authResult = SiteApiSecurity::validateSiteApiAccess(
             $context,
-            is_string($context->routeSuffix) ? $context->routeSuffix : '',
+            isset($match['route']) ? $match['route'] : '',
             $context->method
         );
         if (!$authResult['allowed']) {
@@ -140,6 +153,7 @@ class SiteApiRouter
             return array(
                 'file' => $routeFile,
                 'params' => $matchedParams,
+                'route' => $pattern,
             );
         }
         $fallbackMatch = self::matchSpecialCaseRoutes($targetRoute, $routes);
@@ -200,6 +214,7 @@ class SiteApiRouter
             return array(
                 'file' => $routes[$case['route']],
                 'params' => $params,
+                'route' => $case['route'],
             );
         }
         return null;

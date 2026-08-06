@@ -2604,6 +2604,38 @@ class HAXCMS
         };
         $multisiteUrlName = $extractSiteNameFromPath($refererPath);
         $sitename = $multisiteUrlName;
+        // D6: single-site mode resolution mirroring Node connectionSettings.js
+        // (179-196). In single-site mode the referer has no /_sites/<name>/
+        // segment so $sitename is blank. Resolve from the single-site manifest
+        // (HAXCMS_ROOT/site.json) so the siteToken mints for user:sitename
+        // instead of 'user:' (which wouldn't validate against the site API).
+        if ($sitename === '') {
+            $singleSiteJsonPath = HAXCMS_ROOT . '/site.json';
+            if (file_exists($singleSiteJsonPath)) {
+                $singleSiteJson = @file_get_contents($singleSiteJsonPath);
+                if ($singleSiteJson !== false) {
+                    $singleSite = json_decode($singleSiteJson);
+                    if (
+                        $singleSite &&
+                        isset($singleSite->metadata) &&
+                        isset($singleSite->metadata->site) &&
+                        isset($singleSite->metadata->site->name) &&
+                        is_string($singleSite->metadata->site->name) &&
+                        $singleSite->metadata->site->name !== ''
+                    ) {
+                        $sitename = (string) $singleSite->metadata->site->name;
+                    }
+                    else if (
+                        $singleSite &&
+                        isset($singleSite->name) &&
+                        is_string($singleSite->name) &&
+                        $singleSite->name !== ''
+                    ) {
+                        $sitename = (string) $singleSite->name;
+                    }
+                }
+            }
+        }
         $requestTokenUser = $this->getRequestTokenUserName();
         // user token includes user and site name of the request
         $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
