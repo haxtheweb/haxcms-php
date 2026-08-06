@@ -12,6 +12,18 @@ class SystemApiSecurity
                 'message' => '',
             );
         }
+        // 'site-token-only' routes (e.g. integrations/app-store) declare
+        // siteTokenHeader without bearerAuth. The router does not require a
+        // bearer JWT; the handler validates the X-HAXCMS-Site-Token against
+        // the server-side active user. This mirrors the original
+        // handler-validated behavior and Node's open-route + handler pattern.
+        if ($security === 'site-token-only') {
+            return array(
+                'allowed' => true,
+                'status' => 200,
+                'message' => '',
+            );
+        }
         // Resolve authenticated userName from Bearer (primary) or Basic (fallback).
         // Basic-auth fallback mirrors the NodeJS system route handler and shares
         // the login rate-limit counters (429 + Retry-After on brute-force lockout).

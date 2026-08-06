@@ -869,7 +869,8 @@ class SiteRouteUtils
      * Normalize an OpenAPI security config array into a policy string.
      * Mirrors Node normalizeSiteApiSecurityPolicy (app.js:1622):
      * - empty array or requirement with no keys => 'public'
-     * - requirement with siteTokenHeader => 'authenticated-site'
+     * - requirement with siteTokenHeader + bearerAuth => 'authenticated-site'
+     * - requirement with siteTokenHeader alone => 'site-token-only'
      * - requirement with userTokenHeader => 'authenticated-user' (precedence over bearer)
      * - requirement with bearerAuth => 'authenticated'
      * - default => 'public'
@@ -889,7 +890,17 @@ class SiteRouteUtils
                 return 'public';
             }
             if (array_key_exists('siteTokenHeader', $requirement)) {
-                return 'authenticated-site';
+                // siteTokenHeader paired with bearerAuth (in the same
+                // requirement) is 'authenticated-site' (bearer JWT + site
+                // token, e.g. provider-search, site API mutations).
+                // siteTokenHeader alone is 'site-token-only' — the site token
+                // is validated against the server-side active user by the
+                // handler (e.g. generateAppStore), no bearer JWT required.
+                // Mirrors Node normalizeSiteApiSecurityPolicy (app.js).
+                if (array_key_exists('bearerAuth', $requirement)) {
+                    return 'authenticated-site';
+                }
+                return 'site-token-only';
             }
             if (array_key_exists('userTokenHeader', $requirement)) {
                 $requiresUserToken = true;
