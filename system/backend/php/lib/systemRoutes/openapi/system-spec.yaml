@@ -117,8 +117,11 @@ paths:
         - session
       operationId: sessionAuthGet
       summary: Validate a JWT and return authenticated session details
-      security:
-        - bearerAuth: []
+      description: >
+        Anonymous login probe. Returns session details when a valid JWT is
+        supplied and a minimal unauthenticated response otherwise. No bearer
+        auth is required to reach this endpoint.
+      security: []
       responses:
         "200":
           description: Authenticated session details
@@ -135,8 +138,11 @@ paths:
         - session
       operationId: sessionAuthPost
       summary: Validate a JWT and return authenticated session details
-      security:
-        - bearerAuth: []
+      description: >
+        Anonymous login probe. Returns session details when a valid JWT is
+        supplied (body or query) and a minimal unauthenticated response
+        otherwise. No bearer auth is required to reach this endpoint.
+      security: []
       requestBody:
         required: false
         content:
@@ -564,10 +570,20 @@ paths:
       description: >
         Proxies a search request to a registered app-store provider (e.g.
         product-card, media, etc.) and returns the provider's response payload.
-        Moved to the system API in D38; documented here per D57.
+        Moved to the system API in D38; documented here per D57. Requires a
+        valid bearer JWT and site token so only authenticated site contexts
+        can broker upstream provider searches.
       parameters:
         - $ref: "#/components/parameters/AppStoreProvider"
-      security: []
+        - name: siteName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Site machine name used to validate site token scope
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
       responses:
         "200":
           description: Provider search response payload
@@ -788,19 +804,20 @@ paths:
     post:
       tags:
         - settings
-      operationId: saveApiKeysPost
-      summary: Update API key settings
+      operationId: getApiKeysPost
+      summary: Return configured API keys and provider statuses (read alias of GET)
+      description: >
+        Read-only alias of GET /configuration/api-keys. POST is accepted for
+        callers that prefer POST over GET but does not write; use PATCH to
+        update API key settings. Single-user deployment assumption: the
+        NodeJS backend does not model an admin/superUser tier; these settings
+        are written by the single authenticated dashboard user.
       security:
         - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApiKeysSettings"
+          userTokenHeader: []
       responses:
         "200":
-          description: API key update response
+          description: API key settings
           content:
             application/json:
               schema:
@@ -812,6 +829,11 @@ paths:
         - settings
       operationId: saveApiKeysPatch
       summary: Update API key settings
+      description: >
+        Write operation — updates API key settings. Single-user deployment
+        assumption: the NodeJS backend does not model an admin/superUser
+        tier; settings are written by the single authenticated dashboard
+        user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -851,19 +873,20 @@ paths:
     post:
       tags:
         - settings
-      operationId: saveMediaSettingsPost
-      summary: Update media and upload configuration
+      operationId: getMediaSettingsPost
+      summary: Return media and upload configuration (read alias of GET)
+      description: >
+        Read-only alias of GET /configuration/media. POST is accepted for
+        callers that prefer POST over GET but does not write; use PATCH to
+        update media settings. Single-user deployment assumption: the
+        NodeJS backend does not model an admin/superUser tier; these settings
+        are written by the single authenticated dashboard user.
       security:
         - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MediaSettings"
+          userTokenHeader: []
       responses:
         "200":
-          description: Media settings update response
+          description: Media settings
           content:
             application/json:
               schema:
@@ -875,6 +898,11 @@ paths:
         - settings
       operationId: saveMediaSettingsPatch
       summary: Update media and upload configuration
+      description: >
+        Write operation — updates media and upload configuration. Single-user
+        deployment assumption: the NodeJS backend does not model an
+        admin/superUser tier; settings are written by the single authenticated
+        dashboard user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -899,6 +927,12 @@ paths:
         - settings
       operationId: schemaFileOperation
       summary: Perform schema file operation in system configuration storage
+      description: >
+        Write operation — performs schema file operations (rename, delete,
+        upload) in system configuration storage. Single-user deployment
+        assumption: the NodeJS backend does not model an admin/superUser
+        tier; operations are performed by the single authenticated dashboard
+        user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -925,6 +959,7 @@ paths:
       summary: Return available system blocks
       security:
         - bearerAuth: []
+          userTokenHeader: []
       responses:
         "200":
           description: Available block list
@@ -937,19 +972,20 @@ paths:
     post:
       tags:
         - settings
-      operationId: saveEnabledBlocksPost
-      summary: Update enabled block configuration using the blocks collection endpoint
+      operationId: systemBlocksPost
+      summary: Return available system blocks (read alias of GET)
+      description: >
+        Read-only alias of GET /blocks. POST is accepted for callers that
+        prefer POST over GET but does not write; use PATCH to update enabled
+        block configuration. Single-user deployment assumption: the NodeJS
+        backend does not model an admin/superUser tier; these settings are
+        written by the single authenticated dashboard user.
       security:
         - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EnabledCollectionSettings"
+          userTokenHeader: []
       responses:
         "200":
-          description: Enabled collection update response
+          description: Available block list
           content:
             application/json:
               schema:
@@ -961,6 +997,11 @@ paths:
         - settings
       operationId: saveEnabledBlocksPatch
       summary: Update enabled block configuration using the blocks collection endpoint
+      description: >
+        Write operation — updates enabled block configuration. Single-user
+        deployment assumption: the NodeJS backend does not model an
+        admin/superUser tier; settings are written by the single authenticated
+        dashboard user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -987,6 +1028,7 @@ paths:
       summary: Return available system skeletons
       security:
         - bearerAuth: []
+          userTokenHeader: []
       responses:
         "200":
           description: Available skeleton list
@@ -1000,27 +1042,23 @@ paths:
       tags:
         - settings
       operationId: systemSkeletonsPost
-      summary: Upload a skeleton resource or perform skeleton collection operations
+      summary: Return available system skeletons (read alias of GET)
+      description: >
+        Read-only alias of GET /skeletons. POST is accepted for callers that
+        prefer POST over GET but does not write; use PATCH to update enabled
+        skeleton configuration. Single-user deployment assumption: the NodeJS
+        backend does not model an admin/superUser tier; these settings are
+        written by the single authenticated dashboard user.
       security:
         - bearerAuth: []
-      requestBody:
-        required: false
-        content:
-          multipart/form-data:
-            schema:
-              $ref: "#/components/schemas/SkeletonUploadRequest"
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SkeletonMutationRequest"
+          userTokenHeader: []
       responses:
         "200":
-          description: Skeleton resource operation response
+          description: Available skeleton list
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiEnvelope"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
     patch:
@@ -1029,6 +1067,11 @@ paths:
       operationId: saveEnabledSkeletonsPatch
       summary: Update enabled skeleton configuration using the skeletons collection
         endpoint
+      description: >
+        Write operation — updates enabled skeleton configuration. Single-user
+        deployment assumption: the NodeJS backend does not model an
+        admin/superUser tier; settings are written by the single authenticated
+        dashboard user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -1161,6 +1204,7 @@ paths:
       summary: Return available system themes
       security:
         - bearerAuth: []
+          userTokenHeader: []
       responses:
         "200":
           description: Available theme list
@@ -1173,19 +1217,20 @@ paths:
     post:
       tags:
         - settings
-      operationId: saveEnabledThemesPost
-      summary: Update enabled theme configuration using the themes collection endpoint
+      operationId: systemThemesPost
+      summary: Return available system themes (read alias of GET)
+      description: >
+        Read-only alias of GET /themes. POST is accepted for callers that
+        prefer POST over GET but does not write; use PATCH to update enabled
+        theme configuration. Single-user deployment assumption: the NodeJS
+        backend does not model an admin/superUser tier; these settings are
+        written by the single authenticated dashboard user.
       security:
         - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EnabledCollectionSettings"
+          userTokenHeader: []
       responses:
         "200":
-          description: Enabled collection update response
+          description: Available theme list
           content:
             application/json:
               schema:
@@ -1197,6 +1242,11 @@ paths:
         - settings
       operationId: saveEnabledThemesPatch
       summary: Update enabled theme configuration using the themes collection endpoint
+      description: >
+        Write operation — updates enabled theme configuration. Single-user
+        deployment assumption: the NodeJS backend does not model an
+        admin/superUser tier; settings are written by the single authenticated
+        dashboard user.
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -2448,13 +2498,30 @@ components:
               type: string
     LoginRequest:
       type: object
+      description: >
+        Login credentials or JWT revalidation token. When username/password are
+        supplied the server validates them and issues a fresh JWT. When jwt is
+        supplied (body or query) the server revalidates the existing token and
+        returns it if still valid, enabling a revalidate-without-credentials
+        login flow.
       properties:
-        u:
+        username:
           type: string
-          description: Username
-        p:
+          description: Username (primary field name accepted by v1 handlers)
+        password:
           type: string
           description: Password
+        u:
+          type: string
+          description: Legacy username alias (v0 compatibility)
+        p:
+          type: string
+          description: Legacy password alias (v0 compatibility)
+        jwt:
+          type: string
+          description: >
+            Existing JWT to revalidate. When supplied (body or query) the
+            server validates the token and returns it if still valid.
       additionalProperties: true
     SiteActionRequest:
       type: object
