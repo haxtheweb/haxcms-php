@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../siteRoutes/SiteRouteUtils.php';
 class SystemApiSecurity
 {
     public static function validateSystemApiAccess($context, $route, $method)
@@ -171,56 +172,95 @@ class SystemApiSecurity
     private static function getRouteSecurity($route, $method)
     {
         $normalizedMethod = strtoupper((string) $method);
-        $publicRoutes = array(
-            'v1',
-            'v1/openapi',
-            'v1/openapi.json',
-            'v1/openapi.yaml',
-            'v1/session',
-            'v1/session/login',
-            'v1/session/logout',
-            'v1/session/refresh',
-            'v1/session/connection-settings',
-            'v1/session/connection-test',
-            'v1/integrations/app-store',
-            'v1/integrations/app-store/providers/:provider/search',
-        );
-        if (in_array($route, $publicRoutes, true)) {
+        if ($normalizedMethod === 'OPTIONS') {
             return 'public';
         }
-        $authenticatedRoutes = array(
-            'v1/haxiamAddUserAccess',
-        );
-        if (in_array($route, $authenticatedRoutes, true)) {
-            return 'authenticated';
-        }
-        $dashboardReadRoutes = array(
-            'v1/skeletons',
-            'v1/skeletons/:skeletonName',
-            'v1/themes',
-            'v1/configuration/api-keys',
-            'v1/configuration/media',
-            'v1/blocks',
-        );
+        // C1/Q6: spec-driven base policy. Read the security declaration from
+        // system-spec.yaml at runtime and fail-closed to 'authenticated' for
+        // any route not declared in the spec. Mirrors Node
+        // getSystemApiRouteAuthPolicy (app.js:1785). This retires the
+        // hand-maintained public/authenticated route lists.
+        $basePolicy = SiteRouteUtils::getSystemApiRouteAuthPolicy($route, $normalizedMethod);
+        // PHP admin tier (Q1: no Node equivalent): elevate non-GET methods of
+        // admin routes to 'admin' so the superUser check fires. GET stays at
+        // the spec-driven base policy (authenticated/authenticated-user) since
+        // the spec declares bearerAuth for dashboard reads. The admin route
+        // list is the single source of truth for which routes require admin.
         if (
-            $normalizedMethod === 'GET' &&
-            in_array($route, $dashboardReadRoutes, true)
+            $normalizedMethod !== 'GET' &&
+            $normalizedMethod !== 'HEAD' &&
+            in_array($route, SystemRoutesMap::getSystemV1AdminRoutes(), true)
         ) {
-            return 'authenticated';
-        }
-        $adminRoutes = array(
-            'v1/configuration/api-keys',
-            'v1/configuration/media',
-            'v1/configuration/schema-files/operations',
-            'v1/blocks',
-            'v1/skeletons',
-            'v1/skeletons/:skeletonName',
-            'v1/themes',
-        );
-        if (in_array($route, $adminRoutes, true)) {
             return 'admin';
         }
-        return 'authenticated';
+        // The spec-driven reader may return 'authenticated-user' for routes
+        // that declare userTokenHeader. The X-HAXCMS-User-Token header is
+        // enforced separately by enforceSystemApiUserTokenHeader (which
+        // resolves :param placeholders to concrete spec paths for per-value
+        // paths like /site/import/haxcms). The base access check here treats
+        // 'authenticated-user' as 'authenticated' to avoid a double check.
+        if ($basePolicy === 'authenticated-user') {
+            return 'authenticated';
+        }
+        return $basePolicy;
+    }
+    /**
+     * F2/Q14+F3: enforce the X-HAXCMS-Site-Token header on the app-store
+     * provider-search GET route in the router (not the handler) for a
+     * consistent 403 envelope. The current spec declares security: [] for
+     * this route; Q14 requires a site token. The spec will be updated by the
+     * node-backend and synced at merge; until then this explicit router-level
+     * check enforces the decision. siteName validation stays in the handler.
+     * Returns null when the route does not require the check or the supplied
+     * token is valid; returns a 403 payload (status + message) when the header
+     * is missing or invalid.
+     */
+    public static function enforceProviderSearchSiteToken($routeName, $method, $context)
+    {
+        $normalizedMethod = strtoupper((string) $method);
+        if ($normalizedMethod !== 'GET') {
+            return null;
+        }
+        if ($routeName !== 'v1/integrations/app-store/providers/:provider/search') {
+            return null;
+        }
+        $siteToken = '';
+        if (is_object($context) && method_exists($context, 'getHeader')) {
+            $headerValue = $context->getHeader('X-HAXCMS-Site-Token');
+            if (is_string($headerValue)) {
+                $siteToken = $headerValue;
+            }
+        }
+        if ($siteToken === '') {
+            return array(
+                'status' => 403,
+                'message' => 'X-HAXCMS-Site-Token header is required for this endpoint',
+            );
+        }
+        // Resolve siteName from the query param for token validation. If
+        // siteName is missing, defer to the handler's siteName validation (F3).
+        $siteName = isset($_GET['siteName']) ? (string) $_GET['siteName'] : '';
+        if ($siteName === '') {
+            return null;
+        }
+        $validToken = false;
+        if (
+            isset($GLOBALS['HAXCMS']) &&
+            is_object($GLOBALS['HAXCMS']) &&
+            method_exists($GLOBALS['HAXCMS'], 'validateSiteToken')
+        ) {
+            $validToken = $GLOBALS['HAXCMS']->validateSiteToken($siteName, $siteToken);
+        }
+        else {
+            $validToken = SiteRouteUtils::validateSiteToken($siteName, $siteToken);
+        }
+        if (!$validToken) {
+            return array(
+                'status' => 403,
+                'message' => 'Invalid X-HAXCMS-Site-Token header',
+            );
+        }
+        return null;
     }
     /**
      * Canonical system READ operations that declare userTokenHeader in the

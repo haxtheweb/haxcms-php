@@ -41,7 +41,7 @@ trait OperationsRouteSaveOutline {
         return array(
           '__failed' => array(
             'status' => 400,
-            'message' => 'Missing outline items payload',
+            'message' => 'Outline payload requires an items array',
           )
         );
       }

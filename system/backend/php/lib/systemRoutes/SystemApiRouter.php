@@ -116,6 +116,24 @@ class SystemApiRouter
             );
             return true;
         }
+        // F2/Q14+F3: enforce the provider-search site token in the router for a
+        // consistent 403 envelope. The spec will be updated by node-backend to
+        // declare bearer+siteToken; until the spec sync, this explicit check
+        // enforces the Q14 decision. siteName validation stays in the handler.
+        $providerSearchFailure = SystemApiSecurity::enforceProviderSearchSiteToken($routeName, $context->method, $context);
+        if ($providerSearchFailure !== null) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('message' => $providerSearchFailure['message']),
+                array(
+                    'statusCode' => 403,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                is_string($context->routeSuffix) ? $context->routeSuffix : '',
+                $context->apiBasePath
+            );
+            return true;
+        }
         if (!isset($match['file']) || !is_string($match['file']) || !file_exists($match['file'])) {
             SiteRouteUtils::sendFormattedResponse(
                 array('message' => 'System API handler file missing'),

@@ -110,9 +110,11 @@ trait OperationsRouteLogin {
         $entry = $this->registerFailedLoginAttempt($entry, $nowMs, $settings);
         $this->saveLoginAttemptEntry($attemptKey, $entry, $settings);
       }
+      // D2/Q8: login failure returns 401 (not 403) per spec; invalid-bearer
+      // on protected routes stays 403, but credential login failure is 401.
       return array(
         '__failed' => array(
-          'status' => 403,
+          'status' => 401,
           'message' => 'Access denied',
         )
       );
@@ -167,26 +169,40 @@ trait OperationsRouteLogin {
     if (isset($this->params['username']) && isset($this->params['password'])) {
       return $this->processCredentialLogin($this->params['username'], $this->params['password'], false);
     }
-    //old way
-    // if we don't have a user and the don't answer, bail
-    else if (isset($this->params['u']) && isset($this->params['p'])) {
-      return $this->processCredentialLogin($this->params['u'], $this->params['p'], true);
-    }
-    // login end point requested yet a jwt already exists
-    // this is something of a revalidate case
+    // D2/Q7: login end point requested yet a jwt already exists — this is a
+    // revalidate case. The body jwt was previously stripped in the session v1
+    // handler; it now reaches this branch so JWT-revalidate works in v1.
+    // D2/Q8: use validateJWT(false) so an invalid jwt returns a 401 envelope
+    // instead of exiting with 403. Set sessionJwt from the body jwt first so
+    // validateJWT can decode it (sessionJwt is normally set from the bearer
+    // header in the HAXCMS constructor).
     else if (isset($this->params['jwt'])) {
+      $bodyJwt = is_string($this->params['jwt']) ? trim($this->params['jwt']) : '';
+      if ($bodyJwt !== '') {
+        $GLOBALS['HAXCMS']->sessionJwt = $bodyJwt;
+      }
+      $valid = $GLOBALS['HAXCMS']->validateJWT(false);
+      if ($valid) {
+        return array(
+          "status" => 200,
+          "jwt" => $GLOBALS['HAXCMS']->getJWT($GLOBALS['HAXCMS']->getActiveUserName()),
+        );
+      }
       return array(
-        "status" => 200,
-        "jwt" => $GLOBALS['HAXCMS']->validateJWT(),
+        '__failed' => array(
+          'status' => 401,
+          'message' => 'Invalid token',
+        )
       );
     }
     else {
+      // D2/Q8: login required returns 401 (not 403) per spec.
       return array(
         '__failed' => array(
-          'status' => 403,
+          'status' => 401,
           'message' => 'Login is required',
         )
       );
-    } 
+    }
   }
 }

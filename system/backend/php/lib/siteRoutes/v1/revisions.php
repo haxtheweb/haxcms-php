@@ -18,17 +18,27 @@ return function ($context) {
     if (!is_string($siteToken)) {
         $siteToken = '';
     }
+    // E9: resolve slug to UUID before delegating (Node canonical). The restore
+    // path was already fixed; this covers the GET list/single revision paths
+    // which previously passed the raw idOrSlug and 404'd on slug lookups.
+    $resolvedItemId = $idOrSlug;
+    if (isset($context->site) && $idOrSlug !== '') {
+        $resolvedItem = SiteRouteUtils::findItemByIdOrSlug($context->site, $idOrSlug);
+        if ($resolvedItem && isset($resolvedItem->id) && is_string($resolvedItem->id) && $resolvedItem->id !== '') {
+            $resolvedItemId = (string) $resolvedItem->id;
+        }
+    }
     if ($revisionId !== '') {
         $body = array(
             'site' => array('name' => $siteName),
-            'node' => array('id' => $idOrSlug),
+            'node' => array('id' => $resolvedItemId),
             'hash' => $revisionId,
             'site_token' => $siteToken,
         );
     } else {
         $body = array(
             'site' => array('name' => $siteName),
-            'node' => array('id' => $idOrSlug),
+            'node' => array('id' => $resolvedItemId),
             'site_token' => $siteToken,
         );
     }

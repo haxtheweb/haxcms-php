@@ -70,7 +70,50 @@ return function ($context) {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
+        // B2: map top-level body/content/schema/details into node.* mirroring
+        // Node content.js updateContent (282-329). Spec-conformant requests
+        // that send top-level fields now work instead of silently no-op'ing.
+        $bodyContent = '';
+        if (isset($body['body']) && is_string($body['body'])) {
+            $bodyContent = $body['body'];
+        }
+        else if (isset($body['content']) && is_string($body['content'])) {
+            $bodyContent = $body['content'];
+        }
+        else if (isset($body['node']['body']) && is_string($body['node']['body'])) {
+            $bodyContent = $body['node']['body'];
+        }
+        if ($bodyContent === '') {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'Content body is required',
+                ),
+                array(
+                    'statusCode' => 400,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        $schema = array();
+        if (isset($body['schema']) && is_array($body['schema'])) {
+            $schema = $body['schema'];
+        }
+        else if (isset($body['node']['schema']) && is_array($body['node']['schema'])) {
+            $schema = $body['node']['schema'];
+        }
         $body['node']['id'] = (string) $resolvedItem->id;
+        $body['node']['body'] = $bodyContent;
+        $body['node']['schema'] = $schema;
+        if (
+            array_key_exists('details', $body) &&
+            is_array($body['details'])
+        ) {
+            $body['node']['details'] = $body['details'];
+        }
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveNode();
