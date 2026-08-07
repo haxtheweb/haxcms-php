@@ -15,12 +15,21 @@
     "@haxtheweb/haxcms-nodejs": "^26.0.1"
   },
   "devDependencies": {
-    "commit-and-tag-version": "12.7.3"
+    "axe-core": "^4.12.1",
+    "axios": "^1.16.0",
+    "commit-and-tag-version": "12.7.3",
+    "fs-extra": "11.2.0",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "^23.0.0",
+    "sharp": "0.32.6"
   },
   "scripts": {
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
-    "release": "commit-and-tag-version && git push --follow-tags origin master"
+    "release": "commit-and-tag-version && git push --follow-tags origin master",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs",
+    "test:e2e:update": "HAXCMS_E2E_UPDATE_SCREENSHOTS=1 node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs"
   },
   "npmClient": "yarn",
   "useWorkspaces": true,

@@ -92,6 +92,18 @@ To avoid a cgroup error before running HAX locally (e.g. before using "ddev star
 sudo mkdir /sys/fs/cgroup/systemd
 sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
 ```
+## Testing
+
+This repo has a DDEV-based end-to-end test suite (browser-driven via puppeteer-core + system Chrome) ported from `haxcms-nodejs/test/e2e`. It covers login, create-site, archive-site, edit-content, export-site, and page-management flows against the PHP backend served by DDEV.
+
+```bash
+npm install          # devDependencies (puppeteer-core, sharp, axe-core, pixelmatch, pngjs, fs-extra, axios)
+ddev start           # seeds admin/admin via the post-start hook
+npm run test:e2e     # serialized (tests share one DDEV instance + fixed site name)
+```
+
+See [`test/e2e/README.md`](test/e2e/README.md) for full details, including the **PHP-specific `/sites/` vs `/_sites/` editor base path difference** (PHP dynamically picks `sitesDirectory='sites'` via the `/sites` symlink; NodeJS hardcodes `'_sites'`) — the key porting difference that affects editor-flow tests.
+
 ## MCP and deployment profiles
 - MCP policy defaults are controlled via `_config/config.json`.
 - New installs include:

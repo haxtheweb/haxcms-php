@@ -1,0 +1,6 @@
+{
+  "name": "haxcms-nodejs-e2e-helpers",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.cjs"
+}
