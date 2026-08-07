@@ -225,7 +225,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/UserDataRecord"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -328,7 +334,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SiteListData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -351,7 +363,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SiteCreateData"
+                  id:
+                    type: string
+                  slug:
+                    type: string
+                  link:
+                    type: string
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -658,7 +682,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SystemStatusData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -693,7 +723,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SystemVersionData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -798,7 +834,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ApiKeysData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -849,7 +891,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ApiKeysData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/configuration/media:
@@ -867,7 +915,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/MediaSettingsData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -918,7 +972,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/MediaSettingsData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/configuration/schema-files/operations:
@@ -941,14 +1001,23 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: "#/components/schemas/SchemaFileOperationRequest"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SkeletonUploadRequest"
       responses:
         "200":
           description: Schema file operation response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SchemaFileOperationData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/blocks:
@@ -966,7 +1035,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BlockRecord"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -1017,7 +1094,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/EnabledCollectionData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/skeletons:
@@ -1035,7 +1118,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SkeletonRecord"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -1087,7 +1178,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/EnabledCollectionData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/skeletons/{skeletonName}:
@@ -1106,7 +1203,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/SkeletonRecord"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -1211,7 +1314,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ThemeRecord"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -1262,7 +1373,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/EnabledCollectionData"
+                additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
   /system/api/v1/actions/docx-to-html:
@@ -1331,7 +1448,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1371,7 +1494,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1411,7 +1540,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1451,7 +1586,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1491,7 +1632,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1882,7 +2029,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1947,7 +2100,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -1992,7 +2151,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2037,7 +2202,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2082,7 +2253,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2127,7 +2304,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2172,7 +2355,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2217,7 +2406,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2262,7 +2457,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2330,7 +2531,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2402,7 +2609,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -2525,9 +2738,61 @@ components:
       additionalProperties: true
     SiteActionRequest:
       type: object
+      description: >
+        Payload for site lifecycle operations (create, clone, archive, download,
+        download-skeleton, save-as-template). The front-end (app-hax
+        AppHaxBackendAPI._formatSitePostData) sends a `site` object with the
+        machine name, description, theme, and optional license, plus a `build`
+        object describing how the site should be structured. Back-end handlers
+        (createSite, cloneSite, etc.) read these fields to drive site creation.
       properties:
         site:
           type: object
+          description: Site identity and appearance fields.
+          properties:
+            name:
+              type: string
+              description: Site machine name (used for the directory and X-HAXCMS-Site-Token validation).
+            description:
+              type: string
+              description: Human-readable description shown in the site listing.
+            theme:
+              type: string
+              description: Theme element machine name (e.g. clean-one, learn-two-theme).
+            license:
+              type: string
+              description: Optional Creative Commons license code (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd).
+            domain:
+              type: string
+              description: Optional custom domain for the site.
+          additionalProperties: true
+        build:
+          type: object
+          description: Build instructions describing how to structure the new site.
+          properties:
+            type:
+              type: string
+              description: Build type (course, portfolio, website, import, skeleton, etc.).
+            structure:
+              type: string
+              description: Build structure (from-skeleton, import, docx import, etc.).
+            items:
+              type: array
+              items:
+                type: object
+              description: JSONOutlineSchemaItem array for import / from-skeleton builds.
+            files:
+              type: object
+              additionalProperties: true
+              description: Map of file download locations for bulk-imported assets.
+            skeletonMachineName:
+              type: string
+              description: Machine name of a trusted skeleton to build from (structure=from-skeleton).
+            siteFiles:
+              type: object
+              additionalProperties: true
+              description: Map of theme/custom file URLs to download from another HAXcms instance.
+          additionalProperties: true
       additionalProperties: true
     ApiKeysSettings:
       type: object
@@ -2588,4 +2853,325 @@ components:
           type: string
         displayName:
           type: string
+      additionalProperties: true
+    SchemaFileOperationRequest:
+      type: object
+      description: >
+        JSON payload for schema file operations (rename, delete). The back-end
+        reads `schema`, `action`, `name`, `newName`, `oldName`, and
+        `skeletonName` from the body, query, or path params. For uploads, use
+        multipart/form-data with the file under the `file` field name (see
+        SkeletonUploadRequest).
+      properties:
+        schema:
+          type: string
+          description: Schema selector (currently only `skeleton` is supported).
+        action:
+          type: string
+          description: Operation action (upload, rename, delete).
+        name:
+          type: string
+          description: Existing skeleton machine name (for rename / delete).
+        oldName:
+          type: string
+          description: Legacy alias for the existing skeleton name.
+        skeletonName:
+          type: string
+          description: Path-param-style skeleton name (normalized to `name` by the router).
+        newName:
+          type: string
+          description: Target machine name for rename operations.
+      additionalProperties: true
+    UserDataRecord:
+      type: object
+      description: >
+        Active user profile data returned by sessionUserGet. Loaded from
+        userData.json; the front-end (AppHaxBackendAPI._syncUserAfterValidation)
+        reads `data.userName`.
+      properties:
+        userName:
+          type: string
+        fName:
+          type: string
+        lName:
+          type: string
+        userPicture:
+          type: string
+        social:
+          type: object
+          additionalProperties: true
+        integrations:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    SiteListData:
+      type: object
+      description: >
+        Site listing payload returned by listSites. A top-level JSON Outline
+        Schema wrapper whose `items` array contains per-site manifest summaries.
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        description:
+          type: string
+        license:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      additionalProperties: true
+    SiteCreateData:
+      type: object
+      description: >
+        Created site schema record returned by createSite. A JSONOutlineSchemaItem
+        with id, title, location, slug, and metadata.
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        location:
+          type: string
+        slug:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    SkeletonRecord:
+      type: object
+      description: >
+        Skeleton descriptor returned in the skeletonsList array and as the
+        detail response from systemSkeletonDetailGet. The front-end reads
+        machineName, title, description, image, category, attributes,
+        skeleton-url, demo-url, hidden, terrible, priority, and enabled.
+      properties:
+        machineName:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        category:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        attributes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        skeleton-url:
+          type: string
+        demo-url:
+          type: string
+        hidden:
+          type: boolean
+        terrible:
+          type: boolean
+        priority:
+          type: integer
+        enabled:
+          type: boolean
+      additionalProperties: true
+    ThemeRecord:
+      type: object
+      description: >
+        Theme descriptor returned in the themesList array. The front-end reads
+        machineName, element, name, description, thumbnail/screenshot, category,
+        hidden, terrible, priority, and enabled.
+      properties:
+        machineName:
+          type: string
+        element:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        thumbnail:
+          type: string
+        screenshot:
+          type: string
+        preview:
+          type: string
+        category:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        hidden:
+          type: boolean
+        terrible:
+          type: boolean
+        priority:
+          type: integer
+        enabled:
+          type: boolean
+      additionalProperties: true
+    SystemStatusData:
+      type: object
+      description: >
+        System status report returned by systemStatusGet. The front-end
+        (haxcms-system-settings._loadStatusData) reads `data.summary` and
+        `data.rows`.
+      properties:
+        summary:
+          type: object
+          additionalProperties: true
+          properties:
+            programmingLanguage:
+              type: string
+            serverVersion:
+              type: string
+            haxcmsVersionCurrent:
+              type: string
+            haxcmsVersionLatest:
+              type: string
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      additionalProperties: true
+    SystemVersionData:
+      type: object
+      description: System version details returned by systemVersionGet.
+      properties:
+        version:
+          type: string
+      additionalProperties: true
+    ApiKeysData:
+      type: object
+      description: >
+        API key settings returned by getApiKeys and saveApiKeysPatch. Keys are
+        keyed by provider storage name (youtube, giphy, vimeo, unsplash, flickr,
+        anthropic). The front-end (haxcms-system-settings) reads provider keys
+        from `data`.
+      additionalProperties: true
+    MediaSettingsData:
+      type: object
+      description: >
+        Media settings returned by getMediaSettings and saveMediaSettingsPatch.
+        The front-end reads jpegQuality, maxUploadSizeMb, and acceptedFormats.
+      properties:
+        jpegQuality:
+          type: integer
+        maxUploadSizeMb:
+          type: integer
+        acceptedFormats:
+          type: string
+      additionalProperties: true
+    SchemaFileOperationData:
+      type: object
+      description: >
+        Result of a schema file operation (upload, rename, delete). The
+        front-end (haxcms-system-settings._onSkeletonUploadResponse) reads
+        `data.machineName`.
+      properties:
+        action:
+          type: string
+        schema:
+          type: string
+        machineName:
+          type: string
+        fileName:
+          type: string
+        location:
+          type: string
+        path:
+          type: string
+      additionalProperties: true
+    EnabledCollectionData:
+      type: object
+      description: >
+        Result of saveEnabledSkeletonsPatch / saveEnabledThemesPatch /
+        saveEnabledBlocksPatch. The front-end checks `status === 200` and
+        optionally reads `data.enabledSkeletons` / `data.enabledThemes`.
+      properties:
+        enabledSkeletons:
+          type: array
+          items:
+            type: string
+        enabledThemes:
+          type: array
+          items:
+            type: string
+        enabledBlocks:
+          type: array
+          items:
+            type: string
+        settings:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    BlockRecord:
+      type: object
+      description: Block descriptor returned in the systemBlocksGet array.
+      properties:
+        machineName:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+      additionalProperties: true
+    ImportData:
+      type: object
+      description: >
+        Import result returned by importDocx, importPdf, importPptx, importXlsx,
+        htmlToSite, gitbookToSite, haxcmsToSite, notionToSite, pressbooksToSite,
+        wordpressToSite, drupalBookToSite, ploneToSite. The front-end
+        (processImportTemplate) reads `data.items` (array), `data.filename`
+        (string), `data.files` (optional map), and `data.site.license`
+        (optional string).
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        filename:
+          type: string
+        files:
+          type: object
+          additionalProperties: true
+        siteFiles:
+          type: object
+          additionalProperties: true
+        site:
+          type: object
+          properties:
+            license:
+              type: string
+          additionalProperties: true
+      additionalProperties: true
+    ApiEnvelopeWithData:
+      type: object
+      description: >
+        Convenience base for responses that carry typed `data`. Inherited via
+        allOf by specific response schemas so the `status` and `data` envelope
+        is documented alongside the data shape.
+      properties:
+        status:
+          type: integer
+        data: {}
       additionalProperties: true
