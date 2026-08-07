@@ -72,6 +72,10 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         $boilerplateEs6 = '// custom comment script here';
 
         foreach ($siteJson['items'] as &$item) {
+            if (isset($item['slug'])) {
+                // Security (SEC-16): sanitize remote-sourced slug.
+                $item['slug'] = SiteRouteUtils::cleanSlug((string) $item['slug']);
+            }
             if (isset($item['location']) && $item['location'] !== '') {
                 try {
                     $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $item['location']);

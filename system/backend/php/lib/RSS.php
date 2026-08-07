@@ -140,9 +140,11 @@ class FeedMe
                     }
                 }
                 // Read and clean content for description
-                $contentPath = $siteDirectory . '/' . str_replace('./', '', str_replace('../', '', (string) $item->location));
+                // Security (SEC-17): containment-checked resolution replaces the
+                // bypassable str_replace scrub.
+                $contentPath = $this->resolveSiteLocationPath($siteDirectory, $item->location);
                 $content = '';
-                if (file_exists($contentPath)) {
+                if ($contentPath !== false) {
                     $rawContent = file_get_contents($contentPath);
                     // Strip all HTML and web component tags, decode entities, and clean up whitespace
                     $content = html_entity_decode(strip_tags($rawContent), ENT_HTML5, 'UTF-8');
@@ -240,10 +242,12 @@ class FeedMe
             }
             if ($count < $limit) {
                 $itemLink = $domain . ltrim((string) $item->slug, '/');
-                $safeLocation = str_replace('./', '', str_replace('../', '', (string) $item->location));
+                // Security (SEC-17): containment-checked resolution replaces the
+                // bypassable str_replace scrub.
+                $resolvedLocation = $this->resolveSiteLocationPath($siteDirectory, $item->location);
                 $itemContent = '';
-                if ($safeLocation != '' && file_exists($siteDirectory . '/' . $safeLocation)) {
-                    $itemContent = file_get_contents($siteDirectory . '/' . $safeLocation);
+                if ($resolvedLocation !== false) {
+                    $itemContent = file_get_contents($resolvedLocation);
                     $itemContent = str_replace(']]>', ']]]]><![CDATA[>', (string) $itemContent);
                 }
                 $output .=
@@ -278,5 +282,41 @@ class FeedMe
             $count++;
         }
         return $output;
+    }
+    /**
+     * Security (SEC-17): resolve an item location to a containment-proven
+     * filesystem path inside the site directory, replacing the bypassable
+     * str_replace('../','') scrub. Returns the realpath or false.
+     */
+    private function resolveSiteLocationPath($siteDirectory, $location)
+    {
+        $location = (string) $location;
+        if ($location === '' || strpos($location, "\0") !== false) {
+            return false;
+        }
+        if (strpos(str_replace('\\', '/', $location), '..') !== false) {
+            return false;
+        }
+        $realBase = realpath($siteDirectory);
+        if ($realBase === false || !is_dir($realBase)) {
+            return false;
+        }
+        $candidate = $siteDirectory . '/' . $location;
+        if (!file_exists($candidate)) {
+            return false;
+        }
+        $resolved = realpath($candidate);
+        if ($resolved === false) {
+            return false;
+        }
+        $realBase = rtrim(str_replace('\\', '/', $realBase), '/');
+        $resolvedNorm = rtrim(str_replace('\\', '/', $resolved), '/');
+        if ($resolvedNorm === $realBase) {
+            return $resolved;
+        }
+        if (strpos($resolvedNorm, $realBase . '/') !== 0) {
+            return false;
+        }
+        return $resolved;
     }
 }

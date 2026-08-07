@@ -95,7 +95,7 @@ if (!function_exists('haxcmsImportConvertDrupalBookToSite')) {
                 $body = isset($bodyField['processed']) ? (string) $bodyField['processed']
                       : (isset($bodyField['value']) ? (string) $bodyField['value'] : '');
             }
-            $slug = isset($attrs['path']['alias']) ? ltrim((string) $attrs['path']['alias'], '/')
+            $slug = isset($attrs['path']['alias']) ? SiteRouteUtils::cleanSlug(ltrim((string) $attrs['path']['alias'], '/'))
                   : (isset($attrs['drupal_internal__nid']) ? 'node-' . $attrs['drupal_internal__nid'] : SiteRouteUtils::cleanSlug($title));
 
             $items[] = array(

@@ -427,9 +427,21 @@ class HAXCMSFile
             if (isset($upload['bulk-import'])) {
                 // make path relative to the file
                 $namePathTest = pathinfo(str_replace('files/', '', $upload['name']));
-                $fileSystem->mkdir($path . $namePathTest['dirname'], 0755, true);
+                $importDirname = isset($namePathTest['dirname']) ? (string) $namePathTest['dirname'] : '.';
+                // Security (SEC-18): reject traversal/null-byte/absolute dirnames so
+                // a crafted upload name cannot write outside the site files dir.
+                $importDirnameNorm = str_replace('\\', '/', $importDirname);
+                if (
+                    strpos($importDirname, chr(0)) !== false ||
+                    strpos($importDirnameNorm, '..') !== false ||
+                    ($importDirname !== '.' && $importDirname !== '' && substr($importDirnameNorm, 0, 1) === '/')
+                ) {
+                    return array('status' => 500, 'data' => 'Invalid bulk import path');
+                }
+                $importDirnamePart = ($importDirname === '.' || $importDirname === '') ? '' : $importDirname . '/';
+                $fileSystem->mkdir($path . $importDirnamePart, 0755, true);
                 // full path needs to include the cleaned up file name + the actual directory
-                $fullpath = $path . $namePathTest['dirname']  . '/' . $name;
+                $fullpath = $path . $importDirnamePart . $name;
             }
             else {
                 $fullpath = $path . $name;

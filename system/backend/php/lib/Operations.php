@@ -2431,7 +2431,11 @@ class Operations {
     }
     
     // write the content to the style guide file
-    $bytes = file_put_contents($styleGuideFile, $cleanContent);
+    // Security (SEC-08): sanitize the style-guide HTML before writing, matching
+    // the standard saveNode path (saveNode.php:109), so an editor cannot inject
+    // arbitrary <script> into theme/style-guide.html (served to all site visitors).
+    $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($cleanContent);
+    $bytes = file_put_contents($styleGuideFile, $sanitizedContent);
     
     if ($bytes === false) {
       return array(

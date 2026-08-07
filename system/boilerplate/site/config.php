@@ -102,7 +102,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * @return string HTML blob for hte <base> tag
      */
     public function getBaseTag() {
-      return '<base href="' . $this->basePath . '" />';
+      // Security (SEC-09): escape basePath (derived from REQUEST_URI) so a
+      // crafted URL cannot break out of the href attribute (reflected XSS).
+      return '<base href="' . htmlspecialchars($this->basePath, ENT_QUOTES, 'UTF-8') . '" />';
     }
     public function cacheBusterHash() {
       return '?';
@@ -183,9 +185,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
         }
       }
-      $title = filter_var($page->title, FILTER_SANITIZE_STRING);
-      $siteTitle = filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . ' | ' . filter_var($page->title, FILTER_SANITIZE_STRING);
-      $description = filter_var($page->description, FILTER_SANITIZE_STRING);;
+      $title = htmlspecialchars($page->title, ENT_QUOTES, 'UTF-8');
+      $siteTitle = htmlspecialchars($this->manifest->title, ENT_QUOTES, 'UTF-8') . ' | ' . htmlspecialchars($page->title, ENT_QUOTES, 'UTF-8');
+      $description = htmlspecialchars($page->description, ENT_QUOTES, 'UTF-8');;
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       // sanity check, then preload the theme
@@ -194,14 +196,14 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
       }
       if ($description == '') {
-        $description = filter_var($this->manifest->description, FILTER_SANITIZE_STRING);
+        $description = htmlspecialchars($this->manifest->description, ENT_QUOTES, 'UTF-8');
       }
       if ($title == '' || $title == 'New item') {
-        $title = filter_var($this->manifest->title, FILTER_SANITIZE_STRING);
+        $title = htmlspecialchars($this->manifest->title, ENT_QUOTES, 'UTF-8');
         $siteTitle = $title;
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
-          $hexCode = filter_var($this->manifest->metadata->theme->variables->hexCode, FILTER_SANITIZE_STRING);
+          $hexCode = htmlspecialchars($this->manifest->metadata->theme->variables->hexCode, ENT_QUOTES, 'UTF-8');
       }
       // if we have a privacy flag, then tell robots not to index this were it to be found
       // which in HAXiam this isn't possible
@@ -269,7 +271,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <meta name="msapplication-TileColor" content="' . $hexCode . '" />
           <meta name="msapplication-tap-highlight" content="no" />
           <meta name="description" content="' . $description . '" />
-          <meta name="og:sitename" property="og:sitename" content="' . filter_var($this->manifest->title, FILTER_SANITIZE_STRING) . '" />
+          <meta name="og:sitename" property="og:sitename" content="' . htmlspecialchars($this->manifest->title, ENT_QUOTES, 'UTF-8') . '" />
           <meta name="og:title" property="og:title" content="' . $title . '" />
           <meta name="og:type" property="og:type" content="article" />
           <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
@@ -858,14 +860,19 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * Return the gaIDCode if we have a gaID
      */
     public function getGaCode() {
-      if (!is_null($this->getGaID())) {
-        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $this->getGaID() . "\"></script>
+      $gaID = $this->getGaID();
+      // Security (SEC-06): validate gaID format and escape for both the HTML
+      // attribute and the JS string so a crafted analytics ID cannot cause XSS.
+      if (!is_null($gaID) && $gaID !== '' && preg_match('/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/', $gaID)) {
+        $attrID = htmlspecialchars($gaID, ENT_QUOTES, 'UTF-8');
+        $jsID = addcslashes($gaID, "'\\\n\r");
+        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $attrID . "\"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
       
-          gtag('config', '" . $this->getGaID() . "');
+          gtag('config', '" . $jsID . "');
         </script>";
       }
       return '';
@@ -899,7 +906,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return "
       <script>
         if ('serviceWorker' in navigator) {
-          var sitePath = '" . $basePath . "';
+          var sitePath = " . json_encode($basePath) . ";
           // discover this path downstream of the root of the domain
           var swScope = window.location.pathname.substring(0, window.location.pathname.indexOf(sitePath)) + sitePath;
           if (swScope != document.head.getElementsByTagName('base')[0].href) {

@@ -4,7 +4,16 @@ function haxGlobalDebug()
 {
     if ($err = error_get_last()) {
       if ($err['type'] === E_ERROR) {
-        die('<pre>' . print_r($err, true) . '</pre>');
+        // Security (SEC-23): avoid leaking paths/stack to clients via print_r
+        // in production. Log server-side and emit a generic 500 unless the
+        // deployment is in developerMode.
+        $devMode = isset($GLOBALS['HAXCMS']) && is_object($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->developerMode) && $GLOBALS['HAXCMS']->developerMode;
+        if ($devMode) {
+          die('<pre>' . print_r($err, true) . '</pre>');
+        }
+        @error_log('haxcms fatal error: ' . print_r($err, true));
+        http_response_code(500);
+        die('A server error occurred.');
       }
       else if ($err['type'] === E_WARNING) {
         //die('<pre>' . print_r($err, true) . '</pre>');

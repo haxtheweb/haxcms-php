@@ -1,5 +1,11 @@
 <?php
 require_once dirname(__FILE__) . '/../../../vendor/autoload.php';
+// Security (SEC-01): SsrfGuard used by fetchCoverData to validate the cover
+// image URL before fetching, blocking SSRF to internal/metadata addresses.
+include_once dirname(__FILE__) . '/../../SsrfGuard.php';
+// Security (SEC-14): SanitizeContent used by sanitizeExportHtml for DOM-based
+// HTML sanitization in the export path.
+include_once dirname(__FILE__) . '/../../SanitizeContent.php';
 
 class ExportConverters
 {
@@ -89,12 +95,10 @@ class ExportConverters
 
     public static function sanitizeExportHtml($html = '')
     {
-        $sanitized = (string) $html;
-        $sanitized = preg_replace('/<script[^>]*>[\s\S]*?<\/script>/i', '', $sanitized);
-        $sanitized = preg_replace('/<style[^>]*>[\s\S]*?<\/style>/i', '', $sanitized);
-        $sanitized = preg_replace('/<iframe[^>]*>[\s\S]*?<\/iframe>/i', '', $sanitized);
-        $sanitized = preg_replace('/<!--[\s\S]*?-->/', '', $sanitized);
-        $sanitized = str_replace("\x00", '', $sanitized);
+        // Security (SEC-14): use the DOM-based SanitizeContent sanitizer instead
+        // of bypassable regex stripping (the content is already sanitized on
+        // write; this is defense-in-depth for the export path).
+        $sanitized = SanitizeContent::sanitizeHTMLForStorage((string) $html);
         $sanitized = trim($sanitized);
         if ($sanitized == '') {
             $sanitized = '<p>No content available</p>';
@@ -621,6 +625,7 @@ class ExportConverters
         $identifier = isset($bookMeta['identifier']) ? (string) $bookMeta['identifier'] : 'urn:uuid:' . self::generateUUID();
         $coverPath = isset($bookMeta['coverPath']) ? (string) $bookMeta['coverPath'] : '';
         $basePath = isset($bookMeta['basePath']) ? (string) $bookMeta['basePath'] : '/';
+        $siteDirectory = isset($bookMeta['siteDirectory']) ? (string) $bookMeta['siteDirectory'] : '';
 
         $css = $css != '' ? $css : self::defaultEpubCss();
 
@@ -642,7 +647,7 @@ class ExportConverters
         $coverMediaType = '';
         $coverItemXml = '';
         if ($coverPath != '') {
-            $coverData = self::fetchCoverData($coverPath, $basePath);
+            $coverData = self::fetchCoverData($coverPath, $basePath, $siteDirectory);
             if ($coverData != null && $coverData['data'] != '') {
                 $ext = strtolower(pathinfo($coverData['name'], PATHINFO_EXTENSION));
                 if (!in_array($ext, array('png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'), true)) {
@@ -769,20 +774,15 @@ class ExportConverters
 
     public static function generateUUID()
     {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff)
-        );
+        // Security (SEC-12): use a CSPRNG (random_bytes) instead of mt_rand so
+        // identifiers are not predictable, matching SiteRouteUtils::generateUUID.
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
     }
 
-    public static function fetchCoverData($coverPath, $basePath = '/')
+    public static function fetchCoverData($coverPath, $basePath = '/', $siteDirectory = '')
     {
         $resolvedPath = self::resolveUrlForEpub($coverPath, $basePath);
         if ($resolvedPath == '') {
@@ -791,27 +791,51 @@ class ExportConverters
         $data = '';
         $name = basename($resolvedPath);
         if (preg_match('/^(https?:)?\/\//i', $resolvedPath)) {
-            $ctx = stream_context_create(array(
-                'http' => array(
-                    'timeout' => 3,
-                    'follow_location' => false,
-                ),
-            ));
-            $data = @file_get_contents($resolvedPath, false, $ctx);
+            // Security (SEC-01): validate the cover URL via SsrfGuard before
+            // fetching so a crafted logo cannot SSRF internal services or cloud
+            // metadata endpoints. safeFileGetContents disables redirects and
+            // rejects private/loopback/link-local/metadata IPs.
+            try {
+                $data = SsrfGuard::safeFileGetContents($resolvedPath);
+            } catch (SsrfGuardException $e) {
+                return null;
+            }
         }
         else {
-            $siteDirectory = SiteRouteUtils::getSiteDirectory(isset($GLOBALS['HAXCMS']) ? null : null);
-            if (isset($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->siteDirectory) && $GLOBALS['HAXCMS']->siteDirectory != '') {
-                $siteDirectory = $GLOBALS['HAXCMS']->siteDirectory;
+            // Security (SEC-01): local file reads are constrained to the site
+            // directory. Reject null bytes, '..', and absolute filesystem paths;
+            // realpath-contain every candidate against the site directory so a
+            // crafted logo cannot read arbitrary files (e.g. _config/config.php).
+            if (strpos($resolvedPath, chr(0)) !== false || $siteDirectory === '') {
+                return null;
             }
-            $localCandidates = array($resolvedPath);
-            if ($siteDirectory != '') {
-                $localCandidates[] = rtrim($siteDirectory, '/') . '/' . ltrim($resolvedPath, '/');
-                $localCandidates[] = rtrim($siteDirectory, '/') . '/files/' . ltrim($resolvedPath, '/');
+            $realSiteDir = realpath($siteDirectory);
+            if (!is_string($realSiteDir) || $realSiteDir === '' || !is_dir($realSiteDir)) {
+                return null;
             }
-            foreach ($localCandidates as $candidate) {
-                if (is_file($candidate) && is_readable($candidate)) {
-                    $data = @file_get_contents($candidate);
+            $normalizedBase = SiteRouteUtils::normalizeBasePath($basePath);
+            $relative = $resolvedPath;
+            if ($normalizedBase != '/' && strpos($relative, $normalizedBase) === 0) {
+                $relative = substr($relative, strlen($normalizedBase));
+            }
+            $relative = ltrim($relative, '/');
+            if ($relative === '' || strpos($relative, '..') !== false) {
+                return null;
+            }
+            $candidates = array(
+                $realSiteDir . '/' . $relative,
+                $realSiteDir . '/files/' . $relative,
+            );
+            foreach ($candidates as $candidate) {
+                $realCandidate = realpath($candidate);
+                if ($realCandidate === false || !is_file($realCandidate) || !is_readable($realCandidate)) {
+                    continue;
+                }
+                if (strpos($realCandidate, $realSiteDir . '/') !== 0 && $realCandidate !== $realSiteDir) {
+                    continue;
+                }
+                $data = @file_get_contents($realCandidate);
+                if ($data !== false && $data !== '') {
                     break;
                 }
             }
@@ -981,6 +1005,7 @@ class ExportConverters
             'identifier' => 'urn:uuid:' . self::generateUUID(),
             'coverPath' => $cover,
             'basePath' => $basePath,
+            'siteDirectory' => SiteRouteUtils::getSiteDirectory($site),
         );
         return self::buildEpubZipString($bookMeta, $chapters, self::defaultEpubCss());
     }
@@ -1013,6 +1038,7 @@ class ExportConverters
             'identifier' => 'urn:uuid:' . self::generateUUID(),
             'coverPath' => self::getSiteCover($site, $basePath),
             'basePath' => $basePath,
+            'siteDirectory' => SiteRouteUtils::getSiteDirectory($site),
         );
         return self::buildEpubZipString($bookMeta, $chapters, self::defaultEpubCss());
     }

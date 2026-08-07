@@ -76,7 +76,7 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
             $oldPid   = isset($si['parent']) ? (string) $si['parent'] : '';
             $newPid   = ($oldPid !== '' && isset($oldToNew[$oldPid])) ? $oldToNew[$oldPid] : $parentId;
             $title    = isset($si['title'])  ? (string) $si['title']  : 'Page';
-            $slug     = isset($si['slug'])   ? (string) $si['slug']   : SiteRouteUtils::cleanSlug($title);
+            $slug     = isset($si['slug'])   ? SiteRouteUtils::cleanSlug((string) $si['slug'])   : SiteRouteUtils::cleanSlug($title);
             $location = isset($si['location']) ? (string) $si['location'] : '';
             $content  = '';
 

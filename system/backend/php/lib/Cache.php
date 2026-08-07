@@ -77,7 +77,9 @@ class Cache {
     $storeData = array(
       'time'   => time(),
       'expire' => $expiration,
-      'data'   => serialize($data)
+      // Security (SEC-04): cache values are JSON-encoded (not PHP-serialized)
+      // so a tampered cache file cannot trigger unserialize() RCE gadgets.
+      'data'   => json_encode($data)
     );
     $dataArray = $this->_loadCache();
     if (true === is_array($dataArray)) {
@@ -86,7 +88,7 @@ class Cache {
       $dataArray = array($key => $storeData);
     }
     $cacheData = json_encode($dataArray);
-    file_put_contents($this->getCacheDir(), $cacheData);
+    file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
     return $this;
   }
 
@@ -101,7 +103,7 @@ class Cache {
     $cachedData = $this->_loadCache();
     (false === $timestamp) ? $type = 'data' : $type = 'time';
     if (!isset($cachedData[$key][$type])) return null; 
-    return unserialize($cachedData[$key][$type]);
+    return json_decode($cachedData[$key][$type], true);
   }
 
   /**
@@ -116,7 +118,7 @@ class Cache {
       $cachedData = $this->_loadCache();
       if ($cachedData) {
         foreach ($cachedData as $k => $v) {
-          $results[$k] = unserialize($v['data']);
+          $results[$k] = json_decode($v['data'], true);
         }
       }
       return $results;
@@ -137,7 +139,7 @@ class Cache {
       if (true === isset($cacheData[$key])) {
         unset($cacheData[$key]);
         $cacheData = json_encode($cacheData);
-        file_put_contents($this->getCacheDir(), $cacheData);
+        file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
       } else {
         throw new Exception("Error: erase() - Key '{$key}' not found.");
       }
@@ -162,7 +164,7 @@ class Cache {
       }
       if ($counter > 0) {
         $cacheData = json_encode($cacheData);
-        file_put_contents($this->getCacheDir(), $cacheData);
+        file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
       }
       return $counter;
     }
@@ -240,10 +242,10 @@ class Cache {
    * @return boolean
    */
   private function _checkCacheDir() {
-    if (!is_dir($this->getCachePath()) && !mkdir($this->getCachePath(), 0755, true)) {
+    if (!is_dir($this->getCachePath()) && !mkdir($this->getCachePath(), 0700, true)) {
       throw new Exception('Unable to create cache directory ' . $this->getCachePath());
     } elseif (!is_readable($this->getCachePath()) || !is_writable($this->getCachePath())) {
-      if (!chmod($this->getCachePath(), 0755)) {
+      if (!chmod($this->getCachePath(), 0700)) {
         throw new Exception($this->getCachePath() . ' must be readable and writeable');
       }
     }

@@ -146,10 +146,13 @@ class HAXCMSAPIKeysService
     if (!is_string($json)) {
       throw new Exception('Unable to encode API key settings');
     }
-    $written = @file_put_contents($filePath, $json . PHP_EOL);
+    // Security (SEC-10): apiKeys.json holds third-party API secrets; restrict
+    // to 0600 and write with LOCK_EX so co-located system users cannot read them.
+    $written = @file_put_contents($filePath, $json . PHP_EOL, LOCK_EX);
     if ($written === false) {
       throw new Exception('Unable to write API key settings');
     }
+    @chmod($filePath, 0600);
     return $normalized;
   }
 }

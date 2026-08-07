@@ -337,14 +337,19 @@ class HAXCMSSite
      * Return the gaIDCode if we have a gaID
      */
     public function getGaCode() {
-      if (!is_null($this->getGaID())) {
-        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $this->getGaID() . "\"></script>
+      $gaID = $this->getGaID();
+      // Security (SEC-06): validate gaID format and escape for both the HTML
+      // attribute and the JS string so a crafted analytics ID cannot cause XSS.
+      if (!is_null($gaID) && $gaID !== '' && preg_match('/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/', $gaID)) {
+        $attrID = htmlspecialchars($gaID, ENT_QUOTES, 'UTF-8');
+        $jsID = addcslashes($gaID, "'\\\n\r");
+        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $attrID . "\"></script>
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
       
-          gtag('config', '" . $this->getGaID() . "');
+          gtag('config', '" . $jsID . "');
         </script>";
       }
       return '';
@@ -598,8 +603,16 @@ class HAXCMSSite
     {
         $siteDirectory =
             $this->directory . '/' . $this->manifest->metadata->site->name;
-        $old = str_replace('./', '', str_replace('../', '', $old));
-        $new = str_replace('./', '', str_replace('../', '', $new));
+        // Security (SEC-17): reject null bytes and lexical `..` traversal segments
+        // instead of the bypassable single-pass str_replace('../','') scrub.
+        $old = (string) $old;
+        $new = (string) $new;
+        if (strpos($old, chr(0)) !== false || strpos($new, chr(0)) !== false) {
+            return;
+        }
+        if (strpos(str_replace('\\', '/', $old), '..') !== false || strpos(str_replace('\\', '/', $new), '..') !== false) {
+            return;
+        }
         global $fileSystem;
         // ensure the path to the new folder is valid
         if (file_exists($siteDirectory . '/' . $old)) {
@@ -1357,9 +1370,9 @@ class HAXCMSSite
             if (!array_search($item->id, $rendered)) {
                 $loc .=
                     '<li><a href="' .
-                    $item->location .
+                    htmlspecialchars((string) $item->location, ENT_QUOTES, 'UTF-8') .
                     '" target="content">' .
-                    $item->title .
+                    htmlspecialchars((string) $item->title, ENT_QUOTES, 'UTF-8') .
                     '</a>';
                 array_push($rendered, $item->id);
                 $children = array();
@@ -2157,8 +2170,9 @@ class HAXCMSSite
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       if (isset($this->manifest->metadata->theme->path)) {
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
+        $themePath = htmlspecialchars(str_replace("@lrnwebcomponents/", "@haxtheweb/", (string) $this->manifest->metadata->theme->path), ENT_QUOTES, 'UTF-8');
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" />';
       }
       if ($rawDescription == '' && isset($this->manifest->description)) {
         $rawDescription = (string) $this->manifest->description;

@@ -354,6 +354,12 @@ return function ($context) {
     $webcomponentName = isset($context->params['webcomponentName'])
         ? strtolower(trim((string) $context->params['webcomponentName']))
         : '';
+    // Security (SEC-13): validate the webcomponent name before XPath
+    // interpolation so a value containing " cannot break out of the string
+    // literal and match arbitrary nodes.
+    if ($webcomponentName !== '' && !preg_match('/^[a-z][a-z0-9-]*$/', $webcomponentName)) {
+        $webcomponentName = '';
+    }
     $include = SiteRouteUtils::getCsvQuery('include');
     $fields = SiteRouteUtils::getCsvQuery('fields');
     $wcMap = $getWcMap();

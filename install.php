@@ -308,10 +308,14 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
       '_config/.isHAXcmsConfig', ""
     );
     // set SALT
+    // Security (SEC-10): SALT.txt mixes into every HMAC/JWT signature; restrict
+    // to 0600 and write with LOCK_EX so co-located system users cannot read it.
     file_put_contents(
       '_config/SALT.txt',
-      $generateSecureSecret()
+      $generateSecureSecret(),
+      LOCK_EX
     );
+    @chmod('_config/SALT.txt', 0600);
 
     // set things in config file from the norm
     $configFile = file_get_contents('_config/config.php');
@@ -363,7 +367,10 @@ if (is_dir('_sites') && is_dir('_config') && is_dir('_published') && is_dir('_ar
     // or we don't know where to look for anything
     $basePath = str_replace('install.php', '', $_SERVER['SCRIPT_NAME']); 
     $configFile = str_replace("->basePath = '/'", "->basePath = '$basePath'", $configFile);
-    file_put_contents('_config/config.php', $configFile);
+    // Security (SEC-10): config.php holds the JWT private key + password hash;
+    // restrict to 0600 and write with LOCK_EX so co-located users cannot read it.
+    file_put_contents('_config/config.php', $configFile, LOCK_EX);
+    @chmod('_config/config.php', 0600);
     $git = new Git();
     $git->create('_config');
   }

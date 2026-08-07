@@ -94,7 +94,7 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
             $wpPid   = isset($wpPage['parent']) ? (int) $wpPage['parent'] : 0;
             $title   = isset($wpPage['title']['rendered'])   ? (string) $wpPage['title']['rendered']   : 'Page';
             $content = isset($wpPage['content']['rendered']) ? (string) $wpPage['content']['rendered'] : '';
-            $slug    = isset($wpPage['slug']) ? (string) $wpPage['slug'] : SiteRouteUtils::cleanSlug($title);
+            $slug    = isset($wpPage['slug']) ? SiteRouteUtils::cleanSlug((string) $wpPage['slug']) : SiteRouteUtils::cleanSlug($title);
 
             $uuid         = isset($wpIdToUuid[$wpId]) ? $wpIdToUuid[$wpId] : SiteRouteUtils::generateUUID();
             $parentUuid   = ($wpPid !== 0 && isset($wpIdToUuid[$wpPid])) ? $wpIdToUuid[$wpPid] : $parentId;

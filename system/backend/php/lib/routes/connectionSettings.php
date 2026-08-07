@@ -36,24 +36,21 @@ trait OperationsRouteConnectionSettings {
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
     // D55: match Node's connectionSettings.js output format exactly — prepend
-    // the MicroFrontendRegistryConfig initialization line and append the dev-jwt
-    // line when HAXCMS_DISABLE_JWT_CHECKS is set (parity with Node).
+    // the MicroFrontendRegistryConfig initialization line.
+    // Security (SEC-03): the HAXCMS_DISABLE_JWT_CHECKS env-var append that
+    // injected a super-user JWT here was removed. This route is in the JWT-skip
+    // allowlist (Request.php) so it runs unauthenticated; the env var would hand
+    // a super-user JWT to any caller. Dev sessions should log in via the normal
+    // login route instead.
     $returnData = json_encode(
       $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath),
       JSON_UNESCAPED_SLASHES
     );
-    $after = '';
-    if (getenv('HAXCMS_DISABLE_JWT_CHECKS')) {
-      $superUserName = isset($GLOBALS['HAXCMS']->superUser->name)
-        ? $GLOBALS['HAXCMS']->superUser->name
-        : null;
-      $after = 'window.appSettings.jwt = "' . $GLOBALS['HAXCMS']->getJWT($superUserName) . '"';
-    }
     return array(
       '__noencode' => array(
         'status' => 200,
         'contentType' => 'application/javascript',
-        'message' => "window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};\nwindow.appSettings =" . $returnData . ';' . $after,
+        'message' => "window.MicroFrontendRegistryConfig = window.MicroFrontendRegistryConfig || {};\nwindow.appSettings =" . $returnData . ';',
       )
     );
   }

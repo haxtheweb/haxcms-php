@@ -123,7 +123,8 @@ return function ($context) {
                 }
             }
             catch (Exception $e) {
-                $sendTopLevelError(502, $e->getMessage());
+                @error_log('haxcms site export failed: ' . $e->getMessage());
+                $sendTopLevelError(502, 'Export conversion failed');
                 return;
             }
             ExportConverters::sendFileDownload(
@@ -138,7 +139,8 @@ return function ($context) {
                 $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, $magic);
             }
             catch (Exception $e) {
-                $sendTopLevelError(500, 'Unable to build site export HTML: ' . $e->getMessage());
+                @error_log('haxcms site export HTML failed: ' . $e->getMessage());
+                $sendTopLevelError(500, 'Unable to build site export HTML');
                 return;
             }
             ExportConverters::sendFileDownload(
@@ -190,10 +192,11 @@ return function ($context) {
             $content = SiteRouteUtils::getItemContent($site, $item);
             $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
         }
-        catch (Exception $e) {
-            $sendTopLevelError(500, 'Unable to build item export HTML: ' . $e->getMessage());
-            return;
-        }
+            catch (Exception $e) {
+                @error_log('haxcms item export HTML failed: ' . $e->getMessage());
+                $sendTopLevelError(500, 'Unable to build item export HTML');
+                return;
+            }
         try {
             if ($format == 'pdf') {
                 $output = ExportConverters::htmlToPdfString($itemHtml, $siteBasePath);
@@ -202,15 +205,16 @@ return function ($context) {
                 $output = ExportConverters::htmlToDocxString($itemHtml);
             }
         }
-        catch (Exception $e) {
-            $sendTopLevelError(502, $e->getMessage());
-            return;
-        }
-        ExportConverters::sendFileDownload(
-            $output,
-            ExportConverters::resolveExportMediaType($format),
-            $fileBaseName . '.' . $format
-        );
+            catch (Exception $e) {
+                @error_log('haxcms item export failed: ' . $e->getMessage());
+                $sendTopLevelError(502, 'Export conversion failed');
+                return;
+            }
+            ExportConverters::sendFileDownload(
+                $output,
+                ExportConverters::resolveExportMediaType($format),
+                $fileBaseName . '.' . $format
+            );
         return;
     }
     if ($format == 'html') {
@@ -243,15 +247,16 @@ return function ($context) {
         try {
             $output = ExportConverters::buildItemEpubString($site, $item, $siteBasePath);
         }
-        catch (Exception $e) {
-            $sendTopLevelError(502, $e->getMessage());
-            return;
-        }
-        ExportConverters::sendFileDownload(
-            $output,
-            'application/epub+zip',
-            $fileBaseName . '.epub'
-        );
+            catch (Exception $e) {
+                @error_log('haxcms item epub export failed: ' . $e->getMessage());
+                $sendTopLevelError(502, 'Export conversion failed');
+                return;
+            }
+            ExportConverters::sendFileDownload(
+                $output,
+                'application/epub+zip',
+                $fileBaseName . '.epub'
+            );
         return;
     }
     try {
@@ -260,10 +265,11 @@ return function ($context) {
         $record['content'] = $content;
         $serialized = SiteRouteUtils::serializePayload($record, $format);
     }
-    catch (Exception $e) {
-        $sendTopLevelError(500, 'Unable to build item export record: ' . $e->getMessage());
-        return;
-    }
+            catch (Exception $e) {
+                @error_log('haxcms item export record failed: ' . $e->getMessage());
+                $sendTopLevelError(500, 'Unable to build item export record');
+                return;
+            }
     ExportConverters::sendFileDownload(
         $serialized,
         ExportConverters::resolveExportMediaType($format),

@@ -88,7 +88,9 @@ if (!function_exists('haxcmsImportConvertRecipeToSite')) {
         // Check if HAX CLI is available and try to process
         $haxBin = trim((string) @shell_exec('which hax 2>/dev/null'));
         if ($haxBin !== '' && file_exists($tmpFile)) {
-            $cmd    = escapeshellcmd($haxBin) . ' recipe --file ' . escapeshellarg($tmpFile) . ' --format json --quiet --no-i 2>/dev/null';
+            // Security (SEC-19): escapeshellarg (not escapeshellcmd) for the
+            // binary path so it is quoted as a single shell argument.
+            $cmd    = escapeshellarg($haxBin) . ' recipe --file ' . escapeshellarg($tmpFile) . ' --format json --quiet --no-i 2>/dev/null';
             $output = (string) @shell_exec($cmd);
             $parsed = json_decode($output, true);
             if (is_array($parsed) && isset($parsed['items'])) {
