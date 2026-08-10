@@ -42,6 +42,42 @@ class SystemRoutesMap
             'v1/themes',
         );
     }
+    /**
+     * Subset of getSystemV1AdminRoutes() whose NON-GET methods require the
+     * superUser principal (the true system-admin-dashboard routes: skeleton,
+     * theme, block management, status, configuration, schemas, entities).
+     * SystemApiSecurity::getRouteSecurity() elevates non-GET/HEAD methods of
+     * these routes to the 'admin' security level so the superUser check fires.
+     *
+     * Site-lifecycle routes (sites, sites/:siteName/clone, /archive, /download,
+     * /download-skeleton, /save-as-template) are intentionally NOT listed here:
+     * any authenticated user (including the HAXiam tenant principal) must be
+     * able to run their mutations, so their non-GET methods fall through to the
+     * spec-driven base policy (bearerAuth + userTokenHeader -> authenticated).
+     *
+     * getSystemV1AdminRoutes() remains the full set used by
+     * validateSystemV1RouteAccess() for the site-scoped-referer gate; that gate
+     * is correct for the full set and is a separate concern from superUser
+     * elevation. Node has no equivalent elevation (the Q1 comment in
+     * SystemApiSecurity.php); this split aligns PHP with Node for site-lifecycle
+     * mutations while keeping dashboard-management routes superUser-gated.
+     */
+    public static function getSystemV1SuperUserRoutes()
+    {
+        return array(
+            'v1/status',
+            'v1/system/version',
+            'v1/entities',
+            'v1/schemas',
+            'v1/configuration/api-keys',
+            'v1/configuration/media',
+            'v1/configuration/schema-files/operations',
+            'v1/blocks',
+            'v1/skeletons',
+            'v1/skeletons/:skeletonName',
+            'v1/themes',
+        );
+    }
     public static function getRoutesMap()
     {
         return array(

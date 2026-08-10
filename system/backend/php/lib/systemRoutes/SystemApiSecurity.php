@@ -194,14 +194,22 @@ class SystemApiSecurity
         // hand-maintained public/authenticated route lists.
         $basePolicy = SiteRouteUtils::getSystemApiRouteAuthPolicy($route, $normalizedMethod);
         // PHP admin tier (Q1: no Node equivalent): elevate non-GET methods of
-        // admin routes to 'admin' so the superUser check fires. GET stays at
-        // the spec-driven base policy (authenticated/authenticated-user) since
-        // the spec declares bearerAuth for dashboard reads. The admin route
-        // list is the single source of truth for which routes require admin.
+        // true system-admin-dashboard routes to 'admin' so the superUser check
+        // fires. GET stays at the spec-driven base policy
+        // (authenticated/authenticated-user) since the spec declares bearerAuth
+        // for dashboard reads. The superUser-elevation set is
+        // getSystemV1SuperUserRoutes() (skeleton/theme/block management, status,
+        // configuration, schemas, entities) — NOT the full referer-gate list in
+        // getSystemV1AdminRoutes(), which also covers site-lifecycle routes
+        // (sites, clone, archive, download, download-skeleton, save-as-template)
+        // that any authenticated user must be able to mutate. Elevating those
+        // would 403 the HAXiam tenant principal (never the superUser) on every
+        // site-lifecycle POST; leaving them out lets them fall through to the
+        // spec-driven authenticated policy, matching Node behavior.
         if (
             $normalizedMethod !== 'GET' &&
             $normalizedMethod !== 'HEAD' &&
-            in_array($route, SystemRoutesMap::getSystemV1AdminRoutes(), true)
+            in_array($route, SystemRoutesMap::getSystemV1SuperUserRoutes(), true)
         ) {
             return 'admin';
         }
