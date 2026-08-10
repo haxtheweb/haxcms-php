@@ -275,6 +275,27 @@ trait OperationsRouteSaveNode {
                 else if (isset($page->metadata->author)) {
                   unset($page->metadata->author);
                 }
+                // support for defining and updating linkUrl (page redirect)
+                if (isset($data["attributes"]["link-url"]) && $data["attributes"]["link-url"] != '') {
+                  $page->metadata->linkUrl = SanitizeContent::sanitizeURLValue(
+                    $data["attributes"]["link-url"],
+                    ''
+                  );
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->linkUrl)) {
+                  unset($page->metadata->linkUrl);
+                }
+                // support for defining and updating linkTarget (redirect window target)
+                if (isset($data["attributes"]["link-target"]) && $data["attributes"]["link-target"] != '') {
+                  $page->metadata->linkTarget = SanitizeContent::sanitizeMetadataValue(
+                    $data["attributes"]["link-target"]
+                  );
+                }
+                // they sent across nothing but we had something previously
+                else if (isset($page->metadata->linkTarget)) {
+                  unset($page->metadata->linkTarget);
+                }
                 if (!isset($data["attributes"]["locked"])) {
                   $page->metadata->locked = false;
                 }
