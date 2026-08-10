@@ -2686,18 +2686,21 @@ class HAXCMS
           }
         }
         $baseApiPath = $systemRequestBase . '/';
-        if (!$isDashboardRequest) {
-          if ($systemOnlyBasePath !== '/') {
-            $baseApiPath = rtrim($systemOnlyBasePath, '/') . '/' . $baseApiPath;
-          }
-          else {
-            $baseApiPath = '/' . $baseApiPath;
-          }
+        // Always prepend the installation base path (with any sites/{siteName}
+        // segments already stripped via $systemOnlyBasePath). This matters for
+        // HAXiam / subdirectory deployments where the install lives at e.g.
+        // /bto108/ — the system API is at /bto108/system/api/v1, not at the
+        // server root. Dashboard requests need this prefix just as much as
+        // site requests; the dashboard vs site distinction only affects the
+        // site-segment stripping which has already happened above.
+        if ($systemOnlyBasePath !== '/') {
+          $baseApiPath = rtrim($systemOnlyBasePath, '/') . '/' . $baseApiPath;
         }
-        // Always ensure the system API path is absolute. When this is a dashboard
-        // request the block above is skipped and $baseApiPath has no leading slash,
-        // so the browser would resolve it relative to the current page URL (which may
-        // be /sites/{siteName}/...) producing the wrong endpoint address.
+        else {
+          $baseApiPath = '/' . $baseApiPath;
+        }
+        // Always ensure the system API path is absolute so the browser never
+        // resolves it relative to the current page URL.
         if ($baseApiPath === '' || $baseApiPath[0] !== '/') {
           $baseApiPath = '/' . $baseApiPath;
         }
