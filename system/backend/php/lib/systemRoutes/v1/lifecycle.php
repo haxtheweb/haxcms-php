@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/../../routes/RoutesMap.php';
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../SystemApiSecurity.php';
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
     $operations = new Operations();

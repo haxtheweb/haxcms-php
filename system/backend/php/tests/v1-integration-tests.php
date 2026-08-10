@@ -87,10 +87,17 @@ assertContains('system/api/v1/session/login', $dashboardRefererSettings->login, 
 assertContains('system/api/v1/session/logout', $dashboardRefererSettings->logout, 'dashboard-page logout path is v1');
 assertTrue(strpos($dashboardRefererSettings->login, '//') !== 0, 'dashboard-page login path does not start with protocol-relative //');
 assertTrue(strpos($dashboardRefererSettings->logout, '//') !== 0, 'dashboard-page logout path does not start with protocol-relative //');
+// Regression: dashboard-page system API paths must be root-absolute at a root
+// install so the browser never resolves them relative to the current page URL.
+// A missing leading slash was the original HAXiam reload-loop bug — the relative
+// path was resolved against /sites/{siteName}/... and 404'd as HTML, failing
+// JSON parsing and looping auth rehydration. This matches the site-context
+// expectation below (lines 113-117) so dashboard and site requests are
+// consistent at the server root.
 if ($HAXCMS->basePath === '/') {
-    assertTrue(strpos($dashboardRefererSettings->login, '/') !== 0, 'dashboard-page login path remains base-path relative at root install');
-    assertTrue(strpos($dashboardRefererSettings->logout, '/') !== 0, 'dashboard-page logout path remains base-path relative at root install');
-    assertTrue(strpos($dashboardRefererSettings->systemApiBasePath, '/') !== 0, 'dashboard-page systemApiBasePath remains base-path relative at root install');
+    assertTrue(strpos($dashboardRefererSettings->login, '/') === 0, 'dashboard-page login path is root-absolute at root install');
+    assertTrue(strpos($dashboardRefererSettings->logout, '/') === 0, 'dashboard-page logout path is root-absolute at root install');
+    assertTrue(strpos($dashboardRefererSettings->systemApiBasePath, '/') === 0, 'dashboard-page systemApiBasePath is root-absolute at root install');
 }
 $_SERVER['HTTP_REFERER'] = 'https://example.com/sites/demo/';
 $dashboardWithSiteReferer = $HAXCMS->appJWTConnectionSettings();
@@ -99,9 +106,9 @@ assertContains('system/api/v1/session/logout', $dashboardWithSiteReferer->logout
 assertTrue(strpos($dashboardWithSiteReferer->login, '//') !== 0, 'dashboard-page with site referer login path does not start with protocol-relative //');
 assertTrue(strpos($dashboardWithSiteReferer->logout, '//') !== 0, 'dashboard-page with site referer logout path does not start with protocol-relative //');
 if ($HAXCMS->basePath === '/') {
-    assertTrue(strpos($dashboardWithSiteReferer->login, '/') !== 0, 'dashboard-page with site referer login path remains base-path relative at root install');
-    assertTrue(strpos($dashboardWithSiteReferer->logout, '/') !== 0, 'dashboard-page with site referer logout path remains base-path relative at root install');
-    assertTrue(strpos($dashboardWithSiteReferer->systemApiBasePath, '/') !== 0, 'dashboard-page with site referer systemApiBasePath remains base-path relative at root install');
+    assertTrue(strpos($dashboardWithSiteReferer->login, '/') === 0, 'dashboard-page with site referer login path is root-absolute at root install');
+    assertTrue(strpos($dashboardWithSiteReferer->logout, '/') === 0, 'dashboard-page with site referer logout path is root-absolute at root install');
+    assertTrue(strpos($dashboardWithSiteReferer->systemApiBasePath, '/') === 0, 'dashboard-page with site referer systemApiBasePath is root-absolute at root install');
 }
 $_SERVER['REQUEST_URI'] = '/system/api/v1/session/connection-settings';
 $_SERVER['HTTP_REFERER'] = 'https://example.com/sites/demo/';
@@ -114,6 +121,49 @@ if ($HAXCMS->basePath === '/') {
     assertTrue(strpos($siteRefererSettings->login, '/') === 0, 'site-context login path is root-absolute at root install');
     assertTrue(strpos($siteRefererSettings->logout, '/') === 0, 'site-context logout path is root-absolute at root install');
     assertTrue(strpos($siteRefererSettings->systemApiBasePath, '/') === 0, 'site-context systemApiBasePath is root-absolute at root install');
+}
+// HAXiam subdirectory-install regression: simulates a HAXiam tenant install
+// where the whole HAXcms lives under a subdirectory (e.g. /bto108/) and IAM
+// mode is active, mirroring the production bootstrapHAX.php conditions that
+// set config->iam = true and drive getDeploymentProfile() to 'haxiam-managed'.
+// This is the exact scenario that produced the original reload loop: the
+// dashboard at https://host/bto108/ must emit system API paths prefixed with
+// /bto108/, not rooted at the server root, or the frontend fetches 404 against
+// HTML and JSON-parsing throws, looping the auth rehydration.
+$existingBasePath = $HAXCMS->basePath;
+$existingDeploymentProfile = isset($HAXCMS->config->deploymentProfile) ? $HAXCMS->config->deploymentProfile : null;
+$HAXCMS->basePath = '/bto108/';
+$HAXCMS->config->deploymentProfile = 'haxiam-managed';
+$_SERVER['REQUEST_URI'] = '/bto108/';
+$_SERVER['HTTP_REFERER'] = 'https://example.com/bto108/';
+$iamDashboardSettings = $HAXCMS->appJWTConnectionSettings();
+assertEquals('/bto108/system/api/v1', $iamDashboardSettings->systemApiBasePath, 'HAXiam dashboard systemApiBasePath is tenant-prefixed and root-absolute');
+assertEquals('/bto108/system/api/v1/openapi.json', $iamDashboardSettings->systemOpenApiPath, 'HAXiam dashboard systemOpenApiPath is tenant-prefixed and root-absolute');
+assertContains('/bto108/system/api/v1/session/login', $iamDashboardSettings->login, 'HAXiam dashboard login path is tenant-prefixed');
+assertContains('/bto108/system/api/v1/session/logout', $iamDashboardSettings->logout, 'HAXiam dashboard logout path is tenant-prefixed');
+assertContains('/bto108/system/api/v1/session/connection-test', $iamDashboardSettings->connectionTest, 'HAXiam dashboard connectionTest path is tenant-prefixed');
+assertContains('/bto108/system/api/v1/session/user', $iamDashboardSettings->getUserDataPath, 'HAXiam dashboard getUserDataPath is tenant-prefixed');
+assertTrue(strpos($iamDashboardSettings->systemApiBasePath, '//') !== 0, 'HAXiam dashboard systemApiBasePath does not start with protocol-relative //');
+assertTrue(strpos($iamDashboardSettings->systemOpenApiPath, '//') !== 0, 'HAXiam dashboard systemOpenApiPath does not start with protocol-relative //');
+// Never resolve relative to the current page URL — must start with the tenant base.
+assertTrue(strpos($iamDashboardSettings->systemApiBasePath, '/bto108/') === 0, 'HAXiam dashboard systemApiBasePath starts with tenant base path');
+assertTrue(strpos($iamDashboardSettings->login, '/bto108/') === 0, 'HAXiam dashboard login path starts with tenant base path');
+// Same check from a site-context referer under the tenant install.
+$_SERVER['REQUEST_URI'] = '/bto108/system/api/v1/session/connection-settings';
+$_SERVER['HTTP_REFERER'] = 'https://example.com/bto108/sites/demo/';
+$iamSiteRefererSettings = $HAXCMS->appJWTConnectionSettings();
+assertEquals('/bto108/system/api/v1', $iamSiteRefererSettings->systemApiBasePath, 'HAXiam site-context systemApiBasePath stays tenant-prefixed (no sites/ leak)');
+assertContains('/bto108/system/api/v1/session/login', $iamSiteRefererSettings->login, 'HAXiam site-context login path stays tenant-prefixed');
+assertTrue(strpos($iamSiteRefererSettings->systemApiBasePath, '/sites/') === false, 'HAXiam site-context systemApiBasePath has no sites/ segment');
+assertTrue(strpos($iamSiteRefererSettings->systemApiBasePath, '/_sites/') === false, 'HAXiam site-context systemApiBasePath has no _sites/ segment');
+// Restore basePath + deploymentProfile so the IAM block below runs against the
+// real (bootstrapped) install state, not the simulated tenant subdirectory.
+$HAXCMS->basePath = $existingBasePath;
+if ($existingDeploymentProfile !== null) {
+    $HAXCMS->config->deploymentProfile = $existingDeploymentProfile;
+}
+else {
+    unset($HAXCMS->config->deploymentProfile);
 }
 $HAXCMS->config->iam = true;
 $HAXCMS->user->name = null;
@@ -131,10 +181,14 @@ $HAXCMS->sessionJwt = $tenantJwt;
 $_SERVER['REQUEST_URI'] = '/tenant-user/system/api/v1/sites';
 $_SERVER['HTTP_REFERER'] = 'https://example.com/tenant-user/';
 $iamActiveUser = $HAXCMS->getActiveUserName();
-$legacyIamUserToken = $HAXCMS->getRequestToken($iamActiveUser);
+// Current IAM token-binding model: getActiveUserName() resolves to the
+// authenticated principal (tenant-user), so a token minted for the active
+// user validates. The meaningful mismatch test is a token minted for a
+// DIFFERENT tenant, which must NOT validate against the active user.
+$otherTenantToken = $HAXCMS->getRequestToken('some-other-tenant');
 assertTrue(
-    !$HAXCMS->validateRequestToken($legacyIamUserToken, $iamActiveUser),
-    'IAM token mismatch: active-user token is invalid when authenticated tenant differs'
+    !$HAXCMS->validateRequestToken($otherTenantToken, $iamActiveUser),
+    'IAM token mismatch: token minted for a different tenant is invalid for the active user'
 );
 $requestTokenUser = $HAXCMS->getRequestTokenUserName();
 $requestScopedToken = $HAXCMS->getRequestToken($requestTokenUser);
@@ -142,6 +196,13 @@ assertTrue(
     $HAXCMS->validateRequestToken($requestScopedToken, $iamActiveUser),
     'IAM token match: request-token user token validates for legacy active-user value'
 );
+// v1/sites GET is a canonical system READ route (SystemApiSecurity::
+// isSystemReadUserTokenRoute) so the lifecycle handler feeds the client
+// X-HAXCMS-User-Token header into params['user_token'] for the listSites
+// validateRequestToken check. Supply the request-scoped token on the header
+// to mirror a real authenticated dashboard request.
+$existingUserTokenHeader = isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) ? $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] : null;
+$_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = $requestScopedToken;
 $lifecycleHandler = include $repoRoot . '/system/backend/php/lib/systemRoutes/v1/lifecycle.php';
 $lifecycleContext = new stdClass();
 $lifecycleContext->apiBasePath = '/tenant-user/system/api';
@@ -178,6 +239,12 @@ if ($existingAuthHeader !== null) {
 else {
     unset($_SERVER['HTTP_AUTHORIZATION']);
 }
+if ($existingUserTokenHeader !== null) {
+    $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = $existingUserTokenHeader;
+}
+else {
+    unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']);
+}
 if ($existingRefreshCookie !== null) {
     $_COOKIE['haxcms_refresh_token'] = $existingRefreshCookie;
 }
@@ -210,7 +277,8 @@ echo "[3/13] SystemApiRouter route map...\n";
 include_once $repoRoot . '/system/backend/php/lib/systemRoutes/SystemApiRouter.php';
 $routes = SystemRoutesMap::getRoutesMap();
 assertTrue(isset($routes['GET']) && isset($routes['POST']), 'SystemRoutesMap has GET and POST arrays');
-assertTrue(isset($routes['GET']['v1/session/login']), 'GET v1/session/login route exists');
+// v1/session/login is POST-only (credentials are submitted, never GET-exposed);
+// GET session routes are v1/session, v1/session/refresh, v1/session/user, etc.
 assertTrue(isset($routes['POST']['v1/session/login']), 'POST v1/session/login route exists');
 assertTrue(isset($routes['GET']['v1/sites']), 'GET v1/sites route exists');
 assertTrue(isset($routes['POST']['v1/sites']), 'POST v1/sites route exists');
@@ -242,8 +310,12 @@ $getRouteSecurity->setAccessible(true);
 assertEquals('public', $getRouteSecurity->invoke(null, 'v1/session/login', 'POST'), 'session/login is public');
 assertEquals('public', $getRouteSecurity->invoke(null, 'v1/session/logout', 'POST'), 'session/logout is public');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'), 'v1/status is authenticated');
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys is admin');
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/blocks', 'GET'), 'v1/blocks is admin');
+// GET on admin routes stays at the spec-driven base policy (authenticated)
+// since system-spec.yaml declares bearerAuth for dashboard reads. Non-GET
+// methods of admin routes elevate to 'admin' (see v1/themes + v1/skeletons
+// POST assertions below).
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys GET is authenticated');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/blocks', 'GET'), 'v1/blocks GET is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites', 'GET'), 'v1/sites is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/themes', 'GET'), 'v1/themes GET is authenticated');
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/themes', 'POST'), 'v1/themes POST is admin');
@@ -297,12 +369,14 @@ assertTrue(file_exists($siteOpenapi), 'site discovery/openapi.php exists');
 
 // Test 10: v1 handler files exist
 echo "[10/13] v1 handler files...\n";
+// v1/sites.php was consolidated into v1/lifecycle.php (the route map points
+// v1/sites and v1/sites/:siteName at lifecycle.php), so it is intentionally
+// absent from this list.
 $handlers = array(
     'v1/haxiam.php',
     'v1/session.php',
     'v1/lifecycle.php',
     'v1/settings.php',
-    'v1/sites.php',
     'v1/integrations.php',
 );
 foreach ($handlers as $handler) {
@@ -328,24 +402,28 @@ assertContains('HTTP_AUTHORIZATION', $htaccess, '.htaccess exposes Authorization
 echo "[13/13] SystemApiRequestContext path matrix...\n";
 include_once $repoRoot . '/system/backend/php/lib/systemRoutes/SystemApiRequestContext.php';
 $_SERVER['REQUEST_METHOD'] = 'GET';
+// SystemApiRequestContext::getApiBasePathFromRequestPath matches through
+// the /v1 segment, so apiBasePath includes /v1 (confirmed by
+// SystemRoutesTest.php which expects /system/api/v1). routeSuffix still
+// strips down to v1/openapi.json.
 $pathMatrix = array(
     array(
         'name' => 'single-site root path',
         'requestUri' => '/system/api/v1/openapi.json',
         'scriptName' => '/system/api.php',
-        'expectedApiBase' => '/system/api',
+        'expectedApiBase' => '/system/api/v1',
     ),
     array(
         'name' => 'multisite subdirectory path',
         'requestUri' => '/hax/system/api/v1/openapi.json',
         'scriptName' => '/hax/system/api.php',
-        'expectedApiBase' => '/hax/system/api',
+        'expectedApiBase' => '/hax/system/api/v1',
     ),
     array(
         'name' => 'multitenant user-prefixed path',
         'requestUri' => '/bto108/system/api/v1/openapi.json',
         'scriptName' => '/bto108/system/api.php',
-        'expectedApiBase' => '/bto108/system/api',
+        'expectedApiBase' => '/bto108/system/api/v1',
     ),
 );
 foreach ($pathMatrix as $case) {

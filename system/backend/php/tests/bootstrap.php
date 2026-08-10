@@ -5,8 +5,16 @@
 // Suppress notices during tests
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
-// Load the classes under test
+// Load the composer autoloader so Symfony Yaml is available for
+// SiteRouteUtils::parseYaml. Without it the site + system OpenAPI specs never
+// parse and getSiteApiRouteAuthPolicy / getSystemApiRouteAuthPolicy fail-close
+// every route to 'authenticated', misclassifying public GET routes as 403.
+// Production gets this autoload via HAXCMS.php (line 27); these tests use stub
+// HAXCMS objects and never include HAXCMS.php, so load it explicitly here.
 $baseDir = dirname(__DIR__);
+include_once $baseDir . '/vendor/autoload.php';
+
+// Load the classes under test
 include_once $baseDir . '/lib/siteRoutes/SiteRouteUtils.php';
 include_once $baseDir . '/lib/siteRoutes/SiteApiRequestContext.php';
 include_once $baseDir . '/lib/siteRoutes/SiteApiSecurity.php';

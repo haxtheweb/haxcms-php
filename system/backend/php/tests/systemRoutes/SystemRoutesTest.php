@@ -8,6 +8,14 @@ declare(strict_types=1);
 
 $base = dirname(__DIR__) . '/..';
 
+// Load the composer autoloader so Symfony Yaml is available for
+// SiteRouteUtils::parseYaml. Without it the system OpenAPI spec never parses
+// and getSystemApiRouteAuthPolicy fail-closes every route to 'authenticated',
+// which misclassifies public routes (e.g. v1/session/login) as 401. Production
+// gets this autoload via HAXCMS.php (line 27); this test uses a MockHAXCMS and
+// never includes HAXCMS.php, so load it explicitly here.
+require_once $base . '/vendor/autoload.php';
+
 // Include the classes under test
 require_once $base . '/lib/JWT.php';
 require_once $base . '/lib/siteRoutes/SiteRouteUtils.php';

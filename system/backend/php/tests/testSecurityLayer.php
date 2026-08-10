@@ -48,14 +48,22 @@ function runSecurityLayerTests()
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/items should be public');
 
-    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items/some-slug', 'GET');
+    // Pass the matched route PATTERN (e.g. v1/items/:idOrSlug), matching how
+    // SiteApiRouter::dispatch calls validateSiteApiAccess with $match['route'].
+    // Passing a concrete slug would miss the spec policy map key and fall
+    // through to 'authenticated'.
+    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items/:idOrSlug', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/items/:idOrSlug should be public');
 
-    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/content/some-slug', 'GET');
+    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/content/:idOrSlug', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/content/:idOrSlug should be public');
 
+    // v1/files GET is authenticated-site per site-spec.yaml (bearerAuth +
+    // siteTokenHeader) — it is NOT public, so an unauthenticated request is
+    // denied. The old regex table left it bare 'authenticated'; the spec-driven
+    // reader correctly elevates it to authenticated-site.
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/files', 'GET');
-    $runner->assert($result['allowed'] === true, 'GET v1/files should be public');
+    $runner->assert($result['allowed'] === false, 'GET v1/files requires auth (authenticated-site)');
 
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/search', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/search should be public');
@@ -72,8 +80,11 @@ function runSecurityLayerTests()
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/themes', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/themes should be public');
 
+    // v1/reports GET is authenticated-site per site-spec.yaml (bearerAuth +
+    // siteTokenHeader) — it is NOT public, so an unauthenticated request is
+    // denied.
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/reports', 'GET');
-    $runner->assert($result['allowed'] === true, 'GET v1/reports should be public');
+    $runner->assert($result['allowed'] === false, 'GET v1/reports requires auth (authenticated-site)');
 
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/analytics', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/analytics should be public');
@@ -90,10 +101,10 @@ function runSecurityLayerTests()
     $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/schemas', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/schemas should be public');
 
-    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/site/export/zip', 'GET');
+    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/site/export/:format', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/site/export/:format should be public');
 
-    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items/some-slug/export/pdf', 'GET');
+    $result = SiteApiSecurity::validateSiteApiAccess($context, 'v1/items/:idOrSlug/export/:format', 'GET');
     $runner->assert($result['allowed'] === true, 'GET v1/items/:idOrSlug/export/:format should be public');
 
     // Mutation routes should require auth + site token
