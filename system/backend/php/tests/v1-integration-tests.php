@@ -317,6 +317,15 @@ assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys GET is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/blocks', 'GET'), 'v1/blocks GET is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites', 'GET'), 'v1/sites is authenticated');
+// Site-lifecycle mutations must NOT elevate to 'admin' — they fall through to
+// the spec-driven authenticated policy so the HAXiam tenant principal (never
+// the superUser) can create/clone/archive/download/save-as-template. The
+// superUser-elevation set (getSystemV1SuperUserRoutes) excludes these routes.
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites', 'POST'), 'v1/sites POST is authenticated');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites/:siteName/clone', 'POST'), 'v1/sites/:siteName/clone POST is authenticated');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites/:siteName/archive', 'POST'), 'v1/sites/:siteName/archive POST is authenticated');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites/:siteName/download-skeleton', 'POST'), 'v1/sites/:siteName/download-skeleton POST is authenticated');
+assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites/:siteName/save-as-template', 'POST'), 'v1/sites/:siteName/save-as-template POST is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/themes', 'GET'), 'v1/themes GET is authenticated');
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/themes', 'POST'), 'v1/themes POST is admin');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/skeletons', 'GET'), 'v1/skeletons GET is authenticated');
