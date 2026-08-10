@@ -33,14 +33,6 @@ return function ($context) {
             'description' => 'Aggregate site statistics for dashboard overview cards.',
             'includes' => null,
         ),
-        'insights' => array(
-            'id' => 'insights',
-            'label' => 'Insights',
-            'icon' => 'icons:assessment',
-            'title' => 'Insights report',
-            'description' => 'Content insight metrics including readability and structure counts.',
-            'includes' => null,
-        ),
         'content' => array(
             'id' => 'content',
             'label' => 'Content',
@@ -153,7 +145,7 @@ return function ($context) {
     else {
         $data = array();
     }
-    if ($reportName == 'overview' || $reportName == 'insights') {
+    if ($reportName == 'overview') {
         $items = SiteRouteUtils::getOrderedItems($site);
         if (!is_null($ancestor) && isset($site->manifest) && method_exists($site->manifest, 'findBranch')) {
             $branchItems = $site->manifest->findBranch($ancestor);
@@ -227,6 +219,41 @@ return function ($context) {
             'lexiconCount' => intval($lexiconCount),
             'sentenceCount' => intval($sentenceCount),
         );
+    }
+    $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
+    if (isset($data['contentData']) && is_array($data['contentData'])) {
+        foreach ($data['contentData'] as $contentIdx => $contentRow) {
+            if (!is_array($contentRow)) {
+                continue;
+            }
+            $data['contentData'][$contentIdx]['link'] = $siteBasePath . (isset($contentRow['slug']) ? $contentRow['slug'] : '');
+        }
+    }
+    if (isset($data['linkData']) && is_array($data['linkData'])) {
+        foreach ($data['linkData'] as $linkHref => $linkEntries) {
+            if (!is_array($linkEntries)) {
+                continue;
+            }
+            foreach ($linkEntries as $entryIdx => $linkEntry) {
+                if (!is_array($linkEntry)) {
+                    continue;
+                }
+                $linkPage = (isset($linkEntry['itemId']) && $linkEntry['itemId']) ? $site->manifest->getItemById($linkEntry['itemId']) : false;
+                $data['linkData'][$linkHref][$entryIdx]['link'] = $linkPage ? $siteBasePath . $linkPage->slug : '';
+                $data['linkData'][$linkHref][$entryIdx]['pageTitle'] = $linkPage ? $linkPage->title : '';
+            }
+        }
+    }
+    if (isset($data['mediaData']) && is_array($data['mediaData'])) {
+        foreach ($data['mediaData'] as $mediaIdx => $mediaItem) {
+            if (!is_array($mediaItem)) {
+                continue;
+            }
+            $mediaPage = (isset($mediaItem['itemId']) && $mediaItem['itemId']) ? $site->manifest->getItemById($mediaItem['itemId']) : false;
+            $data['mediaData'][$mediaIdx]['pageLink'] = $mediaPage ? $siteBasePath . $mediaPage->slug : '';
+            $data['mediaData'][$mediaIdx]['pageSlug'] = $mediaPage ? $mediaPage->slug : '';
+            $data['mediaData'][$mediaIdx]['pageTitle'] = $mediaPage ? $mediaPage->title : '';
+        }
     }
     $payload = array(
         'id' => $definition['id'],

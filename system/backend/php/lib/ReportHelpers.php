@@ -211,7 +211,7 @@ class HAXCMSReportHelpers
       if (!self::isBranchMember($item->id, $activeId, $parentMap)) {
         continue;
       }
-      if (!self::getItemMetaValue($item, 'published', false)) {
+      if (self::getItemMetaValue($item, 'published', null) === false) {
         continue;
       }
       $selected[] = $item;
