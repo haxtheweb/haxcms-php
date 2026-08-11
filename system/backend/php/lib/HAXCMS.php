@@ -17,8 +17,6 @@ include_once 'JSONOutlineSchema.php';
 include_once 'JWT.php';
 // working with git operators
 include_once 'Git.php';
-// basic request validation / handling
-include_once 'Request.php';
 // basic cache writing to file system
 include_once 'Cache.php';
 // system-level theme settings helpers
@@ -404,76 +402,6 @@ class HAXCMS
      */
     public function isCLI() {
         return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
-    }
-    public function executeRequest($op = null) {
-      $usedGet = FALSE;
-      // merge all possible inputs together as sanitized params
-      $params = array();
-      // calculate the correct params to use
-      if ($this->isCLI()) {
-        $params = array_merge($params, $this->safeCLI);
-      }
-      if (is_array($this->safePost) && count($this->safePost)) {
-        $params = array_merge($params, $this->safePost);
-      }
-      if (is_array($this->safeGet) && count($this->safeGet)) {
-        $usedGet = TRUE;
-        $params = array_merge($params, $this->safeGet);
-      }
-      // merge all possible inputs together as GET params can come across as part
-      // of a POST or FILES form upload
-      $rawParams = array();
-      // raw params too incase the request needs them
-      if ($this->isCLI()) {
-        $rawParams = $this->safeCLI;
-      }
-      if (is_array($_FILES) && count($_FILES)) {
-        $rawParams = array_merge($rawParams, $_FILES);
-      }
-      if (is_array($_POST) && count($_POST)) {
-        $rawParams = array_merge($rawParams, $_POST);
-      }
-      if (is_array($_GET) && count($_GET)) {
-        $rawParams = array_merge($rawParams, $_GET);
-      }
-      // support parameters setting the operation
-      if ($op == null) {
-        if (isset($params['op'])) {
-          $op = $params['op'];
-        }
-        else if (isset($_GET['op'])) {
-          $op = $this->safeGet['op'];
-        }
-      }
-      // remove api/ from the op
-      if (strpos($op, 'api/') === 0) {
-        $op = substr($op, 4);
-      }
-      if ($op == '') {
-        $op = 'api';
-      }
-      // look for any paths and only return 1st
-      if (strpos($op, '/')) {
-        $tmp = explode('/', $op);
-        $op = $tmp[0];
-        // store as args bc this will be common to want access to
-        $params['args'] = $tmp;
-      }
-      // loop through other potential GET based args so long as they aren't set yet
-      // this ensures that post has priority for security but allowing us to develop
-      // faster when it comes to pulling across other arguments like form_id
-      if (!$usedGet) {
-        foreach ($this->safeGet as $key => $arg) {
-          if (!isset($params[$key])) {
-            $params[$key] = $arg;
-          }
-        }
-      }
-      // execute the request with contextual params mixed in
-      // based on how the request was formulated
-      $request = new Request();
-      // this will output the response headers and everything
-      $request->execute($op, $params, $rawParams);
     }
     /**
      * Security best practice (I2): explicit allowlist of form ids that may be

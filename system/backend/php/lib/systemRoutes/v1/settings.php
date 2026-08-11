@@ -1,5 +1,5 @@
 <?php
-include_once dirname(__FILE__) . '/../../routes/RoutesMap.php';
+include_once dirname(__FILE__) . '/../../operations/OperationsMethodMap.php';
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 if (!function_exists('haxcmsSystemSettingsInvokeAsPost')) {

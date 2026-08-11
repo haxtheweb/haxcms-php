@@ -1,106 +1,32 @@
 <?php
 include_once "JSONOutlineSchemaItem.php";
 include_once "SanitizeContent.php";
-include_once dirname(__FILE__) . '/routes/RoutesMap.php';
-foreach (OperationsRoutesMap::getRoutesMap() as $operationsRouteFile) {
+include_once dirname(__FILE__) . '/operations/OperationsMethodMap.php';
+foreach (OperationsMethodMap::getMethodsMap() as $operationsRouteFile) {
   include_once $operationsRouteFile;
 }
-// Stubs for pre-existing missing trait files referenced in Routes.php
-include_once dirname(__FILE__) . '/routes/formLoad.php';
-include_once dirname(__FILE__) . '/routes/formProcess.php';
-include_once dirname(__FILE__) . '/routes/Routes.php';
+include_once dirname(__FILE__) . '/operations/OperationsMethods.php';
 /**
- * @OA\Info(
- *     title="HAXcms API",
- *     version="",
- *     description="API for interfacing with HAXcms end points",
- *     termsOfService="https://haxtheweb.org",
- *     @OA\Contact(
- *       email="hax@psu.edu"
- *     ),
- *     @OA\License(
- *       name="Apache 2.0",
- *       url="http://www.apache.org/licenses/LICENSE-2.0.html"
- *     )
- * ),
- * @OA\ExternalDocumentation(
- *     description="HAXcms and all things HAX documentations",
- *     url="https://haxtheweb.org/"
- * ),
- * @OA\Tag(
- *     name="hax",
- *     description="Operations required for HAX editor to work",
- *     @OA\ExternalDocumentation(
- *         description="Find out more about hax editor integrations",
- *         url="https://haxtheweb.org/integrations/create-new-ones"
- *     )
- * ),
- * @OA\Tag(
- *     name="cms",
- *     description="Operations for the CMS side"
- * ),
- * @OA\Tag(
- *     name="site",
- *     description="Operations for sites"
- * ),
- * @OA\Tag(
- *     name="node",
- *     description="Operations for individual nodes in a site"
- * ),
- * @OA\Tag(
- *     name="file",
- *     description="Operations for files related to CMS or HAX"
- * ),
- * @OA\Tag(
- *     name="form",
- *     description="Operations related to form submission or generation"
- * ),
- * @OA\Tag(
- *     name="meta",
- *     description="Operations related to metadata management or processes"
- * ),
- * @OA\Tag(
- *     name="git",
- *     description="Operations related to git / version control of the site"
- * ),
- * @OA\Tag(
- *     name="user",
- *     description="Operations for the user account / object"
- * ),
- * @OA\Tag(
- *     name="api",
- *     description="endpoint to generate the API or surrounding API callbacks"
- * ),
- * @OA\Tag(
- *     name="settings",
- *     description="Internal settings related to configuration of this HAXcms deployment"
- * ),
- * @OA\Tag(
- *     name="authenticated",
- *     description="Operations requiring authentication"
- * )
+ * Operations is the shared business-logic library invoked by v1 API route
+ * handlers in siteRoutes/v1/ and systemRoutes/v1/. Each method in this class
+ * is called directly by a v1 handler via $operations->method(); this class
+ * is NOT a router and is not dispatched by HTTP requests directly.
+ *
+ * The authoritative API contract is the OpenAPI 3.0 specification:
+ *   - site API:    siteRoutes/openapi/site-spec.yaml
+ *   - system API:  systemRoutes/openapi/system-spec.yaml
+ * Those YAML files are the single source of truth for endpoints, parameters,
+ * request bodies, and security declarations. The legacy @OA\* docblock
+ * annotations that used to live here described the removed v0 operation
+ * endpoints and have been deleted; do not re-add PHP-annotation style OpenAPI
+ * metadata - update the YAML specs instead.
  */
 class Operations {
-  use OperationsRoutes;
+  use OperationsMethods;
 
-  private static $routesMap = null;
   public $params;
   public $rawParams;
 
-  public static function getRoutesMap() {
-    if (is_null(self::$routesMap)) {
-      self::$routesMap = OperationsRoutesMap::getRoutesMap();
-    }
-    return self::$routesMap;
-  }
-
-  public static function getRouteFile($routeName) {
-    $routesMap = self::getRoutesMap();
-    if (isset($routesMap[$routeName])) {
-      return $routesMap[$routeName];
-    }
-    return null;
-  }
   private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
   // Extensions permitted for build.siteFiles downloads (theme/ and custom/
   // assets imported from another HAXcms instance). Allow-listing rather than
