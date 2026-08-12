@@ -26,7 +26,7 @@ The HAX ecosystem consists of multiple interconnected repositories, each serving
 
 - **`hax-schema`** - Contains HAX property schemas that define how web components integrate with the HAX authoring interface.
 
-- **`open-apis`** - Microservice APIs and shared infrastructure for HAXTheWeb ecosystem. Contains Express-based Vercel endpoints deployed at https://open-apis.hax.cloud/ providing advanced capabilities like content importing, parsing, analysis, site conversion, and migration services. Also hosts the pre-built Storybook documentation for HAX components.
+- **`open-apis`** - Legacy microservice APIs formerly deployed at https://open-apis.hax.cloud/ (Express-based Vercel endpoints for content importing, parsing, analysis, site conversion, and migration). This service is being phased out in favor of on-premises calls; new work should route through the on-premises `@system/`/`@site/` MFR namespaces instead. Also hosts the pre-built Storybook documentation for HAX components.
 
 - **`docs`** - Official HAX documentation site built as a HAXcms site. Contains comprehensive documentation about HAX philosophy, pillars, community guidelines, tutorials, and developer resources. Structure follows HAXcms conventions with site.json (JSON Outline Schema), pages/ directory for content, and files/ for assets.
 
@@ -416,7 +416,7 @@ lerna add package-name --scope=@haxtheweb/component-name
 
 ### External Library Integration
 - **Other Libraries**: Always use the `/dist/` or compiled JavaScript version
-- **Open APIs**: Leverage https://open-apis.hax.cloud/ for conversion, analysis, and processing services
+- **Open APIs**: https://open-apis.hax.cloud/ is legacy and being phased out; conversion, analysis, and processing work should go through on-premises `@system/`/`@site/` MFR namespaces instead
 - **Avoid**: Direct TypeScript imports or source files requiring compilation
 
 ## Additional Instructions
@@ -430,11 +430,9 @@ HAX leverages cloud infrastructure at https://hax.cloud for:
 - **Documentation**: Centralized documentation and community resources
 - **Open Infrastructure**: Publicly available APIs and services
 
-### Microservice Architecture
-- **open-apis.hax.cloud**: Conversion, analysis, and processing services
-- **Stateless Design**: Services designed for scalability and reliability
-- **REST APIs**: Standard HTTP interfaces for integration
-- **Vercel Deployment**: Serverless functions for optimal performance
+### Microservice Architecture (Legacy)
+- **open-apis.hax.cloud**: Formerly provided conversion, analysis, and processing services; being phased out in favor of on-premises calls (see `@system/`/`@site/` MFR namespacing)
+- Do not build new integrations against this service — route new conversion/analysis/import work through the on-premises `@system/` (system-wide) or `@site/` (site-scoped) MFR namespaces instead
 
 ## Ecosystem-Specific Guidance
 
@@ -444,7 +442,7 @@ HAX leverages cloud infrastructure at https://hax.cloud for:
 - **Component Dependencies**: Use `@haxtheweb/` scope for internal dependencies
 - **Version Synchronization**: Components should maintain version alignment
 - **No Compilation Step**: Pure JavaScript approach means faster development cycles
-- **API Development**: Express endpoints in `open-apis/` deploy automatically to Vercel at https://open-apis.hax.cloud/
+- **API Development**: `open-apis/` is legacy (was auto-deployed to Vercel at https://open-apis.hax.cloud/); build new system/site APIs on-premises via the `@system/`/`@site/` MFR namespaces instead
 
 ### Documentation Standards
 - **HAXcms Format**: Documentation sites use HAXcms structure (site.json + pages/ + files/)
