@@ -42,9 +42,33 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         }
 
         list($owner, $repo, $branch) = $parsedRepo;
-        if (!$branch) { $branch = 'main'; }
 
         $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+
+        // Parity with Node convertGitbookToSite.js: when the URL does not
+        // specify a branch, resolve the repo's default_branch from the GitHub
+        // API (falling back to 'main'). Hardcoding 'main' breaks repos whose
+        // default branch is 'master' (e.g. haxtheweb/gitbook-v1-example),
+        // which 400 with "Could not find SUMMARY.md" because the raw URL
+        // points at a ref that does not exist.
+        if (!$branch) {
+            $branch = '';
+            try {
+                $repoMetaResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', 'https://api.github.com/repos/' . $owner . '/' . $repo, [
+                    'headers' => ['Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'HAXcms-Import/1.0'],
+                ]);
+                $repoMeta = json_decode((string) $repoMetaResponse->getBody(), true);
+                if (is_array($repoMeta) && isset($repoMeta['default_branch']) && is_string($repoMeta['default_branch']) && $repoMeta['default_branch'] !== '') {
+                    $branch = (string) $repoMeta['default_branch'];
+                }
+            } catch (\Exception $e) {
+                // fall through to the 'main' default below
+            }
+            if ($branch === '') {
+                $branch = 'main';
+            }
+        }
+
         $rawBase = 'https://raw.githubusercontent.com/' . $owner . '/' . $repo . '/' . $branch . '/';
         $apiBase = 'https://api.github.com/repos/' . $owner . '/' . $repo . '/contents/';
 

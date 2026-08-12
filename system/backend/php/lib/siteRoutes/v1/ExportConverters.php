@@ -288,31 +288,68 @@ class ExportConverters
         return implode("\n", $parts);
     }
 
-    public static function htmlToPdfString($html = '', $base = '/')
+    public static function htmlToPdfString($html = '', $base = '/', $site = null)
     {
         $sanitized = self::sanitizeExportHtml($html);
         $tempDir = sys_get_temp_dir();
         if (!is_dir($tempDir) || !is_writable($tempDir)) {
             throw new Exception('PDF export requires a writable temp directory');
         }
-        $dompdf = new \Dompdf\Dompdf(array(
+        $normalizedBase = '/';
+        if ($base != '') {
+            $normalizedBase = SiteRouteUtils::normalizeBasePath($base);
+        }
+        $siteDirectory = '';
+        if ($site !== null) {
+            $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
+        }
+        $chrootPaths = array();
+        if ($siteDirectory != '' && is_dir($siteDirectory)) {
+            $realSiteDir = realpath($siteDirectory);
+            if (is_string($realSiteDir) && $realSiteDir !== '') {
+                // Convert HAX media components (media-image, simple-img) into
+                // real <img> elements so Dompdf can see them — same
+                // normalization EPUB and DOCX exports already use.
+                $normalized = self::normalizeHtmlForDocumentExport($sanitized, $normalizedBase, array(), 'pdf');
+                // Resolve each img src to an absolute filesystem path under the
+                // site directory so Dompdf can read the file via the file://
+                // protocol. Without this, Dompdf treats the URL-space base path
+                // (e.g. /aa121/) as a filesystem path via realpath(), which
+                // returns false and triggers "Image not found or type unknown".
+                $sanitized = self::resolvePdfImageSources($normalized, $normalizedBase, $realSiteDir);
+                $chrootPaths[] = $realSiteDir;
+            }
+        }
+        // Dompdf produces a blank, empty-page PDF when handed an HTML fragment
+        // with no <head> element (sanitizeExportHtml strips the document
+        // wrapper, leaving a bare fragment). Always ensure a <head> exists so
+        // the body content renders. Include a <base> tag when a non-root base
+        // path is available so relative URLs resolve.
+        $baseTag = '';
+        if ($normalizedBase != '' && $normalizedBase != '/') {
+            $baseTag = '<base href="' . htmlspecialchars($normalizedBase, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />';
+        }
+        if (stripos($sanitized, '<head>') !== false) {
+            if ($baseTag != '') {
+                $sanitized = preg_replace('/<head>/i', '<head>' . $baseTag, $sanitized, 1);
+            }
+        }
+        else {
+            $sanitized = '<head>' . $baseTag . '<meta charset="utf-8" /></head>' . $sanitized;
+        }
+        $options = array(
             'isRemoteEnabled' => false,
             'defaultFont' => 'serif',
             'tempDir' => $tempDir,
-        ));
+        );
+        if (count($chrootPaths) > 0) {
+            // Allow Dompdf to read local image files under the site directory.
+            // Options::validateLocalUri always appends the Dompdf rootDir to
+            // the chroot check, so bundled fonts still load.
+            $options['chroot'] = $chrootPaths;
+        }
+        $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->set_option('isHtml5ParserEnabled', true);
-        if ($base != '') {
-            $base = SiteRouteUtils::normalizeBasePath($base);
-        }
-        if ($base != '' && $base != '/') {
-            $baseTag = '<base href="' . htmlspecialchars($base, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />';
-            if (stripos($sanitized, '<head>') !== false) {
-                $sanitized = preg_replace('/<head>/i', '<head>' . $baseTag, $sanitized, 1);
-            }
-            else {
-                $sanitized = '<head>' . $baseTag . '</head>' . $sanitized;
-            }
-        }
         $dompdf->loadHtml($sanitized);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
@@ -321,6 +358,103 @@ class ExportConverters
             throw new Exception('PDF export conversion returned empty output');
         }
         return $output;
+    }
+
+    /**
+     * Rewrite <img> src attributes in the given HTML fragment to absolute
+     * filesystem paths under the site directory so Dompdf can load them via
+     * the file:// protocol. Data URIs and remote URLs are left untouched.
+     *
+     * @param string $html
+     * @param string $basePath
+     * @param string $siteDirectory Realpath-resolved site directory
+     * @return string
+     */
+    public static function resolvePdfImageSources($html, $basePath, $siteDirectory)
+    {
+        if ((string) $html == '') {
+            return '';
+        }
+        if (!is_string($siteDirectory) || $siteDirectory == '' || !is_dir($siteDirectory)) {
+            return (string) $html;
+        }
+        $realSiteDir = realpath($siteDirectory);
+        if (!is_string($realSiteDir) || $realSiteDir === '') {
+            return (string) $html;
+        }
+        $normalizedBase = SiteRouteUtils::normalizeBasePath($basePath);
+        $html5 = new \Masterminds\HTML5();
+        $doc = $html5->loadHTML('<div id="haxcms-pdf-wrapper">' . (string) $html . '</div>');
+        $xpath = new DOMXPath($doc);
+        $xpath->registerNamespace('x', 'http://www.w3.org/1999/xhtml');
+        $images = $xpath->query("//x:img[@src]");
+        foreach ($images as $img) {
+            $src = trim((string) $img->getAttribute('src'));
+            if ($src == '') {
+                continue;
+            }
+            // Leave data URIs, remote URLs, and protocol-relative URLs untouched.
+            if (preg_match('/^(data:|https?:\/\/|\/\/)/i', $src)) {
+                continue;
+            }
+            $resolved = self::resolveLocalImageFile($src, $normalizedBase, $realSiteDir);
+            if ($resolved !== '') {
+                $img->setAttribute('src', $resolved);
+            }
+        }
+        $wrapper = $doc->getElementById('haxcms-pdf-wrapper');
+        if ($wrapper) {
+            $inner = '';
+            foreach ($wrapper->childNodes as $child) {
+                $inner .= $doc->saveXML($child);
+            }
+            return $inner;
+        }
+        return (string) $html;
+    }
+
+    /**
+     * Resolve a relative or site-relative image URL to an absolute filesystem
+     * path under the site directory. Returns the realpath or an empty string
+     * if the file cannot be found, is unreadable, or escapes the site dir.
+     *
+     * @param string $src
+     * @param string $normalizedBase
+     * @param string $realSiteDir
+     * @return string
+     */
+    public static function resolveLocalImageFile($src, $normalizedBase, $realSiteDir)
+    {
+        $value = trim((string) $src);
+        if ($value == '' || strpos($value, chr(0)) !== false) {
+            return '';
+        }
+        // Strip the base path prefix (e.g. /aa121/ → files/x.png).
+        $relative = $value;
+        if ($normalizedBase != '/' && strpos($relative, $normalizedBase) === 0) {
+            $relative = substr($relative, strlen($normalizedBase));
+        }
+        $relative = ltrim($relative, '/');
+        if ($relative == '' || strpos($relative, '..') !== false) {
+            return '';
+        }
+        // Try the site root first, then the files/ subdirectory where
+        // HAXcms uploads are stored.
+        $candidates = array(
+            $realSiteDir . '/' . $relative,
+            $realSiteDir . '/files/' . $relative,
+        );
+        foreach ($candidates as $candidate) {
+            $realCandidate = realpath($candidate);
+            if ($realCandidate === false || !is_file($realCandidate) || !is_readable($realCandidate)) {
+                continue;
+            }
+            if (strpos($realCandidate, $realSiteDir . '/') !== 0 && $realCandidate !== $realSiteDir) {
+                continue;
+            }
+            return $realCandidate;
+        }
+        return '';
     }
 
     public static function extractBodyInnerHtml($html)
@@ -396,7 +530,13 @@ class ExportConverters
         try {
             $phpWord = new \PhpOffice\PhpWord\PhpWord();
             $section = $phpWord->addSection();
-            \PhpOffice\PhpWord\Shared\Html::addHtml($section, (string) $html, true);
+            // $html here is an HTML fragment (no <html>/<body> wrapper), so
+            // fullHTML must be false. PhpWord's Html::addHtml() wraps fragments
+            // in a synthetic <body> tag itself when fullHTML is false; passing
+            // true against a fragment left it looking for a <body> element that
+            // was never present, so parseNode() received null and silently
+            // produced an empty document (the bug behind blank DOCX exports).
+            \PhpOffice\PhpWord\Shared\Html::addHtml($section, (string) $html, false);
             $tmpDocx = tempnam($tempDir, 'haxcms_docx_') . '.docx';
             $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
             $objWriter->save($tmpDocx);

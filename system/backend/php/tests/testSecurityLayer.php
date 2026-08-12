@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . '/bootstrap.php';
+include_once __DIR__ . '/../lib/systemRoutes/SystemApiSecurity.php';
 
 function runSecurityLayerTests()
 {
@@ -220,6 +221,94 @@ function runSecurityLayerTests()
     $runner->assert(isset($result['userName']), 'Auth result has userName');
 
     return $runner->report('Security Layer Tests');
+}
+
+function runSystemV1RefererGateTests()
+{
+    $runner = new SimpleTestRunner();
+
+    // validateSystemV1RouteAccess blocks system v1 admin routes that arrive
+    // via a site-scoped URL (starts with /{sitesDirectory}/) from a
+    // site-scoped referer. isSiteScopedSystemApiRequest MUST use a startsWith
+    // check (=== 0), not contains (!== false), so a root system API URL like
+    // /system/api/v1/sites/<name>/clone (which has /_sites/ in the middle of
+    // the path) is NOT falsely flagged as site-scoped and blocked with 403
+    // when no dashboard Referer is present.
+
+    $adminRoute = 'v1/sites/:siteName/clone';
+    $nonAdminRoute = 'v1/session/login';
+
+    // 1. Root system API URL with /sites/ in the middle, NO referer -> ALLOWED.
+    //    Regression for the contains-anywhere false positive that blocked
+    //    direct API clone/archive calls with 403.
+    resetServerVars();
+    $ctx = new stdClass();
+    $ctx->requestPath = '/system/api/v1/sites/mydemo/clone';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === true,
+        'Root system API URL (/system/api/v1/sites/<name>/clone) with no referer is NOT site-scoped (startsWith fix)'
+    );
+
+    // 2. Root system API URL, dashboard referer -> ALLOWED.
+    resetServerVars();
+    $_SERVER['HTTP_REFERER'] = 'http://haxcms.ddev.site/';
+    $ctx = new stdClass();
+    $ctx->requestPath = '/system/api/v1/sites/mydemo/clone';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === true,
+        'Root system API URL with dashboard referer is allowed'
+    );
+
+    // 3. Site-scoped URL (starts with /_sites/), site-scoped referer -> BLOCKED.
+    resetServerVars();
+    $_SERVER['HTTP_REFERER'] = 'http://haxcms.ddev.site/_sites/mydemo/';
+    $ctx = new stdClass();
+    $ctx->requestPath = '/_sites/mydemo/system/api/v1/sites/mydemo/clone';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === false,
+        'Site-scoped URL with site-scoped referer is blocked (the gate intent)'
+    );
+
+    // 4. Site-scoped URL, dashboard referer -> ALLOWED.
+    resetServerVars();
+    $_SERVER['HTTP_REFERER'] = 'http://haxcms.ddev.site/';
+    $ctx = new stdClass();
+    $ctx->requestPath = '/_sites/mydemo/system/api/v1/sites/mydemo/clone';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === true,
+        'Site-scoped URL with dashboard referer is allowed'
+    );
+
+    // 5. Site-scoped URL, NO referer -> BLOCKED (missing referer is not dashboard).
+    resetServerVars();
+    $ctx = new stdClass();
+    $ctx->requestPath = '/_sites/mydemo/system/api/v1/sites/mydemo/clone';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === false,
+        'Site-scoped URL with no referer is blocked (missing referer is not dashboard)'
+    );
+
+    // 6. Non-admin route with site-scoped URL + referer -> ALLOWED (gate only
+    //    applies to SystemV1AdminRoutes).
+    resetServerVars();
+    $_SERVER['HTTP_REFERER'] = 'http://haxcms.ddev.site/_sites/mydemo/';
+    $ctx = new stdClass();
+    $ctx->requestPath = '/_sites/mydemo/system/api/v1/session/login';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $nonAdminRoute) === true,
+        'Non-admin route (v1/session/login) is not gated'
+    );
+
+    // 7. Empty requestPath -> NOT site-scoped (allowed).
+    resetServerVars();
+    $ctx = new stdClass();
+    $ctx->requestPath = '';
+    $runner->assert(
+        SystemApiSecurity::validateSystemV1RouteAccess($ctx, $adminRoute) === true,
+        'Empty requestPath is not site-scoped (allowed)'
+    );
+
+    return $runner->report('System v1 Referer Gate Tests');
 }
 
 if ((php_sapi_name() === 'cli' || !isset($_SERVER['SERVER_SOFTWARE'])) && realpath(__FILE__) === realpath($_SERVER['SCRIPT_NAME'])) {

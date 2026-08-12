@@ -115,7 +115,7 @@ return function ($context) {
                 else {
                     $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, '');
                     if ($format == 'pdf') {
-                        $output = ExportConverters::htmlToPdfString($siteHtml, $siteBasePath);
+                        $output = ExportConverters::htmlToPdfString($siteHtml, $siteBasePath, $site);
                     }
                     else {
                         $output = ExportConverters::htmlToDocxString($siteHtml);
@@ -199,7 +199,7 @@ return function ($context) {
             }
         try {
             if ($format == 'pdf') {
-                $output = ExportConverters::htmlToPdfString($itemHtml, $siteBasePath);
+                $output = ExportConverters::htmlToPdfString($itemHtml, $siteBasePath, $site);
             }
             else {
                 $output = ExportConverters::htmlToDocxString($itemHtml);

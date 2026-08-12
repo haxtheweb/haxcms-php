@@ -130,6 +130,15 @@ class SystemApiSecurity
      * Parity with Node isSiteScopedSystemApiRoutePattern (req.route.path starts
      * with /{sitesDirectory}/); PHP checks the full request path since one
      * router serves both root and site-scoped system API requests.
+     *
+     * The check MUST be a startsWith (=== 0), not a contains (!== false):
+     * a root system API URL like /system/api/v1/sites/<name>/clone has
+     * /{sitesDirectory}/ in the MIDDLE of the path, but is NOT site-scoped.
+     * A contains-anywhere check would falsely flag it and block legitimate
+     * direct API lifecycle calls (clone/archive/download) with a 403
+     * "system admin route requires system dashboard access" when no dashboard
+     * Referer is present. Only a URL that STARTS with /{sitesDirectory}/ is a
+     * true site-scoped request (e.g. /_sites/<siteName>/system/api/v1/...).
      */
     private static function isSiteScopedSystemApiRequest($context)
     {
@@ -144,7 +153,7 @@ class SystemApiSecurity
         if ($requestPath === '') {
             return false;
         }
-        return strpos($requestPath, '/' . $sitesDirectory . '/') !== false;
+        return strpos($requestPath, '/' . $sitesDirectory . '/') === 0;
     }
     /**
      * True when the referer is the main dashboard (NOT site-scoped).

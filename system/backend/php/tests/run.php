@@ -270,6 +270,7 @@ function runAllTests()
         runMutationWrapperTests(),
         runSystemRoutesMapTests(),
         runSecurityLayerTests(),
+        runSystemV1RefererGateTests(),
         runSsrfGuardTests(),
     );
     $allPassed = true;
