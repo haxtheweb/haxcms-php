@@ -2859,6 +2859,15 @@ class HAXCMSSite
       return $rSlug;
     }
     /**
+     * Whether pathauto slug regeneration is enabled for this site.
+     * Strict === true so an absent key (legacy sites) and any non-boolean
+     * truthy value are uniformly treated as "off".
+     */
+    public function isPathautoEnabled()
+    {
+      return isset($this->manifest->metadata->site->settings->pathauto) && $this->manifest->metadata->site->settings->pathauto === true;
+    }
+    /**
      * Recursive copy to rename high level but copy all files
      */
     public function recurseCopy($src, $dst, $skip = array())

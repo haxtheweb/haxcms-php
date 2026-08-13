@@ -336,6 +336,30 @@ trait OperationsRouteSaveNode {
                     break;
                   }
                 }
+                $pathautoEnabled = $site->isPathautoEnabled();
+                $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
+                if ($pathautoEnabled && !$overridePathauto) {
+                  $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+                  $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+                  $items = $site->manifest->items;
+                  $site->manifest->items = $items;
+                  $changedIds = array($page->id);
+                  $keepGoing = true;
+                  while ($keepGoing) {
+                    $keepGoing = false;
+                    foreach ($items as $item) {
+                      if (in_array($item->parent, $changedIds) && !in_array($item->id, $changedIds)) {
+                        $childOverride = isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true;
+                        if (!$childOverride) {
+                          $childCleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+                          $item->slug = $site->getUniqueSlugName($childCleanTitle, $item, true);
+                          $changedIds[] = $item->id;
+                          $keepGoing = true;
+                        }
+                      }
+                    }
+                  }
+                }
                 $site->updateNode($page);
                 $site->writePageAlternateFormats($page, $sanitizedContent);
                 $site->gitCommit(

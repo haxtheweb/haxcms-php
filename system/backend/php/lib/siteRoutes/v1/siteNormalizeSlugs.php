@@ -78,7 +78,7 @@ return function ($context) {
     } else if (isset($_GET['preview']) && ($_GET['preview'] === 'true' || $_GET['preview'] === '1')) {
         $isPreview = true;
     }
-    $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+    $pathautoEnabled = $site->isPathautoEnabled();
     $items = SiteRouteUtils::normalizeManifestItems($site);
     $originalItems = array();
     foreach ($items as $item) {

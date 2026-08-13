@@ -111,6 +111,29 @@ trait OperationsRouteSaveNodeDetails {
               $page->order = $lastChildOrder($prev->id) + 1;
             }
           }
+          $pathautoEnabled = $site->isPathautoEnabled();
+          $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
+          if ($pathautoEnabled && !$overridePathauto) {
+            $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+            $site->manifest->items = $items;
+            $changedIds = array($page->id);
+            $keepGoing = true;
+            while ($keepGoing) {
+              $keepGoing = false;
+              foreach ($items as $item) {
+                if (in_array($item->parent, $changedIds) && !in_array($item->id, $changedIds)) {
+                  $childOverride = isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true;
+                  if (!$childOverride) {
+                    $childCleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+                    $item->slug = $site->getUniqueSlugName($childCleanTitle, $item, true);
+                    $changedIds[] = $item->id;
+                    $keepGoing = true;
+                  }
+                }
+              }
+            }
+          }
           break;
         case 'outdent':
           if (isset($page->parent) && $page->parent !== null) {
@@ -127,6 +150,29 @@ trait OperationsRouteSaveNodeDetails {
             $page->parent = $newParent;
             $page->indent = isset($page->indent) ? max(((int)$page->indent) - 1, 0) : 0;
             $page->order = $insertAfterOrder;
+          }
+          $pathautoEnabled = $site->isPathautoEnabled();
+          $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
+          if ($pathautoEnabled && !$overridePathauto) {
+            $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+            $page->slug = $site->getUniqueSlugName($cleanTitle, $page, true);
+            $site->manifest->items = $items;
+            $changedIds = array($page->id);
+            $keepGoing = true;
+            while ($keepGoing) {
+              $keepGoing = false;
+              foreach ($items as $item) {
+                if (in_array($item->parent, $changedIds) && !in_array($item->id, $changedIds)) {
+                  $childOverride = isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true;
+                  if (!$childOverride) {
+                    $childCleanTitle = $GLOBALS['HAXCMS']->cleanTitle($item->title);
+                    $item->slug = $site->getUniqueSlugName($childCleanTitle, $item, true);
+                    $changedIds[] = $item->id;
+                    $keepGoing = true;
+                  }
+                }
+              }
+            }
           }
           break;
         case 'setParent':
@@ -149,7 +195,7 @@ trait OperationsRouteSaveNodeDetails {
             $page->indent = $parentNode && isset($parentNode->indent) ? ((int)$parentNode->indent + 1) : 1;
           }
           // If pathauto is on and overridePathauto is not set, regenerate the slug and cascade
-          $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+          $pathautoEnabled = $site->isPathautoEnabled();
           $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
           if ($pathautoEnabled && !$overridePathauto) {
             $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
@@ -179,7 +225,7 @@ trait OperationsRouteSaveNodeDetails {
           if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
             $page->title = strip_tags($this->params['node']['details']['title']);
             // If pathauto is on and overridePathauto is not set, regenerate the slug and cascade
-            $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+            $pathautoEnabled = $site->isPathautoEnabled();
             $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;
             if ($pathautoEnabled && !$overridePathauto) {
               $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);

@@ -378,6 +378,9 @@ trait OperationsRouteCreateSite {
       if (!isset($schema->metadata->site->settings->canonical)) {
         $schema->metadata->site->settings->canonical = true;
       }
+      if (!isset($schema->metadata->site->settings->pathauto)) {
+        $schema->metadata->site->settings->pathauto = true;
+      }
       $schema->metadata->site->created = time();
       $schema->metadata->site->updated = time();
       // check for publishing settings being set globally in HAXCMS

@@ -97,7 +97,7 @@ trait OperationsRouteSaveOutline {
         }
         return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
       };
-      $pathautoEnabled = isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto;
+      $pathautoEnabled = $site->isPathautoEnabled();
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -174,7 +174,7 @@ trait OperationsRouteSaveOutline {
                     $tmpItem->slug != ''
                 ) {
                     // core support for automatically managing paths to make them nice
-                    if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto && !$overridePathauto) {
+                    if ($pathautoEnabled && !$overridePathauto) {
                         $moved = true;
                         $page->slug = $normalizeOutlineSlug(
                           $GLOBALS['HAXCMS']->cleanTitle($page->title),
@@ -195,7 +195,7 @@ trait OperationsRouteSaveOutline {
                 !file_exists($siteDirectory . '/' . $page->location)
             ) {
                 $pAuto = false;
-                if (isset($site->manifest->metadata->site->settings->pathauto) && $site->manifest->metadata->site->settings->pathauto && !$overridePathauto) {
+                if ($pathautoEnabled && !$overridePathauto) {
                   $pAuto = true;
                 }
                 $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
