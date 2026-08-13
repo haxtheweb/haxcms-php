@@ -57,10 +57,16 @@ if (!function_exists('haxcmsImportSimpleHtmlToElements')) {
         $dom = new DOMDocument();
         $dom->preserveWhiteSpace = false;
         @$dom->loadHTML('<?xml encoding="UTF-8"?><div id="import-wrapper">' . $html . '</div>');
-        // Prefer body for full HTML documents; fall back to wrapper div for fragments
-        $source = $dom->getElementsByTagName('body')->item(0);
+        // We always wrap the fragment in <div id="import-wrapper">, so prefer
+        // that wrapper and iterate its direct children (the headings/paragraphs).
+        // loadHTML() synthesizes a <body> even for fragments, and that body's
+        // only child is the wrapper div itself — so preferring body would yield
+        // a single DIV element and hide every heading from the hierarchy
+        // builder (the bug that flattened PDF/PPTX imports). Fall back to body
+        // only when the wrapper was not injected (full-document input).
+        $source = $dom->getElementById('import-wrapper');
         if (!$source) {
-            $source = $dom->getElementById('import-wrapper');
+            $source = $dom->getElementsByTagName('body')->item(0);
         }
         if (!$source) {
             return $elements;
@@ -148,7 +154,9 @@ if (!function_exists('haxcmsImportConvertDocxXmlToHtml')) {
             if ($pPr) {
                 $pStyle = $pPr->getElementsByTagNameNS($ns, 'pStyle')->item(0);
                 if ($pStyle) {
-                    $styleVal = $pStyle->getAttribute('val');
+                    // w:val is namespaced; getAttribute('val') always returns ''.
+                    // Use getAttributeNS so headings are detected (parity with importDocx.php).
+                    $styleVal = $pStyle->getAttributeNS($ns, 'val');
                     if ($styleVal === 'Heading1')      { $tag = 'h1'; }
                     elseif ($styleVal === 'Heading2')  { $tag = 'h2'; }
                     elseif ($styleVal === 'Heading3')  { $tag = 'h3'; }

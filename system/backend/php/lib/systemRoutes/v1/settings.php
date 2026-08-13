@@ -104,6 +104,17 @@ return function ($context) {
         $operations->params = array_merge($operations->params, $context->body);
         $operations->rawParams = array_merge($operations->rawParams, $context->body);
     }
+    // Multipart/form-data uploads (e.g. schemaFileOperation skeleton upload)
+    // populate $_POST with the text form fields (schema/action/name) instead
+    // of the JSON body: php://input is empty for multipart, so $context->body
+    // is empty and the handler's $this->params would otherwise see no fields.
+    // JSON requests do not populate $_POST, so this is a no-op for them. The
+    // jwt/user_token/site_token unsets below run after this merge, so any
+    // attacker-supplied token fields in $_POST are stripped before use.
+    if (is_array($_POST) && count($_POST) > 0) {
+        $operations->params = array_merge($operations->params, $_POST);
+        $operations->rawParams = array_merge($operations->rawParams, $_POST);
+    }
     unset($operations->params['jwt']);
     unset($operations->params['user_token']);
     unset($operations->params['site_token']);

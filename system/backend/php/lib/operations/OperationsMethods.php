@@ -7,6 +7,12 @@ trait OperationsMethods {
   use OperationsRouteSaveEditorSettings;
   use OperationsRouteSaveAllowedBlocks;
   use OperationsRouteSaveEnabledBlocks;
+  use OperationsRouteSaveEnabledThemes;
+  use OperationsRouteSaveEnabledSkeletons;
+  use OperationsRouteGetApiKeys;
+  use OperationsRouteSaveApiKeys;
+  use OperationsRouteGetMediaSettings;
+  use OperationsRouteSaveMediaSettings;
   use OperationsRouteSaveOutline;
   use OperationsRouteCreateNode;
   use OperationsRouteSaveNode;

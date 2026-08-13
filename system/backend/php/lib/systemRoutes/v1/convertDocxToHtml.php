@@ -18,7 +18,10 @@ function haxcmsSystemConvertDocxXmlToHtml($xmlString)
         if ($pPr) {
             $pStyle = $pPr->getElementsByTagNameNS($ns, 'pStyle')->item(0);
             if ($pStyle) {
-                $styleVal = $pStyle->getAttribute('val');
+                // w:val is a namespaced attribute; getAttribute('val') looks up a
+                // non-namespaced 'val' (which never exists) and always returns ''.
+                // Use getAttributeNS so Heading1..Heading6 are detected.
+                $styleVal = $pStyle->getAttributeNS($ns, 'val');
                 if ($styleVal === 'Heading1') {
                     $tag = 'h1';
                 } elseif ($styleVal === 'Heading2') {

@@ -81,7 +81,17 @@ class HAXCMS
             $this->safeCLI = getopt('', $this->validArgs) + array('args' => $GLOBALS['argv']);
         }
         // stupid session less handling thing
-        $_POST = (array) json_decode(file_get_contents('php://input'));
+        // For JSON request bodies, expose the decoded payload via $_POST so
+        // legacy consumers can read it. For multipart/form-data uploads (e.g.
+        // the system API schemaFileOperation skeleton upload), php://input is
+        // empty and PHP instead populates $_POST with the multipart text form
+        // fields. We MUST NOT overwrite $_POST in that case, or the form fields
+        // (schema/action/name) are destroyed before the v1 dispatcher can merge
+        // them into operations params, and the handler rejects with a 400.
+        $haxcmsRawInput = file_get_contents('php://input');
+        if (is_string($haxcmsRawInput) && $haxcmsRawInput !== '') {
+            $_POST = (array) json_decode($haxcmsRawInput);
+        }
         // handle sanitization on request data, drop security things
         $this->safePost = $this->object_to_array($this->sanitizeArrayValues($_POST));
         $bearerSessionToken = $this->getBearerTokenFromRequest();

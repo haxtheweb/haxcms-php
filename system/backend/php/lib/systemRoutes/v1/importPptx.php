@@ -47,7 +47,16 @@ function haxcmsSystemExtractPptxToHtml($tmpPath)
                 if ($nvPr) {
                     $ph = $nvPr->getElementsByTagNameNS($nsP, 'ph')->item(0);
                     if ($ph) {
-                        $phType = $ph->getAttribute('type');
+                        // p:ph/@type is schema-defined in the presentationml
+                        // namespace. Most generators serialize it unprefixed
+                        // (getAttribute('type') works), but some write p:type,
+                        // which needs getAttributeNS. Try the namespaced form
+                        // first, then fall back so both serializations detect
+                        // title/ctrTitle placeholders.
+                        $phType = $ph->getAttributeNS($nsP, 'type');
+                        if ($phType === '') {
+                            $phType = $ph->getAttribute('type');
+                        }
                         if ($phType === 'title' || $phType === 'ctrTitle') {
                             $isTitle = true;
                         }
