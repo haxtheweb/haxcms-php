@@ -155,6 +155,130 @@ function haxcmsSystemGetFallbackContent($type)
     }
 }
 
+/**
+ * Validate that a string is an http/https URL.
+ */
+function haxcmsSystemValidUrl($str)
+{
+    $s = trim((string) $str);
+    if ($s === '' || !preg_match('#^https?://#i', $s)) {
+        return false;
+    }
+    return filter_var($s, FILTER_VALIDATE_URL) !== false;
+}
+
+/**
+ * Map a stand-alone media URL to the HAX web component that handles it.
+ * Returns the component HTML string, or null when the URL is not a
+ * recognized single-line media reference (youtube/vimeo/twitch + .mp4 ->
+ * video-player, .mp3/.wav/... -> audio-player, .jpg/.png/... -> img,
+ * .gif -> a11y-gif-player, .pdf -> pdf-browser-viewer).
+ */
+function haxcmsSystemUrlMediaComponent($url)
+{
+    if (!haxcmsSystemValidUrl($url)) {
+        return null;
+    }
+    $lower = strtolower($url);
+    $u = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    // video
+    if (
+        strpos($url, 'youtube.com') !== false ||
+        strpos($url, 'youtu.be') !== false ||
+        strpos($url, 'youtube-nocookie.com') !== false ||
+        strpos($url, 'vimeo.com') !== false ||
+        strpos($url, 'twitch.tv') !== false ||
+        strpos($lower, '.mp4') !== false
+    ) {
+        return '<video-player source="' . $u . '"></video-player>';
+    }
+    // audio
+    if (
+        strpos($lower, '.mp3') !== false ||
+        strpos($lower, '.midi') !== false ||
+        strpos($lower, '.mid') !== false ||
+        strpos($lower, '.m4a') !== false ||
+        strpos($lower, '.wav') !== false ||
+        strpos($lower, '.ogg') !== false ||
+        strpos($lower, '.flac') !== false ||
+        strpos($lower, '.aac') !== false
+    ) {
+        return '<audio-player source="' . $u . '"></audio-player>';
+    }
+    // image
+    if (
+        strpos($lower, '.jpg') !== false ||
+        strpos($lower, '.jpeg') !== false ||
+        strpos($lower, '.png') !== false ||
+        strpos($lower, '.webp') !== false
+    ) {
+        return '<img src="' . $u . '" loading="lazy" decoding="async" fetchpriority="high" alt="" />';
+    }
+    // gif
+    if (strpos($lower, '.gif') !== false) {
+        return '<a11y-gif-player src="' . $u . '" style="width: 300px;"><simple-img width="300" src="' . $u . '"></simple-img></a11y-gif-player>';
+    }
+    // pdf
+    if (strpos($lower, '.pdf') !== false) {
+        return '<pdf-browser-viewer file="' . $u . '" width="100%"></pdf-browser-viewer>';
+    }
+    return null;
+}
+
+/**
+ * Convert a single parsed element into HTML, applying token processing
+ * for stand-alone media URLs and [token] placeholders so a docx line
+ * such as `[https://youtube.com/watch?v=...]` becomes a <video-player>.
+ * Mirrors the open-api / NodeJS htmlFromEl convention.
+ */
+function haxcmsSystemHtmlFromEl($textValue, $fallbackHtml)
+{
+    $textValue = trim((string) $textValue);
+    // stand-alone media URL on its own line
+    $mediaComponent = haxcmsSystemUrlMediaComponent($textValue);
+    if ($mediaComponent !== null) {
+        return $mediaComponent;
+    }
+    // [token] wrapper convention
+    if ($textValue !== '' && substr($textValue, 0, 1) === '[' && substr($textValue, -1) === ']') {
+        $tmp = explode(':', $textValue);
+        if (count($tmp) > 1) {
+            $type = str_replace('[', '', array_shift($tmp));
+            $text = trim(str_replace(']', '', implode(':', $tmp)));
+            switch ($type) {
+                case 'math':
+                case 'mathjax':
+                    return '<lrn-math>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</lrn-math>';
+                case 'video':
+                case 'audio':
+                case 'document':
+                case 'text':
+                case 'image':
+                    return '<place-holder type="' . $type . '" text="' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"></place-holder>';
+            }
+        }
+        // strip the brackets and re-test as a media URL
+        $inner = trim(str_replace('[', '', str_replace(']', '', $textValue)));
+        $innerComponent = haxcmsSystemUrlMediaComponent($inner);
+        if ($innerComponent !== null) {
+            return $innerComponent;
+        }
+        return '<place-holder type="text" text="' . htmlspecialchars($inner, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"></place-holder>';
+    }
+    // !tag-name developer shortcut for inserting a specific element
+    if ($textValue !== '' && substr($textValue, 0, 1) === '!' && strpos($textValue, '-') !== false) {
+        $tag = trim(str_replace('!', '', $textValue));
+        // only allow custom-element style tag names (letters, digits, hyphen)
+        if (preg_match('/^[a-zA-Z0-9-]+$/', $tag)) {
+            return '<' . $tag . '></' . $tag . '>';
+        }
+    }
+    // default: keep the element HTML, strip tabs, inline [math:...] -> <lrn-math>
+    $content = str_replace("\t", '', (string) $fallbackHtml);
+    $content = preg_replace('/\[math:(.*?)\]/', '<lrn-math>$1</lrn-math>', trim($content));
+    return $content;
+}
+
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
 
@@ -301,7 +425,7 @@ return function ($context) {
             if (!$rootTag) {
                 $contents = '';
                 foreach ($elements as $el) {
-                    $contents .= $el['html'];
+                    $contents .= haxcmsSystemHtmlFromEl($el['text'], $el['html']);
                 }
                 $items[] = $buildItem($titleValue, $makeSlug($titleValue), 0, $parentId, 0, $contents !== '' ? $contents : '<p></p>');
             } else {
@@ -327,7 +451,7 @@ return function ($context) {
                             $childStartIdx = $idx + $sibIdx + 1;
                             break;
                         } elseif ($childHeading === null) {
-                            $rootContents .= $sib['html'];
+                            $rootContents .= haxcmsSystemHtmlFromEl($sib['text'], $sib['html']);
                         }
                     }
                     $rootItem = $buildItem($rootTitle, $rootSlug, $rootOrder, $parentId, 0, $rootContents !== '' ? $rootContents : haxcmsSystemGetFallbackContent($type));
@@ -347,7 +471,7 @@ return function ($context) {
                             $childSiblings = haxcmsSystemCollectSiblingsUntil($elements, $currentChildIdx, array($rootTagName, $childTagName));
                             $childContents = '';
                             foreach ($childSiblings as $sib) {
-                                $childContents .= $sib['html'];
+                                $childContents .= haxcmsSystemHtmlFromEl($sib['text'], $sib['html']);
                             }
                             $childItem = $buildItem($childTitle, $childSlug, $childOrder, $rootItem['id'], 1, $childContents !== '' ? $childContents : '<p></p>');
                             $items[] = $childItem;
@@ -367,7 +491,7 @@ return function ($context) {
             if (!$rootTag) {
                 $contents = '';
                 foreach ($elements as $el) {
-                    $contents .= $el['html'];
+                    $contents .= haxcmsSystemHtmlFromEl($el['text'], $el['html']);
                 }
                 $items[] = $buildItem($titleValue, $makeSlug($titleValue), 0, $parentId, 0, $contents !== '' ? $contents : '<p></p>');
             } else {
@@ -386,7 +510,7 @@ return function ($context) {
                     $rootSiblings = haxcmsSystemCollectSiblingsUntil($elements, $idx, array($rootTagName));
                     $rootContents = '';
                     foreach ($rootSiblings as $sib) {
-                        $rootContents .= $sib['html'];
+                        $rootContents .= haxcmsSystemHtmlFromEl($sib['text'], $sib['html']);
                     }
                     $rootItem = $buildItem($rootTitle, $rootSlug, $order, $parentId, 0, $rootContents !== '' ? $rootContents : haxcmsSystemGetFallbackContent($type));
                     $items[] = $rootItem;
@@ -399,7 +523,7 @@ return function ($context) {
         default: {
             $contents = '';
             foreach ($elements as $el) {
-                $contents .= $el['html'];
+                $contents .= haxcmsSystemHtmlFromEl($el['text'], $el['html']);
             }
             $items[] = $buildItem($titleValue, $makeSlug($titleValue), 0, $parentId, 0, $contents !== '' ? $contents : '<p></p>');
             break;

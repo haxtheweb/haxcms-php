@@ -32,6 +32,9 @@ return function ($context) {
         '/' . (isset($GLOBALS['HAXCMS']) && is_object($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->systemRequestBase) ? trim((string) $GLOBALS['HAXCMS']->systemRequestBase, '/') : 'system/api'),
         (string) $apiBasePath
     );
+    $siteName = (isset($site->manifest->metadata->site->name) && is_string($site->manifest->metadata->site->name))
+        ? (string) $site->manifest->metadata->site->name
+        : '';
     $descriptors = array(
         'markdown' => array(
             'rel' => 'download',
@@ -41,8 +44,9 @@ return function ($context) {
         'zip' => array(
             'rel' => 'download',
             'mediaType' => 'application/zip',
-            'href' => $siteBasePath . '?download-site=true',
-            'authenticatedEndpoint' => $systemApiBasePath . '/downloadSite',
+            'href' => $systemApiBasePath . '/v1/sites/' . rawurlencode($siteName) . '/download',
+            'authenticatedEndpoint' => $systemApiBasePath . '/v1/sites/' . rawurlencode($siteName) . '/download',
+            'method' => 'POST',
         ),
         'pdf' => array(
             'rel' => 'download',
@@ -67,8 +71,8 @@ return function ($context) {
         'skeleton' => array(
             'rel' => 'download',
             'mediaType' => 'application/json',
-            'href' => $systemApiBasePath . '/downloadSiteSkeleton',
-            'authenticatedEndpoint' => $systemApiBasePath . '/downloadSiteSkeleton',
+            'href' => $systemApiBasePath . '/v1/sites/' . rawurlencode($siteName) . '/download-skeleton',
+            'authenticatedEndpoint' => $systemApiBasePath . '/v1/sites/' . rawurlencode($siteName) . '/download-skeleton',
             'method' => 'POST',
         ),
     );
