@@ -119,6 +119,16 @@ trait OperationsRouteSaveNode {
                   // decode entities and strip tags so manifest stores clean text
                   $page->title = html_entity_decode(strip_tags($data["attributes"]["title"]));
                 }
+                // support for defining and updating overridePathauto (manual slug lock).
+                // Mirrors NodeJS saveNode.js: only write when the override-pathauto
+                // attribute is present (boolean attrs parse to null, so use
+                // array_key_exists to detect presence). This must run BEFORE the
+                // pathauto regen block below so that a user-entered slug is not
+                // clobbered by auto-regeneration when they checked the override.
+                if (array_key_exists("override-pathauto", $data["attributes"])) {
+                  $val = $data["attributes"]["override-pathauto"];
+                  $page->metadata->overridePathauto = ($val !== false && $val !== 'false');
+                }
                 if (isset($data["attributes"]["slug"])) {
                   // account for x being the only front end reserved route
                   if ($data["attributes"]["slug"] == "x") {
