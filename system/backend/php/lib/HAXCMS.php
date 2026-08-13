@@ -1147,6 +1147,7 @@ class HAXCMS
                 }
               }
             }
+            $site->maybeUpgradeLegacyBootstrap();
             return $site;
         } elseif ($create) {
             // attempt to create site

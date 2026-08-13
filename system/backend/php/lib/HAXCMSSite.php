@@ -403,6 +403,26 @@ class HAXCMSSite
         );
     }
     /**
+     * Detect a legacy (@lrnwebcomponents) bootstrap in index.html and rebuild
+     * managed files once to upgrade it. Self-extinguishing: the rebuild copies
+     * in the modern (@haxtheweb) boilerplate so the tell is gone next load.
+     */
+    public function maybeUpgradeLegacyBootstrap() {
+      try {
+        $siteDirectoryPath = $this->directory . '/' . $this->manifest->metadata->site->name;
+        $indexPath = $siteDirectoryPath . '/index.html';
+        if (!file_exists($indexPath)) {
+          return;
+        }
+        $indexHtml = @file_get_contents($indexPath);
+        if ($indexHtml === false || strpos($indexHtml, '@lrnwebcomponents') === false) {
+          return;
+        }
+        $this->rebuildManagedFiles();
+        $this->gitCommit('Managed files upgraded: legacy bootstrap');
+      } catch (Exception $e) {}
+    }
+    /**
      * Reprocess the files that twig helps set in their static
      * form that the user is not in control of.
      */
