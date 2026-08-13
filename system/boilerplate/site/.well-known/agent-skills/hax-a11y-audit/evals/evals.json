@@ -1,0 +1,23 @@
+{
+  "skill_name": "hax-a11y-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you audit my HAX site for accessibility? The site is at ~/Documents/git/haxtheweb/my-course. I want to make sure it meets WCAG 2.0 AA — things like image alt text, heading order, link text, color contrast, and whether my videos have captions. Give me a report I can hand to my TA to fix.",
+      "expected_output": "A WCAG 2.0 AA diagnostic report with the 📊/🔍/🛠 structure. The report ingests site.json and pages/*.html, runs the WCAG checks (1.1.1 alt text, 1.3.1 headings + landmarks, 1.4.3/1.4.11 contrast, 2.4.4 link text, 3.3.2 form labels, 1.2.x media caption presence, 4.1.2 ARIA, 1.3.1 table markup), rates the site Compliant/Partial/Non-compliant, maps each finding to a real HAX component swap or plain-HTML fix from the verified element map, cites the WCAG criterion for each finding, and includes an Implementation handoff block pointing at hax-claudehax/hax-site-building. Media caption findings flag presence only and hand depth off to hax-media-a11y.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a new HAX site for my online course and I want to make sure every page is WCAG 2.0 AA compliant from the start. Before I author content, tell me what accessibility rules I should follow for images, headings, links, forms, tables, and video — and which HAX components to use so I don't accidentally create barriers.",
+      "expected_output": "A proactive WCAG 2.0 AA guidance report structured as the 📊/🔍/🛠 format but framed as 'embody in new site' guidance rather than audit findings. Lists the WCAG criteria to satisfy during authoring (1.1.1 alt text rules including decorative vs informative, 1.3.1 one-h1-no-skips heading rule, 1.3.1 landmark structure, 2.4.4 descriptive link text, 3.3.2 form labels, 1.3.1 table caption/scope, 1.2.x media captions via video-player track, 1.4.3/1.4.11 contrast against DDD tokens) and maps each to the real HAX component to use (media-image with alt, a11y-figure for figures, simple-fields for inputs, editable-table-display for tables, video-player with track, simple-icon-lite with aria-hidden for decorative icons, a11y-collapse with heading-button for progressive disclosure). Includes the plain-HTML rules (semantic landmarks, heading order, link text). Hands off implementation to hax-claudehax/hax-site-building/hax-design-system.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My custom web component's shadow DOM has a broken roving tabindex — when I tab through the listbox items inside my element, focus jumps to the wrong item and sometimes gets trapped. Can you audit it for accessibility?",
+      "expected_output": "This prompt should REDIRECT to hax-webcomponent-dev, not produce a WCAG audit. The expected behavior is to recognize that the failure is component-INTERNAL (inside a custom element's own shadow DOM — the element's own tabindex/keyboard navigation), which is hax-webcomponent-dev's scope per the 'When NOT to use' defer rules. The skill should briefly explain the redirect (component-internal a11y vs authored-content a11y) and point the user to hax-webcomponent-dev rather than emitting a 📊/🔍/🛠 WCAG report.",
+      "files": []
+    }
+  ]
+}

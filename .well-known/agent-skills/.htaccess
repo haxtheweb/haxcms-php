@@ -1,0 +1,14 @@
+# HAXcms Agent Skills discovery (agentskills.io v0.2.0)
+# CORS: open so browser-based agents on other origins can fetch the index + skills.
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+  Header set Vary "Origin"
+</IfModule>
+# Defense in depth: the discovery index only ships .md/.json/.txt, but harden
+# so a slipped-through script file can never execute server-side here.
+<FilesMatch "\.(php|phtml|php[3-7]|phps|pht|sh|cgi|pl|py)$">
+  php_flag engine off
+  RemoveHandler .php .phtml .php3 .php4 .php5 .php7
+  SetHandler text/plain
+  ForceType text/plain
+</FilesMatch>

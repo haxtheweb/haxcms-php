@@ -408,6 +408,7 @@ class HAXCMSSite
      */
     public function rebuildManagedFiles($templates = array()) {
       // support for calling with a set of predefined templates
+      $isFullRebuild = (count($templates) === 0);
       if (count($templates) === 0) {
         $templates = $this->getManagedTemplateFiles();
         // this can't be there by default since it's a dynamic file and we only
@@ -424,6 +425,15 @@ class HAXCMSSite
           @mkdir($destinationDirectory, 0775, TRUE);
         }
         copy($boilerPath . $file, $destinationPath);
+      }
+      // agent-skills discovery index + curated skill files (agentskills.io v0.2.0).
+      // Pre-curated by ubiquity into the boilerplate; explicit per-file copy with
+      // sha256 verification, no filtering, no site.json reads. Only on a full
+      // rebuild (not the partial service-worker-only rebuild). Best-effort.
+      if ($isFullRebuild) {
+        try {
+          $this->rebuildAgentSkills();
+        } catch (Exception $e) {}
       }
       $licenseData = $this->getLicenseData('all');
       $licenseLink = '';
@@ -1130,6 +1140,7 @@ class HAXCMSSite
       $lines[] = '- [RSS feed](' . $this->getLLMSResourceURL($domain, 'rss.xml') . '): Site updates in RSS format.';
       $lines[] = '- [Atom feed](' . $this->getLLMSResourceURL($domain, 'atom.xml') . '): Site updates in Atom format.';
       $lines[] = '- [Sitemap](' . $this->getLLMSResourceURL($domain, 'sitemap.xml') . '): URL-level discovery map for the published site.';
+      $lines[] = '- [Agent skills](' . $this->getLLMSResourceURL($domain, '.well-known/agent-skills/index.json') . '): Agent Skills discovery index (agentskills.io v0.2.0) listing skills that teach an agent how to read, author, audit, and remix this site.';
       return implode("\n", $lines) . "\n";
     }
     /**
@@ -2257,6 +2268,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <link rel="llms" href="llms.txt" title="LLM Content Map" />
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
+  <link rel="https://agentskills.io/rels/skills-index" type="application/json" href=".well-known/agent-skills/index.json" title="Agent Skills Discovery Index" />
   <meta name="generator" content="HAXcms" />
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
@@ -2883,5 +2895,130 @@ class HAXCMSSite
             return false;
         }
         closedir($dir);
+    }
+    /**
+     * Copy the boilerplate .well-known/agent-skills/ directory into the site.
+     * The boilerplate dir is pre-curated by ubiquity (site set only), so this
+     * does NO filtering and reads NO site.json. For each skill in the boilerplate
+     * index.json, copy SKILL.md + every files[] entry individually (flat copy,
+     * no recursion) with sha256 verification against the declared digest. Only
+     * .md / .json / .txt extensions are copied (defense in depth). Best-effort:
+     * a digest mismatch or missing file warns and continues; agent-skills never
+     * blocks a site save. Silent no-op if the boilerplate agent-skills index is
+     * absent (e.g. before ubiquity has populated it). Also writes a scoped
+     * .htaccess (CORS + script-execution hardening) for Apache-hosted sites.
+     */
+    public function rebuildAgentSkills() {
+      $boilerAS = HAXCMS_ROOT . '/system/boilerplate/site/.well-known/agent-skills';
+      $boilerIndex = $boilerAS . '/index.json';
+      if (!file_exists($boilerIndex)) {
+        // ubiquity hasn't populated agent-skills yet; nothing to do
+        return;
+      }
+      $indexRaw = @file_get_contents($boilerIndex);
+      if ($indexRaw === false) {
+        return;
+      }
+      $index = json_decode($indexRaw, true);
+      if (!is_array($index) || !isset($index['skills']) || !is_array($index['skills'])) {
+        return;
+      }
+      $siteAS = $this->directory . '/' . $this->manifest->metadata->site->name . '/.well-known/agent-skills';
+      // clean the site agent-skills dir so removed skills don't linger
+      if (is_dir($siteAS)) {
+        $this->recurseDelete($siteAS);
+      }
+      @mkdir($siteAS, 0775, true);
+      // scoped .htaccess: CORS + script-execution hardening (harmless on Node/static)
+      $htaccess = "# HAXcms Agent Skills discovery (agentskills.io v0.2.0)\n"
+        . "# CORS: open so browser-based agents on other origins can fetch the index + skills.\n"
+        . "<IfModule mod_headers.c>\n"
+        . "  Header set Access-Control-Allow-Origin \"*\"\n"
+        . "  Header set Vary \"Origin\"\n"
+        . "</IfModule>\n"
+        . "# Defense in depth: the discovery index only ships .md/.json/.txt, but harden\n"
+        . "# so a slipped-through script file can never execute server-side here.\n"
+        . "<FilesMatch \"\\.(php|phtml|php[3-7]|phps|pht|sh|cgi|pl|py)$\">\n"
+        . "  php_flag engine off\n"
+        . "  RemoveHandler .php .phtml .php3 .php4 .php5 .php7\n"
+        . "  SetHandler text/plain\n"
+        . "  ForceType text/plain\n"
+        . "</FilesMatch>\n";
+      @file_put_contents($siteAS . '/.htaccess', $htaccess);
+      // copy the index through verbatim
+      @copy($boilerIndex, $siteAS . '/index.json');
+      $allowedAuxExt = array('md' => 1, 'json' => 1, 'txt' => 1);
+      foreach ($index['skills'] as $skill) {
+        if (!is_array($skill) || empty($skill['name']) || empty($skill['url'])) {
+          continue;
+        }
+        // skill['url'] is relative, e.g. "hax-site-structure/SKILL.md"
+        $skillMdBoiler = $boilerAS . '/' . $skill['url'];
+        $skillMdSite = $siteAS . '/' . $skill['url'];
+        if (file_exists($skillMdBoiler)) {
+          $hash = 'sha256:' . hash_file('sha256', $skillMdBoiler);
+          if (isset($skill['digest']) && $hash === $skill['digest']) {
+            @mkdir(dirname($skillMdSite), 0775, true);
+            @copy($skillMdBoiler, $skillMdSite);
+          } else {
+            @trigger_error('agent-skills: digest mismatch for ' . $skill['url'], E_USER_WARNING);
+          }
+        }
+        if (isset($skill['files']) && is_array($skill['files'])) {
+          foreach ($skill['files'] as $f) {
+            if (!is_array($f) || empty($f['path'])) {
+              continue;
+            }
+            $ext = strtolower(pathinfo($f['path'], PATHINFO_EXTENSION));
+            if (!isset($allowedAuxExt[$ext])) {
+              continue;
+            }
+            $fBoiler = $boilerAS . '/' . $skill['name'] . '/' . $f['path'];
+            $fSite = $siteAS . '/' . $skill['name'] . '/' . $f['path'];
+            if (file_exists($fBoiler)) {
+              $hash = 'sha256:' . hash_file('sha256', $fBoiler);
+              if (isset($f['digest']) && $hash === $f['digest']) {
+                @mkdir(dirname($fSite), 0775, true);
+                @copy($fBoiler, $fSite);
+              } else {
+                @trigger_error('agent-skills: digest mismatch for ' . $skill['name'] . '/' . $f['path'], E_USER_WARNING);
+              }
+            }
+          }
+        }
+      }
+    }
+    /**
+     * Recursive directory delete scoped to agent-skills cleanup. Refuses to
+     * delete paths containing null bytes or `..` segments (defense in depth).
+     * @access private
+     */
+    private function recurseDelete($dir) {
+      if (!is_string($dir) || $dir === '' || strpos($dir, "\0") !== false) {
+        return;
+      }
+      $normalized = str_replace('\\', '/', $dir);
+      if (strpos($normalized, '/../') !== false || substr($normalized, -3) === '/..') {
+        return;
+      }
+      if (!is_dir($dir)) {
+        return;
+      }
+      $handle = @opendir($dir);
+      if ($handle === false) {
+        return;
+      }
+      while (false !== ($file = readdir($handle))) {
+        if ($file != '.' && $file != '..') {
+          $path = $dir . '/' . $file;
+          if (is_dir($path) && !is_link($path)) {
+            $this->recurseDelete($path);
+          } else {
+            @unlink($path);
+          }
+        }
+      }
+      closedir($handle);
+      @rmdir($dir);
     }
 }
