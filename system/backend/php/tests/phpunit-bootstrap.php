@@ -16,3 +16,6 @@ require_once $base . '/lib/HAXCMSFile.php';
 require_once $base . '/lib/siteRoutes/SiteRouteUtils.php';
 require_once $base . '/lib/systemRoutes/SystemRoutesMap.php';
 require_once $base . '/lib/systemRoutes/SystemApiSecurity.php';
+require_once $base . '/lib/Cache.php';
+require_once $base . '/lib/siteRoutes/v1/ExportConverters.php';
+require_once $base . '/lib/HAXCMS.php';

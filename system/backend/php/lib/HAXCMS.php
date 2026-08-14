@@ -1336,6 +1336,11 @@ class HAXCMS
             preg_replace('/--+/u', '-', $cleanTitle),
             'UTF-8'
         );
+        // strip leading/trailing dots, hyphens and slashes left behind by the
+        // single-pass traversal strip above so a title never starts or ends
+        // with separators (e.g. "../etc" -> "etc", not "-etc"). Consistent
+        // with the SiteRouteUtils::cleanSlug fallback fix.
+        $cleanTitle = trim($cleanTitle, '-./');
         // ensure we don't return an empty title or it could break downstream things
         if ($cleanTitle == '') {
             $cleanTitle = 'blank';
