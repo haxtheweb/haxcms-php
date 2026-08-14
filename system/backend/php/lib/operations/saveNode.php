@@ -400,10 +400,14 @@ trait OperationsRouteSaveNode {
       }
     }
     else {
+      // Contract parity with saveManifest + the user_token routes: an
+      // invalid/missing site_token is an auth rejection (403 'invalid site
+      // token'), not a server write-fault. Previously this returned 500
+      // 'failed to write', misreporting the auth failure as a write error.
       return array(
         '__failed' => array(
-          'status' => 500,
-          'message' => 'failed to write',
+          'status' => 403,
+          'message' => 'invalid site token',
         )
       );
     }

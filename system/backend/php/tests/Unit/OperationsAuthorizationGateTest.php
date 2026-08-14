@@ -180,22 +180,15 @@ class OperationsAuthorizationGateTest extends TestCase
 
     public function testSaveNodeFailsWithInvalidSiteToken(): void
     {
-        // FINDING (status-code inconsistency, NOT fixed -- flagged for review):
-        // saveNode returns 500 'failed to write' for an invalid/missing
-        // site_token, NOT 403. saveManifest returns 403 'invalid site token'
-        // for the same condition, and the user_token routes return 403
-        // 'invalid request token'. saveNode's invalid-token branch
-        // (lib/operations/saveNode.php ~line 402) reports an auth failure as
-        // a server error, which would misdiagnose as a write fault rather than
-        // an auth rejection. The request is still rejected (no unauthorized
-        // mutation), so this is a contract/UX bug, not a security hole.
-        // Asserted here as the actual behavior; contrast with
-        // testSaveManifestFailsWithInvalidSiteToken above (403).
+        // Contract parity: an invalid/missing site_token must return 403
+        // 'invalid site token', matching saveManifest and the user_token
+        // routes. Previously saveNode returned 500 'failed to write' for this
+        // auth failure, misreporting it as a server write-fault.
         $this->haxcms->validRequestToken = false;
         $this->ops->params = array('site_token' => 'bad', 'site' => array('name' => 'my-site'));
         $result = $this->ops->saveNode();
-        $this->assertSame(500, $result['__failed']['status']);
-        $this->assertSame('failed to write', $result['__failed']['message']);
+        $this->assertSame(403, $result['__failed']['status']);
+        $this->assertSame('invalid site token', $result['__failed']['message']);
     }
 
     // --- saveOutline: site_token gate + platform gate ---
