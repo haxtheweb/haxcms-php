@@ -10,3 +10,9 @@
 $base = dirname(__DIR__);
 require_once $base . '/vendor/autoload.php';
 require_once $base . '/lib/SanitizeContent.php';
+require_once $base . '/lib/JSONOutlineSchemaItem.php';
+require_once $base . '/lib/JSONOutlineSchema.php';
+require_once $base . '/lib/HAXCMSFile.php';
+require_once $base . '/lib/siteRoutes/SiteRouteUtils.php';
+require_once $base . '/lib/systemRoutes/SystemRoutesMap.php';
+require_once $base . '/lib/systemRoutes/SystemApiSecurity.php';

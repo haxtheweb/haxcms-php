@@ -306,8 +306,15 @@ class HAXCMSFile
         if (!is_string($tmpPath)) {
             return false;
         }
+        // Security (null-byte injection): check the RAW input for null bytes
+        // BEFORE trim(), because trim() strips leading/trailing \0 by default
+        // and would otherwise eat an edge-placed null before this guard runs,
+        // letting the path resolve and be accepted.
+        if (strpos($tmpPath, "\0") !== false) {
+            return false;
+        }
         $normalized = trim($tmpPath);
-        if ($normalized === '' || strpos($normalized, "\0") !== false) {
+        if ($normalized === '') {
             return false;
         }
         if (preg_match('/^[A-Za-z][A-Za-z0-9+\.\-]*:/', $normalized)) {
