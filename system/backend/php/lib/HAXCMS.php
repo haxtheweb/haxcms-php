@@ -2018,7 +2018,7 @@ class HAXCMS
                 }
             }
         }
-        if (preg_match('/Bearer\s+(\S+)/', $authorization, $matches) === 1 && isset($matches[1])) {
+        if (preg_match('/Bearer\s+(\S+)/i', $authorization, $matches) === 1 && isset($matches[1])) {
             return $matches[1];
         }
         return '';
@@ -2058,6 +2058,17 @@ class HAXCMS
         }
         else if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] != '') {
             $authorization = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+        else if (function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            if (is_array($headers)) {
+                if (isset($headers['Authorization']) && $headers['Authorization'] != '') {
+                    $authorization = $headers['Authorization'];
+                }
+                else if (isset($headers['authorization']) && $headers['authorization'] != '') {
+                    $authorization = $headers['authorization'];
+                }
+            }
         }
         $result = array(
             'attempted' => false,

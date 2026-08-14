@@ -22,7 +22,7 @@ trait OperationsRouteSiteSearch {
       return array(
         '__failed' => array(
           'status' => 403,
-          'message' => 'invalid request token',
+          'message' => 'Authentication required',
         )
       );
     }

@@ -1234,7 +1234,7 @@ class HAXCMSSite
       }
       if (is_null($domain) || $domain == "") {
         // simple domain redirect, this is a bit of a hack but it works for now w/ haxiam
-        $domain = str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) . "/sites/" . $this->manifest->metadata->site->name . "/";
+        $domain = str_replace('iam.', 'oer.', (string)($GLOBALS['HAXCMS']->getDomain() ?? '')) . "/sites/" . $this->manifest->metadata->site->name . "/";
       }
       $data = array(
         "version" => "https://jsonfeed.org/version/1.1",
@@ -1332,24 +1332,6 @@ class HAXCMSSite
       $text = implode(' ', array_unique(explode(' ', $text)));
       return $text;
     }
-    private function compareItemKeys($a, $b) {
-      $key = $this->__compareItemKey;
-      $dir = $this->__compareItemDir;
-      if (isset($a->metadata->{$key})) {
-        if ($dir == 'DESC') {
-          if ($a->metadata->{$key} == $b->metadata->{$key}) {
-            return 0;
-          }
-          return ($a->metadata->{$key} > $b->metadata->{$key}) ? -1 : 1;
-        }
-        else {
-          if ($a->metadata->{$key} == $b->metadata->{$key}) {
-            return 0;
-          }
-          return ($a->metadata->{$key} < $b->metadata->{$key}) ? -1 : 1;
-        }
-      }
-    }
     /**
      * Sort items by a certain key value. Must be in the included list for safety of the sort
      * @var string $key - the key name to sort on, only some supported
@@ -1362,9 +1344,22 @@ class HAXCMSSite
             case 'created':
             case 'updated':
             case 'readtime':
-              $this->__compareItemKey = $key;
-              $this->__compareItemDir = $dir;
-              usort($items, array($this,'compareItemKeys'));
+              usort($items, function ($a, $b) use ($key, $dir) {
+                if (isset($a->metadata->{$key})) {
+                  if ($dir == 'DESC') {
+                    if ($a->metadata->{$key} == $b->metadata->{$key}) {
+                      return 0;
+                    }
+                    return ($a->metadata->{$key} > $b->metadata->{$key}) ? -1 : 1;
+                  }
+                  else {
+                    if ($a->metadata->{$key} == $b->metadata->{$key}) {
+                      return 0;
+                    }
+                    return ($a->metadata->{$key} < $b->metadata->{$key}) ? -1 : 1;
+                  }
+                }
+              });
             break;
             case 'id':
             case 'title':
@@ -1373,18 +1368,18 @@ class HAXCMSSite
             case 'order':
             case 'parent':
             case 'description':
-                usort($items, function ($a, $b) {
+                usort($items, function ($a, $b) use ($key, $dir) {
                   if ($dir == 'ASC') {
                     if ($a->{$key} == $b->{$key}) {
                       return 0;
                     }
-                    return ($a->{$key} > $b->{$key}) ? -1 : 1;
+                    return ($a->{$key} > $b->{$key}) ? 1 : -1;
                   }
                   else {
                     if ($a->{$key} == $b->{$key}) {
                       return 0;
                     }
-                    return ($a->{$key} < $b->{$key}) ? -1 : 1;
+                    return ($a->{$key} < $b->{$key}) ? 1 : -1;
                   }
                 });
             break;

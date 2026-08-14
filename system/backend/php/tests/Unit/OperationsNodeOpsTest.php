@@ -346,17 +346,11 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertNotContains('item-a', $ids);
         $this->assertSame($initialCount - 1, count($persisted));
 
-        // FINDING: deleteNode.php line 31 — the orphan-check foreach loop
-        // reassigns $page via `$page = $site->loadNode($item->id)`, so after
-        // the loop $page references the LAST surviving item, not the deleted
-        // page. The return data (line 48) and gitCommit message (line 44)
-        // therefore reference the wrong page. With 2 items where item-a is
-        // deleted, the returned data is item-b (the sole survivor), and the
-        // commit message says "Page deleted: Item B (item-b)" instead of
-        // "Page deleted: Item A (item-a)". Characterized here as actual behavior.
-        $this->assertSame('item-b', $result['data']->id, 'FINDING: returns surviving item, not deleted item');
+        // The returned data must be the DELETED page (item-a), not the last
+        // surviving item. The gitCommit message must also name the deleted page.
+        $this->assertSame('item-a', $result['data']->id, 'returns deleted item, not surviving item');
         $site = $this->haxcms->loadedSite;
-        $this->assertSame('Page deleted: Item B (item-b)', $site->gitCommits[0], 'FINDING: commit message names surviving item');
+        $this->assertSame('Page deleted: Item A (item-a)', $site->gitCommits[0], 'commit message names deleted item');
     }
 
     // =========================================================================

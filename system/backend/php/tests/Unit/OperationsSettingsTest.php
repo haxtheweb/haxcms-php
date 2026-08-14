@@ -682,7 +682,7 @@ class OperationsSettingsTest extends TestCase
         $this->ops->params = array('site_token' => 'bad', 'site' => array('name' => $this->siteName), 'search' => 'test');
         $result = $this->ops->siteSearch();
         $this->assertSame(403, $result['__failed']['status']);
-        $this->assertSame('invalid request token', $result['__failed']['message']);
+        $this->assertSame('Authentication required', $result['__failed']['message']);
     }
 
     public function testSiteSearchReturnsEmptyMatchShapeForEmptySite(): void

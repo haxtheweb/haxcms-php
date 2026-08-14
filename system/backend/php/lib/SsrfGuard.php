@@ -130,6 +130,12 @@ class SsrfGuard
         if ($host === '') {
             throw new SsrfGuardException('URL is missing a hostname', 'SSRF_HOSTNAME');
         }
+        // parse_url('http://[::1]/') returns host as '[::1]' WITH brackets.
+        // filter_var() rejects the bracketed form, so strip the surrounding []
+        // for the literal-IP check. $host (bracketed) is still used for DNS
+        // resolution below; $literalHost (unbracketed) is what isPrivateOrReservedIP
+        // needs. For non-bracketed hosts $literalHost === $host.
+        $literalHost = preg_match('/^\[(.+)\]$/', $host, $m) ? $m[1] : $host;
         $addresses = array();
 
         // IPv4 A records — gethostbynamel returns all resolved IPs (or false)
@@ -153,10 +159,10 @@ class SsrfGuard
         }
 
         // If the host is itself a literal IP, validate it directly
-        $literalV4 = filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
-        $literalV6 = filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+        $literalV4 = filter_var($literalHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+        $literalV6 = filter_var($literalHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
         if ($literalV4 !== false || $literalV6 !== false) {
-            $addresses[] = $host;
+            $addresses[] = $literalHost;
         }
 
         if (count($addresses) === 0) {

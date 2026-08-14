@@ -25,26 +25,28 @@ trait OperationsRouteDeleteNode {
               )
             );
           } else {
+            // capture the deleted page before the orphan loop clobbers $page
+            $deletedPage = $page;
             // now, we need to look for orphans if we deleted anything
             $orphanCheck = $site->manifest->items;
             foreach ($orphanCheck as $key => $item) {
               // just to be safe..
-              if ($page = $site->loadNode($item->id)) {
+              if ($orphanPage = $site->loadNode($item->id)) {
                 // ensure that parent is valid to rescue orphan items
-                if ($page->parent != null && !($parentPage = $site->loadNode($page->parent))) {
-                  $page->parent = null;
+                if ($orphanPage->parent != null && !($parentPage = $site->loadNode($orphanPage->parent))) {
+                  $orphanPage->parent = null;
                   // force to bottom of things while still being in old order if lots of things got axed
-                  $page->order = (int)$page->order + count($site->manifest->items) - 1;
-                  $site->updateNode($page);
+                  $orphanPage->order = (int)$orphanPage->order + count($site->manifest->items) - 1;
+                  $site->updateNode($orphanPage);
                 }
               }
             }
             $site->gitCommit(
-              'Page deleted: ' . $page->title . ' (' . $page->id . ')'
+              'Page deleted: ' . $deletedPage->title . ' (' . $deletedPage->id . ')'
             );
             return array(
               'status' => 200,
-              'data' => $page
+              'data' => $deletedPage
             );
           }
           exit();

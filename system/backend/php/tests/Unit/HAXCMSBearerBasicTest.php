@@ -149,8 +149,8 @@ class HAXCMSBearerBasicTest extends TestCase
             'Basic (not Bearer)'        => array('Basic dXNlcjpwYXNz', ''),
             'empty Bearer'              => array('Bearer ', ''),
             'Bearer then only spaces'   => array('Bearer   ', ''),
-            'lowercase bearer (regex is case-sensitive; actual: no match)' =>
-                array('bearer x', ''),
+            'lowercase bearer (scheme is case-insensitive per RFC 7235)' =>
+                array('bearer x', 'x'),
             'no Bearer keyword'         => array('Token xyz', ''),
             'Bearer with dot segments'  => array('Bearer a.b.c', 'a.b.c'),
             'Bearer tab-separated'      => array("Bearer\ttabtok", 'tabtok'),
@@ -399,6 +399,40 @@ class HAXCMSBearerBasicTest extends TestCase
         $result = $this->haxcms->authenticateBasicAuthorization();
         $this->assertTrue($result['authenticated']);
         $this->assertSame('alice', $result['userName']);
+    }
+
+    public function testAuthenticateBasicHasApacheRequestHeadersFallbackStructuralParity(): void
+    {
+        // A7: authenticateBasicAuthorization must fall back to
+        // apache_request_headers() when neither HTTP_AUTHORIZATION nor
+        // REDIRECT_HTTP_AUTHORIZATION is set, mirroring getBearerTokenFromRequest
+        // (structural parity). On servers where the Authorization header is only
+        // exposed via apache headers, Basic auth is silently not attempted without
+        // this fallback. The branch is not exercisable under the PHPUnit CLI sapi
+        // (apache_request_headers is typically unavailable), and stubbing the
+        // global function would pollute the namespace and interfere with other
+        // tests -- so we verify the fallback is present structurally via
+        // reflection on the method source.
+        $r = new ReflectionMethod(HAXCMS::class, 'authenticateBasicAuthorization');
+        $start = $r->getStartLine();
+        $end = $r->getEndLine();
+        $lines = file($r->getFileName());
+        $source = implode('', array_slice($lines, $start - 1, $end - $start + 1));
+        $this->assertStringContainsString(
+            'function_exists',
+            $source,
+            'authenticateBasicAuthorization must guard the apache_request_headers() fallback with function_exists()'
+        );
+        $this->assertStringContainsString(
+            'apache_request_headers',
+            $source,
+            'authenticateBasicAuthorization must include the apache_request_headers() fallback for structural parity with getBearerTokenFromRequest'
+        );
+        $this->assertStringContainsString(
+            "headers['Authorization']",
+            $source,
+            'authenticateBasicAuthorization must check both Authorization and authorization keys from apache_request_headers()'
+        );
     }
 
     public function testAuthenticateBasicRateLimitBlocksAfterMaxAttempts(): void

@@ -559,13 +559,11 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testJsonFeedFormatReturnsStructureWithItems(): void
     {
-        // FINDING: lib/HAXCMSSite.php:1237 — jsonFeedFormat calls
-        // str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) without
-        // guarding for null. getDomain() returns null when SERVER_NAME is
-        // unset (CLI / missing server var), and passing null to str_replace's
-        // $subject is a PHP 8.3 deprecation (TypeError in PHP 9). The mock
-        // faithfully returns null to surface this; the method still produces a
-        // root-relative domain because null coalesces to '' in concatenation.
+        // Contract: jsonFeedFormat returns a JSON Feed 1.1 structure with the
+        // site title and one item per manifest page. When the manifest has no
+        // domain, getDomain() returns null and the method builds a
+        // root-relative domain via str_replace + concatenation (no deprecation
+        // after the (string) cast guard).
         $feed = $this->site->jsonFeedFormat();
         $this->assertIsArray($feed);
         $this->assertSame('https://jsonfeed.org/version/1.1', $feed['version']);
@@ -643,13 +641,9 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testSortItemsCreatedDescSortsByMetadataCreatedDescending(): void
     {
-        // FINDING: lib/HAXCMSSite.php:1365-1366 — the metadata-key sort path
-        // sets $this->__compareItemKey and $this->__compareItemDir as dynamic
-        // properties without declaring them (and HAXCMSSite lacks
-        // #[AllowDynamicProperties]). PHP 8.2+ emits a deprecation per
-        // assignment; PHP 9 will error. The sort itself is CORRECT (DESC puts
-        // the largest created timestamp first) — this is a separate issue from
-        // the direct-key no-op bug below.
+        // Contract: sortItems('created', 'DESC') sorts by metadata.created
+        // descending. Fixture created timestamps: 1000, 3000, 5000 ->
+        // descending order is Contact (5000), About Us (3000), Home Page (1000).
         $sorted = $this->site->sortItems('created', 'DESC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
         $this->assertSame(array('Contact', 'About Us', 'Home Page'), $titles);
@@ -662,32 +656,28 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
     }
 
-    public function testSortItemsTitleAscIsNoOpDueToMissingUseCapture(): void
+    public function testSortItemsTitleAscSortsByTitleAscending(): void
     {
-        // FINDING: lib/HAXCMSSite.php:1376-1389 — the direct-key comparator
-        // closure (for id, title, indent, location, order, parent, description)
-        // is missing `use ($key, $dir)`, so $key and $dir are undefined inside
-        // the closure. $dir (null) != 'ASC' so the else branch runs, and
-        // $a->{null} (i.e. $a->{''}) is an undefined property yielding null on
-        // both sides, so null == null -> return 0 for every pair. With an
-        // all-zero comparator PHP 8's stable usort preserves the original
-        // order, so sortItems('title', 'ASC') is a no-op: items come back in
-        // manifest order, NOT ascending. The metadata-key sorts above
-        // (created/updated/readtime via compareItemKeys) work correctly,
-        // confirming the bug is isolated to the inline direct-key closure.
+        // Contract: sortItems('title', 'ASC') sorts items by the title key in
+        // ascending order. Fixture titles: 'Home Page', 'About Us', 'Contact'.
+        // Ascending alphabetical order is 'About Us', 'Contact', 'Home Page'.
+        // Expected order is computed independently from the fixture titles, not
+        // by calling sortItems to derive it (that would be tautological).
         $sorted = $this->site->sortItems('title', 'ASC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
-        $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
+        $this->assertSame(array('About Us', 'Contact', 'Home Page'), $titles);
     }
 
-    public function testSortItemsTitleDescIsNoOpDueToMissingUseCapture(): void
+    public function testSortItemsTitleDescSortsByTitleDescending(): void
     {
-        // FINDING: lib/HAXCMSSite.php:1376-1389 — same missing-`use` bug as
-        // above. sortItems('title', 'DESC') is also a no-op: the all-zero
-        // comparator leaves items in original manifest order, NOT descending.
+        // Contract: sortItems('title', 'DESC') sorts items by the title key in
+        // descending order. Fixture titles: 'Home Page', 'About Us', 'Contact'.
+        // Descending alphabetical order is 'Home Page', 'Contact', 'About Us'.
+        // Expected order is computed independently from the fixture titles, not
+        // by calling sortItems to derive it (that would be tautological).
         $sorted = $this->site->sortItems('title', 'DESC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
-        $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
+        $this->assertSame(array('Home Page', 'Contact', 'About Us'), $titles);
     }
 
     public function testSortItemsDoesNotMutateManifest(): void

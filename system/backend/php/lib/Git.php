@@ -157,6 +157,9 @@ class Git
      */
     public static function is_repo($var)
     {
+        if (!is_object($var)) {
+            return false;
+        }
         return get_class($var) == 'GitRepo';
     }
     /**

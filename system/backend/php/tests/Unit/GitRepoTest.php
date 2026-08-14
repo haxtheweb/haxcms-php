@@ -141,17 +141,9 @@ class GitRepoTest extends TestCase
     }
 
     #[DataProvider('nonObjectValueProvider')]
-    public function testIsRepoThrowsTypeErrorForNonObjectValues(mixed $value): void
+    public function testIsRepoReturnsFalseForNonObjectValues(mixed $value): void
     {
-        // FINDING: lib/Git.php:158-161 — is_repo($var) calls get_class($var)
-        // unconditionally. In PHP 8.x get_class() requires an object argument;
-        // passing a non-object (string/int/null/bool) raises a TypeError
-        // instead of returning false. The contract for a type-check predicate
-        // would be to return false for non-GitRepo values including non-objects,
-        // but the actual implementation throws. Characterized here as the
-        // actual throw behavior so the suite is honest about the gap.
-        $this->expectException(TypeError::class);
-        Git::is_repo($value);
+        $this->assertFalse(Git::is_repo($value));
     }
 
     // --- GitRepo::run ---

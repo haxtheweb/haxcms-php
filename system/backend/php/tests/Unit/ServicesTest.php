@@ -1124,21 +1124,7 @@ class ServicesTest extends TestCase
             'loopback literal' => array('http://127.0.0.1/', 'SSRF_PRIVATE'),
             'private 10 literal' => array('http://10.0.0.1/', 'SSRF_PRIVATE'),
             'metadata literal' => array('http://169.254.169.254/', 'SSRF_PRIVATE'),
-            // FINDING (lib/SsrfGuard.php:119-173): parse_url('http://[::1]/')
-            // returns host as '[::1]' WITH brackets on PHP 8. filter_var() with
-            // FILTER_FLAG_IPV6 rejects the bracketed string, so the literal-IP
-            // branch never fires and no address is collected -> SSRF_DNS instead
-            // of SSRF_PRIVATE. The URL is still rejected (no SSRF bypass), but
-            // the IPv6-literal validation path is broken: it never reaches the
-            // isPrivateOrReservedIP check for any bracketed IPv6 host. See the
-            // next data set for the false-positive consequence.
-            'ipv6 loopback literal => SSRF_DNS (brackets bug)' => array('http://[::1]/', 'SSRF_DNS'),
-            // FINDING (same root cause): a PUBLIC IPv6 literal is also
-            // false-rejected with SSRF_DNS because the bracketed host never
-            // validates as an IP and DNS lookup of the bracketed string fails.
-            // A valid public IPv6 target is therefore unreachable through the
-            // guard — a functional false positive, not a security bypass.
-            'public ipv6 literal false-rejected => SSRF_DNS' => array('http://[2001:4860:4860::8888]/', 'SSRF_DNS'),
+            'ipv6 loopback literal' => array('http://[::1]/', 'SSRF_PRIVATE'),
             'ftp scheme rejected' => array('ftp://8.8.8.8/', 'SSRF_PROTOCOL'),
             'javascript scheme no host' => array('javascript:alert(1)', 'SSRF_INVALID_URL'),
             'empty string' => array('', 'SSRF_INVALID_URL'),
@@ -1174,6 +1160,16 @@ class ServicesTest extends TestCase
         $this->assertIsArray($result);
         $this->assertSame('http', $result['scheme']);
         $this->assertSame('8.8.8.8', $result['host']);
+    }
+
+    public function testSsrfGuardValidateUrlNotSSRFAcceptsPublicIPv6Literal(): void
+    {
+        // Public IPv6 literal URL — surrounding brackets are stripped before
+        // the literal-IP check so the address validates directly. No DNS
+        // needed (literal-IP branch).
+        $result = SsrfGuard::validateUrlNotSSRF('http://[2001:4860:4860::8888]/');
+        $this->assertIsArray($result);
+        $this->assertSame('http', $result['scheme']);
     }
 
     public function testSsrfGuardSafeFileGetContentsThrowsBeforeFetchOnPrivate(): void
