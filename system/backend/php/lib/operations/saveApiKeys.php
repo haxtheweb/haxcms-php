@@ -30,6 +30,21 @@ trait OperationsRouteSaveApiKeys {
         ),
       );
     }
+    // security (F3/authz): defense-in-depth — writing API key settings is a
+    // system-admin operation that must only be performed by the superUser,
+    // regardless of how the route was classified. The router elevates non-GET
+    // methods of this route to 'admin' (see
+    // SystemRoutesMap::getSystemV1SuperUserRoutes), but this explicit check
+    // keeps the handler safe even if route classification changes or the
+    // handler is reached directly.
+    if ($GLOBALS['HAXCMS']->getActiveUserName() !== $GLOBALS['HAXCMS']->superUser->name) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Admin access required',
+        ),
+      );
+    }
     $payload = $this->resolveApiKeysPayload();
     if (!HAXCMSAPIKeysService::hasSupportedAPIKeyPayload($payload)) {
       return array(

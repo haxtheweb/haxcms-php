@@ -222,6 +222,15 @@ class SystemApiSecurity
         ) {
             return 'admin';
         }
+        // security (F3/authz): superUser-only READ routes. Most dashboard reads
+        // stay at the spec-driven authenticated base policy, but routes that
+        // return system-wide credentials (e.g. API keys) must elevate GET/HEAD
+        // to 'admin' so the superUser check fires for reads too — mirroring the
+        // non-GET elevation above. Without this, any authenticated user could
+        // read all system API keys via GET.
+        if (in_array($route, SystemRoutesMap::getSystemV1SuperUserReadRoutes(), true)) {
+            return 'admin';
+        }
         // The spec-driven reader may return 'authenticated-user' for routes
         // that declare userTokenHeader. The X-HAXCMS-User-Token header is
         // enforced separately by enforceSystemApiUserTokenHeader (which

@@ -78,6 +78,26 @@ class SystemRoutesMap
             'v1/themes',
         );
     }
+    /**
+     * Subset of getSystemV1SuperUserRoutes() whose GET/HEAD methods ALSO
+     * require the superUser principal. Most dashboard reads stay at the
+     * spec-driven authenticated base policy (any authenticated user can list
+     * themes/blocks/skeletons or read status). Routes listed here return
+     * system-wide credentials/secrets (e.g. API keys) that must never be
+     * exposed to a non-superUser authenticated principal, so their reads are
+     * elevated to the 'admin' security level too.
+     *
+     * security (F3/authz): API key read exposure — getApiKeys returned ALL
+     * system API keys to any authenticated user. Elevating GET here makes the
+     * router block non-superUser reads; the handlers add a defense-in-depth
+     * superUser check so they are safe regardless of route classification.
+     */
+    public static function getSystemV1SuperUserReadRoutes()
+    {
+        return array(
+            'v1/configuration/api-keys',
+        );
+    }
     public static function getRoutesMap()
     {
         return array(

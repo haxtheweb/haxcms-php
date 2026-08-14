@@ -10,6 +10,20 @@ trait OperationsRouteGetApiKeys {
         ),
       );
     }
+    // security (F3/authz): defense-in-depth — API keys are system-wide
+    // credentials and must only be readable by the superUser, regardless of
+    // how the route was classified. The router elevates this route to 'admin'
+    // (see SystemRoutesMap::getSystemV1SuperUserReadRoutes), but this explicit
+    // check keeps the handler safe even if route classification changes or the
+    // handler is reached directly.
+    if ($GLOBALS['HAXCMS']->getActiveUserName() !== $GLOBALS['HAXCMS']->superUser->name) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Admin access required',
+        ),
+      );
+    }
     try {
       $apiKeys = HAXCMSAPIKeysService::readAPIKeys($GLOBALS['HAXCMS']);
       return array(
