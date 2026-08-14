@@ -25,8 +25,16 @@ if (!defined('HAXCMS_ROOT')) {
         @mkdir($haxcmsTestRoot, 0777, true);
     }
     // Provision the boilerplate the production newSite/addPage code copies from.
-    if (!is_link($haxcmsTestRoot . '/system') && !is_dir($haxcmsTestRoot . '/system')) {
-        @symlink(dirname(__DIR__, 2) . '/system', $haxcmsTestRoot . '/system');
+    // $base = <repoRoot>/system/backend/php, so dirname($base, 3) = <repoRoot>,
+    // and the real boilerplate lives at <repoRoot>/system/boilerplate.
+    $systemLink = $haxcmsTestRoot . '/system';
+    $realSystem = dirname($base, 3) . '/system';
+    // Self-heal: a stale/broken symlink from a prior run must be replaced.
+    if (is_link($systemLink)) {
+        @unlink($systemLink);
+    }
+    if (!is_dir($systemLink)) {
+        @symlink($realSystem, $systemLink);
     }
     define('HAXCMS_ROOT', $haxcmsTestRoot);
 }
