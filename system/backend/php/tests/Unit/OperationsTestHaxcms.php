@@ -19,6 +19,10 @@ class OperationsTestHaxcms
     public $validRequestToken = true;
     public $canAccessSite = true;
     public $loadedSite = null;
+    // Sequence of bools returned by validateRequestToken, one per call. When
+    // exhausted, falls back to $validRequestToken. Lets a test make the
+    // site_token check pass (call 1) while the form-token check fails (call 2).
+    public $requestTokenSequence = array();
     public $basePath = '/';
     public $sitesDirectory = '_sites';
     public $archivedDirectory = '_archived';
@@ -35,6 +39,9 @@ class OperationsTestHaxcms
 
     public function validateRequestToken($token, $value)
     {
+        if (count($this->requestTokenSequence) > 0) {
+            return (bool) array_shift($this->requestTokenSequence);
+        }
         return $this->validRequestToken;
     }
 
@@ -86,5 +93,19 @@ class OperationsTestHaxcms
     public function pageBreakParser($body)
     {
         return array(array('attributes' => array(), 'content' => $body));
+    }
+
+    public function cleanTitle($value, $stripPage = true)
+    {
+        $clean = trim((string) $value);
+        if ($stripPage) {
+            $clean = str_replace(array('pages/', '/index.html'), '', $clean);
+        }
+        $clean = str_replace(array('./', '../'), '', $clean);
+        $clean = strtolower(str_replace(' ', '-', $clean));
+        $clean = preg_replace('/[^\w\-\/]+/u', '-', $clean);
+        $clean = mb_strtolower(preg_replace('/--+/u', '-', $clean), 'UTF-8');
+        $clean = trim($clean, '-./');
+        return $clean !== '' ? $clean : 'blank';
     }
 }
