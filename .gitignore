@@ -14,9 +14,8 @@ yarn-error.log
 .local.microservice.config.php
 dist/wc-registry.json
 system/backend/nodejs/public/tmp
-security_best_practices_report.md
 security_jwt_refresh_review.md
-security_best_practices_report_2026-08-06.md
+security_best_practices_report*
 # E2E test runtime artifacts (committed *.png baselines are kept)
 test/e2e/__screenshots__/*.current.png
 test/e2e/__screenshots__/*.diff.png
