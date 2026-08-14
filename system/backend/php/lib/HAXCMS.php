@@ -2393,9 +2393,19 @@ class HAXCMS
     /**
      * Rotate a refresh session: validate family/jti against the store, then move
      * the current jti to previous (with a grace window) and record a new
-     * current. Returns true on accept, false on mismatch (possible
-     * stolen/revoked/out-of-order token). A missing store entry is treated as
-     * legacy-accepted so deployments upgrade without logging users out.
+     * current. Returns true on accept, false when the family MATCHES and the
+     * presented jti is neither current nor previous-within-grace (possible
+     * token theft / replay of an older jti -> the whole family is revoked).
+     *
+     * Family-mismatch policy (parity with NodeJS rotateRefreshSession): a
+     * non-matching family does NOT return false. It falls through and
+     * overwrites the entry with the presented family + new jti, returning true.
+     * This accept-and-overwrite is the intended legacy-migration path —
+     * rotateRefreshTokenAndCookie generates a fresh family UUID for a legacy
+     * token (no stored family to match), and this lets the upgrade seed the
+     * store going forward without logging the user out. A missing store entry
+     * is likewise treated as legacy-accepted so deployments upgrade without
+     * logging users out.
      */
     public function rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp) {
       if ($user === null || $user === '' || $family === '' || $oldJti === '' || $newJti === '') {

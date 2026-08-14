@@ -382,6 +382,14 @@ class GitRepo
      * @param   string|array  command to run
      * @return  string
      */
+    // Parity note (B2): git failures are intentionally swallowed here by
+    // default ($skip_fail = true). run()/run_args() never override it, so a
+    // failing git subcommand returns empty stdout with no exception. This is
+    // the resilient-default behavior matching the NodeJS backend, where
+    // gitCommit/gitRevert/gitPush/gitSetRemote all wrap their git calls in
+    // try/catch and return true regardless. If a caller ever needs failure
+    // visibility (e.g. reset() on a missing 'origin' remote), a runStrict()
+    // variant should be added to both backends in a coordinated change.
     protected function run_command($command, $skip_fail = true)
     {
         $descriptorspec = array(
@@ -784,7 +792,12 @@ class GitRepo
     public function revert($count = 1)
     {
         $counter = 0;
-        // sanity check
+        // Parity note (A9): count < 1 clamps to 1 by design, matching the
+        // NodeJS backend's GitPlus.revert (haxcms-nodejs/src/lib/GitPlus.js).
+        // revert(0) is therefore NOT a no-op — it rewinds one commit. This is
+        // intentional cross-backend parity, not a bug. (The method is named
+        // revert but performs `git reset --hard HEAD~1`, not `git revert`; that
+        // naming is an API-breaking change to defer.)
         if ($count < 1) {
             $count = 1;
         }

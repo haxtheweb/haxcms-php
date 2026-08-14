@@ -158,14 +158,12 @@ class GitRepoTest extends TestCase
 
     public function testRunDoesNotThrowOnInvalidGitSubcommand(): void
     {
-        // FINDING: lib/Git.php:382-422 (run_command) defaults $skip_fail=true,
-        // and run() (line 433) / run_args() (line 452) never override it, so a
-        // failing git subcommand is silently swallowed: stderr is discarded and
-        // empty stdout is returned. The task contract expected run() to throw
-        // on an invalid command (try/catch RuntimeException), but the actual
-        // implementation does NOT throw through the public run() seam. Even if
-        // $skip_fail were false, run_command throws Exception (base) not
-        // RuntimeException. Characterized here as the actual no-throw behavior.
+        // Parity with NodeJS (B2): git failures are intentionally swallowed —
+        // run_command defaults $skip_fail=true and run()/run_args() never
+        // override it, so a failing git subcommand returns empty stdout with
+        // no exception. The NodeJS backend's gitCommit/gitRevert/gitPush/
+        // gitSetRemote wrappers likewise try/catch and return true regardless.
+        // This is the resilient-default cross-backend contract.
         $threw = false;
         $result = null;
         try {
@@ -173,8 +171,8 @@ class GitRepoTest extends TestCase
         } catch (Exception $e) {
             $threw = true;
         }
-        $this->assertFalse($threw, 'run() does not throw on invalid subcommand (actual behavior)');
-        $this->assertSame('', $result, 'run() returns empty stdout on failure (actual behavior)');
+        $this->assertFalse($threw, 'run() does not throw on invalid subcommand (parity behavior)');
+        $this->assertSame('', $result, 'run() returns empty stdout on failure (parity behavior)');
     }
 
     // --- GitRepo::add ---
@@ -474,14 +472,14 @@ class GitRepoTest extends TestCase
 
     public function testResetSilentlyFailsWhenOriginRemoteMissing(): void
     {
-        // FINDING: lib/Git.php:761-769 — reset() builds "git reset [--hard]
-        // origin/<branch>" and delegates to run_args -> run_command which
-        // defaults to $skip_fail=true (see run() finding above). On a repo with
-        // no 'origin' remote, git emits "fatal: ambiguous argument
-        // 'origin/master'" to stderr and exits non-zero, but run_command
-        // swallows it: the return is empty stdout and NO exception is thrown.
-        // The repo is left unchanged. Characterized here as the actual no-throw
-        // silent-failure behavior (the contract would expect a throw).
+        // Parity with NodeJS (B2): reset() delegates to run_command which
+        // defaults to $skip_fail=true, so on a repo with no 'origin' remote git
+        // emits a fatal to stderr and exits non-zero, but run_command swallows
+        // it — empty stdout returned, no exception, HEAD unchanged. This is
+        // the resilient-default cross-backend contract (see the run() test
+        // above). If reset() ever needs to surface a missing-origin failure, a
+        // runStrict() variant should be added to both backends in a coordinated
+        // change.
         $shaBefore = $this->repo->currentSHA();
         $threw = false;
         $out = null;
@@ -490,8 +488,8 @@ class GitRepoTest extends TestCase
         } catch (Exception $e) {
             $threw = true;
         }
-        $this->assertFalse($threw, 'reset() silently fails when origin is missing (actual behavior)');
-        $this->assertSame('', $out, 'reset() returns empty stdout on missing origin (actual behavior)');
+        $this->assertFalse($threw, 'reset() silently fails when origin is missing (parity behavior)');
+        $this->assertSame('', $out, 'reset() returns empty stdout on missing origin (parity behavior)');
         $this->assertSame($shaBefore, $this->repo->currentSHA(), 'HEAD unchanged after silent reset failure');
     }
 
@@ -521,14 +519,15 @@ class GitRepoTest extends TestCase
         $this->assertTrue($this->repo->revert(1));
     }
 
-    public function testRevertCountZeroClampsToOne(): void
+    public function testRevertZeroClampsToOneByDesign(): void
     {
-        // FINDING: lib/Git.php:785-787 — revert($count) clamps $count < 1 to 1,
-        // so revert(0) is NOT a no-op: it still runs one "git reset --hard
-        // HEAD~1". Characterized here against a 2-commit history: revert(0)
-        // rewinds to the first commit, proving the clamp fired. (When already
-        // at the root commit, HEAD~1 is undefined and the reset fails silently
-        // per the $skip_fail finding, so this test needs a 2-commit history.)
+        // Parity with NodeJS (A9): revert($count) clamps $count < 1 to 1 by
+        // design, matching haxcms-nodejs/src/lib/GitPlus.js. revert(0) is
+        // therefore NOT a no-op — it rewinds one commit. Pinned here against a
+        // 2-commit history: revert(0) rewinds to the first commit, proving the
+        // clamp fired. (When already at the root commit, HEAD~1 is undefined
+        // and the reset fails silently per the run_command parity behavior, so
+        // this test needs a 2-commit history.)
         $rootSHA = $this->repo->currentSHA();
         file_put_contents($this->repoPath . '/extra.txt', 'extra');
         $this->repo->add('extra.txt');
@@ -536,7 +535,7 @@ class GitRepoTest extends TestCase
         $this->assertNotSame($rootSHA, $this->repo->currentSHA());
 
         $this->repo->revert(0);
-        $this->assertSame($rootSHA, $this->repo->currentSHA(), 'revert(0) clamped to 1 and rewound one commit');
+        $this->assertSame($rootSHA, $this->repo->currentSHA(), 'revert(0) clamped to 1 and rewound one commit (parity with NodeJS)');
     }
 
     // --- push / pull: no network ---
