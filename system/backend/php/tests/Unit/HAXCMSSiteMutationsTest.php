@@ -34,8 +34,9 @@ class HAXCMSSiteMutationsTest extends TestCase
     {
         // HAXCMS_ROOT is process-global; define once at the real repo root so
         // boilerplate page/site templates exist for addPage/newSite recurseCopy.
+        // __DIR__ is <repoRoot>/system/backend/php/tests/Unit, so 5 levels up.
         if (!defined('HAXCMS_ROOT')) {
-            define('HAXCMS_ROOT', dirname(dirname(dirname(__DIR__))));
+            define('HAXCMS_ROOT', dirname(__DIR__, 5));
         }
         if (isset($GLOBALS['HAXCMS'])) {
             $this->savedHaxcms = $GLOBALS['HAXCMS'];
@@ -487,8 +488,10 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame(5, $item->order);
         $this->assertSame('item-page-1', $item->parent);
         $this->assertSame('A new page', $item->description);
-        // slug derived from title via cleanTitle + getUniqueSlugName (no collision)
-        $this->assertSame('my-page', $item->slug);
+        // slug derived from title via cleanTitle + getUniqueSlugName with
+        // pathAuto=true: parent's slug is prepended, so 'My Page' under
+        // item-page-1 (slug 'home') becomes 'home/my-page'.
+        $this->assertSame('home/my-page', $item->slug);
         $this->assertTrue(isset($item->metadata->created));
         $this->assertTrue(is_numeric($item->metadata->created));
     }
@@ -647,30 +650,32 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
     }
 
-    public function testSortItemsTitleAscActuallySortsDescending(): void
+    public function testSortItemsTitleAscIsNoOpDueToMissingUseCapture(): void
     {
         // FINDING: lib/HAXCMSSite.php:1376-1389 — the direct-key comparator
-        // (id, title, indent, location, order, parent, description) has ASC
-        // and DESC inverted. The 'ASC' branch returns -1 when $a > $b, which
-        // places the larger value first (descending). So sortItems('title',
-        // 'ASC') actually produces descending title order. This test
-        // characterizes the actual (buggy) behavior; the metadata-key sorts
-        // above are correct, confirming the inconsistency is isolated to the
-        // direct-key branch.
+        // closure (for id, title, indent, location, order, parent, description)
+        // is missing `use ($key, $dir)`, so $key and $dir are undefined inside
+        // the closure. $dir (null) != 'ASC' so the else branch runs, and
+        // $a->{null} (i.e. $a->{''}) is an undefined property yielding null on
+        // both sides, so null == null -> return 0 for every pair. With an
+        // all-zero comparator PHP 8's stable usort preserves the original
+        // order, so sortItems('title', 'ASC') is a no-op: items come back in
+        // manifest order, NOT ascending. The metadata-key sorts above
+        // (created/updated/readtime via compareItemKeys) work correctly,
+        // confirming the bug is isolated to the inline direct-key closure.
         $sorted = $this->site->sortItems('title', 'ASC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
-        $this->assertSame(array('Home Page', 'Contact', 'About Us'), $titles);
+        $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
     }
 
-    public function testSortItemsTitleDescActuallySortsAscending(): void
+    public function testSortItemsTitleDescIsNoOpDueToMissingUseCapture(): void
     {
-        // FINDING: lib/HAXCMSSite.php:1376-1389 — same inversion as above.
-        // The 'DESC' branch returns -1 when $a < $b, placing the smaller
-        // value first (ascending). So sortItems('title', 'DESC') actually
-        // produces ascending title order.
+        // FINDING: lib/HAXCMSSite.php:1376-1389 — same missing-`use` bug as
+        // above. sortItems('title', 'DESC') is also a no-op: the all-zero
+        // comparator leaves items in original manifest order, NOT descending.
         $sorted = $this->site->sortItems('title', 'DESC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
-        $this->assertSame(array('About Us', 'Contact', 'Home Page'), $titles);
+        $this->assertSame(array('Home Page', 'About Us', 'Contact'), $titles);
     }
 
     public function testSortItemsDoesNotMutateManifest(): void
