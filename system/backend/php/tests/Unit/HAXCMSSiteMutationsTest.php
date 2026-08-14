@@ -32,12 +32,11 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     protected function setUp(): void
     {
-        // HAXCMS_ROOT is process-global; define once at the real repo root so
-        // boilerplate page/site templates exist for addPage/newSite recurseCopy.
-        // __DIR__ is <repoRoot>/system/backend/php/tests/Unit, so 5 levels up.
-        if (!defined('HAXCMS_ROOT')) {
-            define('HAXCMS_ROOT', dirname(__DIR__, 5));
-        }
+        // HAXCMS_ROOT is defined once in tests/phpunit-bootstrap.php at a TEMP
+        // root (with the real system/boilerplate symlinked in) so newSite/addPage
+        // recurseCopy finds the boilerplate WITHOUT ever pointing HAXCMS_ROOT at
+        // the real repo root (which previously let a symlink-following rrmdir
+        // delete the real build/dist/node_modules dirs).
         if (isset($GLOBALS['HAXCMS'])) {
             $this->savedHaxcms = $GLOBALS['HAXCMS'];
         }

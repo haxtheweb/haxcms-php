@@ -10,6 +10,27 @@
 $base = dirname(__DIR__);
 require_once $base . '/vendor/autoload.php';
 
+// Define HAXCMS_ROOT ONCE (process-global) at a TEMP root so no test ever
+// points it at the real repo root. Several HAXCMSSite/Operations methods read
+// HAXCMS_ROOT (newSite recurseCopies from HAXCMS_ROOT/system/boilerplate,
+// cacheBusterHash reads HAXCMS_ROOT/.git, etc.) and some create symlinks
+// relative to it (newSite symlinks ../../build, ../../dist, ../../node_modules
+// into a site dir). If HAXCMS_ROOT were the real repo root, a test's rrmdir
+// that followed those symlinks could delete the real build/dist/node_modules
+// dirs. The temp root removes that risk entirely. The real boilerplate tree is
+// symlinked in so newSite/addPage recurseCopy still finds the templates.
+if (!defined('HAXCMS_ROOT')) {
+    $haxcmsTestRoot = sys_get_temp_dir() . '/haxcms_phpunit_root_' . getmypid();
+    if (!is_dir($haxcmsTestRoot)) {
+        @mkdir($haxcmsTestRoot, 0777, true);
+    }
+    // Provision the boilerplate the production newSite/addPage code copies from.
+    if (!is_link($haxcmsTestRoot . '/system') && !is_dir($haxcmsTestRoot . '/system')) {
+        @symlink(dirname(__DIR__, 2) . '/system', $haxcmsTestRoot . '/system');
+    }
+    define('HAXCMS_ROOT', $haxcmsTestRoot);
+}
+
 // Recursively include_once every PHP file under lib/ so any test can exercise
 // any class without touching this shared bootstrap (avoids file contention
 // across parallel test authors). include_once makes this idempotent; the

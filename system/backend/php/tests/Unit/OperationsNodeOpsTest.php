@@ -94,7 +94,12 @@ class OperationsNodeOpsTest extends TestCase
                 continue;
             }
             $path = $dir . '/' . $entry;
-            if (is_dir($path)) {
+            // is_link BEFORE is_dir: is_dir() follows symlinks, so checking it
+            // first would recurse INTO the symlink target and delete real repo
+            // dirs (e.g. <repoRoot>/build via a newSite ../../build symlink).
+            if (is_link($path)) {
+                @unlink($path);
+            } elseif (is_dir($path)) {
                 $this->rrmdir($path);
             } else {
                 @unlink($path);
