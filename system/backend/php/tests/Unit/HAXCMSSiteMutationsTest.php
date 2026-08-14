@@ -559,6 +559,13 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testJsonFeedFormatReturnsStructureWithItems(): void
     {
+        // FINDING: lib/HAXCMSSite.php:1237 — jsonFeedFormat calls
+        // str_replace('iam.','oer.', $GLOBALS['HAXCMS']->getDomain()) without
+        // guarding for null. getDomain() returns null when SERVER_NAME is
+        // unset (CLI / missing server var), and passing null to str_replace's
+        // $subject is a PHP 8.3 deprecation (TypeError in PHP 9). The mock
+        // faithfully returns null to surface this; the method still produces a
+        // root-relative domain because null coalesces to '' in concatenation.
         $feed = $this->site->jsonFeedFormat();
         $this->assertIsArray($feed);
         $this->assertSame('https://jsonfeed.org/version/1.1', $feed['version']);
@@ -636,8 +643,13 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testSortItemsCreatedDescSortsByMetadataCreatedDescending(): void
     {
-        // Metadata-key sort (created/updated/readtime) is CORRECT: DESC puts
-        // the largest created timestamp first.
+        // FINDING: lib/HAXCMSSite.php:1365-1366 — the metadata-key sort path
+        // sets $this->__compareItemKey and $this->__compareItemDir as dynamic
+        // properties without declaring them (and HAXCMSSite lacks
+        // #[AllowDynamicProperties]). PHP 8.2+ emits a deprecation per
+        // assignment; PHP 9 will error. The sort itself is CORRECT (DESC puts
+        // the largest created timestamp first) — this is a separate issue from
+        // the direct-key no-op bug below.
         $sorted = $this->site->sortItems('created', 'DESC');
         $titles = array_map(function ($i) { return $i->title; }, $sorted);
         $this->assertSame(array('Contact', 'About Us', 'Home Page'), $titles);
