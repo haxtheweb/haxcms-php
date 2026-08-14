@@ -4,7 +4,7 @@
     "license": "Apache-2.0",
     "require": {
         "php": "^8.3",
-        "guzzlehttp/guzzle": "^7.12",
+        "guzzlehttp/guzzle": "^7.15.2",
         "twig/twig": "^3.27",
         "icamys/php-sitemap-generator": "^1.0",
         "symfony/filesystem": "^4.2",
@@ -15,7 +15,7 @@
         "symfony/yaml": "^7.0",
         "phpoffice/phpspreadsheet": "^5.9",
         "phpoffice/phpword": "^1.4",
-        "dompdf/dompdf": "^2.0",
+        "dompdf/dompdf": "^3.1.6",
         "smalot/pdfparser": "^2.12"
     }
 }

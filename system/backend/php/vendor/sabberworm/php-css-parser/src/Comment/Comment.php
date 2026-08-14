@@ -1,68 +1,66 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sabberworm\CSS\Comment;
 
 use Sabberworm\CSS\OutputFormat;
-use Sabberworm\CSS\Renderable;
 use Sabberworm\CSS\Position\Position;
 use Sabberworm\CSS\Position\Positionable;
+use Sabberworm\CSS\Renderable;
+use Sabberworm\CSS\ShortClassNameProvider;
 
 class Comment implements Positionable, Renderable
 {
     use Position;
+    use ShortClassNameProvider;
 
     /**
      * @var string
      *
      * @internal since 8.8.0
      */
-    protected $sComment;
+    protected $commentText;
 
     /**
-     * @param string $sComment
-     * @param int $iLineNo
+     * @param int<1, max>|null $lineNumber
      */
-    public function __construct($sComment = '', $iLineNo = 0)
+    public function __construct(string $commentText = '', ?int $lineNumber = null)
     {
-        $this->sComment = $sComment;
-        $this->setPosition($iLineNo);
+        $this->commentText = $commentText;
+        $this->setPosition($lineNumber);
+    }
+
+    public function getComment(): string
+    {
+        return $this->commentText;
+    }
+
+    public function setComment(string $commentText): void
+    {
+        $this->commentText = $commentText;
     }
 
     /**
-     * @return string
+     * @return non-empty-string
      */
-    public function getComment()
+    public function render(OutputFormat $outputFormat): string
     {
-        return $this->sComment;
+        return '/*' . $this->commentText . '*/';
     }
 
     /**
-     * @param string $sComment
+     * @return array<string, bool|int|float|string|array<mixed>|null>
      *
-     * @return void
+     * @internal
      */
-    public function setComment($sComment)
+    public function getArrayRepresentation(): array
     {
-        $this->sComment = $sComment;
-    }
-
-    /**
-     * @return string
-     *
-     * @deprecated in V8.8.0, will be removed in V9.0.0. Use `render` instead.
-     */
-    public function __toString()
-    {
-        return $this->render(new OutputFormat());
-    }
-
-    /**
-     * @param OutputFormat|null $oOutputFormat
-     *
-     * @return string
-     */
-    public function render($oOutputFormat)
-    {
-        return '/*' . $this->sComment . '*/';
+        return [
+            'class' => $this->getShortClassName(),
+            // "contents" is the term used in the W3C specs:
+            // https://www.w3.org/TR/CSS22/syndata.html#comments
+            'contents' => $this->commentText,
+        ];
     }
 }
