@@ -2,6 +2,15 @@
 trait OperationsRouteDownloadSite {
   public function downloadSite() {
     if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // security (F2/IDOR-001): object-level authorization before filesystem access
+      if (!isset($this->params['site']['name']) || !$GLOBALS['HAXCMS']->userCanAccessSite($this->params['site']['name'])) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Access denied to site',
+          )
+        );
+      }
       // load site
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php

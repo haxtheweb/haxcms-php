@@ -2,6 +2,15 @@
 trait OperationsRouteArchiveSite {
   public function archiveSite() {
     if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
+      // security (F2/IDOR-001): object-level authorization before filesystem access
+      if (!isset($this->params['site']['name']) || !$GLOBALS['HAXCMS']->userCanAccessSite($this->params['site']['name'])) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => 'Access denied to site',
+          )
+        );
+      }
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       if ($site->manifest->metadata->site->name) {
         $siteName = $site->manifest->metadata->site->name;

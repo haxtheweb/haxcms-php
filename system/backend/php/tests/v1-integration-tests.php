@@ -444,6 +444,128 @@ foreach ($pathMatrix as $case) {
     assertEquals($case['expectedApiBase'], $ctx->apiBasePath, $case['name'] . ' apiBasePath resolves');
 }
 
+// Test 14: F2/IDOR-001 — site-lifecycle object-level authorization (IDOR fix)
+echo "\n[14] F2/IDOR-001 site-lifecycle IDOR guard...\n";
+// Save state to restore after the IDOR assertions.
+$idorSavedIam = isset($HAXCMS->config->iam) ? $HAXCMS->config->iam : null;
+$idorSavedUserTokenHeader = isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) ? $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] : null;
+
+// --- Non-IAM (self-hosted) mode assertions ---
+$HAXCMS->config->iam = false;
+// Find an existing site in the test environment sites directory.
+$idorSitesDir = HAXCMS_ROOT . '/' . $HAXCMS->sitesDirectory;
+$idorExistingSite = null;
+if (is_dir($idorSitesDir) && ($idorHandle = opendir($idorSitesDir))) {
+    while (false !== ($idorItem = readdir($idorHandle))) {
+        if ($idorItem != '.' && $idorItem != '..' && is_dir($idorSitesDir . '/' . $idorItem) && file_exists($idorSitesDir . '/' . $idorItem . '/site.json')) {
+            $idorExistingSite = $idorItem;
+            break;
+        }
+    }
+    closedir($idorHandle);
+}
+assertTrue(is_string($idorExistingSite) && $idorExistingSite !== '', 'IDOR test: test environment has at least one existing site');
+if (is_string($idorExistingSite) && $idorExistingSite !== '') {
+    assertTrue($HAXCMS->userCanAccessSite($idorExistingSite), 'IDOR non-IAM: userCanAccessSite returns true for existing site');
+    assertTrue(!$HAXCMS->userCanAccessSite('nonexistent-idor-test-site-xyz'), 'IDOR non-IAM: userCanAccessSite returns false for non-existent site');
+}
+assertTrue(!$HAXCMS->userCanAccessSite(''), 'IDOR: userCanAccessSite returns false for empty site name');
+
+// --- IAM (multi-tenant) mode assertions ---
+// In the test environment HAXCMS_ROOT is not user-scoped (no /users/{user}/
+// segment) and /var/www/sites/{user}/sites/{site} does not exist, so an
+// existing site must be denied to the active user — this is the cross-tenant
+// IDOR scenario the fix prevents.
+$HAXCMS->config->iam = true;
+$idorIamActiveUser = $HAXCMS->getActiveUserName();
+assertTrue(is_string($idorIamActiveUser) && $idorIamActiveUser !== '', 'IDOR IAM: active user name resolves');
+if (is_string($idorExistingSite) && $idorExistingSite !== '' && is_string($idorIamActiveUser) && $idorIamActiveUser !== '') {
+    assertTrue(!$HAXCMS->userCanAccessSite($idorExistingSite), 'IDOR IAM: userCanAccessSite denies access to site not in user directory (cross-tenant blocked)');
+}
+// Restore IAM setting so subsequent assertions run in the real bootstrapped mode.
+if ($idorSavedIam !== null) {
+    $HAXCMS->config->iam = $idorSavedIam;
+} else {
+    unset($HAXCMS->config->iam);
+}
+
+// --- Lifecycle route-layer guard: clone route returns 403 for inaccessible site ---
+$idorTokenUser = $HAXCMS->getRequestTokenUserName();
+if (!is_string($idorTokenUser) || $idorTokenUser === '') {
+    $idorTokenUser = $HAXCMS->getActiveUserName();
+}
+$idorServerToken = $HAXCMS->getRequestToken($idorTokenUser);
+$_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = $idorServerToken;
+$idorLifecycleHandler = include $repoRoot . '/system/backend/php/lib/systemRoutes/v1/lifecycle.php';
+$idorCloneContext = new stdClass();
+$idorCloneContext->apiBasePath = '/system/api';
+$idorCloneContext->body = array();
+$idorCloneContext->params = array('siteName' => 'nonexistent-idor-test-site-xyz');
+$idorCloneContext->routeSuffix = 'v1/sites/:siteName/clone';
+$idorCloneContext->method = 'POST';
+ob_start();
+$idorLifecycleHandler($idorCloneContext);
+$idorCloneResponseRaw = ob_get_clean();
+$idorCloneResponse = json_decode($idorCloneResponseRaw, true);
+assertTrue(is_array($idorCloneResponse), 'IDOR lifecycle clone route returns JSON');
+assertEquals(
+    403,
+    isset($idorCloneResponse['status']) ? $idorCloneResponse['status'] : null,
+    'IDOR lifecycle clone route returns 403 for inaccessible site (route-layer guard)'
+);
+
+// --- Defense-in-depth: each of the 5 handlers returns 403 __failed for inaccessible site ---
+$idorOps = new Operations();
+$idorOps->params = array(
+    'user_token' => $idorServerToken,
+    'site' => array('name' => 'nonexistent-idor-test-site-xyz'),
+);
+$idorOps->rawParams = $idorOps->params;
+
+$idorCloneHandlerResult = $idorOps->cloneSite();
+assertTrue(
+    is_array($idorCloneHandlerResult) && isset($idorCloneHandlerResult['__failed']) && isset($idorCloneHandlerResult['__failed']['status']) && intval($idorCloneHandlerResult['__failed']['status']) === 403,
+    'IDOR defense-in-depth: cloneSite handler returns 403 __failed for inaccessible site'
+);
+
+$idorDownloadResult = $idorOps->downloadSite();
+assertTrue(
+    is_array($idorDownloadResult) && isset($idorDownloadResult['__failed']) && isset($idorDownloadResult['__failed']['status']) && intval($idorDownloadResult['__failed']['status']) === 403,
+    'IDOR defense-in-depth: downloadSite handler returns 403 __failed for inaccessible site'
+);
+
+$idorArchiveResult = $idorOps->archiveSite();
+assertTrue(
+    is_array($idorArchiveResult) && isset($idorArchiveResult['__failed']) && isset($idorArchiveResult['__failed']['status']) && intval($idorArchiveResult['__failed']['status']) === 403,
+    'IDOR defense-in-depth: archiveSite handler returns 403 __failed for inaccessible site'
+);
+
+$idorOps2 = new Operations();
+$idorOps2->params = array(
+    'user_token' => $idorServerToken,
+    'site' => array('name' => 'nonexistent-idor-test-site-xyz'),
+);
+$idorOps2->rawParams = $idorOps2->params;
+
+$idorSaveTemplateResult = $idorOps2->saveSiteAsTemplate();
+assertTrue(
+    is_array($idorSaveTemplateResult) && isset($idorSaveTemplateResult['__failed']) && isset($idorSaveTemplateResult['__failed']['status']) && intval($idorSaveTemplateResult['__failed']['status']) === 403,
+    'IDOR defense-in-depth: saveSiteAsTemplate handler returns 403 __failed for inaccessible site'
+);
+
+$idorDownloadSkeletonResult = $idorOps2->downloadSiteSkeleton();
+assertTrue(
+    is_array($idorDownloadSkeletonResult) && isset($idorDownloadSkeletonResult['__failed']) && isset($idorDownloadSkeletonResult['__failed']['status']) && intval($idorDownloadSkeletonResult['__failed']['status']) === 403,
+    'IDOR defense-in-depth: downloadSiteSkeleton handler returns 403 __failed for inaccessible site'
+);
+
+// Restore HTTP_X_HAXCMS_USER_TOKEN
+if ($idorSavedUserTokenHeader !== null) {
+    $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = $idorSavedUserTokenHeader;
+} else {
+    unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']);
+}
+
 // Summary
 echo "\n=== Results ===\n";
 echo "Passed: {$testResults['passed']}\n";

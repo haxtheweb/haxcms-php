@@ -209,31 +209,61 @@ return function ($context) {
         $route === 'v1/sites/:siteName/clone' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/clone$/', $route) === 1
     ) {
-        $response = $operations->cloneSite();
+        // security (F2/IDOR-001): object-level authorization before clone
+        if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
+            $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
+        }
+        else {
+            $response = $operations->cloneSite();
+        }
     }
     else if (
         $route === 'v1/sites/:siteName/archive' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/archive$/', $route) === 1
     ) {
-        $response = $operations->archiveSite();
+        // security (F2/IDOR-001): object-level authorization before archive
+        if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
+            $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
+        }
+        else {
+            $response = $operations->archiveSite();
+        }
     }
     else if (
         $route === 'v1/sites/:siteName/download' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/download$/', $route) === 1
     ) {
-        $response = $operations->downloadSite();
+        // security (F2/IDOR-001): object-level authorization before download
+        if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
+            $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
+        }
+        else {
+            $response = $operations->downloadSite();
+        }
     }
     else if (
         $route === 'v1/sites/:siteName/download-skeleton' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/download-skeleton$/', $route) === 1
     ) {
-        $response = $operations->downloadSiteSkeleton();
+        // security (F2/IDOR-001): object-level authorization before download-skeleton
+        if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
+            $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
+        }
+        else {
+            $response = $operations->downloadSiteSkeleton();
+        }
     }
     else if (
         $route === 'v1/sites/:siteName/save-as-template' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/save-as-template$/', $route) === 1
     ) {
-        $response = $operations->saveSiteAsTemplate();
+        // security (F2/IDOR-001): object-level authorization before save-as-template
+        if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
+            $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
+        }
+        else {
+            $response = $operations->saveSiteAsTemplate();
+        }
     }
     else {
         SiteRouteUtils::sendFormattedResponse(

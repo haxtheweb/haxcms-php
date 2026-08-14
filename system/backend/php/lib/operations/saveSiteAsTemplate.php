@@ -23,6 +23,15 @@ trait OperationsRouteSaveSiteAsTemplate {
         )
       );
     }
+    // security (F2/IDOR-001): object-level authorization before filesystem access
+    if (!$GLOBALS['HAXCMS']->userCanAccessSite($this->params['site']['name'])) {
+      return array(
+        '__failed' => array(
+          'status' => 403,
+          'message' => 'Access denied to site',
+        )
+      );
+    }
     $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
     if (!$site || !isset($site->manifest)) {
       return array(

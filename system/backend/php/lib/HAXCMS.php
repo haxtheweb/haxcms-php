@@ -1921,6 +1921,69 @@ class HAXCMS
       return $allow;
     }
     /**
+     * Security best practice (F2/IDOR-001): object-level authorization on a
+     * named site. Authentication (user_token / bearer) is verified upstream;
+     * this method ensures the authenticated user actually owns or has been
+     * granted access to the named site, preventing an authenticated user from
+     * cloning / archiving / downloading / saving-as-template any site by name
+     * (cross-tenant breach in HAXiam, arbitrary-site access in self-hosted
+     * multi-user deployments).
+     *
+     * - Self-hosted (non-IAM): any authenticated user can access any existing
+     *   site (mirrors listSites which lists all sites without ownership
+     *   filtering).
+     * - HAXiam (multi-tenant): the site must exist within the authenticated
+     *   user's sites directory — a real directory means owned, a symlink means
+     *   shared via haxiamAddUserAccess. Reuses the _validateUserOwnsSite path
+     *   convention (/var/www/sites/{user}/sites/{site}) but allows symlinks
+     *   (shared access), and falls back to a HAXCMS_ROOT-derived path for
+     *   non-/var/www deployments.
+     */
+    public function userCanAccessSite($siteName) {
+      if (!is_string($siteName) || trim($siteName) === '') {
+        return false;
+      }
+      $site = $this->loadSite($siteName);
+      if (!$site || !isset($site->manifest) || !isset($site->manifest->metadata->site->name)) {
+        return false;
+      }
+      // Self-hosted (non-IAM) mode: any authenticated user can access any
+      // existing site (mirrors listSites behavior).
+      if (!(isset($this->config->iam) && $this->config->iam)) {
+        return true;
+      }
+      // HAXiam (multi-tenant) mode: verify the site is accessible to the
+      // authenticated user.
+      $activeUser = $this->getActiveUserName();
+      if (!is_string($activeUser) || $activeUser === '') {
+        return false;
+      }
+      $siteMachineName = $site->manifest->metadata->site->name;
+      $root = str_replace('\\', '/', HAXCMS_ROOT);
+      // If HAXCMS_ROOT is already scoped to the active user (site-scoped route
+      // in IAM), the loaded site is from the user's directory — access granted
+      // (owned or shared via symlink).
+      if (preg_match('#/users/' . preg_quote($activeUser, '#') . '(/|$)#', $root)) {
+        return true;
+      }
+      // HAXCMS_ROOT is not scoped to the active user (e.g. system route in IAM
+      // mode). Check the user's sites directory explicitly. Try the production
+      // /var/www/sites convention first, then derive from HAXCMS_ROOT.
+      $candidates = array(
+        '/var/www/sites/' . $activeUser . '/sites/' . $siteMachineName,
+      );
+      if (preg_match('#/users/[^/]+#', $root)) {
+        $userRoot = preg_replace('#/users/[^/]+#', '/users/' . $activeUser, $root);
+        $candidates[] = $userRoot . '/' . $this->sitesDirectory . '/' . $siteMachineName;
+      }
+      foreach ($candidates as $candidate) {
+        if (file_exists($candidate)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
