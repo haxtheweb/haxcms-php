@@ -8,6 +8,57 @@ if (file_exists($__vendorAutoload)) {
 }
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
+// createSite's build.files contract is "local staged paths only" (its
+// isValidBulkImportTmpPath validator rejects URL schemes by design), so the
+// converter downloads each referenced file into the bulk-import staging
+// root and hands createSite the staged path instead of the remote URL.
+// Mirrors the haxcms-nodejs convertHaxcmsToSite.js staging helpers.
+if (!function_exists('haxcms_import_get_staging_root')) {
+    function haxcms_import_get_staging_root() {
+        global $HAXCMS;
+        if (!isset($HAXCMS) || !isset($HAXCMS->configDirectory)) {
+            return false;
+        }
+        $root = $HAXCMS->configDirectory . '/tmp/imports';
+        if (!is_dir($root)) {
+            @mkdir($root, 0755, true);
+        }
+        if (!is_dir($root)) {
+            return false;
+        }
+        return $root;
+    }
+}
+
+// Fetch a remote file via SsrfGuard::safeGuzzleRequest (SSRF-guarded,
+// redirects disabled) and stage it under the bulk-import root. Reuses the
+// caller's Guzzle $client. Returns the absolute staged path, or false on
+// any fetch/write failure or empty body (the file is simply skipped).
+if (!function_exists('haxcms_import_stage_remote_file')) {
+    function haxcms_import_stage_remote_file($client, $url, $relPath) {
+        $root = haxcms_import_get_staging_root();
+        if ($root === false) {
+            return false;
+        }
+        try {
+            $resp  = SsrfGuard::safeGuzzleRequest($client, 'GET', $url);
+            $body  = (string) $resp->getBody();
+        } catch (\Exception $e) {
+            return false;
+        }
+        if ($body === '') {
+            return false;
+        }
+        $ext      = pathinfo($relPath, PATHINFO_EXTENSION);
+        $extPart  = ($ext !== '') ? '.' . $ext : '';
+        $staged   = $root . '/haxbi_' . uniqid() . $extPart;
+        if (@file_put_contents($staged, $body) === false) {
+            return false;
+        }
+        return $staged;
+    }
+}
+
 if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
     function haxcmsImportConvertHaxcmsToSite($context)
     {
@@ -87,7 +138,10 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
             if (isset($item['metadata']['files']) && is_array($item['metadata']['files'])) {
                 foreach ($item['metadata']['files'] as $fileEntry) {
                     if (isset($fileEntry['url'])) {
-                        $downloads[$fileEntry['url']] = $base . '/' . $fileEntry['url'];
+                        $stagedPath = haxcms_import_stage_remote_file($client, $base . '/' . $fileEntry['url'], $fileEntry['url']);
+                        if ($stagedPath !== false) {
+                            $downloads[$fileEntry['url']] = $stagedPath;
+                        }
                     }
                 }
             }
