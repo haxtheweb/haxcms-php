@@ -1,0 +1,47 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+  "name": "haxtheweb/haxcms-php Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/php:8.3",
+
+  // Install Node 22 for the JS asset build pipeline (gulp/babel via gulpfile.cjs).
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeVersion": "22"
+    }
+  },
+
+  // Compatibility with SELinux (no-op on non-SELinux hosts).
+  "runArgs": ["--security-opt", "label=disable"],
+
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "xdebug.php-debug",
+        "bmewburn.vscode-intelephense-client",
+        "runem.lit-plugin",
+        "bierner.lit-html",
+        "deque-systems.vscode-axe-linter"
+      ]
+    }
+  },
+
+  // Use 'portsAttributes' to set default properties for specific forwarded ports.
+  // More info: https://containers.dev/implementors/json_reference/#port-attributes
+  "portsAttributes": {
+    "80": {
+      "label": "Apache (PHP)",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "JS Tooling / Dev Server",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}
