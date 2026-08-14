@@ -19,3 +19,5 @@ require_once $base . '/lib/systemRoutes/SystemApiSecurity.php';
 require_once $base . '/lib/Cache.php';
 require_once $base . '/lib/siteRoutes/v1/ExportConverters.php';
 require_once $base . '/lib/HAXCMS.php';
+require_once $base . '/lib/APIKeysService.php';
+require_once $base . '/lib/Operations.php';
