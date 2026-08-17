@@ -945,7 +945,7 @@ class HAXCMS
                     'id' => 'uuid',
                   ),
                   'gizmo' => array(
-                    'source' => 'fullUrl',
+                    'source' => 'url',
                     'id' => 'uuid',
                     'title' => 'name',
                     'mimetype' => 'mimetype',
