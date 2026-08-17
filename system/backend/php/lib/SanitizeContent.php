@@ -422,7 +422,16 @@ class SanitizeContent
 
     private static function loadHTMLDocument($html)
     {
-        $wrappedHTML = '<!DOCTYPE html><html><body>' . $html . '</body></html>';
+        // libxml's HTML parser follows the legacy HTML4 default of assuming
+        // ISO-8859-1 (Latin-1) input whenever no charset is declared in the
+        // markup. Constructing DOMDocument with a 'UTF-8' encoding only
+        // controls how the DOM is *serialized* back out, not how the input
+        // bytes are interpreted while parsing. Without an explicit
+        // <meta charset="utf-8">, multi-byte UTF-8 sequences (e.g. curly
+        // quotes/smart punctuation) get parsed as several separate Latin-1
+        // characters, then re-encoded as UTF-8 on save, producing mojibake
+        // (e.g. "ââ") that compounds on every subsequent save.
+        $wrappedHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>';
         if (class_exists('\Dom\HTMLDocument') && method_exists('\Dom\HTMLDocument', 'createFromString')) {
             try {
                 $dom = \Dom\HTMLDocument::createFromString(
