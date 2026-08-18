@@ -165,6 +165,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #12
 
+@haxtheweb/chamfer-theme
+  build path:  es6/node_modules/@haxtheweb/chamfer-theme
+  license:     Apache-2.0
+  attribution: see license text #7
+
 @haxtheweb/chartist-render
   build path:  es6/node_modules/@haxtheweb/chartist-render
   license:     Apache-2.0
@@ -2367,7 +2372,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 4 packages)
+#7 - Apache-2.0 (shared by 5 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----

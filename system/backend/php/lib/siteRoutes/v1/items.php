@@ -13,121 +13,11 @@ return function ($context) {
         );
         return;
     }
-    $buildItemNavigationMap = function ($orderedItems) use ($apiBasePath) {
-        $itemById = array();
-        foreach ($orderedItems as $item) {
-            if (isset($item->id)) {
-                $itemById[(string) $item->id] = $item;
-            }
-        }
-        $navigationMap = array();
-        for ($i = 0; $i < count($orderedItems); $i++) {
-            $item = $orderedItems[$i];
-            if (!isset($item->id)) {
-                continue;
-            }
-            $previousItem = $i > 0 ? $orderedItems[$i - 1] : null;
-            $nextItem = ($i + 1) < count($orderedItems) ? $orderedItems[$i + 1] : null;
-            $previousLookupValue = SiteRouteUtils::getItemLookupValue($previousItem);
-            $nextLookupValue = SiteRouteUtils::getItemLookupValue($nextItem);
-            $parentLookupValue = '';
-            if (isset($item->parent) && $item->parent != '') {
-                $parentId = (string) $item->parent;
-                if (array_key_exists($parentId, $itemById)) {
-                    $parentLookupValue = SiteRouteUtils::getItemLookupValue($itemById[$parentId]);
-                }
-                else {
-                    $parentLookupValue = $parentId;
-                }
-            }
-            $navigationMap[(string) $item->id] = array(
-                'previous' => $previousLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($previousLookupValue) : null,
-                'next' => $nextLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($nextLookupValue) : null,
-                'parent' => $parentLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($parentLookupValue) : null,
-                'children' => $apiBasePath . '/v1/items?filter.parent=' . rawurlencode((string) $item->id),
-            );
-        }
-        return $navigationMap;
-    };
-    $buildHaxElementSchemaFromHtml = function ($html = '') {
-        // E2: rich per-element haxElementSchema mirroring Node items.js
-        // buildHaxElementSchemaFromHtml (260-302). Previously this returned
-        // empty stubs (tag + empty properties + empty content). Now parses
-        // the HTML and for each top-level element extracts tag + attributes
-        // (as properties) + innerHTML (as content), matching Node's shape.
-        $source = trim((string) $html);
-        if ($source === '') {
-            return array();
-        }
-        if (!class_exists('DOMDocument')) {
-            return array();
-        }
-        $dom = new DOMDocument();
-        $previousLibxmlState = libxml_use_internal_errors(true);
-        // Wrap in a root div so we can walk top-level children reliably;
-        // prepend the XML encoding declaration so UTF-8 is preserved.
-        $wrapped = '<?xml encoding="UTF-8"><div data-hax-element-schema-root>' . $source . '</div>';
-        $dom->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-        libxml_use_internal_errors($previousLibxmlState);
-        $root = null;
-        if ($dom->documentElement && strtolower($dom->documentElement->tagName) === 'div') {
-            $root = $dom->documentElement;
-        }
-        if (!$root) {
-            return array();
-        }
-        $schema = array();
-        foreach ($root->childNodes as $node) {
-            if (!($node instanceof DOMElement)) {
-                continue;
-            }
-            $tagName = strtolower($node->tagName);
-            if ($tagName === '') {
-                continue;
-            }
-            $properties = array();
-            if ($node->attributes && $node->attributes->length > 0) {
-                foreach ($node->attributes as $attr) {
-                    $properties[$attr->name] = ($attr->value === null) ? true : $attr->value;
-                }
-            }
-            // innerHTML: concatenate saveHTML of each child node (mirrors
-            // Node's node.innerHTML)
-            $innerHTML = '';
-            foreach ($node->childNodes as $child) {
-                $innerHTML .= $dom->saveHTML($child);
-            }
-            $schema[] = array(
-                'tag' => $tagName,
-                'properties' => $properties,
-                'content' => $innerHTML,
-            );
-        }
-        return $schema;
-    };
-    $buildItemJsonLd = function ($record, $siteBasePath, $siteLanguage) {
-        $itemSlug = isset($record['slug']) ? (string) $record['slug'] : '';
-        $itemId = isset($record['id']) ? (string) $record['id'] : '';
-        $canonicalPath = SiteRouteUtils::buildCanonicalPagePath($siteBasePath, $itemSlug != '' ? $itemSlug : $itemId);
-        $metadata = isset($record['metadata']) && is_array($record['metadata']) ? $record['metadata'] : array();
-        return array(
-            '@context' => 'https://schema.org',
-            '@type' => 'WebPage',
-            '@id' => (isset($record['links']['self']) ? $record['links']['self'] : $canonicalPath) . '#webpage',
-            'url' => isset($record['links']['self']) ? $record['links']['self'] : $canonicalPath,
-            'mainEntityOfPage' => $canonicalPath,
-            'name' => isset($record['title']) ? $record['title'] : $itemSlug,
-            'description' => isset($record['description']) ? $record['description'] : '',
-            'inLanguage' => $siteLanguage,
-            'identifier' => $itemId,
-            'keywords' => isset($record['tags']) ? $record['tags'] : array(),
-            'datePublished' => array_key_exists('created', $metadata) ? SiteRouteUtils::toIsoDateFromUnixTime($metadata['created']) : null,
-            'dateModified' => array_key_exists('updated', $metadata) ? SiteRouteUtils::toIsoDateFromUnixTime($metadata['updated']) : null,
-        );
-    };
+    // Pure item helpers (buildItemNavigationMap, buildHaxElementSchemaFromHtml,
+    // buildItemJsonLd) live on SiteRouteUtils so they have a directly testable
+    // public seam; this route just delegates to them (no behavior change).
     $orderedItems = SiteRouteUtils::getOrderedItems($site);
-    $navigationMap = $buildItemNavigationMap($orderedItems);
+    $navigationMap = SiteRouteUtils::buildItemNavigationMap($orderedItems, $apiBasePath);
     $includes = SiteRouteUtils::getCsvQuery('include');
     $fields = SiteRouteUtils::getCsvQuery('fields');
     $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
@@ -175,10 +65,10 @@ return function ($context) {
                 $record['content'] = $content;
             }
             if (in_array('haxElementSchema', $includes, true)) {
-                $record['haxElementSchema'] = $buildHaxElementSchemaFromHtml($content);
+                $record['haxElementSchema'] = SiteRouteUtils::buildHaxElementSchemaFromHtml($content);
             }
         }
-        $record['jsonld'] = $buildItemJsonLd($record, $siteBasePath, $siteLanguage);
+        $record['jsonld'] = SiteRouteUtils::buildItemJsonLd($record, $siteBasePath, $siteLanguage);
         if (count($fields) > 0) {
             $record = SiteRouteUtils::projectRecord($record, $fields);
         }
@@ -219,11 +109,11 @@ return function ($context) {
                 $record['content'] = $content;
             }
             if (in_array('haxElementSchema', $includes, true)) {
-                $record['haxElementSchema'] = $buildHaxElementSchemaFromHtml($content);
+                $record['haxElementSchema'] = SiteRouteUtils::buildHaxElementSchemaFromHtml($content);
             }
         }
         if (in_array('jsonld', $includes, true)) {
-            $record['jsonld'] = $buildItemJsonLd($record, $siteBasePath, $siteLanguage);
+            $record['jsonld'] = SiteRouteUtils::buildItemJsonLd($record, $siteBasePath, $siteLanguage);
         }
         $records[] = $record;
     }
