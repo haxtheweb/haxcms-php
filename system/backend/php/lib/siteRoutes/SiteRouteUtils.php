@@ -1136,6 +1136,222 @@ class SiteRouteUtils
         }
         return $offendingRoutes;
     }
+    /**
+     * Build the previous/next/parent/children navigation link map for an
+     * ordered list of outline items. Extracted from items.php's
+     * buildItemNavigationMap closure (Phase 3, Area C) so it has a directly
+     * testable public seam; no behavior change.
+     */
+    public static function buildItemNavigationMap($orderedItems, $apiBasePath = '/x/api')
+    {
+        $itemById = array();
+        foreach ($orderedItems as $item) {
+            if (isset($item->id)) {
+                $itemById[(string) $item->id] = $item;
+            }
+        }
+        $navigationMap = array();
+        for ($i = 0; $i < count($orderedItems); $i++) {
+            $item = $orderedItems[$i];
+            if (!isset($item->id)) {
+                continue;
+            }
+            $previousItem = $i > 0 ? $orderedItems[$i - 1] : null;
+            $nextItem = ($i + 1) < count($orderedItems) ? $orderedItems[$i + 1] : null;
+            $previousLookupValue = self::getItemLookupValue($previousItem);
+            $nextLookupValue = self::getItemLookupValue($nextItem);
+            $parentLookupValue = '';
+            if (isset($item->parent) && $item->parent != '') {
+                $parentId = (string) $item->parent;
+                if (array_key_exists($parentId, $itemById)) {
+                    $parentLookupValue = self::getItemLookupValue($itemById[$parentId]);
+                }
+                else {
+                    $parentLookupValue = $parentId;
+                }
+            }
+            $navigationMap[(string) $item->id] = array(
+                'previous' => $previousLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($previousLookupValue) : null,
+                'next' => $nextLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($nextLookupValue) : null,
+                'parent' => $parentLookupValue != '' ? $apiBasePath . '/v1/items/' . rawurlencode($parentLookupValue) : null,
+                'children' => $apiBasePath . '/v1/items?filter.parent=' . rawurlencode((string) $item->id),
+            );
+        }
+        return $navigationMap;
+    }
+    /**
+     * Parse an HTML content fragment into a rich per-element haxElementSchema
+     * array (tag + attributes-as-properties + innerHTML-as-content) for each
+     * top-level element. Extracted from items.php's
+     * buildHaxElementSchemaFromHtml closure (Phase 3, Area C); no behavior
+     * change.
+     */
+    public static function buildHaxElementSchemaFromHtml($html = '')
+    {
+        $source = trim((string) $html);
+        if ($source === '') {
+            return array();
+        }
+        if (!class_exists('DOMDocument')) {
+            return array();
+        }
+        $dom = new DOMDocument();
+        $previousLibxmlState = libxml_use_internal_errors(true);
+        // Wrap in a root div so we can walk top-level children reliably;
+        // prepend the XML encoding declaration so UTF-8 is preserved.
+        $wrapped = '<?xml encoding="UTF-8"><div data-hax-element-schema-root>' . $source . '</div>';
+        $dom->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousLibxmlState);
+        $root = null;
+        if ($dom->documentElement && strtolower($dom->documentElement->tagName) === 'div') {
+            $root = $dom->documentElement;
+        }
+        if (!$root) {
+            return array();
+        }
+        $schema = array();
+        foreach ($root->childNodes as $node) {
+            if (!($node instanceof DOMElement)) {
+                continue;
+            }
+            $tagName = strtolower($node->tagName);
+            if ($tagName === '') {
+                continue;
+            }
+            $properties = array();
+            if ($node->attributes && $node->attributes->length > 0) {
+                foreach ($node->attributes as $attr) {
+                    $properties[$attr->name] = ($attr->value === null) ? true : $attr->value;
+                }
+            }
+            // innerHTML: concatenate saveHTML of each child node (mirrors
+            // Node's node.innerHTML)
+            $innerHTML = '';
+            foreach ($node->childNodes as $child) {
+                $innerHTML .= $dom->saveHTML($child);
+            }
+            $schema[] = array(
+                'tag' => $tagName,
+                'properties' => $properties,
+                'content' => $innerHTML,
+            );
+        }
+        return $schema;
+    }
+    /**
+     * Build the JSON-LD WebPage descriptor for an item summary record.
+     * Extracted from items.php's buildItemJsonLd closure (Phase 3, Area C);
+     * no behavior change.
+     */
+    public static function buildItemJsonLd($record, $siteBasePath, $siteLanguage)
+    {
+        $itemSlug = isset($record['slug']) ? (string) $record['slug'] : '';
+        $itemId = isset($record['id']) ? (string) $record['id'] : '';
+        $canonicalPath = self::buildCanonicalPagePath($siteBasePath, $itemSlug != '' ? $itemSlug : $itemId);
+        $metadata = isset($record['metadata']) && is_array($record['metadata']) ? $record['metadata'] : array();
+        return array(
+            '@context' => 'https://schema.org',
+            '@type' => 'WebPage',
+            '@id' => (isset($record['links']['self']) ? $record['links']['self'] : $canonicalPath) . '#webpage',
+            'url' => isset($record['links']['self']) ? $record['links']['self'] : $canonicalPath,
+            'mainEntityOfPage' => $canonicalPath,
+            'name' => isset($record['title']) ? $record['title'] : $itemSlug,
+            'description' => isset($record['description']) ? $record['description'] : '',
+            'inLanguage' => $siteLanguage,
+            'identifier' => $itemId,
+            'keywords' => isset($record['tags']) ? $record['tags'] : array(),
+            'datePublished' => array_key_exists('created', $metadata) ? self::toIsoDateFromUnixTime($metadata['created']) : null,
+            'dateModified' => array_key_exists('updated', $metadata) ? self::toIsoDateFromUnixTime($metadata['updated']) : null,
+        );
+    }
+    /**
+     * Normalize the search.php ?fields= CSV query into the allowed set of
+     * search fields, falling back to the documented default set when the
+     * input is empty or contains no recognized field names. Extracted from
+     * search.php's normalizeSearchFields closure (Phase 3, Area C) so it has
+     * a directly testable public seam; no behavior change.
+     */
+    public static function normalizeSearchFields($fields = array())
+    {
+        $allowed = array('id', 'title', 'slug', 'description', 'tags', 'content', 'location');
+        if (!is_array($fields) || count($fields) == 0) {
+            return array('title', 'slug', 'description', 'tags', 'content');
+        }
+        $normalized = array();
+        foreach ($fields as $field) {
+            $value = strtolower(trim((string) $field));
+            if ($value != '' && in_array($value, $allowed, true) && !in_array($value, $normalized, true)) {
+                $normalized[] = $value;
+            }
+        }
+        if (count($normalized) == 0) {
+            return array('title', 'slug', 'description', 'tags', 'content');
+        }
+        return $normalized;
+    }
+    /**
+     * Resolve the searchable string value for a single search field against
+     * an outline item (and, for the 'content' field, the pre-fetched page
+     * body). Extracted from search.php's getSearchFieldValue closure (Phase
+     * 3, Area C); no behavior change.
+     */
+    public static function getSearchFieldValue($field, $item, $content = '')
+    {
+        if ($field == 'id') {
+            return isset($item->id) ? (string) $item->id : '';
+        }
+        if ($field == 'title') {
+            return isset($item->title) ? (string) $item->title : '';
+        }
+        if ($field == 'slug') {
+            return isset($item->slug) ? (string) $item->slug : '';
+        }
+        if ($field == 'description') {
+            return isset($item->description) ? (string) $item->description : '';
+        }
+        if ($field == 'location') {
+            return isset($item->location) ? (string) $item->location : '';
+        }
+        if ($field == 'tags') {
+            $tags = self::normalizeTagList(
+                (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->tags))
+                    ? $item->metadata->tags
+                    : array()
+            );
+            return implode(' ', $tags);
+        }
+        if ($field == 'content') {
+            return is_string($content) ? $content : '';
+        }
+        return '';
+    }
+    /**
+     * Case-insensitive substring match of $queryLower within $value,
+     * returning the match index/length plus a trimmed +/-60 character
+     * snippet, or null when there is no match. Extracted from search.php's
+     * findMatch closure (Phase 3, Area C); no behavior change.
+     */
+    public static function findMatch($value, $queryLower)
+    {
+        $source = (string) $value;
+        if ($source == '') {
+            return null;
+        }
+        $sourceLower = strtolower($source);
+        $index = strpos($sourceLower, $queryLower);
+        if ($index === false) {
+            return null;
+        }
+        $snippetStart = max($index - 60, 0);
+        $snippetEnd = min($index + strlen($queryLower) + 60, strlen($source));
+        $snippet = preg_replace('/\s+/', ' ', substr($source, $snippetStart, $snippetEnd - $snippetStart));
+        return array(
+            'index' => intval($index),
+            'length' => strlen($queryLower),
+            'snippet' => trim((string) $snippet),
+        );
+    }
     public static function getItemLookupValue($item)
     {
         if (isset($item) && isset($item->slug) && $item->slug != '') {

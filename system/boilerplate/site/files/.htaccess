@@ -11,3 +11,8 @@ Options -ExecCGI
     Deny from all
   </FilesMatch>
 </IfModule>
+# Uploaded content encoding is not guaranteed; don't inherit the UTF-8
+# charset tagging applied at the site root to generated/managed files.
+<IfModule mod_mime.c>
+  RemoveCharset .txt .md .json .yaml .yml .xml
+</IfModule>

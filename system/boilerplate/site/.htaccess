@@ -85,3 +85,10 @@ DirectoryIndex index.php index.html
     Header set Content-Type "application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""
   </Files>
 </IfModule>
+# Tag machine-readable managed/generated files as UTF-8 so clients don't
+# guess an encoding (fixes mojibake in llms.txt, robots.txt, site.json,
+# page .md/.yaml/.xml sidecars, etc). All of these are written by
+# HAXcms tooling, which always emits UTF-8.
+<IfModule mod_mime.c>
+  AddCharset UTF-8 .txt .md .json .yaml .yml .xml
+</IfModule>
