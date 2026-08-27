@@ -31,17 +31,22 @@
   // More info: https://containers.dev/implementors/json_reference/#port-attributes
   "portsAttributes": {
     "80": {
-      "label": "Apache (PHP)",
-      "onAutoForward": "silent"
+      "label": "HAXcms (Apache/PHP)",
+      "onAutoForward": "openPreview"
     },
     "3000": {
       "label": "JS Tooling / Dev Server",
       "onAutoForward": "silent"
     }
   },
+  "forwardPorts": [80],
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
-  "postCreateCommand": "bash .devcontainer/setup.sh"
+  // postCreateCommand runs once when the container/Codespace is first created.
+  // postStartCommand runs every time the container starts (including Codespace
+  // resume after idle timeout), which is required to (re)start Apache.
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/start.sh"
 }

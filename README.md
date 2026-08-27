@@ -8,6 +8,7 @@
 [![#HAXTheWeb](https://img.shields.io/badge/-HAXTheWeb-999999FF?style=flat&logo=data:image/svg%2bxml;base64,PHN2ZyBpZD0iZmVhMTExZTAtMjEwZC00Y2QwLWJhMWQtZGZmOTQyODc0Njg1IiBkYXRhLW5hbWU9IkxheWVyIDEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDE4NC40IDEzNS45NyI+PGRlZnM+PHN0eWxlPi5lMWJjMjAyNS0xODAwLTRkYzItODc4NS1jNDZlZDEwM2Y0OTJ7ZmlsbDojMjMxZjIwO308L3N0eWxlPjwvZGVmcz48cGF0aCBjbGFzcz0iZTFiYzIwMjUtMTgwMC00ZGMyLTg3ODUtYzQ2ZWQxMDNmNDkyIiBkPSJNNzguMDcsODMuNDVWNTVIODYuMnY4LjEzaDE2LjI2djQuMDdoNC4wN1Y4My40NUg5OC40VjY3LjE5SDg2LjJWODMuNDVaIi8+PHBvbHlnb24gcG9pbnRzPSIxNTMuMTMgNjMuNyAxNTMuMTMgNTEuMzkgMTQwLjU0IDUxLjM5IDE0MC41NCAzOS4wOSAxMjcuOTUgMzkuMDkgMTI3Ljk1IDI2Ljc5IDEwMi43OCAyNi43OSAxMDIuNzggMzkuMDkgMTE1LjM2IDM5LjA5IDExNS4zNiA1MS4zOSAxMjcuOTUgNTEuMzkgMTI3Ljk1IDYzLjcgMTQwLjU0IDYzLjcgMTQwLjU0IDc2IDEyNy4zNiA3NiAxMjcuMzYgODguMyAxMTQuNzggODguMyAxMTQuNzggMTAwLjYxIDEwMi4xOSAxMDAuNjEgMTAyLjE5IDExMi45MSAxMjcuMzYgMTEyLjkxIDEyNy4zNiAxMDAuNjEgMTM5Ljk1IDEwMC42MSAxMzkuOTUgODguMyAxNTIuNTQgODguMyAxNTIuNTQgNzYgMTY1LjcyIDc2IDE2NS43MiA2My43IDE1My4xMyA2My43Ii8+PHBvbHlnb24gcG9pbnRzPSIzMy4xMyA2My43IDMzLjEzIDUxLjM5IDQ1LjcyIDUxLjM5IDQ1LjcyIDM5LjA5IDU4LjMxIDM5LjA5IDU4LjMxIDI2Djk4My40OCAyNi43OSA4My40OCAzOS4wOSA3MC44OSAzOS4wOSA3MC44OSA1MS4zOSA1OC4zMSA1MS4zOSA1OC4zMSA2My43IDQ1LjcyIDYzLjcgNDUuNzIgNzYgNTguODkgNzYgNTguODkgODguMyA3MS40OCA4OC4zIDcxLjQ4IDEwMC42MSA4NC4wNyAxMDAuNjEgODQuMDcgMTEyLjkxIDU4Ljg5IDExMi45MSA1OC44OSAxMDAuNjEgNDYuMzEgMTAwLjYxIDQ2LjMxIDg4LjMgMzMuNzIgODguMyAzMy43MiA3NiAyMC41NCA3NiAyMC41NCA2My43IDMzLjEzIDYzLjciLz48L3N2Zz4%3D)](https://haxtheweb.org/)
 [![X](https://img.shields.io/twitter/follow/haxtheweb.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=haxtheweb)
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/haxtheweb/haxcms-php)
 # HAX
 The authoring experience of HAX and the ability to make fast, static file backed websites rapidly.
 Get all the details you want on [HAXTheWeb.org](https://haxtheweb.org/)!
@@ -52,6 +53,12 @@ $ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms/master/scripts/h
 ```
 ## Installation Guides
 - There are full installation instructions available at https://haxtheweb.org/installation which details many different install routines.
+
+### GitHub Codespaces
+- Click the "Open in GitHub Codespaces" badge above, or go to this repo's `Code` button → `Codespaces` tab → `Create codespace on master`.
+- The devcontainer automatically installs dependencies, points Apache at the checked-out code, and seeds a super user (`admin`/`admin` - change this after first login!).
+- Once the container finishes starting, a browser preview for port 80 opens automatically with the running site.
+- This also works from the lightweight `github.dev` editor: `github.dev` itself has no compute, but its `Code → Codespaces` menu launches the same devcontainer described here.
 
 ### Containers
 - Clone this repo: `git clone https://github.com/haxtheweb/haxcms.git`

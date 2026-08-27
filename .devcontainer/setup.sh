@@ -63,16 +63,45 @@ fi
 echo ">> Enabling Apache rewrite module"
 $SUDO a2enmod rewrite
 
-# --- 4. Next steps -----------------------------------------------------------
+# --- 4. Point Apache's docroot at this workspace -----------------------------
+# mcr.microsoft.com/devcontainers/php serves /var/www/html by default, which is
+# empty. Symlink it to the workspace so Apache serves the checked-out code
+# (mirrors the pattern documented for this base image).
+WORKSPACE_DIR="$(pwd)"
+if [ "$(readlink -f /var/www/html 2>/dev/null)" != "$WORKSPACE_DIR" ]; then
+  echo ">> Linking /var/www/html -> ${WORKSPACE_DIR}"
+  $SUDO rm -rf /var/www/html
+  $SUDO ln -s "$WORKSPACE_DIR" /var/www/html
+fi
+
+# --- 5. Allow .htaccess overrides in the docroot (needed for HAXcms rewrites,
+# matches scripts/haxcms.conf used by the ubuntu install scripts) ------------
+echo ">> Allowing .htaccess overrides for the HAXcms docroot"
+$SUDO cp scripts/haxcms.conf /etc/apache2/conf-available/haxcms.conf
+$SUDO a2enconf haxcms
+
+# --- 6. Seed the site (config, _sites/_config/_published/_archived) and an ---
+# admin/admin superuser so the site is usable immediately, without requiring
+# the in-browser install.php flow. Safe to re-run; only acts if _config is
+# missing the HAXcms marker file.
+if [ ! -f "_config/.isHAXcmsConfig" ]; then
+  echo ">> Seeding HAXcms site (admin/admin)"
+  bash scripts/haxtheweb.sh admin admin
+else
+  echo ">> HAXcms site already configured - skipping seed"
+fi
+
+# --- 7. Next steps -----------------------------------------------------------
+# (Apache itself is started by .devcontainer/start.sh via postStartCommand,
+# which runs immediately after this script and on every subsequent resume.)
 echo ""
 echo "==========================================="
 echo " haxcms-php devcontainer setup complete"
 echo "==========================================="
 echo ""
 echo "Next steps:"
-echo "  - Apache is available on port 80"
-echo "    (document root is /var/www/html by default; point it at the"
-echo "     workspace folder, or use the dev server, to serve this code)"
+echo "  - Site is served on port 80 (forwarded automatically by Codespaces)"
+echo "  - Login with admin / admin (change this after first login!)"
 echo "  - Build JS assets:  npx gulp   (see gulpfile.cjs)"
 echo "  - Dev server:       npm run dev"
 echo "  - E2E tests:        npm run test:e2e"
