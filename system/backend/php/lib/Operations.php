@@ -1470,6 +1470,130 @@ class Operations {
       'height' => $outputHeight,
     );
   }
+  private function scaleImageInPlaceFile($sourcePath, $targetWidth, $targetHeight, $jpgQuality = null) {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image scaling support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be scaled',
+      );
+    }
+    $sourceWidth = imagesx($sourceImage);
+    $sourceHeight = imagesy($sourceImage);
+    if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to determine source image size',
+      );
+    }
+    $extension = $this->getImageExtensionForRotation($sourcePath);
+    if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Image format does not support in-place scaling',
+      );
+    }
+    $targetWidth = max((int) $targetWidth, 1);
+    $targetHeight = max((int) $targetHeight, 1);
+    $ratio = min(
+      $targetWidth / $sourceWidth,
+      $targetHeight / $sourceHeight,
+      1
+    );
+    $outputWidth = max((int) floor($sourceWidth * $ratio), 1);
+    $outputHeight = max((int) floor($sourceHeight * $ratio), 1);
+    $targetImage = imagecreatetruecolor($outputWidth, $outputHeight);
+    if (!$targetImage) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to prepare image scaling',
+      );
+    }
+    if ($extension == 'jpg') {
+      $background = imagecolorallocate($targetImage, 255, 255, 255);
+      imagefill($targetImage, 0, 0, $background);
+    }
+    else {
+      imagealphablending($targetImage, false);
+      $transparent = imagecolorallocatealpha($targetImage, 0, 0, 0, 127);
+      imagefill($targetImage, 0, 0, $transparent);
+      imagesavealpha($targetImage, true);
+    }
+    imagecopyresampled(
+      $targetImage,
+      $sourceImage,
+      0,
+      0,
+      0,
+      0,
+      $outputWidth,
+      $outputHeight,
+      $sourceWidth,
+      $sourceHeight
+    );
+    $temporaryPath = $sourcePath . '.scale-' . uniqid('', true);
+    $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
+    if ($extension == 'jpg') {
+      $saved = @imagejpeg($targetImage, $temporaryPath, $resolvedQuality);
+    }
+    else if ($extension == 'png') {
+      $saved = @imagepng($targetImage, $temporaryPath, 6);
+    }
+    else if ($extension == 'gif') {
+      $saved = @imagegif($targetImage, $temporaryPath);
+    }
+    else if ($extension == 'webp') {
+      $saved = @imagewebp($targetImage, $temporaryPath, $resolvedQuality);
+    }
+    else {
+      $saved = false;
+    }
+    imagedestroy($sourceImage);
+    imagedestroy($targetImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save scaled image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace original image after scaling',
+        );
+      }
+    }
+    @touch($sourcePath);
+    return array(
+      'success' => true,
+      'width' => $outputWidth,
+      'height' => $outputHeight,
+    );
+  }
   private function getImageExtensionForRotation($sourcePath) {
     $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
     if ($extension == 'jpeg') {
