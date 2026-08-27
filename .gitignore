@@ -19,3 +19,9 @@ security_best_practices_report*
 # E2E test runtime artifacts (committed *.png baselines are kept)
 test/e2e/__screenshots__/*.current.png
 test/e2e/__screenshots__/*.diff.png
+# boilerplate private files that get set in testing at times. keep but blank
+system/boilerplate/systemsetup/.pk
+system/boilerplate/systemsetup/.rpk
+system/boilerplate/systemsetup/.user
+system/boilerplate/systemsetup/SALT.txt
+package-lock.json

@@ -317,23 +317,8 @@ trait OperationsRouteFileOperation {
     $presetResult = $this->getScalePresetByKey(
       isset($this->params['size']) ? $this->params['size'] : ''
     );
-    $outputResult = $this->buildImageOpsOutputPath(
-      $pathResult['filesRoot'],
-      $pathResult['normalizedPath'],
-      $presetResult['preset']['width'],
-      $presetResult['preset']['height']
-    );
-    if (!$outputResult['valid']) {
-      return array(
-        '__failed' => array(
-          'status' => $outputResult['status'],
-          'message' => $outputResult['message'],
-        )
-      );
-    }
-    $scaleResult = $this->scaleImageToPresetFile(
+    $scaleResult = $this->scaleImageInPlaceFile(
       $pathResult['resolvedPath'],
-      $outputResult['outputPath'],
       $presetResult['preset']['width'],
       $presetResult['preset']['height'],
       $jpegQuality
@@ -348,28 +333,20 @@ trait OperationsRouteFileOperation {
     }
     $fileRecord = $this->buildSiteFileRecord(
       $site,
-      $outputResult['outputPath'],
-      $outputResult['relativePath']
+      $pathResult['resolvedPath'],
+      $pathResult['normalizedPath']
     );
     $site->gitCommit(
       'File scaled (' .
       $presetResult['key'] .
       '): ' .
-      $pathResult['normalizedPath'] .
-      ' -> ' .
-      $outputResult['relativePath']
+      $pathResult['normalizedPath']
     );
     return array(
       'status' => 200,
       'data' => array(
         'operation' => $operation,
-        'source' => $pathResult['normalizedPath'],
-        'size' => $presetResult['key'],
-        'dimensions' => array(
-          'width' => $presetResult['preset']['width'],
-          'height' => $presetResult['preset']['height'],
-        ),
-        'presets' => $presetResult['presets'],
+        'path' => $pathResult['normalizedPath'],
         'file' => $fileRecord,
       )
     );

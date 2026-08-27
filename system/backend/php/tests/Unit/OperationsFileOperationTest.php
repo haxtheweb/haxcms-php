@@ -439,12 +439,22 @@ class OperationsFileOperationTest extends TestCase
         $result = $this->ops->fileOperation();
         $this->assertSame(200, $result['status']);
         $this->assertSame('scale', $result['data']['operation']);
-        $this->assertSame('sm', $result['data']['size']);
-        $this->assertSame(320, $result['data']['dimensions']['width']);
-        $this->assertSame(240, $result['data']['dimensions']['height']);
+        // In-place resize: path stays the same, no files/imgops/ derivative
+        $this->assertSame('files/test.png', $result['data']['path']);
+        $this->assertSame('files/test.png', $result['data']['file']['path']);
 
-        $outputPath = $this->siteRoot . '/' . $result['data']['file']['path'];
-        $this->assertTrue(file_exists($outputPath), 'Scaled image file created');
+        // Original file still exists and is a valid image after in-place resize
+        $originalPath = $this->siteRoot . '/files/test.png';
+        $this->assertTrue(file_exists($originalPath), 'Original image still exists');
+        $info = @getimagesize($originalPath);
+        $this->assertNotFalse($info, 'Resized image is still a valid image');
+
+        // No files/imgops directory or derivative was created
+        $imgopsDir = $this->siteRoot . '/files/imgops';
+        $this->assertFalse(
+            is_dir($imgopsDir),
+            'No files/imgops derivative directory should be created'
+        );
 
         $site = $this->haxcms->loadedSite;
         $this->assertStringContainsString('File scaled', $site->gitCommits[0]);
@@ -512,7 +522,12 @@ class OperationsFileOperationTest extends TestCase
         );
         $result = $this->ops->fileOperation();
         $this->assertSame(200, $result['status']);
-        $this->assertSame('md', $result['data']['size']);
+        $this->assertSame('scale', $result['data']['operation']);
+        $this->assertSame('files/test.png', $result['data']['path']);
+
+        // md default verified via commit message (data.size no longer returned)
+        $site = $this->haxcms->loadedSite;
+        $this->assertStringContainsString('File scaled (md)', $site->gitCommits[0]);
     }
 }
 

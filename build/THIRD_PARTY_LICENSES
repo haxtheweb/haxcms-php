@@ -1005,6 +1005,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #3
 
+@haxtheweb/simple-pager
+  build path:  es6/node_modules/@haxtheweb/simple-pager
+  license:     Apache-2.0
+  attribution: see license text #7
+
 @haxtheweb/simple-picker
   build path:  es6/node_modules/@haxtheweb/simple-picker
   license:     Apache-2.0
@@ -2372,7 +2377,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 5 packages)
+#7 - Apache-2.0 (shared by 6 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
