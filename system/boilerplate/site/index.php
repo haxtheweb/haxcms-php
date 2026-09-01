@@ -27,6 +27,9 @@ else {
   <?php print $HAXSiteConfig->getSiteMetadata($HAXSiteConfig->page); ?>
   <?php print $HAXSiteConfig->getServiceWorkerScript(null, FALSE, $HAXSiteConfig->getServiceWorkerStatus()); ?>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
       margin: 0;
       padding: 0;
@@ -36,6 +39,14 @@ else {
       display: block;
       min-height: 100svh;
     }
+    .haxcms-theme-element:not(:defined) {
+      display: block;
+      min-height: 100svh;
+      padding: 48px 32px;
+      font-size: 20px;
+      background-color: light-dark(#dadada, #222222);
+      color: light-dark(#222222, #dadada);
+    }
 
   </style>
   <style id="loadingstyles">
@@ -43,45 +54,56 @@ else {
       display: block;
     }
     #loading {
-      background-color: #ffffff;
+      color-scheme: light dark;
+      background-color: light-dark(#dadada, #15202b);
+      color: light-dark(#15202b, #dadada);
       inset: 0;
       opacity: 1;
       position: fixed;
       z-index: 99999999;
+    }
+    #loading .loading-circle {
+      width: 20vw;
+      height: 20vw;
+      background-color: <?php print $HAXSiteConfig->color;?>;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 24px auto;
     }
     #loading.loaded {
       animation: fade-out .1s ease-in-out;
       animation-fill-mode: forwards;
     }
     #loading div.messaging {
-      color: rgba(0,0,0, 0.2);
       left: 0px;
       position: absolute;
       right: 0px;
       text-align: center;
-      top: 25vh;
+      top: 10vh;
     }
     #loading div.messaging h1 {
-      font-family: Helvetica, "Trebuchet MS", Verdana, sans-serif !important;
-      line-height: 2;
-      font-size: 18px !important;
-      margin: 0;
+      font-family: Helvetica, Verdana, sans-serif !important;
+      font-size: 4vw !important;
+      margin: 24px auto 0;
       padding: 0;
     }
 
     .progress-line,
     .progress-line:before {
-      height: 8px;
+      border-radius: 8px;
+      height: 20px;
       width: 100%;
       margin: auto;
     }
     .progress-line {
-      background-color: rgba(0,0,0, 0.1);
+      background-color: #ab2101;
+      border-radius: 8px;
       display: -webkit-flex;
       display: flex;
-      width: 50vw;
+      width: 40vw;
     }
     .progress-line:before {
+      border-radius: 8px;
       background-color: <?php print $HAXSiteConfig->color;?>;
       content: '';
       animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -111,12 +133,12 @@ else {
         opacity: 0;
       }
     }
-    @media (prefers-color-scheme: dark) {
-      #loading {
-        background-color: #333333;
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
       }
-      #loading div.messaging {
-        color: rgba(255,255,255, 0.2);
+      100% {
+        transform: rotate(360deg);
       }
     }
   </style>
@@ -164,6 +186,7 @@ else {
 <body <?php print $HAXSiteConfig->getSitePageAttributes();?>>
   <section role="alert" id="loading" aria-busy="true">
     <div class="messaging">
+      <div class="loading-circle"></div>
       <div class="progress-line"></div>
       <h1>Loading <?php print $HAXSiteConfig->name; ?>..</h1>
     </div>

@@ -59,13 +59,22 @@
     }
 
     #loading {
-      background-color: white;
+      color-scheme: light dark;
+      background-color: light-dark(white, #222222);
       inset: 0;
       opacity: 1;
       position: fixed;
       transition: all linear 300ms;
       -webkit-transition: all linear 300ms;
       z-index: 99999999;
+    }
+    #loading .loading-circle {
+      width: 20vw;
+      height: 20vw;
+      background-color: orange;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
     }
 
     #loading.loaded {
@@ -144,6 +153,14 @@
         opacity: 0;
       }
     }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
     </style>
     <script id="loadingscript">
     (function () {
@@ -190,6 +207,7 @@
   <div id="loading">
     <div class="messaging">
       <img src="{{ logo256x256 }}" alt="" loading="lazy" height="300px" width="300px" />
+      <div class="loading-circle"></div>
       <div class="progress-line"></div>
       <h1>Loading {{ title }}</h1>
     </div>

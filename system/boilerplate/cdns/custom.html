@@ -36,6 +36,9 @@
   <!-- End Single Page Apps for GitHub Pages -->
   {{ serviceWorkerScript|raw }}
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
       margin: 0;
       min-height: 100vh;
@@ -70,7 +73,7 @@
       padding: 0;
       position: relative;
       font-family: "Courier New", Courier, monospace;
-      color: black;
+      color: light-dark(black, white);
     }
   </style>
 </head>

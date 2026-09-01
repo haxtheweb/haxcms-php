@@ -67,6 +67,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
     <meta property="og:image" content="assets/icon-144x144.png" />
     <style>
       body {
+        color-scheme: light;
         margin: 0;
         padding: 0;
         font-family: var(--ddd-font-primary, sans-serif);
@@ -83,6 +84,7 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         --simple-tooltip-font-size: 14px;
       }
       body.dark-mode {
+        color-scheme: dark;
         background-color: black;
         --app-hax-accent-color: white;
         --app-hax-background-color: black;
@@ -98,46 +100,93 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         min-height: 100vh;
       }
       #loading {
-        position: fixed;
+        color-scheme: light dark;
+        background-color: light-dark(#dadada, #15202b);
+        color: light-dark(#15202b, #dadada);
         inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        opacity: 1;
+        position: fixed;
+        z-index: 99999999;
+      }
+      #loading .loading-circle {
+        width: 20vw;
+        height: 20vw;
+        background-color: #06b9a5;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 24px auto;
+      }
+      #loading.loaded {
+        animation: fade-out .1s ease-in-out;
+        animation-fill-mode: forwards;
+      }
+      #loading div.messaging {
+        left: 0px;
+        position: absolute;
+        right: 0px;
         text-align: center;
-        background-color: var(--app-hax-background-color, white);
-        z-index: 1000;
+        top: 10vh;
+      }
+      #loading div.messaging h1 {
+        font-family: Helvetica, Verdana, sans-serif !important;
+        font-size: 4vw !important;
+        margin: 24px auto 0;
+        padding: 0;
       }
 
-      #loading .title {
-        -webkit-text-stroke: 1px
-          var(--app-hax-accent-color, var(--accent-color));
-        -webkit-text-fill-color: var(
-          --app-hax-background-color,
-          var(--background-color)
-        );
-        font-weight: normal;
-        font-size: 4vw;
-        display: inline-flex;
-        align-items: center;
+      .progress-line,
+      .progress-line:before {
+        border-radius: 8px;
+        height: 20px;
+        width: 100%;
+        margin: auto;
       }
-
-      #loading .subtitle {
-        color: var(--app-hax-accent-color, var(--accent-color));
-        font-weight: normal;
-        margin-top: 2.5px;
-        font-size: 2vw;
+      .progress-line {
+        background-color: #ab2101;
+        border-radius: 8px;
+        display: -webkit-flex;
+        display: flex;
+        width: 40vw;
+        margin: 0 auto;
       }
-
-      #loading .bracket {
-        font-size: 10vw;
-        font-weight: normal;
-        vertical-align: middle;
-        -webkit-text-stroke: 0px;
-        -webkit-text-fill-color: var(
-          --app-hax-accent-color,
-          var(--accent-color)
-        );
+      .progress-line:before {
+        border-radius: 8px;
+        background-color: #930d0d;
+        content: '';
+        animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes running-progress {
+        0% {
+          margin-left: 0px;
+          margin-right: 100%;
+        }
+        50% {
+          margin-left: 25%;
+          margin-right: 0%;
+        }
+        100% {
+          margin-left: 100%;
+          margin-right: 0;
+        }
+      }
+      @keyframes fade-out {
+        0% {
+          opacity: 1;
+        }
+        99% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
 
       @media (min-width: 721px) {
@@ -173,12 +222,13 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
   </head>
   <body>
     
-    <div id="loading">
-      <div class="title">
-        <span class="bracket">&#60;</span>Loading..<span class="bracket">&#62;</span>
+    <section role="alert" id="loading" aria-busy="true">
+      <div class="messaging">
+        <div class="loading-circle"></div>
+        <div class="progress-line"></div>
+        <h1>Loading HAX..</h1>
       </div>
-      <div class="subtitle">HAX is loading</div>
-    </div>
+    </section>
     <script>window.appSettings = <?php print json_encode(
         $appSettings
     ); ?>;
@@ -214,9 +264,18 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       loadingResolved = true;
       applyRuntimeOverrides();
       var loadingEl = document.querySelector("#loading");
-      if (loadingEl) {
-        loadingEl.remove();
+      if (!loadingEl) {
+        return;
       }
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          loadingEl.classList.add('loaded');
+          loadingEl.setAttribute('aria-busy', 'false');
+          setTimeout(function () {
+            loadingEl.remove();
+          }, 120);
+        });
+      });
     }
     window.addEventListener('app-hax-loaded', function() {
       resolveDashboardLoading();

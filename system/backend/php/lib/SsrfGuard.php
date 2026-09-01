@@ -42,7 +42,11 @@ class SsrfGuard
         $packed = @inet_pton($ip);
         if ($packed !== false && strlen($packed) === 16) {
             $lower = strtolower($ip);
-            if ($ip === '::1' || $ip === '::' || $ip === '0:0:0:0:0:0:0:1') {
+            // IPv6 loopback (::1) and unspecified (::) — matched on the packed
+            // bytes so every equivalent textual spelling (::1, ::0001,
+            // 0:0:0:0:0:0:0:1, etc.) is caught, not just the canonical forms.
+            $zero16 = str_repeat("\x00", 16);
+            if ($packed === $zero16 || $packed === substr($zero16, 0, 15) . "\x01") {
                 return true;
             }
             // IPv6 unique local (fc00::/7 -> starts fc or fd)
@@ -53,20 +57,36 @@ class SsrfGuard
             if (strpos($lower, 'fe80') === 0) {
                 return true;
             }
-            // IPv4-mapped IPv6 (::ffff:a.b.c.d) — unpack and re-check the v4
-            if (strpos($lower, '::ffff:') === 0) {
-                $v4 = substr($ip, 7);
-                return self::isPrivateOrReservedIPv4($v4);
-            }
-            // IPv4-compatible IPv6 (::a.b.c.d, deprecated ::/96) — same
-            // normalization as ::ffff: above. dns_get_record can return
-            // ::127.0.0.1 for a ::7f00:1 AAAA record; without this branch it
-            // falls through to "IPv6 → public" and bypasses the check. The
-            // dotted-quad guard avoids touching legit public v6 like
-            // 2001:db8::1.2.3.4. MUST run after the ::ffff: branch.
-            if (strpos($lower, '::') === 0 && strpos($ip, '.') !== false) {
-                $v4 = substr($ip, 2);
-                return self::isPrivateOrReservedIPv4($v4);
+            // IPv4-mapped IPv6 (::ffff:0:0/96) and IPv4-compatible IPv6
+            // (::/96): normalize by decoding the trailing 4 bytes of the
+            // packed address via inet_ntop and re-checking with
+            // isPrivateOrReservedIPv4.
+            //
+            // Security (HAX-SEC-007 / SSRF hex-form bypass): the previous
+            // text-based match only recognized the dotted-quad spelling
+            // (::ffff:127.0.0.1) and passed substr($ip, 7) — yielding
+            // "7f00:1" for the hex spelling — which matched no private IPv4
+            // prefix, so ::ffff:7f00:1 (loopback 127.0.0.1),
+            // ::ffff:a9fe:a9fe (metadata 169.254.169.254), and
+            // ::ffff:c0a8:0001 (192.168.0.1) were all misclassified as
+            // public and reached loopback/internal/metadata targets. inet_pton
+            // canonicalizes every equivalent spelling to the same 16 bytes, so
+            // decoding the trailing 4 bytes recovers the canonical dotted-quad
+            // for both hex and dotted input. The prefix check (first 10 bytes
+            // zero + bytes 10-11 = 0xffff for mapped; first 12 bytes zero for
+            // compat) avoids touching legitimate public v6 like
+            // 2001:db8::1.2.3.4, whose trailing 4 bytes happen to look like an
+            // IPv4 address but whose prefix is not the mapped/compat prefix.
+            $prefix10 = substr($packed, 0, 10);
+            $octets10to11 = substr($packed, 10, 2);
+            $isMapped = ($prefix10 === str_repeat("\x00", 10) && $octets10to11 === "\xff\xff");
+            $isCompat = ($prefix10 === str_repeat("\x00", 10) && $octets10to11 === "\x00\x00");
+            if ($isMapped || $isCompat) {
+                $v4 = @inet_ntop(substr($packed, 12, 4));
+                if ($v4 !== false) {
+                    return self::isPrivateOrReservedIPv4($v4);
+                }
+                return true; // fail-closed if inet_ntop somehow fails
             }
             return false;
         }
@@ -100,6 +120,17 @@ class SsrfGuard
             if (isset($parts[1])) {
                 $second = (int) $parts[1];
                 if ($second >= 16 && $second <= 31) {
+                    return true;
+                }
+            }
+        }
+        // carrier-grade NAT (100.64.0.0/10, RFC 6598) — reachable in some
+        // cloud/LAN topologies; parity with haxcms-nodejs isPrivateOrReservedIPv4.
+        if (strpos($ip, '100.') === 0) {
+            $parts = explode('.', $ip);
+            if (isset($parts[1])) {
+                $second = (int) $parts[1];
+                if ($second >= 64 && $second <= 127) {
                     return true;
                 }
             }
