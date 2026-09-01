@@ -434,7 +434,6 @@ if ($failed) { ?>
 <?php } ?>
 </div>
     </div>
-    <noscript>Enable JavaScript to experience HAXcms.</noscript>
     <script type="module">
       import "./build/es6/dist/build-install.js";
     </script>

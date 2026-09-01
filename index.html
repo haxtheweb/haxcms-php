@@ -226,15 +226,21 @@
           document.documentElement.appendChild(script);
         }
       });
-      // reduce FOUC for dark mode so it starts in dark rapidly if selected
-    if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
-      if (window.localStorage.getItem('app-hax-darkMode') == 'true') {
-        document.body.classList.add('dark-mode');
-      }
-      else {
-        document.body.classList.remove('dark-mode');
-      }
-    }
+    // reduce FOUC for dark mode so it starts in dark rapidly if selected
+    (function () {
+      try {
+        var ls = globalThis.localStorage;
+        var stored = ls ? ls.getItem('app-hax-darkMode') : null;
+        var dark = stored !== null
+          ? stored === 'true'
+          : !!(globalThis.matchMedia && globalThis.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
+      } catch (e) {}
+    })();
     // remove loading text
     var loadingResolved = false;
     function resolveDashboardLoading() {
@@ -282,9 +288,7 @@
       }
     }, 4000);
     </script>
-    <div id="visuallist"></div>
     <app-hax base-path="/"></app-hax>
-    <noscript>Enable JavaScript to use HAX</noscript>
     <script>window.__appCDN ="./";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script type="module">
       import './build/es6/node_modules/@haxtheweb/app-hax/app-hax.js'

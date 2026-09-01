@@ -233,14 +233,20 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
         $appSettings
     ); ?>;
     // reduce FOUC for dark mode so it starts in dark rapidly if selected
-    if (window.localStorage && window.localStorage.getItem('app-hax-darkMode')) {
-      if (window.localStorage.getItem('app-hax-darkMode') == 'true') {
-        document.body.classList.add('dark-mode');
-      }
-      else {
-        document.body.classList.remove('dark-mode');
-      }
-    }
+    (function () {
+      try {
+        var ls = globalThis.localStorage;
+        var stored = ls ? ls.getItem('app-hax-darkMode') : null;
+        var dark = stored !== null
+          ? stored === 'true'
+          : !!(globalThis.matchMedia && globalThis.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
+      } catch (e) {}
+    })();
     // remove loading text
     function applyRuntimeOverrides() {
       if (window.__haxRuntimeOverridesApplied) {
@@ -303,11 +309,9 @@ $appSettings = $HAXCMS->appJWTConnectionSettings('');
       }
     }, 4000);
     </script>
-    <div id="visuallist"></div>
     <app-hax token="<?php print $HAXCMS->getRequestToken(); ?>" base-path="<?php print $HAXCMS->basePath; ?>" <?php print $HAXCMS->siteListing->attr; ?>>
       <?php print $HAXCMS->siteListing->slot; ?>
     </app-hax>
-    <noscript>Enable JavaScript to use HAXcms.</noscript>
     <script>window.__appCDN="<?php print $HAXCMS->getCDNForDynamic();?>";window.HAXCMSContext="php";window.__appForceUpgrade=true;</script>
     <script type="module">
       import "<?php print $HAXCMS->getCDNForDynamic();?>build/es6/node_modules/@haxtheweb/app-hax/app-hax.js";

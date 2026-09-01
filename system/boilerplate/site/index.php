@@ -212,6 +212,21 @@ else {
         include_once '../../_config/.local.microservice.config.php';
       }
     ?>
+    // reduce FOUC for dark mode so it starts in dark rapidly if selected
+    (function () {
+      try {
+        var ls = globalThis.localStorage;
+        var stored = ls ? ls.getItem('app-hax-darkMode') : null;
+        var dark = stored !== null
+          ? stored === 'true'
+          : !!(globalThis.matchMedia && globalThis.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
+      } catch (e) {}
+    })();
     globalThis.HAXCMSContext="php";globalThis.__appCDN="<?php print $HAXSiteConfig->getCDNForDynamic();?>";
   </script>
   <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build-haxcms.js"></script>
