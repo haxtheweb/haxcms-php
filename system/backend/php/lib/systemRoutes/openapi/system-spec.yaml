@@ -2486,80 +2486,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
-  /system/api/v1/site/import/recipe:
-    post:
-      tags:
-        - actions
-      operationId: recipeToSite
-      summary: Import a recipe as a new site
-      security:
-        - bearerAuth: []
-          userTokenHeader: []
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                repoUrl:
-                  type: string
-                  description: URL to fetch for remote platform import
-                recipe:
-                  type: object
-                  description: Inline recipe object (alternative to repoUrl or file upload)
-                method:
-                  type: string
-                  description: Import method (site, branch, or page)
-                type:
-                  type: string
-                  description: Fallback content type (course, portfolio, or empty)
-                parentId:
-                  type: string
-                  description: Optional parent ID for imported items
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Uploaded recipe file for import
-                repoUrl:
-                  type: string
-                  description: URL to fetch for remote platform import
-                method:
-                  type: string
-                  description: Import method (site, branch, or page)
-                type:
-                  type: string
-                  description: Fallback content type (course, portfolio, or empty)
-                parentId:
-                  type: string
-                  description: Optional parent ID for imported items
-      responses:
-        "200":
-          description: Imported site schema items
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                  data:
-                    $ref: "#/components/schemas/ImportData"
-                additionalProperties: true
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "422":
-          description: Unprocessable entity
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/site/import/{platform}:
     post:
       tags:
@@ -2575,7 +2501,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal-book, plone, recipe)
+          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal-book, plone)
       requestBody:
         required: false
         content:

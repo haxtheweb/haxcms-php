@@ -240,7 +240,7 @@ function runSystemRoutesMapTests()
 
     // Verify platform converter files exist
     $baseDir = dirname(dirname(__FILE__));
-    $platforms = array('haxcms', 'html', 'pressbooks', 'gitbook', 'notion', 'wordpress', 'elmsln', 'drupal-book', 'plone', 'recipe');
+    $platforms = array('haxcms', 'html', 'pressbooks', 'gitbook', 'notion', 'wordpress', 'elmsln', 'drupal-book', 'plone');
     $platformMap = array(
         'haxcms'     => 'convertHaxcmsToSite.php',
         'html'       => 'convertHtmlToSite.php',
@@ -251,7 +251,6 @@ function runSystemRoutesMapTests()
         'elmsln'     => 'convertElmslnToSite.php',
         'drupal-book' => 'convertDrupalBookToSite.php',
         'plone'      => 'convertPloneToSite.php',
-        'recipe'     => 'convertRecipeToSite.php',
     );
     foreach ($platformMap as $platform => $file) {
         $path = $baseDir . '/lib/systemRoutes/v1/imports/' . $file;
