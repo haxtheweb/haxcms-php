@@ -71,8 +71,7 @@
         "video-player",
         "wikipedia-query"
       ]
-    },
-    "license": "by-sa"
+    }
   },
   "build": {
     "type": "skeleton",
@@ -228,78 +227,6 @@
     }
   },
   "_skeleton": {
-    "originalMetadata": {
-      "site": {
-        "category": [],
-        "tags": [],
-        "settings": {
-          "lang": "en-US",
-          "publishPagesOn": true,
-          "canonical": true,
-          "private": false,
-          "pathauto": true,
-          "sw": true,
-          "forceUpgrade": false
-        }
-      },
-      "licensing": {},
-      "node": {
-        "fields": {}
-      },
-      "platform": {
-        "audience": "novice",
-        "features": {
-          "deletePage": false,
-          "outlineDesigner": false,
-          "styleGuide": false,
-          "insights": false,
-          "themeManifest": false,
-          "seoManifest": false,
-          "popularGizmos": false,
-          "contentMap": false,
-          "viewSource": false,
-          "onlineMedia": false,
-          "community": false
-        },
-        "allowedBlocks": [
-          "a11y-collapse",
-          "a11y-gif-player",
-          "ai-usage-license",
-          "audio-player",
-          "bibliography-builder",
-          "bibliography-item",
-          "career-org-item",
-          "career-role-item",
-          "career-timeline",
-          "citation-element",
-          "code-sample",
-          "collection-item",
-          "collection-list",
-          "editable-table",
-          "grid-plate",
-          "h3",
-          "hr",
-          "iframe-loader",
-          "image-compare-slider",
-          "license-element",
-          "media-image",
-          "play-list",
-          "pre",
-          "simple-cta",
-          "video-player",
-          "wikipedia-query"
-        ]
-      }
-    },
-    "originalSettings": {
-      "lang": "en-US",
-      "publishPagesOn": true,
-      "canonical": true,
-      "private": false,
-      "pathauto": true,
-      "sw": true,
-      "forceUpgrade": false
-    },
     "fullThemeConfig": {
       "element": "clean-portfolio-theme",
       "variables": {
@@ -310,28 +237,6 @@
         "palette": "3",
         "icon": "icons:record-voice-over",
         "hexCode": "#3f51b5"
-      },
-      "settings": {
-        "element": "clean-portfolio-theme",
-        "path": "@haxtheweb/clean-portfolio-theme/clean-portfolio-theme.js",
-        "name": "Clean Portfolio",
-        "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-portfolio-theme-thumb.jpg",
-        "description": "Start with a blank site using the Clean Portfolio",
-        "category": [
-          "Website"
-        ],
-        "hidden": false,
-        "priority": -10,
-        "terrible": false,
-        "regions": {
-          "header": [],
-          "sidebarFirst": [],
-          "sidebarSecond": [],
-          "contentTop": [],
-          "contentBottom": [],
-          "footerPrimary": [],
-          "footerSecondary": []
-        }
       }
     }
   }

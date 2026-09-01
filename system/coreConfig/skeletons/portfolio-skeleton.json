@@ -132,60 +132,11 @@
     "terrible": false
   },
   "_skeleton": {
-    "originalMetadata": {
-      "site": {
-        "category": [],
-        "tags": [],
-        "settings": {
-          "lang": "en-US",
-          "publishPagesOn": true,
-          "canonical": true
-        }
-      },
-      "licensing": {},
-      "node": {
-        "fields": {}
-      },
-      "platform": {
-        "audience": "novice",
-        "features": {
-          "addPage": false,
-          "deletePage": false,
-          "outlineDesigner": false,
-          "styleGuide": false,
-          "insights": false,
-          "manifest": false,
-          "pageBreak": false,
-          "addBlock": false,
-          "contentMap": false,
-          "viewSource": false,
-          "onlineSearch": false
-        },
-        "allowedBlocks": []
-      }
-    },
-    "originalSettings": {
-      "lang": "en-US",
-      "publishPagesOn": true,
-      "canonical": true
-    },
     "fullThemeConfig": {
       "element": "glossy-portfolio-theme",
       "variables": {
         "hexCode": "#3f51b5",
         "cssVariable": "--simple-colors-default-theme-light-blue-7"
-      },
-      "settings": {
-        "path": "@haxtheweb/glossy-portfolio-theme/glossy-portfolio-theme.js",
-        "name": "Glossy Portfolio",
-        "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
-        "description": "Start with a blank site using the Glossy Portfolio",
-        "category": [
-          "Website"
-        ],
-        "hidden": false,
-        "priority": 0,
-        "terrible": false
       }
     }
   }

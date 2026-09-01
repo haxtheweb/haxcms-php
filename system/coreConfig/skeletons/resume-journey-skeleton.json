@@ -16,7 +16,18 @@
     "site": {
       "name": "resume-journey",
       "description": "Template based on (401) 555-1212 Jsmith23@gmail.com",
-      "theme": "journey-theme"
+      "theme": "journey-theme",
+      "settings": {
+        "lang": "en-US",
+        "publishPagesOn": true,
+        "canonical": true,
+        "private": false,
+        "pathauto": false,
+        "sw": false,
+        "forceUpgrade": false,
+        "gaID": null
+      },
+      "platform": {}
     },
     "build": {
       "type": "skeleton",
@@ -110,36 +121,6 @@
       "regions": {}
     },
     "_skeleton": {
-      "originalMetadata": {
-        "site": {
-          "category": [],
-          "tags": [],
-          "settings": {
-            "lang": "en-US",
-            "publishPagesOn": true,
-            "canonical": true,
-            "private": false,
-            "pathauto": false,
-            "sw": false,
-            "forceUpgrade": false,
-            "gaID": null
-          }
-        },
-        "licensing": {},
-        "node": {
-          "fields": {}
-        },
-        "platform": {}
-      },
-      "originalSettings": {
-        "lang": "en-US",
-        "publishPagesOn": true,
-        "canonical": true,
-        "private": false,
-        "pathauto": false,
-        "sw": false,
-        "forceUpgrade": false
-      },
       "fullThemeConfig": {
         "element": "journey-theme",
         "variables": {
@@ -149,18 +130,6 @@
           "hexCode": "#3f51b5",
           "cssVariable": "--simple-colors-default-theme-light-blue-7",
           "icon": "av:snooze"
-        },
-        "settings": {
-          "path": "@haxtheweb/journey-theme/journey-theme.js",
-          "name": "Journey Theme",
-          "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
-          "description": "Start with a blank site using the Journey Theme",
-          "category": [
-            "Website"
-          ],
-          "hidden": false,
-          "terrible": false,
-          "regions": {}
         }
       }
     }

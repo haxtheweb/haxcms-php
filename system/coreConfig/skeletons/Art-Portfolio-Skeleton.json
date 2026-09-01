@@ -16,7 +16,18 @@
     "site": {
       "name": "art-portfolio-skeleton-3",
       "description": "Template based on skeleton from-skeleton",
-      "theme": "clean-portfolio-theme"
+      "theme": "clean-portfolio-theme",
+      "settings": {
+        "lang": "en-US",
+        "publishPagesOn": true,
+        "canonical": true,
+        "private": false,
+        "pathauto": false,
+        "sw": false,
+        "forceUpgrade": false,
+        "gaID": ""
+      },
+      "platform": {}
     },
     "build": {
       "type": "skeleton",
@@ -121,36 +132,6 @@
       "regions": {}
     },
     "_skeleton": {
-      "originalMetadata": {
-        "site": {
-          "category": [],
-          "tags": [],
-          "settings": {
-            "lang": "en-US",
-            "publishPagesOn": true,
-            "canonical": true,
-            "private": false,
-            "pathauto": false,
-            "sw": false,
-            "forceUpgrade": false,
-            "gaID": ""
-          }
-        },
-        "licensing": {},
-        "node": {
-          "fields": {}
-        },
-        "platform": {}
-      },
-      "originalSettings": {
-        "lang": "en-US",
-        "publishPagesOn": true,
-        "canonical": true,
-        "private": false,
-        "pathauto": false,
-        "sw": false,
-        "forceUpgrade": false
-      },
       "fullThemeConfig": {
         "element": "clean-portfolio-theme",
         "variables": {
@@ -160,18 +141,6 @@
           "hexCode": "#aeff00",
           "cssVariable": "--simple-colors-default-theme-light-blue-7",
           "icon": "av:art-track"
-        },
-        "settings": {
-          "path": "@haxtheweb/clean-portfolio-theme/clean-portfolio-theme.js",
-          "name": "Clean Portfolio Theme",
-          "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-portfolio-theme-thumb.jpg",
-          "description": "Start with a blank site using the Clean Portfolio Theme",
-          "category": [
-            "Website"
-          ],
-          "hidden": false,
-          "terrible": false,
-          "regions": {}
         }
       }
     }

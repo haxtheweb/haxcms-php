@@ -744,9 +744,10 @@ class Operations {
     if (!array_key_exists('publishPagesOn', $siteSettings)) {
       $siteSettings['publishPagesOn'] = true;
     }
-    if (!array_key_exists('canonical', $siteSettings)) {
-      $siteSettings['canonical'] = true;
-    }
+    // Reset instance-specific settings to sane defaults so skeletons never
+    // carry over the source site's live values.
+    $siteSettings['canonical'] = true;
+    $siteSettings['gaID'] = '';
     $platformSettings =
       isset($manifestMetadata['platform']) && is_array($manifestMetadata['platform'])
         ? $this->cloneTemplateArray($manifestMetadata['platform'], array())
@@ -855,31 +856,12 @@ class Operations {
       ),
       'theme' => $themeData['themeSettings'],
       '_skeleton' => array(
-        'originalMetadata' => array(
-          'site' => array(
-            'category' => $category,
-            'tags' => $tags,
-            'settings' => $siteSettings,
-          ),
-          'licensing' => isset($manifestMetadata['licensing']) && is_array($manifestMetadata['licensing'])
-            ? $manifestMetadata['licensing']
-            : array(),
-          'node' => isset($manifestMetadata['node']) && is_array($manifestMetadata['node'])
-            ? $manifestMetadata['node']
-            : array(),
-          'platform' => $platformSettings,
-        ),
-        'originalSettings' => $siteSettings,
         'fullThemeConfig' => array(
           'element' => $themeData['themeElement'],
           'variables' => $themeData['themeVariables'],
-          'settings' => $themeData['themeSettings'],
         ),
       ),
     );
-    if (isset($manifest->license) && is_string($manifest->license) && trim($manifest->license) !== '') {
-      $skeleton['site']['license'] = $manifest->license;
-    }
     return $skeleton;
   }
   /**
@@ -2329,6 +2311,12 @@ class Operations {
       $themeBase = array();
       if (isset($fullThemeConfig['settings']) && is_array($fullThemeConfig['settings'])) {
         $themeBase = $fullThemeConfig['settings'];
+      }
+      elseif (isset($skeleton['theme']) && is_array($skeleton['theme'])) {
+        // Trimmed skeletons drop fullThemeConfig.settings; fall back to the
+        // top-level theme object (registry defaults) so we keep path, name,
+        // thumbnail, regions, etc.
+        $themeBase = $skeleton['theme'];
       }
       if (isset($fullThemeConfig['element']) && is_string($fullThemeConfig['element']) && $fullThemeConfig['element'] !== '') {
         $themeBase['element'] = $fullThemeConfig['element'];

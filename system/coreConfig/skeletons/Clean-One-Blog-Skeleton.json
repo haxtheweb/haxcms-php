@@ -16,7 +16,13 @@
     "site": {
       "name": "clean-one-1",
       "description": "Template based on skeleton from-skeleton",
-      "theme": "clean-one"
+      "theme": "clean-one",
+      "settings": {
+        "lang": "en-US",
+        "publishPagesOn": true,
+        "canonical": true
+      },
+      "platform": {}
     },
     "build": {
       "type": "skeleton",
@@ -149,44 +155,12 @@
       "terrible": false
     },
     "_skeleton": {
-      "originalMetadata": {
-        "site": {
-          "category": [],
-          "tags": [],
-          "settings": {
-            "lang": "en-US",
-            "publishPagesOn": true,
-            "canonical": true
-          }
-        },
-        "licensing": {},
-        "node": {
-          "fields": {}
-        },
-        "platform": {}
-      },
-      "originalSettings": {
-        "lang": "en-US",
-        "publishPagesOn": true,
-        "canonical": true
-      },
       "fullThemeConfig": {
         "element": "clean-one",
         "variables": {
           "icon": "av:not-interested",
           "hexCode": "#aeff00",
           "cssVariable": "--simple-colors-default-theme-light-blue-7"
-        },
-        "settings": {
-          "path": "@haxtheweb/clean-one/clean-one.js",
-          "name": "Clean One",
-          "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg",
-          "description": "Start with a blank site using the Clean One",
-          "category": [
-            "Course"
-          ],
-          "hidden": false,
-          "terrible": false
         }
       }
     }
