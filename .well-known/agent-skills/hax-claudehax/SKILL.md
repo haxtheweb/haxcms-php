@@ -18,7 +18,7 @@ Operate HAX sites from Claude Code using the ClaudeHAX plugin, HAX CLI, and HAX 
 
 ## When to Use
 
-- The user has the ClaudeHAX plugin installed (`/plugin install hax@claudehax`)
+- The user has the ClaudeHAX plugin installed (`/plugin install hax-site-ops@haxtheweb`)
 - Adding pages, courses, or lessons to a HAX site
 - Updating page content, videos, or media
 - Adding assessments, quizzes, flash cards, or interactive content
@@ -44,21 +44,21 @@ Inside Claude Code:
 
 1. Add the marketplace:
    ```
-   /plugin marketplace add haxtheweb/claudehax
+   /plugin marketplace add haxtheweb/praw
    ```
 2. Install the plugin:
    ```
-   /plugin install hax@claudehax
+   /plugin install hax-site-ops@haxtheweb
    ```
 3. Verify:
    ```
    /plugin list
    ```
-   Should show `hax` in the list.
+Should show `hax-site-ops` in the list.
 
 To update the plugin when a new version is released:
 ```
-/plugin update hax
+/plugin update hax-site-ops
 ```
 
 ## Common /hax Commands
@@ -166,10 +166,10 @@ Keep responses concise and practical.
 ## Troubleshooting
 
 ### Plugin installed but `/hax` does not exist
-Verify with `/plugin list`. If `hax` is missing, run `/plugin install hax@claudehax`.
+Verify with `/plugin list`. If `hax` is missing, run `/plugin install hax-site-ops@haxtheweb`.
 
 ### Marketplace installation fails
-Verify internet access and confirm `/plugin marketplace add haxtheweb/claudehax` is spelled correctly.
+Verify internet access and confirm `/plugin marketplace add haxtheweb/praw` is spelled correctly.
 
 ### `hax` command not found
 Install the HAX CLI: `npm install -g @haxtheweb/create`, then verify with `hax --help`.
@@ -178,7 +178,7 @@ Install the HAX CLI: `npm install -g @haxtheweb/create`, then verify with `hax -
 Check `node -v`. Upgrade to Node.js 22+ if needed.
 
 ### Plugin behavior seems outdated
-Update the plugin: `/plugin update hax`. If the plugin references outdated HAX commands or components, the maintainer must run `npm run refresh:docs` in the claudehax repo and push.
+Update the plugin: `/plugin update hax-site-ops`. If the plugin references outdated HAX commands or components, the maintainer must run `npm run refresh:docs` in the praw repo and push.
 
 ## OpenStax Import Workflow
 
@@ -186,7 +186,7 @@ If the user is starting from an OpenStax book, use the `hax-openstax2hax` skill 
 
 ## References
 
-- ClaudeHAX repository: `https://github.com/haxtheweb/claudehax`
+- ClaudeHAX plugin marketplace (PRAW): `https://github.com/haxtheweb/praw`
 - HAX CLI package: `https://www.npmjs.com/package/@haxtheweb/create`
 - HAX Documentation: `https://haxtheweb.org/`
 - HAX web components: `https://github.com/haxtheweb/webcomponents/tree/master/elements`
