@@ -79,7 +79,7 @@ return function ($context) {
         );
     };
     $getWcMap = function () use ($site) {
-        $wcMap = new stdClass();
+        $wcMap = null;
         if (
             isset($GLOBALS['HAXCMS']) &&
             is_object($GLOBALS['HAXCMS']) &&

@@ -1,6 +1,16 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
+include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 return function ($context) {
+    if (!isset($context->site) || !isset($context->site->manifest)) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Unable to resolve site context for /x/api/v1/items/:idOrSlug/revisions'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $context->apiBasePath
+        );
+        return;
+    }
     $body = array();
     $siteName = '';
     if (

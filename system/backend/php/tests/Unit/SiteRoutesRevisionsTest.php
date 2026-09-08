@@ -58,18 +58,23 @@ class SiteRoutesRevisionsTest extends TestCase
         return $site;
     }
 
-    // ── 400: missing params ──────────────────────────────────────────
+    // ── 404: missing site context ────────────────────────────────────
 
-    public function testNoSiteReturns400MissingBodyFields(): void
+    public function testNoSiteReturns404UnableToResolveSiteContext(): void
     {
-        // No site context → siteName defaults to '', idOrSlug defaults to
-        // '', slug resolution is skipped (no site), resolvedItemId stays ''.
-        // getNodeRevisions() sees empty site.name and node.id → 400.
+        // No site context → the early guard (matching all 14 sibling GET
+        // handlers) sends a canonical 404 before ever reaching Operations,
+        // instead of a 400 from Operations' own param validation.
         $context = makeSiteRouteContext(null, array(), 'v1/items/abc/revisions');
         $result = invokeSiteRouteHandler('revisions.php', $context);
-        $this->assertSame(400, $result['data']['status']);
-        $this->assertStringContainsString('site.name', $result['data']['message']);
+        $this->assertSame(404, $result['data']['status']);
+        $this->assertStringContainsString(
+            'Unable to resolve site context',
+            $result['data']['data']['message']
+        );
     }
+
+    // ── 400: missing params ──────────────────────────────────────────
 
     public function testSiteSetButNoIdOrSlugReturns400(): void
     {
@@ -200,12 +205,16 @@ class SiteRoutesRevisionsTest extends TestCase
 
     public function testFailedResponseHasEnvelopeFalseShape(): void
     {
-        // revisions.php always sends responses with envelope=false. For the
-        // __failed branch, the payload is {status, message} directly — NOT
-        // wrapped in {status, data: {status, message}}. This test verifies
-        // that structure: top-level keys are 'status' and 'message' only,
-        // with no nested 'data' key.
-        $context = makeSiteRouteContext(null, array(), 'v1/items/abc/revisions');
+        // revisions.php always sends responses with envelope=false for the
+        // Operations-delegated __failed branch. The payload is
+        // {status, message} directly — NOT wrapped in
+        // {status, data: {status, message}}. This test verifies that
+        // structure: top-level keys are 'status' and 'message' only, with
+        // no nested 'data' key. Site is set (so the new site-existence
+        // guard passes through) but idOrSlug is '', so Operations' own
+        // param validation produces the __failed envelope.
+        $site = new SiteRoutesFakeSite();
+        $context = makeSiteRouteContext($site, array(), 'v1/items//revisions');
         $result = invokeSiteRouteHandler('revisions.php', $context);
         $this->assertArrayHasKey('status', $result['data']);
         $this->assertArrayHasKey('message', $result['data']);

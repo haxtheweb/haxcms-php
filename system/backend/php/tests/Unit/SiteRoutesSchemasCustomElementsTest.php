@@ -169,12 +169,12 @@ class SiteRoutesSchemasCustomElementsTest extends TestCase
         $context = makeSiteRouteContext($site, array(), 'v1/custom-elements');
         $result = invokeSiteRouteHandler('customElements.php', $context);
         $data = $result['data']['data'];
-        // getWcMap() initializes $wcMap = new stdClass() before checking the
-        // HAXCMS global, so the is_object() guard on the filesystem fallback
-        // never triggers when no HAXCMS global is set -- the on-disk
-        // wc-registry.json is NOT read in that case. Characterize that.
-        $this->assertSame(0, $data['count']);
-        $this->assertSame(array(), $data['customElements']);
+        // getWcMap() initializes $wcMap = null before checking the HAXCMS
+        // global, so when no HAXCMS global is set the is_object() guard on
+        // the filesystem fallback is reachable and the on-disk
+        // wc-registry.json IS read.
+        $this->assertSame(1, $data['count']);
+        $this->assertSame('my-element', $data['customElements'][0]['tag']);
     }
 
     public function testCustomElementsListFromHaxcmsGlobalRegistry(): void
