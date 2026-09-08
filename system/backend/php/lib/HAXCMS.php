@@ -243,6 +243,14 @@ class HAXCMS
                 if (!isset($this->config->security->loginRateLimit)) {
                     $this->config->security->loginRateLimit = new stdClass();
                 }
+                // localization / system-wide defaults (default language seeded
+                // at install time and editable via the Configuration admin panel)
+                if (!isset($this->config->localization)) {
+                    $this->config->localization = new stdClass();
+                }
+                if (!isset($this->config->localization->defaultLanguage)) {
+                    $this->config->localization->defaultLanguage = 'en-US';
+                }
                 // load in core theme data
                 $themeData = json_decode(
                     file_get_contents(

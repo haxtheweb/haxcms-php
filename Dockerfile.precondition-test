@@ -1,0 +1,35 @@
+# Minimal HAXcms precondition-test image.
+#
+# Intentionally omits git, the PHP curl extension, and ships a read-only
+# webroot so that the installer wizard's Step 1 status report surfaces the
+# expected warnings/errors for each missing precondition. This is the test
+# housing requested in haxtheweb/issues#2974: a container that deliberately
+# does NOT satisfy preconditions so the installer's gating UI is exercised.
+#
+# Build:  docker build -f Dockerfile.precondition-test -t haxcms-precondition-test .
+# Run:    docker run --rm -p 8080:80 haxcms-precondition-test
+# Then visit http://localhost:8080/install.php and verify the status report
+# shows: PHP curl extension = Missing (error), Git availability = Not
+# detected (warning), and the webroot directory = Read-only (error).
+#
+# The full-featured image is Dockerfile (php:8.3-apache + git + gd + curl).
+
+FROM php:8.3-apache
+
+# Enable Apache rewrite (required for HAXcms routing) but do NOT install
+# git, libcurl4-openssl-dev, or the php curl extension — those omissions are
+# the point of this image.
+RUN a2enmod rewrite
+
+# Custom apache conf (same as the full image so routing behaves identically).
+COPY ./scripts/docker/apache2.conf /etc/apache2/apache2.conf
+
+# Copy HAXcms into the web root. We intentionally do NOT chown to www-data
+# and instead make the tree read-only so the installer's directory
+# writability checks report errors (the precondition we want to surface).
+COPY . /var/www/html
+RUN chmod -R 555 /var/www/html && \
+    chown -R root:root /var/www/html
+
+# Expose Apache.
+EXPOSE 80

@@ -13,6 +13,8 @@ trait OperationsMethods {
   use OperationsRouteSaveApiKeys;
   use OperationsRouteGetMediaSettings;
   use OperationsRouteSaveMediaSettings;
+  use OperationsRouteGetLocalizationSettings;
+  use OperationsRouteSaveLocalizationSettings;
   use OperationsRouteSaveOutline;
   use OperationsRouteCreateNode;
   use OperationsRouteSaveNode;
