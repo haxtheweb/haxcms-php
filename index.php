@@ -1,6 +1,16 @@
 <?php
-if (!is_dir('_config') || !is_dir('_sites') || !is_dir('_archived') || !is_dir('_published')) {
-    header("Location: install.php");
+// Half-configured guard: if any core directory is missing OR _config/config.php
+// does not exist, redirect to the installer instead of fatalling in HAXCMS.php.
+if (
+    !is_dir('_config') ||
+    !is_dir('_sites') ||
+    !is_dir('_archived') ||
+    !is_dir('_published') ||
+    !file_exists(__DIR__ . '/_config/config.php')
+) {
+    $installBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+    header('Location: ' . ($installBase === '' ? '' : $installBase) . '/install.php');
+    exit;
 }
 // CSP to prevent click-jacking on login page
 header("Content-Security-Policy: frame-ancestors 'none'");

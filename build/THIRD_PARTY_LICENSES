@@ -420,6 +420,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #5
 
+@haxtheweb/hax-app-installer
+  build path:  es6/node_modules/@haxtheweb/hax-app-installer
+  license:     Apache-2.0
+  attribution: see license text #7
+
 @haxtheweb/hax-body
   build path:  es6/node_modules/@haxtheweb/hax-body
   license:     Apache-2.0
@@ -2377,7 +2382,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 6 packages)
+#7 - Apache-2.0 (shared by 7 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----

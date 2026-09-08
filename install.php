@@ -1,20 +1,31 @@
 <?php
-// HAXcms installer — stepped wizard with precondition checks, secure
-// hosting-provider credential override, and default-language selection.
-// See haxtheweb/issues#2974 for the design rationale.
+// HAXcms installer — Drupal-style 4-step wizard backend.
 //
-// Flow:
-//   Step 1 (status)   — precondition / environment check report
-//   Step 2 (confirm)  — confirm admin username + select default language
-//   Step 3 (install)  — run setup, then render success screen with credentials
+// The back-end lives entirely in this file. The front-end is a web component
+// (<hax-app-installer>) loaded by the thin bootstrap HTML page rendered when
+// no ?op query param is present.
+//
+// Steps:
+//   1. Choose language      — language select (~100 languages), front-end-driven
+//   2. Verify requirements  — status checks grouped into needsConfiguration / allPassed
+//   3. Configure system     — admin username + optional password
+//   4. Start HAXing the web — credentials, community links, -> index.php
+//
+// State file: _config/tmp/.install-state.json
+//   { "step": 1|2|3|4, "language": "<code>", "username": "<chosen>" }
+//   Deleted on successful step 4.
+//
+// Endpoints:
+//   GET  install.php?op=state    — read state, re-evaluate environment, return JSON
+//   POST install.php?op=advance  — validate + persist state, run side effects, return JSON
+//   GET  install.php             — thin HTML page loading <hax-app-installer>
 //
 // Hosting-provider automation (e.g. Reclaim Cloud / haxcms-jps) may POST
-// user + pass + install_token directly to skip the interactive wizard. The
-// credential override is honored ONLY when a pre-dropped _installtoken.txt
+// toStep=4 with user + pass + install_token to skip the interactive wizard.
+// The credential override is honored ONLY when a pre-dropped _installtoken.txt
 // file matches the POSTed install_token (timing-safe hash_equals). Without
 // the token file, POST-supplied credentials are ignored and the installer
-// uses an auto-generated admin password — closing the unauthenticated
-// credential-race for the default/common case.
+// uses an auto-generated admin password.
 
 $failed = false;
 $failedMessages = array();
@@ -26,17 +37,27 @@ include_once __DIR__ . '/system/backend/php/lib/SystemStatusService.php';
 include_once __DIR__ . '/system/backend/php/lib/LocalizationSettingsService.php';
 include_once __DIR__ . '/system/backend/php/lib/Git.php';
 
+// Ensure _config/tmp/ exists for the wizard state file. This is lightweight
+// and non-destructive — it does NOT create config.php or any boilerplate, so
+// the index.php half-configured guard still redirects to the installer.
+@mkdir(__DIR__ . '/_config/tmp', 0755, true);
+
 // Security best practice (I5): once HAXcms is already installed (the four
-// core directories exist), the installer must never run setup logic again —
-// it is an unauthenticated endpoint that creates credentials and secrets.
-// Redirect to the dashboard and stop before any POST/file logic executes.
+// core directories exist AND _config/config.php exists), the installer must
+// never run setup logic again — it is an unauthenticated endpoint that
+// creates credentials and secrets. Redirect to the dashboard and stop before
+// any POST/file logic executes.
 if (
   is_dir(__DIR__ . '/_sites') &&
   is_dir(__DIR__ . '/_config') &&
   is_dir(__DIR__ . '/_published') &&
-  is_dir(__DIR__ . '/_archived')
+  is_dir(__DIR__ . '/_archived') &&
+  file_exists(__DIR__ . '/_config/config.php')
 ) {
-  header('Location: index.php');
+  // Absolute, root-relative redirect so a 404 on a static asset (rewritten
+  // to this install.php by .htaccess) cannot turn into a redirect loop.
+  $installBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+  header('Location: ' . ($installBase === '' ? '' : $installBase) . '/index.php');
   exit();
 }
 
@@ -54,57 +75,10 @@ foreach ($versionFiles as $versionFile) {
 }
 
 // --- helpers ---------------------------------------------------------------
-if (!function_exists('haxcmsInstallerStatusToneClass')) {
-  function haxcmsInstallerStatusToneClass($tone)
-  {
-    if ($tone === 'ok') { return 'status-tone-ok'; }
-    if ($tone === 'warning') { return 'status-tone-warning'; }
-    if ($tone === 'error') { return 'status-tone-error'; }
-    return 'status-tone-info';
-  }
-}
 if (!function_exists('haxcmsInstallerStatusEscape')) {
   function haxcmsInstallerStatusEscape($value)
   {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-  }
-}
-if (!function_exists('haxcmsInstallerStatusRender')) {
-  function haxcmsInstallerStatusRender($statusReport)
-  {
-    if (!is_array($statusReport) || !isset($statusReport['rows']) || !is_array($statusReport['rows'])) {
-      return;
-    }
-    $summary = isset($statusReport['summary']) && is_array($statusReport['summary'])
-      ? $statusReport['summary']
-      : array();
-    $runtime = isset($summary['programmingLanguage']) ? $summary['programmingLanguage'] : 'unknown';
-    $server = isset($summary['serverVersion']) ? $summary['serverVersion'] : 'unknown';
-    $currentVersion = isset($summary['haxcmsVersionCurrent']) ? $summary['haxcmsVersionCurrent'] : 'unknown';
-    $latestVersion = isset($summary['haxcmsVersionLatest']) ? $summary['haxcmsVersionLatest'] : 'unknown';
-    print '<div class="status-panel">';
-    print '<h2>System status checks</h2>';
-    print '<p class="status-summary">';
-    print 'Runtime: ' . haxcmsInstallerStatusEscape($runtime);
-    print ' &middot; Server: ' . haxcmsInstallerStatusEscape($server);
-    print ' &middot; HAXcms: ' . haxcmsInstallerStatusEscape($currentVersion);
-    print ' (latest: ' . haxcmsInstallerStatusEscape($latestVersion) . ')';
-    print '</p>';
-    print '<table class="status-table" aria-label="Installer system status checks">';
-    print '<thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead><tbody>';
-    foreach ($statusReport['rows'] as $row) {
-      if (!is_array($row)) { continue; }
-      $tone = isset($row['tone']) ? $row['tone'] : 'info';
-      $title = isset($row['title']) ? $row['title'] : '';
-      $value = isset($row['value']) ? $row['value'] : '';
-      $description = isset($row['description']) ? $row['description'] : '';
-      print '<tr class="' . haxcmsInstallerStatusToneClass($tone) . '">';
-      print '<td>' . haxcmsInstallerStatusEscape($title) . '</td>';
-      print '<td>' . haxcmsInstallerStatusEscape($value) . '</td>';
-      print '<td>' . haxcmsInstallerStatusEscape($description) . '</td>';
-      print '</tr>';
-    }
-    print '</tbody></table></div>';
   }
 }
 if (!function_exists('haxcmsInstallerPasswordMeetsPolicy')) {
@@ -160,152 +134,287 @@ if (!function_exists('haxcmsInstallerGuardedGitCreate')) {
   }
 }
 
-// --- install token gating --------------------------------------------------
-// Hosting providers (e.g. Reclaim Cloud via haxcms-jps) may pre-drop a
-// _installtoken.txt file containing a random secret, then POST user/pass/
-// install_token to automate the install. When the token file is present,
-// POST-supplied credentials are honored ONLY if install_token matches
-// (timing-safe hash_equals). When the token file is absent, POST-supplied
-// credentials are ignored entirely and the installer always uses the
-// auto-generated admin/password path.
-$installTokenFilePath = __DIR__ . '/_installtoken.txt';
-$installTokenFromFile = '';
-if (file_exists($installTokenFilePath) && is_file($installTokenFilePath)) {
-  $installTokenFromFile = trim(file_get_contents($installTokenFilePath));
-}
-$installTokenEnabled = ($installTokenFromFile !== '');
+// --- state file helpers ----------------------------------------------------
+$stateFilePath = __DIR__ . '/_config/tmp/.install-state.json';
 
-// --- step detection --------------------------------------------------------
-$step = 'status';
-$isDirectInstall = false;
-// Hosting-provider automation sends user/pass directly (no interactive wizard)
-if (isset($_POST['user']) || isset($_POST['pass'])) {
-  $isDirectInstall = true;
-  $step = 'install';
-} else if (isset($_POST['step'])) {
-  $step = filter_var($_POST['step'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-}
-
-// --- selected language -----------------------------------------------------
-$selectedLanguage = 'en-US';
-if (isset($_POST['language']) && is_string($_POST['language'])) {
-  $normalized = HAXCMSLocalizationSettingsService::normalizeDefaultLanguageValue($_POST['language']);
-  if ($normalized !== null) {
-    $selectedLanguage = $normalized;
-  }
-}
-
-// --- token validation for direct install -----------------------------------
-$directInstallTokenError = '';
-if ($isDirectInstall) {
-  if ($installTokenEnabled) {
-    $postedToken = isset($_POST['install_token']) ? (string) $_POST['install_token'] : '';
-    if ($postedToken === '' || !hash_equals($installTokenFromFile, $postedToken)) {
-      $directInstallTokenError = 'Invalid or missing install token. POST-supplied credentials were not applied.';
-      $isDirectInstall = false;
-      $step = 'status';
+if (!function_exists('haxcmsInstallerReadState')) {
+  function haxcmsInstallerReadState()
+  {
+    global $stateFilePath;
+    $defaults = array('step' => 1, 'language' => 'en', 'username' => 'admin');
+    if (!file_exists($stateFilePath)) {
+      return $defaults;
     }
-  } else {
-    // No token file — ignore POSTed credentials entirely (race-closed)
-    $isDirectInstall = false;
-    $step = 'status';
+    $raw = @file_get_contents($stateFilePath);
+    if (!is_string($raw) || trim($raw) === '') {
+      return $defaults;
+    }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+      return $defaults;
+    }
+    $state = $defaults;
+    if (isset($decoded['step']) && is_numeric($decoded['step'])) {
+      $stepVal = (int) $decoded['step'];
+      if ($stepVal >= 1 && $stepVal <= 4) {
+        $state['step'] = $stepVal;
+      }
+    }
+    if (isset($decoded['language']) && is_string($decoded['language'])) {
+      $state['language'] = $decoded['language'];
+    }
+    if (isset($decoded['username']) && is_string($decoded['username'])) {
+      $state['username'] = $decoded['username'];
+    }
+    return $state;
   }
 }
 
-// --- install execution (step=install) --------------------------------------
-$installerStatusReport = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
-$configExisted = is_dir(__DIR__ . '/_config');
-
-if ($step === 'install' && !$failed) {
-  $generateSecureSecret = function () {
-    $parts = array();
-    for ($i = 0; $i < 4; $i++) {
-      $parts[] = bin2hex(random_bytes(16));
-    }
-    return implode('-', $parts);
-  };
-
-  // resolve username (POSTed from wizard form, or from hosting-provider POST)
-  if ($isDirectInstall && isset($_POST['user']) && is_string($_POST['user']) && trim($_POST['user']) !== '') {
-    $resolvedUsername = filter_var($_POST['user'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-  } else if (isset($_POST['username']) && is_string($_POST['username']) && trim($_POST['username']) !== '') {
-    $resolvedUsername = filter_var($_POST['username'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-  } else {
-    $resolvedUsername = 'admin';
+if (!function_exists('haxcmsInstallerWriteState')) {
+  function haxcmsInstallerWriteState($state)
+  {
+    global $stateFilePath;
+    $payload = array(
+      'step' => isset($state['step']) ? (int) $state['step'] : 1,
+      'language' => isset($state['language']) ? $state['language'] : 'en',
+      'username' => isset($state['username']) ? $state['username'] : 'admin',
+    );
+    file_put_contents($stateFilePath, json_encode($payload), LOCK_EX);
   }
+}
 
-  // resolve password
-  if ($isDirectInstall && isset($_POST['pass']) && is_string($_POST['pass']) && $_POST['pass'] !== '') {
-    $pass = $_POST['pass'];
-    if (!haxcmsInstallerPasswordMeetsPolicy($pass)) {
-      $failed = true;
-      $failedMessages[] = 'POST-supplied password does not meet the minimum policy (10+ chars, at least one letter and one number).';
+if (!function_exists('haxcmsInstallerSanitizeLanguage')) {
+  function haxcmsInstallerSanitizeLanguage($value)
+  {
+    if (!is_string($value)) {
+      return 'en';
     }
-  } else {
-    $pass = haxcmsInstallerGeneratePassword();
-    $passwordWasGenerated = true;
+    $clean = preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
+    if ($clean === '') {
+      return 'en';
+    }
+    return $clean;
   }
+}
 
-  if (!$failed) {
-    // --- _config directory + boilerplate ---
+if (!function_exists('haxcmsInstallerSanitizeUsername')) {
+  function haxcmsInstallerSanitizeUsername($value)
+  {
+    if (!is_string($value) || trim($value) === '') {
+      return 'admin';
+    }
+    $clean = filter_var(trim($value), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    return $clean !== '' ? $clean : 'admin';
+  }
+}
+
+// --- build state response for a given step ---------------------------------
+if (!function_exists('haxcmsInstallerBuildStateResponse')) {
+  function haxcmsInstallerBuildStateResponse($step, $state, $credentials = null, $statusReport = null)
+  {
+    $language = isset($state['language']) ? $state['language'] : 'en';
+    $username = isset($state['username']) ? $state['username'] : 'admin';
+
+    if ($step === 2) {
+      $report = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
+      $needsConfiguration = array();
+      $allPassed = array();
+      $hasErrors = false;
+      if (is_array($report) && isset($report['rows']) && is_array($report['rows'])) {
+        foreach ($report['rows'] as $row) {
+          if (!is_array($row)) {
+            continue;
+          }
+          $tone = isset($row['tone']) ? $row['tone'] : 'info';
+          $entry = array(
+            'key' => isset($row['key']) ? $row['key'] : '',
+            'tone' => $tone,
+            'title' => isset($row['title']) ? $row['title'] : '',
+            'value' => isset($row['value']) ? $row['value'] : '',
+            'description' => isset($row['description']) ? $row['description'] : '',
+            'suggestedCommand' => isset($row['suggestedCommand']) ? $row['suggestedCommand'] : '',
+          );
+          if ($tone === 'error' || $tone === 'warning') {
+            $needsConfiguration[] = $entry;
+            if ($tone === 'error') {
+              $hasErrors = true;
+            }
+          } else if ($tone === 'ok') {
+            $allPassed[] = $entry;
+          }
+        }
+      }
+      return array(
+        'step' => 2,
+        'language' => $language,
+        'needsConfiguration' => $needsConfiguration,
+        'allPassed' => $allPassed,
+        'hasErrors' => $hasErrors,
+      );
+    }
+
+    if ($step === 3) {
+      return array(
+        'step' => 3,
+        'language' => $language,
+        'username' => $username,
+      );
+    }
+
+    if ($step === 4) {
+      $response = array(
+        'step' => 4,
+        'language' => $language,
+      );
+      if ($credentials !== null && is_array($credentials)) {
+        $response['credentials'] = array(
+          'username' => isset($credentials['username']) ? $credentials['username'] : $username,
+          'password' => isset($credentials['password']) ? $credentials['password'] : '',
+          'passwordWasGenerated' => isset($credentials['passwordWasGenerated']) ? (bool) $credentials['passwordWasGenerated'] : false,
+        );
+      } else {
+        $response['credentials'] = array(
+          'username' => $username,
+          'password' => '',
+          'passwordWasGenerated' => false,
+        );
+      }
+      if ($statusReport !== null) {
+        $response['status'] = $statusReport;
+      } else {
+        $response['status'] = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
+      }
+      return $response;
+    }
+
+    // step 1 (default)
+    return array(
+      'step' => 1,
+      'language' => $language,
+    );
+  }
+}
+
+// --- install execution (config-bootstrap fix) ------------------------------
+//
+// Decoupled from directory existence: subdirectories, boilerplate files,
+// SALT.txt, config.php templating, and localization are each applied
+// idempotently (only if missing / only if placeholders still present).
+if (!function_exists('haxcmsInstallerRunInstallBlock')) {
+  function haxcmsInstallerRunInstallBlock(
+    $selectedLanguage,
+    $resolvedUsername,
+    $pass,
+    $passwordWasGenerated,
+    &$failed,
+    &$failedMessages
+  ) {
+    $generateSecureSecret = function () {
+      $parts = array();
+      for ($i = 0; $i < 4; $i++) {
+        $parts[] = bin2hex(random_bytes(16));
+      }
+      return implode('-', $parts);
+    };
+
+    // --- _config directory (create if missing) ---
     if (!is_dir(__DIR__ . '/_config')) {
-      if (haxcmsInstallerGuardedMkdir(__DIR__ . '/_config', 0755, $failed, $failedMessages)) {
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/.ssh', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/tmp', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/cache', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/settings', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user/files', 0755, $failed, $failedMessages);
-        haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/node_modules', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config', 0755, $failed, $failedMessages);
+    }
 
-        // boilerplate files
+    if (!$failed) {
+      // Subdirectories — created if missing (not only when _config is new)
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/.ssh', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/tmp', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/cache', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/settings', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user/files', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/node_modules', 0755, $failed, $failedMessages);
+
+      // Boilerplate files — copied only if target does not exist
+      if (!file_exists(__DIR__ . '/_config/config.json')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/config.json', __DIR__ . '/_config/config.json');
+      }
+      if (!file_exists(__DIR__ . '/_config/my-custom-elements.js')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/my-custom-elements.js', __DIR__ . '/_config/my-custom-elements.js');
+      }
+      if (!file_exists(__DIR__ . '/_config/userData.json')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/userData.json', __DIR__ . '/_config/userData.json');
+      }
+      if (!file_exists(__DIR__ . '/_config/config.php')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/config.php', __DIR__ . '/_config/config.php');
+      }
+      if (!file_exists(__DIR__ . '/_config/.htaccess')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/.htaccess', __DIR__ . '/_config/.htaccess');
+      }
+      if (!file_exists(__DIR__ . '/_config/user/files/.htaccess')) {
         copy(__DIR__ . '/system/boilerplate/systemsetup/.user-files-htaccess', __DIR__ . '/_config/user/files/.htaccess');
+      }
 
-        // set the default language in config.json localization block
-        $configJsonPath = __DIR__ . '/_config/config.json';
+      // Localization defaultLanguage — write only if config.json lacks a
+      // localization block
+      $configJsonPath = __DIR__ . '/_config/config.json';
+      if (file_exists($configJsonPath)) {
         $configJsonRaw = @file_get_contents($configJsonPath);
         $configJson = json_decode($configJsonRaw, true);
         if (is_array($configJson)) {
           if (!isset($configJson['localization']) || !is_array($configJson['localization'])) {
             $configJson['localization'] = array();
+            $configJson['localization']['defaultLanguage'] = $selectedLanguage;
+            file_put_contents($configJsonPath, json_encode($configJson, JSON_PRETTY_PRINT) . PHP_EOL, LOCK_EX);
           }
-          $configJson['localization']['defaultLanguage'] = $selectedLanguage;
-          file_put_contents($configJsonPath, json_encode($configJson, JSON_PRETTY_PRINT) . PHP_EOL, LOCK_EX);
         }
+      }
 
-        // permissions
-        chmod(__DIR__ . '/_config', 0755);
-        chmod(__DIR__ . '/_config/tmp', 0755);
+      // Permissions
+      chmod(__DIR__ . '/_config', 0755);
+      chmod(__DIR__ . '/_config/tmp', 0755);
+      if (file_exists(__DIR__ . '/_config/config.json')) {
         chmod(__DIR__ . '/_config/config.json', 0644);
+      }
+      if (file_exists(__DIR__ . '/_config/userData.json')) {
         chmod(__DIR__ . '/_config/userData.json', 0644);
+      }
 
-        // marker file
+      // Marker file — only if missing
+      if (!file_exists(__DIR__ . '/_config/.isHAXcmsConfig')) {
         file_put_contents(__DIR__ . '/_config/.isHAXcmsConfig', '');
+      }
 
-        // SALT — restrict to 0600, write with LOCK_EX (SEC-10)
+      // SALT — generated only if missing; restrict to 0600 (SEC-10)
+      if (!file_exists(__DIR__ . '/_config/SALT.txt')) {
         file_put_contents(__DIR__ . '/_config/SALT.txt', $generateSecureSecret(), LOCK_EX);
         @chmod(__DIR__ . '/_config/SALT.txt', 0600);
+      }
 
-        // config.php templating
-        $configFile = file_get_contents(__DIR__ . '/_config/config.php');
-        $configFile = str_replace('HAXTHEWEBPRIVATEKEY', $generateSecureSecret(), $configFile);
-        $configFile = str_replace('HAXTHEWEBREFRESHPRIVATEKEY', $generateSecureSecret(), $configFile);
-        $configFile = str_replace('jeff', $resolvedUsername, $configFile);
-        // persist a password_hash (bcrypt/argon2), never the plaintext
-        $configFile = str_replace('jimmerson', password_hash($pass, PASSWORD_DEFAULT), $configFile);
-        // basePath locked to where this was installed
-        $basePath = str_replace('install.php', '', $_SERVER['SCRIPT_NAME']);
-        $configFile = str_replace("->basePath = '/'", "->basePath = '$basePath'", $configFile);
-        // config.php holds JWT private key + password hash; restrict to 0600 (SEC-10)
-        file_put_contents(__DIR__ . '/_config/config.php', $configFile, LOCK_EX);
-        @chmod(__DIR__ . '/_config/config.php', 0600);
+      // config.php templating — runs only if placeholders still present
+      $configPhpPath = __DIR__ . '/_config/config.php';
+      if (file_exists($configPhpPath)) {
+        $configFile = file_get_contents($configPhpPath);
+        $needsTemplating = (
+          strpos($configFile, 'HAXTHEWEBPRIVATEKEY') !== false ||
+          strpos($configFile, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
+          strpos($configFile, 'jeff') !== false ||
+          strpos($configFile, 'jimmerson') !== false
+        );
+        if ($needsTemplating) {
+          $configFile = str_replace('HAXTHEWEBPRIVATEKEY', $generateSecureSecret(), $configFile);
+          $configFile = str_replace('HAXTHEWEBREFRESHPRIVATEKEY', $generateSecureSecret(), $configFile);
+          $configFile = str_replace('jeff', $resolvedUsername, $configFile);
+          // persist a password_hash (bcrypt/argon2), never the plaintext
+          $configFile = str_replace('jimmerson', password_hash($pass, PASSWORD_DEFAULT), $configFile);
+          // basePath locked to where this was installed
+          $basePath = str_replace('install.php', '', $_SERVER['SCRIPT_NAME']);
+          $configFile = str_replace("->basePath = '/'", "->basePath = '$basePath'", $configFile);
+          // config.php holds JWT private key + password hash; restrict to 0600
+          file_put_contents($configPhpPath, $configFile, LOCK_EX);
+          @chmod($configPhpPath, 0600);
+        }
+      }
 
-        // git init for _config
+      // git init for _config (only if not already a git repo)
+      if (!is_dir(__DIR__ . '/_config/.git')) {
         haxcmsInstallerGuardedGitCreate(__DIR__ . '/_config', $failed, $failedMessages);
       }
     }
@@ -337,121 +446,223 @@ if ($step === 'install' && !$failed) {
         @chgrp(__DIR__ . '/_archived', get_current_user());
       }
     }
+  }
+}
 
-    // --- delete install token file (one-time use) ---
+// --- ?op handling ----------------------------------------------------------
+$op = isset($_GET['op']) ? $_GET['op'] : '';
+
+// ?op=state — GET: read state, re-evaluate environment, return JSON
+if ($op === 'state') {
+  $state = haxcmsInstallerReadState();
+  $response = haxcmsInstallerBuildStateResponse($state['step'], $state);
+  header('Content-Type: application/json');
+  print json_encode($response);
+  exit();
+}
+
+// ?op=advance — POST: validate + persist state, run side effects, return JSON
+if ($op === 'advance') {
+  $rawInput = file_get_contents('php://input');
+  $postData = json_decode($rawInput, true);
+  if (!is_array($postData)) {
+    $postData = $_POST;
+  }
+
+  $toStep = isset($postData['toStep']) ? (int) $postData['toStep'] : 1;
+  if ($toStep < 1 || $toStep > 4) {
+    header('HTTP/1.1 400 Bad Request');
+    header('Content-Type: application/json');
+    print json_encode(array('error' => 'Invalid toStep. Must be 1-4.'));
+    exit();
+  }
+
+  $language = 'en';
+  if (isset($postData['language']) && is_string($postData['language'])) {
+    $language = haxcmsInstallerSanitizeLanguage($postData['language']);
+  }
+
+  $username = 'admin';
+  if (isset($postData['username']) && is_string($postData['username'])) {
+    $username = haxcmsInstallerSanitizeUsername($postData['username']);
+  }
+
+  $password = '';
+  if (isset($postData['password']) && is_string($postData['password'])) {
+    $password = $postData['password'];
+  }
+
+  // --- install token gating (hosting-provider direct install) ---
+  $installTokenFilePath = __DIR__ . '/_installtoken.txt';
+  $installTokenFromFile = '';
+  if (file_exists($installTokenFilePath) && is_file($installTokenFilePath)) {
+    $installTokenFromFile = trim(file_get_contents($installTokenFilePath));
+  }
+  $installTokenEnabled = ($installTokenFromFile !== '');
+
+  $installTokenPosted = '';
+  if (isset($postData['install_token']) && is_string($postData['install_token'])) {
+    $installTokenPosted = (string) $postData['install_token'];
+  }
+
+  $isDirectInstall = false;
+  if ($installTokenPosted !== '') {
+    if (!$installTokenEnabled || !hash_equals($installTokenFromFile, $installTokenPosted)) {
+      header('HTTP/1.1 403 Forbidden');
+      header('Content-Type: application/json');
+      print json_encode(array(
+        'error' => 'Invalid or missing install token. POST-supplied credentials were not applied.',
+      ));
+      exit();
+    }
+    $isDirectInstall = true;
+    // Honor hosting-provider credential fields (user / pass)
+    if (isset($postData['user']) && is_string($postData['user']) && trim($postData['user']) !== '') {
+      $username = haxcmsInstallerSanitizeUsername($postData['user']);
+    }
+    if (isset($postData['pass']) && is_string($postData['pass']) && $postData['pass'] !== '') {
+      $password = $postData['pass'];
+    }
+  }
+
+  // Persist state
+  $newState = array(
+    'step' => $toStep,
+    'language' => $language,
+    'username' => $username,
+  );
+  haxcmsInstallerWriteState($newState);
+
+  $credentials = null;
+  $statusReport = null;
+  $runInstall = ($toStep === 4);
+
+  if ($runInstall && !$failed) {
+    // Resolve username
+    $resolvedUsername = $username;
+
+    // Resolve password
+    if ($isDirectInstall && $password !== '') {
+      $pass = $password;
+      if (!haxcmsInstallerPasswordMeetsPolicy($pass)) {
+        $failed = true;
+        $failedMessages[] = 'POST-supplied password does not meet the minimum policy (10+ chars, at least one letter and one number).';
+      }
+    } else if ($password !== '') {
+      // Wizard-supplied optional password
+      $pass = $password;
+      if (!haxcmsInstallerPasswordMeetsPolicy($pass)) {
+        $failed = true;
+        $failedMessages[] = 'Password does not meet the minimum policy (10+ chars, at least one letter and one number).';
+      }
+    } else {
+      $pass = haxcmsInstallerGeneratePassword();
+      $passwordWasGenerated = true;
+    }
+
+    if (!$failed) {
+      haxcmsInstallerRunInstallBlock(
+        $language,
+        $resolvedUsername,
+        $pass,
+        $passwordWasGenerated,
+        $failed,
+        $failedMessages
+      );
+    }
+
+    // Delete install token file (one-time use)
     if (!$failed && $installTokenEnabled && file_exists($installTokenFilePath)) {
       @unlink($installTokenFilePath);
     }
-  }
 
-  // rebuild status report after install attempt
-  $installerStatusReport = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
-}
-
-// determine whether any status rows are errors (for step 1 gating display)
-$statusHasErrors = false;
-if (is_array($installerStatusReport) && isset($installerStatusReport['rows'])) {
-  foreach ($installerStatusReport['rows'] as $row) {
-    if (is_array($row) && isset($row['tone']) && $row['tone'] === 'error') {
-      $statusHasErrors = true;
-      break;
+    // On successful step 4, delete the state file so it doesn't linger
+    if (!$failed) {
+      global $stateFilePath;
+      @unlink($stateFilePath);
     }
+
+    $credentials = array(
+      'username' => $resolvedUsername,
+      'password' => $pass,
+      'passwordWasGenerated' => $passwordWasGenerated,
+    );
+    $statusReport = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
   }
+
+  $response = haxcmsInstallerBuildStateResponse($toStep, $newState, $credentials, $statusReport);
+  if ($failed) {
+    $response['hasErrors'] = true;
+    $response['errors'] = $failedMessages;
+  }
+  header('Content-Type: application/json');
+  print json_encode($response);
+  exit();
 }
+
+// --- default: thin bootstrap HTML ------------------------------------------
+$state = haxcmsInstallerReadState();
+$htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
 ?>
 <!DOCTYPE html>
-<html lang="<?php print haxcmsInstallerStatusEscape($selectedLanguage); ?>">
+<html lang="<?php print haxcmsInstallerStatusEscape($htmlLang); ?>">
   <head>
     <meta charset="utf-8">
     <title>HAXcms Installation</title>
-    <link rel="preload" href="./build/es6/dist/build-install.js" as="script" crossorigin="anonymous">
-    <link rel="preload" href="./build/es6/node_modules/@haxtheweb/app-hax/app-hax.js"
-      as="script" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-lite.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-button-lite.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/git-corner/git-corner.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/hax-app-installer/hax-app-installer.js" crossorigin="anonymous">
     <style>
-      /* DDD-aware installer styling with dark-mode support */
+      /*
+        Installer bootstrap styling. The hax-app-installer element provides
+        its own full DDD styling; this page only needs enough to avoid a
+        broken layout if the element has not been built yet (pre-ubiquity).
+        DDD :root token subset inlined from elements/d-d-d/lib/DDDStyles.js
+        so the page is self-contained and dark-mode-aware.
+      */
       :root {
-        --installer-bg: #ffffff;
-        --installer-surface: #f6f6f6;
-        --installer-text: #1a1a1a;
-        --installer-border: #d8d8d8;
-        --installer-accent: var(--ddd-primary-1, #1a73e8);
-        --installer-accent-hover: var(--ddd-primary-2, #1557b0);
-        --installer-success: #2e7d32;
-        --installer-warning: #f9a825;
-        --installer-error: #c62828;
-        --installer-info: #1565c0;
-        --installer-code-bg: #333333;
-        --installer-code-text: #ffd700;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --installer-bg: #121212;
-          --installer-surface: #1e1e1e;
-          --installer-text: #e0e0e0;
-          --installer-border: #333333;
-          --installer-code-bg: #1a1a1a;
-        }
+        color-scheme: light dark;
+        --ddd-theme-default-beaverBlue: #1e407c;
+        --ddd-theme-default-nittanyNavy: #001e44;
+        --ddd-theme-default-potentialMidnight: #000321;
+        --ddd-theme-default-coalyGray: #262626;
+        --ddd-theme-default-limestoneLight: #e4e5e7;
+        --ddd-theme-default-limestoneMaxLight: #f2f2f4;
+        --ddd-theme-default-white: #ffffff;
+        --ddd-theme-default-black: #000000;
+        --ddd-theme-default-navy40: rgba(0, 30, 68, 0.4);
+        --ddd-theme-default-background: #eff2f5;
+        --ddd-primary-1: var(--ddd-theme-default-beaverBlue);
+        --ddd-primary-2: var(--ddd-theme-default-nittanyNavy);
+        --ddd-primary-3: var(--ddd-theme-default-potentialMidnight);
+        --ddd-primary-4: var(--ddd-theme-default-coalyGray);
+        --ddd-accent-2: var(--ddd-theme-default-limestoneMaxLight);
+        --ddd-accent-6: var(--ddd-theme-default-white);
+        --ddd-font-primary: "Roboto", "Franklin Gothic Medium", Tahoma, sans-serif;
+        --ddd-spacing-2: 8px;
+        --ddd-spacing-4: 16px;
+        --ddd-font-size-s: 24px;
+        --ddd-font-size-l: 40px;
+        --ddd-font-size-m: 32px;
+        --ddd-radius-xs: 4px;
+        --ddd-radius-lg: 16px;
+        --ddd-boxShadow-md: light-dark(rgba(0, 3, 33, 0.15), rgba(150, 190, 230, 0.1)) 0px 8px 16px 0px;
       }
       body {
         margin: 0;
         padding: 0;
         overflow-x: hidden;
-        background-color: var(--installer-bg);
-        color: var(--installer-text);
-        --app-hax-accent-color: var(--installer-text);
-        --app-hax-background-color: var(--installer-bg);
-        --simple-tooltip-background: #000000;
-        --simple-tooltip-opacity: 1;
-        --simple-tooltip-text-color: #ffffff;
-        --simple-tooltip-delay-in: 0;
-        --simple-tooltip-duration-in: 200ms;
-        --simple-tooltip-duration-out: 0;
-        --simple-tooltip-border-radius: 0;
-        --simple-tooltip-font-size: 14px;
-      }
-      pre {
-        background-color: var(--installer-code-bg);
-        color: var(--installer-code-text);
-        padding: 8px;
-        border-radius: 4px;
-        overflow-x: auto;
-      }
-      .version {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        background-color: var(--installer-accent);
-        display: inline-block;
-        padding: 8px;
-        color: #ffffff;
-        border-right: 3px solid var(--installer-text);
-        border-top: 3px solid var(--installer-text);
-        font-weight: bold;
-        font-size: 14px;
-      }
-      p, ul, li {
-        font-size: 18px;
-      }
-      hax-logo {
-        --hax-logo-letter-spacing: 1px;
-        text-align: center;
-        --hax-logo-font-size: 60px;
-        margin: 16px 0 50px;
-      }
-      @media screen and (max-width: 600px) {
-        hax-logo { --hax-logo-font-size: 20px; }
-      }
-      ul li { padding: 4px; }
-      ul li strong {
-        padding: 8px;
-        font-size: 24px;
-        line-height: 1.5;
-        background-color: var(--installer-surface);
-        margin-left: 16px;
-        border-radius: 4px;
+        color-scheme: light dark;
+        background-color: light-dark(var(--ddd-theme-default-background), var(--ddd-theme-default-potentialMidnight));
+        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
+        font-family: var(--ddd-font-primary);
+        --github-corner-background: var(--ddd-primary-1);
+        --github-corner-color: var(--ddd-theme-default-white);
       }
       .wrapper {
-        padding: 16px;
+        padding: var(--ddd-spacing-4);
         margin: 5vh 15vw;
         display: flex;
         justify-content: center;
@@ -459,356 +670,38 @@ if (is_array($installerStatusReport) && isset($installerStatusReport['rows'])) {
       .card {
         width: 60vw;
         max-width: 800px;
-        background-color: var(--installer-bg);
-        padding: 0 16px;
+        background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-primary-3));
+        padding: 0 var(--ddd-spacing-4);
+        border-radius: var(--ddd-radius-lg);
+        box-shadow: var(--ddd-boxShadow-md);
       }
       git-corner {
         right: 0;
         top: 0;
         position: fixed;
       }
-      h1 {
-        margin: 16px;
-        padding: 0;
-        font-size: 30px;
-        text-align: center;
-      }
-      .step-indicator {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
-        margin: 16px 0 32px;
-      }
-      .step-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: var(--installer-border);
-      }
-      .step-dot.active { background-color: var(--installer-accent); }
-      .step-dot.done { background-color: var(--installer-success); }
-      .install-form {
-        max-width: 480px;
-        margin: 0 auto;
-      }
-      .install-form label {
+      hax-app-installer {
         display: block;
-        font-size: 16px;
-        font-weight: 600;
-        margin: 16px 0 4px;
       }
-      .install-form input,
-      .install-form select {
-        width: 100%;
-        padding: 8px 12px;
-        font-size: 16px;
-        border: 2px solid var(--installer-border);
-        border-radius: 4px;
-        background-color: var(--installer-bg);
-        color: var(--installer-text);
-        box-sizing: border-box;
-      }
-      .install-form input:focus,
-      .install-form select:focus {
-        border-color: var(--installer-accent);
-        outline: none;
-      }
-      .install-form .help-text {
-        font-size: 14px;
-        opacity: 0.7;
-        margin: 4px 0 0;
-      }
-      .btn-row {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        margin: 32px 0;
-      }
-      .hax-btn {
-        font-size: 18px;
-        padding: 10px 24px;
-        color: #ffffff;
-        background-color: var(--installer-accent);
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s ease-in-out;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .hax-btn:hover,
-      .hax-btn:focus {
-        background-color: var(--installer-accent-hover);
-      }
-      .hax-btn.secondary {
-        background-color: var(--installer-surface);
-        color: var(--installer-text);
-        border: 2px solid var(--installer-border);
-      }
-      .hax-btn.secondary:hover,
-      .hax-btn.secondary:focus {
-        border-color: var(--installer-accent);
-      }
-      .credential-box {
-        background-color: var(--installer-surface);
-        border: 1px solid var(--installer-border);
-        border-radius: 8px;
-        padding: 16px;
-        margin: 16px 0;
-      }
-      .credential-box .credential-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 8px 0;
-      }
-      .credential-box .credential-row strong {
-        font-size: 20px;
-        font-family: monospace;
-        background: none;
-        padding: 0;
-        margin: 0;
-      }
-      .copy-btn {
-        font-size: 14px;
-        padding: 4px 12px;
-        background-color: var(--installer-bg);
-        color: var(--installer-text);
-        border: 1px solid var(--installer-border);
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .copy-btn:hover { border-color: var(--installer-accent); }
-      .warning-box {
-        background-color: var(--installer-surface);
-        border-left: 4px solid var(--installer-warning);
-        border-radius: 4px;
-        padding: 12px 16px;
-        margin: 16px 0;
-        font-size: 16px;
-      }
-      .error-box {
-        background-color: var(--installer-surface);
-        border-left: 4px solid var(--installer-error);
-        border-radius: 4px;
-        padding: 12px 16px;
-        margin: 16px 0;
-        font-size: 16px;
-      }
-      .error-box ul { margin: 8px 0 0; padding-left: 20px; }
-      .error-box li { font-size: 16px; }
-      .status-panel {
-        margin-top: 32px;
-        background-color: var(--installer-surface);
-        border: 1px solid var(--installer-border);
-        border-radius: 8px;
-        padding: 12px;
-      }
-      .status-panel h2 { margin: 0 0 8px; font-size: 24px; }
-      .status-summary { margin: 0 0 12px; font-size: 16px; }
-      .status-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-      }
-      .status-table th,
-      .status-table td {
-        padding: 8px;
-        text-align: left;
-        border-bottom: 1px solid var(--installer-border);
-        vertical-align: top;
-      }
-      .status-table tbody tr.status-tone-ok td:first-child {
-        border-left: 4px solid var(--installer-success);
-      }
-      .status-table tbody tr.status-tone-warning td:first-child {
-        border-left: 4px solid var(--installer-warning);
-      }
-      .status-table tbody tr.status-tone-error td:first-child {
-        border-left: 4px solid var(--installer-error);
-      }
-      .status-table tbody tr.status-tone-info td:first-child {
-        border-left: 4px solid var(--installer-info);
-      }
-      code {
-        background-color: var(--installer-surface);
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 14px;
-      }
-      /* World traveler globe icon — the HAX icon, reflecting the
-         worldwide / localization reach of the installer. */
-      .world-traveler-icon {
-        display: block;
-        margin: 0 auto 8px;
-        color: var(--installer-accent);
-        --simple-icon-width: var(--ddd-icon-size-8, 64px);
-        --simple-icon-height: var(--ddd-icon-size-8, 64px);
+      @media (max-width: 600px) {
+        .wrapper { margin: 2vh 4vw; padding: var(--ddd-spacing-2); }
+        .card { width: 92vw; max-width: none; }
       }
     </style>
   </head>
   <body>
-    <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms"></git-corner>
+    <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms-php"></git-corner>
     <div class="wrapper">
       <div class="card">
-<?php
-  // --- step indicators ---
-  $stepNum = 1;
-  if ($step === 'confirm') { $stepNum = 2; }
-  if ($step === 'install') { $stepNum = 3; }
-  print '<div class="step-indicator" aria-label="Installation progress">';
-  for ($i = 1; $i <= 3; $i++) {
-    $cls = 'step-dot';
-    if ($i < $stepNum) { $cls .= ' done'; }
-    if ($i === $stepNum) { $cls .= ' active'; }
-    print '<span class="' . $cls . '"></span>';
-  }
-  print '</div>';
-?>
-
-<?php if ($directInstallTokenError !== '') { ?>
-        <hax-logo hide-hax>install-issue</hax-logo><div class="version">V<?php print haxcmsInstallerStatusEscape($version);?></div>
-        <h1>Install token validation failed</h1>
-        <div class="error-box">
-          <p><?php print haxcmsInstallerStatusEscape($directInstallTokenError); ?></p>
-          <p>If you are a hosting provider integrating with HAXcms, ensure you pre-drop a <code>_installtoken.txt</code> file in the webroot before POSTing credentials, and include the matching value as <code>install_token</code> in your POST.</p>
-        </div>
-        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
-<?php } else if ($failed) { ?>
-        <hax-logo hide-hax>install-issue</hax-logo><div class="version">V<?php print haxcmsInstallerStatusEscape($version);?></div>
-        <h1>HAXcms installation encountered errors</h1>
-        <?php if (count($failedMessages) > 0) { ?>
-        <div class="error-box">
-          <ul>
-            <?php foreach ($failedMessages as $msg) { ?>
-            <li><?php print haxcmsInstallerStatusEscape($msg); ?></li>
-            <?php } ?>
-          </ul>
-        </div>
-        <?php } ?>
-        <p>
-          You can modify permissions in order to achieve this
-          <pre>chmod 0755 <?php print haxcmsInstallerStatusEscape(__DIR__); ?></pre>
-          Or the preferred method is to run:
-          <pre><?php print haxcmsInstallerStatusEscape("bash " . __DIR__ . "/scripts/haxtheweb.sh"); ?></pre>
-          A complete installation guide can be read on
-          <a href="https://haxtheweb.org/installation" target="_blank" rel="noopener noreferrer">
-            <simple-icon-button-lite icon="icons:public" label="HAXTheWeb"></simple-icon-button-lite>
-          </a>
-        </p>
-        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
-<?php } else if ($step === 'install') { ?>
-        <hax-logo hide-hax>HAX</hax-logo><div class="version">V<?php print haxcmsInstallerStatusEscape($version);?></div>
-        <simple-icon-lite icon="icons:public" class="world-traveler-icon" aria-hidden="true"></simple-icon-lite>
-        <h1>Install successful</h1>
-        <p>If you don't see any errors then that means HAXcms has been successfully installed!
-        Configuration settings were saved to <strong>_config/config.php</strong></p>
-        <?php if ($passwordWasGenerated || $pass !== '') { ?>
-        <div class="credential-box">
-          <div class="credential-row">
-            <span>Username:</span>
-            <strong id="install-username"><?php print haxcmsInstallerStatusEscape($resolvedUsername); ?></strong>
-            <button class="copy-btn" onclick="haxcmsInstallerCopy('install-username')">Copy</button>
-          </div>
-          <div class="credential-row">
-            <span>Password:</span>
-            <strong id="install-password"><?php print haxcmsInstallerStatusEscape($pass); ?></strong>
-            <button class="copy-btn" onclick="haxcmsInstallerCopy('install-password')">Copy</button>
-          </div>
-        </div>
-        <div class="warning-box">
-          <strong>Important:</strong> These credentials will not be shown again. Please copy them now.
-          For security, change your password after your first login.
-        </div>
-        <?php } else { ?>
-        <div class="warning-box">
-          <strong>Configuration was already present.</strong> Your existing admin credentials are unchanged.
-          If you need to reset them, edit <code>_config/config.php</code> directly.
-        </div>
-        <?php } ?>
-        <div class="btn-row">
-          <a href="index.php" tabindex="-1"><button class="hax-btn">Access HAXcms</button></a>
-          <a href="http://github.com/haxtheweb/issues/issues" target="_blank" rel="noopener noreferrer" tabindex="-1">
-            <button class="hax-btn secondary">Join our community</button></a>
-        </div>
-        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
-<?php } else if ($step === 'confirm') { ?>
-        <hax-logo hide-hax>HAX</hax-logo><div class="version">V<?php print haxcmsInstallerStatusEscape($version);?></div>
-        <h1>Configure your installation</h1>
-        <p>Review the status checks below, then customize your admin username and default language.</p>
-        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
-        <?php if ($statusHasErrors) { ?>
-        <div class="error-box">
-          <strong>Some precondition checks failed.</strong> You can still attempt installation, but errors above may cause problems. Consider resolving them first.
-        </div>
-        <?php } ?>
-        <form method="POST" class="install-form">
-          <input type="hidden" name="step" value="install">
-          <label for="username">Admin username</label>
-          <input type="text" id="username" name="username" value="admin" autocomplete="username" required>
-          <p class="help-text">A secure password will be auto-generated and shown on the next screen.</p>
-          <label for="language">Default language</label>
-          <select id="language" name="language">
-            <?php
-            foreach (HAXCMSLocalizationSettingsService::$SUPPORTED_LANGUAGES as $code => $label) {
-              $sel = ($code === $selectedLanguage) ? ' selected' : '';
-              print '<option value="' . haxcmsInstallerStatusEscape($code) . '"' . $sel . '>' . haxcmsInstallerStatusEscape($label) . '</option>';
-            }
-            ?>
-          </select>
-          <p class="help-text">New sites will default to this language. You can change it later in Configuration settings.</p>
-          <div class="btn-row">
-            <button type="submit" class="hax-btn">Install HAXcms</button>
-            <a href="install.php"><button type="button" class="hax-btn secondary">Back</button></a>
-          </div>
-        </form>
-<?php } else { /* step === 'status' */ ?>
-        <hax-logo hide-hax>HAX</hax-logo><div class="version">V<?php print haxcmsInstallerStatusEscape($version);?></div>
-        <simple-icon-lite icon="icons:public" class="world-traveler-icon" aria-hidden="true"></simple-icon-lite>
-        <h1>Welcome to HAXcms</h1>
-        <p>Let's get your HAXcms instance set up. First, we'll check your server environment to make sure everything is ready. HAXcms speaks your language — choose a default language for new sites in the next step.</p>
-        <?php haxcmsInstallerStatusRender($installerStatusReport); ?>
-        <?php if ($statusHasErrors) { ?>
-        <div class="warning-box">
-          <strong>Some precondition checks reported errors.</strong> You can still proceed, but you may want to resolve the issues above first. Use the preferred CLI method below if directory permissions are the issue:
-          <pre><?php print haxcmsInstallerStatusEscape("bash " . __DIR__ . "/scripts/haxtheweb.sh"); ?></pre>
-        </div>
-        <?php } ?>
-        <div class="btn-row">
-          <form method="POST">
-            <input type="hidden" name="step" value="confirm">
-            <button type="submit" class="hax-btn">Continue</button>
-          </form>
-        </div>
-<?php } ?>
+        <hax-app-installer api-endpoint="install.php"></hax-app-installer>
       </div>
     </div>
     <script type="module">
-      import "./build/es6/dist/build-install.js";
-    </script>
-    <script>
-      function haxcmsInstallerCopy(elementId) {
-        var el = document.getElementById(elementId);
-        if (!el) return;
-        var text = el.textContent;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function() {
-            var btn = el.nextElementSibling;
-            if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 2000); }
-          });
-        } else {
-          var range = document.createRange();
-          range.selectNode(el);
-          globalThis.getSelection().removeAllRanges();
-          globalThis.getSelection().addRange(range);
-          document.execCommand('copy');
-          globalThis.getSelection().removeAllRanges();
-          var btn = el.nextElementSibling;
-          if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy'; }, 2000); }
-        }
-      }
+      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js";
+      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-lite.js";
+      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-button-lite.js";
+      import "./build/es6/node_modules/@haxtheweb/git-corner/git-corner.js";
+      import "./build/es6/node_modules/@haxtheweb/hax-app-installer/hax-app-installer.js";
     </script>
   </body>
 </html>
