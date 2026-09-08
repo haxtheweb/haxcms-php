@@ -131,6 +131,7 @@ class HAXCMSSystemStatusService
                 'value' => 'Missing',
                 'description' => 'Expected path: ' . $directoryPath,
                 'required' => $required,
+                'suggestedCommand' => "mkdir -p '" . $directoryPath . "'",
             );
         }
         if (!is_dir($directoryPath)) {
@@ -153,9 +154,11 @@ class HAXCMSSystemStatusService
         );
         $tone = 'ok';
         $value = 'Writable';
+        $suggestedCommand = '';
         if (!$writable) {
             $tone = $required ? 'error' : 'warning';
             $value = 'Read-only';
+            $suggestedCommand = "chmod 0755 '" . $directoryPath . "'";
         }
         else if (!$ownerMatchesProcess) {
             $tone = 'warning';
@@ -168,6 +171,7 @@ class HAXCMSSystemStatusService
             'value' => $value,
             'description' => 'Path: ' . $directoryPath,
             'required' => $required,
+            'suggestedCommand' => $suggestedCommand,
         );
     }
 

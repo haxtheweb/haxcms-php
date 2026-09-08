@@ -214,7 +214,13 @@ class HAXCMS
                 print $this->configDirectory . '/config.json missing';
             } else {
                 // theme data
-                if (!isset($this->config->themes)) {
+                // Defensive: some legacy/corrupted config.json files may have
+                // "themes" persisted as a JSON array (e.g. an empty object
+                // "{}" mistakenly round-tripped through an associative-array
+                // json_decode/json_encode elsewhere, which PHP cannot
+                // distinguish from an empty list). Guard against assigning
+                // properties onto an array, which is a fatal error.
+                if (!isset($this->config->themes) || !is_object($this->config->themes)) {
                     $this->config->themes = new stdClass();
                 }
                 if (!isset($this->config->appJWTConnectionSettings)) {
@@ -1058,6 +1064,142 @@ class HAXCMS
       return $wcMap;
     }
     /**
+     * Load wc-registry-graph.json relative to the site in question.
+     *
+     * Build artifact emitted by the ubiquity gulp `wc-autoloader` task; maps
+     * every module path to an index and stores the static-import adjacency
+     * so backends can emit accurate, capped modulepreload hints. Decoded as
+     * an associative array: { paths: [...], adj: {"idx": [impIdx,...]},
+     * tags: {"tagName": entryIdx} }. NOT fetched by the browser.
+     */
+    public function getWCRegistryGraphJson($site, $base = './') {
+      $graph = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $site->manifest->metadata->site->name . $base);
+      if (!isset($graph)) {
+        // need to make the request relative to site
+        if ($base == './') {
+          // possible this comes up empty
+          if (file_exists($site->directory . '/' . $site->manifest->metadata->site->name . '/wc-registry-graph.json')) {
+            $gPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/wc-registry-graph.json';
+          }
+          else {
+            $gPath = HAXCMS_ROOT . '/wc-registry-graph.json';
+          }
+        }
+        else {
+          $gPath = $base . 'wc-registry-graph.json';
+        }
+        // support private IP space by avoiding remote fetches while
+        // still allowing local wc-registry-graph.json reads
+        $isRemoteGPath = (preg_match('/^https?:\\/\\//', $gPath) === 1);
+        if (!$isRemoteGPath || !defined('IAM_PRIVATE_ADDRESS_SPACE')) {
+          $graphRaw = @file_get_contents($gPath);
+          if ($graphRaw !== false) {
+            $decodedGraph = json_decode($graphRaw, true);
+            if (is_array($decodedGraph)) {
+              $graph = $decodedGraph;
+            }
+          }
+        }
+        if (!is_array($graph)) {
+          $graph = array();
+        }
+      }
+      return $graph;
+    }
+    /**
+     * Build the ordered, deduped list of registry-relative module paths to
+     * modulepreload for the render-critical shell + active theme.
+     *
+     * Caps at $cap links (default 12) and depth <= 2 (entries + their direct
+     * imports), per Google/web.dev guidance: preload entry points + direct
+     * top-level chunks for above-the-fold render+hydrate only, never deep
+     * sub-dependency graphs. Falls back to the fixed shell entry list when
+     * the graph artifact is absent (older CDN builds / older backends), so
+     * graceful degradation is automatic.
+     *
+     * @return string[] registry-relative paths (e.g. "@haxtheweb/.../x.js")
+     */
+    public function buildShellModulepreloadPaths($site, $base = './', $themePath = '', $cap = 12) {
+      $shellEntries = array(
+        '@haxtheweb/wc-autoload/wc-autoload.js',
+        '@haxtheweb/dynamic-import-registry/dynamic-import-registry.js',
+        '@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js',
+        '@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js',
+        '@haxtheweb/haxcms-elements/lib/core/haxcms-site-router.js',
+        '@haxtheweb/haxcms-elements/lib/core/HAXCMSThemeWiring.js',
+        '@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js',
+        '@haxtheweb/utils/utils.js',
+      );
+      if ($themePath) {
+        $themePath = (string) $themePath;
+        if (!in_array($themePath, $shellEntries, true)) {
+          $shellEntries[] = $themePath;
+        }
+      }
+      $graph = $this->getWCRegistryGraphJson($site, $base);
+      // graceful degradation: no graph artifact -> fixed shell list as before
+      if (!isset($graph['paths']) || !isset($graph['adj'])) {
+        return $shellEntries;
+      }
+      $paths = $graph['paths'];
+      $adj = $graph['adj'];
+      // map path -> index for O(1) lookup
+      $pathToIdx = array();
+      foreach ($paths as $i => $p) {
+        $pathToIdx[(string) $p] = $i;
+      }
+      $result = array();
+      $seen = array();
+      // depth 0: entries in the prioritized order given (entry > all)
+      foreach ($shellEntries as $e) {
+        $e = (string) $e;
+        if (!isset($seen[$e])) {
+          $seen[$e] = true;
+          $result[] = $e;
+        }
+      }
+      // depth 1: direct imports of entries, deduped, until the cap is hit.
+      // shared core (lit/DDD/mobx) naturally surfaces first since the earliest
+      // entries import it, which matches the "entry > shared core > deps"
+      // priority without an explicit sharedness pass.
+      foreach ($shellEntries as $e) {
+        if (count($result) >= $cap) {
+          break;
+        }
+        $e = (string) $e;
+        if (isset($pathToIdx[$e])) {
+          $idx = (string) $pathToIdx[$e];
+          if (isset($adj[$idx]) && is_array($adj[$idx])) {
+            foreach ($adj[$idx] as $impIdx) {
+              if (count($result) >= $cap) {
+                break;
+              }
+              $impPath = isset($paths[$impIdx]) ? (string) $paths[$impIdx] : '';
+              if ($impPath && !isset($seen[$impPath])) {
+                $seen[$impPath] = true;
+                $result[] = $impPath;
+              }
+            }
+          }
+        }
+      }
+      return $result;
+    }
+    /**
+     * Resolve a content tag name to its registry-relative entry path via the
+     * flat wc-registry.json. Returns false when the tag is not registered.
+     * Centralizes the lookup so getSiteMetadata can dedup content-tag
+     * preloads against the shell set without re-reading the registry.
+     */
+    public function getContentTagPath($site, $base, $tag) {
+      $wcMap = $this->getWCRegistryJson($site, $base);
+      $tag = (string) $tag;
+      if (isset($wcMap->{$tag})) {
+        return (string) $wcMap->{$tag};
+      }
+      return false;
+    }
+    /**
      * Request URI resolution
      */
     public function request_uri() {
@@ -1123,6 +1265,14 @@ class HAXCMS
                 @symlink(
                     '../../wc-registry.json',
                     $siteDirectoryPath . '/wc-registry.json'
+                );
+              }
+              // make the graph artifact (server-side modulepreload hints)
+              // available at the site level next to wc-registry.json
+              if (!is_link($siteDirectoryPath . '/wc-registry-graph.json')) {
+                @symlink(
+                    '../../wc-registry-graph.json',
+                    $siteDirectoryPath . '/wc-registry-graph.json'
                 );
               }
               if (!is_link($siteDirectoryPath . '/build')) {

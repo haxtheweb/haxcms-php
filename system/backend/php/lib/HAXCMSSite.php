@@ -2174,13 +2174,41 @@ class HAXCMSSite
         $preconnect = '<link rel="preconnect" crossorigin href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($cdn, '')) . '">';
         $base = SanitizeContent::sanitizeURLValue($cdn, '');
       }
+      // resolve the active theme entry path up front so the shell helper
+      // can include it (depth 0) and content-tag preloads can dedup against
+      // the shell set.
+      $themePath = '';
+      if (isset($this->manifest->metadata->theme->path)) {
+        $themePath = htmlspecialchars(str_replace("@lrnwebcomponents/", "@haxtheweb/", (string) $this->manifest->metadata->theme->path), ENT_QUOTES, 'UTF-8');
+      }
+      // graph-driven, capped (<=12, depth<=2) shell+theme modulepreload set.
+      // Falls back to the fixed shell entry list when wc-registry-graph.json
+      // is absent (older CDN builds / older backends) -- graceful degradation.
+      $shellPaths = $GLOBALS['HAXCMS']->buildShellModulepreloadPaths($this, $base, $themePath);
+      $shellModulepreload = '';
+      $shellSet = array();
+      foreach ($shellPaths as $sp) {
+        $sp = (string) $sp;
+        $shellSet[$sp] = true;
+        $shellModulepreload .= '  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $sp . '" crossorigin="anonymous" />' . "\n";
+      }
+      $shellModulepreload = rtrim($shellModulepreload);
+      // per-tag content preload (entry only), deduped against the shell set
+      // so content tags already covered by the shell closure are not emitted.
       $contentPreload = '';
-      $wcMap = $GLOBALS['HAXCMS']->getWCRegistryJson($this, $base);
+      $contentSeen = array();
       foreach ($preloadTags as $tag) {
-        if (isset($wcMap->{$tag})) {
-          $contentPreload .= "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
+        $tagPath = $GLOBALS['HAXCMS']->getContentTagPath($this, $base, $tag);
+        if ($tagPath === false) {
+          continue;
         }
+        $tagPath = (string) $tagPath;
+        if (isset($shellSet[$tagPath]) || isset($contentSeen[$tagPath])) {
+          continue;
+        }
+        $contentSeen[$tagPath] = true;
+        $contentPreload .= "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $tagPath . '" as="script" crossorigin="anonymous" />' .
+          "\n" . '  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $tagPath . '" />';
       }
       $rawTitle = '';
       if (isset($page->title)) {
@@ -2195,10 +2223,10 @@ class HAXCMSSite
       $description = SanitizeContent::escapeHTMLAttribute($rawDescription);
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
-      if (isset($this->manifest->metadata->theme->path)) {
-        $themePath = htmlspecialchars(str_replace("@lrnwebcomponents/", "@haxtheweb/", (string) $this->manifest->metadata->theme->path), ENT_QUOTES, 'UTF-8');
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" />';
+      if ($themePath) {
+        // theme modulepreload is already in the shell set above; keep only
+        // the preload-as-script hint so the theme fetch is prioritized early.
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />';
       }
       if ($rawDescription == '' && isset($this->manifest->description)) {
         $rawDescription = (string) $this->manifest->description;
@@ -2271,14 +2299,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-router.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSThemeWiring.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/utils/utils.js" crossorigin="anonymous" />
+' . $shellModulepreload . '
 ' . $themePreload . $contentPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <link rel="llms" href="llms.txt" title="LLM Content Map" />

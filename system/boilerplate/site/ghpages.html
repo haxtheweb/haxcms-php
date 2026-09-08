@@ -96,6 +96,11 @@
   <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <!-- build.js and build-haxcms.js are loaded via script at the end of body; removing redundant preload -->
   <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
+  <!-- Static fallback shell modulepreload set (see the matching comment in
+       boilerplate/site/index.html). The dynamic publish/render path replaces
+       this with a graph-driven, capped set from wc-registry-graph.json via
+       HAXCMS.buildShellModulepreloadPaths; the ./build/ prefix shape is
+       preserved so the CDN-fallback rewriter below keeps working. -->
   <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
   <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" crossorigin="anonymous" />

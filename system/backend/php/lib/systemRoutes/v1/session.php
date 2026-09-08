@@ -245,6 +245,13 @@ return function ($context) {
         }
     }
     else if ($route === 'v1/session/connection-test') {
+        // Auth-state probes must never be cached: a cached authenticated body
+        // could be served to a different user (token leak), and a cached
+        // anonymous body could mask a now-logged-in session. Applies to every
+        // response branch below. sendFormattedResponse sets Vary / Content-
+        // Location / Link / Content-Type but never Cache-Control, so this
+        // header is preserved through the formatter.
+        header('Cache-Control: no-store');
         // Security (Phase 3 Bearer-only): JWT must arrive via the Authorization
         // Bearer header, never request params/body. The body jwt/token fallback
         // is removed so HAXiam and other clients use appSettings.jwt as a Bearer
@@ -261,15 +268,39 @@ return function ($context) {
         }
         if ($sessionContext === null) {
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+            // Anonymous probe (no Bearer and no valid refresh cookie): answer
+            // 200 with authenticated:false so the logged-out majority doesn't
+            // see a 401 in the console / network panel. Reserve 401 for when a
+            // credential was actually supplied but rejected (stale/expired
+            // Bearer that haxcmsResolveBearerSessionContext rejected).
+            if ($requestedJWT !== '') {
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'status' => 401,
+                        'authenticated' => false,
+                        'reason' => 'invalid_session',
+                        'message' => 'Authentication failed',
+                    ),
+                    array(
+                        'statusCode' => 401,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'status' => 401,
+                    'status' => 200,
                     'authenticated' => false,
-                    'reason' => 'invalid_session',
-                    'message' => 'Authentication failed',
+                    'reason' => 'no_session',
+                    'message' => 'No active session',
                 ),
                 array(
-                    'statusCode' => 401,
+                    'statusCode' => 200,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
                     'envelope' => false,
