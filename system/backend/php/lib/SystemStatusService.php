@@ -4,8 +4,12 @@ class HAXCMSSystemStatusService
     const GITHUB_RELEASES_LATEST_URL = 'https://api.github.com/repos/haxtheweb/haxcms-php/releases/latest';
     const RELEASE_CACHE_TTL_SECONDS = 300;
     const RELEASES_PAGE_URL = 'https://github.com/haxtheweb/haxcms-php/releases';
+    const RELEASES_LATEST_URL = 'https://github.com/haxtheweb/haxcms-php/releases/latest';
     const UPLOAD_LIMIT_HELP_URL = 'https://www.php.net/manual/en/ini.core.php#ini.upload-max-filesize';
     const DISCORD_SUPPORT_URL = 'https://discord.gg/qGBZMBnHc';
+    const HAXTHEWEB_URL = 'https://haxtheweb.org';
+    const PHP_RELEASES_URL = 'https://www.php.net/releases/';
+    const APACHE_URL = 'https://httpd.apache.org/';
 
     private static function normalizeVersion($value)
     {
@@ -27,6 +31,18 @@ class HAXCMSSystemStatusService
             return trim($_SERVER['SERVER_SOFTWARE']);
         }
         return 'php-web-server';
+    }
+
+    private static function resolveServerVersionLink($serverVersion)
+    {
+        $normalized = strtolower(trim((string) $serverVersion));
+        if ($normalized === '') {
+            return '';
+        }
+        if (strpos($normalized, 'apache') !== false || strpos($normalized, 'httpd') !== false) {
+            return self::APACHE_URL;
+        }
+        return '';
     }
 
     private static function joinPath($base, $segment)
@@ -242,6 +258,7 @@ class HAXCMSSystemStatusService
                 'title' => 'Programming language runtime',
                 'value' => $summary['programmingLanguage'],
                 'description' => 'Detected runtime used by the active backend process.',
+                'valueLink' => self::PHP_RELEASES_URL,
             ),
             array(
                 'key' => 'server',
@@ -249,6 +266,7 @@ class HAXCMSSystemStatusService
                 'title' => 'Server version',
                 'value' => $summary['serverVersion'],
                 'description' => 'Detected web server stack serving this request.',
+                'valueLink' => self::resolveServerVersionLink($summary['serverVersion']),
             ),
             array(
                 'key' => 'config-directory-path',
@@ -269,10 +287,16 @@ class HAXCMSSystemStatusService
                 'tone' => 'info',
                 'title' => 'File upload limit',
                 'value' => isset($options['uploadLimit']) ? $options['uploadLimit'] : self::getUploadLimitLabel(),
-                'description' => 'Increase upload limit via server settings: ' . (
-                    isset($options['uploadLimitHelpUrl']) && is_string($options['uploadLimitHelpUrl']) && $options['uploadLimitHelpUrl'] !== ''
-                        ? $options['uploadLimitHelpUrl']
-                        : self::UPLOAD_LIMIT_HELP_URL
+                'description' => 'Increase upload limit via server settings.',
+                'links' => array(
+                    array(
+                        'url' => (
+                            isset($options['uploadLimitHelpUrl']) && is_string($options['uploadLimitHelpUrl']) && $options['uploadLimitHelpUrl'] !== ''
+                                ? $options['uploadLimitHelpUrl']
+                                : self::UPLOAD_LIMIT_HELP_URL
+                        ),
+                        'label' => 'View upload limit documentation',
+                    ),
                 ),
             ),
         );
@@ -365,16 +389,26 @@ class HAXCMSSystemStatusService
             'title' => 'HAXcms version',
             'value' => $summary['haxcmsVersionCurrent'],
             'description' => $versionDescription,
+            'valueLink' => self::RELEASES_LATEST_URL,
         );
+        $supportUrl = isset($options['supportUrl']) && is_string($options['supportUrl']) && $options['supportUrl'] !== ''
+            ? $options['supportUrl']
+            : self::DISCORD_SUPPORT_URL;
         $rows[] = array(
             'key' => 'community-support',
             'tone' => 'info',
             'title' => 'Community support',
             'value' => 'Discord',
-            'description' => 'Join community support: ' . (
-                isset($options['supportUrl']) && is_string($options['supportUrl']) && $options['supportUrl'] !== ''
-                    ? $options['supportUrl']
-                    : self::DISCORD_SUPPORT_URL
+            'description' => 'Join the HAX community for support and discussion.',
+            'links' => array(
+                array(
+                    'url' => $supportUrl,
+                    'label' => 'Join Discord',
+                ),
+                array(
+                    'url' => self::HAXTHEWEB_URL,
+                    'label' => 'Visit haxtheweb.org',
+                ),
             ),
         );
         return array(
