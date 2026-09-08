@@ -318,6 +318,7 @@ class SystemApiSecurity
             'v1/schemas' => array('GET', 'POST'),
             'v1/configuration/api-keys' => array('GET'),
             'v1/configuration/media' => array('GET'),
+            'v1/configuration/localization' => array('GET', 'POST'),
             'v1/session/user' => array('GET', 'POST'),
         );
     }

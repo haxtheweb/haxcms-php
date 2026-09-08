@@ -25,8 +25,9 @@ if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
         if ($route === 'v1/configuration/schema-files/operations') {
             return true;
         }
-        // Toggle PATCH writes (skeletons/themes/blocks + api-keys/media) enforce
-        // the header per the system-dashboard-write directive.
+        // Toggle PATCH writes (skeletons/themes/blocks + api-keys/media +
+        // localization) enforce the header per the system-dashboard-write
+        // directive.
         if (
             $normalizedMethod === 'PATCH' &&
             (
@@ -34,7 +35,8 @@ if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
                 $route === 'v1/themes' ||
                 $route === 'v1/blocks' ||
                 $route === 'v1/configuration/api-keys' ||
-                $route === 'v1/configuration/media'
+                $route === 'v1/configuration/media' ||
+                $route === 'v1/configuration/localization'
             )
         ) {
             return true;
@@ -63,14 +65,15 @@ if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
                 return true;
             }
         }
-        // GET-only reads: api-keys/media GET declare userTokenHeader, but the
-        // POST aliases (saveApiKeysPost / saveMediaSettingsPost) are bearer-only
-        // per the spec, so only GET feeds the client header. PATCH writes are
-        // already handled above.
+        // GET-only reads: api-keys/media/localization GET declare userTokenHeader,
+        // but the POST aliases (saveApiKeysPost / saveMediaSettingsPost) are
+        // bearer-only per the spec, so only GET feeds the client header. PATCH
+        // writes are already handled above.
         if ($normalizedMethod === 'GET') {
             $readRoutesGetOnly = array(
                 'v1/configuration/api-keys',
                 'v1/configuration/media',
+                'v1/configuration/localization',
             );
             if (in_array($route, $readRoutesGetOnly, true)) {
                 return true;
@@ -425,6 +428,18 @@ return function ($context) {
         else {
             $response = haxcmsSystemSettingsInvokeAsPost(
                 array($operations, 'saveMediaSettings')
+            );
+        }
+    }
+    else if ($route === 'v1/configuration/localization') {
+        if ($method === 'GET' || $method === 'POST') {
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'getLocalizationSettings')
+            );
+        }
+        else {
+            $response = haxcmsSystemSettingsInvokeAsPost(
+                array($operations, 'saveLocalizationSettings')
             );
         }
     }

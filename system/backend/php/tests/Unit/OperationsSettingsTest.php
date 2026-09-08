@@ -453,6 +453,97 @@ class OperationsSettingsTest extends TestCase
         $this->assertSame('jpg,jpeg,png,gif,webp,svg', $result['data']['acceptedFormats']);
     }
 
+    // ===== saveLocalizationSettings =====
+
+    public function testSaveLocalizationSettingsFailsWithInvalidUserToken(): void
+    {
+        $this->haxcms->validRequestToken = false;
+        $this->ops->params = array('user_token' => 'bad');
+        $result = $this->ops->saveLocalizationSettings();
+        $this->assertSame(403, $result['__failed']['status']);
+        $this->assertSame('invalid request token', $result['__failed']['message']);
+    }
+
+    public function testSaveLocalizationSettingsFailsWithMissingPayload(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array('user_token' => 'good');
+        $result = $this->ops->saveLocalizationSettings();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Missing localization settings payload', $result['__failed']['message']);
+    }
+
+    public function testSaveLocalizationSettingsFailsWithInvalidLanguage(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'user_token' => 'good',
+            'localizationSettings' => array('defaultLanguage' => 'not-a-valid-tag!!'),
+        );
+        $result = $this->ops->saveLocalizationSettings();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Invalid defaultLanguage value', $result['__failed']['message']);
+    }
+
+    public function testSaveLocalizationSettingsPersistsToConfigJson(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        // Seed config.json so writeLocalizationSettings can load+preserve it.
+        $configPath = $this->haxcms->configDirectory . '/config.json';
+        file_put_contents($configPath, json_encode(array(
+            'deploymentProfile' => 'self-hosted-multi-site',
+            'themes' => new stdClass(),
+        ), JSON_PRETTY_PRINT));
+        $this->ops->params = array(
+            'user_token' => 'good',
+            'localizationSettings' => array('defaultLanguage' => 'es-ES'),
+        );
+        $result = $this->ops->saveLocalizationSettings();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('es-ES', $result['data']['defaultLanguage']);
+        // Localization settings write to the localization block on config.json
+        // (NOT a separate settings file), so verify config.json was updated.
+        $this->assertFileExists($configPath);
+        $persisted = json_decode(file_get_contents($configPath), true);
+        $this->assertSame('es-ES', $persisted['localization']['defaultLanguage']);
+        // Sibling keys must be preserved.
+        $this->assertSame('self-hosted-multi-site', $persisted['deploymentProfile']);
+    }
+
+    // ===== getLocalizationSettings =====
+
+    public function testGetLocalizationSettingsFailsWithInvalidUserToken(): void
+    {
+        $this->haxcms->validRequestToken = false;
+        $this->ops->params = array('user_token' => 'bad');
+        $result = $this->ops->getLocalizationSettings();
+        $this->assertSame(403, $result['__failed']['status']);
+        $this->assertSame('invalid request token', $result['__failed']['message']);
+    }
+
+    public function testGetLocalizationSettingsReturnsEffectiveDefaultsWhenNoConfig(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array('user_token' => 'good');
+        $result = $this->ops->getLocalizationSettings();
+        $this->assertSame(200, $result['status']);
+        // Documented effective default (parity with Node getEffectiveLocalizationSettings).
+        $this->assertSame('en-US', $result['data']['defaultLanguage']);
+    }
+
+    public function testGetLocalizationSettingsReturnsPersistedValue(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $configPath = $this->haxcms->configDirectory . '/config.json';
+        file_put_contents($configPath, json_encode(array(
+            'localization' => array('defaultLanguage' => 'fr-FR'),
+        ), JSON_PRETTY_PRINT));
+        $this->ops->params = array('user_token' => 'good');
+        $result = $this->ops->getLocalizationSettings();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('fr-FR', $result['data']['defaultLanguage']);
+    }
+
     // ===== getSkeleton =====
 
     public function testGetSkeletonFailsWithInvalidUserToken(): void
