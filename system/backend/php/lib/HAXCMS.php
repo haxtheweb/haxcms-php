@@ -205,121 +205,124 @@ class HAXCMS
                     $this->configDirectory . '/SALT.txt'
                 );
             }
-            // check for a config json file to populate all configurable settings
+            // check for a config json file to populate all configurable settings.
+            // Safeguard (issue #2967): missing, empty, and corrupt/unparseable
+            // config.json are all treated as the SAME "invalid" trigger for a
+            // pure in-memory fallback -- this loader NEVER writes, copies, or
+            // creates anything on disk. A missing or corrupt file on disk is
+            // always left completely untouched. The real cause (missing / empty
+            // / JSON syntax error) is logged server-side only via error_log();
+            // no absolute path or parser message is ever leaked into an HTTP
+            // response. The key-merge logic below now runs unconditionally
+            // against whatever valid config object comes back (loaded,
+            // boilerplate fallback, or minimal in-memory object).
+            $this->config = $this->loadConfigJson($this->configDirectory . '/config.json');
+            // theme data
+            // Defensive: some legacy/corrupted config.json files may have
+            // "themes" persisted as a JSON array (e.g. an empty object
+            // "{}" mistakenly round-tripped through an associative-array
+            // json_decode/json_encode elsewhere, which PHP cannot
+            // distinguish from an empty list). Guard against assigning
+            // properties onto an array, which is a fatal error.
+            if (!isset($this->config->themes) || !is_object($this->config->themes)) {
+                $this->config->themes = new stdClass();
+            }
+            if (!isset($this->config->appJWTConnectionSettings)) {
+                $this->config->appJWTConnectionSettings = new stdClass();
+            }
+            if (!isset($this->config->deploymentProfile)) {
+                if (isset($this->config->iam) && $this->config->iam) {
+                    $this->config->deploymentProfile = 'haxiam-managed';
+                }
+                else {
+                    $this->config->deploymentProfile = 'self-hosted-multi-site';
+                }
+            }
+            if (!isset($this->config->mcp)) {
+                $this->config->mcp = new stdClass();
+            }
+            if (!isset($this->config->mcp->enabled)) {
+                $this->config->mcp->enabled = ($this->getDeploymentProfile() != 'haxiam-managed');
+            }
+            if (!isset($this->config->mcp->readOnly)) {
+                $this->config->mcp->readOnly = TRUE;
+            }
+            if (!isset($this->config->security)) {
+                $this->config->security = new stdClass();
+            }
+            if (!isset($this->config->security->loginRateLimit)) {
+                $this->config->security->loginRateLimit = new stdClass();
+            }
+            // localization / system-wide defaults (default language seeded
+            // at install time and editable via the Configuration admin panel)
+            if (!isset($this->config->localization)) {
+                $this->config->localization = new stdClass();
+            }
+            if (!isset($this->config->localization->defaultLanguage)) {
+                $this->config->localization->defaultLanguage = 'en-US';
+            }
+            // load in core theme data
+            $themeData = json_decode(
+                file_get_contents(
+                    $this->coreConfigPath . 'themes.json'
+                )
+            );
+            foreach ($themeData as $name => $data) {
+                $this->config->themes->{$name} = $data;
+            }
+            // node
+            if (!isset($this->config->node)) {
+                $this->config->node = new stdClass();
+                $this->config->node->fields = new stdClass();
+            }
+            // publishing endpoints
+            if (!isset($this->config->site)) {
+                $this->config->site = new stdClass();
+                $this->config->site->settings = new stdClass();
+                $this->config->site->git = new stdClass();
+                $this->config->site->static = new stdClass();
+            }
+            if (!isset($this->config->site->publishers)) {
+              $this->config->site->publishers = new stdClass();
+            }
+            // load in core publishing data
+            $publishingData = json_decode(
+                file_get_contents(
+                  $this->coreConfigPath . 'publishers.json'
+                )
+            );
+            foreach ($publishingData as $name => $data) {
+                $this->config->site->publishers->{$name} = $data;
+            }
+            // site fields in HAXschema format
+            if (!isset($this->config->site->fields)) {
+                $this->config->site->fields = array(new stdClass());
+            }
+            $fieldsData = json_decode(
+                file_get_contents(
+                  $this->coreConfigPath . 'siteFields.json'
+                )
+            );
+            foreach ($fieldsData as $name => $data) {
+                $this->config->site->fields[0]->{$name} = $data;
+            }
+            $themeSelect = array();
+            // ensure field schema has correct theme options
+            // filter hidden / terrible themes from the site settings dialog
+            foreach ($this->config->themes as $name => $data) {
+              if ((isset($data->hidden) && $data->hidden) || (isset($data->terrible) && $data->terrible)) {
+                continue;
+              }
+              $themeSelect[$name] = $data->name;
+            }
+            // @todo this is VERY hacky specific placement of the theme options
+            $this->config->site->fields[0]->properties[1]->properties[0]->options = $themeSelect;
+            // load in core userData object
             if (
-                !($this->config = json_decode(
-                    file_get_contents($this->configDirectory . '/config.json')
-                ))
-            ) {
-                print $this->configDirectory . '/config.json missing';
-            } else {
-                // theme data
-                // Defensive: some legacy/corrupted config.json files may have
-                // "themes" persisted as a JSON array (e.g. an empty object
-                // "{}" mistakenly round-tripped through an associative-array
-                // json_decode/json_encode elsewhere, which PHP cannot
-                // distinguish from an empty list). Guard against assigning
-                // properties onto an array, which is a fatal error.
-                if (!isset($this->config->themes) || !is_object($this->config->themes)) {
-                    $this->config->themes = new stdClass();
-                }
-                if (!isset($this->config->appJWTConnectionSettings)) {
-                    $this->config->appJWTConnectionSettings = new stdClass();
-                }
-                if (!isset($this->config->deploymentProfile)) {
-                    if (isset($this->config->iam) && $this->config->iam) {
-                        $this->config->deploymentProfile = 'haxiam-managed';
-                    }
-                    else {
-                        $this->config->deploymentProfile = 'self-hosted-multi-site';
-                    }
-                }
-                if (!isset($this->config->mcp)) {
-                    $this->config->mcp = new stdClass();
-                }
-                if (!isset($this->config->mcp->enabled)) {
-                    $this->config->mcp->enabled = ($this->getDeploymentProfile() != 'haxiam-managed');
-                }
-                if (!isset($this->config->mcp->readOnly)) {
-                    $this->config->mcp->readOnly = TRUE;
-                }
-                if (!isset($this->config->security)) {
-                    $this->config->security = new stdClass();
-                }
-                if (!isset($this->config->security->loginRateLimit)) {
-                    $this->config->security->loginRateLimit = new stdClass();
-                }
-                // localization / system-wide defaults (default language seeded
-                // at install time and editable via the Configuration admin panel)
-                if (!isset($this->config->localization)) {
-                    $this->config->localization = new stdClass();
-                }
-                if (!isset($this->config->localization->defaultLanguage)) {
-                    $this->config->localization->defaultLanguage = 'en-US';
-                }
-                // load in core theme data
-                $themeData = json_decode(
-                    file_get_contents(
-                        $this->coreConfigPath . 'themes.json'
-                    )
-                );
-                foreach ($themeData as $name => $data) {
-                    $this->config->themes->{$name} = $data;
-                }
-                // node
-                if (!isset($this->config->node)) {
-                    $this->config->node = new stdClass();
-                    $this->config->node->fields = new stdClass();
-                }
-                // publishing endpoints
-                if (!isset($this->config->site)) {
-                    $this->config->site = new stdClass();
-                    $this->config->site->settings = new stdClass();
-                    $this->config->site->git = new stdClass();
-                    $this->config->site->static = new stdClass();
-                }
-                if (!isset($this->config->site->publishers)) {
-                  $this->config->site->publishers = new stdClass();
-                }
-                // load in core publishing data
-                $publishingData = json_decode(
-                    file_get_contents(
-                      $this->coreConfigPath . 'publishers.json'
-                    )
-                );
-                foreach ($publishingData as $name => $data) {
-                    $this->config->site->publishers->{$name} = $data;
-                }
-                // site fields in HAXschema format
-                if (!isset($this->config->site->fields)) {
-                    $this->config->site->fields = array(new stdClass());
-                }
-                $fieldsData = json_decode(
-                    file_get_contents(
-                      $this->coreConfigPath . 'siteFields.json'
-                    )
-                );
-                foreach ($fieldsData as $name => $data) {
-                    $this->config->site->fields[0]->{$name} = $data;
-                }
-                $themeSelect = array();
-                // ensure field schema has correct theme options
-                // filter hidden / terrible themes from the site settings dialog
-                foreach ($this->config->themes as $name => $data) {
-                  if ((isset($data->hidden) && $data->hidden) || (isset($data->terrible) && $data->terrible)) {
-                    continue;
-                  }
-                  $themeSelect[$name] = $data->name;
-                }
-                // @todo this is VERY hacky specific placement of the theme options
-                $this->config->site->fields[0]->properties[1]->properties[0]->options = $themeSelect;
-                // load in core userData object
-                if (
-                !($this->userData = json_decode(
-                    file_get_contents($this->configDirectory . '/userData.json')
-                ))) {
-                  $this->userData = new stdClass();
-                }
+            !($this->userData = json_decode(
+                file_get_contents($this->configDirectory . '/userData.json')
+            ))) {
+              $this->userData = new stdClass();
             }
             // Security best practice (M4): now that config (trustedProxies /
             // allowedHosts) is loaded, re-finalize protocol and domain so that
@@ -333,6 +336,103 @@ class HAXCMS
             }
             $this->dispatchEvent('haxcms-init', $this);
         }
+    }
+    /**
+     * Safeguard config.json loading (issue #2967).
+     *
+     * Reads and decodes the given config.json path. A missing file, an
+     * empty file, and a file that fails to json_decode() are all treated as
+     * the SAME 'invalid' trigger for a pure in-memory fallback: this method
+     * NEVER writes, copies, or creates anything on disk under any
+     * circumstances -- not for a missing file, not for a corrupt one. The
+     * fallback is always computed fresh in memory:
+     *   1. Try to decode the real boilerplate config.json (read-only).
+     *   2. If that also fails, build a minimal hand-built stdClass.
+     * The real cause (missing / empty / JSON syntax error, including the
+     * actual json_last_error_msg() text) is logged server-side only via
+     * error_log(); no absolute file path or parser message is ever leaked
+     * into an HTTP response.
+     *
+     * @param string $path absolute path to the config.json to load
+     * @return stdClass a valid, non-null config object
+     */
+    private function loadConfigJson($path)
+    {
+        $decoded = null;
+        if (!file_exists($path)) {
+            error_log('HAXCMS: config.json missing; falling back to in-memory defaults (no disk writes performed).');
+        } else {
+            $raw = @file_get_contents($path);
+            if (!is_string($raw) || trim($raw) === '') {
+                error_log('HAXCMS: config.json is empty; falling back to in-memory defaults (no disk writes performed).');
+            } else {
+                $decoded = json_decode($raw);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    error_log('HAXCMS: config.json failed to parse (' . json_last_error_msg() . '); falling back to in-memory defaults (no disk writes performed).');
+                    $decoded = null;
+                }
+            }
+        }
+        if (!is_object($decoded)) {
+            $decoded = $this->loadBoilerplateConfigJson();
+        }
+        return $decoded;
+    }
+    /**
+     * Read-only load of the boilerplate config.json as the first-tier
+     * in-memory fallback. NEVER copies or writes this file anywhere -- it is
+     * only decoded into memory. Falls back to a minimal hand-built object if
+     * the boilerplate itself is missing, empty, or fails to parse.
+     *
+     * @return stdClass a valid, non-null config object
+     */
+    private function loadBoilerplateConfigJson()
+    {
+        $boilerplatePath = HAXCMS_ROOT . '/system/boilerplate/systemsetup/config.json';
+        $decoded = null;
+        if (file_exists($boilerplatePath)) {
+            $raw = @file_get_contents($boilerplatePath);
+            if (is_string($raw) && trim($raw) !== '') {
+                $decoded = json_decode($raw);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    error_log('HAXCMS: boilerplate config.json failed to parse (' . json_last_error_msg() . '); falling back to a minimal in-memory config.');
+                    $decoded = null;
+                }
+            } else {
+                error_log('HAXCMS: boilerplate config.json is missing or empty; falling back to a minimal in-memory config.');
+            }
+        } else {
+            error_log('HAXCMS: boilerplate config.json not found; falling back to a minimal in-memory config.');
+        }
+        if (!is_object($decoded)) {
+            $decoded = $this->minimalConfigFallback();
+        }
+        return $decoded;
+    }
+    /**
+     * Minimal hand-built in-memory config object, used only when both the
+     * real config.json AND the boilerplate config.json are unavailable or
+     * unparseable. Kept as a plain stdClass tree (not an associative array)
+     * so downstream `->` property access and bootstrapHAX.php's post-
+     * construction `$HAXCMS->config->iam = true;` both keep working.
+     *
+     * @return stdClass minimal valid config object
+     */
+    private function minimalConfigFallback()
+    {
+        $config = new stdClass();
+        $config->themes = new stdClass();
+        $config->security = new stdClass();
+        $config->site = new stdClass();
+        $config->site->settings = new stdClass();
+        $config->site->git = new stdClass();
+        $config->site->static = new stdClass();
+        $config->site->publishers = new stdClass();
+        $config->mcp = new stdClass();
+        $config->mcp->enabled = TRUE;
+        $config->mcp->readOnly = TRUE;
+        $config->deploymentProfile = 'single-site';
+        return $config;
     }
     /**
      * Generate a UUID (RFC 4122 v4).
