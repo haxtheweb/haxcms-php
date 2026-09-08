@@ -370,7 +370,20 @@ trait OperationsRouteCreateSite {
         $schema->metadata->site->settings = new stdClass();
       }
       if (!isset($schema->metadata->site->settings->lang) || $schema->metadata->site->settings->lang === '') {
-        $schema->metadata->site->settings->lang = 'en-US';
+        // fall back to the system-wide default language (set at install time
+        // and editable via the Configuration admin panel) when present, else
+        // the documented en-US default.
+        $systemDefaultLang = 'en-US';
+        if (
+          isset($GLOBALS['HAXCMS']->config->localization) &&
+          is_object($GLOBALS['HAXCMS']->config->localization) &&
+          isset($GLOBALS['HAXCMS']->config->localization->defaultLanguage) &&
+          is_string($GLOBALS['HAXCMS']->config->localization->defaultLanguage) &&
+          $GLOBALS['HAXCMS']->config->localization->defaultLanguage !== ''
+        ) {
+          $systemDefaultLang = $GLOBALS['HAXCMS']->config->localization->defaultLanguage;
+        }
+        $schema->metadata->site->settings->lang = $systemDefaultLang;
       }
       if (!isset($schema->metadata->site->settings->publishPagesOn)) {
         $schema->metadata->site->settings->publishPagesOn = true;

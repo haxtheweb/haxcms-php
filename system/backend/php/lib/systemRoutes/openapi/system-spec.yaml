@@ -993,6 +993,89 @@ paths:
                 additionalProperties: true
         "403":
           $ref: "#/components/responses/Forbidden"
+  /system/api/v1/configuration/localization:
+    get:
+      tags:
+        - settings
+      operationId: getLocalizationSettings
+      summary: Return localization and system default configuration
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Localization settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/LocalizationSettingsData"
+                additionalProperties: true
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - settings
+      operationId: getLocalizationSettingsPost
+      summary: Return localization and system default configuration (read alias of GET)
+      description: >
+        Read-only alias of GET /configuration/localization. POST is accepted
+        for callers that prefer POST over GET but does not write; use PATCH to
+        update localization settings. Single-user deployment assumption: the
+        NodeJS backend does not model an admin/superUser tier; these settings
+        are written by the single authenticated dashboard user.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      responses:
+        "200":
+          description: Localization settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      tags:
+        - settings
+      operationId: saveLocalizationSettingsPatch
+      summary: Update localization and system default configuration
+      description: >
+        Write operation — updates the system-wide default language (and future
+        localization defaults). The persisted value seeds the default language
+        applied to newly created sites and is editable post-install via the
+        Configuration admin panel. Single-user deployment assumption: the
+        NodeJS backend does not model an admin/superUser tier; settings are
+        written by the single authenticated dashboard user.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizationSettings"
+      responses:
+        "200":
+          description: Localization settings update response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/LocalizationSettingsData"
+                additionalProperties: true
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /system/api/v1/configuration/schema-files/operations:
     post:
       tags:
@@ -2740,6 +2823,17 @@ components:
       type: object
       description: Media settings payload
       additionalProperties: true
+    LocalizationSettings:
+      type: object
+      description: >
+        Localization / system default settings payload. The `defaultLanguage`
+        value is a BCP-47 shaped language tag (e.g. en-US) applied as the
+        default language for newly created sites.
+      properties:
+        defaultLanguage:
+          type: string
+          description: BCP-47 language tag (e.g. en-US, es-ES).
+      additionalProperties: true
     EnabledCollectionSettings:
       type: object
       description: Enabled item map payload
@@ -3016,6 +3110,16 @@ components:
         maxUploadSizeMb:
           type: integer
         acceptedFormats:
+          type: string
+      additionalProperties: true
+    LocalizationSettingsData:
+      type: object
+      description: >
+        Localization settings returned by getLocalizationSettings and
+        saveLocalizationSettingsPatch. The front-end (haxcms-system-settings
+        Configuration panel) reads `data.defaultLanguage`.
+      properties:
+        defaultLanguage:
           type: string
       additionalProperties: true
     SchemaFileOperationData:

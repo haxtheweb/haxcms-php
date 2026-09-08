@@ -35,6 +35,7 @@ class SystemRoutesMap
             'v1/schemas',
             'v1/configuration/api-keys',
             'v1/configuration/media',
+            'v1/configuration/localization',
             'v1/configuration/schema-files/operations',
             'v1/blocks',
             'v1/skeletons',
@@ -42,6 +43,7 @@ class SystemRoutesMap
             'v1/themes',
         );
     }
+
     /**
      * Subset of getSystemV1AdminRoutes() whose NON-GET methods require the
      * superUser principal (the true system-admin-dashboard routes: skeleton,
@@ -71,6 +73,7 @@ class SystemRoutesMap
             'v1/schemas',
             'v1/configuration/api-keys',
             'v1/configuration/media',
+            'v1/configuration/localization',
             'v1/configuration/schema-files/operations',
             'v1/blocks',
             'v1/skeletons',
@@ -121,6 +124,7 @@ class SystemRoutesMap
                 'v1/integrations/app-store/providers/:provider/search' => dirname(__FILE__) . '/v1/integrations.php',
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/configuration/media' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/configuration/localization' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/blocks' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons/:skeletonName' => dirname(__FILE__) . '/v1/settings.php',
@@ -146,6 +150,7 @@ class SystemRoutesMap
                 'v1/schemas' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/configuration/media' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/configuration/localization' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/configuration/schema-files/operations' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/blocks' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
@@ -179,6 +184,7 @@ class SystemRoutesMap
             'PATCH' => array(
                 'v1/configuration/api-keys' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/configuration/media' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/configuration/localization' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/blocks' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons/:skeletonName' => dirname(__FILE__) . '/v1/settings.php',

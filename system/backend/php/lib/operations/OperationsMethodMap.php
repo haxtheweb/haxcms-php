@@ -15,6 +15,8 @@ class OperationsMethodMap {
       'saveApiKeys' => dirname(__FILE__) . '/saveApiKeys.php',
       'getMediaSettings' => dirname(__FILE__) . '/getMediaSettings.php',
       'saveMediaSettings' => dirname(__FILE__) . '/saveMediaSettings.php',
+      'getLocalizationSettings' => dirname(__FILE__) . '/getLocalizationSettings.php',
+      'saveLocalizationSettings' => dirname(__FILE__) . '/saveLocalizationSettings.php',
       'saveOutline' => dirname(__FILE__) . '/saveOutline.php',
       'createNode' => dirname(__FILE__) . '/createNode.php',
       'saveNode' => dirname(__FILE__) . '/saveNode.php',
