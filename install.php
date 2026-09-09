@@ -347,12 +347,14 @@ if (!function_exists('haxcmsInstallerBuildStateResponse')) {
             'description' => isset($row['description']) ? $row['description'] : '',
             'suggestedCommand' => isset($row['suggestedCommand']) ? $row['suggestedCommand'] : '',
           );
-          if ($tone === 'error' || $tone === 'warning') {
+          // Only blocking errors stay under "needs configuration". Non-
+          // blocking warnings (e.g. security secrets pending before step 4,
+          // owner mismatch, version check) fold into "passed checks" so the
+          // user sees a clean Continue path once real errors are resolved.
+          if ($tone === 'error') {
             $needsConfiguration[] = $entry;
-            if ($tone === 'error') {
-              $hasErrors = true;
-            }
-          } else if ($tone === 'ok') {
+            $hasErrors = true;
+          } else if ($tone === 'warning' || $tone === 'ok') {
             $allPassed[] = $entry;
           }
         }
