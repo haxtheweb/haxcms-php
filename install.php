@@ -44,16 +44,37 @@ include_once __DIR__ . '/system/backend/php/lib/Git.php';
 @mkdir(__DIR__ . '/_config/tmp', 0755, true);
 
 // Security best practice (I5): once HAXcms is already installed (the four
-// core directories exist AND _config/config.php exists), the installer must
-// never run setup logic again — it is an unauthenticated endpoint that
-// creates credentials and secrets. Redirect to the dashboard and stop before
-// any POST/file logic executes.
+// core directories exist AND _config/config.php exists AND config.php has
+// been templated with real secrets), the installer must never run setup
+// logic again — it is an unauthenticated endpoint that creates credentials.
+// Redirect to the dashboard and stop before any POST/file logic executes.
+//
+// The "not finished installing" flag: if config.php still contains boilerplate
+// placeholder tokens (HAXTHEWEBPRIVATEKEY / HAXTHEWEBREFRESHPRIVATEKEY /
+// jeff / jimmerson), step 4 has NOT run yet. We must keep serving the wizard
+// so the user can enter credentials and complete the install. Redirecting
+// away in this state returns HTML to the wizard's ?op=state JSON fetch and
+// breaks the front-end (issue #2974).
+$installerConfigPhpPath = __DIR__ . '/_config/config.php';
+$installerConfigNotTemplated = false;
+if (file_exists($installerConfigPhpPath)) {
+  $installerConfigRaw = @file_get_contents($installerConfigPhpPath);
+  if (is_string($installerConfigRaw) && (
+    strpos($installerConfigRaw, 'HAXTHEWEBPRIVATEKEY') !== false ||
+    strpos($installerConfigRaw, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
+    strpos($installerConfigRaw, 'jeff') !== false ||
+    strpos($installerConfigRaw, 'jimmerson') !== false
+  )) {
+    $installerConfigNotTemplated = true;
+  }
+}
 if (
   is_dir(__DIR__ . '/_sites') &&
   is_dir(__DIR__ . '/_config') &&
   is_dir(__DIR__ . '/_published') &&
   is_dir(__DIR__ . '/_archived') &&
-  file_exists(__DIR__ . '/_config/config.php')
+  file_exists($installerConfigPhpPath) &&
+  !$installerConfigNotTemplated
 ) {
   // Absolute, root-relative redirect so a 404 on a static asset (rewritten
   // to this install.php by .htaccess) cannot turn into a redirect loop.
@@ -107,6 +128,16 @@ if (!function_exists('haxcmsInstallerGeneratePassword')) {
     return implode($pass);
   }
 }
+if (!function_exists('haxcmsInstallerGenerateSecureSecret')) {
+  function haxcmsInstallerGenerateSecureSecret()
+  {
+    $parts = array();
+    for ($i = 0; $i < 4; $i++) {
+      $parts[] = bin2hex(random_bytes(16));
+    }
+    return implode('-', $parts);
+  }
+}
 if (!function_exists('haxcmsInstallerGuardedMkdir')) {
   function haxcmsInstallerGuardedMkdir($path, $permissions, &$failed, &$failedMessages)
   {
@@ -153,19 +184,14 @@ if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
   function haxcmsInstallerEnsureRuntimeDirectories(&$failed, &$failedMessages)
   {
     // Lightweight and idempotent: create the runtime directory tree AND
-    // copy the non-secret boilerplate files the system needs to boot
-    // without warnings, WITHOUT writing config.php, SALT, or any
-    // credentials. This lets the wizard auto-resolve "missing directory
-    // / missing file" errors from step 2 (see ?op=prepare) before the
-    // credential-creating step 4 runs.
-    //
-    // Secret-bearing files (config.php — templated with JWT private keys
-    // + password hash — and SALT.txt) are intentionally NOT created here;
-    // they are written at step 4. Because config.php is left missing,
-    // index.php's half-configured guard keeps redirecting to the
-    // installer so the user stays in the wizard until credentials are
-    // supplied. Safe to call on an unauthenticated, not-yet-installed
-    // system because it creates no secrets.
+    // copy all boilerplate files the system needs to boot without
+    // warnings. config.php is copied WITH placeholder tokens (templated
+    // at step 4 with real keys + password hash); SALT.txt is generated
+    // with a real random secret now so HAXCMS.php never loads an empty
+    // salt. The installed-guard's "not finished installing" flag
+    // (placeholder tokens in config.php) keeps the wizard active until
+    // step 4 completes, and index.php redirects to the installer while
+    // placeholders remain, so the system never runs with known keys.
     if (!is_dir(__DIR__ . '/_config')) {
       haxcmsInstallerGuardedMkdir(__DIR__ . '/_config', 0755, $failed, $failedMessages);
     }
@@ -178,16 +204,29 @@ if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
       haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user/files', 0755, $failed, $failedMessages);
       haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/node_modules', 0755, $failed, $failedMessages);
 
-      // Non-secret boilerplate files — copied so _config is functional
-      // enough for HAXCMS.php to load config.json / userData.json without
-      // emitting PHP warnings (issue #2974). config.php and SALT.txt are
-      // deliberately omitted (see comment above).
+      // Boilerplate files — copied so _config is functional enough for
+      // HAXCMS.php to load config.json / userData.json without warnings
+      // (issue #2974). config.php and SALT.txt are included below.
       $bp = __DIR__ . '/system/boilerplate/systemsetup';
       haxcmsInstallerGuardedCopy($bp . '/config.json', __DIR__ . '/_config/config.json', $failed, $failedMessages);
       haxcmsInstallerGuardedCopy($bp . '/my-custom-elements.js', __DIR__ . '/_config/my-custom-elements.js', $failed, $failedMessages);
       haxcmsInstallerGuardedCopy($bp . '/userData.json', __DIR__ . '/_config/userData.json', $failed, $failedMessages);
       haxcmsInstallerGuardedCopy($bp . '/.htaccess', __DIR__ . '/_config/.htaccess', $failed, $failedMessages);
       haxcmsInstallerGuardedCopy($bp . '/.user-files-htaccess', __DIR__ . '/_config/user/files/.htaccess', $failed, $failedMessages);
+      // config.php — copy boilerplate (with placeholder tokens; step 4
+      // replaces them with real private keys + password hash). The
+      // placeholder tokens ARE the "not finished installing" flag.
+      haxcmsInstallerGuardedCopy($bp . '/config.php', __DIR__ . '/_config/config.php', $failed, $failedMessages);
+      if (file_exists(__DIR__ . '/_config/config.php')) {
+        @chmod(__DIR__ . '/_config/config.php', 0600);
+      }
+      // SALT.txt — generate a real secret now (not the empty boilerplate)
+      // so HAXCMS.php never loads an empty salt. Step 4 skips generation
+      // since the file already exists.
+      if (!file_exists(__DIR__ . '/_config/SALT.txt')) {
+        @file_put_contents(__DIR__ . '/_config/SALT.txt', haxcmsInstallerGenerateSecureSecret(), LOCK_EX);
+        @chmod(__DIR__ . '/_config/SALT.txt', 0600);
+      }
       if (!file_exists(__DIR__ . '/_config/.isHAXcmsConfig')) {
         @file_put_contents(__DIR__ . '/_config/.isHAXcmsConfig', '');
       }
@@ -383,14 +422,6 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
     &$failed,
     &$failedMessages
   ) {
-    $generateSecureSecret = function () {
-      $parts = array();
-      for ($i = 0; $i < 4; $i++) {
-        $parts[] = bin2hex(random_bytes(16));
-      }
-      return implode('-', $parts);
-    };
-
     // --- _config directory (create if missing) ---
     if (!is_dir(__DIR__ . '/_config')) {
       haxcmsInstallerGuardedMkdir(__DIR__ . '/_config', 0755, $failed, $failedMessages);
@@ -458,7 +489,7 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
 
       // SALT — generated only if missing; restrict to 0600 (SEC-10)
       if (!file_exists(__DIR__ . '/_config/SALT.txt')) {
-        file_put_contents(__DIR__ . '/_config/SALT.txt', $generateSecureSecret(), LOCK_EX);
+        file_put_contents(__DIR__ . '/_config/SALT.txt', haxcmsInstallerGenerateSecureSecret(), LOCK_EX);
         @chmod(__DIR__ . '/_config/SALT.txt', 0600);
       }
 
@@ -473,8 +504,8 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
           strpos($configFile, 'jimmerson') !== false
         );
         if ($needsTemplating) {
-          $configFile = str_replace('HAXTHEWEBPRIVATEKEY', $generateSecureSecret(), $configFile);
-          $configFile = str_replace('HAXTHEWEBREFRESHPRIVATEKEY', $generateSecureSecret(), $configFile);
+          $configFile = str_replace('HAXTHEWEBPRIVATEKEY', haxcmsInstallerGenerateSecureSecret(), $configFile);
+          $configFile = str_replace('HAXTHEWEBREFRESHPRIVATEKEY', haxcmsInstallerGenerateSecureSecret(), $configFile);
           $configFile = str_replace('jeff', $resolvedUsername, $configFile);
           // persist a password_hash (bcrypt/argon2), never the plaintext
           $configFile = str_replace('jimmerson', password_hash($pass, PASSWORD_DEFAULT), $configFile);

@@ -1,12 +1,28 @@
 <?php
 // Half-configured guard: if any core directory is missing OR _config/config.php
-// does not exist, redirect to the installer instead of fatalling in HAXCMS.php.
+// does not exist OR config.php still has boilerplate placeholder tokens (the
+// install wizard has not run step 4 yet), redirect to the installer instead
+// of fatalling in HAXCMS.php or running with known placeholder private keys.
+$indexConfigPhpPath = __DIR__ . '/_config/config.php';
+$indexConfigNotTemplated = false;
+if (file_exists($indexConfigPhpPath)) {
+    $indexConfigRaw = @file_get_contents($indexConfigPhpPath);
+    if (is_string($indexConfigRaw) && (
+        strpos($indexConfigRaw, 'HAXTHEWEBPRIVATEKEY') !== false ||
+        strpos($indexConfigRaw, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
+        strpos($indexConfigRaw, 'jeff') !== false ||
+        strpos($indexConfigRaw, 'jimmerson') !== false
+    )) {
+        $indexConfigNotTemplated = true;
+    }
+}
 if (
     !is_dir('_config') ||
     !is_dir('_sites') ||
     !is_dir('_archived') ||
     !is_dir('_published') ||
-    !file_exists(__DIR__ . '/_config/config.php')
+    !file_exists($indexConfigPhpPath) ||
+    $indexConfigNotTemplated
 ) {
     $installBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
     header('Location: ' . ($installBase === '' ? '' : $installBase) . '/install.php');

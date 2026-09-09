@@ -367,11 +367,12 @@ class HAXCMSSystemStatusService
         }
         if (array_key_exists('securitySecretsLoaded', $options)) {
             $securityLoaded = (bool) $options['securitySecretsLoaded'];
+            $securityPending = !empty($options['securitySecretsPending']);
             $rows[] = array(
                 'key' => 'security-secrets',
-                'tone' => $securityLoaded ? 'ok' : 'error',
+                'tone' => $securityLoaded ? 'ok' : ($securityPending ? 'warning' : 'error'),
                 'title' => 'Security secrets',
-                'value' => $securityLoaded ? 'Loaded' : 'Missing',
+                'value' => $securityLoaded ? 'Loaded' : ($securityPending ? 'Pending' : 'Missing'),
                 'description' => isset($options['securityDescription'])
                     ? $options['securityDescription']
                     : 'Checks runtime secret material availability.',
@@ -582,7 +583,11 @@ class HAXCMSSystemStatusService
                 ),
             ),
             'securitySecretsLoaded' => $secretsLoaded,
-            'securityDescription' => 'Checks generated install secrets in _config/config.php and _config/SALT.txt.',
+            // During the install wizard, secrets are always "pending" until
+            // step 4 templates config.php with real keys. A warning (not an
+            // error) so the user can proceed to step 3 to enter credentials.
+            'securitySecretsPending' => true,
+            'securityDescription' => 'Checks generated install secrets in _config/config.php and _config/SALT.txt. These are created automatically when you complete the installation.',
             'jwtChecksEnabled' => true,
             'jwtDescription' => 'JWT validation is active once login is configured after installation.',
         ));
