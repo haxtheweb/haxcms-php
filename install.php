@@ -661,20 +661,6 @@ $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
         --github-corner-background: var(--ddd-primary-1);
         --github-corner-color: var(--ddd-theme-default-white);
       }
-      .wrapper {
-        padding: var(--ddd-spacing-4);
-        margin: 5vh 15vw;
-        display: flex;
-        justify-content: center;
-      }
-      .card {
-        width: 60vw;
-        max-width: 800px;
-        background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-primary-3));
-        padding: 0 var(--ddd-spacing-4);
-        border-radius: var(--ddd-radius-lg);
-        box-shadow: var(--ddd-boxShadow-md);
-      }
       git-corner {
         right: 0;
         top: 0;
@@ -683,18 +669,12 @@ $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
       hax-app-installer {
         display: block;
       }
-      @media (max-width: 600px) {
-        .wrapper { margin: 2vh 4vw; padding: var(--ddd-spacing-2); }
-        .card { width: 92vw; max-width: none; }
-      }
     </style>
   </head>
   <body>
     <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms-php"></git-corner>
     <div class="wrapper">
-      <div class="card">
-        <hax-app-installer api-endpoint="install.php"></hax-app-installer>
-      </div>
+      <hax-app-installer api-endpoint="install.php"></hax-app-installer>
     </div>
     <script type="module">
       import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js";

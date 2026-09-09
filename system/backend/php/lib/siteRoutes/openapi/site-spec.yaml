@@ -1521,6 +1521,10 @@ paths:
         - files
       operationId: updateFileByUuid
       summary: Update or transform a file by UUID
+      description: >-
+        Supported operation values: rename, convert-jpg, scale, sepia,
+        black-and-white, rotate-90, compress, duplicate. Use the DELETE
+        method for the delete operation instead.
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -1539,6 +1543,11 @@ paths:
                   type: string
                 size:
                   type: string
+                level:
+                  type: string
+                  description: >-
+                    Compression level for the compress operation. One of
+                    light, medium, heavy, maximum (defaults to medium).
                 newName:
                   type: string
       responses:

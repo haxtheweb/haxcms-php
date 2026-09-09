@@ -529,6 +529,121 @@ class OperationsFileOperationTest extends TestCase
         $site = $this->haxcms->loadedSite;
         $this->assertStringContainsString('File scaled (md)', $site->gitCommits[0]);
     }
+
+    // =========================================================================
+    // duplicate — happy path
+    // =========================================================================
+
+    public function testFileOperationDuplicateCopiesFileAndCommits(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'duplicate',
+            'path' => 'files/test.txt',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('duplicate', $result['data']['operation']);
+        $this->assertSame('files/test.txt', $result['data']['source']);
+        $this->assertSame('files/test-copy.txt', $result['data']['path']);
+
+        // Original untouched, duplicate created with matching content.
+        $originalPath = $this->siteRoot . '/files/test.txt';
+        $duplicatePath = $this->siteRoot . '/files/test-copy.txt';
+        $this->assertTrue(file_exists($originalPath), 'Original file still exists');
+        $this->assertTrue(file_exists($duplicatePath), 'Duplicate file created');
+        $this->assertSame(
+            file_get_contents($originalPath),
+            file_get_contents($duplicatePath),
+            'Duplicate content matches original'
+        );
+
+        $site = $this->haxcms->loadedSite;
+        $this->assertStringContainsString('File duplicated', $site->gitCommits[0]);
+    }
+
+    public function testFileOperationDuplicateIncrementsSuffixOnCollision(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        // Pre-create the -copy collision so the operation must land on -copy-2.
+        file_put_contents($this->siteRoot . '/files/test-copy.txt', 'existing copy');
+
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'duplicate',
+            'path' => 'files/test.txt',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('files/test-copy-2.txt', $result['data']['path']);
+        $this->assertTrue(file_exists($this->siteRoot . '/files/test-copy-2.txt'));
+    }
+
+    // =========================================================================
+    // compress — happy path
+    // =========================================================================
+
+    public function testFileOperationCompressSucceedsInPlaceAndCommits(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $originalPath = $this->siteRoot . '/files/test.png';
+        $this->assertTrue(file_exists($originalPath));
+
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'compress',
+            'path' => 'files/test.png',
+            'level' => 'heavy',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('compress', $result['data']['operation']);
+        // In-place: path stays the same, no files/imgops/ derivative.
+        $this->assertSame('files/test.png', $result['data']['path']);
+        $this->assertSame('files/test.png', $result['data']['file']['path']);
+
+        $this->assertTrue(file_exists($originalPath), 'Original image still exists');
+        $info = @getimagesize($originalPath);
+        $this->assertNotFalse($info, 'Compressed image is still a valid image');
+
+        $site = $this->haxcms->loadedSite;
+        $this->assertStringContainsString('File compressed (heavy)', $site->gitCommits[0]);
+    }
+
+    public function testFileOperationCompressDefaultsToMediumLevelWhenInvalid(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'compress',
+            'path' => 'files/test.png',
+            'level' => 'ultra-mega',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(200, $result['status']);
+
+        $site = $this->haxcms->loadedSite;
+        $this->assertStringContainsString('File compressed (medium)', $site->gitCommits[0]);
+    }
+
+    public function testFileOperationCompressNonImageFileReturns400(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'compress',
+            'path' => 'files/test.txt',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Only raster images can be compressed', $result['__failed']['message']);
+    }
 }
 
 /**

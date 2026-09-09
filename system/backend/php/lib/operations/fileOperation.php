@@ -69,7 +69,7 @@ trait OperationsRouteFileOperation {
       $jpegQuality = $mediaSettings['jpegQuality'];
     }
     $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
-    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90'), true)) {
+    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90', 'compress', 'duplicate'), true)) {
       return array(
         '__failed' => array(
           'status' => 400,
@@ -310,6 +310,81 @@ trait OperationsRouteFileOperation {
         'data' => array(
           'operation' => $operation,
           'source' => $pathResult['normalizedPath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    if ($operation == 'duplicate') {
+      $duplicateResult = $this->getDuplicateFilePath($pathResult);
+      if (!$duplicateResult['valid']) {
+        return array(
+          '__failed' => array(
+            'status' => $duplicateResult['status'],
+            'message' => $duplicateResult['message'],
+          )
+        );
+      }
+      if (!@copy($pathResult['resolvedPath'], $duplicateResult['outputPath'])) {
+        return array(
+          '__failed' => array(
+            'status' => 500,
+            'message' => 'Unable to duplicate file',
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $duplicateResult['outputPath'],
+        $duplicateResult['relativePath']
+      );
+      $site->gitCommit(
+        'File duplicated: ' .
+        $pathResult['normalizedPath'] .
+        ' -> ' .
+        $duplicateResult['relativePath']
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'source' => $pathResult['normalizedPath'],
+          'path' => $duplicateResult['relativePath'],
+          'file' => $fileRecord,
+        )
+      );
+    }
+    if ($operation == 'compress') {
+      $compressLevel = $this->getCompressLevelByKey(
+        isset($this->params['level']) ? $this->params['level'] : ''
+      );
+      $compressResult = $this->compressImageInPlaceFile(
+        $pathResult['resolvedPath'],
+        $compressLevel['quality']
+      );
+      if (!$compressResult['success']) {
+        return array(
+          '__failed' => array(
+            'status' => $compressResult['status'],
+            'message' => $compressResult['message'],
+          )
+        );
+      }
+      $fileRecord = $this->buildSiteFileRecord(
+        $site,
+        $pathResult['resolvedPath'],
+        $pathResult['normalizedPath']
+      );
+      $site->gitCommit(
+        'File compressed (' .
+        $compressLevel['key'] .
+        '): ' .
+        $pathResult['normalizedPath']
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'path' => $pathResult['normalizedPath'],
           'file' => $fileRecord,
         )
       );

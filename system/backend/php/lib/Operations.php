@@ -42,6 +42,13 @@ class Operations {
     'xl' => array('width' => 1200, 'height' => 900),
   );
   private $defaultJpegQuality = 90;
+  private $compressQualityByLevel = array(
+    'light' => 90,
+    'medium' => 70,
+    'heavy' => 50,
+    'maximum' => 30,
+  );
+  private $defaultCompressLevel = 'medium';
   private $allowedFileRenameExtensions = array(
     'jpg',
     'jpeg',
@@ -688,6 +695,47 @@ class Operations {
       'relativePath' => $relativeOutputPath,
     );
   }
+  private function getDuplicateFilePath($pathResult) {
+    $sourceFileName = basename($pathResult['normalizedPath']);
+    $sourceExtension = pathinfo($sourceFileName, PATHINFO_EXTENSION);
+    $sourceExtensionSuffix = $sourceExtension === '' ? '' : '.' . $sourceExtension;
+    $sourceBaseName = pathinfo($sourceFileName, PATHINFO_FILENAME);
+    $sourceDirectory = dirname($pathResult['normalizedPath']);
+    $attempt = 0;
+    do {
+      $attempt++;
+      $suffix = $attempt === 1 ? '-copy' : '-copy-' . $attempt;
+      $outputFileName = $sourceBaseName . $suffix . $sourceExtensionSuffix;
+      $relativeOutputPath = ($sourceDirectory === '.' || $sourceDirectory === '')
+        ? $outputFileName
+        : $sourceDirectory . '/' . $outputFileName;
+      $relativeOutputPath = ltrim($this->normalizeFilePathValue($relativeOutputPath), '/');
+      $outputPath = dirname($pathResult['resolvedPath']) . '/' . $outputFileName;
+    } while (file_exists($outputPath) && $attempt < 1000);
+    if (file_exists($outputPath)) {
+      return array(
+        'valid' => false,
+        'status' => 400,
+        'message' => 'Unable to generate a unique duplicate file name',
+      );
+    }
+    $normalizedOutputPath = rtrim($this->normalizeFilePathValue($outputPath), '/');
+    if (
+      $normalizedOutputPath !== $pathResult['filesRoot'] &&
+      strpos($normalizedOutputPath, $pathResult['filesRoot'] . '/') !== 0
+    ) {
+      return array(
+        'valid' => false,
+        'status' => 403,
+        'message' => 'Duplicated file path is outside of allowed files directory',
+      );
+    }
+    return array(
+      'valid' => true,
+      'outputPath' => $outputPath,
+      'relativePath' => $relativeOutputPath,
+    );
+  }
   /**
    * Build source URL for a site template payload.
    */
@@ -1176,6 +1224,16 @@ class Operations {
       'presets' => $this->imageScalePresets,
     );
   }
+  private function getCompressLevelByKey($levelKey) {
+    $key = strtolower(trim((string) $levelKey));
+    if ($key == '' || !isset($this->compressQualityByLevel[$key])) {
+      $key = $this->defaultCompressLevel;
+    }
+    return array(
+      'key' => $key,
+      'quality' => $this->compressQualityByLevel[$key],
+    );
+  }
   private function getSafeImageOpsBaseName($relativePath) {
     $baseName = pathinfo($relativePath, PATHINFO_FILENAME);
     $safeBaseName = preg_replace('/[^a-zA-Z0-9._-]/', '-', $baseName);
@@ -1582,6 +1640,91 @@ class Operations {
       $extension = 'jpg';
     }
     return $extension;
+  }
+  private function compressImageInPlaceFile($sourcePath, $jpgQuality = null) {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image compression support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be compressed',
+      );
+    }
+    $width = imagesx($sourceImage);
+    $height = imagesy($sourceImage);
+    if ($width <= 0 || $height <= 0) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to determine source image size',
+      );
+    }
+    $extension = $this->getImageExtensionForRotation($sourcePath);
+    if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Image format does not support in-place compression',
+      );
+    }
+    if (in_array($extension, array('png', 'gif', 'webp'), true)) {
+      @imagealphablending($sourceImage, false);
+      @imagesavealpha($sourceImage, true);
+    }
+    $temporaryPath = $sourcePath . '.compress-' . uniqid('', true);
+    $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
+    if ($extension == 'jpg') {
+      $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
+    }
+    else if ($extension == 'png') {
+      $saved = @imagepng($sourceImage, $temporaryPath, 6);
+    }
+    else if ($extension == 'gif') {
+      $saved = @imagegif($sourceImage, $temporaryPath);
+    }
+    else if ($extension == 'webp') {
+      $saved = @imagewebp($sourceImage, $temporaryPath, $resolvedQuality);
+    }
+    else {
+      $saved = false;
+    }
+    imagedestroy($sourceImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save compressed image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace original image after compression',
+        );
+      }
+    }
+    @touch($sourcePath);
+    return array(
+      'success' => true,
+    );
   }
   private function saveImageResourceByExtension($imageResource, $outputPath, $extension) {
     if ($extension == 'jpg') {
