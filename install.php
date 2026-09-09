@@ -9,7 +9,7 @@
 //   1. Choose language      — language select (~100 languages), front-end-driven
 //   2. Verify requirements  — status checks grouped into needsConfiguration / allPassed
 //   3. Configure system     — admin username + optional password
-//   4. Start HAXing the web — credentials, community links, -> index.php
+//   4. Start HAXcms          — credentials, community links, -> index.php
 //
 // State file: _config/tmp/.install-state.json
 //   { "step": 1|2|3|4, "language": "<code>", "username": "<chosen>" }
@@ -17,6 +17,7 @@
 //
 // Endpoints:
 //   GET  install.php?op=state    — read state, re-evaluate environment, return JSON
+//   POST install.php?op=prepare  — auto-create missing runtime dirs + non-secret boilerplate (no credentials), return step-2 JSON
 //   POST install.php?op=advance  — validate + persist state, run side effects, return JSON
 //   GET  install.php             — thin HTML page loading <hax-app-installer>
 //
@@ -130,6 +131,79 @@ if (!function_exists('haxcmsInstallerGuardedGitCreate')) {
       $failed = true;
       $failedMessages[] = 'Unable to initialize git repository in ' . $path . ': ' . $e->getMessage();
       return false;
+    }
+  }
+}
+
+if (!function_exists('haxcmsInstallerGuardedCopy')) {
+  function haxcmsInstallerGuardedCopy($src, $dst, &$failed, &$failedMessages)
+  {
+    if (!file_exists($dst)) {
+      if (!@copy($src, $dst)) {
+        $failed = true;
+        $failedMessages[] = 'Unable to copy file: ' . $src . ' -> ' . $dst;
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
+  function haxcmsInstallerEnsureRuntimeDirectories(&$failed, &$failedMessages)
+  {
+    // Lightweight and idempotent: create the runtime directory tree AND
+    // copy the non-secret boilerplate files the system needs to boot
+    // without warnings, WITHOUT writing config.php, SALT, or any
+    // credentials. This lets the wizard auto-resolve "missing directory
+    // / missing file" errors from step 2 (see ?op=prepare) before the
+    // credential-creating step 4 runs.
+    //
+    // Secret-bearing files (config.php — templated with JWT private keys
+    // + password hash — and SALT.txt) are intentionally NOT created here;
+    // they are written at step 4. Because config.php is left missing,
+    // index.php's half-configured guard keeps redirecting to the
+    // installer so the user stays in the wizard until credentials are
+    // supplied. Safe to call on an unauthenticated, not-yet-installed
+    // system because it creates no secrets.
+    if (!is_dir(__DIR__ . '/_config')) {
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config', 0755, $failed, $failedMessages);
+    }
+    if (!$failed) {
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/.ssh', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/tmp', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/cache', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/settings', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/user/files', 0755, $failed, $failedMessages);
+      haxcmsInstallerGuardedMkdir(__DIR__ . '/_config/node_modules', 0755, $failed, $failedMessages);
+
+      // Non-secret boilerplate files — copied so _config is functional
+      // enough for HAXCMS.php to load config.json / userData.json without
+      // emitting PHP warnings (issue #2974). config.php and SALT.txt are
+      // deliberately omitted (see comment above).
+      $bp = __DIR__ . '/system/boilerplate/systemsetup';
+      haxcmsInstallerGuardedCopy($bp . '/config.json', __DIR__ . '/_config/config.json', $failed, $failedMessages);
+      haxcmsInstallerGuardedCopy($bp . '/my-custom-elements.js', __DIR__ . '/_config/my-custom-elements.js', $failed, $failedMessages);
+      haxcmsInstallerGuardedCopy($bp . '/userData.json', __DIR__ . '/_config/userData.json', $failed, $failedMessages);
+      haxcmsInstallerGuardedCopy($bp . '/.htaccess', __DIR__ . '/_config/.htaccess', $failed, $failedMessages);
+      haxcmsInstallerGuardedCopy($bp . '/.user-files-htaccess', __DIR__ . '/_config/user/files/.htaccess', $failed, $failedMessages);
+      if (!file_exists(__DIR__ . '/_config/.isHAXcmsConfig')) {
+        @file_put_contents(__DIR__ . '/_config/.isHAXcmsConfig', '');
+      }
+      // readable modes on the copied files
+      foreach (array('/_config/config.json', '/_config/userData.json', '/_config/my-custom-elements.js') as $rel) {
+        if (file_exists(__DIR__ . $rel)) {
+          @chmod(__DIR__ . $rel, 0644);
+        }
+      }
+    }
+    foreach (array('/_sites', '/_published', '/_archived') as $rel) {
+      if (!is_dir(__DIR__ . $rel)) {
+        if (haxcmsInstallerGuardedMkdir(__DIR__ . $rel, 0755, $failed, $failedMessages)) {
+          @chmod(__DIR__ . $rel, 0755);
+        }
+      }
     }
   }
 }
@@ -456,6 +530,36 @@ $op = isset($_GET['op']) ? $_GET['op'] : '';
 if ($op === 'state') {
   $state = haxcmsInstallerReadState();
   $response = haxcmsInstallerBuildStateResponse($state['step'], $state);
+  header('Content-Type: application/json');
+  print json_encode($response);
+  exit();
+}
+
+// ?op=prepare — auto-create missing runtime directories AND non-secret
+// boilerplate files (no credentials), then return the refreshed step-2 state
+// so the wizard can re-render checks. This is the "run the script that
+// automatically creates the required missing files" resolution path for
+// directory/file precondition errors (issue #2974). Method-agnostic: works
+// for both POST (wizard fetch) and GET (direct visit), always returning JSON.
+if ($op === 'prepare') {
+  haxcmsInstallerEnsureRuntimeDirectories($failed, $failedMessages);
+  $state = haxcmsInstallerReadState();
+  $response = haxcmsInstallerBuildStateResponse(2, $state);
+  if ($failed) {
+    $response['hasErrors'] = true;
+    $response['errors'] = $failedMessages;
+    // When the web server user cannot create the _config tree / copy
+    // boilerplate (owner mismatch, read-only webroot), surface a single
+    // command the user can run over SSH as the file owner. We deliberately
+    // avoid 777: the shell installer runs as the owner and sets safe
+    // 0755/0644 modes, which is the secure equivalent of the user's
+    // "request write permission, do the work, revert" idea.
+    $response['permissionCommand'] = 'bash ' . __DIR__ . '/scripts/haxtheweb.sh';
+    $response['permissionHint'] =
+      'Run that command over SSH as the file owner, then click "Re-check ' .
+      'requirements". It creates the full _config tree and boilerplate with ' .
+      'safe permissions — no 777 needed.';
+  }
   header('Content-Type: application/json');
   print json_encode($response);
   exit();

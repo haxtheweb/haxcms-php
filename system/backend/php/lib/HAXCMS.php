@@ -317,13 +317,26 @@ class HAXCMS
             }
             // @todo this is VERY hacky specific placement of the theme options
             $this->config->site->fields[0]->properties[1]->properties[0]->options = $themeSelect;
-            // load in core userData object
-            if (
-            !($this->userData = json_decode(
-                file_get_contents($this->configDirectory . '/userData.json')
-            ))) {
-              $this->userData = new stdClass();
-            }
+                // load in core userData object (issue #2974): guard the
+                // file_get_contents so a missing userData.json during the
+                // install/precondition phase does not emit a PHP warning.
+                // Mirrors loadConfigJson(): never writes, falls back to an
+                // empty stdClass, and logs the cause server-side only.
+                $this->userData = new stdClass();
+                $userDataPath = $this->configDirectory . '/userData.json';
+                if (file_exists($userDataPath)) {
+                    $rawUserData = @file_get_contents($userDataPath);
+                    if (is_string($rawUserData) && trim($rawUserData) !== '') {
+                        $decodedUserData = json_decode($rawUserData);
+                        if (json_last_error() === JSON_ERROR_NONE && is_object($decodedUserData)) {
+                            $this->userData = $decodedUserData;
+                        } else {
+                            error_log('HAXCMS: userData.json failed to parse (' . json_last_error_msg() . '); falling back to an empty object.');
+                        }
+                    }
+                } else {
+                    error_log('HAXCMS: userData.json missing; falling back to an empty object (no disk writes performed).');
+                }
             // Security best practice (M4): now that config (trustedProxies /
             // allowedHosts) is loaded, re-finalize protocol and domain so that
             // X-Forwarded-* and Host are only trusted behind a configured proxy

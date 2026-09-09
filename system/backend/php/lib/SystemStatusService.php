@@ -163,6 +163,12 @@ class HAXCMSSystemStatusService
         else if (!$ownerMatchesProcess) {
             $tone = 'warning';
             $value = 'Writable (owner mismatch)';
+            // Issue #2974: propose the command that resolves the permission
+            // issue. chown the directory to the web server process owner so
+            // HAXcms can write to it. Requires root/sudo when run over SSH.
+            if (is_numeric($processOwnership['uid']) && is_numeric($processOwnership['gid'])) {
+                $suggestedCommand = 'chown -R ' . (int) $processOwnership['uid'] . ':' . (int) $processOwnership['gid'] . " '" . $directoryPath . "'";
+            }
         }
         return array(
             'key' => $key,
