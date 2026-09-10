@@ -264,59 +264,37 @@ trait OperationsRouteFileOperation {
       );
     }
     if ($operation == 'sepia' || $operation == 'black-and-white') {
-      $sourceDimensions = @getimagesize($pathResult['resolvedPath']);
-      $targetWidth = (is_array($sourceDimensions) && isset($sourceDimensions[0]) && $sourceDimensions[0] > 0)
-        ? (int) $sourceDimensions[0]
-        : (int) $this->imageScalePresets['md']['width'];
-      $targetHeight = (is_array($sourceDimensions) && isset($sourceDimensions[1]) && $sourceDimensions[1] > 0)
-        ? (int) $sourceDimensions[1]
-        : (int) $this->imageScalePresets['md']['height'];
-      $outputResult = $this->buildImageOpsOutputPath(
-        $pathResult['filesRoot'],
-        $pathResult['normalizedPath'] . '-' . $operation,
-        $targetWidth,
-        $targetHeight
-      );
-      if (!$outputResult['valid']) {
-        return array(
-          '__failed' => array(
-            'status' => $outputResult['status'],
-            'message' => $outputResult['message'],
-          )
-        );
-      }
-      $conversionResult = $this->convertImageToJpgFile(
+      // Apply the transform in place (preserving the original format/filename)
+      // so the operation does not create a new file in the site files list.
+      $transformResult = $this->transformImageInPlaceFile(
         $pathResult['resolvedPath'],
-        $outputResult['outputPath'],
         $operation,
         $jpegQuality
       );
-      if (!$conversionResult['success']) {
+      if (!$transformResult['success']) {
         return array(
           '__failed' => array(
-            'status' => $conversionResult['status'],
-            'message' => $conversionResult['message'],
+            'status' => $transformResult['status'],
+            'message' => $transformResult['message'],
           )
         );
       }
       $fileRecord = $this->buildSiteFileRecord(
         $site,
-        $outputResult['outputPath'],
-        $outputResult['relativePath']
+        $pathResult['resolvedPath'],
+        $pathResult['normalizedPath']
       );
       $site->gitCommit(
         'File transformed (' .
         $operation .
         '): ' .
-        $pathResult['normalizedPath'] .
-        ' -> ' .
-        $outputResult['relativePath']
+        $pathResult['normalizedPath']
       );
       return array(
         'status' => 200,
         'data' => array(
           'operation' => $operation,
-          'source' => $pathResult['normalizedPath'],
+          'path' => $pathResult['normalizedPath'],
           'file' => $fileRecord,
         )
       );

@@ -1727,6 +1727,111 @@ class Operations {
       'success' => true,
     );
   }
+  private function transformImageInPlaceFile($sourcePath, $transformMode = 'none', $jpgQuality = null) {
+    $mode = strtolower(trim((string) $transformMode));
+    if (!in_array($mode, array('sepia', 'black-and-white'), true)) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Unsupported in-place transform operation',
+      );
+    }
+    if (
+      !$this->isImageProcessingAvailable() ||
+      !function_exists('imagefilter') ||
+      !defined('IMG_FILTER_GRAYSCALE') ||
+      !defined('IMG_FILTER_COLORIZE')
+    ) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image transform support is unavailable on this server',
+      );
+    }
+    $sourceImage = $this->createImageResourceFromPath($sourcePath);
+    if (!$sourceImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only raster images can be transformed',
+      );
+    }
+    $width = imagesx($sourceImage);
+    $height = imagesy($sourceImage);
+    if ($width <= 0 || $height <= 0) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to determine source image size',
+      );
+    }
+    $extension = $this->getImageExtensionForRotation($sourcePath);
+    if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
+      imagedestroy($sourceImage);
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Image format does not support in-place transform',
+      );
+    }
+    if ($mode == 'black-and-white') {
+      @imagefilter($sourceImage, IMG_FILTER_GRAYSCALE);
+    }
+    else if ($mode == 'sepia') {
+      @imagefilter($sourceImage, IMG_FILTER_GRAYSCALE);
+      @imagefilter($sourceImage, IMG_FILTER_COLORIZE, 90, 55, 30);
+    }
+    if (in_array($extension, array('png', 'gif', 'webp'), true)) {
+      @imagealphablending($sourceImage, false);
+      @imagesavealpha($sourceImage, true);
+    }
+    $temporaryPath = $sourcePath . '.transform-' . uniqid('', true);
+    $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
+    if ($extension == 'jpg') {
+      $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
+    }
+    else if ($extension == 'png') {
+      $saved = @imagepng($sourceImage, $temporaryPath, 6);
+    }
+    else if ($extension == 'gif') {
+      $saved = @imagegif($sourceImage, $temporaryPath);
+    }
+    else if ($extension == 'webp') {
+      $saved = @imagewebp($sourceImage, $temporaryPath, $resolvedQuality);
+    }
+    else {
+      $saved = false;
+    }
+    imagedestroy($sourceImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to save transformed image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace original image after transform',
+        );
+      }
+    }
+    @touch($sourcePath);
+    return array(
+      'success' => true,
+    );
+  }
   private function saveImageResourceByExtension($imageResource, $outputPath, $extension) {
     if ($extension == 'jpg') {
       if (!function_exists('imagejpeg')) {
