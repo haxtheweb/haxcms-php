@@ -648,6 +648,28 @@ class ServicesTest extends TestCase
         $this->assertSame('/some/config', $report['summary']['configDirectory']);
     }
 
+    public function testSystemStatusNginxHtmlXssWarningRowPresentForNginx(): void
+    {
+        $report = HAXCMSSystemStatusService::buildStatusReport(array(
+            'serverVersion' => 'nginx/1.25.3',
+            'gitVersion' => 'git version 1.0',
+        ));
+        $row = $this->findRowByKey($report['rows'], 'nginx-files-html-xss');
+        $this->assertNotNull($row);
+        $this->assertSame('warning', $row['tone']);
+        $this->assertStringContainsString('Content-Disposition', $row['description']);
+    }
+
+    public function testSystemStatusNginxHtmlXssWarningRowAbsentForApache(): void
+    {
+        $report = HAXCMSSystemStatusService::buildStatusReport(array(
+            'serverVersion' => 'Apache/2.4.58',
+            'gitVersion' => 'git version 1.0',
+        ));
+        $row = $this->findRowByKey($report['rows'], 'nginx-files-html-xss');
+        $this->assertNull($row);
+    }
+
     public function testSystemStatusBuildStatusReportStripsLeadingVFromVersion(): void
     {
         // normalizeVersion (private) strips a leading 'v' — exercised via the

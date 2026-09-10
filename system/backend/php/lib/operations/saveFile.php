@@ -141,6 +141,13 @@ trait OperationsRouteSaveFile {
         $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName
       )
     ) {
+      $rateCheck = $this->checkFileOpsRateLimit(
+        $GLOBALS['HAXCMS']->getActiveUserName(),
+        $siteName
+      );
+      if ($rateCheck !== null) {
+        return $rateCheck;
+      }
       $site = $GLOBALS['HAXCMS']->loadSite($siteName);
       if (!$this->platformAllows($site, 'uploadMedia')) {
         return array(
@@ -167,8 +174,20 @@ trait OperationsRouteSaveFile {
           )
         );
       }
-      $uploadName = isset($upload['name']) ? $upload['name'] : 'upload';
-      $site->gitCommit('File added: ' . $uploadName);
+      // Security (HAX-SEC-006 PHP parity): use the server-sanitized filename
+      // from the save result (data.file.name) instead of the raw attacker-
+      // controlled $_FILES name, so user input never reaches the git commit
+      // message. Mirrors the NodeJS backend (files.js:1218-1222).
+      $savedFileName = 'upload';
+      if (
+        is_array($fileResult) &&
+        isset($fileResult['data']['file']['name']) &&
+        is_string($fileResult['data']['file']['name']) &&
+        $fileResult['data']['file']['name'] !== ''
+      ) {
+        $savedFileName = (string) $fileResult['data']['file']['name'];
+      }
+      $site->gitCommit('File added: ' . $savedFileName);
       return $fileResult;
     }
     else {

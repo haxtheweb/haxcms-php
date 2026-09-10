@@ -1679,6 +1679,55 @@ class HAXCMS
       return $settings;
     }
     /**
+     * Security (F3): rate-limit settings for authenticated file-mutation
+     * operations (saveFile / fileOperation). Mirrors getLoginRateLimitSettings
+     * shape but uses `max` (count window) instead of `maxAttempts` (failed-
+     * credit block). Defaults (500 ops / 5 min, 5-min block) accommodate a
+     * realistic front-end bulk upload (N sequential single-file ops) while
+     * bounding runaway loops / scripted abuse.
+     * Config: config->security->fileOpsRateLimit.
+     */
+    public function getFileOpsRateLimitSettings()
+    {
+      $defaults = new stdClass();
+      $defaults->enabled = TRUE;
+      $defaults->windowMs = 5 * 60 * 1000;
+      $defaults->max = 500;
+      $defaults->blockMs = 5 * 60 * 1000;
+      $cfg = new stdClass();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->fileOpsRateLimit)
+      ) {
+        $cfg = $this->config->security->fileOpsRateLimit;
+      }
+      $settings = new stdClass();
+      $settings->enabled = $defaults->enabled;
+      if (isset($cfg->enabled)) {
+        $settings->enabled = $cfg->enabled === TRUE;
+      }
+      $settings->windowMs = $this->getIntConfigValue(
+        isset($cfg->windowMs) ? $cfg->windowMs : null,
+        $defaults->windowMs,
+        10 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      $settings->max = $this->getIntConfigValue(
+        isset($cfg->max) ? $cfg->max : null,
+        $defaults->max,
+        1,
+        100000
+      );
+      $settings->blockMs = $this->getIntConfigValue(
+        isset($cfg->blockMs) ? $cfg->blockMs : null,
+        $defaults->blockMs,
+        10 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      return $settings;
+    }
+    /**
      * Security best practice: read the trusted-proxy allowlist from
      * config->security->trustedProxies (array of IPs). When empty, no proxy
      * headers are trusted. Shared by M2 (client IP for rate limiting) and

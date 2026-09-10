@@ -1469,6 +1469,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /x/api/v1/files/{fileUuid}:
     get:
       tags:
@@ -1571,6 +1573,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
     delete:
       tags:
         - files
@@ -1600,6 +1604,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /x/api/v1/tags:
     get:
       tags:
@@ -2471,6 +2477,17 @@ components:
             $ref: "#/components/schemas/ApiError"
     NotFound:
       description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+    TooManyRequests:
+      description: Too many file-mutation operations; rate limit exceeded.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: string
       content:
         application/json:
           schema:

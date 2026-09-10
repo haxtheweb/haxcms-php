@@ -84,6 +84,12 @@ class OperationsSaveFileTest extends TestCase
         } else {
             $_FILES = array();
         }
+        // Clean up any file HAXCMSFile::save() wrote under the shared temp
+        // HAXCMS_ROOT during bulk-import success-path tests (save() targets
+        // HAXCMS_ROOT/_sites/<siteName>/files/, not this test's tmpRoot).
+        if (defined('HAXCMS_ROOT') && is_dir(HAXCMS_ROOT . '/_sites/' . $this->siteName)) {
+            $this->rrmdir(HAXCMS_ROOT . '/_sites/' . $this->siteName);
+        }
         $this->rrmdir($this->tmpRoot);
     }
 
@@ -278,6 +284,55 @@ class OperationsSaveFileTest extends TestCase
         // site_token should be split: 'token' is the token, siteName extracted
         // Token validation fails since mock returns false
         $this->assertSame(403, $result['__failed']['status']);
+    }
+
+    private function stageBulkImportFile(string $content, string $fileName): string
+    {
+        $stagingRoot = $this->haxcms->configDirectory . '/tmp/imports';
+        if (!is_dir($stagingRoot)) {
+            mkdir($stagingRoot, 0777, true);
+        }
+        $stagedPath = $stagingRoot . '/' . $fileName;
+        file_put_contents($stagedPath, $content);
+        return $stagedPath;
+    }
+
+    // =========================================================================
+    // F2 (HAX-SEC-006 parity): commit message uses the server-sanitized name,
+    // not the raw attacker-controlled $_FILES name. Exercised via the
+    // bulk-import path, which works under CLI (isValidBulkImportTmpPath
+    // replaces is_uploaded_file), so the save() success path + gitCommit are
+    // reachable end-to-end.
+    // =========================================================================
+    public function testSaveFileCommitMessageUsesSanitizedFilenameNotRawUploadName(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        // Stage a real .txt file in the bulk-import staging root.
+        $stagedPath = $this->stageBulkImportFile('hello world', 'staged.txt');
+        // Crafted raw name with a char ($) that HAXCMSFile::save() strips during
+        // filename sanitization. Before F2 the commit message held the raw
+        // $_FILES name; after F2 it holds the server-sanitized name.
+        $_FILES['file'] = array(
+            'name' => 'bad$evil.txt',
+            'type' => 'text/plain',
+            'tmp_name' => $stagedPath,
+            'error' => UPLOAD_ERR_OK,
+            'size' => filesize($stagedPath),
+            'bulk-import' => TRUE,
+        );
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+        );
+        $result = $this->ops->saveFile();
+        // save() must have succeeded (status 200, no __failed).
+        $this->assertArrayNotHasKey('__failed', $result);
+        $this->assertSame(200, $result['status']);
+        // The git commit message must use the sanitized basename (no '$').
+        $commits = $this->haxcms->loadedSite->gitCommits;
+        $this->assertCount(1, $commits);
+        $this->assertSame('File added: ' . 'badevil.txt', $commits[0]);
+        $this->assertStringNotContainsString('$', $commits[0]);
     }
 }
 

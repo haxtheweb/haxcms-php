@@ -5,6 +5,7 @@ include_once dirname(__FILE__) . '/operations/OperationsMethodMap.php';
 foreach (OperationsMethodMap::getMethodsMap() as $operationsRouteFile) {
   include_once $operationsRouteFile;
 }
+include_once dirname(__FILE__) . '/operations/fileOpsRateLimit.php';
 include_once dirname(__FILE__) . '/operations/OperationsMethods.php';
 /**
  * Operations is the shared business-logic library invoked by v1 API route

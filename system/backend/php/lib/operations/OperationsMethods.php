@@ -34,6 +34,7 @@ trait OperationsMethods {
   use OperationsRouteSystemStatus;
   use OperationsRouteSchemaFileOperation;
   use OperationsRouteSaveFile;
+  use OperationsRouteFileOpsRateLimit;
   use OperationsRouteSkeletonsList;
   use OperationsRouteThemesList;
   use OperationsRouteGetSkeleton;

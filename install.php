@@ -104,12 +104,25 @@ if (!function_exists('haxcmsInstallerStatusEscape')) {
   }
 }
 if (!function_exists('haxcmsInstallerPasswordMeetsPolicy')) {
+  // Policy mirrors the front-end checklist in <hax-app-installer> step 3:
+  // at least 8 characters, one uppercase letter, one lowercase letter, one
+  // number, and one symbol. Keeping front-end and back-end in sync prevents
+  // the wizard enabling submit for a password the backend then rejects.
   function haxcmsInstallerPasswordMeetsPolicy($password)
   {
-    if (!is_string($password) || strlen($password) < 10) {
+    if (!is_string($password) || strlen($password) < 8) {
       return false;
     }
-    if (!preg_match('/[a-zA-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
+    if (!preg_match('/[a-z]/', $password)) {
+      return false;
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+      return false;
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+      return false;
+    }
+    if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
       return false;
     }
     return true;
@@ -118,13 +131,26 @@ if (!function_exists('haxcmsInstallerPasswordMeetsPolicy')) {
 if (!function_exists('haxcmsInstallerGeneratePassword')) {
   function haxcmsInstallerGeneratePassword()
   {
-    $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+    // Guarantee at least one character of each required class so the
+    // generated password always satisfies haxcmsInstallerPasswordMeetsPolicy
+    // (used by the hosting-provider direct-install path when no password is
+    // supplied). Without a guaranteed symbol/uppercase/lowercase/digit a
+    // random draw could produce a password that fails its own policy.
+    $lower = 'abcdefghijklmnopqrstuvwxyz';
+    $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $digits = '123456789';
+    $symbols = '!@#$%^&*';
+    $all = $lower . $upper . $digits . $symbols;
     $pass = array();
-    $alphaLength = strlen($alphabet) - 1;
-    for ($i = 0; $i < 14; $i++) {
-      $n = random_int(0, $alphaLength);
-      $pass[] = $alphabet[$n];
+    $pass[] = $lower[random_int(0, strlen($lower) - 1)];
+    $pass[] = $upper[random_int(0, strlen($upper) - 1)];
+    $pass[] = $digits[random_int(0, strlen($digits) - 1)];
+    $pass[] = $symbols[random_int(0, strlen($symbols) - 1)];
+    $allLen = strlen($all) - 1;
+    for ($i = 0; $i < 10; $i++) {
+      $pass[] = $all[random_int(0, $allLen)];
     }
+    shuffle($pass);
     return implode($pass);
   }
 }
@@ -683,14 +709,14 @@ if ($op === 'advance') {
       $pass = $password;
       if (!haxcmsInstallerPasswordMeetsPolicy($pass)) {
         $failed = true;
-        $failedMessages[] = 'POST-supplied password does not meet the minimum policy (10+ chars, at least one letter and one number).';
+        $failedMessages[] = 'POST-supplied password does not meet the minimum policy (8+ chars, at least one uppercase letter, one lowercase letter, one number, and one symbol).';
       }
     } else if ($password !== '') {
       // Wizard-supplied optional password
       $pass = $password;
       if (!haxcmsInstallerPasswordMeetsPolicy($pass)) {
         $failed = true;
-        $failedMessages[] = 'Password does not meet the minimum policy (10+ chars, at least one letter and one number).';
+        $failedMessages[] = 'Password does not meet the minimum policy (8+ chars, at least one uppercase letter, one lowercase letter, one number, and one symbol).';
       }
     } else {
       $pass = haxcmsInstallerGeneratePassword();
@@ -725,6 +751,24 @@ if ($op === 'advance') {
       'passwordWasGenerated' => $passwordWasGenerated,
     );
     $statusReport = HAXCMSSystemStatusService::buildInstallerStatusReport(__DIR__);
+  }
+
+  // If the step-4 install failed (password policy, directory creation,
+  // git init, etc.), do NOT report step 4. Re-persist state at step 3
+  // and return a step-3 response with the errors so the wizard stays on
+  // the credential form. Without this, the state file is left at step 4
+  // and the frontend renders a bogus "Installation complete" screen with
+  // credentials that were never written to config.php — the user cannot
+  // log in and bounces between index.php and install.php in a loop.
+  if ($runInstall && $failed) {
+    $newState['step'] = 3;
+    haxcmsInstallerWriteState($newState);
+    $response = haxcmsInstallerBuildStateResponse(3, $newState);
+    $response['hasErrors'] = true;
+    $response['errors'] = $failedMessages;
+    header('Content-Type: application/json');
+    print json_encode($response);
+    exit();
   }
 
   $response = haxcmsInstallerBuildStateResponse($toStep, $newState, $credentials, $statusReport);

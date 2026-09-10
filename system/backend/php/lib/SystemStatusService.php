@@ -310,6 +310,21 @@ class HAXCMSSystemStatusService
                 ),
             ),
         );
+        // Security (F5): nginx has no .htaccess equivalent, so the uploaded-HTML
+        // forced-download mitigation (Apache root .htaccess:112-115 / NodeJS
+        // app.js middleware / DDEV .ddev/nginx-site.conf) must be hand-applied
+        // via the reference location block in scripts/nginx/haxcms-nginx.conf.
+        // Without it, an uploaded .html under any /files/ tree renders inline as
+        // stored XSS. Warn when nginx is detected so operators don't miss this.
+        if (stripos($summary['serverVersion'], 'nginx') !== false) {
+            $rows[] = array(
+                'key' => 'nginx-files-html-xss',
+                'tone' => 'warning',
+                'title' => 'Uploaded HTML XSS protection (nginx)',
+                'value' => 'Verify required',
+                'description' => 'nginx has no .htaccess; apply the reference location block from scripts/nginx/haxcms-nginx.conf so uploaded .html under /files/ is downloaded, not rendered inline: `location ~* /files/.*\\.html?$ { add_header Content-Disposition attachment; }`.',
+            );
+        }
         $gitVersion = isset($options['gitVersion']) && is_string($options['gitVersion'])
             ? trim($options['gitVersion'])
             : self::detectGitVersion();

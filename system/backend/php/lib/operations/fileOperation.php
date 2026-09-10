@@ -40,6 +40,13 @@ trait OperationsRouteFileOperation {
         )
       );
     }
+    $rateCheck = $this->checkFileOpsRateLimit(
+      $GLOBALS['HAXCMS']->getActiveUserName(),
+      $siteName
+    );
+    if ($rateCheck !== null) {
+      return $rateCheck;
+    }
     $site = $GLOBALS['HAXCMS']->loadSite($siteName);
     if (!$site) {
       return array(

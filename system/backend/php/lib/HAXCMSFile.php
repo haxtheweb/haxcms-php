@@ -367,6 +367,41 @@ class HAXCMSFile
                 $isUploadSourceValid = is_uploaded_file($upload['tmp_name']);
             }
         }
+        // Security (HAX-SEC-004 PHP parity): enforce the site-configured
+        // maxUploadSizeMb as an app-layer cap, mirroring the NodeJS backend
+        // (HAXCMSFile.js:771-787). upload_max_filesize/post_max_size remain
+        // the transport hard cap; this enforces the per-site policy (which
+        // may be smaller). A settings-read failure never blocks an otherwise
+        // valid upload.
+        try {
+            $sizeSettings = HAXCMSMediaSettingsService::readMediaSettings($HAXCMS);
+            if (
+                is_array($sizeSettings) &&
+                isset($sizeSettings['maxUploadSizeMb']) &&
+                is_numeric($sizeSettings['maxUploadSizeMb']) &&
+                $sizeSettings['maxUploadSizeMb'] > 0
+            ) {
+                $maxMb = (int) $sizeSettings['maxUploadSizeMb'];
+                $maxBytes = $maxMb * 1024 * 1024;
+                $actualSize = 0;
+                if (isset($upload['size']) && is_numeric($upload['size']) && (int) $upload['size'] > 0) {
+                    $actualSize = (int) $upload['size'];
+                }
+                else if (isset($upload['tmp_name']) && is_string($upload['tmp_name']) && @is_file($upload['tmp_name'])) {
+                    $fsSize = @filesize($upload['tmp_name']);
+                    if ($fsSize !== false) {
+                        $actualSize = (int) $fsSize;
+                    }
+                }
+                if ($actualSize > 0 && $actualSize > $maxBytes) {
+                    return array(
+                        'status' => 500,
+                        'data' => 'File exceeds the maximum upload size of ' . $maxMb . 'MB',
+                    );
+                }
+            }
+        }
+        catch (Exception $e) {}
         $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
         $passesMimeValidation = false;
         if ($isUploadSourceValid && $isAllowedExtension) {
