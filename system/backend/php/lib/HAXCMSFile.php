@@ -191,6 +191,70 @@ class HAXCMSFile
         }
         return false;
     }
+    /**
+     * Deterministic UUID for a site file: sha256(siteName:canonicalPath:size)
+     * formatted as a UUID. Mirrors haxcmsSiteDeterministicFileUuid in
+     * siteRoutes/v1/files.php so the upload-response UUID matches the v1
+     * list/get file record UUID and the file can be operated on immediately
+     * via @site/updateFileByUuid (#3028 / #1541).
+     */
+    private function deterministicFileUuid($site, $relativePath, $fileSize)
+    {
+        $siteName = 'site';
+        if (
+            isset($site) && is_object($site) &&
+            isset($site->manifest) && isset($site->manifest->metadata) &&
+            isset($site->manifest->metadata->site) &&
+            isset($site->manifest->metadata->site->name) &&
+            is_string($site->manifest->metadata->site->name) &&
+            $site->manifest->metadata->site->name != ''
+        ) {
+            $siteName = $site->manifest->metadata->site->name;
+        }
+        else if (
+            isset($site) && is_object($site) &&
+            isset($site->name) && is_string($site->name) && $site->name != ''
+        ) {
+            $siteName = $site->name;
+        }
+        $canonicalPath = ltrim(str_replace('\\', '/', (string) $relativePath), '/');
+        if ($canonicalPath === '') {
+            $canonicalPath = 'files';
+        }
+        else if (strpos($canonicalPath, 'files/') !== 0) {
+            $canonicalPath = 'files/' . $canonicalPath;
+        }
+        $canonicalSize = (is_numeric($fileSize) && intval($fileSize) > 0) ? intval($fileSize) : 0;
+        $identityString = $siteName . ':' . $canonicalPath . ':' . $canonicalSize;
+        $hash = strtolower(hash('sha256', $identityString));
+        if (strlen($hash) < 32) {
+            return '';
+        }
+        return
+            substr($hash, 0, 8) . '-' .
+            substr($hash, 8, 4) . '-' .
+            substr($hash, 12, 4) . '-' .
+            substr($hash, 16, 4) . '-' .
+            substr($hash, 20, 12);
+    }
+    /**
+     * Best-effort image dimension read for the upload response (#3028 / #1541).
+     * Returns array(width, height) for raster images, array(0, 0) otherwise.
+     */
+    private function readImageDimensions($fullpath)
+    {
+        if (!is_string($fullpath) || $fullpath == '' || !@is_file($fullpath)) {
+            return array('width' => 0, 'height' => 0);
+        }
+        $info = @getimagesize($fullpath);
+        if (
+            is_array($info) && isset($info[0]) && isset($info[1]) &&
+            (int) $info[0] > 0 && (int) $info[1] > 0
+        ) {
+            return array('width' => (int) $info[0], 'height' => (int) $info[1]);
+        }
+        return array('width' => 0, 'height' => 0);
+    }
 
     private function validateUploadMimeAndContent(
         $name,
@@ -583,6 +647,29 @@ class HAXCMSFile
                     break;
                   }
                 }
+                // Enrich the file record with a deterministic uuid (matches
+                // the v1 list/get records so the file can be operated on
+                // immediately via @site/updateFileByUuid) and, for images,
+                // pixel dimensions used by the inline post-upload
+                // recommendation UI (#3028 / #1541). Re-read the on-disk
+                // size after any in-place imageOps transform so the uuid
+                // agrees with listFiles' stat-based uuid.
+                $relativeName = isset($upload['bulk-import'])
+                    ? ((string) $importDirnamePart . $name)
+                    : $name;
+                $onDiskSize = $size;
+                $freshSize = @filesize($fullpath);
+                if ($freshSize !== false && (int) $freshSize > 0) {
+                    $onDiskSize = (int) $freshSize;
+                }
+                $return['file']['uuid'] = $this->deterministicFileUuid(
+                    $site,
+                    'files/' . $relativeName,
+                    $onDiskSize
+                );
+                $imageDims = $this->readImageDimensions($fullpath);
+                $return['file']['width'] = $imageDims['width'];
+                $return['file']['height'] = $imageDims['height'];
                 $status = 200;
             }
         }

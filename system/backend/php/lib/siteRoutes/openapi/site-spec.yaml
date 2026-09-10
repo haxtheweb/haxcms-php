@@ -1460,7 +1460,35 @@ paths:
                     properties:
                       data:
                         type: object
-                        additionalProperties: true
+                        properties:
+                          file:
+                            type: object
+                            properties:
+                              path:
+                                type: string
+                              fullUrl:
+                                type: string
+                              url:
+                                type: string
+                              type:
+                                type: string
+                                description: Detected MIME type of the uploaded file.
+                              name:
+                                type: string
+                              size:
+                                type: integer
+                              uuid:
+                                type: string
+                                format: uuid
+                                description: Deterministic file UUID; matches the value returned by listFiles / getFileByUuid so the file can be operated on immediately via updateFileByUuid.
+                              width:
+                                type: integer
+                                nullable: true
+                                description: Pixel width for image files; absent or 0 for non-images.
+                              height:
+                                type: integer
+                                nullable: true
+                                description: Pixel height for image files; absent or 0 for non-images.
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -2886,6 +2914,14 @@ components:
           type: integer
         dateCreated:
           type: integer
+        width:
+          type: integer
+          nullable: true
+          description: Pixel width for image files; absent for non-images.
+        height:
+          type: integer
+          nullable: true
+          description: Pixel height for image files; absent for non-images.
     TagCollection:
       type: object
       properties:
