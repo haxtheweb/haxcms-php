@@ -26,3 +26,5 @@ system/boilerplate/systemsetup/.user
 system/boilerplate/systemsetup/SALT.txt
 package-lock.json
 system/backend/php/.phpunit.cache
+system/backend/php/.phpunit.cache/test-results
+file_operations_security_report.md
