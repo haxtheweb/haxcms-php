@@ -255,4 +255,38 @@ class SiteRoutesFilesTest extends TestCase
         $this->assertSame(200, $detailResult['data']['status']);
         $this->assertSame($uuid, $detailResult['data']['data']['uuid']);
     }
+
+    // ------------------------------------------------------------------
+    // Pagination: PHP converts '.' to '_' in $_GET keys, so real HTTP
+    // requests like ?page.limit=2&page.offset=2 arrive as page_limit/page_offset.
+    // getQueryValue falls back to the underscore variant. This test sets
+    // the underscore keys directly (as PHP's query parser would produce)
+    // to verify the fallback works end-to-end.
+    // ------------------------------------------------------------------
+
+    public function testPaginationLimitAndOffsetRespectUnderscoreQueryKeys(): void
+    {
+        $site = $this->buildSiteWithFiles(array(
+            'a.txt' => 'aaa',
+            'b.txt' => 'bbb',
+            'c.txt' => 'ccc',
+            'd.txt' => 'ddd',
+            'e.txt' => 'eee',
+        ));
+        // Simulate real HTTP: ?page.limit=2&page.offset=2 — PHP's query
+        // parser converts '.' to '_' so the keys arrive as page_limit/page_offset.
+        $_GET['page_limit'] = '2';
+        $_GET['page_offset'] = '2';
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        $result = invokeSiteRouteHandler('files.php', $context);
+        $data = $result['data']['data'];
+        $this->assertCount(2, $data['files'], 'limit=2 returns 2 records');
+        $this->assertSame(5, $data['total'], 'total reflects all 5 files');
+        $this->assertSame(2, $data['page']['limit']);
+        $this->assertSame(2, $data['page']['offset']);
+        // offset=2 with default path sort => records 3 and 4 (c.txt, d.txt).
+        $names = array_column($data['files'], 'name');
+        sort($names);
+        $this->assertSame(array('c.txt', 'd.txt'), $names);
+    }
 }
