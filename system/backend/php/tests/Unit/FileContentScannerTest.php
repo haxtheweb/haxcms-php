@@ -78,4 +78,37 @@ class FileContentScannerTest extends TestCase
         $paths = FileContentScanner::extractFileReferences($html);
         $this->assertSame(array('files/quote.jpg'), $paths);
     }
+
+    // ------------------------------------------------------------------
+    // HAX media elements use source= (media-image, video-player) and
+    // poster= (video-player poster frame), not src/href. The scanner must
+    // match these or media file refs never reach page.metadata.files.
+    // ------------------------------------------------------------------
+
+    public function testExtractsFilePathsFromSourceAttribute(): void
+    {
+        // media-image and video-player store the file ref in source="files/..."
+        $html = '<media-image source="files/hero.jpg"></media-image><video-player source="files/clip.mp4"></video-player>';
+        $paths = FileContentScanner::extractFileReferences($html);
+        sort($paths);
+        $this->assertSame(array('files/clip.mp4', 'files/hero.jpg'), $paths);
+    }
+
+    public function testExtractsFilePathsFromPosterAttribute(): void
+    {
+        // video-player poster frame
+        $html = '<video-player source="files/clip.mp4" poster="files/poster.jpg"></video-player>';
+        $paths = FileContentScanner::extractFileReferences($html);
+        sort($paths);
+        $this->assertSame(array('files/clip.mp4', 'files/poster.jpg'), $paths);
+    }
+
+    public function testSourceAndSrcDedupeWhenSameFile(): void
+    {
+        // An img src and a media-image source pointing at the same file should
+        // dedupe to one uuid reference.
+        $html = '<img src="files/banner.jpg"><media-image source="files/banner.jpg"></media-image>';
+        $paths = FileContentScanner::extractFileReferences($html);
+        $this->assertSame(array('files/banner.jpg'), $paths);
+    }
 }

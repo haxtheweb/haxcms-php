@@ -4,14 +4,23 @@ include_once dirname(__FILE__) . '/FilesDataStore.php';
  * Extract file references from saved page HTML (Phase 2, issue #3043).
  *
  * extractFileReferences(html) returns the deduped set of 'files/...' paths
- * found in src and href attributes, ignoring external URLs and non-files
- * paths. Used on page save to rebuild page.metadata.files as a uuid-string
- * array via FilesDataStore->resolveUuidByPath.
+ * found in src, href, source, and poster attributes, ignoring external URLs
+ * and non-files paths. Used on page save to rebuild page.metadata.files as a
+ * uuid-string array via FilesDataStore->resolveUuidByPath.
+ *
+ * HAX media elements use different attributes for the file reference:
+ *   img / a11y-gif-player  -> src
+ *   a (link)               -> href
+ *   media-image            -> source
+ *   video-player           -> source (and poster for the poster frame)
+ * The scanner matches all of these so media-image/video-player file refs are
+ * tracked, not just img/a links.
  */
 class FileContentScanner
 {
     /**
-     * Extract deduped files/... paths from HTML src and href attributes.
+     * Extract deduped files/... paths from HTML src, href, source, and poster
+     * attributes.
      *
      * Only relative paths starting with 'files/' (after stripping a leading
      * basePath or './') are returned. External URLs (http://, https://, //,
@@ -28,10 +37,12 @@ class FileContentScanner
         if ($html === '') {
             return array();
         }
-        // Collect every src="..." and href="..." value. Match single and
-        // double-quoted attribute values (case-insensitive tag/attr names).
+        // Collect every src="...", href="...", source="...", and poster="..."
+        // value. Match single and double-quoted attribute values
+        // (case-insensitive tag/attr names). source= covers media-image and
+        // video-player; poster= covers video-player poster frames.
         $paths = array();
-        if (preg_match_all('/\b(?:src|href)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $matches, PREG_SET_ORDER) !== false) {
+        if (preg_match_all('/\b(?:src|href|source|poster)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $matches, PREG_SET_ORDER) !== false) {
             foreach ($matches as $match) {
                 $value = isset($match[1]) && $match[1] !== '' ? $match[1] : (isset($match[2]) ? $match[2] : '');
                 $normalized = self::normalizeFileReference($value);
@@ -51,7 +62,8 @@ class FileContentScanner
     }
 
     /**
-     * Normalize a single src/href value into a canonical 'files/...' path.
+     * Normalize a single src/href/source/poster value into a canonical
+     * 'files/...' path.
      *
      * Strips query strings, fragments, leading './', and leading basePath
      * segments so that absolute-ish site URLs still resolve to the files/
