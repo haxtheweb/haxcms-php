@@ -134,7 +134,11 @@ class FilesDataStore
     public function getFilesJsonPath()
     {
         $siteDirectory = '';
-        if (function_exists('SiteRouteUtils::getSiteDirectory')) {
+        // SiteRouteUtils::getSiteDirectory is a static method, so use
+        // method_exists (function_exists returns false for static methods
+        // and the real HAXCMSSite exposes ->directory not ->siteDirectory,
+        // which is why files.json was never created in production).
+        if (method_exists('SiteRouteUtils', 'getSiteDirectory')) {
             $siteDirectory = SiteRouteUtils::getSiteDirectory($this->site);
         }
         if ($siteDirectory === '' && isset($this->site->siteDirectory) && is_string($this->site->siteDirectory)) {
@@ -151,7 +155,7 @@ class FilesDataStore
     public function getFilesDirectory()
     {
         $siteDirectory = '';
-        if (function_exists('SiteRouteUtils::getSiteDirectory')) {
+        if (method_exists('SiteRouteUtils', 'getSiteDirectory')) {
             $siteDirectory = SiteRouteUtils::getSiteDirectory($this->site);
         }
         if ($siteDirectory === '' && isset($this->site->siteDirectory) && is_string($this->site->siteDirectory)) {

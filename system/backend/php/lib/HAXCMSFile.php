@@ -591,7 +591,7 @@ class HAXCMSFile
                     // fake the file object creation stuff from CMS land
                     $return = array(
                         'file' => array(
-                            'path' => $path . $name,
+                            'path' => 'files/' . $name,
                             'fullUrl' =>
                                 $HAXCMS->basePath .
                                 $pathPart .
@@ -606,7 +606,7 @@ class HAXCMSFile
                     // fake the file object creation stuff from CMS land
                     $return = array(
                         'file' => array(
-                            'path' => $path . $name,
+                            'path' => 'files/' . $name,
                             'fullUrl' =>
                                 $HAXCMS->basePath .
                                 $pathPart .
