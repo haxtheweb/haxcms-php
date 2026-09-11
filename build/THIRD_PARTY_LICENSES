@@ -935,6 +935,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #6
 
+@haxtheweb/sheet-music
+  build path:  es6/node_modules/@haxtheweb/sheet-music
+  license:     Apache-2.0
+  attribution: see license text #7
+
 @haxtheweb/simple-autocomplete
   build path:  es6/node_modules/@haxtheweb/simple-autocomplete
   license:     Apache-2.0
@@ -2382,7 +2387,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 7 packages)
+#7 - Apache-2.0 (shared by 8 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
