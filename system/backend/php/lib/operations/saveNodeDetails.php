@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../FileContentScanner.php';
 trait OperationsRouteSaveNodeDetails {
   public function saveNodeDetails() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
@@ -388,6 +389,14 @@ trait OperationsRouteSaveNodeDetails {
         );
       }
       
+      // #3043: rebuild page.metadata.files from a content path-scan so the
+      // uuid set stays in sync (and legacy object-shape entries self-heal to
+      // uuids on the next details save). Reads the current on-disk content.
+      $pageContentForScan = '';
+      if (method_exists($site, 'getPageContent')) {
+        $pageContentForScan = (string) $site->getPageContent($page);
+      }
+      FileContentScanner::rebuildPageFilesUuids($site, $page, $pageContentForScan);
       $site->manifest->metadata->site->updated = time();
       $site->manifest->save(false);
       $site->updateAlternateFormats();

@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . "/../vendor/autoload.php";
 include_once dirname(__FILE__) . "/MediaSettingsService.php";
+include_once dirname(__FILE__) . "/FilesDataStore.php";
 use \Gumlet\ImageResize;
 
 // a site object
@@ -617,24 +618,10 @@ class HAXCMSFile
                         )
                     );
                 }
-                // perform page level reference saving if available
-                if ($page != null) {
-                    // now update the page's metadata to suggest it uses this file. FTW!
-                    if (!isset($page->metadata->files)) {
-                        $page->metadata->files = array();
-                    }
-                    $page->metadata->files[] = array(
-                        'fullUrl' =>
-                            $HAXCMS->basePath .
-                            $pathPart .
-                            $name,
-                        'url' => 'files/' . $name,
-                        'type' => $storedMimeType,
-                        'name' => $name,
-                        'size' => $size
-                    );
-                    $site->updateNode($page);
-                }
+                // #3043: page.metadata.files is now rebuilt by page save from a
+                // content path-scan, so upload NO LONGER appends to it. The file
+                // record is upserted into files.json below so the uuid is stable
+                // and O(1)-lookupable.
                 // perform scale / crop operations if requested
                 if ($imageOps != null) {
                   $image = new ImageResize($fullpath);
@@ -670,6 +657,18 @@ class HAXCMSFile
                 $imageDims = $this->readImageDimensions($fullpath);
                 $return['file']['width'] = $imageDims['width'];
                 $return['file']['height'] = $imageDims['height'];
+                // #3043: upsert the file record into the per-site files.json
+                // datastore so the uuid is stable across size changes (the fix
+                // for the sepia 'File not found for fileUuid' bug). Only for
+                // real site uploads, not system/user/tmp uploads.
+                if (is_object($site) && isset($site->manifest)) {
+                    $fileApiPath = 'files/' . $relativeName;
+                    $dataStore = new FilesDataStore($site);
+                    $storeRecord = $dataStore->buildFileRecordFromDisk($fileApiPath);
+                    if ($storeRecord !== null) {
+                        $dataStore->upsertRecord($storeRecord);
+                    }
+                }
                 $status = 200;
             }
         }

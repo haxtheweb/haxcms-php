@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../FileContentScanner.php';
 trait OperationsRouteSaveOutline {
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
@@ -360,6 +361,15 @@ trait OperationsRouteSaveOutline {
         if ($shouldWriteAlternate) {
           $site->writePageAlternateFormats($page, $alternateContent);
         }
+        // #3043: rebuild page.metadata.files from a content path-scan so
+        // the uuid set stays in sync. If content was just written, scan that;
+        // otherwise read the current on-disk content so moved pages keep
+        // their uuid refs and legacy object-shape entries self-heal.
+        $scanContent = $shouldWriteAlternate ? $alternateContent : '';
+        if ($scanContent === '' && method_exists($site, 'getPageContent')) {
+          $scanContent = (string) $site->getPageContent($page);
+        }
+        FileContentScanner::rebuildPageFilesUuids($site, $page, $scanContent);
       }
       $items = $this->rawParams['items'];
       // now, we can finally delete as content operations have finished

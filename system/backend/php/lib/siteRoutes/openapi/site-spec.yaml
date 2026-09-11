@@ -1390,6 +1390,13 @@ paths:
         - files
       operationId: listFiles
       summary: List site files and metadata
+      description: >-
+        Returns the site file collection sourced from the per-site files.json
+        datastore (HAXCMS-FILE-SCHEMA-V1). Before returning, auto-indexes any
+        on-disk files missing from the index so manually-dropped files appear
+        with no separate reconcile endpoint. Also flags orphan records
+        (whose disk file is gone) into a non-destructive 'orphans' array on
+        the response; files.json is NOT mutated for orphans.
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -2869,6 +2876,14 @@ components:
         metadata:
           type: object
           additionalProperties: true
+          description: >-
+            Page metadata. The 'files' property, when present, is an array of
+            uuid strings referencing records in the per-site files.json
+            datastore (HAXCMS-FILE-SCHEMA-V1). It is rebuilt from a content
+            path-scan on page save, so a file removed from the content drops
+            out of the set automatically. Legacy pages may have an older
+            object-shape array (full FileRecord objects); those self-heal to
+            uuid strings on the next page save.
         region:
           type: string
           nullable: true
@@ -2955,6 +2970,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FileRecord"
+        orphans:
+          type: array
+          description: >-
+            Records whose disk file is gone (non-destructive: files.json is
+            NOT mutated for orphans). Present on list responses only.
+          items:
+            $ref: "#/components/schemas/FileRecord"
         links:
           type: object
           additionalProperties:
@@ -2975,6 +2997,13 @@ components:
         uuid:
           type: string
           format: uuid
+          description: >-
+            files.json-sourced stable UUID. Sourced from the per-site
+            files.json datastore (HAXCMS-FILE-SCHEMA-V1) and stable across
+            size changes — unlike the legacy deterministic UUID
+            (sha256(siteName:path:size)) which shifts when file size changes.
+            The files.json value is initialized to the deterministic UUID at
+            first ingest so existing consumers see no change.
         size:
           type: integer
         dateCreated:
@@ -2987,6 +3016,34 @@ components:
           type: integer
           nullable: true
           description: Pixel height for image files; absent for non-images.
+    FileDataStore:
+      type: object
+      description: >-
+        Per-site file datastore envelope at {siteDirectory}/files/files.json.
+        Owns the stable UUIDs for all file assets in a site. The collection
+        key is 'data.files' and the index key is 'uuid'.
+      properties:
+        schema:
+          type: string
+          description: Envelope schema identifier (HAXCMS-FILE-SCHEMA-V1).
+          example: HAXCMS-FILE-SCHEMA-V1
+        site:
+          type: string
+          description: The site name this datastore belongs to.
+        generated:
+          type: integer
+          description: Unix timestamp (seconds) of the last write.
+        data:
+          type: object
+          properties:
+            path:
+              type: string
+              description: The datastore root ("files").
+              example: files
+            files:
+              type: array
+              items:
+                $ref: "#/components/schemas/FileRecord"
     TagCollection:
       type: object
       properties:

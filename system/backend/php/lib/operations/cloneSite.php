@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../FilesDataStore.php';
 trait OperationsRouteCloneSite {
   public function cloneSite() {
     if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
@@ -45,23 +46,61 @@ trait OperationsRouteCloneSite {
       $site = $GLOBALS['HAXCMS']->loadSite($cloneName);
       $site->manifest->metadata->site->name = $cloneName;
       $site->manifest->id = $GLOBALS['HAXCMS']->generateUUID();
-      // loop through all items and rewrite the path to files as we cloned it
+      // #3043: page.metadata.files is now an array of uuid strings (stable,
+      // no rewrite needed). The files.json datastore is copied into the clone
+      // and its path/fullUrl prefixes are rewritten inside it, PRESERVING
+      // uuids (per #3043: "uuids for files don't get rewritten if we clone
+      // the site"). Legacy object-shape page.metadata.files entries on old
+      // source sites are left as-is and self-heal to uuids on the next page
+      // save; the clone's files.json is lazily auto-built on first list load.
       $targetPrefix = $basePath . '/' . $sitesDirectory . '/' . $cloneName . '/files/';
-      foreach ($site->manifest->items as $delta => $item) {
-        if (isset($item->metadata->files)) {
-          foreach ($item->metadata->files as $delta2 => $file) {
-            // F6: replace both the configured prefix and the legacy /sites/
-            // prefix with the configured target prefix.
-            $site->manifest->items[$delta]->metadata->files[$delta2]->path = str_replace(
-              array($configuredSourcePrefix, $legacySourcePrefix),
-              $targetPrefix,
-              $site->manifest->items[$delta]->metadata->files[$delta2]->path
-            );
-            $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl = str_replace(
-              array($configuredSourcePrefix, $legacySourcePrefix),
-              $targetPrefix,
-              $site->manifest->items[$delta]->metadata->files[$delta2]->fullUrl
-            );
+      $cloneSiteDirectory = $site->directory . '/' . $cloneName;
+      $cloneFilesJsonPath = $cloneSiteDirectory . '/files/files.json';
+      if (is_file($cloneFilesJsonPath)) {
+        $filesJsonContents = @file_get_contents($cloneFilesJsonPath);
+        if ($filesJsonContents !== false && $filesJsonContents !== '') {
+          $decoded = json_decode($filesJsonContents, true);
+          if (is_array($decoded) && isset($decoded['data']) && isset($decoded['data']['files']) && is_array($decoded['data']['files'])) {
+            $rewritten = false;
+            foreach ($decoded['data']['files'] as $fIdx => $record) {
+              $path = isset($record['path']) ? (string) $record['path'] : '';
+              $fullUrl = isset($record['fullUrl']) ? (string) $record['fullUrl'] : '';
+              if ($path !== '') {
+                // Rewrite the files/ path prefix — the path stays relative
+                // (files/...) so only the fullUrl prefix actually changes.
+                $newPath = str_replace(
+                  array($configuredSourcePrefix, $legacySourcePrefix),
+                  $targetPrefix,
+                  $path
+                );
+                // Normalize back to files/... if the prefix rewrite produced
+                // an absolute path (the canonical form is relative).
+                $filesPos = strpos($newPath, 'files/');
+                if ($filesPos !== false && $filesPos > 0) {
+                  $newPath = substr($newPath, $filesPos);
+                }
+                $decoded['data']['files'][$fIdx]['path'] = $newPath;
+                if ($newPath !== $path) { $rewritten = true; }
+              }
+              if ($fullUrl !== '') {
+                $newFullUrl = str_replace(
+                  array($configuredSourcePrefix, $legacySourcePrefix),
+                  $targetPrefix,
+                  $fullUrl
+                );
+                $decoded['data']['files'][$fIdx]['fullUrl'] = $newFullUrl;
+                if ($newFullUrl !== $fullUrl) { $rewritten = true; }
+              }
+              // url mirrors path
+              if (isset($decoded['data']['files'][$fIdx]['url']) && $path !== '') {
+                $decoded['data']['files'][$fIdx]['url'] = $decoded['data']['files'][$fIdx]['path'];
+              }
+              // site name in the envelope
+            }
+            $decoded['site'] = $cloneName;
+            if ($rewritten || $decoded['site'] !== $cloneName) {
+              @file_put_contents($cloneFilesJsonPath, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+            }
           }
         }
       }

@@ -123,4 +123,20 @@ class OperationsTestHaxcms
         $clean = trim($clean, '-./');
         return $clean !== '' ? $clean : 'blank';
     }
+
+    // #3043: HAXCMSSite::getPageContent() (called by saveNodeDetails' content
+    // path-scan) uses $GLOBALS['HAXCMS']->staticCache(). Provide a simple
+    // instance-level implementation so subclasses (OperationsNodeTestHaxcms,
+    // etc.) inherit it without each having to declare their own.
+    private $staticCacheData = array();
+    public function &staticCache($name, $default_value = null, $reset = false)
+    {
+        if ($reset) {
+            unset($this->staticCacheData[$name]);
+        }
+        if (!array_key_exists($name, $this->staticCacheData)) {
+            $this->staticCacheData[$name] = $default_value;
+        }
+        return $this->staticCacheData[$name];
+    }
 }
