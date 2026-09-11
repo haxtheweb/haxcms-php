@@ -28,17 +28,22 @@ class SiteRoutesEntitiesAnalyticsTest extends TestCase
         $this->assertSame(404, $result['data']['status']);
     }
 
-    public function testEntitiesListsKnownEntityNames(): void
+    public function testEntitiesListsKnownEntityTypes(): void
     {
         $site = new SiteRoutesFakeSite();
         $context = makeSiteRouteContext($site, array(), 'v1/entities');
         $result = invokeSiteRouteHandler('entities.php', $context);
         $data = $result['data']['data'];
-        $names = array_column($data['entities'], 'name');
-        foreach (['site', 'item', 'content', 'file', 'tag', 'customElement', 'block', 'region', 'theme', 'report', 'analytics', 'view', 'user'] as $expected) {
-            $this->assertContains($expected, $names);
+        // The endpoint now sources from the single merged entities.yaml registry
+        // (EntityRegistry::getDefinitions()), so the set is the 6 registry types.
+        $types = array_column($data['entities'], 'type');
+        foreach (['file', 'item', 'theme', 'skeleton', 'site', 'system'] as $expected) {
+            $this->assertContains($expected, $types);
         }
         $this->assertSame(count($data['entities']), $data['count']);
+        // name is kept as a backward-compatible alias of type.
+        $names = array_column($data['entities'], 'name');
+        $this->assertSame($types, $names);
     }
 
     public function testEntitiesItemEntityHasEndpointsAndFilterableFields(): void
@@ -49,32 +54,34 @@ class SiteRoutesEntitiesAnalyticsTest extends TestCase
         $entities = $result['data']['data']['entities'];
         $itemEntity = null;
         foreach ($entities as $entity) {
-            if ($entity['name'] === 'item') {
+            if ($entity['type'] === 'item') {
                 $itemEntity = $entity;
                 break;
             }
         }
         $this->assertNotNull($itemEntity);
         $this->assertContains('/x/api/v1/items', $itemEntity['endpoints']);
-        $this->assertContains('filter.tags', $itemEntity['filterableFields']);
+        $this->assertContains('tags', $itemEntity['filterableFields']);
     }
 
-    public function testEntitiesUserEntityIsDisabledAndReservedForFuturePhases(): void
+    public function testEntitiesFileEntityDeclaresDatastoreStorage(): void
     {
         $site = new SiteRoutesFakeSite();
         $context = makeSiteRouteContext($site, array(), 'v1/entities');
         $result = invokeSiteRouteHandler('entities.php', $context);
         $entities = $result['data']['data']['entities'];
-        $userEntity = null;
+        $fileEntity = null;
         foreach ($entities as $entity) {
-            if ($entity['name'] === 'user') {
-                $userEntity = $entity;
+            if ($entity['type'] === 'file') {
+                $fileEntity = $entity;
                 break;
             }
         }
-        $this->assertNotNull($userEntity);
-        $this->assertFalse($userEntity['enabled']);
-        $this->assertSame('authenticated', $userEntity['auth']);
+        $this->assertNotNull($fileEntity);
+        // file is the sole entity with storage.enabled true (the implemented type).
+        $this->assertSame('datastore', $fileEntity['storage']['type']);
+        $this->assertTrue($fileEntity['storage']['enabled']);
+        $this->assertSame('uuid', $fileEntity['primaryKey']);
     }
 
     public function testEntitiesLinksIncludeSelfAndSchemas(): void

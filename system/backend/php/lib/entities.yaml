@@ -1,0 +1,119 @@
+schema: HAXCMS-ENTITY-REGISTRY-V1
+entities:
+  file:
+    type: file
+    scope: site
+    description: A file asset in a site's files directory
+    primaryKey: uuid
+    uniqueKeys: [uuid]
+    requiredFields: [uuid, path, name, mimetype]
+    storage:
+      type: datastore
+      enabled: true
+      scope: site
+      location: "{siteDirectory}/files/files.json"
+      storeSchema: HAXCMS-FILE-SCHEMA-V1
+      collectionKey: files
+      indexKey: uuid
+    supportedOperations: [load, save, list, delete, reconcile]
+    endpoints: ["/x/api/v1/files", "/x/api/v1/files/{fileUuid}"]
+    filterableFields: [mimetype, name, path]
+    sortableFields: [path, name, size, dateCreated]
+    selectableFields: [uuid, path, fullUrl, url, mimetype, name, size, dateCreated, width, height]
+    formats: [json, md, yaml, xml]
+    auth: authenticated-site
+    enabled: true
+  item:
+    type: item
+    scope: site
+    description: A page (JSON Outline Schema node) in a site's outline
+    primaryKey: id
+    uniqueKeys: [id, slug]
+    requiredFields: [id, title, slug, location]
+    storage:
+      type: jos.items
+      enabled: false
+      scope: site
+      location: "{siteDirectory}/site.json"
+      collectionKey: items
+      indexKey: id
+    supportedOperations: [load, list]
+    endpoints: ["/x/api/v1/items", "/x/api/v1/items/{idOrSlug}"]
+    filterableFields: [parent, published, tags, pageType, region]
+    sortableFields: [title, slug, order, indent]
+    selectableFields: [id, title, slug, parent, location, description, metadata, published, tags]
+    formats: [json, md, yaml, xml, html]
+    auth: public
+    enabled: true
+  theme:
+    type: theme
+    scope: system
+    description: A site theme (web component); listed from theme settings
+    primaryKey: element
+    uniqueKeys: [element]
+    requiredFields: [element]
+    storage:
+      type: webcomponent
+      enabled: false
+      scope: system
+      source: themeSettings
+    supportedOperations: [load, list]
+    endpoints: ["/system/api/v1/themes"]
+    selectableFields: [element, name, variables]
+    formats: [json]
+    auth: authenticated
+    enabled: true
+  skeleton:
+    type: skeleton
+    scope: system
+    description: A site skeleton (starter template) stored as files on disk
+    primaryKey: name
+    uniqueKeys: [name]
+    requiredFields: [name]
+    storage:
+      type: file
+      enabled: false
+      scope: system
+      location: "{skeletonsDirectory}"
+      indexKey: name
+    supportedOperations: [load, list]
+    endpoints: ["/system/api/v1/skeletons"]
+    formats: [json]
+    auth: authenticated
+    enabled: true
+  site:
+    type: site
+    scope: system
+    description: A HAXcms site (JSON Outline Schema manifest at site.json)
+    primaryKey: metadata.site.name
+    uniqueKeys: [id, metadata.site.name]
+    requiredFields: [id, metadata.site.name, items]
+    storage:
+      type: jos
+      enabled: false
+      scope: site
+      location: "{siteDirectory}/site.json"
+      indexKey: metadata.site.name
+    supportedOperations: [load, list]
+    endpoints: ["/system/api/v1/sites"]
+    selectableFields: [id, metadata.site.name, metadata.site.domain, metadata.theme.element, items]
+    formats: [json]
+    auth: authenticated
+    enabled: true
+  system:
+    type: system
+    scope: system
+    description: HAXcms core system configuration
+    primaryKey: name
+    uniqueKeys: [name]
+    requiredFields: [name]
+    storage:
+      type: config
+      enabled: false
+      scope: system
+      source: systemConfig
+    supportedOperations: [load, list]
+    endpoints: ["/system/api/v1/system"]
+    formats: [json]
+    auth: authenticated
+    enabled: true

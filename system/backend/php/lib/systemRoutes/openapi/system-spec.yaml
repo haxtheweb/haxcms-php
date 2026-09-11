@@ -755,16 +755,37 @@ paths:
         - settings
       operationId: systemEntitiesGet
       summary: Return system entity descriptors and links
+      description: >
+        Returns the full merged set of entity descriptors sourced from the
+        single entities.yaml registry (EntityRegistry::getDefinitions()).
+        Both /x/api/v1/entities and /system/api/v1/entities read from the same
+        registry, so the API surface and the in-code object are one shape.
+        Optional ?scope=site|system filters the merged set by scope. Each
+        descriptor mirrors the extended EntityDescriptor schema, including the
+        storage block that declares how the entity is (or will be) persisted.
       security:
         - bearerAuth: []
           userTokenHeader: []
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [site, system]
+          description: Filter the merged descriptor set by scope.
       responses:
         "200":
           description: System entity descriptors
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/EntityCollection"
         "403":
           $ref: "#/components/responses/Forbidden"
     post:
@@ -2716,6 +2737,109 @@ components:
           type: integer
         data: {}
       additionalProperties: true
+    EntityCollection:
+      type: object
+      description: >
+        Collection of entity descriptors returned by /system/api/v1/entities
+        (and /x/api/v1/entities). Both endpoints read from the single merged
+        entities.yaml registry via EntityRegistry::getDefinitions().
+      properties:
+        count:
+          type: integer
+        entities:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntityDescriptor"
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    EntityDescriptor:
+      type: object
+      description: >
+        Describes one entity type in the merged entities.yaml registry. The
+        in-code EntityDefinition mirrors this schema 1:1, and both
+        /x/api/v1/entities and /system/api/v1/entities return descriptors in
+        this shape (optionally filtered by ?scope=site|system).
+      properties:
+        type:
+          type: string
+          description: Canonical entity type identifier (file/item/theme/skeleton/site/system).
+        name:
+          type: string
+          description: Backward-compatible alias of type.
+        scope:
+          type: string
+          enum: [site, system]
+          description: Whether the entity is site-scoped or system-scoped.
+        description:
+          type: string
+        primaryKey:
+          type: string
+        uniqueKeys:
+          type: array
+          items:
+            type: string
+        requiredFields:
+          type: array
+          items:
+            type: string
+        storage:
+          $ref: "#/components/schemas/EntityStorageDescriptor"
+        supportedOperations:
+          type: array
+          items:
+            type: string
+        endpoints:
+          type: array
+          items:
+            type: string
+        filterableFields:
+          type: array
+          items:
+            type: string
+        sortableFields:
+          type: array
+          items:
+            type: string
+        selectableFields:
+          type: array
+          items:
+            type: string
+        formats:
+          type: array
+          items:
+            type: string
+        auth:
+          type: string
+        enabled:
+          type: boolean
+    EntityStorageDescriptor:
+      type: object
+      description: >
+        Declares how an entity type is (or will be) persisted. storage.type
+        vocabulary: datastore (writable file-backed index), jos (JSON Outline
+        Schema manifest), jos.items (nodes in a JOS items[]), webcomponent
+        (theme settings), file (files on disk), config (system configuration).
+        storage.enabled declares whether a real adapter is implemented; only
+        `datastore` entities support save()/delete().
+      properties:
+        type:
+          type: string
+        enabled:
+          type: boolean
+        scope:
+          type: string
+        location:
+          type: string
+        storeSchema:
+          type: string
+        collectionKey:
+          type: string
+        indexKey:
+          type: string
+        source:
+          type: string
     ErrorEnvelope:
       type: object
       required:

@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/../../operations/OperationsMethodMap.php';
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../EntityRegistry.php';
 if (!function_exists('haxcmsSystemSettingsInvokeAsPost')) {
     function haxcmsSystemSettingsInvokeAsPost($operationCallback)
     {
@@ -171,71 +172,23 @@ return function ($context) {
         );
     }
     else if ($route === 'v1/entities') {
-        $entities = array(
-            array(
-                'name' => 'site',
-                'description' => 'System-level site lifecycle resources and site metadata.',
-                'primaryKey' => 'siteName',
-                'endpoints' => array(
-                    $apiBasePath . '/sites',
-                    $apiBasePath . '/sites/{siteName}',
-                    $apiBasePath . '/sites/{siteName}/clone',
-                    $apiBasePath . '/sites/{siteName}/archive',
-                    $apiBasePath . '/sites/{siteName}/download',
-                    $apiBasePath . '/sites/{siteName}/download-skeleton',
-                    $apiBasePath . '/sites/{siteName}/save-as-template',
-                ),
-                'auth' => 'authenticated-user',
-                'supportedOperations' => array('read', 'create', 'update'),
-            ),
-            array(
-                'name' => 'theme',
-                'description' => 'System theme catalog and enabled state configuration.',
-                'primaryKey' => 'machineName',
-                'endpoints' => array($apiBasePath . '/themes'),
-                'auth' => 'authenticated-user',
-                'supportedOperations' => array('read', 'update'),
-            ),
-            array(
-                'name' => 'block',
-                'description' => 'System block catalog and enabled block configuration.',
-                'primaryKey' => 'tag',
-                'endpoints' => array($apiBasePath . '/blocks'),
-                'auth' => 'authenticated-user',
-                'supportedOperations' => array('read', 'update'),
-            ),
-            array(
-                'name' => 'skeleton',
-                'description' => 'System skeleton catalog, detail, and enabled skeleton configuration.',
-                'primaryKey' => 'skeletonName',
-                'endpoints' => array(
-                    $apiBasePath . '/skeletons',
-                    $apiBasePath . '/skeletons/{skeletonName}',
-                ),
-                'auth' => 'authenticated-user',
-                'supportedOperations' => array('read', 'update'),
-            ),
-            array(
-                'name' => 'integration',
-                'description' => 'System integration providers and app store manifest.',
-                'primaryKey' => 'id',
-                'endpoints' => array($apiBasePath . '/integrations/app-store'),
-                'auth' => 'public',
-                'supportedOperations' => array('read'),
-            ),
-            array(
-                'name' => 'configuration',
-                'description' => 'System configuration resources for settings and schema files.',
-                'primaryKey' => 'id',
-                'endpoints' => array(
-                    $apiBasePath . '/configuration/api-keys',
-                    $apiBasePath . '/configuration/media',
-                    $apiBasePath . '/configuration/skeletons',
-                ),
-                'auth' => 'authenticated-user',
-                'supportedOperations' => array('read', 'update'),
-            ),
-        );
+        // Source entity descriptors from the single merged entities.yaml
+        // registry — the same EntityRegistry::getDefinitions() that
+        // /x/api/v1/entities reads from, so both endpoints return one shape.
+        // Optional ?scope=site|system filters the merged set.
+        $registry = new EntityRegistry();
+        $scope = '';
+        if (isset($operations->params['scope']) && is_string($operations->params['scope'])) {
+            $scope = trim($operations->params['scope']);
+        }
+        if ($scope === '' && isset($_GET['scope']) && is_string($_GET['scope'])) {
+            $scope = trim($_GET['scope']);
+        }
+        $definitions = $registry->getDefinitions($scope !== '' ? $scope : null);
+        $entities = array();
+        foreach ($definitions as $definition) {
+            $entities[] = $definition->toDescriptorArray();
+        }
         $response = array(
             'status' => 200,
             'data' => array(
