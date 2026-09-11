@@ -411,12 +411,21 @@ class OperationsFileOperationTest extends TestCase
         $result = $this->ops->fileOperation();
         $this->assertSame(200, $result['status']);
         $this->assertSame('convert-jpg', $result['data']['operation']);
-        $this->assertStringContainsString('files/imgops/', $result['data']['file']['path']);
+        // #3043: converted JPG is written in the SAME directory as the source
+        // (files/<basename>.jpg), not under files/imgops/.
+        $this->assertSame('files/test.jpg', $result['data']['file']['path']);
         $this->assertStringEndsWith('.jpg', $result['data']['file']['path']);
 
         // Verify output file exists on disk
         $outputPath = $this->siteRoot . '/' . $result['data']['file']['path'];
         $this->assertTrue(file_exists($outputPath), 'Converted JPG file created');
+
+        // No files/imgops directory should be created
+        $imgopsDir = $this->siteRoot . '/files/imgops';
+        $this->assertFalse(
+            is_dir($imgopsDir),
+            'No files/imgops derivative directory should be created'
+        );
 
         $site = $this->haxcms->loadedSite;
         $this->assertStringContainsString('File converted to JPG', $site->gitCommits[0]);
