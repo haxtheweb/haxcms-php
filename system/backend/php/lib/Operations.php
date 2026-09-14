@@ -28,13 +28,13 @@ class Operations {
   public $params;
   public $rawParams;
 
-  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml)$/i';
   // Extensions permitted for build.siteFiles downloads (theme/ and custom/
   // assets imported from another HAXcms instance). Allow-listing rather than
   // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
   // asp/aspx/jsp/exe/etc. from being written into the web-served site tree
   // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
-  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf)$/i';
+  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
   private $imageScalePresets = array(
     'xs' => array('width' => 200, 'height' => 150),
     'sm' => array('width' => 320, 'height' => 240),
@@ -73,6 +73,7 @@ class Operations {
     'vtt',
     'html',
     'md',
+    'xml',
   );
   
   /**
@@ -418,7 +419,7 @@ class Operations {
         }
       }
     }
-    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'svg');
+    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'svg', 'xml');
     if ($detected === 'text/plain' && in_array($ext, $textExts, true)) {
       return true;
     }

@@ -7,7 +7,7 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
-    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md)$/i';
+    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml)$/i';
     private $allowedMimeByExtension = array(
         'jpg' => array('image/jpeg'),
         'jpeg' => array('image/jpeg'),
@@ -31,6 +31,7 @@ class HAXCMSFile
         'vtt' => array('text/vtt', 'text/plain'),
         'html' => array('text/html', 'application/xhtml+xml'),
         'md' => array('text/markdown', 'text/x-markdown', 'text/plain'),
+        'xml' => array('application/xml', 'text/xml'),
         'css' => array('text/css'),
         'js' => array('text/javascript', 'application/javascript', 'application/x-javascript', 'text/ecmascript'),
         'svg' => array('image/svg+xml'),
