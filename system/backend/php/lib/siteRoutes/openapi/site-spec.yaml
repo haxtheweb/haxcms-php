@@ -582,6 +582,22 @@ paths:
         - entities
       operationId: listEntityDescriptors
       summary: List entity descriptors for the site API
+      description: >
+        Returns the full merged set of entity descriptors sourced from the
+        single entities.yaml registry (EntityRegistry::getDefinitions()).
+        Both /x/api/v1/entities and /system/api/v1/entities read from the same
+        registry, so the API surface and the in-code object are one shape.
+        Optional ?scope=site|system filters the merged set by scope. Each
+        descriptor mirrors the extended EntityDescriptor schema, including the
+        storage block that declares how the entity is (or will be) persisted.
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [site, system]
+          description: Filter the merged descriptor set by scope.
       responses:
         "200":
           description: Entity descriptor collection
@@ -1374,6 +1390,13 @@ paths:
         - files
       operationId: listFiles
       summary: List site files and metadata
+      description: >-
+        Returns the site file collection sourced from the per-site files.json
+        datastore (HAXCMS-FILE-SCHEMA-V1). Before returning, auto-indexes any
+        on-disk files missing from the index so manually-dropped files appear
+        with no separate reconcile endpoint. Also flags orphan records
+        (whose disk file is gone) into a non-destructive 'orphans' array on
+        the response; files.json is NOT mutated for orphans.
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -2674,13 +2697,36 @@ components:
             type: string
     EntityDescriptor:
       type: object
+      description: >
+        Describes one entity type in the merged entities.yaml registry. The
+        in-code EntityDefinition mirrors this schema 1:1, and both
+        /x/api/v1/entities and /system/api/v1/entities return descriptors in
+        this shape (optionally filtered by ?scope=site|system).
       properties:
+        type:
+          type: string
+          description: Canonical entity type identifier (file/item/theme/skeleton/site/system).
         name:
           type: string
+          description: Backward-compatible alias of type.
+        scope:
+          type: string
+          enum: [site, system]
+          description: Whether the entity is site-scoped or system-scoped.
         description:
           type: string
         primaryKey:
           type: string
+        uniqueKeys:
+          type: array
+          items:
+            type: string
+        requiredFields:
+          type: array
+          items:
+            type: string
+        storage:
+          $ref: "#/components/schemas/EntityStorageDescriptor"
         endpoints:
           type: array
           items:
@@ -2726,6 +2772,32 @@ components:
           items:
             type: object
             additionalProperties: true
+    EntityStorageDescriptor:
+      type: object
+      description: >
+        Declares how an entity type is (or will be) persisted. storage.type
+        vocabulary: datastore (writable file-backed index), jos (JSON Outline
+        Schema manifest), jos.items (nodes in a JOS items[]), webcomponent
+        (theme settings), file (files on disk), config (system configuration).
+        storage.enabled declares whether a real adapter is implemented; only
+        `datastore` entities support save()/delete().
+      properties:
+        type:
+          type: string
+        enabled:
+          type: boolean
+        scope:
+          type: string
+        location:
+          type: string
+        storeSchema:
+          type: string
+        collectionKey:
+          type: string
+        indexKey:
+          type: string
+        source:
+          type: string
     SchemaCollection:
       type: object
       properties:
@@ -2804,6 +2876,14 @@ components:
         metadata:
           type: object
           additionalProperties: true
+          description: >-
+            Page metadata. The 'files' property, when present, is an array of
+            uuid strings referencing records in the per-site files.json
+            datastore (HAXCMS-FILE-SCHEMA-V1). It is rebuilt from a content
+            path-scan on page save, so a file removed from the content drops
+            out of the set automatically. Legacy pages may have an older
+            object-shape array (full FileRecord objects); those self-heal to
+            uuid strings on the next page save.
         region:
           type: string
           nullable: true
@@ -2890,6 +2970,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FileRecord"
+        orphans:
+          type: array
+          description: >-
+            Records whose disk file is gone (non-destructive: files.json is
+            NOT mutated for orphans). Present on list responses only.
+          items:
+            $ref: "#/components/schemas/FileRecord"
         links:
           type: object
           additionalProperties:
@@ -2910,6 +2997,13 @@ components:
         uuid:
           type: string
           format: uuid
+          description: >-
+            files.json-sourced stable UUID. Sourced from the per-site
+            files.json datastore (HAXCMS-FILE-SCHEMA-V1) and stable across
+            size changes — unlike the legacy deterministic UUID
+            (sha256(siteName:path:size)) which shifts when file size changes.
+            The files.json value is initialized to the deterministic UUID at
+            first ingest so existing consumers see no change.
         size:
           type: integer
         dateCreated:
@@ -2922,6 +3016,34 @@ components:
           type: integer
           nullable: true
           description: Pixel height for image files; absent for non-images.
+    FileDataStore:
+      type: object
+      description: >-
+        Per-site file datastore envelope at {siteDirectory}/files/files.json.
+        Owns the stable UUIDs for all file assets in a site. The collection
+        key is 'data.files' and the index key is 'uuid'.
+      properties:
+        schema:
+          type: string
+          description: Envelope schema identifier (HAXCMS-FILE-SCHEMA-V1).
+          example: HAXCMS-FILE-SCHEMA-V1
+        site:
+          type: string
+          description: The site name this datastore belongs to.
+        generated:
+          type: integer
+          description: Unix timestamp (seconds) of the last write.
+        data:
+          type: object
+          properties:
+            path:
+              type: string
+              description: The datastore root ("files").
+              example: files
+            files:
+              type: array
+              items:
+                $ref: "#/components/schemas/FileRecord"
     TagCollection:
       type: object
       properties:

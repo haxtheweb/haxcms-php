@@ -41,6 +41,7 @@ The `site.json` file is the heart of every HAXcms site, using **JSON Outline Sch
 - **Assets**: All media files, documents, and resources
 - **Organization**: Maintain logical file structure for easy management
 - **References**: Linked from pages using relative paths
+- **files.json**: A per-site file datastore envelope (HAXCMS-FILE-SCHEMA-V1) seeded empty on site creation. Owns stable UUIDs for every file asset. On first list/lookup, if missing or empty, the datastore auto-builds from the on-disk files directory. Records are upserted on upload; the list endpoint auto-indexes on-disk files missing from the index and flags (non-destructive) orphans. `page.metadata.files` is an array of uuid strings referencing these records.
 
 ## Content Management
 

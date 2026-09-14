@@ -1,5 +1,9 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
+include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../EntityRegistry.php';
+include_once dirname(__FILE__) . '/../../FileStorage.php';
+include_once dirname(__FILE__) . '/../../FilesDataStore.php';
 if (!function_exists('haxcmsSiteFileCanonicalPath')) {
     function haxcmsSiteFileCanonicalPath($relativePath = '')
     {
@@ -175,10 +179,12 @@ return function ($context) {
                 return;
             }
         }
-        // D1: always resolve the file path from the UUID path param; stop
-        // honoring a client-supplied body.path (spec defines fileUuid only,
-        // not a body path — Node canonical). Previously a client could bypass
-        // UUID resolution by supplying body.path directly.
+        // #3043: resolve the file path from the UUID via the files.json
+        // datastore (O(1) from the uuid index, stable UUID). This replaces
+        // the old haxcmsResolveRequestedFilePathFromUuid directory walk +
+        // n-hash recompute — THE fix for the sepia 'File not found for
+        // fileUuid' bug (the deterministic UUID shifts when file size
+        // changes; files.json gives stable persisted UUIDs).
         if ($fileUuid === '') {
             SiteRouteUtils::sendFormattedResponse(
                 array(
@@ -194,9 +200,8 @@ return function ($context) {
             );
             return;
         }
-        $resolvedPath = haxcmsResolveRequestedFilePathFromUuid($context, $fileUuid);
-        // D52: reject non-UUID tokens with a 400 error (Node canonical)
-        if ($resolvedPath === false) {
+        // Validate UUID format (D52: strict UUID only).
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', trim((string) $fileUuid)) !== 1) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
                     'message' => 'File uuid is required and must be a valid UUID',
@@ -211,7 +216,10 @@ return function ($context) {
             );
             return;
         }
-        if ($resolvedPath === '') {
+        $registry = new EntityRegistry($context->site);
+        $fileStorage = FileStorage::registerOn($registry);
+        $entity = $fileStorage->load($fileUuid);
+        if ($entity === null) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
                     'message' => 'File not found for fileUuid',
@@ -226,10 +234,18 @@ return function ($context) {
             );
             return;
         }
+        $resolvedPath = (string) $entity->getPath();
         $body['path'] = $resolvedPath;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->fileOperation();
+        // #3043: on DELETE, scrub the uuid from every page's
+        // page.metadata.files (one manifest save) via the FileStorage adapter.
+        // fileOperation() deletes the disk file + git-commits; this handles
+        // the data-layer cleanup so 'used in' references stay clean.
+        if ($method === 'DELETE' && is_array($result) && isset($result['status']) && $result['status'] === 200) {
+            $fileStorage->delete($fileUuid);
+        }
     } else {
         SiteRouteUtils::sendFormattedResponse(
             array('message' => 'Unsupported method for /v1/files'),

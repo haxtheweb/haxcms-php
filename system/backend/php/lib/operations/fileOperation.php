@@ -1,6 +1,60 @@
 <?php
 include_once dirname(__FILE__) . '/../MediaSettingsService.php';
+include_once dirname(__FILE__) . '/../FilesDataStore.php';
+/**
+ * #3043: After a file operation (compress, scale, sepia, rotate-90,
+ * convert-jpg, rename, duplicate), upsert the updated record into the
+ * per-site files.json datastore so the uuid's metadata (size, dimensions,
+ * mtime, fullUrl cache-buster) is current.
+ *
+ * For in-place transforms (compress, scale, sepia, black-and-white,
+ * rotate-90) the uuid is preserved — files.json owns identity (hybrid
+ * model), so the uuid stays stable across size/content changes while
+ * the metadata updates. For new-path operations (convert-jpg to a new
+ * filename, duplicate) a new uuid is assigned from the new path+size.
+ */
 trait OperationsRouteFileOperation {
+  /**
+   * Upsert a file record into files.json after an operation. Builds a
+   * fresh record from disk (current size/dimensions/mtime) and preserves
+   * the existing uuid when the path was already indexed (in-place transforms).
+   *
+   * @param mixed $site The site context.
+   * @param string $normalizedPath The 'files/...' API path of the file.
+   * @param string|null $oldNormalizedPath For rename: the pre-rename path
+   *   so the existing uuid can be carried over to the new path.
+   */
+  private function upsertFileRecordInDataStore($site, $normalizedPath, $oldNormalizedPath = null) {
+    $dataStore = new FilesDataStore($site);
+    // Look up the existing uuid. For in-place ops this is the same path;
+    // for rename, look up by the OLD path (the file moved).
+    $lookupPath = $oldNormalizedPath !== null ? $oldNormalizedPath : $normalizedPath;
+    $existing = $dataStore->getByPath($lookupPath);
+    $existingUuid = '';
+    if (is_array($existing) && isset($existing['uuid'])) {
+      $existingUuid = (string) $existing['uuid'];
+    }
+    // Build a fresh record from disk (new size, dimensions, mtime, fullUrl).
+    $record = $dataStore->buildFileRecordFromDisk($normalizedPath);
+    if (!is_array($record)) {
+      return;
+    }
+    // Preserve the existing uuid for in-place transforms / rename (hybrid
+    // model: files.json owns identity, uuid stable across content changes).
+    if ($existingUuid !== '' && isset($record['uuid'])) {
+      $record['uuid'] = $existingUuid;
+    }
+    $dataStore->upsertRecord($record);
+    // For rename: remove the old-path record if the uuid changed or the
+    // old path is now stale. The path index rebuilds on upsert, but if the
+    // old path had a different uuid (edge case), scrub it.
+    if ($oldNormalizedPath !== null && $oldNormalizedPath !== $normalizedPath) {
+      $oldRecord = $dataStore->getByPath($oldNormalizedPath);
+      if (is_array($oldRecord) && isset($oldRecord['uuid']) && $oldRecord['uuid'] !== $existingUuid) {
+        $dataStore->removeRecord($oldRecord['uuid']);
+      }
+    }
+  }
   public function fileOperation() {
     if (isset($this->params['site_token']) && !isset($this->params['site']) && !isset($this->params['siteName'])) {
       $tmp = explode('?siteName=', $this->params['site_token']);
@@ -169,6 +223,9 @@ trait OperationsRouteFileOperation {
         ' -> ' .
         $renameResult['relativePath']
       );
+      // #3043: carry the uuid to the new path in files.json (uuid stable,
+      // path/name/fullUrl updated; old path record scrubbed if stale).
+      $this->upsertFileRecordInDataStore($site, $renameResult['relativePath'], $pathResult['normalizedPath']);
       return array(
         'status' => 200,
         'data' => array(
@@ -198,6 +255,9 @@ trait OperationsRouteFileOperation {
         $pathResult['normalizedPath']
       );
       $site->gitCommit('File rotated (90deg): ' . $pathResult['normalizedPath']);
+      // #3043: update the uuid's metadata in files.json (in-place transform —
+      // uuid preserved, size/dimensions/mtime refreshed).
+      $this->upsertFileRecordInDataStore($site, $pathResult['normalizedPath']);
       return array(
         'status' => 200,
         'data' => array(
@@ -208,30 +268,31 @@ trait OperationsRouteFileOperation {
       );
     }
     if ($operation == 'convert-jpg') {
-      $sourceDimensions = @getimagesize($pathResult['resolvedPath']);
-      $targetWidth = (is_array($sourceDimensions) && isset($sourceDimensions[0]) && $sourceDimensions[0] > 0)
-        ? (int) $sourceDimensions[0]
-        : (int) $this->imageScalePresets['md']['width'];
-      $targetHeight = (is_array($sourceDimensions) && isset($sourceDimensions[1]) && $sourceDimensions[1] > 0)
-        ? (int) $sourceDimensions[1]
-        : (int) $this->imageScalePresets['md']['height'];
-      $outputResult = $this->buildImageOpsOutputPath(
-        $pathResult['filesRoot'],
-        $pathResult['normalizedPath'],
-        $targetWidth,
-        $targetHeight
-      );
-      if (!$outputResult['valid']) {
+      // #3043: write the converted JPG in the SAME directory as the source
+      // file (files/<basename>.jpg), not under files/imgops/. The output
+      // path is derived from the validated source path so it stays within
+      // the files/ directory. If the source is already a .jpg the output
+      // path equals the source — an in-place re-encode.
+      $sourceBasename = pathinfo($pathResult['normalizedPath'], PATHINFO_FILENAME);
+      $outputRelativePath = dirname($pathResult['normalizedPath']) . '/' . $sourceBasename . '.jpg';
+      if (strpos($outputRelativePath, '/') === 0) {
+        $outputRelativePath = ltrim($outputRelativePath, '/');
+      }
+      $outputAbsolutePath = dirname($pathResult['resolvedPath']) . '/' . $sourceBasename . '.jpg';
+      // Security: verify the output path stays within the files root.
+      $resolvedOutput = realpath(dirname($outputAbsolutePath));
+      $normalizedFilesRoot = rtrim($this->normalizeFilePathValue($pathResult['filesRoot']), '/');
+      if ($resolvedOutput === false || (rtrim($this->normalizeFilePathValue($resolvedOutput), '/') !== $normalizedFilesRoot && strpos(rtrim($this->normalizeFilePathValue($resolvedOutput), '/'), $normalizedFilesRoot . '/') !== 0)) {
         return array(
           '__failed' => array(
-            'status' => $outputResult['status'],
-            'message' => $outputResult['message'],
+            'status' => 403,
+            'message' => 'Invalid output file path',
           )
         );
       }
       $conversionResult = $this->convertImageToJpgFile(
         $pathResult['resolvedPath'],
-        $outputResult['outputPath'],
+        $outputAbsolutePath,
         'none',
         $jpegQuality
       );
@@ -245,15 +306,19 @@ trait OperationsRouteFileOperation {
       }
       $fileRecord = $this->buildSiteFileRecord(
         $site,
-        $outputResult['outputPath'],
-        $outputResult['relativePath']
+        $outputAbsolutePath,
+        $outputRelativePath
       );
       $site->gitCommit(
         'File converted to JPG: ' .
         $pathResult['normalizedPath'] .
         ' -> ' .
-        $outputResult['relativePath']
+        $outputRelativePath
       );
+      // #3043: upsert the new/updated file's record into files.json. For a
+      // new path (png -> jpg) this assigns a new uuid; for an in-place
+      // re-encode (jpg -> jpg) the existing uuid is preserved.
+      $this->upsertFileRecordInDataStore($site, $outputRelativePath);
       return array(
         'status' => 200,
         'data' => array(
@@ -290,6 +355,9 @@ trait OperationsRouteFileOperation {
         '): ' .
         $pathResult['normalizedPath']
       );
+      // #3043: update the uuid's metadata in files.json (in-place transform —
+      // uuid preserved, size/dimensions/mtime refreshed).
+      $this->upsertFileRecordInDataStore($site, $pathResult['normalizedPath']);
       return array(
         'status' => 200,
         'data' => array(
@@ -328,6 +396,9 @@ trait OperationsRouteFileOperation {
         ' -> ' .
         $duplicateResult['relativePath']
       );
+      // #3043: upsert the new file's record into files.json (new path ->
+      // new uuid from path+size).
+      $this->upsertFileRecordInDataStore($site, $duplicateResult['relativePath']);
       return array(
         'status' => 200,
         'data' => array(
@@ -365,6 +436,9 @@ trait OperationsRouteFileOperation {
         '): ' .
         $pathResult['normalizedPath']
       );
+      // #3043: update the uuid's metadata in files.json after compression
+      // (in-place transform — uuid preserved, new size/dimensions/mtime).
+      $this->upsertFileRecordInDataStore($site, $pathResult['normalizedPath']);
       return array(
         'status' => 200,
         'data' => array(
@@ -402,6 +476,9 @@ trait OperationsRouteFileOperation {
       '): ' .
       $pathResult['normalizedPath']
     );
+    // #3043: update the uuid's metadata in files.json after scaling
+    // (in-place transform — uuid preserved, new size/dimensions/mtime).
+    $this->upsertFileRecordInDataStore($site, $pathResult['normalizedPath']);
     return array(
       'status' => 200,
       'data' => array(

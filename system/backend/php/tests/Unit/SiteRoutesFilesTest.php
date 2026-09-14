@@ -187,4 +187,106 @@ class SiteRoutesFilesTest extends TestCase
         $result = invokeSiteRouteHandler('files.php', $context);
         $this->assertSame(404, $result['data']['status']);
     }
+
+    // ------------------------------------------------------------------
+    // Phase 2 (#3043): files.json datastore + orphans + auto-index + stable uuid
+    // ------------------------------------------------------------------
+
+    public function testListResponseIncludesOrphansArray(): void
+    {
+        $site = $this->buildSiteWithFiles(array('keep.png' => 'keep-bytes'));
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        $result = invokeSiteRouteHandler('files.php', $context);
+        $data = $result['data']['data'];
+        // orphans key is always present (may be empty).
+        $this->assertArrayHasKey('orphans', $data);
+        $this->assertIsArray($data['orphans']);
+    }
+
+    public function testListFlagsOrphansNonDestructively(): void
+    {
+        $site = $this->buildSiteWithFiles(array('gone.png' => 'gone-bytes'));
+        // First list auto-indexes the file.
+        $context1 = makeSiteRouteContext($site, array(), 'v1/files');
+        invokeSiteRouteHandler('files.php', $context1);
+        // Delete the disk file but leave files.json intact.
+        @unlink($site->siteDirectory . '/files/gone.png');
+        // Second list should flag it as an orphan.
+        $context2 = makeSiteRouteContext($site, array(), 'v1/files');
+        $result = invokeSiteRouteHandler('files.php', $context2);
+        $data = $result['data']['data'];
+        $this->assertCount(0, $data['files'], 'Orphan file not in files list');
+        $this->assertCount(1, $data['orphans'], 'Orphan flagged in orphans array');
+        $this->assertSame('files/gone.png', $data['orphans'][0]['path']);
+    }
+
+    public function testListAutoIndexesMissingDiskFiles(): void
+    {
+        $site = $this->buildSiteWithFiles(array('initial.txt' => 'initial'));
+        // First list auto-indexes initial.txt.
+        $context1 = makeSiteRouteContext($site, array(), 'v1/files');
+        invokeSiteRouteHandler('files.php', $context1);
+        // Drop a new file on disk (no upload, just raw file).
+        file_put_contents($site->siteDirectory . '/files/dropped.txt', 'dropped');
+        // Second list should auto-index the new file.
+        $context2 = makeSiteRouteContext($site, array(), 'v1/files');
+        $result = invokeSiteRouteHandler('files.php', $context2);
+        $data = $result['data']['data'];
+        $names = array_column($data['files'], 'name');
+        sort($names);
+        $this->assertSame(array('dropped.txt', 'initial.txt'), $names);
+    }
+
+    public function testDetailUuidStableAfterSizeChange(): void
+    {
+        // This is THE fix for the sepia 'File not found for fileUuid' bug:
+        // the deterministic UUID shifts when file size changes, but the
+        // files.json-sourced UUID is stable.
+        $site = $this->buildSiteWithFiles(array('img.jpg' => 'small'));
+        // First list + detail to get the uuid.
+        $listContext = makeSiteRouteContext($site, array(), 'v1/files');
+        $listResult = invokeSiteRouteHandler('files.php', $listContext);
+        $uuid = $listResult['data']['data']['files'][0]['uuid'];
+        // Change the file size on disk (simulating a sepia transform).
+        file_put_contents($site->siteDirectory . '/files/img.jpg', 'much-larger-content-now');
+        // Detail by the SAME uuid should still resolve (O(1) from files.json).
+        $detailContext = makeSiteRouteContext($site, array('fileUuid' => $uuid), 'v1/files/' . $uuid);
+        $detailResult = invokeSiteRouteHandler('files.php', $detailContext);
+        $this->assertSame(200, $detailResult['data']['status']);
+        $this->assertSame($uuid, $detailResult['data']['data']['uuid']);
+    }
+
+    // ------------------------------------------------------------------
+    // Pagination: PHP converts '.' to '_' in $_GET keys, so real HTTP
+    // requests like ?page.limit=2&page.offset=2 arrive as page_limit/page_offset.
+    // getQueryValue falls back to the underscore variant. This test sets
+    // the underscore keys directly (as PHP's query parser would produce)
+    // to verify the fallback works end-to-end.
+    // ------------------------------------------------------------------
+
+    public function testPaginationLimitAndOffsetRespectUnderscoreQueryKeys(): void
+    {
+        $site = $this->buildSiteWithFiles(array(
+            'a.txt' => 'aaa',
+            'b.txt' => 'bbb',
+            'c.txt' => 'ccc',
+            'd.txt' => 'ddd',
+            'e.txt' => 'eee',
+        ));
+        // Simulate real HTTP: ?page.limit=2&page.offset=2 — PHP's query
+        // parser converts '.' to '_' so the keys arrive as page_limit/page_offset.
+        $_GET['page_limit'] = '2';
+        $_GET['page_offset'] = '2';
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        $result = invokeSiteRouteHandler('files.php', $context);
+        $data = $result['data']['data'];
+        $this->assertCount(2, $data['files'], 'limit=2 returns 2 records');
+        $this->assertSame(5, $data['total'], 'total reflects all 5 files');
+        $this->assertSame(2, $data['page']['limit']);
+        $this->assertSame(2, $data['page']['offset']);
+        // offset=2 with default path sort => records 3 and 4 (c.txt, d.txt).
+        $names = array_column($data['files'], 'name');
+        sort($names);
+        $this->assertSame(array('c.txt', 'd.txt'), $names);
+    }
 }

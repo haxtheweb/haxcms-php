@@ -125,10 +125,20 @@ class SiteRouteUtils
     }
     public static function getQueryValue($key, $fallbackValue = '')
     {
-        if (!isset($_GET) || !is_array($_GET) || !array_key_exists($key, $_GET)) {
+        if (!isset($_GET) || !is_array($_GET)) {
             return $fallbackValue;
         }
-        return $_GET[$key];
+        if (array_key_exists($key, $_GET)) {
+            return $_GET[$key];
+        }
+        // PHP's query-string parser converts '.' to '_' in $_GET keys,
+        // so a param like 'page.limit' arrives as 'page_limit'. Fall back
+        // to the underscore variant so dotted query params resolve.
+        $underscoreKey = str_replace('.', '_', (string) $key);
+        if ($underscoreKey !== $key && array_key_exists($underscoreKey, $_GET)) {
+            return $_GET[$underscoreKey];
+        }
+        return $fallbackValue;
     }
     public static function getCsvQuery($key)
     {
@@ -173,10 +183,10 @@ class SiteRouteUtils
     }
     public static function getBooleanQuery($key, $fallbackValue = null)
     {
-        if (!isset($_GET) || !is_array($_GET) || !array_key_exists($key, $_GET)) {
+        $value = self::getQueryValue($key, null);
+        if ($value === null) {
             return $fallbackValue;
         }
-        $value = $_GET[$key];
         if (is_bool($value)) {
             return $value;
         }
