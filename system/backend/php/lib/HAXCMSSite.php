@@ -2,6 +2,7 @@
 // working with RSS
 include_once 'RSS.php';
 include_once 'SanitizeContent.php';
+include_once dirname(__FILE__) . '/FilesDataStore.php';
 use \Gumlet\ImageResize;
 // a site object
 class HAXCMSSite
@@ -1458,10 +1459,39 @@ class HAXCMSSite
         if (is_null($page)) {
           $page = $this->loadNodeByLocation();
         }
+        // #3043: page.metadata.files is now an array of uuid strings.
+        // Resolve each uuid to its files.json record and return the first
+        // image record's fullUrl. Tolerate legacy object-shape entries on
+        // old pages (read .type/.fullUrl directly) until those pages are
+        // re-saved and converge to uuid-shape.
         if (isset($page->metadata->files)) {
-          foreach ($page->metadata->files as $file) {
-            if ($file->type == 'image/jpeg') {
-              $fileName = $file->fullUrl;
+          $dataStore = new FilesDataStore($this);
+          foreach ($page->metadata->files as $entry) {
+            // uuid-string shape (Phase 2)
+            if (is_string($entry)) {
+              $record = $dataStore->getByUuid($entry);
+              if ($record !== null) {
+                $mimetype = isset($record['mimetype']) ? (string) $record['mimetype'] : '';
+                if (strpos($mimetype, 'image/') === 0 && $mimetype !== 'image/svg+xml') {
+                  $fileName = isset($record['fullUrl']) ? $record['fullUrl'] : null;
+                  break;
+                }
+              }
+            }
+            // legacy object shape (old pages)
+            else if (is_object($entry)) {
+              $type = isset($entry->type) ? (string) $entry->type : '';
+              if ($type == 'image/jpeg') {
+                $fileName = isset($entry->fullUrl) ? $entry->fullUrl : null;
+                break;
+              }
+            }
+            else if (is_array($entry)) {
+              $type = isset($entry['type']) ? (string) $entry['type'] : '';
+              if ($type == 'image/jpeg') {
+                $fileName = isset($entry['fullUrl']) ? $entry['fullUrl'] : null;
+                break;
+              }
             }
           }
         }

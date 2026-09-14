@@ -1,5 +1,8 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../EntityRegistry.php';
+include_once dirname(__FILE__) . '/../../FileStorage.php';
+include_once dirname(__FILE__) . '/../../FilesDataStore.php';
 if (!function_exists('haxcmsSiteFileCanonicalPath')) {
     function haxcmsSiteFileCanonicalPath($relativePath = '')
     {
@@ -131,12 +134,12 @@ return function ($context) {
     }
     $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
     $siteFilePath = $siteDirectory . '/files';
-    // D45: GET v1/files/:fileUuid detail handler. Mirrors Node files.js
-    // fileDetail (files.js:1077-1116) + resolveRequestedFilePath: validates
-    // the UUID format, collects all site files, computes each file's
-    // deterministic UUID, and returns the matching record (or 404). This
-    // reuses collectSiteFiles so the security boundary (files within the
-    // site's files/ directory only) is identical to the list endpoint.
+    // #3043: GET v1/files/:fileUuid detail handler. Now resolves via
+    // EntityRegistry->getStorage('file')->load($uuid) which is O(1) from the
+    // files.json uuid index (stable UUID). This replaces the old O(n)
+    // directory walk + n-hash recompute, and is the fix for the sepia 'File
+    // not found for fileUuid' bug (the deterministic UUID shifts when file
+    // size changes; files.json gives stable persisted UUIDs).
     if (isset($context->params['fileUuid']) && $context->params['fileUuid'] != '') {
         $fileUuid = strtolower(trim((string) $context->params['fileUuid']));
         if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $fileUuid)) {
@@ -148,16 +151,10 @@ return function ($context) {
             );
             return;
         }
-        $detailFiles = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, '');
-        $matchingRecord = null;
-        foreach ($detailFiles as $detailFile) {
-            $candidateRecord = haxcmsBuildFileRecord($site, $detailFile);
-            if (strtolower((string) $candidateRecord['uuid']) === $fileUuid) {
-                $matchingRecord = $candidateRecord;
-                break;
-            }
-        }
-        if ($matchingRecord === null) {
+        $registry = new EntityRegistry($site);
+        FileStorage::registerOn($registry);
+        $entity = $registry->getStorage('file')->load($fileUuid);
+        if ($entity === null) {
             SiteRouteUtils::sendFormattedResponse(
                 array('message' => 'Requested file was not found'),
                 array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
@@ -166,6 +163,7 @@ return function ($context) {
             );
             return;
         }
+        $matchingRecord = $entity->getFields();
         $detailFields = SiteRouteUtils::getCsvQuery('fields');
         $outputRecord = SiteRouteUtils::projectRecord($matchingRecord, $detailFields);
         SiteRouteUtils::sendFormattedResponse(
@@ -179,16 +177,37 @@ return function ($context) {
         );
         return;
     }
-    $files = SiteRouteUtils::collectSiteFiles($site, $siteFilePath, SiteRouteUtils::getQueryValue('filename', ''));
+    // #3043: list reads from files.json. Before returning, auto-index any
+    // on-disk files missing from the index (reconcileMissingFromDisk) and
+    // flag orphans (records whose disk file is gone) into a non-destructive
+    // 'orphans' array — files.json is NOT mutated for orphans.
+    $dataStore = new FilesDataStore($site);
+    $dataStore->reconcileMissingFromDisk();
+    $orphans = $dataStore->flagOrphans();
+    // Build a set of orphan uuids so we can exclude them from the main files
+    // list (orphans go only in the 'orphans' array, non-destructive).
+    $orphanUuids = array();
+    foreach ($orphans as $orphan) {
+        $uuid = isset($orphan['uuid']) ? strtolower((string) $orphan['uuid']) : '';
+        if ($uuid !== '') {
+            $orphanUuids[$uuid] = true;
+        }
+    }
+    $allRecords = $dataStore->getRecords();
     $records = array();
-    foreach ($files as $file) {
-        $records[] = haxcmsBuildFileRecord($site, $file);
+    foreach ($allRecords as $record) {
+        $uuid = isset($record['uuid']) ? strtolower((string) $record['uuid']) : '';
+        if ($uuid !== '' && isset($orphanUuids[$uuid])) {
+            continue;
+        }
+        $records[] = $record;
     }
     $filterType = strtolower(trim((string) SiteRouteUtils::getQueryValue('filter.type', '')));
     $filterExtension = strtolower(ltrim(trim((string) SiteRouteUtils::getQueryValue('filter.extension', '')), '.'));
     $filterStartsWith = strtolower(trim((string) SiteRouteUtils::getQueryValue('filter.startsWith', '')));
     $filterNameContains = strtolower(trim((string) SiteRouteUtils::getQueryValue('filter.nameContains', '')));
-    $records = array_values(array_filter($records, function ($record) use ($filterType, $filterExtension, $filterStartsWith, $filterNameContains) {
+    $filterFilename = strtolower(trim((string) SiteRouteUtils::getQueryValue('filename', '')));
+    $records = array_values(array_filter($records, function ($record) use ($filterType, $filterExtension, $filterStartsWith, $filterNameContains, $filterFilename) {
         $mimetype = strtolower(isset($record['mimetype']) ? (string) $record['mimetype'] : '');
         $name = strtolower(isset($record['name']) ? (string) $record['name'] : '');
         $path = strtolower(isset($record['path']) ? (string) $record['path'] : '');
@@ -204,17 +223,22 @@ return function ($context) {
         if ($filterNameContains != '' && strpos($name, $filterNameContains) === false) {
             return false;
         }
+        if ($filterFilename != '' && strpos($path, $filterFilename) === false && strpos($name, $filterFilename) === false) {
+            return false;
+        }
         return true;
     }));
     $records = SiteRouteUtils::sortRecords($records, SiteRouteUtils::getQueryValue('sort', ''), 'path');
     $paged = SiteRouteUtils::paginateRecords($records, 25, 500);
     $outputRecords = SiteRouteUtils::projectCollection($paged['records'], SiteRouteUtils::getCsvQuery('fields'));
+    $outputOrphans = SiteRouteUtils::projectCollection($orphans, SiteRouteUtils::getCsvQuery('fields'));
     SiteRouteUtils::sendFormattedResponse(
         array(
             'count' => count($outputRecords),
             'total' => $paged['page']['total'],
             'page' => $paged['page'],
             'files' => $outputRecords,
+            'orphans' => $outputOrphans,
             'links' => array('self' => $apiBasePath . '/v1/files'),
         ),
         array(

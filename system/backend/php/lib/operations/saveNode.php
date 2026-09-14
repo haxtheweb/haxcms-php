@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../FileContentScanner.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
@@ -377,6 +378,10 @@ trait OperationsRouteSaveNode {
                     }
                   }
                 }
+                // #3043: rebuild page.metadata.files as a deduped uuid-string
+                // array from a content path-scan. A file removed from the
+                // content drops out of the set automatically.
+                FileContentScanner::rebuildPageFilesUuids($site, $page, $sanitizedContent);
                 $site->updateNode($page);
                 $site->writePageAlternateFormats($page, $sanitizedContent);
                 $site->gitCommit(
