@@ -20,1295 +20,1285 @@ PACKAGE INDEX
   license:     MIT
   attribution: no license file found in source package
 
-@github/time-elements
-  build path:  es6/node_modules/@github/time-elements
-  license:     MIT
-  attribution: see license text #1
-
 @google/model-viewer
   build path:  es6/node_modules/@google/model-viewer
   license:     Apache-2.0
-  attribution: see license text #2
+  attribution: see license text #1
 
 @haxtheweb/a11y-behaviors
   build path:  es6/node_modules/@haxtheweb/a11y-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-carousel
   build path:  es6/node_modules/@haxtheweb/a11y-carousel
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-collapse
   build path:  es6/node_modules/@haxtheweb/a11y-collapse
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-compare-image
   build path:  es6/node_modules/@haxtheweb/a11y-compare-image
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-details
   build path:  es6/node_modules/@haxtheweb/a11y-details
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/a11y-figure
   build path:  es6/node_modules/@haxtheweb/a11y-figure
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/a11y-gif-player
   build path:  es6/node_modules/@haxtheweb/a11y-gif-player
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-media-player
   build path:  es6/node_modules/@haxtheweb/a11y-media-player
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/a11y-menu-button
   build path:  es6/node_modules/@haxtheweb/a11y-menu-button
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/a11y-tabs
   build path:  es6/node_modules/@haxtheweb/a11y-tabs
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/a11y-utils
   build path:  es6/node_modules/@haxtheweb/a11y-utils
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/absolute-position-behavior
   build path:  es6/node_modules/@haxtheweb/absolute-position-behavior
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/accent-card
   build path:  es6/node_modules/@haxtheweb/accent-card
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/aframe-player
   build path:  es6/node_modules/@haxtheweb/aframe-player
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/ai-usage-license
   build path:  es6/node_modules/@haxtheweb/ai-usage-license
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/air-horn
   build path:  es6/node_modules/@haxtheweb/air-horn
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/anchor-behaviors
   build path:  es6/node_modules/@haxtheweb/anchor-behaviors
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/app-hax
   build path:  es6/node_modules/@haxtheweb/app-hax
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/audio-player
   build path:  es6/node_modules/@haxtheweb/audio-player
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/author-card
   build path:  es6/node_modules/@haxtheweb/author-card
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/awesome-explosion
   build path:  es6/node_modules/@haxtheweb/awesome-explosion
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/b-r
   build path:  es6/node_modules/@haxtheweb/b-r
   license:     Apache-2.0
-  attribution: see license text #11
+  attribution: see license text #10
 
 @haxtheweb/baseline-build-hax
   build path:  es6/node_modules/@haxtheweb/baseline-build-hax
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/beaker-broker
   build path:  es6/node_modules/@haxtheweb/beaker-broker
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/bibliography-builder
   build path:  es6/node_modules/@haxtheweb/bibliography-builder
   license:     Apache-2.0
-  attribution: see license text #12
+  attribution: see license text #11
 
 @haxtheweb/bootstrap-theme
   build path:  es6/node_modules/@haxtheweb/bootstrap-theme
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/career-timeline
   build path:  es6/node_modules/@haxtheweb/career-timeline
   license:     Apache-2.0
-  attribution: see license text #12
+  attribution: see license text #11
 
 @haxtheweb/chamfer-theme
   build path:  es6/node_modules/@haxtheweb/chamfer-theme
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/chartist-render
   build path:  es6/node_modules/@haxtheweb/chartist-render
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/chat-agent
   build path:  es6/node_modules/@haxtheweb/chat-agent
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #12
 
 @haxtheweb/check-it-out
   build path:  es6/node_modules/@haxtheweb/check-it-out
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/citation-element
   build path:  es6/node_modules/@haxtheweb/citation-element
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/clean-one
   build path:  es6/node_modules/@haxtheweb/clean-one
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/clean-portfolio-theme
   build path:  es6/node_modules/@haxtheweb/clean-portfolio-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/clean-two
   build path:  es6/node_modules/@haxtheweb/clean-two
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/cms-hax
   build path:  es6/node_modules/@haxtheweb/cms-hax
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/code-editor
   build path:  es6/node_modules/@haxtheweb/code-editor
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/code-sample
   build path:  es6/node_modules/@haxtheweb/code-sample
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/collection-list
   build path:  es6/node_modules/@haxtheweb/collection-list
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/count-up
   build path:  es6/node_modules/@haxtheweb/count-up
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/course-design
   build path:  es6/node_modules/@haxtheweb/course-design
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/course-model
   build path:  es6/node_modules/@haxtheweb/course-model
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/csv-render
   build path:  es6/node_modules/@haxtheweb/csv-render
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/d-d-d
   build path:  es6/node_modules/@haxtheweb/d-d-d
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/d-d-docs
   build path:  es6/node_modules/@haxtheweb/d-d-docs
   license:     Apache-2.0
-  attribution: see license text #16
+  attribution: see license text #15
 
 @haxtheweb/data-viz
   build path:  es6/node_modules/@haxtheweb/data-viz
   license:     Apache-2.0
-  attribution: see license text #17
+  attribution: see license text #16
 
 @haxtheweb/date-card
   build path:  es6/node_modules/@haxtheweb/date-card
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/deduping-fix
   build path:  es6/node_modules/@haxtheweb/deduping-fix
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/demo-snippet
   build path:  es6/node_modules/@haxtheweb/demo-snippet
   license:     Apache-2.0
-  attribution: see license text #18
+  attribution: see license text #17
 
 @haxtheweb/discord-embed
   build path:  es6/node_modules/@haxtheweb/discord-embed
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/disqus-embed
   build path:  es6/node_modules/@haxtheweb/disqus-embed
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/dl-behavior
   build path:  es6/node_modules/@haxtheweb/dl-behavior
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/documentation-player
   build path:  es6/node_modules/@haxtheweb/documentation-player
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/dynamic-import-registry
   build path:  es6/node_modules/@haxtheweb/dynamic-import-registry
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/editable-outline
   build path:  es6/node_modules/@haxtheweb/editable-outline
   license:     Apache-2.0
-  attribution: see license text #19
+  attribution: see license text #18
 
 @haxtheweb/editable-table
   build path:  es6/node_modules/@haxtheweb/editable-table
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/elmsln-loading
   build path:  es6/node_modules/@haxtheweb/elmsln-loading
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/enhanced-text
   build path:  es6/node_modules/@haxtheweb/enhanced-text
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/es-global-bridge
   build path:  es6/node_modules/@haxtheweb/es-global-bridge
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/event-badge
   build path:  es6/node_modules/@haxtheweb/event-badge
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/example-hax-element
   build path:  es6/node_modules/@haxtheweb/example-hax-element
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/example-haxcms-theme
   build path:  es6/node_modules/@haxtheweb/example-haxcms-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/figure-label
   build path:  es6/node_modules/@haxtheweb/figure-label
   license:     Apache-2.0
-  attribution: see license text #20
+  attribution: see license text #19
 
 @haxtheweb/file-system-broker
   build path:  es6/node_modules/@haxtheweb/file-system-broker
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/fill-in-the-blanks
   build path:  es6/node_modules/@haxtheweb/fill-in-the-blanks
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/flash-card
   build path:  es6/node_modules/@haxtheweb/flash-card
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/fluid-type
   build path:  es6/node_modules/@haxtheweb/fluid-type
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/full-width-image
   build path:  es6/node_modules/@haxtheweb/full-width-image
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/fullscreen-behaviors
   build path:  es6/node_modules/@haxtheweb/fullscreen-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/future-terminal-text
   build path:  es6/node_modules/@haxtheweb/future-terminal-text
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/git-corner
   build path:  es6/node_modules/@haxtheweb/git-corner
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/github-preview
   build path:  es6/node_modules/@haxtheweb/github-preview
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/glossy-portfolio-theme
   build path:  es6/node_modules/@haxtheweb/glossy-portfolio-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/grade-book
   build path:  es6/node_modules/@haxtheweb/grade-book
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/grid-plate
   build path:  es6/node_modules/@haxtheweb/grid-plate
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/h-a-x
   build path:  es6/node_modules/@haxtheweb/h-a-x
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/h5p-element
   build path:  es6/node_modules/@haxtheweb/h5p-element
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/hal-9000
   build path:  es6/node_modules/@haxtheweb/hal-9000
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/hax-app-installer
   build path:  es6/node_modules/@haxtheweb/hax-app-installer
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/hax-body
   build path:  es6/node_modules/@haxtheweb/hax-body
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/hax-body-behaviors
   build path:  es6/node_modules/@haxtheweb/hax-body-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/hax-bookmarklet
   build path:  es6/node_modules/@haxtheweb/hax-bookmarklet
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/hax-cloud
   build path:  es6/node_modules/@haxtheweb/hax-cloud
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/hax-iconset
   build path:  es6/node_modules/@haxtheweb/hax-iconset
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/hax-logo
   build path:  es6/node_modules/@haxtheweb/hax-logo
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/haxcms-elements
   build path:  es6/node_modules/@haxtheweb/haxcms-elements
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/haxma-theme
   build path:  es6/node_modules/@haxtheweb/haxma-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/haxor-slevin
   build path:  es6/node_modules/@haxtheweb/haxor-slevin
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/hex-picker
   build path:  es6/node_modules/@haxtheweb/hex-picker
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/hexagon-loader
   build path:  es6/node_modules/@haxtheweb/hexagon-loader
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/html-block
   build path:  es6/node_modules/@haxtheweb/html-block
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/i18n-manager
   build path:  es6/node_modules/@haxtheweb/i18n-manager
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/iframe-loader
   build path:  es6/node_modules/@haxtheweb/iframe-loader
   license:     Apache-2.0
-  attribution: see license text #21
+  attribution: see license text #20
 
 @haxtheweb/image-compare-slider
   build path:  es6/node_modules/@haxtheweb/image-compare-slider
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/image-gallery
   build path:  es6/node_modules/@haxtheweb/image-gallery
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/image-inspector
   build path:  es6/node_modules/@haxtheweb/image-inspector
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/img-pan-zoom
   build path:  es6/node_modules/@haxtheweb/img-pan-zoom
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/img-view-modal
   build path:  es6/node_modules/@haxtheweb/img-view-modal
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/inline-audio
   build path:  es6/node_modules/@haxtheweb/inline-audio
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/intersection-element
   build path:  es6/node_modules/@haxtheweb/intersection-element
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/journey-theme
   build path:  es6/node_modules/@haxtheweb/journey-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/json-editor
   build path:  es6/node_modules/@haxtheweb/json-editor
   license:     Apache-2.0
-  attribution: see license text #19
+  attribution: see license text #18
 
 @haxtheweb/json-outline-schema
   build path:  es6/node_modules/@haxtheweb/json-outline-schema
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/jwt-login
   build path:  es6/node_modules/@haxtheweb/jwt-login
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/la-tex
   build path:  es6/node_modules/@haxtheweb/la-tex
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #12
 
 @haxtheweb/lazy-image-helpers
   build path:  es6/node_modules/@haxtheweb/lazy-image-helpers
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/lazy-import-discover
   build path:  es6/node_modules/@haxtheweb/lazy-import-discover
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/learn-two-theme
   build path:  es6/node_modules/@haxtheweb/learn-two-theme
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/license-element
   build path:  es6/node_modules/@haxtheweb/license-element
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/link-card-theme
   build path:  es6/node_modules/@haxtheweb/link-card-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/linkedin-embed
   build path:  es6/node_modules/@haxtheweb/linkedin-embed
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/lorem-data
   build path:  es6/node_modules/@haxtheweb/lorem-data
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrn-icons
   build path:  es6/node_modules/@haxtheweb/lrn-icons
   license:     Apache-2.0
-  attribution: see license text #22
+  attribution: see license text #21
 
 @haxtheweb/lrn-math
   build path:  es6/node_modules/@haxtheweb/lrn-math
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrn-table
   build path:  es6/node_modules/@haxtheweb/lrn-table
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrn-vocab
   build path:  es6/node_modules/@haxtheweb/lrn-vocab
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrndesign-avatar
   build path:  es6/node_modules/@haxtheweb/lrndesign-avatar
   license:     Apache-2.0
-  attribution: see license text #23
+  attribution: see license text #22
 
 @haxtheweb/lrndesign-chart
   build path:  es6/node_modules/@haxtheweb/lrndesign-chart
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrndesign-imagemap
   build path:  es6/node_modules/@haxtheweb/lrndesign-imagemap
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/lrndesign-sidenote
   build path:  es6/node_modules/@haxtheweb/lrndesign-sidenote
   license:     Apache-2.0
-  attribution: see license text #22
+  attribution: see license text #21
 
 @haxtheweb/lrndesign-timeline
   build path:  es6/node_modules/@haxtheweb/lrndesign-timeline
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/lrs-elements
   build path:  es6/node_modules/@haxtheweb/lrs-elements
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/lunr-search
   build path:  es6/node_modules/@haxtheweb/lunr-search
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/map-menu
   build path:  es6/node_modules/@haxtheweb/map-menu
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/mark-the-words
   build path:  es6/node_modules/@haxtheweb/mark-the-words
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/matching-question
   build path:  es6/node_modules/@haxtheweb/matching-question
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/md-block
   build path:  es6/node_modules/@haxtheweb/md-block
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/md-extra-icons
   build path:  es6/node_modules/@haxtheweb/md-extra-icons
   license:     Apache-2.0
-  attribution: see license text #22
+  attribution: see license text #21
 
 @haxtheweb/mdi-iconset-svg
   build path:  es6/node_modules/@haxtheweb/mdi-iconset-svg
   license:     Apache-2.0
-  attribution: see license text #22
+  attribution: see license text #21
 
 @haxtheweb/media-behaviors
   build path:  es6/node_modules/@haxtheweb/media-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/media-image
   build path:  es6/node_modules/@haxtheweb/media-image
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/media-playlist
   build path:  es6/node_modules/@haxtheweb/media-playlist
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/media-quote
   build path:  es6/node_modules/@haxtheweb/media-quote
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/meme-maker
   build path:  es6/node_modules/@haxtheweb/meme-maker
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/merit-badge
   build path:  es6/node_modules/@haxtheweb/merit-badge
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/micro-frontend-registry
   build path:  es6/node_modules/@haxtheweb/micro-frontend-registry
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/moar-sarcasm
   build path:  es6/node_modules/@haxtheweb/moar-sarcasm
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/moment-element
   build path:  es6/node_modules/@haxtheweb/moment-element
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/multiple-choice
   build path:  es6/node_modules/@haxtheweb/multiple-choice
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/music-player
   build path:  es6/node_modules/@haxtheweb/music-player
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/mutation-observer-import-mixin
   build path:  es6/node_modules/@haxtheweb/mutation-observer-import-mixin
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/oer-schema
   build path:  es6/node_modules/@haxtheweb/oer-schema
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/outline-designer
   build path:  es6/node_modules/@haxtheweb/outline-designer
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/outline-player
   build path:  es6/node_modules/@haxtheweb/outline-player
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/page-break
   build path:  es6/node_modules/@haxtheweb/page-break
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/page-contents-menu
   build path:  es6/node_modules/@haxtheweb/page-contents-menu
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/page-flag
   build path:  es6/node_modules/@haxtheweb/page-flag
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/page-scroll-position
   build path:  es6/node_modules/@haxtheweb/page-scroll-position
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/page-section
   build path:  es6/node_modules/@haxtheweb/page-section
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/paper-avatar
   build path:  es6/node_modules/@haxtheweb/paper-avatar
   license:     Apache-2.0
-  attribution: see license text #22
+  attribution: see license text #21
 
 @haxtheweb/paper-input-flagged
   build path:  es6/node_modules/@haxtheweb/paper-input-flagged
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/parallax-image
   build path:  es6/node_modules/@haxtheweb/parallax-image
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/pdf-browser-viewer
   build path:  es6/node_modules/@haxtheweb/pdf-browser-viewer
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/person-testimonial
   build path:  es6/node_modules/@haxtheweb/person-testimonial
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/place-holder
   build path:  es6/node_modules/@haxtheweb/place-holder
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/play-list
   build path:  es6/node_modules/@haxtheweb/play-list
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/polaris-theme
   build path:  es6/node_modules/@haxtheweb/polaris-theme
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/portal-launcher
   build path:  es6/node_modules/@haxtheweb/portal-launcher
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/post-card
   build path:  es6/node_modules/@haxtheweb/post-card
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/pouch-db
   build path:  es6/node_modules/@haxtheweb/pouch-db
   license:     Apache-2.0
-  attribution: see license text #17
+  attribution: see license text #16
 
 @haxtheweb/product-card
   build path:  es6/node_modules/@haxtheweb/product-card
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/product-glance
   build path:  es6/node_modules/@haxtheweb/product-glance
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/product-offering
   build path:  es6/node_modules/@haxtheweb/product-offering
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/progress-donut
   build path:  es6/node_modules/@haxtheweb/progress-donut
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/promise-progress
   build path:  es6/node_modules/@haxtheweb/promise-progress
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/q-r
   build path:  es6/node_modules/@haxtheweb/q-r
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/radio-behaviors
   build path:  es6/node_modules/@haxtheweb/radio-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/relative-heading
   build path:  es6/node_modules/@haxtheweb/relative-heading
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/replace-tag
   build path:  es6/node_modules/@haxtheweb/replace-tag
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/responsive-grid
   build path:  es6/node_modules/@haxtheweb/responsive-grid
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/responsive-utility
   build path:  es6/node_modules/@haxtheweb/responsive-utility
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/resume-theme
   build path:  es6/node_modules/@haxtheweb/resume-theme
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/retro-card
   build path:  es6/node_modules/@haxtheweb/retro-card
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/rich-text-editor
   build path:  es6/node_modules/@haxtheweb/rich-text-editor
   license:     Apache-2.0
-  attribution: see license text #24
+  attribution: see license text #23
 
 @haxtheweb/rpg-character
   build path:  es6/node_modules/@haxtheweb/rpg-character
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/runkit-embed
   build path:  es6/node_modules/@haxtheweb/runkit-embed
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/schema-behaviors
   build path:  es6/node_modules/@haxtheweb/schema-behaviors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/screen-recorder
   build path:  es6/node_modules/@haxtheweb/screen-recorder
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/scroll-button
   build path:  es6/node_modules/@haxtheweb/scroll-button
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/self-check
   build path:  es6/node_modules/@haxtheweb/self-check
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/shadow-style
   build path:  es6/node_modules/@haxtheweb/shadow-style
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/sheet-music
   build path:  es6/node_modules/@haxtheweb/sheet-music
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/simple-autocomplete
   build path:  es6/node_modules/@haxtheweb/simple-autocomplete
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-blog
   build path:  es6/node_modules/@haxtheweb/simple-blog
   license:     Apache-2.0
-  attribution: see license text #3
-
-@haxtheweb/simple-blog-card
-  build path:  es6/node_modules/@haxtheweb/simple-blog-card
-  license:     Apache-2.0
-  attribution: see license text #19
+  attribution: see license text #2
 
 @haxtheweb/simple-colors
   build path:  es6/node_modules/@haxtheweb/simple-colors
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-colors-shared-styles
   build path:  es6/node_modules/@haxtheweb/simple-colors-shared-styles
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/simple-cta
   build path:  es6/node_modules/@haxtheweb/simple-cta
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-datetime
   build path:  es6/node_modules/@haxtheweb/simple-datetime
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-emoji
   build path:  es6/node_modules/@haxtheweb/simple-emoji
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/simple-fields
   build path:  es6/node_modules/@haxtheweb/simple-fields
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/simple-filter
   build path:  es6/node_modules/@haxtheweb/simple-filter
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-icon
   build path:  es6/node_modules/@haxtheweb/simple-icon
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-icon-picker
   build path:  es6/node_modules/@haxtheweb/simple-icon-picker
   license:     Apache-2.0
-  attribution: see license text #24
+  attribution: see license text #23
 
 @haxtheweb/simple-img
   build path:  es6/node_modules/@haxtheweb/simple-img
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/simple-login
   build path:  es6/node_modules/@haxtheweb/simple-login
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/simple-modal
   build path:  es6/node_modules/@haxtheweb/simple-modal
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-pager
   build path:  es6/node_modules/@haxtheweb/simple-pager
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/simple-picker
   build path:  es6/node_modules/@haxtheweb/simple-picker
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-popover
   build path:  es6/node_modules/@haxtheweb/simple-popover
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/simple-progress
   build path:  es6/node_modules/@haxtheweb/simple-progress
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-range-input
   build path:  es6/node_modules/@haxtheweb/simple-range-input
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-search
   build path:  es6/node_modules/@haxtheweb/simple-search
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-toast
   build path:  es6/node_modules/@haxtheweb/simple-toast
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/simple-toolbar
   build path:  es6/node_modules/@haxtheweb/simple-toolbar
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/simple-tooltip
   build path:  es6/node_modules/@haxtheweb/simple-tooltip
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/simple-wc
   build path:  es6/node_modules/@haxtheweb/simple-wc
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/social-share-link
   build path:  es6/node_modules/@haxtheweb/social-share-link
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/sorting-question
   build path:  es6/node_modules/@haxtheweb/sorting-question
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/spacebook-theme
   build path:  es6/node_modules/@haxtheweb/spacebook-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/spotify-embed
   build path:  es6/node_modules/@haxtheweb/spotify-embed
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/star-rating
   build path:  es6/node_modules/@haxtheweb/star-rating
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/stop-note
   build path:  es6/node_modules/@haxtheweb/stop-note
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/super-daemon
   build path:  es6/node_modules/@haxtheweb/super-daemon
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/tableau-embed
   build path:  es6/node_modules/@haxtheweb/tableau-embed
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/tagging-question
   build path:  es6/node_modules/@haxtheweb/tagging-question
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/terrible-themes
   build path:  es6/node_modules/@haxtheweb/terrible-themes
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/training-theme
   build path:  es6/node_modules/@haxtheweb/training-theme
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/twenty-six-theme
   build path:  es6/node_modules/@haxtheweb/twenty-six-theme
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/twitter-embed
   build path:  es6/node_modules/@haxtheweb/twitter-embed
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/type-writer
   build path:  es6/node_modules/@haxtheweb/type-writer
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/un-sdg
   build path:  es6/node_modules/@haxtheweb/un-sdg
   license:     Apache-2.0
-  attribution: see license text #16
+  attribution: see license text #15
 
 @haxtheweb/undo-manager
   build path:  es6/node_modules/@haxtheweb/undo-manager
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/unity-webgl
   build path:  es6/node_modules/@haxtheweb/unity-webgl
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/user-action
   build path:  es6/node_modules/@haxtheweb/user-action
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/user-scaffold
   build path:  es6/node_modules/@haxtheweb/user-scaffold
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/utils
   build path:  es6/node_modules/@haxtheweb/utils
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/video-player
   build path:  es6/node_modules/@haxtheweb/video-player
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/vocab-term
   build path:  es6/node_modules/@haxtheweb/vocab-term
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/voice-recorder
   build path:  es6/node_modules/@haxtheweb/voice-recorder
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #4
 
 @haxtheweb/wc-autoload
   build path:  es6/node_modules/@haxtheweb/wc-autoload
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @haxtheweb/web-container
   build path:  es6/node_modules/@haxtheweb/web-container
   license:     Apache-2.0
-  attribution: see license text #16
+  attribution: see license text #15
 
 @haxtheweb/wikipedia-query
   build path:  es6/node_modules/@haxtheweb/wikipedia-query
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/word-count
   build path:  es6/node_modules/@haxtheweb/word-count
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @haxtheweb/wysiwyg-hax
   build path:  es6/node_modules/@haxtheweb/wysiwyg-hax
   license:     Apache-2.0
-  attribution: see license text #3
+  attribution: see license text #2
 
 @lit-labs/virtualizer
   build path:  es6/node_modules/@lit-labs/virtualizer
   license:     BSD-3-Clause
-  attribution: see license text #26
+  attribution: see license text #25
 
 @lit/reactive-element
   build path:  es6/node_modules/@lit/reactive-element
   license:     BSD-3-Clause
-  attribution: see license text #25
+  attribution: see license text #24
 
 @lrnwebcomponents/dynamic-import-registry
   build path:  es6/node_modules/@lrnwebcomponents/dynamic-import-registry
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @lrnwebcomponents/wc-autoload
   build path:  es6/node_modules/@lrnwebcomponents/wc-autoload
   license:     Apache-2.0
-  attribution: see license text #4
+  attribution: see license text #3
 
 @webcontainer/api
   build path:  es6/node_modules/@webcontainer/api
   license:     MIT
-  attribution: see license text #27
+  attribution: see license text #26
 
 @xterm/addon-fit
   build path:  es6/node_modules/@xterm/addon-fit
   license:     MIT
-  attribution: see license text #28
+  attribution: see license text #27
 
 @xterm/xterm
   build path:  es6/node_modules/@xterm/xterm
   license:     MIT
-  attribution: see license text #29
+  attribution: see license text #28
 
 bootstrap
   build path:  es6/node_modules/bootstrap
   license:     MIT
-  attribution: see license text #30
+  attribution: see license text #29
 
 idb-keyval
   build path:  es6/node_modules/idb-keyval
   license:     Apache-2.0
-  attribution: see license text #31
+  attribution: see license text #30
 
 jquery
   build path:  es6/node_modules/jquery
   license:     MIT
-  attribution: see license text #32
+  attribution: see license text #31
 
 lit
   build path:  es6/node_modules/lit
   license:     BSD-3-Clause
-  attribution: see license text #25
+  attribution: see license text #24
 
 lit-element
   build path:  es6/node_modules/lit-element
   license:     BSD-3-Clause
-  attribution: see license text #25
+  attribution: see license text #24
 
 lit-html
   build path:  es6/node_modules/lit-html
   license:     BSD-3-Clause
-  attribution: see license text #25
+  attribution: see license text #24
 
 lunr
   build path:  es6/node_modules/lunr
   license:     MIT
-  attribution: see license text #33
+  attribution: see license text #32
 
 marked
   build path:  es6/node_modules/marked
   license:     MIT
-  attribution: see license text #34
+  attribution: see license text #33
 
 mobx
   build path:  es6/node_modules/mobx
   license:     MIT
-  attribution: see license text #35
+  attribution: see license text #34
 
 monaco-editor
   build path:  es6/node_modules/monaco-editor
   license:     MIT
-  attribution: see license text #36
+  attribution: see license text #35
 
 msr
   build path:  es6/node_modules/msr
   license:     MIT
-  attribution: see license text #37
+  attribution: see license text #36
 
 safari-14-idb-fix
   build path:  es6/node_modules/safari-14-idb-fix
   license:     Apache-2.0
-  attribution: see license text #2
+  attribution: see license text #1
 
 scrollable-component
   build path:  es6/node_modules/scrollable-component
   license:     MIT
-  attribution: see license text #38
+  attribution: see license text #37
 
 tslib
   build path:  es6/node_modules/tslib
   license:     0BSD
-  attribution: see license text #39
+  attribution: see license text #38
 
 web-dialog
   build path:  es6/node_modules/web-dialog
@@ -1318,40 +1308,14 @@ web-dialog
 web-social-share
   build path:  es6/node_modules/web-social-share
   license:     MIT
-  attribution: see license text #40
+  attribution: see license text #39
 
 ================================================================================
 LICENSE TEXTS
 ================================================================================
 
 --------------------------------------------------------------------------------
-#1 - MIT - @github/time-elements
-source files: LICENSE
---------------------------------------------------------------------------------
----- LICENSE ----
-Copyright (c) 2014-2018 GitHub, Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
---------------------------------------------------------------------------------
-#2 - Apache-2.0 (shared by 2 packages)
+#1 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -1559,7 +1523,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#3 - Apache-2.0 (shared by 83 packages)
+#2 - Apache-2.0 (shared by 83 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -1766,7 +1730,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#4 - Apache-2.0 (shared by 27 packages)
+#3 - Apache-2.0 (shared by 27 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -1973,7 +1937,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#5 - Apache-2.0 (shared by 33 packages)
+#4 - Apache-2.0 (shared by 33 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2180,7 +2144,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#6 - Apache-2.0 (shared by 19 packages)
+#5 - Apache-2.0 (shared by 19 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2387,7 +2351,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 8 packages)
+#6 - Apache-2.0 (shared by 8 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2594,7 +2558,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#8 - Apache-2.0 (shared by 6 packages)
+#7 - Apache-2.0 (shared by 6 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2801,7 +2765,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#9 - Apache-2.0 (shared by 8 packages)
+#8 - Apache-2.0 (shared by 8 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3008,7 +2972,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#10 - Apache-2.0 (shared by 11 packages)
+#9 - Apache-2.0 (shared by 11 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3215,7 +3179,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#11 - Apache-2.0 - @haxtheweb/b-r
+#10 - Apache-2.0 - @haxtheweb/b-r
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3422,7 +3386,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#12 - Apache-2.0 (shared by 2 packages)
+#11 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3629,7 +3593,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#13 - Apache-2.0 (shared by 2 packages)
+#12 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3836,7 +3800,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#14 - Apache-2.0 (shared by 11 packages)
+#13 - Apache-2.0 (shared by 11 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4043,7 +4007,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#15 - Apache-2.0 (shared by 7 packages)
+#14 - Apache-2.0 (shared by 7 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4250,7 +4214,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#16 - Apache-2.0 (shared by 3 packages)
+#15 - Apache-2.0 (shared by 3 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4457,7 +4421,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#17 - Apache-2.0 (shared by 2 packages)
+#16 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4664,7 +4628,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#18 - Apache-2.0 - @haxtheweb/demo-snippet
+#17 - Apache-2.0 - @haxtheweb/demo-snippet
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4871,7 +4835,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#19 - Apache-2.0 (shared by 3 packages)
+#18 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE.md
 --------------------------------------------------------------------------------
 ---- LICENSE.md ----
@@ -5078,7 +5042,7 @@ source files: LICENSE.md
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#20 - Apache-2.0 - @haxtheweb/figure-label
+#19 - Apache-2.0 - @haxtheweb/figure-label
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -5285,7 +5249,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#21 - Apache-2.0 - @haxtheweb/iframe-loader
+#20 - Apache-2.0 - @haxtheweb/iframe-loader
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -5492,7 +5456,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#22 - Apache-2.0 (shared by 5 packages)
+#21 - Apache-2.0 (shared by 5 packages)
 source files: LICENSE.md
 --------------------------------------------------------------------------------
 ---- LICENSE.md ----
@@ -5699,7 +5663,7 @@ source files: LICENSE.md
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#23 - Apache-2.0 - @haxtheweb/lrndesign-avatar
+#22 - Apache-2.0 - @haxtheweb/lrndesign-avatar
 source files: LICENSE.md
 --------------------------------------------------------------------------------
 ---- LICENSE.md ----
@@ -5906,7 +5870,7 @@ source files: LICENSE.md
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#24 - Apache-2.0 (shared by 2 packages)
+#23 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6113,7 +6077,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#25 - BSD-3-Clause (shared by 4 packages)
+#24 - BSD-3-Clause (shared by 4 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6147,7 +6111,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-#26 - BSD-3-Clause - @lit-labs/virtualizer
+#25 - BSD-3-Clause - @lit-labs/virtualizer
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6181,7 +6145,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-#27 - MIT - @webcontainer/api
+#26 - MIT - @webcontainer/api
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6194,7 +6158,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#28 - MIT - @xterm/addon-fit
+#27 - MIT - @xterm/addon-fit
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6219,7 +6183,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#29 - MIT - @xterm/xterm
+#28 - MIT - @xterm/xterm
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6246,7 +6210,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#30 - MIT - bootstrap
+#29 - MIT - bootstrap
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6274,7 +6238,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#31 - Apache-2.0 - idb-keyval
+#30 - Apache-2.0 - idb-keyval
 source files: LICENCE
 --------------------------------------------------------------------------------
 ---- LICENCE ----
@@ -6293,7 +6257,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 --------------------------------------------------------------------------------
-#32 - MIT - jquery
+#31 - MIT - jquery
 source files: LICENSE.txt
 --------------------------------------------------------------------------------
 ---- LICENSE.txt ----
@@ -6319,7 +6283,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#33 - MIT - lunr
+#32 - MIT - lunr
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6344,7 +6308,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#34 - MIT - marked
+#33 - MIT - marked
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6394,7 +6358,7 @@ Redistribution and use in source and binary forms, with or without modification,
 This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 
 --------------------------------------------------------------------------------
-#35 - MIT - mobx
+#34 - MIT - mobx
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6421,7 +6385,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-#36 - MIT - monaco-editor
+#35 - MIT - monaco-editor
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6448,7 +6412,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-#37 - MIT - msr
+#36 - MIT - msr
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6474,7 +6438,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-#38 - MIT - scrollable-component
+#37 - MIT - scrollable-component
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -6501,7 +6465,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-#39 - 0BSD - tslib
+#38 - 0BSD - tslib
 source files: LICENSE.txt
 --------------------------------------------------------------------------------
 ---- LICENSE.txt ----
@@ -6519,7 +6483,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 --------------------------------------------------------------------------------
-#40 - MIT - web-social-share
+#39 - MIT - web-social-share
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----

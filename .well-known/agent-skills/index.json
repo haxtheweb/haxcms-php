@@ -117,27 +117,6 @@
       "digest": "sha256:a3b76112370adc3887eda05c06b791161d0a54ab738fcf3fe881e0f7a68d88bf"
     },
     {
-      "name": "hax-webcomponent-dev",
-      "type": "skill-md",
-      "description": "Develop HAX-capable web components using LitElement, DDD design system, and HAXSchema. Use when scaffolding new components, adding HAX editor support, auditing accessibility, or applying DDD tokens to elements in the webcomponents monorepo.",
-      "url": "hax-webcomponent-dev/SKILL.md",
-      "digest": "sha256:80373c15d1623a223d3af7e862d8e227147117b7a22e367e67ae959666d1e53f"
-    },
-    {
-      "name": "hax-site-building",
-      "type": "skill-md",
-      "description": "Build and maintain HAXcms sites with proper structure, themes, and JSON Outline Schema. Use when creating a new HAXsite, editing site.json, managing page content, or modifying themes in the HAXcms ecosystem.",
-      "url": "hax-site-building/SKILL.md",
-      "digest": "sha256:b32de0566bd6086b887d604a5b145f519a42fa6956a6210dc163b34ad9de87cf"
-    },
-    {
-      "name": "hax-claudehax",
-      "type": "skill-md",
-      "description": "Operate HAX sites from Claude Code using the ClaudeHAX plugin, HAX CLI, and HAX web components. Use when the user wants to add pages, create courses, update content, add assessments, add quizzes, add videos, use HAX web components, analyze existing HAX sites, or suggest improvements using the ClaudeHAX /hax slash command or HAX CLI directly.",
-      "url": "hax-claudehax/SKILL.md",
-      "digest": "sha256:7b50163dfa233698cc8d1317bbc491bb4748432855187570801b58be6ef798f7"
-    },
-    {
       "name": "haxcms-lrs-rater",
       "type": "skill-md",
       "description": "Run BookLooky's Looky Rating System (LRS) content rating and minimum-age recommendation on a HAXcms site's aggregated content — either a local site checkout or a live published URL like btopro.com — entirely through the invoking agent's own reasoning, no API key or network call to an LLM required. Use this whenever the user asks to \"rate this HAXcms site\", \"run an LRS scan on my site/domain\", \"what age is btopro.com appropriate for\", \"check this site for violence/romance/language/etc. content\", \"score this site the way booklooky does\", or gives a HAX site URL/path and asks for a content rating or age recommendation. Distinct from booklooky-lrs-rater, which rates a single provided transcript/manuscript — this skill's job is reading a HAXcms site's llms.txt manifest to assemble that transcript first.",

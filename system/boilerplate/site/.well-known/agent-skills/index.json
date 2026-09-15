@@ -115,13 +115,6 @@
       "description": "Audit a HAX site page (JSON Outline Schema node, raw HTML in pages/, or markdown) against cognitive-load and content-chunking instructional-design standards, then return actionable HAX web-component remediation. Use when the user asks to review a course page, textbook module, or HAX site for readability, \"wall of text\", overly long sections, list fatigue, media saturation, microlearning chunking, or to \"make this page less overwhelming\" — even if they don't say \"audit\".",
       "url": "hax-content-chunking-audit/SKILL.md",
       "digest": "sha256:a3b76112370adc3887eda05c06b791161d0a54ab738fcf3fe881e0f7a68d88bf"
-    },
-    {
-      "name": "hax-webcomponent-dev",
-      "type": "skill-md",
-      "description": "Develop HAX-capable web components using LitElement, DDD design system, and HAXSchema. Use when scaffolding new components, adding HAX editor support, auditing accessibility, or applying DDD tokens to elements in the webcomponents monorepo.",
-      "url": "hax-webcomponent-dev/SKILL.md",
-      "digest": "sha256:80373c15d1623a223d3af7e862d8e227147117b7a22e367e67ae959666d1e53f"
     }
   ]
 }
