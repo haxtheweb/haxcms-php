@@ -1621,53 +1621,6 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
-  /system/api/v1/actions/import-pptx-deck:
-    post:
-      tags:
-        - actions
-      operationId: importPptxDeck
-      summary: Convert an uploaded .pptx into a deck.json presentation manifest stored on a site
-      security:
-        - bearerAuth: []
-          userTokenHeader: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: PowerPoint file (.pptx) to convert
-                siteName:
-                  type: string
-                  description: Name of the existing site to store the deck in
-      responses:
-        "200":
-          description: Deck manifest and embed markup for the converted presentation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                  data:
-                    type: object
-                    properties:
-                      deckPath:
-                        type: string
-                      embedHtml:
-                        type: string
-                      manifest:
-                        type: object
-                additionalProperties: true
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "403":
-          $ref: "#/components/responses/Forbidden"
   /system/api/v1/actions/import-html:
     post:
       tags:

@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../MediaSettingsService.php';
 include_once dirname(__FILE__) . '/../FilesDataStore.php';
+include_once dirname(__FILE__) . '/../pptxDeckHelper.php';
 /**
  * #3043: After a file operation (compress, scale, sepia, rotate-90,
  * convert-jpg, rename, duplicate), upsert the updated record into the
@@ -130,7 +131,7 @@ trait OperationsRouteFileOperation {
       $jpegQuality = $mediaSettings['jpegQuality'];
     }
     $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
-    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90', 'compress', 'duplicate'), true)) {
+    if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90', 'compress', 'duplicate', 'convert-pptx-deck'), true)) {
       return array(
         '__failed' => array(
           'status' => 400,
@@ -162,6 +163,126 @@ trait OperationsRouteFileOperation {
         '__failed' => array(
           'status' => $pathResult['status'],
           'message' => $pathResult['message'],
+        )
+      );
+    }
+    if ($operation == 'convert-pptx-deck') {
+      // The .pptx stays where it was uploaded in files/ (no move). The deck
+      // folder files/decks/<name>/ gets only deck.json + extracted media.
+      // The manifest's pptx field references the original files/ path.
+      $sourceExtension = strtolower(pathinfo($pathResult['normalizedPath'], PATHINFO_EXTENSION));
+      if ($sourceExtension !== 'pptx') {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'convert-pptx-deck requires a .pptx file',
+          )
+        );
+      }
+      $firstBytes = @file_get_contents($pathResult['resolvedPath'], false, null, 0, 4);
+      if ($firstBytes === false || strlen($firstBytes) < 4 || substr($firstBytes, 0, 2) !== 'PK') {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'File is not a valid .pptx (missing ZIP signature)',
+          )
+        );
+      }
+      try {
+        $deckData = haxcmsSystemBuildPptxDeckManifest($pathResult['resolvedPath']);
+      } catch (\Exception $e) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Error processing PPTX: ' . $e->getMessage(),
+          )
+        );
+      }
+      $manifestSlides = $deckData['slides'];
+      $extractedFiles = $deckData['extractedFiles'];
+      // Derive the deck folder name from the .pptx filename: strip extension,
+      // sanitize to alphanumeric/hyphen/underscore.
+      $baseDeckName = preg_replace('/\.pptx$/i', '', basename($pathResult['normalizedPath']));
+      $baseDeckName = preg_replace('/[^a-zA-Z0-9\-_]/', '-', $baseDeckName);
+      if ($baseDeckName === '' || $baseDeckName === null) {
+        $baseDeckName = 'deck';
+      }
+      // Uniquify the deck folder name (-1, -2, ... matching archiveSite pattern)
+      // so a repeated convert never silently overwrites a prior deck's files.
+      $deckName = $baseDeckName;
+      $deckCounter = 1;
+      while (is_dir($pathResult['filesRoot'] . '/decks/' . $deckName)) {
+        $deckName = $baseDeckName . '-' . $deckCounter;
+        $deckCounter++;
+      }
+      $deckDirAbsolute = $pathResult['filesRoot'] . '/decks/' . $deckName;
+      $deckDirRelative = 'files/decks/' . $deckName;
+      // Create the deck directory (Symfony Filesystem::mkdir is recursive)
+      if (isset($GLOBALS['fileSystem']) && is_object($GLOBALS['fileSystem'])) {
+        $GLOBALS['fileSystem']->mkdir($deckDirAbsolute);
+      } else {
+        @mkdir($deckDirAbsolute, 0777, true);
+      }
+      // Write extracted media to the deck folder (basename strips path components)
+      foreach ($extractedFiles as $fileReference => $extracted) {
+        $destName = basename($fileReference);
+        @file_put_contents($deckDirAbsolute . '/' . $destName, base64_decode($extracted['buffer']));
+      }
+      // Rewrite slide image src from the converter's deck-agnostic default
+      // (files/pptx-media/) to where the media actually landed (files/decks/<name>/)
+      $deckSlides = array();
+      foreach ($manifestSlides as $slide) {
+        $slideHtml = is_string($slide['html'])
+          ? str_replace('files/pptx-media/', 'files/decks/' . $deckName . '/', $slide['html'])
+          : $slide['html'];
+        $deckSlides[] = array(
+          'number' => $slide['number'],
+          'title'  => $slide['title'],
+          'html'   => $slideHtml,
+          'notes'  => $slide['notes'],
+        );
+      }
+      // The manifest's pptx field references the ORIGINAL files/ path (not
+      // files/decks/<name>/original.pptx) since the .pptx was never moved.
+      $deckManifest = array(
+        'title'  => $deckName,
+        'source' => basename($pathResult['normalizedPath']),
+        'pptx'   => $pathResult['normalizedPath'],
+        'slides' => $deckSlides,
+      );
+      @file_put_contents(
+        $deckDirAbsolute . '/deck.json',
+        json_encode($deckManifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+      );
+      // Register deck.json + extracted media in the per-site files.json index
+      // via FilesDataStore so they are immediately discoverable via
+      // /x/api/v1/files. The original .pptx record is already there from the
+      // upload (unchanged).
+      $dataStore = new FilesDataStore($site);
+      $deckJsonRecord = $dataStore->buildFileRecordFromDisk($deckDirRelative . '/deck.json');
+      if ($deckJsonRecord !== null) {
+        $dataStore->upsertRecord($deckJsonRecord);
+      }
+      foreach ($extractedFiles as $fileReference => $extracted) {
+        $destName = basename($fileReference);
+        $mediaRecord = $dataStore->buildFileRecordFromDisk($deckDirRelative . '/' . $destName);
+        if ($mediaRecord !== null) {
+          $dataStore->upsertRecord($mediaRecord);
+        }
+      }
+      $site->gitCommit(
+        'PPTX deck converted: ' .
+        $pathResult['normalizedPath'] .
+        ' -> ' .
+        $deckDirRelative . '/deck.json'
+      );
+      return array(
+        'status' => 200,
+        'data' => array(
+          'operation' => $operation,
+          'deckPath'  => $deckDirRelative . '/deck.json',
+          'embedHtml' => '<slide-deck source="' . $deckDirRelative . '/deck.json"></slide-deck>',
+          'manifest'  => $deckManifest,
         )
       );
     }

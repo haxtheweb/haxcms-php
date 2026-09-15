@@ -18,10 +18,10 @@ class ImportPptxDeckTest extends TestCase
         if (!class_exists('ZipArchive')) {
             $this->markTestSkipped('ZipArchive extension not available');
         }
-        // importPptxDeck.php defines top-level functions and returns a closure;
+        // pptxDeckHelper.php defines the top-level manifest builder functions;
         // require_once ensures the functions load exactly once.
         if (!self::$manifestLoaded) {
-            $path = dirname(__DIR__, 2) . '/lib/systemRoutes/v1/importPptxDeck.php';
+            $path = dirname(__DIR__, 2) . '/lib/pptxDeckHelper.php';
             $this->assertFileExists($path);
             require_once $path;
             self::$manifestLoaded = true;
