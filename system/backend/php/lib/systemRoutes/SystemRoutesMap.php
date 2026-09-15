@@ -167,6 +167,7 @@ class SystemRoutesMap
                 'v1/actions/import-docx' => dirname(__FILE__) . '/v1/importDocx.php',
                 'v1/actions/import-html' => dirname(__FILE__) . '/v1/importHtml.php',
                 'v1/actions/import-pptx' => dirname(__FILE__) . '/v1/importPptx.php',
+                'v1/actions/import-pptx-deck' => dirname(__FILE__) . '/v1/importPptxDeck.php',
                 'v1/actions/import-xlsx' => dirname(__FILE__) . '/v1/importXlsx.php',
                 'v1/actions/import-pdf' => dirname(__FILE__) . '/v1/importPdf.php',
                 // Group C: binary document conversions

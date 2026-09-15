@@ -411,7 +411,7 @@ class HAXCMSFile
     /**
      * Save file into this site, optionally updating reference inside the page
      */
-    public function save($upload, $site, $page = null, $imageOps = null)
+    public function save($upload, $site, $page = null, $imageOps = null, $subfolder = '')
     {
         global $HAXCMS;
         global $fileSystem;
@@ -514,6 +514,19 @@ class HAXCMSFile
             else {
               $pathPart = $HAXCMS->sitesDirectory . '/' . $site->manifest->metadata->site->name . '/files/';
             }
+            // optional subfolder under files/ (e.g. 'decks/mydeck') so callers
+            // like importPptxDeck can target a nested collection while still
+            // getting extension/MIME validation, sanitization, and
+            // collision-safe renaming. Only applied to real site uploads;
+            // Symfony Filesystem::mkdir is recursive so nested dirs are created.
+            $subfolderPart = '';
+            if ($subfolder !== '' && is_string($subfolder) && is_object($site) && isset($site->manifest)) {
+                $subfolderPart = trim((string) $subfolder, '/');
+                if ($subfolderPart !== '') {
+                    $subfolderPart = $subfolderPart . '/';
+                }
+            }
+            $pathPart = $pathPart . $subfolderPart;
             $path = HAXCMS_ROOT . '/' . $pathPart;
             // ensure this path exists
             $fileSystem->mkdir($path);
@@ -592,12 +605,12 @@ class HAXCMSFile
                     // fake the file object creation stuff from CMS land
                     $return = array(
                         'file' => array(
-                            'path' => 'files/' . $name,
+                            'path' => 'files/' . $subfolderPart . $name,
                             'fullUrl' =>
                                 $HAXCMS->basePath .
                                 $pathPart .
                                 $name,
-                            'url' => 'files/' . $name,
+                            'url' => 'files/' . $subfolderPart . $name,
                             'type' => $storedMimeType,
                             'name' => $name,
                             'size' => $size
@@ -607,12 +620,12 @@ class HAXCMSFile
                     // fake the file object creation stuff from CMS land
                     $return = array(
                         'file' => array(
-                            'path' => 'files/' . $name,
+                            'path' => 'files/' . $subfolderPart . $name,
                             'fullUrl' =>
                                 $HAXCMS->basePath .
                                 $pathPart .
                                 $name,
-                            'url' => 'files/' . $name,
+                            'url' => 'files/' . $subfolderPart . $name,
                             'type' => $storedMimeType,
                             'name' => $name,
                             'size' => $size
@@ -644,7 +657,7 @@ class HAXCMSFile
                 // agrees with listFiles' stat-based uuid.
                 $relativeName = isset($upload['bulk-import'])
                     ? ((string) $importDirnamePart . $name)
-                    : $name;
+                    : ($subfolderPart . $name);
                 $onDiskSize = $size;
                 $freshSize = @filesize($fullpath);
                 if ($freshSize !== false && (int) $freshSize > 0) {
