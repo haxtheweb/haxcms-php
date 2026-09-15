@@ -1055,6 +1055,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #4
 
+@haxtheweb/slide-deck
+  build path:  es6/node_modules/@haxtheweb/slide-deck
+  license:     Apache-2.0
+  attribution: see license text #6
+
 @haxtheweb/social-share-link
   build path:  es6/node_modules/@haxtheweb/social-share-link
   license:     Apache-2.0
@@ -2351,7 +2356,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#6 - Apache-2.0 (shared by 8 packages)
+#6 - Apache-2.0 (shared by 9 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
