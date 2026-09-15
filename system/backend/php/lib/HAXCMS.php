@@ -156,6 +156,7 @@ class HAXCMS
           "html",
           "document",
           "archive",
+          "pptx",
           "*",
         );
         // sites directory
