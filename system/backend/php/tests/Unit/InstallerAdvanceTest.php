@@ -158,53 +158,80 @@ PHP;
 
     public function testPolicyRejectsShortPassword(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         $this->assertFalse($this->callPolicy('Ab1'));
     }
 
     public function testPolicyRejectsLettersOnly(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 10 chars but no number, no uppercase, no symbol.
         $this->assertFalse($this->callPolicy('abcdefghij'));
     }
 
     public function testPolicyRejectsNumbersOnly(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 10 chars but no letter.
         $this->assertFalse($this->callPolicy('1234567890'));
     }
 
     public function testPolicyRejectsNoSymbol(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 9 chars, upper + lower + number, but no symbol.
         $this->assertFalse($this->callPolicy('GoodPass1'));
     }
 
     public function testPolicyRejectsNoUppercase(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 8 chars, lower + number + symbol, but no uppercase.
         $this->assertFalse($this->callPolicy('goodpa1!'));
     }
 
     public function testPolicyRejectsNoLowercase(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 8 chars, upper + number + symbol, but no lowercase.
         $this->assertFalse($this->callPolicy('GOODPA1!'));
     }
 
     public function testPolicyRejectsNoNumber(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 9 chars, upper + lower + symbol, but no number.
         $this->assertFalse($this->callPolicy('GoodPass!'));
     }
 
     public function testPolicyAcceptsCompliantPassword(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // 8 chars (boundary), upper + lower + number + symbol.
         $this->assertTrue($this->callPolicy('GoodPa1!'));
     }
 
     public function testGeneratedPasswordMeetsPolicy(): void
     {
+        if ($this->isAlreadyInstalled()) {
+            $this->markTestSkipped('Repo already installed; install.php guard redirects away before functions load.');
+        }
         // The auto-generated password (direct-install path) must always
         // satisfy the policy; otherwise a hoster that sends no password
         // would get an admin password that fails its own validation.

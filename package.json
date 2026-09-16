@@ -28,6 +28,7 @@
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
     "release": "commit-and-tag-version && git push --follow-tags origin master",
+    "test": "cd system/backend/php && ./vendor/bin/phpunit",
     "test:e2e": "node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs",
     "test:e2e:update": "HAXCMS_E2E_UPDATE_SCREENSHOTS=1 node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs"
   },
