@@ -1,11 +1,17 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/imports/importUtils.php';
 
 /**
  * Convert DOCX word/document.xml into a simplified HTML string using DOMDocument.
+ * Optional $mediaMap (rId => data URI) preserves inline images for materialize.
  */
-function haxcmsSystemConvertDocxXmlToHtml($xmlString)
+function haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap = array())
 {
+    // Prefer the shared import helper (image-aware) when available.
+    if (function_exists('haxcmsImportConvertDocxXmlToHtml')) {
+        return haxcmsImportConvertDocxXmlToHtml($xmlString, $mediaMap);
+    }
     $doc = new DOMDocument();
     $doc->preserveWhiteSpace = false;
     $doc->loadXML($xmlString);
@@ -293,7 +299,13 @@ return function ($context) {
             if ($xmlIndex !== false) {
                 $xmlString = $zip->getFromIndex($xmlIndex);
                 if ($xmlString !== false) {
-                    $html = haxcmsSystemProcessDocxHtml(haxcmsSystemConvertDocxXmlToHtml($xmlString));
+                    // Load package images so convert emits data: URIs (mammoth parity).
+                    $mediaMap = function_exists('haxcmsImportLoadDocxMediaMapFromZip')
+                        ? haxcmsImportLoadDocxMediaMapFromZip($zip)
+                        : array();
+                    $html = haxcmsSystemProcessDocxHtml(
+                        haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap)
+                    );
                 } else {
                     $error = 'Unable to read word/document.xml from uploaded DOCX';
                 }

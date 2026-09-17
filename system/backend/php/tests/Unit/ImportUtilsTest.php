@@ -188,6 +188,29 @@ class ImportUtilsTest extends TestCase
     // haxcmsImportConvertDocxXmlToHtml
     // ------------------------------------------------------------------
 
+    public function testHaxcmsImportLoadDocxMediaMapAndConvertEmitsInlineImagesFromExampleDocx(): void
+    {
+        $docx = '/home/bto108a/Documents/git/haxtheweb/praw/hax-imports/import-example.docx';
+        if (!is_file($docx) || !class_exists('ZipArchive')) {
+            $this->markTestSkipped('import-example.docx or ZipArchive unavailable');
+        }
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($docx) === true);
+        $xml = $zip->getFromName('word/document.xml');
+        $this->assertNotFalse($xml);
+        $map = haxcmsImportLoadDocxMediaMapFromZip($zip);
+        $zip->close();
+
+        $this->assertArrayHasKey('rId2', $map);
+        $this->assertArrayHasKey('rId3', $map);
+        $this->assertStringStartsWith('data:image/png;base64,', $map['rId2']);
+        $this->assertStringStartsWith('data:image/jpeg;base64,', $map['rId3']);
+
+        $html = haxcmsImportConvertDocxXmlToHtml($xml, $map);
+        $this->assertSame(2, substr_count($html, '<img '));
+        $this->assertSame(2, substr_count($html, 'data:image'));
+    }
+
     public function testHaxcmsImportConvertDocxXmlToHtmlHandlesHeadingsAndRunFormatting(): void
     {
         $xml = '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'

@@ -294,6 +294,13 @@ class MaterializeInlineImages
             return null;
         }
         try {
+            // HAXCMSFile::save expects the global Symfony Filesystem set by HAXCMS.php
+            global $fileSystem;
+            if (!isset($fileSystem) || !is_object($fileSystem)) {
+                if (class_exists('Symfony\Component\Filesystem\Filesystem')) {
+                    $fileSystem = new \Symfony\Component\Filesystem\Filesystem();
+                }
+            }
             $file = new HAXCMSFile();
             $result = $file->save(
                 array(
