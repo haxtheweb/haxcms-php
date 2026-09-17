@@ -2,6 +2,7 @@
 // working with RSS
 include_once 'RSS.php';
 include_once 'SanitizeContent.php';
+include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
 use \Gumlet\ImageResize;
 // a site object
@@ -847,7 +848,11 @@ class HAXCMSSite
         $alternateContent = '';
         if ($template == 'html') {
           // now this should exist if it didn't a minute ago
-          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($html);
+          // #2945 / #3043: materialize inline data: images before sanitize strips them
+          $materialized = MaterializeInlineImages::materialize($html, $this, array(
+            'pageTitle' => $title,
+          ));
+          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($materialized['html']);
           $bytes = $page->writeLocation(
             $alternateContent,
             HAXCMS_ROOT .
@@ -857,6 +862,18 @@ class HAXCMSSite
             $this->manifest->metadata->site->name .
             '/'
           );
+          // Associate via FileEntity uuids returned by the helper — do NOT
+          // FileContentScanner-rebuild from content (import HTML no longer has
+          // data: URIs for the images just created).
+          if (!isset($page->metadata) || !is_object($page->metadata)) {
+            $page->metadata = new stdClass();
+          }
+          $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
+            ? $materialized['uuids']
+            : array();
+          if (count($page->metadata->files) > 0) {
+            $this->manifest->save();
+          }
         }
         $this->writePageAlternateFormats($page, $alternateContent);
         $this->updateAlternateFormats();

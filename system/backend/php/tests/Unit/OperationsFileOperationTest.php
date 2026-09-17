@@ -431,6 +431,43 @@ class OperationsFileOperationTest extends TestCase
         $this->assertStringContainsString('File converted to JPG', $site->gitCommits[0]);
     }
 
+    public function testFileOperationConvertJpgDoesNotOverwriteExistingBasenameJpg(): void
+    {
+        $this->haxcms->validRequestToken = true;
+
+        // Pre-existing image.jpg that must remain untouched when converting image.png
+        $existingJpg = $this->siteRoot . '/files/image.jpg';
+        $img = imagecreatetruecolor(10, 10);
+        $green = imagecolorallocate($img, 0, 255, 0);
+        imagefill($img, 0, 0, $green);
+        imagejpeg($img, $existingJpg, 90);
+        imagedestroy($img);
+        $existingBytes = file_get_contents($existingJpg);
+
+        $png = $this->siteRoot . '/files/image.png';
+        $img = imagecreatetruecolor(12, 12);
+        $blue = imagecolorallocate($img, 0, 0, 255);
+        imagefill($img, 0, 0, $blue);
+        imagepng($img, $png);
+        imagedestroy($img);
+
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'operation' => 'convert-jpg',
+            'path' => 'files/image.png',
+        );
+        $result = $this->ops->fileOperation();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('files/image_1.jpg', $result['data']['file']['path']);
+        $this->assertTrue(file_exists($this->siteRoot . '/files/image_1.jpg'));
+        $this->assertSame(
+            $existingBytes,
+            file_get_contents($existingJpg),
+            'pre-existing image.jpg must not be overwritten'
+        );
+    }
+
     // =========================================================================
     // scale — happy path
     // =========================================================================

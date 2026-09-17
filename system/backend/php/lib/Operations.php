@@ -1000,6 +1000,57 @@ class Operations {
   private function normalizeFilePathValue($value) {
     return str_replace('\\', '/', (string) $value);
   }
+
+  /**
+   * Collision-safe JPG output paths for convert-jpg (Node getUniqueJpgOutputPaths).
+   * In-place when source is already jpg/jpeg; otherwise basename.jpg, basename_1.jpg, …
+   *
+   * @param array $pathResult From resolveSiteFileOperationPath
+   * @return array{outputRelativePath:string,outputAbsolutePath:string}
+   */
+  private function getUniqueJpgOutputPaths($pathResult) {
+    $normalizedPath = isset($pathResult['normalizedPath']) ? (string) $pathResult['normalizedPath'] : '';
+    $resolvedPath = isset($pathResult['resolvedPath']) ? (string) $pathResult['resolvedPath'] : '';
+    $sourceExt = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
+    $sourceBasename = pathinfo($normalizedPath, PATHINFO_FILENAME);
+    $sourceDir = dirname($normalizedPath);
+    $absoluteDir = dirname($resolvedPath);
+    if ($sourceExt === 'jpg' || $sourceExt === 'jpeg') {
+      return array(
+        'outputRelativePath' => $normalizedPath,
+        'outputAbsolutePath' => $resolvedPath,
+      );
+    }
+    $counter = 0;
+    $outputFileName = $sourceBasename . '.jpg';
+    $outputAbsolutePath = $absoluteDir . '/' . $outputFileName;
+    $resolvedSource = realpath($resolvedPath);
+    while (file_exists($outputAbsolutePath) && $counter < 1000) {
+      $resolvedOut = realpath($outputAbsolutePath);
+      if (
+        $resolvedSource !== false &&
+        $resolvedOut !== false &&
+        $resolvedOut === $resolvedSource
+      ) {
+        break;
+      }
+      $counter++;
+      $outputFileName = $sourceBasename . '_' . $counter . '.jpg';
+      $outputAbsolutePath = $absoluteDir . '/' . $outputFileName;
+    }
+    $outputRelativePath = $this->normalizeFilePathValue($sourceDir . '/' . $outputFileName);
+    if (strpos($outputRelativePath, '/') === 0) {
+      $outputRelativePath = ltrim($outputRelativePath, '/');
+    }
+    if (strpos($outputRelativePath, './') === 0) {
+      $outputRelativePath = substr($outputRelativePath, 2);
+    }
+    return array(
+      'outputRelativePath' => $outputRelativePath,
+      'outputAbsolutePath' => $outputAbsolutePath,
+    );
+  }
+
   private function getSiteFilesDirectory($site) {
     return $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
   }

@@ -58,6 +58,29 @@ class HAXCMSFile
         if ($ext === 'htm') { $ext = 'html'; }
         return isset($map[$ext]) ? $map[$ext] : null;
     }
+
+    /**
+     * Image extensions accepted for inline materialize / upload image filters.
+     * Public so MaterializeInlineImages can build a MIME→ext map that cannot
+     * drift from what HAXCMSFile::save actually accepts.
+     *
+     * @return array
+     */
+    public static function imageExtensions()
+    {
+        static $exts = null;
+        if ($exts === null) {
+            $inst = new self();
+            $ref = new ReflectionProperty(self::class, 'imageExtensions');
+            $ref->setAccessible(true);
+            $exts = $ref->getValue($inst);
+            if (!is_array($exts)) {
+                $exts = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+            }
+        }
+        return $exts;
+    }
+
     private $imageExtensions = array(
         'jpg',
         'jpeg',

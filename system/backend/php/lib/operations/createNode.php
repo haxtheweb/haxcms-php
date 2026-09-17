@@ -1,4 +1,6 @@
 <?php
+include_once dirname(__FILE__) . '/../MaterializeInlineImages.php';
+include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteCreateNode {
   public function createNode() {
     $nodeParams = $this->params;
@@ -86,7 +88,17 @@ trait OperationsRouteCreateNode {
         else if (isset($nodeParams['node']['contents'])) {
           if ($page = $site->loadNode($item->id)) {
             // write it to the file system
-            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($nodeParams['node']['contents']);
+            // #2945 / #3043: materialize inline images; associate FileEntity uuids
+            $pageTitle = $item->title;
+            if (isset($nodeParams['node']['title']) && is_string($nodeParams['node']['title'])) {
+              $pageTitle = $nodeParams['node']['title'];
+            }
+            $materialized = MaterializeInlineImages::materialize(
+              $nodeParams['node']['contents'],
+              $site,
+              array('pageTitle' => $pageTitle)
+            );
+            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($materialized['html']);
             $bytes = $page->writeLocation(
               $alternateContent,
               HAXCMS_ROOT .
@@ -96,6 +108,15 @@ trait OperationsRouteCreateNode {
               $site->manifest->metadata->site->name .
               '/'
             );
+            if (!isset($page->metadata) || !is_object($page->metadata)) {
+              $page->metadata = new stdClass();
+            }
+            $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
+              ? $materialized['uuids']
+              : array();
+            if (count($page->metadata->files) > 0) {
+              $site->manifest->save();
+            }
           }
         }
         if ($page = $site->loadNode($item->id)) {
