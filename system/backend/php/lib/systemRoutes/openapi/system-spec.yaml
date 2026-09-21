@@ -2929,7 +2929,7 @@ components:
             files:
               type: object
               additionalProperties: true
-              description: Map of file download locations for bulk-imported assets.
+              description: Map of site file paths (files/...) to their source, either an http(s) URL fetched server-side through the SSRF guard or a file staged under <configDirectory>/tmp/imports. A URL that cannot be fetched is skipped.
             skeletonMachineName:
               type: string
               description: Machine name of a trusted skeleton to build from (structure=from-skeleton).

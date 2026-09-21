@@ -1,5 +1,10 @@
 <?php
 include_once dirname(__FILE__) . '/../SsrfGuard.php';
+include_once dirname(__FILE__) . '/../stageRemoteFile.php';
+include_once dirname(__FILE__) . '/../EntityRegistry.php';
+include_once dirname(__FILE__) . '/../FileStorage.php';
+include_once dirname(__FILE__) . '/../FileEntity.php';
+include_once dirname(__FILE__) . '/../FileContentScanner.php';
 trait OperationsRouteCreateSite {
   private function isSystemV1Request()
   {
@@ -421,13 +426,10 @@ trait OperationsRouteCreateSite {
       $site->manifest->save(false);
       // walk through files if any came across and save each of them
       if (is_array($filesToDownload)) {
+        // one client for any remote files, configured as the importers do
+        $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
         foreach ($filesToDownload as $locationName => $downloadLocation) {
-          $normalizedImportName = $this->normalizeBulkImportName($locationName);
-          if (
-            $normalizedImportName === false ||
-            preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1 ||
-            !HAXCMSFile::isValidBulkImportTmpPath($downloadLocation)
-          ) {
+          if (!$this->importBuildFile($site, $locationName, $downloadLocation, $client)) {
             return array(
               '__failed' => array(
                 'status' => 400,
@@ -436,13 +438,9 @@ trait OperationsRouteCreateSite {
               )
             );
           }
-          $file = new HAXCMSFile();
-          // check for a file upload; we block a few formats by design
-          $fileResult = $file->save(Array(
-            "name" => $normalizedImportName,
-            "tmp_name" => $downloadLocation,
-            "bulk-import" => TRUE
-          ), $site);
+        }
+        if (count($filesToDownload) > 0) {
+          $this->linkImportedPageFiles($site);
         }
       }
       // download user-customized theme and custom files (imported from another instance)
@@ -515,5 +513,83 @@ trait OperationsRouteCreateSite {
         )
       );
     }
+  }
+  /**
+   * #3060: bring one build.files entry into the site. Importers hand over
+   * remote files as http(s) URLs, so a URL is fetched through SsrfGuard into
+   * the bulk-import staging root. From there every entry takes the same path:
+   * the staged-path check, then a bulk-import HAXCMSFile::save that validates
+   * the content and records the file entity in files.json. A URL that cannot
+   * be fetched is skipped rather than failing the site. Returns false for an
+   * invalid entry, which createSite answers with 400. Mirrors importBuildFile
+   * in haxcms-nodejs createSite.js.
+   */
+  private function importBuildFile($site, $locationName, $downloadLocation, $client) {
+    $normalizedImportName = $this->normalizeBulkImportName($locationName);
+    if (
+      $normalizedImportName === false ||
+      preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1
+    ) {
+      return false;
+    }
+    $downloaded = false;
+    if (is_string($downloadLocation) && preg_match('/^https?:\/\//i', $downloadLocation) === 1) {
+      $downloaded = haxcms_import_stage_remote_file($client, $downloadLocation, $normalizedImportName);
+      if ($downloaded === false) {
+        return true;
+      }
+      $downloadLocation = $downloaded;
+    }
+    $valid = HAXCMSFile::isValidBulkImportTmpPath($downloadLocation);
+    if ($valid) {
+      $file = new HAXCMSFile();
+      // check for a file upload; we block a few formats by design
+      $file->save(Array(
+        "name" => $normalizedImportName,
+        "tmp_name" => $downloadLocation,
+        "bulk-import" => TRUE
+      ), $site);
+    }
+    // save copies the file into the site, so a download is always removed
+    if ($downloaded !== false) {
+      @unlink($downloaded);
+    }
+    return $valid;
+  }
+  /**
+   * #3043: point each page at the file entities its content references, once
+   * the imported files exist. createSite writes the pages before it ingests
+   * build.files, so the page metadata files cannot be set as each page is
+   * written. Identity comes from files.json through the Entity API, as it
+   * does for the docx import and for page saves; the FileStorage is created
+   * after the ingest so it reads the records the ingest just wrote. Returns
+   * the pages linked. Mirrors linkImportedPageFiles in haxcms-nodejs
+   * createSite.js.
+   */
+  private function linkImportedPageFiles($site) {
+    $fileStorage = FileStorage::registerOn(new EntityRegistry($site));
+    $linked = 0;
+    foreach ($site->manifest->items as $page) {
+      $content = $site->getPageContent($page);
+      $uuids = array();
+      foreach (FileContentScanner::extractFileReferences($content) as $reference) {
+        $uuid = $fileStorage->getDataStore()->resolveUuidByPath($reference);
+        $entity = ($uuid !== '') ? $fileStorage->load($uuid) : null;
+        if ($entity instanceof FileEntity && !in_array($entity->getUuid(), $uuids, true)) {
+          $uuids[] = $entity->getUuid();
+        }
+      }
+      if (count($uuids) > 0) {
+        if (!isset($page->metadata) || !is_object($page->metadata)) {
+          $page->metadata = new stdClass();
+        }
+        $page->metadata->files = $uuids;
+        $linked++;
+      }
+    }
+    if ($linked > 0) {
+      $site->manifest->save(false);
+    }
+    return $linked;
   }
 }
