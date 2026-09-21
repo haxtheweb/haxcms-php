@@ -36,11 +36,11 @@ class Operations {
   // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
   private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
   private $imageScalePresets = array(
-    'xs' => array('width' => 200, 'height' => 150),
-    'sm' => array('width' => 320, 'height' => 240),
-    'md' => array('width' => 400, 'height' => 300),
-    'lg' => array('width' => 800, 'height' => 600),
-    'xl' => array('width' => 1200, 'height' => 900),
+    'xs' => array('width' => 150, 'height' => 150),
+    'sm' => array('width' => 480, 'height' => 480),
+    'md' => array('width' => 800, 'height' => 800),
+    'lg' => array('width' => 1200, 'height' => 1200),
+    'xl' => array('width' => 1920, 'height' => 1920),
   );
   private $defaultJpegQuality = 90;
   private $compressQualityByLevel = array(
