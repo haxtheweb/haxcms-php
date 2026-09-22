@@ -197,8 +197,15 @@ trait OperationsRouteSaveNode {
                 else if (isset($page->metadata->pageType)) {
                   unset($page->metadata->pageType);
                 }
-                // support for defining and updating hideInMenu
-                if (isset($data["attributes"]["hide-in-menu"])) {
+                // support for defining and updating hideInMenu. The hide-in-menu
+                // attribute is a Boolean reflected attribute, so it is present as a
+                // bare word when the user checks the toggle and ABSENT when they
+                // uncheck it (Lit removes the attribute when the Boolean is false).
+                // parse_attributes stores bare attrs as null, so isset() returns
+                // false even when the attribute is present; use array_key_exists
+                // to detect presence, mirroring override-pathauto above and the
+                // NodeJS saveNode.js typeof !== 'undefined' check.
+                if (array_key_exists("hide-in-menu", $data["attributes"])) {
                   $page->metadata->hideInMenu = true;
                 }
                 else {

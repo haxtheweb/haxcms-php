@@ -31,4 +31,6 @@ Disallow: /dist/
 Disallow: /node_modules/
 Disallow: /pages/
 Disallow: /theme/
+Disallow: /x/
+Disallow: /system/
 {% endif %}

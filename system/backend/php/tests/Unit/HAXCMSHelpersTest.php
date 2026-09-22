@@ -144,4 +144,67 @@ class HAXCMSHelpersTest extends TestCase
     {
         $this->assertSame($expected, $this->haxcms->safeStringCompare($stored, $submitted));
     }
+
+    /**
+     * pageBreakParser must capture bare boolean attributes (hide-in-menu,
+     * published, locked) so saveNode can persist them. The browser serializes
+     * Lit Boolean reflected attrs (set to "") as BARE words, and
+     * parse_attributes stores bare attrs as null. isset() returns false on a
+     * null value, so the OLD saveNode code (isset($data['attributes']['hide-in-menu']))
+     * always took the else branch and forced hideInMenu=false. saveNode must use
+     * array_key_exists to detect presence (mirroring override-pathauto). This
+     * test pins both the parser output and the isset-vs-array_key_exists
+     * distinction so a regression to isset() is caught.
+     */
+    public function testPageBreakParserCapturesBareHideInMenuAttribute(): void
+    {
+        // hide-in-menu as a bare (last) attribute, exactly how the browser
+        // serializes a Lit Boolean reflected property set to true.
+        $body = '<page-break item-id="item-a" title="Test" hide-in-menu>content</page-break>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        // title and item-id parse as valued attributes
+        $this->assertSame('Test', $attrs['title']);
+        $this->assertSame('item-a', $attrs['item-id']);
+        // hide-in-menu is a bare boolean attr -> parsed as null
+        $this->assertArrayHasKey('hide-in-menu', $attrs);
+        $this->assertNull($attrs['hide-in-menu']);
+        // The root cause: isset() returns false on a null value, so the OLD
+        // saveNode code always took the else branch and forced hideInMenu=false.
+        // array_key_exists correctly detects presence regardless of null.
+        $this->assertFalse(isset($attrs['hide-in-menu']));
+        $this->assertTrue(array_key_exists('hide-in-menu', $attrs));
+    }
+
+    /**
+     * hide-in-menu as a non-last bare attribute (trailing space before the
+     * next attr) is also captured as null. pageBreakParser's str_replace only
+     * normalizes 'published ' and 'locked ' (with trailing space); hide-in-menu
+     * is never normalized, so it always comes through as a bare null attr.
+     */
+    public function testPageBreakParserCapturesBareHideInMenuWhenNotLast(): void
+    {
+        $body = '<page-break hide-in-menu item-id="item-a" title="Test">content</page-break>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertArrayHasKey('hide-in-menu', $attrs);
+        $this->assertNull($attrs['hide-in-menu']);
+        $this->assertTrue(array_key_exists('hide-in-menu', $attrs));
+    }
+
+    /**
+     * When hide-in-menu is absent from the page-break, it must NOT be in the
+     * parsed attributes, so saveNode's else branch sets hideInMenu=false.
+     */
+    public function testPageBreakParserOmitsHideInMenuWhenAbsent(): void
+    {
+        $body = '<page-break item-id="item-a" title="Test">content</page-break>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertArrayNotHasKey('hide-in-menu', $attrs);
+        $this->assertFalse(array_key_exists('hide-in-menu', $attrs));
+    }
 }
