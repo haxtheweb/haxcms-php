@@ -903,10 +903,47 @@ class HAXCMSSite
       return $basePath . $this->manifest->metadata->site->name . '/';
     }
     /**
-     * Compute the PWA scope / start_url path for this site.
-     * When a vanity domain is set (manifest.metadata.site.domain non-empty)
-     * the site is served from the domain root, so the PWA scope is '/'.
-     * Otherwise fall back to the internal multisite basePath + site.name.
+     * Determine whether the *current* HTTP request is actually being served
+     * from the vanity domain configured in manifest.metadata.site.domain.
+     * This is a request-time check (compares $_SERVER['HTTP_HOST'] against
+     * the configured domain's host) as opposed to getPWAScopePath()'s pure
+     * config-time check. A site can have a vanity domain configured while
+     * still being accessed via an internal/editing host (e.g. a multisite
+     * path), and in that case dynamic per-request paths must NOT assume the
+     * domain root.
+     */
+    private function isServingFromConfiguredDomain() {
+      if (
+        !isset($this->manifest->metadata->site->domain) ||
+        !is_string($this->manifest->metadata->site->domain) ||
+        trim($this->manifest->metadata->site->domain) === ''
+      ) {
+        return false;
+      }
+      $configuredDomain = trim($this->manifest->metadata->site->domain);
+      if (!preg_match('/^https?:\/\//i', $configuredDomain)) {
+        $configuredDomain = 'https://' . $configuredDomain;
+      }
+      $configuredHost = parse_url($configuredDomain, PHP_URL_HOST);
+      $currentHost = isset($_SERVER['HTTP_HOST']) ? strtolower(explode(':', $_SERVER['HTTP_HOST'])[0]) : '';
+      if (empty($configuredHost) || empty($currentHost)) {
+        return false;
+      }
+      return strtolower($configuredHost) === $currentHost;
+    }
+    /**
+     * Compute the PWA scope / start_url path for this site's *static*
+     * managed files (manifest.json, generated at save-time by
+     * rebuildManagedFiles()). This is intentionally a config-time-only
+     * check: when a vanity domain is set (manifest.metadata.site.domain
+     * non-empty) the site is intended to live at the domain root, so the
+     * PWA scope is '/', regardless of which host issued the current
+     * request. Otherwise fall back to the internal multisite basePath +
+     * site.name.
+     * NOTE: do not use this for dynamic per-request paths (the <base> tag,
+     * the live service worker scope) — use isServingFromConfiguredDomain()
+     * instead, since a site with a configured domain may still be accessed
+     * via an internal/editing host that hasn't switched to it.
      */
     public function getPWAScopePath() {
       if (
@@ -1565,7 +1602,14 @@ class HAXCMSSite
       if (getenv('HAXSITE_BASE_URL')) {
         return getenv('HAXSITE_BASE_URL');
       }
-      return $this->getPWAScopePath();
+      // Dynamic/request-time path: only treat the site as living at the
+      // domain root if the current request is actually hitting that domain.
+      // Otherwise (e.g. accessed via an internal/editing host) fall back to
+      // the internal multisite basePath so the site remains reachable there.
+      if ($this->isServingFromConfiguredDomain()) {
+        return '/';
+      }
+      return $this->getDefaultSiteBasePath();
     }
     /**
      * Return a standard service worker that takes into account
@@ -1579,9 +1623,13 @@ class HAXCMSSite
       if (!$addSW || ($GLOBALS["HAXCMS"]->developerMode && !$ignoreDevMode)) {
         return "\n  <!-- Service worker disabled via settings -->\n";
       }
-      // support dynamic calculation
+      // support dynamic calculation. This is the live/default basePath used
+      // when no explicit basePath is passed in (i.e. not the static
+      // rebuildManagedFiles() call, which passes getPWAScopePath()
+      // explicitly) so it must reflect the current request's host, not just
+      // whether a vanity domain is configured.
       if (is_null($basePath)) {
-        $basePath = $this->getPWAScopePath();
+        $basePath = $this->isServingFromConfiguredDomain() ? '/' : $this->getDefaultSiteBasePath();
       }
       return "
   <script>

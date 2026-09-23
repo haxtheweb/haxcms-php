@@ -27,6 +27,7 @@ class HAXCMSSiteMutationsTest extends TestCase
     private $site;
     private $savedHaxcms;
     private $savedRequestUri;
+    private $savedHttpHost;
     private $tmpRoot;
     private $siteName = 'testsite';
 
@@ -41,6 +42,7 @@ class HAXCMSSiteMutationsTest extends TestCase
             $this->savedHaxcms = $GLOBALS['HAXCMS'];
         }
         $this->savedRequestUri = $_SERVER['REQUEST_URI'] ?? null;
+        $this->savedHttpHost = $_SERVER['HTTP_HOST'] ?? null;
         $this->tmpRoot = sys_get_temp_dir() . '/haxcms_site_mut_' . uniqid();
         $this->buildSiteFixture($this->siteName);
         // Install the mock as $GLOBALS['HAXCMS'] BEFORE loading the site,
@@ -63,6 +65,11 @@ class HAXCMSSiteMutationsTest extends TestCase
             $_SERVER['REQUEST_URI'] = $this->savedRequestUri;
         } else {
             unset($_SERVER['REQUEST_URI']);
+        }
+        if ($this->savedHttpHost !== null) {
+            $_SERVER['HTTP_HOST'] = $this->savedHttpHost;
+        } else {
+            unset($_SERVER['HTTP_HOST']);
         }
         $this->rrmdir($this->tmpRoot);
     }
@@ -733,10 +740,39 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame('<base href="/testsite/" />', $this->site->getBaseTag());
     }
 
-    public function testGetBaseTagWithDomainIsRoot(): void
+    /**
+     * getBaseTag/getPWABaseTagPath are request-time (dynamic) resolutions:
+     * a configured vanity domain only resolves to '/' when the CURRENT
+     * request's HTTP_HOST actually matches that domain. This mirrors real
+     * production behavior where the same site can be reached either via
+     * its vanity domain or via an internal/editing host (e.g. HAXiam
+     * multisite path), and the <base> tag must remain correct in both
+     * cases so the editing host stays reachable.
+     */
+    public function testGetBaseTagWithDomainAndMatchingHostIsRoot(): void
     {
         $this->site->manifest->metadata->site->domain = 'https://flourish.hhd.psu.edu/';
+        $_SERVER['HTTP_HOST'] = 'flourish.hhd.psu.edu';
         $this->assertSame('<base href="/" />', $this->site->getBaseTag());
+    }
+
+    public function testGetBaseTagWithDomainButMismatchedHostIsInternalPath(): void
+    {
+        // Site has a vanity domain configured but is being accessed via a
+        // different (internal/editing) host: must fall back to the
+        // internal basePath, not '/'.
+        $this->site->manifest->metadata->site->domain = 'https://flourish.hhd.psu.edu/';
+        $_SERVER['HTTP_HOST'] = 'editing.internal.example.edu';
+        $this->assertSame('<base href="/testsite/" />', $this->site->getBaseTag());
+    }
+
+    public function testGetBaseTagWithDomainAndNoHttpHostIsInternalPath(): void
+    {
+        // No HTTP_HOST at all (e.g. CLI context) must not be treated as a
+        // match against the configured domain.
+        $this->site->manifest->metadata->site->domain = 'https://flourish.hhd.psu.edu/';
+        unset($_SERVER['HTTP_HOST']);
+        $this->assertSame('<base href="/testsite/" />', $this->site->getBaseTag());
     }
 
     public function testGetPWABaseTagPathNoDomainIsInternalPath(): void
@@ -744,10 +780,42 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame('/testsite/', $this->site->getPWABaseTagPath());
     }
 
-    public function testGetPWABaseTagPathWithDomainIsRoot(): void
+    public function testGetPWABaseTagPathWithDomainAndMatchingHostIsRoot(): void
     {
         $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $_SERVER['HTTP_HOST'] = 'haxtheweb.org';
         $this->assertSame('/', $this->site->getPWABaseTagPath());
+    }
+
+    public function testGetPWABaseTagPathWithDomainButMismatchedHostIsInternalPath(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $_SERVER['HTTP_HOST'] = 'iam.haxtheweb.org';
+        $this->assertSame('/testsite/', $this->site->getPWABaseTagPath());
+    }
+
+    /**
+     * getServiceWorkerScript()'s default (no explicit $basePath) is also a
+     * dynamic/request-time resolution, since callers such as
+     * HAXSiteConfig::getServiceWorkerScript() invoke it with $basePath =
+     * null on every live page request. It must follow the same host-aware
+     * rule as getBaseTag()/getPWABaseTagPath(), not the static
+     * getPWAScopePath() config check.
+     */
+    public function testGetServiceWorkerScriptDefaultBasePathWithDomainAndMatchingHostIsRoot(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $_SERVER['HTTP_HOST'] = 'haxtheweb.org';
+        $script = $this->site->getServiceWorkerScript(null, TRUE);
+        $this->assertStringContainsString("var sitePath = '/';", $script);
+    }
+
+    public function testGetServiceWorkerScriptDefaultBasePathWithDomainButMismatchedHostIsInternalPath(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $_SERVER['HTTP_HOST'] = 'iam.haxtheweb.org';
+        $script = $this->site->getServiceWorkerScript(null, TRUE);
+        $this->assertStringContainsString("var sitePath = '/testsite/';", $script);
     }
 
     // ---- newSite ----
@@ -815,6 +883,7 @@ class HAXCMSSiteTestHaxcms extends OperationsTestHaxcms
 {
     public $outlineSchema;
     public $cdn = './';
+    public $developerMode = false;
     private $cacheData = array();
 
     public function __construct()
