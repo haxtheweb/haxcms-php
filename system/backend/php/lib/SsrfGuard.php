@@ -5,21 +5,33 @@
  * Mirrors the haxcms-nodejs safeFetch.js / HAXCMSFile.validateUrlNotSSRF
  * baseline (GHSA-q862-gcgq-5m6g class). The PHP backend had no SSRF guard
  * anywhere; this class provides the shared validation and three safe-fetch
- * wrappers that disable HTTP redirects (closing the redirect-to-metadata
- * rebinding window that @file_get_contents / Guzzle / curl currently leave
- * open).
+ * wrappers that follow HTTP redirects manually (re-resolving + re-validating
+ * every hop) and pin each hop's TCP connection to the SSRF-validated IP via
+ * cURL CURLOPT_RESOLVE, closing both the redirect-to-metadata rebinding
+ * window and the resolve-check-then-fetch DNS-rebinding TOCTOU.
  *
  * Usage:
  *   SsrfGuard::validateUrlNotSSRF($url)            // throw on private target
- *   $body = SsrfGuard::safeFileGetContents($url)   // file_get_contents wrapper
+ *   $body = SsrfGuard::safeFileGetContents($url)   // curl wrapper (pinned + redirects)
  *   $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $url, $opts)
  *   $body = SsrfGuard::safeCurlExec($url, $extraOpts)
  *
- * DNS-rebinding note (Phase 2, deferred): the resolve-check-then-fetch window
- * also exists here. PHP can close it cheaply via cURL CURLOPT_RESOLVE to pin
- * the validated IP, but that is a separate consistent pass across all fetch
- * sites (matching the Node.js Phase 2 deferral). Disabling redirects in
- * Phase 1 already closes the cheaper redirect-rebinding variant.
+ * Redirect policy (parity with safeFetch.js SAFE_FETCH_MAX_REDIRECTS=5):
+ * up to 5 redirects are followed (6 total fetches); each Location hop is
+ * resolved relative to the current URL, re-validated via resolveAndValidate
+ * (which rejects private/reserved/loopback/link-local/metadata targets), and
+ * fetched with its own pinned connection. Exceeding the hop cap throws
+ * SSRF_REDIRECTS; an unparseable Location throws SSRF_REDIRECT.
+ *
+ * IP pinning (parity with safeFetch.js resolveAndValidateUrl +
+ * buildPinnedRequestOptions): resolveAndValidate returns the first validated
+ * address alongside the parsed URL; the wrappers feed it to cURL as a
+ * CURLOPT_RESOLVE entry of "host:port:addr" (IPv6 addr bracketed) so the
+ * actual connect targets the exact SSRF-validated IP while the Host header
+ * and TLS SNI stay on the original hostname. This closes the window where a
+ * DNS server returns a public IP for the check and a private IP for the
+ * connect (DNS rebinding). Guzzle is forced to allow_redirects=false so the
+ * manual walk is the only redirect path and every hop is re-validated.
  */
 class SsrfGuard
 {
@@ -29,6 +41,13 @@ class SsrfGuard
      * (SEC-02). Prevents a slow/hanging upstream from holding a request open.
      */
     private static $SAFE_TIMEOUT = 15;
+    /**
+     * Maximum number of redirects followed before failing with SSRF_REDIRECTS,
+     * matching SAFE_FETCH_MAX_REDIRECTS in haxcms-nodejs src/lib/safeFetch.js.
+     * The walk performs up to $MAX_REDIRECTS+1 total fetches (initial + 5
+     * hops); a 6th redirect response (hop === $MAX_REDIRECTS) throws.
+     */
+    private static $MAX_REDIRECTS = 5;
     /**
      * True for private / reserved / loopback / link-local / metadata IPs.
      * Matches the Node.js isPrivateOrReservedIP list.
@@ -140,14 +159,17 @@ class SsrfGuard
 
     /**
      * Resolve a URL's hostname and reject if any resolved address is private,
-     * reserved, loopback, link-local, or cloud-metadata. Returns the parsed
-     * URL array on success. Throws SsrfGuardException on rejection.
+     * reserved, loopback, link-local, or cloud-metadata. Returns an array with
+     * the parsed URL (as parse_url produces) AND the first validated address
+     * so the caller can pin the TCP connection to that exact IP, closing the
+     * resolve-check-then-fetch DNS-rebinding TOCTOU. Throws SsrfGuardException
+     * on rejection.
      *
      * Checks ALL resolved A records (gethostbynamel) plus AAAA records
      * (dns_get_record) so a hostname that round-robins to an internal address
-     * is rejected.
+     * is rejected. Mirrors haxcms-nodejs safeFetch.js resolveAndValidateUrl.
      */
-    public static function validateUrlNotSSRF($url)
+    private static function resolveAndValidate($url)
     {
         $parsed = @parse_url($url);
         if ($parsed === false || !isset($parsed['scheme']) || !isset($parsed['host'])) {
@@ -207,73 +229,265 @@ class SsrfGuard
                 );
             }
         }
-        return $parsed;
+        return array('parsed' => $parsed, 'pinnedIp' => $addresses[0]);
     }
 
     /**
-     * file_get_contents() wrapper that validates the URL first and disables
-     * HTTP redirects (max_redirects=0) so an attacker cannot redirect from a
-     * public IP to a metadata endpoint mid-request. Returns the body string,
-     * or false on failure (matching file_get_contents semantics).
+     * Resolve + validate, returning just the parsed URL. Public, backward-
+     * compatible contract (callers and tests expect the parse_url array).
+     * Internally delegates to resolveAndValidate and discards the pinned IP.
+     */
+    public static function validateUrlNotSSRF($url)
+    {
+        $resolved = self::resolveAndValidate($url);
+        return $resolved['parsed'];
+    }
+
+    /**
+     * Build the CURLOPT_RESOLVE entry list that pins a connection to the
+     * SSRF-validated $pinnedIp for the host:port implied by $parsed. IPv6
+     * addresses are bracketed in the ADDRESS field per libcurl docs. The
+     * HOST field uses the bare (unbracketed) hostname. Returns an empty array
+     * when the inputs are incomplete so callers can skip pinning safely.
+     */
+    public static function buildPinnedResolveEntries(array $parsed, $pinnedIp)
+    {
+        if (!is_array($parsed) || !isset($parsed['host']) || !is_string($pinnedIp) || $pinnedIp === '') {
+            return array();
+        }
+        $host = $parsed['host'];
+        $resolveHost = preg_match('/^\[(.+)\]$/', $host, $m) ? $m[1] : $host;
+        $scheme = strtolower(isset($parsed['scheme']) ? $parsed['scheme'] : 'http');
+        $defaultPort = ($scheme === 'https') ? 443 : 80;
+        $port = (isset($parsed['port']) && $parsed['port'] !== '') ? (int) $parsed['port'] : $defaultPort;
+        $isV6 = (filter_var($pinnedIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false);
+        $addressField = $isV6 ? '[' . $pinnedIp . ']' : $pinnedIp;
+        return array($resolveHost . ':' . $port . ':' . $addressField);
+    }
+
+    /**
+     * Resolve a redirect Location header relative to the current URL, matching
+     * haxcms-nodejs `new URL(location, currentUrl)` semantics via Guzzle PSR-7
+     * UriResolver. Returns the absolute URL string, or false if either input
+     * is empty or the resolution fails (caller throws SSRF_REDIRECT).
+     */
+    public static function resolveRedirectUrl($baseUrl, $location)
+    {
+        if (!is_string($baseUrl) || $baseUrl === '' || !is_string($location) || $location === '') {
+            return false;
+        }
+        try {
+            $base = \GuzzleHttp\Psr7\Utils::uriFor($baseUrl);
+            $rel = \GuzzleHttp\Psr7\Utils::uriFor($location);
+            $resolved = \GuzzleHttp\Psr7\UriResolver::resolve($base, $rel);
+            $str = (string) $resolved;
+            if ($str === '') {
+                return false;
+            }
+            return $str;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Extract the first value of a named header from a raw header block
+     * (as produced by curl with CURLOPT_HEADER=true). Case-insensitive name
+     * match. Returns '' when the header is absent.
+     */
+    private static function extractHeader($headerBlock, $name)
+    {
+        if (!is_string($headerBlock) || $headerBlock === '') {
+            return '';
+        }
+        $lines = preg_split('/\r\n|\r|\n/', $headerBlock);
+        $prefix = strtolower($name) . ':';
+        foreach ($lines as $line) {
+            if (stripos($line, $prefix) === 0) {
+                return trim(substr($line, strlen($prefix)));
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Bounded redirect walk shared by all safe-fetch wrappers. $fetcher is
+     * called once per hop with the current URL (already re-resolved + re-
+     * validated), its parsed array, and the pinned IP; it must return an
+     * array with 'status' (int), 'location' (string, the Location header
+     * value or ''), and 'body' (the Response / body string / false). Non-3xx
+     * and 304 responses are returned as-is; 3xx with no Location are returned
+     * as-is; 3xx with a Location are re-resolved and re-validated for the
+     * next hop. Exceeding $MAX_REDIRECTS throws SSRF_REDIRECTS; an unparseable
+     * Location throws SSRF_REDIRECT. Mirrors the safeFetch.js main loop.
+     */
+    public static function walkRedirects($url, $fetcher)
+    {
+        $currentUrl = $url;
+        for ($hop = 0; $hop <= self::$MAX_REDIRECTS; $hop++) {
+            $resolved = self::resolveAndValidate($currentUrl);
+            $result = call_user_func($fetcher, $currentUrl, $resolved['parsed'], $resolved['pinnedIp']);
+            if (!is_array($result)) {
+                throw new SsrfGuardException('safe-fetch fetcher returned a non-array result', 'SSRF_FETCH');
+            }
+            $status = isset($result['status']) ? (int) $result['status'] : 0;
+            // not a redirect (or 304 Not Modified) -> final response
+            if ($status < 300 || $status >= 400 || $status === 304) {
+                return isset($result['body']) ? $result['body'] : null;
+            }
+            if ($hop === self::$MAX_REDIRECTS) {
+                throw new SsrfGuardException('safe-fetch exceeded the redirect hop cap', 'SSRF_REDIRECTS');
+            }
+            $location = isset($result['location']) ? (string) $result['location'] : '';
+            if ($location === '') {
+                // 3xx with no Location header -> nothing to follow, return as-is
+                return isset($result['body']) ? $result['body'] : null;
+            }
+            $nextUrl = self::resolveRedirectUrl($currentUrl, $location);
+            if ($nextUrl === false) {
+                throw new SsrfGuardException('safe-fetch received an invalid redirect Location', 'SSRF_REDIRECT');
+            }
+            $currentUrl = $nextUrl;
+        }
+        // unreachable: the loop always returns or throws on the last allowed hop
+        throw new SsrfGuardException('safe-fetch unexpected loop exit', 'SSRF_REDIRECT');
+    }
+
+    /**
+     * file_get_contents() equivalent that validates the URL, pins the TCP
+     * connection to the SSRF-validated IP, and follows redirects manually
+     * with per-hop re-validation. Delegates to safeCurlExec (curl-based) so
+     * all three wrappers share the same pinning + redirect policy. Returns
+     * the body string, or false on curl failure (matching file_get_contents
+     * semantics). Throws SsrfGuardException on SSRF rejection, hop cap
+     * (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT).
      */
     public static function safeFileGetContents($url)
     {
-        self::validateUrlNotSSRF($url);
-        $ctx = stream_context_create(array(
-            'http' => array(
-                'method' => 'GET',
-                'max_redirects' => 0,
-                'ignore_errors' => true,
-                'timeout' => self::$SAFE_TIMEOUT,
-            ),
-        ));
-        return @file_get_contents($url, false, $ctx);
+        return self::safeCurlExec($url);
     }
 
     /**
-     * Guzzle request wrapper. Validates the URL, merges allow_redirects=false
-     * into the options (unless the caller explicitly enabled redirects), then
-     * delegates to $client->request(). Returns the Guzzle Response. Throws
-     * SsrfGuardException on SSRF rejection; re-throws Guzzle exceptions as-is.
+     * Merge a CURLOPT_RESOLVE pin for the current hop into a Guzzle options
+     * array (returns a new array). Preserves any caller-supplied curl options
+     * and replaces a prior host:port pin so the per-hop validated IP wins.
+     */
+    private static function applyPinnedResolveToGuzzle(array $merged, array $parsed, $pinnedIp)
+    {
+        if (!defined('CURLOPT_RESOLVE')) {
+            return $merged;
+        }
+        $entries = self::buildPinnedResolveEntries($parsed, $pinnedIp);
+        if (count($entries) === 0) {
+            return $merged;
+        }
+        if (!isset($merged['curl']) || !is_array($merged['curl'])) {
+            $merged['curl'] = array();
+        }
+        $existing = isset($merged['curl'][CURLOPT_RESOLVE]) && is_array($merged['curl'][CURLOPT_RESOLVE])
+            ? $merged['curl'][CURLOPT_RESOLVE]
+            : array();
+        // Drop any prior entry for this exact host:port so the new pin overrides.
+        $host = isset($parsed['host']) ? $parsed['host'] : '';
+        $resolveHost = preg_match('/^\[(.+)\]$/', $host, $m) ? $m[1] : $host;
+        $scheme = strtolower(isset($parsed['scheme']) ? $parsed['scheme'] : 'http');
+        $defaultPort = ($scheme === 'https') ? 443 : 80;
+        $port = (isset($parsed['port']) && $parsed['port'] !== '') ? (int) $parsed['port'] : $defaultPort;
+        $prefix = $resolveHost . ':' . $port . ':';
+        $kept = array();
+        foreach ($existing as $line) {
+            if (strpos($line, $prefix) !== 0) {
+                $kept[] = $line;
+            }
+        }
+        $kept[] = $entries[0];
+        $merged['curl'][CURLOPT_RESOLVE] = $kept;
+        return $merged;
+    }
+
+    /**
+     * Guzzle request wrapper. Validates the URL, forces allow_redirects=false
+     * (so the manual walk is the only redirect path and every hop is re-
+     * validated), pins each hop's connection to the SSRF-validated IP via
+     * CURLOPT_RESOLVE, then delegates to $client->request(). Returns the
+     * final Guzzle Response. Throws SsrfGuardException on SSRF rejection
+     * (SSRF_*), hop cap (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT);
+     * re-throws Guzzle exceptions as-is.
      */
     public static function safeGuzzleRequest($client, $method, $url, array $options = array())
     {
-        self::validateUrlNotSSRF($url);
-        $merged = $options;
-        if (!isset($merged['allow_redirects'])) {
+        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($client, $method, $options) {
+            $merged = $options;
+            // Force off so Guzzle never auto-follows without a per-hop SSRF
+            // re-check; the manual walk in walkRedirects handles every hop.
             $merged['allow_redirects'] = false;
-        }
-        if (!isset($merged['timeout'])) {
-            $merged['timeout'] = self::$SAFE_TIMEOUT;
-        }
-        return $client->request($method, $url, $merged);
+            if (!isset($merged['timeout'])) {
+                $merged['timeout'] = self::$SAFE_TIMEOUT;
+            }
+            $merged = self::applyPinnedResolveToGuzzle($merged, $parsed, $pinnedIp);
+            $response = $client->request($method, $currentUrl, $merged);
+            return array(
+                'status' => $response->getStatusCode(),
+                'location' => $response->getHeaderLine('Location'),
+                'body' => $response,
+            );
+        };
+        return self::walkRedirects($url, $fetcher);
     }
 
     /**
-     * curl wrapper. Validates the URL, sets CURLOPT_FOLLOWLOCATION=false and
-     * pins protocols to http/https, then executes. Returns the body string
-     * (CURLOPT_RETURNTRANSFER=true). Throws SsrfGuardException on SSRF
-     * rejection. On curl failure returns false (caller decides how to handle).
+     * curl wrapper. Validates the URL, pins the connection to the SSRF-
+     * validated IP via CURLOPT_RESOLVE, sets CURLOPT_FOLLOWLOCATION=false and
+     * pins protocols to http/https, then executes. Follows redirects manually
+     * with per-hop re-validation (shared walkRedirects policy). Returns the
+     * final body string (CURLOPT_RETURNTRANSFER=true) or false on curl
+     * failure (caller decides how to handle). Throws SsrfGuardException on
+     * SSRF rejection, hop cap (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT).
      */
     public static function safeCurlExec($url, array $extraOptions = array())
     {
-        self::validateUrlNotSSRF($url);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, self::$SAFE_TIMEOUT);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
-            curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-            curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, 0);
-        }
-        foreach ($extraOptions as $key => $value) {
-            curl_setopt($ch, $key, $value);
-        }
-        $result = curl_exec($ch);
-        curl_close($ch);
-        return $result;
+        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($extraOptions) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $currentUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            // Include headers in the output so we can read the status + Location
+            // for the manual redirect walk; they are stripped before return.
+            curl_setopt($ch, CURLOPT_HEADER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, self::$SAFE_TIMEOUT);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+                curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+                curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, 0);
+            }
+            if (defined('CURLOPT_RESOLVE')) {
+                $entries = self::buildPinnedResolveEntries($parsed, $pinnedIp);
+                if (count($entries) > 0) {
+                    curl_setopt($ch, CURLOPT_RESOLVE, $entries);
+                }
+            }
+            foreach ($extraOptions as $key => $value) {
+                curl_setopt($ch, $key, $value);
+            }
+            $raw = curl_exec($ch);
+            if ($raw === false) {
+                curl_close($ch);
+                // Surface as a non-redirect final with false body so walkRedirects
+                // returns false (matching the legacy safeCurlExec contract).
+                return array('status' => 200, 'location' => '', 'body' => false);
+            }
+            $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            $headers = substr($raw, 0, $headerSize);
+            $body = substr($raw, $headerSize);
+            curl_close($ch);
+            return array(
+                'status' => $status,
+                'location' => self::extractHeader($headers, 'Location'),
+                'body' => $body,
+            );
+        };
+        return self::walkRedirects($url, $fetcher);
     }
 }
 

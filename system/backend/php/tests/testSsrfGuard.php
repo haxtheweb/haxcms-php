@@ -172,6 +172,89 @@ function runSsrfGuardTests()
     $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('files/x.png'), 'non-theme/custom prefix rejected');
     $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath("theme/x\0.png"), 'null byte rejected');
 
+    // --- Workstream A: redirect walk + IP pinning (parity with safeFetch.js) ---
+    // Stub fetcher returning a scripted sequence of [status, location, body]
+    // tuples. Uses public-IP-literal URLs so resolveAndValidate needs no DNS.
+    $walkStub = function ($script) {
+        $i = 0;
+        return function ($url, $parsed, $pinnedIp) use ($script, &$i) {
+            $step = $script[min($i, count($script) - 1)];
+            $i++;
+            return array(
+                'status' => $step[0],
+                'location' => isset($step[1]) ? $step[1] : '',
+                'body' => isset($step[2]) ? $step[2] : '',
+            );
+        };
+    };
+
+    // single 200 -> body returned
+    $runner->assertEquals('OK', SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(array(200, '', 'OK')))), 'walkRedirects returns 200 body');
+
+    // 302 -> public -> 200 (redirect followed and re-validated)
+    $runner->assertEquals('FINAL', SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(
+        array(302, 'http://93.184.215.14/b', ''),
+        array(200, '', 'FINAL'),
+    ))), 'walkRedirects follows 302 to public target');
+
+    // 302 -> private -> rejected mid-chain (SSRF_PRIVATE)
+    $threw = false;
+    try {
+        SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(
+            array(302, 'http://127.0.0.1/secret', ''),
+        )));
+    } catch (SsrfGuardException $e) {
+        $threw = ($e->ssrfCode === 'SSRF_PRIVATE');
+    }
+    $runner->assert($threw, 'walkRedirects rejects redirect to private target');
+
+    // 302 -> metadata -> rejected mid-chain (SSRF_PRIVATE)
+    $threw = false;
+    try {
+        SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(
+            array(302, 'http://169.254.169.254/latest/meta-data/', ''),
+        )));
+    } catch (SsrfGuardException $e) {
+        $threw = ($e->ssrfCode === 'SSRF_PRIVATE');
+    }
+    $runner->assert($threw, 'walkRedirects rejects redirect to metadata target');
+
+    // hop cap (6 redirects, hops 0..5) -> SSRF_REDIRECTS
+    $threw = false;
+    try {
+        $six = array();
+        for ($i = 0; $i < 6; $i++) {
+            $six[] = array(302, 'http://93.184.215.14/h' . $i, '');
+        }
+        SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub($six));
+    } catch (SsrfGuardException $e) {
+        $threw = ($e->ssrfCode === 'SSRF_REDIRECTS');
+    }
+    $runner->assert($threw, 'walkRedirects rejects hop cap exceeded');
+
+    // 304 -> returned as-is (final)
+    $r304 = SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(array(304, '', ''))));
+    $runner->assert($r304 === '' || $r304 === null, 'walkRedirects returns 304 as final');
+
+    // 302 with empty Location -> returned as-is (no redirect to follow)
+    $runner->assertEquals('EMPTYLOC', SsrfGuard::walkRedirects('http://93.184.215.14/a', $walkStub(array(array(302, '', 'EMPTYLOC')))), 'walkRedirects returns 3xx with no Location as-is');
+
+    // --- buildPinnedResolveEntries (CURLOPT_RESOLVE entry builder) ---
+    $runner->assertEquals(array('93.184.215.14:80:93.184.215.14'), SsrfGuard::buildPinnedResolveEntries(parse_url('http://93.184.215.14/x'), '93.184.215.14'), 'pin entry ipv4 literal');
+    $runner->assertEquals(array('example.com:443:1.2.3.4'), SsrfGuard::buildPinnedResolveEntries(parse_url('https://example.com/x'), '1.2.3.4'), 'pin entry https default port');
+    $runner->assertEquals(array('example.com:8080:1.2.3.4'), SsrfGuard::buildPinnedResolveEntries(parse_url('http://example.com:8080/x'), '1.2.3.4'), 'pin entry explicit port');
+    $runner->assertEquals(array(), SsrfGuard::buildPinnedResolveEntries(array(), '1.2.3.4'), 'pin entry empty parsed returns empty');
+    // IPv6: HOST field bare, ADDRESS field bracketed per libcurl docs.
+    $runner->assertEquals(array('2001:4860:4860::8888:80:[2001:4860:4860::8888]'), SsrfGuard::buildPinnedResolveEntries(parse_url('http://[2001:4860:4860::8888]/'), '2001:4860:4860::8888'), 'pin entry ipv6 brackets address');
+
+    // --- resolveRedirectUrl (Location resolution parity with new URL(loc, base)) ---
+    $runner->assertEquals('http://93.184.215.14/c/d', SsrfGuard::resolveRedirectUrl('http://93.184.215.14/a/b', '/c/d'), 'resolveRedirectUrl absolute path');
+    $runner->assertEquals('https://other.example.org/x', SsrfGuard::resolveRedirectUrl('http://93.184.215.14/a', 'https://other.example.org/x'), 'resolveRedirectUrl absolute new host');
+    $runner->assertEquals('http://93.184.215.14/a/c', SsrfGuard::resolveRedirectUrl('http://93.184.215.14/a/b', 'c'), 'resolveRedirectUrl relative');
+    $runner->assertEquals('http://cdn.example.org/img.png', SsrfGuard::resolveRedirectUrl('http://93.184.215.14/a', '//cdn.example.org/img.png'), 'resolveRedirectUrl protocol-relative');
+    $runner->assertEquals(false, SsrfGuard::resolveRedirectUrl('', '/x'), 'resolveRedirectUrl empty base false');
+    $runner->assertEquals(false, SsrfGuard::resolveRedirectUrl('http://x/', ''), 'resolveRedirectUrl empty location false');
+
     return $runner->report('SSRF Guard Tests');
 }
 
