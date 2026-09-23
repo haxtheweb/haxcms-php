@@ -688,6 +688,68 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertSame($before, $after);
     }
 
+    // ---- getPWAScopePath / getBaseTag / getPWABaseTagPath (vanity domain) ----
+
+    /**
+     * When no vanity domain is set the PWA scope is the internal multisite
+     * basePath + site.name (the legacy behavior).
+     */
+    public function testGetPWAScopePathNoDomainReturnsInternalBasePath(): void
+    {
+        // Fixture has no domain set: basePath '/' + name 'testsite' => '/testsite/'.
+        $this->assertSame('/testsite/', $this->site->getPWAScopePath());
+    }
+
+    /**
+     * A non-empty vanity domain means the site is served from the domain
+     * root, so the PWA scope / start_url must be '/'.
+     */
+    public function testGetPWAScopePathWithDomainReturnsRootSlash(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://flourish.hhd.psu.edu/';
+        $this->assertSame('/', $this->site->getPWAScopePath());
+    }
+
+    public function testGetPWAScopePathWithDomainNoTrailingSlashReturnsRootSlash(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $this->assertSame('/', $this->site->getPWAScopePath());
+    }
+
+    public function testGetPWAScopePathEmptyDomainReturnsInternalBasePath(): void
+    {
+        $this->site->manifest->metadata->site->domain = '';
+        $this->assertSame('/testsite/', $this->site->getPWAScopePath());
+    }
+
+    public function testGetPWAScopePathWhitespaceDomainReturnsInternalBasePath(): void
+    {
+        $this->site->manifest->metadata->site->domain = '   ';
+        $this->assertSame('/testsite/', $this->site->getPWAScopePath());
+    }
+
+    public function testGetBaseTagNoDomainIsInternalPath(): void
+    {
+        $this->assertSame('<base href="/testsite/" />', $this->site->getBaseTag());
+    }
+
+    public function testGetBaseTagWithDomainIsRoot(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://flourish.hhd.psu.edu/';
+        $this->assertSame('<base href="/" />', $this->site->getBaseTag());
+    }
+
+    public function testGetPWABaseTagPathNoDomainIsInternalPath(): void
+    {
+        $this->assertSame('/testsite/', $this->site->getPWABaseTagPath());
+    }
+
+    public function testGetPWABaseTagPathWithDomainIsRoot(): void
+    {
+        $this->site->manifest->metadata->site->domain = 'https://haxtheweb.org';
+        $this->assertSame('/', $this->site->getPWABaseTagPath());
+    }
+
     // ---- newSite ----
 
     public function testNewSiteCreatesSiteTreeAndManifest(): void

@@ -492,7 +492,7 @@ class HAXCMSSite
           'hexCode' => HAXCMS_FALLBACK_HEX,
           'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
           'basePath' =>
-              $this->basePath . $this->manifest->metadata->site->name . '/',
+              $this->getPWAScopePath(),
           'domain' => $domain,
           'title' => $this->manifest->title,
           'short' => $this->manifest->metadata->site->name,
@@ -505,7 +505,7 @@ class HAXCMSSite
           'licenseLink' => $licenseLink,
           'licenseName' => $licenseName,
           'securityTxtExpires' => gmdate('Y-m-d\TH:i:s\Z', strtotime('+180 days')),
-          'serviceWorkerScript' => $this->getServiceWorkerScript($this->basePath . $this->manifest->metadata->site->name . '/'),
+          'serviceWorkerScript' => $this->getServiceWorkerScript($this->getPWAScopePath()),
           'bodyAttrs' => $this->getSitePageAttributes(),
           'metadata' => $this->getSiteMetadata(),
           'lang' => $this->getLanguage(),
@@ -901,6 +901,22 @@ class HAXCMSSite
         $basePath .= '/';
       }
       return $basePath . $this->manifest->metadata->site->name . '/';
+    }
+    /**
+     * Compute the PWA scope / start_url path for this site.
+     * When a vanity domain is set (manifest.metadata.site.domain non-empty)
+     * the site is served from the domain root, so the PWA scope is '/'.
+     * Otherwise fall back to the internal multisite basePath + site.name.
+     */
+    public function getPWAScopePath() {
+      if (
+        isset($this->manifest->metadata->site->domain) &&
+        is_string($this->manifest->metadata->site->domain) &&
+        trim($this->manifest->metadata->site->domain) !== ''
+      ) {
+        return '/';
+      }
+      return $this->getDefaultSiteBasePath();
     }
     /**
      * Ensure we can build an absolute URL for sitemap generation.
@@ -1549,7 +1565,7 @@ class HAXCMSSite
       if (getenv('HAXSITE_BASE_URL')) {
         return getenv('HAXSITE_BASE_URL');
       }
-      return $this->basePath . $this->manifest->metadata->site->name . '/';
+      return $this->getPWAScopePath();
     }
     /**
      * Return a standard service worker that takes into account
@@ -1565,7 +1581,7 @@ class HAXCMSSite
       }
       // support dynamic calculation
       if (is_null($basePath)) {
-        $basePath = $this->basePath . $this->manifest->metadata->site->name . '/';
+        $basePath = $this->getPWAScopePath();
       }
       return "
   <script>
