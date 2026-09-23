@@ -424,20 +424,18 @@ trait OperationsRouteCreateSite {
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
-      // walk through files if any came across and save each of them
+      // walk through files if any came across and save each of them. build.files
+      // is best-effort: a single bad/undownloadable entry must not fail the
+      // whole site, so skipped entries are collected into $buildFileWarnings
+      // (returned as data.warnings) and the site is still created. The
+      // SSRF/extension/path guards inside importBuildFile still refuse to fetch
+      // or write anything unsafe; they just no longer abort the request.
+      $buildFileWarnings = array();
       if (is_array($filesToDownload)) {
         // one client for any remote files, configured as the importers do
         $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
         foreach ($filesToDownload as $locationName => $downloadLocation) {
-          if (!$this->importBuildFile($site, $locationName, $downloadLocation, $client)) {
-            return array(
-              '__failed' => array(
-                'status' => 400,
-                'message' => 'Invalid file import payload in build.files',
-                'file' => $locationName,
-              )
-            );
-          }
+          $this->importBuildFile($site, $locationName, $downloadLocation, $client, $buildFileWarnings);
         }
         if (count($filesToDownload) > 0) {
           $this->linkImportedPageFiles($site);
@@ -500,10 +498,26 @@ trait OperationsRouteCreateSite {
               $site->manifest->metadata->site->git->branch
           );
       }
-      return array(
+      // build the success response. Best-effort file-ingest warnings are
+      // response-only metadata: surface them on the response envelope, NOT on
+      // the $schema JSONOutlineSchemaItem. PHP 8.3 flags ad-hoc properties on a
+      // typed class as a Deprecated notice ("Creation of dynamic property"),
+      // and with display_errors on that notice prints to stdout before the
+      // response headers are sent -> "headers already sent" -> no valid JSON
+      // response (the site is already on disk by this point, so the user sees
+      // "created but no response"). Keeping warnings off the schema item also
+      // avoids polluting site.json, since JSONOutlineSchema::save() serializes
+      // every declared/dynamic property of its items. The front-end creation
+      // modal reads only status + data.slug/data.link/data.id; warnings are
+      // optional and not consumed by it.
+      $response = array(
         "status" => 200,
         "data" => $schema
       );
+      if (count($buildFileWarnings) > 0) {
+        $response['warnings'] = $buildFileWarnings;
+      }
+      return $response;
     }
     else {
       return array(
@@ -519,23 +533,44 @@ trait OperationsRouteCreateSite {
    * remote files as http(s) URLs, so a URL is fetched through SsrfGuard into
    * the bulk-import staging root. From there every entry takes the same path:
    * the staged-path check, then a bulk-import HAXCMSFile::save that validates
-   * the content and records the file entity in files.json. A URL that cannot
-   * be fetched is skipped rather than failing the site. Returns false for an
-   * invalid entry, which createSite answers with 400. Mirrors importBuildFile
-   * in haxcms-nodejs createSite.js.
+   * the content and records the file entity in files.json. Ingestion is
+   * best-effort: any entry that is unsafe or cannot be fetched/saved is skipped
+   * rather than failing the site.
+   *
+   * Returns false for an invalid entry (unsafe name, disallowed extension, or
+   * a source that is neither an http(s) URL nor a valid staged path) and true
+   * otherwise (including a URL that could not be fetched or a file
+   * HAXCMSFile::save rejected internally, where no entity is created). This
+   * boolean contract is exercised directly by the unit suite, so it must not
+   * change shape.
+   *
+   * When an optional `&$warnings` array is passed, every skip is recorded as
+   * array('file'=>..., 'reason'=>...) so createSite can surface data.warnings
+   * on its 200 response instead of aborting with 400. The collector is
+   * intentionally optional so the boolean-only call path used by tests behaves
+   * exactly as before. Mirrors importBuildFile in haxcms-nodejs createSite.js.
    */
-  private function importBuildFile($site, $locationName, $downloadLocation, $client) {
+  private function importBuildFile($site, $locationName, $downloadLocation, $client, &$warnings = null) {
     $normalizedImportName = $this->normalizeBulkImportName($locationName);
-    if (
-      $normalizedImportName === false ||
-      preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1
-    ) {
+    if ($normalizedImportName === false) {
+      if (is_array($warnings)) {
+        $warnings[] = array('file' => $locationName, 'reason' => 'Invalid file name in build.files');
+      }
+      return false;
+    }
+    if (preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1) {
+      if (is_array($warnings)) {
+        $warnings[] = array('file' => $locationName, 'reason' => 'Disallowed file extension in build.files');
+      }
       return false;
     }
     $downloaded = false;
     if (is_string($downloadLocation) && preg_match('/^https?:\/\//i', $downloadLocation) === 1) {
       $downloaded = haxcms_import_stage_remote_file($client, $downloadLocation, $normalizedImportName);
       if ($downloaded === false) {
+        if (is_array($warnings)) {
+          $warnings[] = array('file' => $locationName, 'reason' => 'Remote file could not be downloaded');
+        }
         return true;
       }
       $downloadLocation = $downloaded;
@@ -543,12 +578,24 @@ trait OperationsRouteCreateSite {
     $valid = HAXCMSFile::isValidBulkImportTmpPath($downloadLocation);
     if ($valid) {
       $file = new HAXCMSFile();
-      // check for a file upload; we block a few formats by design
-      $file->save(Array(
+      // check for a file upload; we block a few formats by design. save() can
+      // still reject the content (MIME/extension mismatch, over the size limit,
+      // symlink TOCTOU, etc.) after the staged-path check passed; surface that
+      // reason too so the caller knows why no entity was created.
+      $saveResult = $file->save(Array(
         "name" => $normalizedImportName,
         "tmp_name" => $downloadLocation,
         "bulk-import" => TRUE
       ), $site);
+      if (is_array($warnings) && is_array($saveResult) && isset($saveResult['status']) && $saveResult['status'] !== 200) {
+        $reason = (is_string($saveResult['data']) && $saveResult['data'] !== '')
+          ? $saveResult['data']
+          : (is_array($saveResult['data']) && isset($saveResult['data']['message']) && is_string($saveResult['data']['message']) ? $saveResult['data']['message'] : 'File rejected during build.files import');
+        $warnings[] = array('file' => $locationName, 'reason' => $reason);
+      }
+    }
+    else if (is_array($warnings)) {
+      $warnings[] = array('file' => $locationName, 'reason' => 'Invalid bulk import source path in build.files');
     }
     // save copies the file into the site, so a download is always removed
     if ($downloaded !== false) {

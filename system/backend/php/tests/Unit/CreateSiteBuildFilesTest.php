@@ -133,6 +133,15 @@ class CreateSiteBuildFilesTest extends TestCase
         return $this->callOperation('importBuildFile', array($this->site, $locationName, $source, $client));
     }
 
+    // best-effort warnings collector: importBuildFile pushes {file, reason}
+    // entries into the passed-by-reference array. invokeArgs propagates the
+    // reference because the array element is itself a reference (&$warnings).
+    private function importBuildFileWithWarnings($locationName, $source, $client, array &$warnings)
+    {
+        $ref = new ReflectionMethod('Operations', 'importBuildFile');
+        return $ref->invokeArgs($this->ops, array($this->site, $locationName, $source, $client, &$warnings));
+    }
+
     private function linkImportedPageFiles()
     {
         return $this->callOperation('linkImportedPageFiles', array($this->site));
@@ -382,6 +391,91 @@ class CreateSiteBuildFilesTest extends TestCase
         $page = $this->addPage('bare', '<media-image source="files/bare.png"></media-image>', false);
         $this->linkImportedPageFiles();
         $this->assertSame(array($this->entityAt('files/bare.png')->getUuid()), $page->metadata->files);
+    }
+
+    // --- best-effort warnings collector (#3060) ---
+    // importBuildFile keeps its boolean return contract (above) but, when passed
+    // an optional &warnings array, records every skipped entry as {file, reason}
+    // so createSite can return 200 with data.warnings instead of aborting 400.
+    private function warningFor(array $warnings, $file)
+    {
+        foreach ($warnings as $w) {
+            if (isset($w['file']) && $w['file'] === $file) {
+                return $w;
+            }
+        }
+        return null;
+    }
+
+    public function testUnsafeNameRecordsWarningAndStillReturnsFalse(): void
+    {
+        $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);
+        $warnings = array();
+        $this->assertFalse($this->importBuildFileWithWarnings('files/../escape.png', self::REMOTE . '/x.png', $client, $warnings));
+        $this->assertSame(1, $mock->count(), 'nothing was fetched');
+        $w = $this->warningFor($warnings, 'files/../escape.png');
+        $this->assertNotNull($w, 'a warning was recorded for the unsafe name');
+        $this->assertIsString($w['reason']);
+        $this->assertNotSame('', $w['reason']);
+    }
+
+    public function testDisallowedExtensionRecordsWarningAndStillReturnsFalse(): void
+    {
+        $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);
+        $warnings = array();
+        $this->assertFalse($this->importBuildFileWithWarnings('files/shell.php', self::REMOTE . '/x.png', $client, $warnings));
+        $this->assertSame(1, $mock->count(), 'nothing was fetched');
+        $w = $this->warningFor($warnings, 'files/shell.php');
+        $this->assertNotNull($w, 'a warning was recorded for the disallowed extension');
+        $this->assertNotSame('', $w['reason']);
+    }
+
+    public function testNonHttpUnsafeSourceRecordsWarningAndStillReturnsFalse(): void
+    {
+        $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);
+        $warnings = array();
+        $this->assertFalse($this->importBuildFileWithWarnings('files/x.png', 'file:///etc/passwd', $client, $warnings));
+        $this->assertSame(1, $mock->count(), 'nothing was fetched');
+        $w = $this->warningFor($warnings, 'files/x.png');
+        $this->assertNotNull($w, 'a warning was recorded for the invalid source path');
+        $this->assertNotSame('', $w['reason']);
+    }
+
+    public function testUnfetchableUrlRecordsWarningAndStillReturnsTrue(): void
+    {
+        $client = $this->mockClient(array(
+            new Response(404),
+            new Response(200, array(), ''),
+            new ConnectException('socket hang up', new Request('GET', self::REMOTE . '/down.png')),
+        ), $mock);
+        $warnings = array();
+        foreach (array('missing', 'empty', 'down') as $name) {
+            $this->assertTrue($this->importBuildFileWithWarnings('files/' . $name . '.png', self::REMOTE . '/' . $name . '.png', $client, $warnings), $name);
+            $this->assertNotNull($this->warningFor($warnings, 'files/' . $name . '.png'), 'a warning was recorded for the unfetchable ' . $name);
+        }
+        $this->assertSame(3, count($warnings));
+    }
+
+    public function testContentMismatchRejectionRecordsWarningAndReturnsTrue(): void
+    {
+        $client = $this->mockClient(array(new Response(200, array(), '<html><body>not an image</body></html>')), $mock);
+        $warnings = array();
+        $this->assertTrue($this->importBuildFileWithWarnings('files/fake.png', self::REMOTE . '/fake.png', $client, $warnings));
+        $this->assertNull($this->entityAt('files/fake.png'));
+        $w = $this->warningFor($warnings, 'files/fake.png');
+        $this->assertNotNull($w, 'a warning was recorded for the content-mismatch rejection');
+        $this->assertNotSame('', $w['reason'], 'the save rejection reason is surfaced');
+    }
+
+    public function testOmittingTheWarningsCollectorBehavesExactlyAsBefore(): void
+    {
+        $client = $this->mockClient(array(
+            new Response(404),
+            new Response(200, array(), $this->png),
+        ), $mock);
+        // no fifth argument: no collector, no throws, same boolean result
+        $this->assertTrue($this->importBuildFile('files/missing.png', self::REMOTE . '/missing.png', $client));
+        $this->assertFalse($this->importBuildFile('files/shell.php', self::REMOTE . '/x.png', $client));
     }
 }
 
