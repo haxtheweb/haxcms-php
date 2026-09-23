@@ -151,14 +151,14 @@ class HAXCMSSite
               if ($build->items) {
                 for ($i=0; $i < count($build->items); $i++) {
                   array_push($pageSchema, array(
-                    "parent" => $build->items[$i]['parent'],
-                    "title" => $build->items[$i]['title'],
+                    "parent" => isset($build->items[$i]['parent']) ? $build->items[$i]['parent'] : null,
+                    "title" => isset($build->items[$i]['title']) ? $build->items[$i]['title'] : '',
                     "template" => "html",
-                    "slug" => $build->items[$i]['slug'],
-                    "id" => $build->items[$i]['id'],
-                    "indent" => $build->items[$i]['indent'],
+                    "slug" => isset($build->items[$i]['slug']) ? $build->items[$i]['slug'] : '',
+                    "id" => isset($build->items[$i]['id']) ? $build->items[$i]['id'] : null,
+                    "indent" => isset($build->items[$i]['indent']) ? $build->items[$i]['indent'] : 0,
                     "contents" => isset($build->items[$i]['content']) ? $build->items[$i]['content'] : (isset($build->items[$i]['contents']) ? $build->items[$i]['contents'] : ''),
-                    "order" => $build->items[$i]['order'],
+                    "order" => isset($build->items[$i]['order']) ? $build->items[$i]['order'] : $i,
                     "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                   ));
                 }
@@ -197,14 +197,14 @@ class HAXCMSSite
                   if ($build->items) {
                     for ($i=0; $i < count($build->items); $i++) {
                       array_push($pageSchema, array(
-                        "parent" => $build->items[$i]['parent'],
-                        "title" => $build->items[$i]['title'],
+                        "parent" => isset($build->items[$i]['parent']) ? $build->items[$i]['parent'] : null,
+                        "title" => isset($build->items[$i]['title']) ? $build->items[$i]['title'] : '',
                         "template" => "html",
-                        "slug" => $build->items[$i]['slug'],
-                        "id" => $build->items[$i]['id'],
-                        "indent" => $build->items[$i]['indent'],
-                        "contents" => $build->items[$i]['contents'],
-                        "order" => $build->items[$i]['order'],
+                        "slug" => isset($build->items[$i]['slug']) ? $build->items[$i]['slug'] : '',
+                        "id" => isset($build->items[$i]['id']) ? $build->items[$i]['id'] : null,
+                        "indent" => isset($build->items[$i]['indent']) ? $build->items[$i]['indent'] : 0,
+                        "contents" => isset($build->items[$i]['contents']) ? $build->items[$i]['contents'] : '',
+                        "order" => isset($build->items[$i]['order']) ? $build->items[$i]['order'] : $i,
                         "metadata" => isset($build->items[$i]['metadata']) ? $build->items[$i]['metadata'] : NULL,
                       ));
                     }
