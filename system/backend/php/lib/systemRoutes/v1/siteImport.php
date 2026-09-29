@@ -10,13 +10,14 @@ include_once dirname(__FILE__) . '/imports/convertWordpressToSite.php';
 include_once dirname(__FILE__) . '/imports/convertElmslnToSite.php';
 include_once dirname(__FILE__) . '/imports/convertDrupalBookToSite.php';
 include_once dirname(__FILE__) . '/imports/convertPloneToSite.php';
+include_once dirname(__FILE__) . '/imports/convertVitepressToSite.php';
 
 /**
  * POST /system/api/v1/site/import/:platform
  * Dispatcher that routes platform import requests to the correct converter.
  *
  * Supported platforms: haxcms, html, pressbooks, gitbook, notion, wordpress,
- * elmsln, drupal-book, plone.
+ * elmsln, drupal-book, plone, vitepress.
  * Returns { status: 200, data: { items: [...], filename: string, ... } }
  */
 return function ($context) {
@@ -50,6 +51,9 @@ return function ($context) {
             break;
         case 'plone':
             haxcmsImportConvertPloneToSite($context);
+            break;
+        case 'vitepress':
+            haxcmsImportConvertVitepressToSite($context);
             break;
         default:
             SiteRouteUtils::sendFormattedResponse(
