@@ -18,6 +18,14 @@ HAX seeks to be the smallest possible back-end CMS to make HAX work and be able 
 
 New to the HAX ecosystem? **[Start here](https://github.com/haxtheweb/issues/blob/master/CONTRIBUTING.md)** — the single onboarding guide covers prerequisites, cloning the core repos, installing, and running each project locally (including the PHP/container path for this repo).
 
+## Who HAXcms is for
+
+- **Faculty, instructors, and course designers** — author course sites, OER materials, and microsites in the browser with HAX, then publish them anywhere.
+- **Instructional designers and content teams** — build accessible, standards-based pages out of web components, with no build tooling to maintain.
+- **Campus IT and system administrators** — a self-hosted, database-free PHP 8.3+/Apache 2.4 stack: flat files, git-backed publishing, a JWT-authenticated v1 REST API, and configuration-driven deployment profiles.
+- **Students and learners** — consume fast, offline-capable, WCAG-aligned static sites on any device.
+- **Hosted-platform users** — Reclaim Hosting/Reclaim.cloud 1-click installs and HAXiam managed spaces for institutions that want HAX without self-hosting.
+
 ## Features
 - All the UX of HAX brought to a small CMS
 - Incredibly simple, readable file structure of flat HTML files and lightning fast, high scale micro-sites
