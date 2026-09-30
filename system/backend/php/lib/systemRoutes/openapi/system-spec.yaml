@@ -2590,6 +2590,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /system/api/v1/site/import/vitepress:
+    post:
+      tags:
+        - actions
+      operationId: vitepressToSite
+      summary: Import a VitePress documentation site as a new site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                  description: >-
+                    GitHub repository URL of the VitePress site, optionally
+                    with /tree/<branch>
+              required:
+                - repoUrl
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: The repository is not a readable VitePress site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/site/import/{platform}:
     post:
       tags:
