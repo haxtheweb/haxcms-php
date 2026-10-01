@@ -111,6 +111,12 @@ trait OperationsRouteSaveOutline {
         if ($item->title != '' && $item->title) {
           $page->title = $item->title;
         }
+        // description belongs to the JSON Outline Schema item; same handling
+        // as the setDescription node operation
+        // (mirrors the NodeJS saveOutline fix, haxcms-nodejs PR #46)
+        if (isset($item->description) && is_string($item->description)) {
+          $page->description = ($item->description === '') ? '' : strip_tags($item->description);
+        }
         $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
         if ($item->parent == null) {
           $page->parent = null;
@@ -418,7 +424,15 @@ trait OperationsRouteSaveOutline {
       // D49: return items wrapped in an object with 'items' key so the
       // siteMutation.php wrapper produces {status:200, data:{items:[...]}}
       // matching the Node canonical outline success shape.
-      return array('items' => $site->manifest->items);
+      // idMap (client id -> server id for new items) lets clients update
+      // their own references to the pages they created
+      // (mirrors the NodeJS saveOutline fix, haxcms-nodejs PR #46).
+      // Cast to object so an empty map serializes as {} (site-spec declares
+      // idMap as type: object) and numeric client ids stay object keys.
+      return array(
+        'items' => $site->manifest->items,
+        'idMap' => (object) $itemMap,
+      );
     } else {
       return array(
         '__failed' => array(

@@ -459,6 +459,28 @@ class OperationsNodeOpsTest extends TestCase
     }
 
     // =========================================================================
+    // saveNode — a body without a <page-break> is refused instead of a
+    // silent 200 (mirrors haxcms-nodejs PR #45 / haxtheweb/issues#3097)
+    // =========================================================================
+
+    public function testSaveNodeWithoutPageBreakIsRefusedWith400(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $pageFile = $this->tmpRoot . '/' . $this->siteName . '/pages/item-a/index.html';
+        $before = file_get_contents($pageFile);
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a', 'body' => '<p>Hello</p>'),
+        );
+        $result = $this->ops->saveNode();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertStringContainsString('<page-break>', $result['__failed']['message']);
+        // nothing was written: the page file on disk is unchanged
+        $this->assertSame($before, file_get_contents($pageFile));
+    }
+
+    // =========================================================================
     // saveOutline — site_token gate
     // =========================================================================
 
@@ -547,6 +569,70 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('item-b', $persisted[0]->id);
         $this->assertSame('item-a', $persisted[1]->id);
     }
+
+    // =========================================================================
+    // saveOutline — descriptions are kept and new ids are reported
+    // (mirrors haxcms-nodejs PR #46 / haxtheweb/issues#3098 + #3099)
+    // =========================================================================
+
+    public function testSaveOutlineKeepsDescriptionsAndReportsIdMap(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+        );
+        $this->ops->rawParams = array(
+            'items' => array(
+                array(
+                    'id' => 'item-a',
+                    'title' => 'Item A',
+                    'description' => 'New <b>text</b>',
+                    'parent' => null,
+                    'indent' => 0,
+                    'order' => 0,
+                    'slug' => 'item-a',
+                    'metadata' => array(),
+                ),
+                array(
+                    'id' => 'client-1',
+                    'title' => 'Child',
+                    'description' => 'Child',
+                    'parent' => 'item-a',
+                    'indent' => 1,
+                    'order' => 1,
+                    'slug' => '',
+                    'metadata' => array(),
+                ),
+            ),
+        );
+        $result = $this->ops->saveOutline();
+
+        $this->assertArrayHasKey('items', $result);
+        // idMap: client id -> server id for NEW items; object-shaped even
+        // when empty (site-spec declares idMap as type: object)
+        $this->assertArrayHasKey('idMap', $result);
+        $this->assertInstanceOf(stdClass::class, $result['idMap']);
+        // item-a already existed: no mapping for it
+        $this->assertFalse(isset($result['idMap']->{'item-a'}));
+        // client-1 is new: mapped to the server-generated id
+        $newId = $result['idMap']->{'client-1'};
+        $this->assertIsString($newId);
+        $this->assertNotSame('', $newId);
+
+        // Independent source of truth: persisted site.json
+        $persisted = $this->readPersistedItems();
+        $byId = array();
+        foreach ($persisted as $item) {
+            $byId[$item->id] = $item;
+        }
+        // description sent with an existing item is saved (tags stripped)
+        $this->assertSame('New text', $byId['item-a']->description);
+        // description sent with a new item is saved; the client parent id
+        // was remapped to the real id
+        $this->assertSame('Child', $byId[$newId]->description);
+        $this->assertSame('item-a', $byId[$newId]->parent);
+    }
 }
 
 /**
@@ -557,11 +643,29 @@ class OperationsNodeOpsTest extends TestCase
 class OperationsNodeTestHaxcms extends OperationsTestHaxcms
 {
     public $outlineSchema;
+    private $realPageBreakParser;
 
     public function __construct()
     {
         parent::__construct();
         $this->outlineSchema = new JSONOutlineSchema();
+    }
+
+    /**
+     * Use the REAL pageBreakParser, not the shared mock's single-fake-page
+     * stub: saveNode's no-page-break refusal (haxcms-nodejs PR #45 parity)
+     * depends on the real parser returning an empty list for a body without
+     * a <page-break>, which the stub would mask. A ReflectionClass instance
+     * skips HAXCMS's stateful constructor (same technique as
+     * HAXCMSHelpersTest).
+     */
+    public function pageBreakParser($body)
+    {
+        if (!isset($this->realPageBreakParser)) {
+            $this->realPageBreakParser = (new ReflectionClass(HAXCMS::class))
+                ->newInstanceWithoutConstructor();
+        }
+        return $this->realPageBreakParser->pageBreakParser($body);
     }
 }
 

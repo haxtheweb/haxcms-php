@@ -1000,8 +1000,21 @@ class HAXCMS
       // match all pages + content
       preg_match_all("/(<page-break([\s\S]*?)>([\s\S]*?)<\/page-break>)([\s\S]*?)(?=<page-break)/", $body, $matches);
       foreach($matches[0] as $i => $match) {
-        // replace & to avoid XML parsing issues
-        $content = "<div " . str_replace('published ', 'published="published" ', str_replace('locked ', 'locked="locked" ', $matches[2][$i])) . "></div>";
+        // expand bare boolean attributes (published, locked) wherever they
+        // sit in the tag, but never inside a quoted value such as a title,
+        // and never when a value follows (published = "" stays as written).
+        // Mirrors the NodeJS pageBreakParser fix (haxcms-nodejs PR #44).
+        $attrText = preg_replace_callback(
+          '/("[^"]*")|(\s)(published|locked)(?!\s*=)(?=\s|\/|$)/',
+          function ($m) {
+            if ($m[1] !== '') {
+              return $m[1];
+            }
+            return $m[2] . $m[3] . '="' . $m[3] . '"';
+          },
+          $matches[2][$i]
+        );
+        $content = "<div " . $attrText . "></div>";
         $attrs = @$this->parse_attributes($content);
         $pageData[$i] = array(
             "content" => $matches[4][$i],

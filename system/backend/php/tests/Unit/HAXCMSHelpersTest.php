@@ -179,9 +179,10 @@ class HAXCMSHelpersTest extends TestCase
 
     /**
      * hide-in-menu as a non-last bare attribute (trailing space before the
-     * next attr) is also captured as null. pageBreakParser's str_replace only
-     * normalizes 'published ' and 'locked ' (with trailing space); hide-in-menu
-     * is never normalized, so it always comes through as a bare null attr.
+     * next attr) is also captured as null. pageBreakParser only normalizes
+     * the bare boolean published/locked attributes (wherever they sit in
+     * the tag, never inside a quoted value); hide-in-menu is never
+     * normalized, so it always comes through as a bare null attr.
      */
     public function testPageBreakParserCapturesBareHideInMenuWhenNotLast(): void
     {
@@ -206,5 +207,72 @@ class HAXCMSHelpersTest extends TestCase
         $attrs = $pages[0]['attributes'];
         $this->assertArrayNotHasKey('hide-in-menu', $attrs);
         $this->assertFalse(array_key_exists('hide-in-menu', $attrs));
+    }
+
+    /**
+     * The next tests mirror the NodeJS page-break-parser unit tests
+     * (haxcms-nodejs PR #44 / haxtheweb/issues#3096): bare boolean
+     * published/locked attributes are expanded wherever they sit in the
+     * tag, but never inside a quoted value such as a title, and never when
+     * a value follows (published = "" stays as written).
+     */
+    public function testPageBreakParserExpandsBarePublishedAsLastAttribute(): void
+    {
+        $body = '<page-break title="A" published></page-break><p>x</p>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertSame('published', $attrs['published']);
+        $this->assertSame('A', $attrs['title']);
+    }
+
+    public function testPageBreakParserExpandsBarePublishedAndLockedInTheMiddle(): void
+    {
+        $body = '<page-break published locked title="A"></page-break><p>x</p>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertSame('published', $attrs['published']);
+        $this->assertSame('locked', $attrs['locked']);
+        $this->assertSame('A', $attrs['title']);
+    }
+
+    public function testPageBreakParserLeavesWordsInsideValuesAlone(): void
+    {
+        $body = '<page-break title="Get published fast or locked out" published="published"></page-break><p>x</p>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertSame('Get published fast or locked out', $attrs['title']);
+        $this->assertSame('published', $attrs['published']);
+        $this->assertArrayNotHasKey('fast', $attrs);
+        $this->assertArrayNotHasKey('locked', $attrs);
+    }
+
+    public function testPageBreakParserKeepsExplicitValuesUnchanged(): void
+    {
+        $body = '<page-break title="A" published="published" locked="locked"></page-break><p>x</p>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertSame('A', $attrs['title']);
+        $this->assertSame('published', $attrs['published']);
+        $this->assertSame('locked', $attrs['locked']);
+    }
+
+    public function testPageBreakParserKeepsExplicitValueWhenWhitespaceSurroundsEquals(): void
+    {
+        $body = '<page-break title="A" published = "" locked = "locked"></page-break><p>x</p>';
+        $pages = $this->haxcms->pageBreakParser($body);
+        $this->assertCount(1, $pages);
+        $attrs = $pages[0]['attributes'];
+        $this->assertSame('', $attrs['published']);
+        $this->assertSame('locked', $attrs['locked']);
+    }
+
+    public function testPageBreakParserReturnsContentAfterThePageBreakAsPageBody(): void
+    {
+        $pages = $this->haxcms->pageBreakParser('<page-break title="A"></page-break><p>Hello</p>');
+        $this->assertSame('<p>Hello</p>', $pages[0]['content']);
     }
 }

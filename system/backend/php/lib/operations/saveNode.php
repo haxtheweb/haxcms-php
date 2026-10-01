@@ -38,6 +38,18 @@ trait OperationsRouteSaveNode {
           $bytes = 0;
           // see if we have multiple pages / this page has been told to split into multiple
           $pageData = $GLOBALS['HAXCMS']->pageBreakParser($body);
+          // only content after a <page-break> is written; without one nothing
+          // would be saved, so say so instead of answering 200
+          // (mirrors the NodeJS saveNode fix, haxcms-nodejs PR #45; an empty
+          // string body is treated like a missing body there, so keep that)
+          if ($body !== '' && count($pageData) === 0) {
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'body must contain a <page-break> element; only content after it is saved',
+              )
+            );
+          }
           foreach($pageData as $data) {
             // trap to ensure if front-end didnt send a UUID for id then we make it
             if (!isset($data["attributes"]["title"])) {

@@ -450,6 +450,11 @@ paths:
                             type: array
                             items:
                               $ref: "#/components/schemas/ItemRecord"
+                          idMap:
+                            type: object
+                            description: Ids the client sent for new items, mapped to the ids the server gave them
+                            additionalProperties:
+                              type: string
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
