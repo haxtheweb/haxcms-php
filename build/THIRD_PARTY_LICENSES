@@ -345,11 +345,6 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #8
 
-@haxtheweb/fluid-type
-  build path:  es6/node_modules/@haxtheweb/fluid-type
-  license:     Apache-2.0
-  attribution: see license text #4
-
 @haxtheweb/full-width-image
   build path:  es6/node_modules/@haxtheweb/full-width-image
   license:     Apache-2.0
@@ -1922,7 +1917,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#4 - Apache-2.0 (shared by 33 packages)
+#4 - Apache-2.0 (shared by 32 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
