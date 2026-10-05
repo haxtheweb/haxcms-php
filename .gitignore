@@ -28,3 +28,4 @@ package-lock.json
 system/backend/php/.phpunit.cache
 system/backend/php/.phpunit.cache/test-results
 file_operations_security_report.md
+system/backend/php/build/
