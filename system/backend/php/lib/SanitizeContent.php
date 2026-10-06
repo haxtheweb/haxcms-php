@@ -49,6 +49,7 @@ class SanitizeContent
         'loading',
         'allow',
         'allowfullscreen',
+        'credentialless',
         'referrerpolicy',
         'sandbox',
     ];

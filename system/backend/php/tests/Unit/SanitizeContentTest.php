@@ -187,6 +187,48 @@ class SanitizeContentTest extends TestCase
         $this->assertStringContainsString('allow="autoplay"', $out);
     }
 
+    /**
+     * Issue #3112 parity with the Node.js sanitizer: embed elements emit
+     * `credentialless` + `referrerpolicy="strict-origin-when-cross-origin"`
+     * so third-party embeds load on cross-origin isolated (COEP) pages; the
+     * sanitizer must not strip either attribute from stored iframe markup.
+     */
+    public function testSanitizeHtmlForStoragePreservesCredentiallessIframe(): void
+    {
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" credentialless referrerpolicy="strict-origin-when-cross-origin"></iframe>');
+        $this->assertSame(
+            '<iframe src="https://www.youtube.com/embed/x" credentialless referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            $out
+        );
+    }
+
+    public function testSanitizeHtmlForStorageAppliesDefaultsAroundBareCredentialless(): void
+    {
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" credentialless></iframe>');
+        $this->assertSame(
+            '<iframe src="https://example.com" credentialless loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            $out
+        );
+    }
+
+    public function testSanitizeHtmlForStorageAppliesDefaultsAroundEmptyValuedCredentialless(): void
+    {
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" credentialless=""></iframe>');
+        $this->assertSame(
+            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            $out
+        );
+    }
+
+    public function testSanitizeHtmlForStoragePreservesStrictOriginWhenCrossOriginReferrerPolicy(): void
+    {
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" referrerpolicy="strict-origin-when-cross-origin"></iframe>');
+        $this->assertSame(
+            '<iframe src="https://www.youtube.com/embed/x" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            $out
+        );
+    }
+
     public function testSanitizeHtmlForStorageFlattensTemplatesInTextTemplateHosts(): void
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<code-sample><template><script>alert(1)</script></template></code-sample>');
