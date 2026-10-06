@@ -28,7 +28,7 @@ class Operations {
   public $params;
   public $rawParams;
 
-  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml)$/i';
+  private $safeBulkImportFilePattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf)$/i';
   // Extensions permitted for build.siteFiles downloads (theme/ and custom/
   // assets imported from another HAXcms instance). Allow-listing rather than
   // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
