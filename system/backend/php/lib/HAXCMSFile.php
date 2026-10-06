@@ -7,7 +7,7 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
-    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml)$/i';
+    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf)$/i';
     private $allowedMimeByExtension = array(
         'jpg' => array('image/jpeg'),
         'jpeg' => array('image/jpeg'),
@@ -32,6 +32,14 @@ class HAXCMSFile
         'html' => array('text/html', 'application/xhtml+xml'),
         'md' => array('text/markdown', 'text/x-markdown', 'text/plain'),
         'xml' => array('application/xml', 'text/xml'),
+        // calendars and contact cards are plain text, so libmagic
+        // reports the registered types here while the node content
+        // sniffer reports text/plain; both backends accept the same
+        // set. text/html is deliberately absent: a file carrying
+        // markup is detected as text/html and rejected rather than
+        // stored and served
+        'ics' => array('text/calendar', 'text/x-vcalendar', 'text/plain'),
+        'vcf' => array('text/vcard', 'text/x-vcard', 'text/directory', 'text/plain'),
         'css' => array('text/css'),
         'js' => array('text/javascript', 'application/javascript', 'application/x-javascript', 'text/ecmascript'),
         'svg' => array('image/svg+xml'),
@@ -307,7 +315,42 @@ class HAXCMSFile
             $errorMessage = 'Invalid image file content';
             return false;
         }
+        if (!$this->passesMarkupSniffParity($extension, $tmpPath)) {
+            $errorMessage = 'Detected HTML markup inside .' . $extension . ' upload';
+            return false;
+        }
         $detectedMimeOutput = $detectedMime;
+        return true;
+    }
+    /**
+     * Keep the two backends refusing the same uploads (praw
+     * a8bf4a47-3d4f-4f8e-a356-a04db66ce1ab).
+     *
+     * The node backend sniffs type from the bytes itself and reports text/html
+     * for any text upload carrying an HTML document marker, so such a file is
+     * refused there. libmagic instead recognises the vCalendar / vCard envelope
+     * and reports text/calendar or text/vcard whatever the fields contain, so
+     * without this the same file would be accepted here and refused there.
+     *
+     * Scoped to the two extensions added with haxtheweb/issues#2941. A file
+     * that is only markup is already refused on both sides, because libmagic
+     * reports text/html for it once the envelope is missing.
+     */
+    private function passesMarkupSniffParity($extension, $tmpPath)
+    {
+        if ($extension !== 'ics' && $extension !== 'vcf') {
+            return true;
+        }
+        $sample = @file_get_contents($tmpPath, false, null, 0, 8192);
+        if ($sample === false || $sample === '') {
+            return true;
+        }
+        $lowered = strtolower($sample);
+        foreach (array('<!doctype html', '<html', '<body') as $marker) {
+            if (strpos($lowered, $marker) !== false) {
+                return false;
+            }
+        }
         return true;
     }
     private function normalizeJpegQualityValue($value)
