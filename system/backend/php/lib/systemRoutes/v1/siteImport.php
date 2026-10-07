@@ -8,7 +8,7 @@ include_once dirname(__FILE__) . '/imports/convertGitbookToSite.php';
 include_once dirname(__FILE__) . '/imports/convertNotionToSite.php';
 include_once dirname(__FILE__) . '/imports/convertWordpressToSite.php';
 include_once dirname(__FILE__) . '/imports/convertElmslnToSite.php';
-include_once dirname(__FILE__) . '/imports/convertDrupalBookToSite.php';
+include_once dirname(__FILE__) . '/imports/convertDrupalToSite.php';
 include_once dirname(__FILE__) . '/imports/convertPloneToSite.php';
 include_once dirname(__FILE__) . '/imports/convertVitepressToSite.php';
 
@@ -17,7 +17,7 @@ include_once dirname(__FILE__) . '/imports/convertVitepressToSite.php';
  * Dispatcher that routes platform import requests to the correct converter.
  *
  * Supported platforms: haxcms, html, pressbooks, gitbook, notion, wordpress,
- * elmsln, drupal-book, plone, vitepress.
+ * elmsln, drupal, plone, vitepress.
  * Returns { status: 200, data: { items: [...], filename: string, ... } }
  */
 return function ($context) {
@@ -46,8 +46,8 @@ return function ($context) {
         case 'elmsln':
             haxcmsImportConvertElmslnToSite($context);
             break;
-        case 'drupal-book':
-            haxcmsImportConvertDrupalBookToSite($context);
+        case 'drupal':
+            haxcmsImportConvertDrupalToSite($context);
             break;
         case 'plone':
             haxcmsImportConvertPloneToSite($context);

@@ -420,11 +420,6 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #2
 
-@haxtheweb/hax-cloud
-  build path:  es6/node_modules/@haxtheweb/hax-cloud
-  license:     Apache-2.0
-  attribution: see license text #13
-
 @haxtheweb/hax-iconset
   build path:  es6/node_modules/@haxtheweb/hax-iconset
   license:     Apache-2.0
@@ -3790,7 +3785,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#13 - Apache-2.0 (shared by 11 packages)
+#13 - Apache-2.0 (shared by 10 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----

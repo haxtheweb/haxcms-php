@@ -2488,12 +2488,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
-  /system/api/v1/site/import/drupal-book:
+  /system/api/v1/site/import/drupal:
     post:
       tags:
         - actions
-      operationId: drupalBookToSite
-      summary: Import a Drupal Book site as a new site
+      operationId: drupalToSite
+      summary: Import a Drupal site as a new site
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -2651,7 +2651,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal-book, plone)
+          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal, plone)
       requestBody:
         required: false
         content:
@@ -3351,7 +3351,7 @@ components:
       description: >
         Import result returned by importDocx, importPdf, importPptx, importXlsx,
         htmlToSite, gitbookToSite, haxcmsToSite, notionToSite, pressbooksToSite,
-        wordpressToSite, drupalBookToSite, ploneToSite. The front-end
+        wordpressToSite, drupalToSite, ploneToSite. The front-end
         (processImportTemplate) reads `data.items` (array), `data.filename`
         (string), `data.files` (optional map), and `data.site.license`
         (optional string).

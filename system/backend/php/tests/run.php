@@ -240,7 +240,7 @@ function runSystemRoutesMapTests()
 
     // Verify platform converter files exist
     $baseDir = dirname(dirname(__FILE__));
-    $platforms = array('haxcms', 'html', 'pressbooks', 'gitbook', 'notion', 'wordpress', 'elmsln', 'drupal-book', 'plone', 'vitepress');
+    $platforms = array('haxcms', 'html', 'pressbooks', 'gitbook', 'notion', 'wordpress', 'elmsln', 'drupal', 'plone', 'vitepress');
     $platformMap = array(
         'haxcms'     => 'convertHaxcmsToSite.php',
         'html'       => 'convertHtmlToSite.php',
@@ -249,7 +249,7 @@ function runSystemRoutesMapTests()
         'notion'     => 'convertNotionToSite.php',
         'wordpress'  => 'convertWordpressToSite.php',
         'elmsln'     => 'convertElmslnToSite.php',
-        'drupal-book' => 'convertDrupalBookToSite.php',
+        'drupal'      => 'convertDrupalToSite.php',
         'plone'      => 'convertPloneToSite.php',
         'vitepress'  => 'convertVitepressToSite.php',
     );
