@@ -70,5 +70,15 @@
       "<script",
       "onclick"
     ]
+  },
+  {
+    "name": "question-element-correct-attribute-preserved",
+    "input": "<input type=\"checkbox\" value=\"North\" correct data-correct=\"true\" data-selected=\"feedback\">",
+    "mustContain": [
+      "value=\"North\" correct",
+      "data-correct=\"true\"",
+      "data-selected=\"feedback\""
+    ],
+    "mustNotContain": []
   }
 ]

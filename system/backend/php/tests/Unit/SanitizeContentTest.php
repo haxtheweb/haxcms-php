@@ -246,6 +246,25 @@ class SanitizeContentTest extends TestCase
         $this->assertStringContainsString('safe', $out);
     }
 
+    /**
+     * Issue #3113 parity with the Node.js sanitizer: question elements
+     * serialize the right answer onto light-DOM <input> elements. Legacy
+     * content uses the bare `correct` attribute; new content uses
+     * `data-correct`. Both must survive storage sanitization.
+     */
+    public function testSanitizeHtmlForStoragePreservesQuestionElementCorrectAttributes(): void
+    {
+        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct>');
+        $this->assertSame('<input type="checkbox" value="North" correct>', $out);
+
+        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" data-correct="true" data-selected="feedback">');
+        $this->assertSame('<input type="checkbox" value="North" data-correct="true" data-selected="feedback">', $out);
+
+        // event handlers are still stripped from the same fixture
+        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct data-correct="true" data-selected="feedback" onclick="steal()">');
+        $this->assertSame('<input type="checkbox" value="North" correct data-correct="true" data-selected="feedback">', $out);
+    }
+
     public static function nonStringInputProvider(): array
     {
         return [
