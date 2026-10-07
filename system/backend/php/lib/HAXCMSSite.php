@@ -2335,9 +2335,20 @@ class HAXCMSSite
       $hexCode = HAXCMS_FALLBACK_HEX;
       $themePreload = '';
       if ($themePath) {
-        // theme modulepreload is already in the shell set above; keep only
-        // the preload-as-script hint so the theme fetch is prioritized early.
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />';
+        if (strpos($themePath, '@') === 0) {
+          // registry theme: modulepreload is already in the shell set above;
+          // keep only the preload-as-script hint so the theme fetch is
+          // prioritized early.
+          $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />';
+        }
+        else {
+          // custom theme: site-relative path (e.g. ./custom/build/custom.es6.js)
+          // loaded directly by build-haxcms.js. Emit the hrefs verbatim so they
+          // match the real module request instead of 404ing behind the registry
+          // prefix. $themePath is already escaped above (htmlspecialchars).
+          $themePreload = '  <link rel="modulepreload" href="' . $themePath . '" crossorigin="anonymous" />' . "\n" .
+            '  <link rel="preload" href="' . $themePath . '" as="script" crossorigin="anonymous" />';
+        }
       }
       if ($rawDescription == '' && isset($this->manifest->description)) {
         $rawDescription = (string) $this->manifest->description;

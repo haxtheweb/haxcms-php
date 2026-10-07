@@ -1259,7 +1259,13 @@ class HAXCMS
       );
       if ($themePath) {
         $themePath = (string) $themePath;
-        if (!in_array($themePath, $shellEntries, true)) {
+        // only registry-relative theme paths (e.g. "@haxtheweb/...") belong
+        // in this list; custom theme paths (./custom/build/custom.es6.js) are
+        // site-relative and must never gain the build/es6/node_modules/ prefix
+        if (
+          strpos($themePath, '@') === 0 &&
+          !in_array($themePath, $shellEntries, true)
+        ) {
           $shellEntries[] = $themePath;
         }
       }
