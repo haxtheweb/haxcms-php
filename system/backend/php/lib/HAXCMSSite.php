@@ -11,6 +11,8 @@ class HAXCMSSite
     public $name;
     public $manifest;
     public $directory;
+    // haxtheweb/issues#3116: when true, the next gitCommit() supplies a placeholder git identity if none is configured
+    public $gitIdentityFallback = false;
     public $basePath = '/';
     public $lastPathLookupMiss = false;
     /**
@@ -658,7 +660,7 @@ class HAXCMSSite
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
-    public function gitCommit($msg = 'Committed changes', $identityFallback = false)
+    public function gitCommit($msg = 'Committed changes')
     {
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
@@ -667,7 +669,7 @@ class HAXCMSSite
         );
         $repo->add('.');
         $fallbackKeys = array();
-        if ($identityFallback) {
+        if ($this->gitIdentityFallback) {
             $fallbackKeys = $this->gitFallbackIdentity($repo);
         }
         $repo->commit($msg);
@@ -1225,7 +1227,7 @@ class HAXCMSSite
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
       $lines[] = '- [llms.txt](' . $this->getLLMSResourceURL($domain, 'llms.txt') . '): LLM-oriented guide to this site and its machine-readable resources.';
       // haxtheweb/issues#3116: point agents at AGENTS.md (older sites may not have one)
-      if (file_exists($this->directory . '/' . $this->manifest->metadata->site->name . '/AGENTS.md')) {
+      if (isset($this->directory) && isset($this->manifest->metadata->site->name) && file_exists($this->directory . '/' . $this->manifest->metadata->site->name . '/AGENTS.md')) {
         $lines[] = '- [AGENTS.md](' . $this->getLLMSResourceURL($domain, 'AGENTS.md') . '): Instructions for AI agents working on this site\'s files.';
       }
       $lines[] = '';
