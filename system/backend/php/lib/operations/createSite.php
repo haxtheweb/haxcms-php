@@ -485,7 +485,8 @@ trait OperationsRouteCreateSite {
               $site->manifest->title .
               ' (' .
               $site->manifest->id .
-              ')'
+              ')',
+          true
       );
       // make a branch but dont use it
       if (isset($site->manifest->metadata->site->git->staticBranch)) {

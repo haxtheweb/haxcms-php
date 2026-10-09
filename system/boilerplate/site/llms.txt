@@ -11,6 +11,7 @@ Managed files (feeds, search indexes, manifests, and this `llms.txt`) are genera
 
 - [site.json]({{ basePath }}site.json): Canonical site manifest and navigation tree in JSON Outline Schema format.
 - [llms.txt]({{ basePath }}llms.txt): LLM-oriented guide to this site and its machine-readable resources.
+- [AGENTS.md]({{ basePath }}AGENTS.md): Instructions for AI agents working on this site's files.
 
 ## Optional
 

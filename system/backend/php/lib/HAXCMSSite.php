@@ -658,7 +658,7 @@ class HAXCMSSite
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
-    public function gitCommit($msg = 'Committed changes')
+    public function gitCommit($msg = 'Committed changes', $identityFallback = false)
     {
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
@@ -666,12 +666,51 @@ class HAXCMSSite
             $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->add('.');
+        $fallbackKeys = array();
+        if ($identityFallback) {
+            $fallbackKeys = $this->gitFallbackIdentity($repo);
+        }
         $repo->commit($msg);
+        // Git::run_command putenv()s envopts when $_ENV is empty; clear them so
+        // the placeholder identity never outlives this one commit
+        if (count($_ENV) === 0) {
+            foreach ($fallbackKeys as $key) {
+                putenv($key);
+            }
+        }
         // commit should execute the automatic push flag if it's on
         if (isset($this->manifest->metadata->site->git->autoPush) && $this->manifest->metadata->site->git->autoPush && isset($this->manifest->metadata->site->git->branch)) {
             $repo->push('origin', $this->manifest->metadata->site->git->branch);
         }
         return true;
+    }
+    /**
+     * haxtheweb/issues#3116: when no git identity is configured (config or env),
+     * supply a placeholder identity through GIT_AUTHOR_* / GIT_COMMITTER_* on
+     * this repo object for the next commit only. Never writes git config.
+     * Mirrors HAXCMSSite.gitFallbackIdentity() in haxcms-nodejs.
+     * @return array env keys that were set
+     */
+    public function gitFallbackIdentity($repo)
+    {
+        $hasEmail = (getenv('GIT_AUTHOR_EMAIL') && getenv('GIT_COMMITTER_EMAIL')) || getenv('EMAIL') || trim($repo->run('config user.email')) !== '';
+        $hasName = (getenv('GIT_AUTHOR_NAME') && getenv('GIT_COMMITTER_NAME')) || trim($repo->run('config user.name')) !== '';
+        $fallback = array();
+        if (!$hasName) {
+            $fallback['GIT_AUTHOR_NAME'] = 'HAXcms';
+            $fallback['GIT_COMMITTER_NAME'] = 'HAXcms';
+        }
+        if (!$hasEmail) {
+            $fallback['GIT_AUTHOR_EMAIL'] = 'haxcms@localhost';
+            $fallback['GIT_COMMITTER_EMAIL'] = 'haxcms@localhost';
+        }
+        foreach ($fallback as $key => $value) {
+            $repo->setenv($key, $value);
+        }
+        if (count($fallback) > 0) {
+            error_log('HAXcms: no git identity configured; committing as "HAXcms <haxcms@localhost>". Set git config user.name and user.email to use your own.');
+        }
+        return array_keys($fallback);
     }
     /**
      * Basic wrapper to revert top commit of the site
@@ -1185,6 +1224,10 @@ class HAXCMSSite
       $lines[] = '## Core resources';
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
       $lines[] = '- [llms.txt](' . $this->getLLMSResourceURL($domain, 'llms.txt') . '): LLM-oriented guide to this site and its machine-readable resources.';
+      // haxtheweb/issues#3116: point agents at AGENTS.md (older sites may not have one)
+      if (file_exists($this->directory . '/' . $this->manifest->metadata->site->name . '/AGENTS.md')) {
+        $lines[] = '- [AGENTS.md](' . $this->getLLMSResourceURL($domain, 'AGENTS.md') . '): Instructions for AI agents working on this site\'s files.';
+      }
       $lines[] = '';
       $lines[] = '## Pages';
       $items = array();
