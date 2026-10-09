@@ -1,5 +1,11 @@
 # AGENTS.md - HAXcms Site Interface
 
+> **Agents start here**
+> - Read `llms.txt` and `.well-known/agent-skills/index.json` first.
+> - With the `hax` CLI installed, run `hax site` in this folder for an orientation of the site and its scriptable commands.
+> - Always pass `--y --no-i` when scripting, and use the global `hax` command, never `npx hax`.
+> - Change structure only through the `hax` CLI; page content lives in `pages/<id>/index.html`. Generated files (`llms.txt`, feeds, search index, manifests) are rebuilt by tooling, so do not hand-edit them.
+
 This file provides comprehensive instructions for AI coding agents working within this specific HAXcms site. HAXcms sites are built on the HAX (Headless Authoring eXperience) ecosystem and follow specific patterns for content management, theming, and deployment.
 
 ## Site Structure Overview

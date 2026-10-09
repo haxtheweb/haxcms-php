@@ -480,6 +480,7 @@ trait OperationsRouteCreateSite {
           $site->directory . '/' . $site->manifest->metadata->site->name
       );
       $repo->add('.');
+      $site->gitIdentityFallback = true;
       $site->gitCommit(
           'A new journey begins: ' .
               $site->manifest->title .
@@ -487,6 +488,7 @@ trait OperationsRouteCreateSite {
               $site->manifest->id .
               ')'
       );
+      $site->gitIdentityFallback = false;
       // make a branch but dont use it
       if (isset($site->manifest->metadata->site->git->staticBranch)) {
           $repo->create_branch(
