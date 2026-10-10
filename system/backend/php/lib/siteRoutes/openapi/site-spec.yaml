@@ -543,6 +543,8 @@ paths:
         - items
       operationId: downloadItemExport
       summary: Download an item export file (HTML, Markdown, JSON, YAML, XML, PDF, DOCX, or EPUB)
+      description: >-
+        Text formats are public for items visible to anonymous visitors. The pdf and docx formats are rendered per request and require authentication; anonymous requests receive 401.
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
         - $ref: "#/components/parameters/ItemExportFormat"
@@ -577,6 +579,8 @@ paths:
               schema:
                 type: string
                 format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -813,6 +817,8 @@ paths:
         - site
       operationId: getSiteExport
       summary: Download a site export file (PDF, DOCX, EPUB, or HTML) or get descriptor metadata
+      description: >-
+        Anonymous callers may request the html format (unpublished and hidden pages are excluded). The pdf, docx and epub formats render the whole site per request and require authentication; anonymous requests receive 401.
       parameters:
         - $ref: "#/components/parameters/SiteExportFormat"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -850,6 +856,8 @@ paths:
               schema:
                 type: string
                 format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
