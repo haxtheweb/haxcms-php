@@ -1762,9 +1762,24 @@ class HAXCMSSite
             }
           }
         }
-        // look for the theme banner
-        if (isset($this->manifest->metadata->theme->variables->image)) {
+        // a page's own image wins; otherwise the theme banner
+        if (
+          (!isset($fileName) || $fileName === '') &&
+          isset($this->manifest->metadata->theme->variables->image) &&
+          trim((string) $this->manifest->metadata->theme->variables->image) != ''
+        ) {
           $fileName = filter_var($this->manifest->metadata->theme->variables->image, FILTER_SANITIZE_URL);
+        }
+        // then the site's own logo (never the generic HAX icon)
+        if (
+          (!isset($fileName) || $fileName === '') &&
+          isset($this->manifest->metadata->site->logo) &&
+          !in_array($this->manifest->metadata->site->logo, array('', null, 'null'), true)
+        ) {
+          $fileName = $this->getLogoSize('512', '512');
+        }
+        if (!isset($fileName)) {
+          $fileName = '';
         }
       }
       return $fileName;
@@ -2608,7 +2623,13 @@ class HAXCMSSite
         }
       }
       $safeDomain = SanitizeContent::escapeHTMLAttribute($pageUrlForStructuredData);
-      $safeSocialImage = SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), ''));
+      // social cards need an absolute image URL; relative paths resolve
+      // against the site domain when one is set
+      $socialImageUrl = SanitizeContent::sanitizeURLValue($this->getSocialShareImage($page), '');
+      if ($socialImageUrl != '' && !preg_match('/^https?:\/\//i', $socialImageUrl) && $canonicalBase != '' && preg_match('/^https?:\/\//i', $canonicalBase)) {
+        $socialImageUrl = rtrim($canonicalBase, '/') . '/' . ltrim($socialImageUrl, '/');
+      }
+      $safeSocialImage = SanitizeContent::escapeHTMLAttribute($socialImageUrl);
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
       $metadata = '
@@ -2645,17 +2666,17 @@ class HAXCMSSite
   <meta name="msapplication-TileColor" content="' . $hexCode . '" />
   <meta name="msapplication-tap-highlight" content="no" />
   <meta name="description" content="' . $description . '" />
-  <meta name="og:sitename" property="og:sitename" content="' . SanitizeContent::escapeHTMLAttribute($this->manifest->title) . '" />
+  <meta name="og:site_name" property="og:site_name" content="' . SanitizeContent::escapeHTMLAttribute($this->manifest->title) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
   <meta name="og:type" property="og:type" content="article" />
   <meta name="og:url" property="og:url" content="' . $safeDomain . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
-  <meta name="og:image" property="og:image" content="' . $safeSocialImage . '" />
-  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
+' . ($safeSocialImage != '' ? '  <meta name="og:image" property="og:image" content="' . $safeSocialImage . '" />
+' : '') . '  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" property="twitter:site" content="' . $safeDomain . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
-  <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />';
+' . ($safeSocialImage != '' ? '  <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />' : '');
       $inLanguage = 'en-US';
       if (
         isset($this->manifest->metadata->site->settings->lang) &&
@@ -2716,13 +2737,8 @@ class HAXCMSSite
       else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->name) && trim((string) $this->manifest->author->name) != '') {
         $authorName = trim((string) $this->manifest->author->name);
       }
-      $authorEmail = '';
-      if (isset($this->manifest->metadata->author->email) && trim((string) $this->manifest->metadata->author->email) != '') {
-        $authorEmail = trim((string) $this->manifest->metadata->author->email);
-      }
-      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->email) && trim((string) $this->manifest->author->email) != '') {
-        $authorEmail = trim((string) $this->manifest->author->email);
-      }
+      // author email is deliberately not published in structured data;
+      // it only feeds address harvesters
       $authorSocialLink = '';
       if (isset($this->manifest->metadata->author->socialLink) && trim((string) $this->manifest->metadata->author->socialLink) != '') {
         $authorSocialLink = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->metadata->author->socialLink), '');
@@ -2818,19 +2834,21 @@ class HAXCMSSite
       $breadcrumbStructuredDataId = rtrim((string) $pageUrlForStructuredData, '/') . '#breadcrumb';
       $authorStructuredDataId = rtrim((string) $structuredDataBaseUrl, '/') . '#author';
       $publisherStructuredDataId = rtrim((string) $structuredDataBaseUrl, '/') . '#publisher';
+      $licenseUrlForStructuredData = '';
+      $licenseLookup = $this->getLicenseData('all');
+      if (isset($this->manifest->license) && is_string($this->manifest->license) && isset($licenseLookup[$this->manifest->license]['link'])) {
+        $licenseUrlForStructuredData = SanitizeContent::sanitizeURLValue($licenseLookup[$this->manifest->license]['link'], '');
+      }
       $jsonLdGraph = array();
       $authorNode = null;
       $publisherNode = null;
-      if ($authorName != '' || $authorEmail != '' || $authorSocialLink != '' || $authorImageForStructuredData != '') {
+      if ($authorName != '' || $authorSocialLink != '' || $authorImageForStructuredData != '') {
         $authorNode = array(
           '@type' => 'Person',
           '@id' => $authorStructuredDataId,
         );
         if ($authorName != '') {
           $authorNode['name'] = $authorName;
-        }
-        if ($authorEmail != '') {
-          $authorNode['email'] = $authorEmail;
         }
         if ($authorSocialLink != '') {
           $authorNode['sameAs'] = array($authorSocialLink);
@@ -2895,6 +2913,9 @@ class HAXCMSSite
             '@id' => $authorNode['@id'],
           );
         }
+        if ($licenseUrlForStructuredData != '') {
+          $webSiteNode['license'] = $licenseUrlForStructuredData;
+        }
         if ($siteLogoForStructuredData != '') {
           $webSiteNode['image'] = array(
             '@type' => 'ImageObject',
@@ -2952,6 +2973,9 @@ class HAXCMSSite
             '@id' => $breadcrumbStructuredDataId,
           );
         }
+        if ($licenseUrlForStructuredData != '') {
+          $webPageNode['license'] = $licenseUrlForStructuredData;
+        }
         if (isset($page->id) && $page->id) {
           $webPageNode['identifier'] = (string) $page->id;
         }
@@ -2970,7 +2994,8 @@ class HAXCMSSite
       }
       $licenseData = $this->getLicenseData('all');
       if (isset($this->manifest->license) && isset($licenseData[$this->manifest->license])) {
-        $metadata .= "\n" . '  <meta rel="cc:license" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($licenseData[$this->manifest->license]['link'], '')) . '" content="License: ' . SanitizeContent::escapeHTMLAttribute($licenseData[$this->manifest->license]['name']) . '"/>' . "\n";
+        // rel="license" belongs on <link>, not <meta>
+        $metadata .= "\n" . '  <link rel="license" href="' . SanitizeContent::escapeHTMLAttribute(SanitizeContent::sanitizeURLValue($licenseData[$this->manifest->license]['link'], '')) . '" title="' . SanitizeContent::escapeHTMLAttribute($licenseData[$this->manifest->license]['name']) . '" />' . "\n";
       }
       if (isset($this->manifest->metadata->author->socialLink) && (strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0 || strpos($this->manifest->metadata->author->socialLink, 'https://x.com/') === 0)) {
         $socialLink = str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink);

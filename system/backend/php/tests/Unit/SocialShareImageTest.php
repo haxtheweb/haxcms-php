@@ -157,8 +157,59 @@ class SocialShareImageTest extends TestCase
         $page->metadata = new stdClass();
         $page->metadata->files = array($uuid);
         $url = $site->getSocialShareImage($page);
-        // No image in the set, and no theme banner => null (not set in cache).
-        $this->assertNull($url);
+        // No image in the set, no theme banner and no site logo => ''
+        // so callers can omit the og:image / twitter:image tags.
+        $this->assertSame('', $url);
+    }
+
+    private function pageWithLegacyImage($url)
+    {
+        $page = new stdClass();
+        $page->id = 'page-1';
+        $page->metadata = new stdClass();
+        $legacyFile = new stdClass();
+        $legacyFile->type = 'image/jpeg';
+        $legacyFile->fullUrl = $url;
+        $page->metadata->files = array($legacyFile);
+        return $page;
+    }
+
+    private function pageWithoutFiles()
+    {
+        $page = new stdClass();
+        $page->id = 'page-2';
+        $page->metadata = new stdClass();
+        return $page;
+    }
+
+    public function testPageImageWinsOverThemeBanner(): void
+    {
+        $site = $this->buildSite(array());
+        $site->manifest->metadata->theme->variables = new stdClass();
+        $site->manifest->metadata->theme->variables->image = 'files/theme-banner.jpg';
+        $this->assertSame('/files/page.jpg', $site->getSocialShareImage($this->pageWithLegacyImage('/files/page.jpg')));
+    }
+
+    public function testThemeBannerUsedWhenPageHasNoImage(): void
+    {
+        $site = $this->buildSite(array());
+        $site->manifest->metadata->theme->variables = new stdClass();
+        $site->manifest->metadata->theme->variables->image = 'files/theme-banner.jpg';
+        $this->assertSame('files/theme-banner.jpg', $site->getSocialShareImage($this->pageWithoutFiles()));
+    }
+
+    public function testSiteLogoIsTheLastFallback(): void
+    {
+        $site = $this->buildSite(array());
+        $site->manifest->metadata->site->logo = 'files/logo.png';
+        $this->assertSame('files/haxcms-managed/512x512-logo.png', $site->getSocialShareImage($this->pageWithoutFiles()));
+    }
+
+    public function testGenericIconIsNeverUsed(): void
+    {
+        $site = $this->buildSite(array());
+        $site->manifest->metadata->site->logo = '';
+        $this->assertSame('', $site->getSocialShareImage($this->pageWithoutFiles()));
     }
 }
 
@@ -169,6 +220,11 @@ class SocialShareImageTest extends TestCase
 class SocialShareTestSite extends HAXCMSSite
 {
     // Inherited getSocialShareImage uses $this->manifest and $GLOBALS['HAXCMS'].
+    // getLogoSize is stubbed so the logo fallback needs no image toolchain.
+    public function getLogoSize($height, $width, $format = "png")
+    {
+        return str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
+    }
 }
 
 /**
