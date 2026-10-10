@@ -1515,6 +1515,54 @@ class SiteRouteUtils
         // the absence of a bearer token as an anonymous request.
         return self::getBearerTokenFromRequest() === null;
     }
+    /**
+     * Reduce an OpenAPI document to the operations an anonymous caller can
+     * use: an operation is public when its effective security (its own, else
+     * the document's) is an empty list. Paths left with no operations are
+     * dropped. Mirrors Node filterOpenApiToPublicOperations.
+     */
+    public static function filterOpenApiToPublicOperations($openapi = array())
+    {
+        if (!is_array($openapi) || !isset($openapi['paths']) || !is_array($openapi['paths'])) {
+            return $openapi;
+        }
+        $methods = array('get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace');
+        $globalSecurity = (isset($openapi['security']) && is_array($openapi['security'])) ? $openapi['security'] : array();
+        $publicPaths = array();
+        foreach ($openapi['paths'] as $pathKey => $pathItem) {
+            if (!is_array($pathItem)) {
+                continue;
+            }
+            $kept = array();
+            $hasOperation = false;
+            foreach ($pathItem as $key => $value) {
+                if (in_array(strtolower((string) $key), $methods, true)) {
+                    $security = (is_array($value) && array_key_exists('security', $value) && is_array($value['security'])) ? $value['security'] : $globalSecurity;
+                    if (count($security) === 0) {
+                        $kept[$key] = $value;
+                        $hasOperation = true;
+                    }
+                }
+                else {
+                    // path-level parameters, summary, servers, etc.
+                    $kept[$key] = $value;
+                }
+            }
+            if ($hasOperation) {
+                $publicPaths[$pathKey] = $kept;
+            }
+        }
+        $openapi['paths'] = $publicPaths;
+        if (!isset($openapi['info']) || !is_array($openapi['info'])) {
+            $openapi['info'] = array();
+        }
+        $note = 'This is the public profile: only operations that work without logging in. Request ?profile=full for every operation.';
+        $openapi['info']['description'] = isset($openapi['info']['description']) && is_string($openapi['info']['description']) && $openapi['info']['description'] !== ''
+            ? $openapi['info']['description'] . "\n\n" . $note
+            : $note;
+        $openapi['x-haxcms-profile'] = 'public';
+        return $openapi;
+    }
     public static function encodeSlugPath($slug = '')
     {
         $parts = explode('/', (string) $slug);

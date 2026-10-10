@@ -65,12 +65,31 @@ return function ($context) {
     else {
         $serverBaseUrl = $basePath;
     }
+    // haxtheweb/issues#3104: every path in the spec starts with /x/api, so
+    // the server URL must be the base of the site this request came through
+    // (e.g. https://host/sites/<name>/), not the HAXcms install base, or an
+    // agent calling the spec from a multisite install hits the wrong URL.
+    if (
+        isset($context->absoluteApiBasePath) &&
+        is_string($context->absoluteApiBasePath) &&
+        preg_match('/^(https?:\/\/[^\/]+.*?)\/x\/api$/i', $context->absoluteApiBasePath, $serverMatch) === 1
+    ) {
+        $serverBaseUrl = rtrim($serverMatch[1], '/') . '/';
+    }
     $openapi['servers'] = array(
         array(
             'url' => $serverBaseUrl,
             'description' => 'HAXcms site base URL',
         ),
     );
+    // haxtheweb/issues#3104: anonymous callers (agents, crawlers) get the
+    // public profile: only operations they can call without logging in, so
+    // they don't plan around endpoints that answer 401. ?profile=full (or a
+    // logged-in caller) gets the whole spec; it is not a security boundary.
+    $requestedProfile = isset($_GET['profile']) ? strtolower(trim((string) $_GET['profile'])) : '';
+    if ($requestedProfile !== 'full' && SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+        $openapi = SiteRouteUtils::filterOpenApiToPublicOperations($openapi);
+    }
     $allowedFormats = array('json', 'yaml');
     $format = SiteRouteUtils::detectResponseFormat($allowedFormats, 'json', $routeSuffix);
     if ($format == 'yaml') {
