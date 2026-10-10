@@ -16,6 +16,19 @@ class SiteApiSecurity
             $result['allowed'] = true;
             $result['status'] = 200;
             $result['message'] = '';
+            // Public routes still resolve an OPTIONAL identity so handlers can
+            // tell anonymous callers apart from logged-in editors. Without this
+            // the router marked every public request as authenticated, which
+            // silently disabled the D41 anonymous-visibility guards
+            // (isAnonymousSiteApiRequest) on items/content/search/exports.
+            // Mirrors Node validateSiteApiRouteAccess: a valid bearer (or valid
+            // Basic credentials) authenticates; anything else stays anonymous.
+            $result['authenticated'] = false;
+            $optionalUserName = self::resolveOptionalUserName();
+            if (!is_null($optionalUserName) && $optionalUserName !== '') {
+                $result['authenticated'] = true;
+                $result['userName'] = $optionalUserName;
+            }
             return $result;
         }
         // Resolve authenticated userName from Bearer (primary) or Basic (fallback).
@@ -160,6 +173,32 @@ class SiteApiSecurity
         // inherit bearer+siteToken from the spec (authenticated-site) instead of
         // the old regex table which left them as bare 'authenticated'.
         return SiteRouteUtils::getSiteApiRouteAuthPolicy($routeSuffix, $upperMethod);
+    }
+    /**
+     * Resolve the caller's user name on a public route without ever failing
+     * the request: invalid / expired / absent credentials simply mean
+     * anonymous. Returns null when the caller is anonymous.
+     */
+    private static function resolveOptionalUserName()
+    {
+        if (!is_null(SiteRouteUtils::getBearerTokenFromRequest())) {
+            $bearerUserName = self::resolveBearerUserName();
+            if (!is_null($bearerUserName) && $bearerUserName !== '') {
+                return $bearerUserName;
+            }
+            return null;
+        }
+        if (
+            isset($GLOBALS['HAXCMS']) &&
+            is_object($GLOBALS['HAXCMS']) &&
+            method_exists($GLOBALS['HAXCMS'], 'authenticateBasicAuthorization')
+        ) {
+            $basic = $GLOBALS['HAXCMS']->authenticateBasicAuthorization();
+            if (is_array($basic) && !empty($basic['authenticated']) && !empty($basic['userName'])) {
+                return $basic['userName'];
+            }
+        }
+        return null;
     }
     private static function resolveBearerUserName()
     {
