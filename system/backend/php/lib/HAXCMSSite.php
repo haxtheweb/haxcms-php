@@ -1237,8 +1237,14 @@ class HAXCMSSite
         $items = $this->manifest->orderTree($this->manifest->items);
       }
       $hasPages = false;
+      $regionItemIds = $this->getThemeRegionItemIds();
       foreach ($items as $item) {
         if (!isset($item->location) || $item->location == '') {
+          continue;
+        }
+        // agents only see what an anonymous visitor can open: skip unpublished
+        // and hidden pages, plus theme-region content (header/footer blocks)
+        if (!$this->isItemListedForAgents($item, $regionItemIds)) {
           continue;
         }
         $markdownLocation = $this->getPageAlternateLocation($item->location, 'md');
@@ -1260,6 +1266,7 @@ class HAXCMSSite
         if (isset($item->description)) {
           $itemDescription = $this->getLLMSSafeText($item->description);
         }
+        $itemDescription = $this->getLLMSPageSummary($item, $itemDescription, $markdownLocation);
         $line = '- [' . $itemTitle . '](' . $this->getLLMSResourceURL($domain, $markdownLocation) . ')';
         if ($itemDescription != '') {
           $line .= ': ' . $itemDescription;
@@ -1278,6 +1285,151 @@ class HAXCMSSite
       $lines[] = '- [Sitemap](' . $this->getLLMSResourceURL($domain, 'sitemap.xml') . '): URL-level discovery map for the published site.';
       $lines[] = '- [Agent skills](' . $this->getLLMSResourceURL($domain, '.well-known/agent-skills/index.json') . '): Agent Skills discovery index (agentskills.io v0.2.0) listing skills that teach an agent how to read, author, audit, and remix this site.';
       return implode("\n", $lines) . "\n";
+    }
+    /**
+     * Item ids placed in theme regions (manifest.metadata.theme.regions), e.g.
+     * header and footer content. These render inside every page rather than
+     * as pages of their own, so they are left out of llms.txt.
+     */
+    public function getThemeRegionItemIds()
+    {
+      $ids = array();
+      if (
+        !isset($this->manifest->metadata->theme->regions) ||
+        !(is_object($this->manifest->metadata->theme->regions) || is_array($this->manifest->metadata->theme->regions))
+      ) {
+        return $ids;
+      }
+      foreach ((array) $this->manifest->metadata->theme->regions as $regionItems) {
+        if (is_string($regionItems) && $regionItems != '') {
+          $ids[$regionItems] = true;
+        }
+        else if (is_array($regionItems) || is_object($regionItems)) {
+          foreach ((array) $regionItems as $regionItemId) {
+            if (is_string($regionItemId) && $regionItemId != '') {
+              $ids[$regionItemId] = true;
+            }
+          }
+        }
+      }
+      return $ids;
+    }
+    /**
+     * Whether a page belongs in llms.txt: visible to anonymous visitors (same
+     * rule as the site API: published and not hidden from the menu) and not
+     * theme-region content.
+     */
+    public function isItemListedForAgents($item, $regionItemIds = array())
+    {
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
+      if (!SiteRouteUtils::isItemVisibleToAnonymous($item)) {
+        return false;
+      }
+      if (isset($item->id) && array_key_exists((string) $item->id, $regionItemIds)) {
+        return false;
+      }
+      return true;
+    }
+    /**
+     * One-line page summary for llms.txt. Stored descriptions are often the
+     * first N characters of the page cut mid-word; when the description does
+     * not end a sentence, rebuild it from the page's first full sentence(s).
+     */
+    public function getLLMSPageSummary($item, $description = '', $markdownLocation = '')
+    {
+      $description = trim((string) $description);
+      if ($description != '' && preg_match('/[.!?…]["\'”’)\]]?$/u', $description)) {
+        return $description;
+      }
+      $source = '';
+      if (
+        $markdownLocation != '' &&
+        strpos($markdownLocation, '..') === false &&
+        isset($this->directory) &&
+        isset($this->manifest->metadata->site->name)
+      ) {
+        $sidecar = $this->directory . '/' . $this->manifest->metadata->site->name . '/' . ltrim($markdownLocation, '/');
+        if (is_file($sidecar)) {
+          $markdown = @file_get_contents($sidecar);
+          if (is_string($markdown)) {
+            $source = $this->getLLMSPlainTextFromMarkdown($markdown);
+          }
+        }
+      }
+      if ($source == '' && isset($item->id)) {
+        try {
+          $html = $this->getPageContent($item);
+          if (is_string($html) && $html != '') {
+            $source = $this->getLLMSSafeText(html_entity_decode(strip_tags(preg_replace('/<[^>]+>/', ' $0 ', $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+          }
+        }
+        catch (Exception $e) {
+        }
+      }
+      $summary = $this->getLLMSLeadingSentences($source);
+      if ($summary != '') {
+        return $summary;
+      }
+      return $this->getLLMSWordBoundaryTrim($description, 240);
+    }
+    /**
+     * Strip markdown syntax down to readable text for summaries.
+     */
+    public function getLLMSPlainTextFromMarkdown($markdown = '')
+    {
+      $text = (string) $markdown;
+      $text = preg_replace('/```[\s\S]*?```/', ' ', $text);
+      $text = preg_replace('/!\[[^\]]*\]\([^)]*\)/', ' ', $text);
+      $text = preg_replace('/\[([^\]]*)\]\([^)]*\)/', '$1', $text);
+      $text = preg_replace('/<[^>]+>/', ' ', $text);
+      // headings label sections rather than summarize them
+      $text = preg_replace('/^\s{0,3}#{1,6}\s.*$/m', ' ', $text);
+      $text = preg_replace('/^\s{0,3}(>|[-*+]|\d+\.)\s+/m', '', $text);
+      $text = str_replace(array('**', '__', '`'), '', $text);
+      return $this->getLLMSSafeText(html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+    /**
+     * First full sentence(s) of a text, at least ~60 and at most 240
+     * characters; long first sentences are cut at a word boundary.
+     */
+    public function getLLMSLeadingSentences($text = '', $max = 240)
+    {
+      $text = trim((string) $text);
+      if ($text == '') {
+        return '';
+      }
+      $sentences = preg_split('/(?<=[.!?])\s+(?=[A-Z0-9"“(\[])/u', $text);
+      $summary = '';
+      foreach ($sentences as $sentence) {
+        $candidate = trim($summary == '' ? $sentence : $summary . ' ' . $sentence);
+        if (mb_strlen($candidate, 'UTF-8') > $max) {
+          break;
+        }
+        $summary = $candidate;
+        if (mb_strlen($summary, 'UTF-8') >= 60) {
+          break;
+        }
+      }
+      if ($summary == '') {
+        return $this->getLLMSWordBoundaryTrim($text, $max);
+      }
+      return $summary;
+    }
+    /**
+     * Trim to $max characters on a word boundary, adding an ellipsis when cut.
+     */
+    public function getLLMSWordBoundaryTrim($text = '', $max = 240)
+    {
+      $text = trim((string) $text);
+      if ($text == '' || mb_strlen($text, 'UTF-8') <= $max) {
+        return $text;
+      }
+      $cut = mb_substr($text, 0, $max, 'UTF-8');
+      $space = mb_strrpos($cut, ' ', 0, 'UTF-8');
+      if ($space !== false && $space > ($max / 2)) {
+        $cut = mb_substr($cut, 0, $space, 'UTF-8');
+      }
+      return rtrim($cut, " ,;:-") . '…';
     }
     /**
      * Build a normalized llms.txt link URL from domain/base and a relative resource path.

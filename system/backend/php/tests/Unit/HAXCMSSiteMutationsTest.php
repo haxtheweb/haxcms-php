@@ -561,6 +561,56 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertStringContainsString('(/pages/item-page-1/index.md)', $txt);
     }
 
+    public function testGetLLMSTxtSkipsUnpublishedHiddenAndThemeRegionPages(): void
+    {
+        $this->site->manifest->items[0]->metadata->published = false;
+        $this->site->manifest->items[1]->metadata->hideInMenu = true;
+        $this->site->manifest->metadata->theme = (object) array(
+            'regions' => (object) array('footerPrimary' => array('item-page-3')),
+        );
+        $txt = $this->site->getLLMSTxt('');
+        $this->assertStringNotContainsString('- [Home Page]', $txt);
+        $this->assertStringNotContainsString('- [About Us]', $txt);
+        $this->assertStringNotContainsString('- [Contact]', $txt);
+        $this->assertStringContainsString('No page markdown files are currently available', $txt);
+    }
+
+    public function testGetLLMSTxtKeepsDescriptionsThatEndASentence(): void
+    {
+        $this->site->manifest->items[1]->description = 'All about this site.';
+        $txt = $this->site->getLLMSTxt('');
+        $this->assertStringContainsString('- [About Us](/pages/item-page-2/index.md): All about this site.', $txt);
+    }
+
+    public function testGetLLMSTxtRebuildsCutOffDescriptionFromSidecarMarkdown(): void
+    {
+        $this->site->manifest->items[1]->description = 'Web content authoring solutions are a mix of trade offs, training and fragmented experiences for people putting their voi';
+        file_put_contents(
+            $this->siteDir() . '/pages/item-page-2/index.md',
+            "## Why\n\nWeb content authoring solutions are a mix of **trade offs** and [fragmented](https://example.com) experiences. HAX changes the game. A third sentence.\n"
+        );
+        $txt = $this->site->getLLMSTxt('');
+        $this->assertStringContainsString(
+            '- [About Us](/pages/item-page-2/index.md): Web content authoring solutions are a mix of trade offs and fragmented experiences.',
+            $txt
+        );
+        $this->assertStringNotContainsString('their voi', $txt);
+    }
+
+    public function testGetLLMSTxtFallsBackToPageHtmlForSummary(): void
+    {
+        // fixture description 'Welcome home' has no sentence ending and no sidecar exists
+        $txt = $this->site->getLLMSTxt('');
+        $this->assertStringContainsString('- [Home Page](/pages/item-page-1/index.md): Content for Home Page', $txt);
+    }
+
+    public function testLLMSWordBoundaryTrimAddsEllipsis(): void
+    {
+        $out = $this->site->getLLMSWordBoundaryTrim(str_repeat('word ', 80), 40);
+        $this->assertLessThanOrEqual(41, mb_strlen($out));
+        $this->assertStringEndsWith('word…', $out);
+    }
+
     // ---- jsonFeedFormat ----
 
     public function testJsonFeedFormatReturnsStructureWithItems(): void
