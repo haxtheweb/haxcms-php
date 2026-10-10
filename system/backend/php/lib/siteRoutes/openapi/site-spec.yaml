@@ -816,9 +816,10 @@ paths:
       tags:
         - site
       operationId: getSiteExport
-      summary: Download a site export file (PDF, DOCX, EPUB, or HTML) or get descriptor metadata
+      summary: Download a site export file (Markdown, PDF, DOCX, EPUB, or HTML) or get descriptor metadata
       description: >-
-        Anonymous callers may request the html format (unpublished and hidden pages are excluded). The pdf, docx and epub formats render the whole site per request and require authentication; anonymous requests receive 401.
+        The md format returns the whole site as one markdown document in outline order (also served as
+        llms-full.txt), with an ETag for conditional requests. Anonymous callers may request the md and html formats (unpublished and hidden pages are excluded). The pdf, docx and epub formats render the whole site per request and require authentication; anonymous requests receive 401.
       parameters:
         - $ref: "#/components/parameters/SiteExportFormat"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -841,6 +842,9 @@ paths:
                       data:
                         type: object
                         additionalProperties: true
+            text/markdown:
+              schema:
+                type: string
             text/html:
               schema:
                 type: string
@@ -858,6 +862,8 @@ paths:
                 format: binary
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "304":
+          description: Not modified (md format, matching If-None-Match)
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -2299,6 +2305,7 @@ components:
         enum:
           - zip
           - markdown
+          - md
           - pdf
           - docx
           - epub

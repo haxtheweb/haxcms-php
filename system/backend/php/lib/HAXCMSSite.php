@@ -1226,6 +1226,8 @@ class HAXCMSSite
       $lines[] = '## Core resources';
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
       $lines[] = '- [llms.txt](' . $this->getLLMSResourceURL($domain, 'llms.txt') . '): LLM-oriented guide to this site and its machine-readable resources.';
+      $lines[] = '- [llms-full.txt](' . $this->getLLMSResourceURL($domain, 'llms-full.txt') . '): The whole site as one markdown document, in outline order.';
+      $lines[] = '- [Whole site as HTML](' . $this->getLLMSResourceURL($domain, 'x/api/v1/site/export/html') . '): Every page in one HTML document.';
       // haxtheweb/issues#3116: point agents at AGENTS.md (older sites may not have one)
       if (isset($this->directory) && isset($this->manifest->metadata->site->name) && file_exists($this->directory . '/' . $this->manifest->metadata->site->name . '/AGENTS.md')) {
         $lines[] = '- [AGENTS.md](' . $this->getLLMSResourceURL($domain, 'AGENTS.md') . '): Instructions for AI agents working on this site\'s files.';
@@ -2250,11 +2252,37 @@ class HAXCMSSite
     /**
      * Serve a requested page variant response early when explicit or negotiated format is requested.
      */
+    /**
+     * llms-full.txt: the whole site as one markdown document, always the
+     * anonymous view (unpublished and hidden pages excluded). Same content
+     * as GET x/api/v1/site/export/md for an anonymous caller. Private sites
+     * answer 404 so they are never advertised to agents.
+     */
+    public function respondWithLlmsFull()
+    {
+      if (isset($this->manifest->metadata->site->settings->private) && $this->manifest->metadata->site->settings->private) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        print 'Not found';
+        return true;
+      }
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
+      include_once dirname(__FILE__) . '/siteRoutes/v1/ExportConverters.php';
+      ExportConverters::sendCacheableText(
+        ExportConverters::buildSiteExportMarkdown($this, '', true),
+        'text/markdown; charset=utf-8',
+        true
+      );
+      return true;
+    }
     public function respondWithRequestedPageVariant()
     {
       $relativePath = $this->getRequestRelativePath();
       if (strpos($relativePath, '/x/') === 0) {
         return false;
+      }
+      if (trim($relativePath, '/') === 'llms-full.txt') {
+        return $this->respondWithLlmsFull();
       }
       $variantInfo = $this->getRequestedVariantInfo($relativePath);
       $slug = trim($variantInfo['basePath'], '/');
@@ -2644,6 +2672,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <link rel="llms" href="llms.txt" title="LLM Content Map" />
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
+  <link rel="alternate" type="text/markdown" href="llms-full.txt" title="Full Site as Markdown" />
   <link rel="https://agentskills.io/rels/skills-index" type="application/json" href=".well-known/agent-skills/index.json" title="Agent Skills Discovery Index" />
   <meta name="generator" content="HAXcms" />
 ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
