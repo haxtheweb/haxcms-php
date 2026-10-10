@@ -1,7 +1,7 @@
 ---
 name: hax-design-system
 description: >
-  Apply the DDD (Design, Develop, Deliver) design system and manage SimpleColors legacy usage.
+  Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage.
   Use when styling components, auditing CSS for DDD compliance, migrating from SimpleColors,
   or creating new themes in the HAX ecosystem.
 version: 1.0.0
@@ -13,7 +13,7 @@ metadata:
 
 # HAX Design System
 
-Apply the DDD (Design, Develop, Deliver) design system and manage SimpleColors legacy usage.
+Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage.
 
 ## When to Use
 
@@ -27,14 +27,15 @@ Apply the DDD (Design, Develop, Deliver) design system and manage SimpleColors l
 
 1. **Import DDD**: Always import `import '@haxtheweb/d-d-d/d-d-d.js'` and extend `DDD` directly (never `DDD(LitElement)`).
 2. **Use DDD Tokens**: Apply DDD CSS custom properties for all styling:
-   - `--ddd-font-primary`, `--ddd-font-secondary` for typography
-   - `--ddd-font-size-*` (xs, s, ms, m, ml, l, xl, xxl) for font sizes
-   - `--ddd-font-weight-*` (light, regular, medium, bold) for weights
-   - `--ddd-spacing-*` (0-32) for margins, padding, gaps
-   - `--ddd-radius-*` (xs, s, m, l, xl) for border radius
-   - `--ddd-primary-*`, `--ddd-accent-*`, `--ddd-text-*`, `--ddd-border-*` for colors
-   - `--ddd-breakpoint-*` for responsive breakpoints
-3. **SimpleColors Fallback**: Use SimpleColors only when DDD does not provide the needed color variation. The 12 base colors with 25 shades each (0-24) are available for legacy support.
+   - `--ddd-font-primary`, `--ddd-font-secondary`, `--ddd-font-navigation` for typography
+   - `--ddd-font-size-*` (6xs, 5xs, 4xs, 3xs, xxs, xs, s, ms, m, ml, l, xl, xxl, 3xl, 4xl; type1-s/m/l) for font sizes
+   - `--ddd-font-weight-*` (light, regular, medium, bold, black) for weights
+   - `--ddd-spacing-*` (0-30, 4px steps) for margins, padding, gaps
+   - `--ddd-radius-*` (0, xs, sm, md, lg, xl, rounded, circle) for border radius
+   - `--ddd-theme-default-*`, `--ddd-primary-*` (0-25) and `--ddd-accent-*` (0-14) for colors; components read `--ddd-theme-primary` / `--ddd-theme-accent`
+   - `--ddd-border-*` (xs-lg) for borders, `--ddd-boxShadow-*` for elevation, `--ddd-icon-*` for icon sizes
+   - `--ddd-breakpoint-*` for responsive breakpoints (write the px literally in `@media`)
+3. **SimpleColors Fallback**: Use SimpleColors only when DDD does not provide the needed color variation. 19 hues with 12 shades each (1-12); `default-theme` variables flip in dark mode, `fixed-theme` variables do not.
 4. **Audit**: Verify token usage, consistency across breakpoints, accessibility contrast, and performance (minimal custom CSS beyond tokens).
 5. **Dark Mode**: Check dark mode compliance when auditing elements. Ensure color combinations maintain proper contrast ratios.
 
@@ -44,7 +45,7 @@ Apply the DDD (Design, Develop, Deliver) design system and manage SimpleColors l
 :host {
   display: block;
   font-family: var(--ddd-font-primary);
-  color: var(--ddd-text-primary);
+  color: var(--ddd-theme-default-coalyGray);
   margin: var(--ddd-spacing-4);
 }
 
@@ -77,3 +78,4 @@ When encountering legacy SimpleColors usage:
 
 - For complete DDD token reference: `references/ddd-tokens.md`
 - For SimpleColors to DDD mapping: `references/simplecolors-migration.md`
+- Both are generated from the webcomponents source by `scripts/generate-ddd-references.js`; re-run it after DDD or SimpleColors change rather than editing them by hand.

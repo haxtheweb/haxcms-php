@@ -74,9 +74,10 @@ names that are not in the registry. When a page needs something the registry lac
 - Use the local/global `hax` command — not `npx hax` (resolves to a different package).
 - When scripting/automating, pass the automation flags to avoid prompts or new windows:
   `--y --no-i` (add `--auto` / `--quiet` / `--skip` as needed).
-- To add a single page:
-  `hax site node:add --title "<title>" --slug "<slug>" --content <path-to-html-file> --format html --y --no-i`
-- To bulk import:
+- To add a single empty page:
+  `hax site node:add --title "<title>" --slug "<slug>" --y --no-i`
+  (`node:add --content` does not persist page content yet; see haxtheweb/issues#3125.)
+- To add pages with content, or to bulk import: give each item a `content` field and run
   `hax site site:items-import --items-import <items.json> --y --no-i`
 - Verify structure: `hax site site:items`
 

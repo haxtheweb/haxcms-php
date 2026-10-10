@@ -27,6 +27,13 @@ ground-truth skill for understanding a site you did not build.
 - Computing the correct base path for a site.
 - Figuring out which files are safe to read vs. which are generated and should be rebuilt.
 
+## Start here (local site folder)
+
+When you have the site's files and the `hax` CLI, run `hax site` from the site root first (or
+`hax site --format json --to-file stats.json` for machine-readable output). It reports the title,
+theme, page count, which agent files exist, which files are authored vs managed, and the
+scriptable commands (all with `--y --no-i`). Then read `AGENTS.md` and `llms.txt`.
+
 ## Canonical structure
 
 A HAXsite is a directory with this shape (the HAXcms boilerplate):
