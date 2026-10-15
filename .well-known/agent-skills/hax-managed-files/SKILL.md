@@ -31,7 +31,8 @@ output or running forbidden builds.
 
 - `site.json` — structure and metadata. Edit via the `hax` CLI, not by hand, to avoid production
   issues. `metadata.site.name` must stay aligned with the site folder name.
-- `pages/<item-id>/index.html` — page content. This is where authored HTML lives.
+- `pages/<item-id>/index.html` — page content. This is where authored HTML lives, and it is the
+  **only source of truth** for a page's content.
 - `files/` — static assets (images, pdfs, uploads).
 - `theme/` — custom theme (theme.css + assets). For theme classes inheriting from
   HAXCMSLitElement, run `yarn run build` after changes; do not manually edit `custom-elements.json`.
@@ -55,6 +56,11 @@ futile (the next rebuild overwrites them) and can corrupt a site.
 - Config / tooling: `package.json`, `web-dev-server.haxcms.config.cjs`, `.htaccess`,
   `files/.htaccess`.
 - Backend (PHP/Node): `index.php`, `config.php` (PHP); SCORM `imsmanifest.xml` + the `*.xsd` files.
+- Per-page alternate formats: `pages/<item-id>/index.md`, `index.json`, `index.yaml`, `index.xml`
+  (and any other `index.*` next to `index.html`). They are built from `index.html` whenever the
+  content changes through HAX tooling (the editor, `hax site node:add` / `node:edit`). If you edit
+  `index.html` directly, they stay stale until the next content save; to update content and its
+  alternates together, use `hax site node:edit --item-id <id-or-slug> --content <file-or-html> --y --no-i`.
 
 When a managed file is wrong, fix the **source** it is generated from, then rebuild:
 - `llms.txt` / `robots.txt` / `sitemap` / `lunrSearchIndex` — regenerate via `rebuildManagedFiles`

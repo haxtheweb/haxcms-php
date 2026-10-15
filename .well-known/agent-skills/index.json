@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Read and navigate an existing HAXcms site from its portable files. Use when an agent lands on a HAXsite or HAXcms deployment and needs to understand site.json (JSON Outline Schema), resolve page content in pages/, find assets in files/, locate the theme, compute basePath, or discover the web component registry (wc-registry.json) and the magic-script autoloader. Load this FIRST when working with any HAX site so the rest of the ecosystem makes sense.",
       "url": "hax-site-structure/SKILL.md",
-      "digest": "sha256:14d540f5825f083b43146d99d157bc7f25edcd0caf8186404e0e8b56bfe99ff8"
+      "digest": "sha256:97165add1f1cf49a2754864d808e50a33953d85ad15c443fe2f7fd49a8297130"
     },
     {
       "name": "hax-content-authoring",
@@ -20,7 +20,7 @@
       "type": "skill-md",
       "description": "Know which HAXcms files are generated (rebuild, do not hand-edit) vs authored, and the protective rules around builds. Use when an agent is about to edit a managed file, run a build, or pick which CLI command to use. Prevents the common footguns: hand-editing generated artifacts, running the ubiquity script, running a top-level monorepo build, or using npx instead of the local hax CLI. Protective skill — load before modifying files or running builds on a HAX site or deployment.",
       "url": "hax-managed-files/SKILL.md",
-      "digest": "sha256:1ab3f6001ee258c7d1bb03e1d49dd60ccdc21066d5740bafd5aa09c86fdc6599"
+      "digest": "sha256:9646009eb9513fde2e31f69356147e2c7afde0aff85e94775ed349672210097d"
     },
     {
       "name": "hax-design-system",
