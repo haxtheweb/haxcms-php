@@ -119,7 +119,11 @@ class SiteApiRouter
             return true;
         }
         $context->auth = array(
-            'authenticated' => true,
+            // public routes report whether an optional identity resolved;
+            // every non-public policy only reaches here once authenticated.
+            'authenticated' => array_key_exists('authenticated', $authResult)
+                ? ($authResult['authenticated'] === true)
+                : true,
             'userName' => isset($authResult['userName']) ? $authResult['userName'] : '',
         );
         $handler = include $match['file'];

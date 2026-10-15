@@ -111,7 +111,15 @@ return function ($context) {
         $magic = SiteRouteUtils::getQueryValue('magic', '');
         $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
         $siteFileBaseName = ExportConverters::getSiteExportFileBaseName($site);
+        $isAnonymousRequest = SiteRouteUtils::isAnonymousSiteApiRequest($context);
         if ($format == 'pdf' || $format == 'docx' || $format == 'epub') {
+            // Binary whole-site exports render the entire site on every request
+            // (500+ page sites are common), so they are reserved for logged-in
+            // users. Anonymous agents get the cheap html / markdown exports.
+            if ($isAnonymousRequest) {
+                $sendTopLevelError(401, 'Authentication required for ' . $format . ' site exports');
+                return;
+            }
             try {
                 if ($format == 'epub') {
                     $output = ExportConverters::buildSiteEpubString($site, $siteBasePath, $ancestor);
@@ -140,7 +148,8 @@ return function ($context) {
         }
         if ($format == 'html') {
             try {
-                $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, $magic);
+                // anonymous callers only ever see pages they could open directly
+                $siteHtml = ExportConverters::buildSiteExportHtml($site, $ancestor, $magic, $isAnonymousRequest);
             }
             catch (Exception $e) {
                 @error_log('haxcms site export HTML failed: ' . $e->getMessage());
@@ -192,6 +201,11 @@ return function ($context) {
     $fileBaseName = ExportConverters::getItemExportFileBaseName($item);
     $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
     if ($format == 'pdf' || $format == 'docx') {
+        // rendered binaries are generated per request; logged-in users only
+        if (SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+            $sendTopLevelError(401, 'Authentication required for ' . $format . ' exports');
+            return;
+        }
         try {
             $content = SiteRouteUtils::getItemContent($site, $item);
             $itemHtml = ExportConverters::buildItemExportHtml($item, $content);

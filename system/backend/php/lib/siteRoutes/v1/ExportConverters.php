@@ -159,7 +159,18 @@ class ExportConverters
         return implode("\n", $parts);
     }
 
-    public static function buildSiteExportHtml($site, $ancestor = '', $magic = '')
+    /**
+     * Drop items an anonymous visitor must not see (unpublished or hidden
+     * from the menu). Applied to whole-site exports served to anonymous
+     * callers so they can never reveal pages the per-item routes 404 on.
+     */
+    public static function filterItemsVisibleToAnonymous($items = array())
+    {
+        return array_values(array_filter($items, function ($item) {
+            return $item && SiteRouteUtils::isItemVisibleToAnonymous($item);
+        }));
+    }
+    public static function buildSiteExportHtml($site, $ancestor = '', $magic = '', $visibleOnly = false)
     {
         $orderedItems = SiteRouteUtils::getOrderedItems($site);
         $siteTitle = self::buildSiteExportDocumentTitle($site);
@@ -189,8 +200,12 @@ class ExportConverters
             }
         }
 
+        if ($visibleOnly) {
+            $itemsToExport = self::filterItemsVisibleToAnonymous($itemsToExport);
+        }
+
         if ($magic != '') {
-            $content = self::buildSiteExportHtmlContent($site, $ancestor);
+            $content = self::buildSiteExportHtmlContent($site, $ancestor, $visibleOnly);
             $parts = array();
             $parts[] = '<!DOCTYPE html>';
             $parts[] = '<html lang="en">';
@@ -245,7 +260,7 @@ class ExportConverters
         return implode("\n", $parts);
     }
 
-    public static function buildSiteExportHtmlContent($site, $ancestor = '')
+    public static function buildSiteExportHtmlContent($site, $ancestor = '', $visibleOnly = false)
     {
         $orderedItems = SiteRouteUtils::getOrderedItems($site);
         $parts = array();
@@ -276,6 +291,9 @@ class ExportConverters
             }
         }
 
+        if ($visibleOnly) {
+            $itemsToExport = self::filterItemsVisibleToAnonymous($itemsToExport);
+        }
         foreach ($itemsToExport as $item) {
             if (!$item) {
                 continue;
