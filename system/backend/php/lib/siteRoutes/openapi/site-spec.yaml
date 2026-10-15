@@ -816,9 +816,10 @@ paths:
       tags:
         - site
       operationId: getSiteExport
-      summary: Download a site export file (PDF, DOCX, EPUB, or HTML) or get descriptor metadata
+      summary: Download a site export file (Markdown, PDF, DOCX, EPUB, or HTML) or get descriptor metadata
       description: >-
-        Anonymous callers may request the html format (unpublished and hidden pages are excluded). The pdf, docx and epub formats render the whole site per request and require authentication; anonymous requests receive 401.
+        The md format returns the whole site as one markdown document in outline order (also served as
+        llms-full.txt), with an ETag for conditional requests. Anonymous callers may request the md and html formats (unpublished and hidden pages are excluded). The pdf, docx and epub formats render the whole site per request and require authentication; anonymous requests receive 401.
       parameters:
         - $ref: "#/components/parameters/SiteExportFormat"
         - $ref: "#/components/parameters/FilterAncestor"
@@ -841,6 +842,9 @@ paths:
                       data:
                         type: object
                         additionalProperties: true
+            text/markdown:
+              schema:
+                type: string
             text/html:
               schema:
                 type: string
@@ -858,6 +862,8 @@ paths:
                 format: binary
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "304":
+          description: Not modified (md format, matching If-None-Match)
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -918,6 +924,7 @@ paths:
               $ref: "#/components/headers/AlternateLink"
           content:
             application/json:
+              example: {"status": 200, "data": {"id": "item-2", "title": "Photosynthesis", "slug": "photosynthesis", "parent": "item-1", "indent": 1, "order": 1, "location": "pages/item-2/index.html", "description": "How plants turn light into chemical energy.", "metadata": {"created": 1760000000, "updated": 1760095000, "tags": "biology,plants"}, "region": null, "tags": ["biology", "plants"], "published": true, "links": {"self": "/x/api/v1/items/photosynthesis", "content": "/x/api/v1/content/photosynthesis", "parent": "/x/api/v1/items/getting-started", "children": "/x/api/v1/items?filter.parent=item-2", "previous": "/x/api/v1/items/getting-started", "exportDocx": "/x/api/v1/items/photosynthesis/export/docx", "exportPdf": "/x/api/v1/items/photosynthesis/export/pdf", "haxElementSchema": "/x/api/v1/items/photosynthesis?include=haxElementSchema", "jsonld": "/x/api/v1/items/photosynthesis?include=jsonld"}, "exports": {"pdf": "/x/api/v1/items/photosynthesis/export/pdf", "docx": "/x/api/v1/items/photosynthesis/export/docx", "html": "/x/api/v1/items/photosynthesis/export/html", "md": "/x/api/v1/items/photosynthesis/export/md", "json": "/x/api/v1/items/photosynthesis/export/json", "yaml": "/x/api/v1/items/photosynthesis/export/yaml", "xml": "/x/api/v1/items/photosynthesis/export/xml", "epub": "/x/api/v1/items/photosynthesis/export/epub"}, "jsonld": {"@context": "https://schema.org", "@type": "WebPage", "@id": "/x/api/v1/items/photosynthesis#webpage", "url": "/x/api/v1/items/photosynthesis", "mainEntityOfPage": "/example/photosynthesis", "name": "Photosynthesis", "description": "How plants turn light into chemical energy.", "inLanguage": "en", "identifier": "item-2", "keywords": ["biology", "plants"], "datePublished": "2025-10-09T08:53:20.000Z", "dateModified": "2025-10-10T11:16:40.000Z"}}}
               schema:
                 allOf:
                   - $ref: "#/components/schemas/ApiEnvelope"
@@ -1322,6 +1329,7 @@ paths:
               $ref: "#/components/headers/AlternateLink"
           content:
             application/json:
+              example: {"status": 200, "data": {"id": "item-2", "slug": "photosynthesis", "title": "Photosynthesis", "format": "html", "mode": "bundle", "body": "<p>Plants convert light energy into chemical energy.</p>", "links": {"self": "/x/api/v1/content/photosynthesis", "item": "/x/api/v1/items/photosynthesis", "page": "/example/photosynthesis", "json": "/example/photosynthesis.json", "md": "/example/photosynthesis.md", "yaml": "/example/photosynthesis.yaml", "xml": "/example/photosynthesis.xml", "html": "/example/photosynthesis.html"}}}
               schema:
                 allOf:
                   - $ref: "#/components/schemas/ApiEnvelope"
@@ -1723,6 +1731,7 @@ paths:
           description: Search results
           content:
             application/json:
+              example: {"status": 200, "data": {"query": "light", "fields": ["title", "slug", "description", "tags", "content"], "count": 1, "total": 1, "page": {"limit": 25, "offset": 0, "total": 1}, "results": [{"id": "item-2", "title": "Photosynthesis", "slug": "photosynthesis", "location": "pages/item-2/index.html", "score": 2, "snippet": "How plants turn light into chemical energy.", "matches": [{"field": "description", "index": 16, "length": 5, "snippet": "How plants turn light into chemical energy."}, {"field": "content", "index": 18, "length": 5, "snippet": "<p>Plants convert light energy into chemical energy.</p>"}], "links": {"item": "/x/api/v1/items/photosynthesis", "content": "/x/api/v1/content/photosynthesis"}}], "links": {"self": "/x/api/v1/search"}}}
               schema:
                 allOf:
                   - $ref: "#/components/schemas/ApiEnvelope"
@@ -2275,6 +2284,7 @@ components:
       required: true
       schema:
         type: string
+      example: "getting-started"
     RevisionId:
       name: revisionId
       in: path
@@ -2299,6 +2309,7 @@ components:
         enum:
           - zip
           - markdown
+          - md
           - pdf
           - docx
           - epub
@@ -2356,6 +2367,7 @@ components:
       schema:
         type: string
         maxLength: 256
+      example: "photosynthesis"
     OptionalSearchQuery:
       name: q
       in: query

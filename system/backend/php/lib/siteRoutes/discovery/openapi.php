@@ -65,12 +65,32 @@ return function ($context) {
     else {
         $serverBaseUrl = $basePath;
     }
+    // haxtheweb/issues#3104: every path in the spec starts with /x/api, so
+    // the server URL must be the base of the site this request came through
+    // (e.g. https://host/sites/<name>/), not the HAXcms install base, or an
+    // agent calling the spec from a multisite install hits the wrong URL.
+    if (
+        isset($context->absoluteApiBasePath) &&
+        is_string($context->absoluteApiBasePath) &&
+        preg_match('/^(https?:\/\/[^\/]+.*?)\/x\/api$/i', $context->absoluteApiBasePath, $serverMatch) === 1
+    ) {
+        $serverBaseUrl = rtrim($serverMatch[1], '/') . '/';
+    }
     $openapi['servers'] = array(
         array(
             'url' => $serverBaseUrl,
             'description' => 'HAXcms site base URL',
         ),
     );
+    // haxtheweb/issues#3104: ?profile=public returns only the operations
+    // that work without logging in, so agents don't plan around endpoints
+    // that answer 401. It is opt-in: the editor bootstraps its operation
+    // registry from this spec using cookies only (no bearer), so it looks
+    // anonymous here and must always get the full spec by default.
+    $requestedProfile = isset($_GET['profile']) ? strtolower(trim((string) $_GET['profile'])) : '';
+    if ($requestedProfile === 'public') {
+        $openapi = SiteRouteUtils::filterOpenApiToPublicOperations($openapi);
+    }
     $allowedFormats = array('json', 'yaml');
     $format = SiteRouteUtils::detectResponseFormat($allowedFormats, 'json', $routeSuffix);
     if ($format == 'yaml') {

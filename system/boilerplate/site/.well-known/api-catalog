@@ -10,6 +10,11 @@
       ],
       "service-desc": [
         {
+          "href": "{{ domain }}x/api/openapi.json?profile=public",
+          "type": "application/json",
+          "title": "Public profile: operations that work without logging in"
+        },
+        {
           "href": "{{ domain }}x/api/openapi",
           "type": "application/json"
         },
