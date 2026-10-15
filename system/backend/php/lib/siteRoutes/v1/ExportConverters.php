@@ -170,6 +170,145 @@ class ExportConverters
             return $item && SiteRouteUtils::isItemVisibleToAnonymous($item);
         }));
     }
+    /**
+     * Whole site as one markdown document, in outline order: the site title
+     * and description, then each page as a "## Title" section with its
+     * canonical URL. Page bodies come from the pages/<id>/index.md sidecars
+     * that are rebuilt on every page save (writePageAlternateFormats), so
+     * this is a concatenation, not a conversion; pages without a sidecar
+     * fall back to converting their HTML. $visibleOnly drops unpublished and
+     * hidden pages (always on for anonymous callers and llms-full.txt).
+     */
+    public static function buildSiteExportMarkdown($site, $ancestor = '', $visibleOnly = false)
+    {
+        $itemsToExport = self::getSiteExportItems($site, $ancestor);
+        if ($visibleOnly) {
+            $itemsToExport = self::filterItemsVisibleToAnonymous($itemsToExport);
+        }
+        $siteTitle = self::buildSiteExportDocumentTitle($site);
+        $parts = array();
+        $parts[] = '# ' . $siteTitle;
+        if (isset($site->manifest->description) && trim((string) $site->manifest->description) != '') {
+            $parts[] = '';
+            $parts[] = '> ' . trim(preg_replace('/\s+/', ' ', (string) $site->manifest->description));
+        }
+        $pageUrlBase = self::getSiteExportPageUrlBase($site);
+        foreach ($itemsToExport as $item) {
+            if (!$item) {
+                continue;
+            }
+            $parts[] = '';
+            $parts[] = '## ' . self::buildItemExportDocumentTitle($item);
+            $parts[] = '';
+            if (isset($item->slug) && $item->slug != '') {
+                $parts[] = 'Source: ' . $pageUrlBase . SiteRouteUtils::encodeSlugPath((string) $item->slug);
+                $parts[] = '';
+            }
+            $parts[] = trim(self::getItemMarkdownBody($site, $item));
+        }
+        return trim(implode("\n", $parts)) . "\n";
+    }
+
+    /**
+     * Ordered items for a whole-site export, optionally limited to the
+     * branch under $ancestor.
+     */
+    public static function getSiteExportItems($site, $ancestor = '')
+    {
+        $orderedItems = SiteRouteUtils::getOrderedItems($site);
+        if (
+            $ancestor == '' ||
+            !isset($site) ||
+            !isset($site->manifest) ||
+            !method_exists($site->manifest, 'findBranch')
+        ) {
+            return $orderedItems;
+        }
+        try {
+            $branch = $site->manifest->findBranch($ancestor);
+            if (is_array($branch)) {
+                $branchIds = array();
+                foreach ($branch as $branchItem) {
+                    if (isset($branchItem->id)) {
+                        $branchIds[(string) $branchItem->id] = true;
+                    }
+                }
+                return array_values(array_filter($orderedItems, function ($item) use ($branchIds) {
+                    return isset($item->id) && array_key_exists((string) $item->id, $branchIds);
+                }));
+            }
+        }
+        catch (Exception $e) {
+        }
+        return $orderedItems;
+    }
+
+    /**
+     * Absolute page URL prefix when the site has a domain, otherwise the
+     * site base path; always ends with a slash.
+     */
+    public static function getSiteExportPageUrlBase($site)
+    {
+        if (
+            isset($site->manifest->metadata->site->domain) &&
+            is_string($site->manifest->metadata->site->domain) &&
+            preg_match('/^https?:\/\//i', $site->manifest->metadata->site->domain)
+        ) {
+            return rtrim($site->manifest->metadata->site->domain, '/') . '/';
+        }
+        return rtrim(SiteRouteUtils::getSiteBasePath($site), '/') . '/';
+    }
+
+    /**
+     * Markdown body for one page: the save-time sidecar when present,
+     * otherwise a conversion of the page HTML.
+     */
+    public static function getItemMarkdownBody($site, $item)
+    {
+        if (
+            isset($item->location) &&
+            is_string($item->location) &&
+            $item->location != '' &&
+            isset($site->directory) &&
+            isset($site->manifest->metadata->site->name) &&
+            method_exists($site, 'getPageAlternateLocation')
+        ) {
+            $sidecar = rtrim((string) $site->directory, '/') . '/' .
+                $site->manifest->metadata->site->name . '/' .
+                $site->getPageAlternateLocation($item->location, 'md');
+            if (strpos($sidecar, '..') === false && is_file($sidecar)) {
+                $markdown = @file_get_contents($sidecar);
+                if (is_string($markdown)) {
+                    return $markdown;
+                }
+            }
+        }
+        return self::htmlToMarkdown((string) SiteRouteUtils::getItemContent($site, $item));
+    }
+
+    /**
+     * Send a text export inline with validators so agents and proxies can
+     * revalidate cheaply. $isPublic marks anonymous-view responses as
+     * shareable; responses that may include unpublished pages are private.
+     */
+    public static function sendCacheableText($body, $mediaType, $isPublic = true)
+    {
+        $buffer = (string) $body;
+        $etag = '"' . sha1($buffer) . '"';
+        header('Content-Type: ' . (string) $mediaType);
+        header('ETag: ' . $etag);
+        header('Cache-Control: ' . ($isPublic ? 'public, max-age=300' : 'private, no-cache'));
+        header('Vary: Authorization');
+        $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) : '';
+        if ($ifNoneMatch !== '' && ($ifNoneMatch === $etag || $ifNoneMatch === 'W/' . $etag)) {
+            http_response_code(304);
+            return;
+        }
+        http_response_code(200);
+        header('Content-Length: ' . strlen($buffer));
+        print $buffer;
+    }
+
     public static function buildSiteExportHtml($site, $ancestor = '', $magic = '', $visibleOnly = false)
     {
         $orderedItems = SiteRouteUtils::getOrderedItems($site);

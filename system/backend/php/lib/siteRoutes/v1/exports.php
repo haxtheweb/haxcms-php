@@ -27,7 +27,7 @@ return function ($context) {
         $sendTopLevelError(404, 'Unable to resolve site context for export endpoint');
         return;
     }
-    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'pdf', 'docx', 'epub', 'html', 'skeleton');
+    $SITE_EXPORT_FORMATS = array('zip', 'markdown', 'md', 'pdf', 'docx', 'epub', 'html', 'skeleton');
     $ITEM_EXPORT_FORMATS = ExportConverters::getItemExportFormats();
     $normalizeFormatValue = function ($value = '') {
         return strtolower(trim((string) $value));
@@ -54,7 +54,7 @@ return function ($context) {
             'markdown' => array(
                 'rel' => 'download',
                 'mediaType' => 'text/markdown',
-                'href' => $apiBasePath . '/v1/content?mode=concat&format=md',
+                'href' => $apiBasePath . '/v1/site/export/md',
             ),
             'zip' => array(
                 'rel' => 'download',
@@ -143,6 +143,25 @@ return function ($context) {
                 $output,
                 ExportConverters::resolveExportMediaType($format),
                 $siteFileBaseName . '.' . $format
+            );
+            return;
+        }
+        if ($format == 'md') {
+            // Whole site as one markdown document for agents (also served as
+            // llms-full.txt). Pages are concatenated from their save-time
+            // markdown sidecars, so this stays cheap on large sites.
+            try {
+                $siteMarkdown = ExportConverters::buildSiteExportMarkdown($site, $ancestor, $isAnonymousRequest);
+            }
+            catch (Exception $e) {
+                @error_log('haxcms site export markdown failed: ' . $e->getMessage());
+                $sendTopLevelError(500, 'Unable to build site export markdown');
+                return;
+            }
+            ExportConverters::sendCacheableText(
+                $siteMarkdown,
+                'text/markdown; charset=utf-8',
+                $isAnonymousRequest
             );
             return;
         }

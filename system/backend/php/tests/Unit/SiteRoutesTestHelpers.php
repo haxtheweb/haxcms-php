@@ -21,6 +21,7 @@ class SiteRoutesFakeManifest
     public $items = array();
     public $metadata;
     public $title = 'Test Site';
+    public $description = '';
 
     public function __construct()
     {
