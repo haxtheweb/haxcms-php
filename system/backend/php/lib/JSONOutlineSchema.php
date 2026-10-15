@@ -116,8 +116,10 @@ class JSONOutlineSchema
         // crush the item given into a stdClass object
         $ary = get_object_vars($item);
         foreach ($ary as $key => $value) {
-            // only set what the element from spec allows into a new object
-            if (isset($tmp->{$key})) {
+            // only set what the element from spec allows into a new object.
+            // property_exists (not isset) so spec keys whose value is null,
+            // like a top-level parent, are still copied.
+            if (property_exists($tmp, $key)) {
                 $tmp->{$key} = $value;
             }
         }
@@ -235,6 +237,11 @@ class JSONOutlineSchema
         if ($reorder) {
             $this->items = $this->orderTree($this->items);
         }
+        // write canonical value types (see normalizeItemValues)
+        foreach ($this->items as $key => $item) {
+            $this->items[$key] = self::normalizeItemValues($item);
+        }
+        $this->metadata = self::normalizeSiteMetadata($this->metadata);
         $schema = get_object_vars($this);
         $file = $schema['file'];
         unset($schema['file']);
@@ -247,6 +254,122 @@ class JSONOutlineSchema
         if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
           return @file_put_contents($file, $output, LOCK_EX);
         }
+    }
+    /**
+     * Canonical value types for site.json, per haxtheweb/json-outline-schema:
+     * top-level parent is null, indent / order / timestamps are integers,
+     * published / hideInMenu / locked are booleans, tags and relatedItems are
+     * arrays. Older sites stored "1" / "" flags, numeric strings and
+     * comma-separated tags; readers keep accepting those, every save writes
+     * the canonical form. Meaning is preserved: published is only false for
+     * an explicit false / 0 / "0" / "false" / "no" / "off" (matching
+     * SiteRouteUtils::isMetadataBooleanFalse and the front end's
+     * `published !== false`), hideInMenu / locked are only true for an
+     * explicit true / 1 / "1" / "true" / "yes" / "on".
+     */
+    public static function normalizeItemValues($item)
+    {
+        if (!is_object($item)) {
+            return $item;
+        }
+        if (property_exists($item, 'parent') && ($item->parent === '' || $item->parent === false)) {
+            $item->parent = null;
+        }
+        foreach (array('indent', 'order') as $key) {
+            if (property_exists($item, $key)) {
+                $item->{$key} = self::normalizeInteger($item->{$key});
+            }
+        }
+        if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
+            $isArray = is_array($item->metadata);
+            $metadata = $isArray ? $item->metadata : get_object_vars($item->metadata);
+            if (array_key_exists('published', $metadata)) {
+                $metadata['published'] = !self::isFalseLike($metadata['published']);
+            }
+            foreach (array('hideInMenu', 'locked') as $flag) {
+                if (array_key_exists($flag, $metadata)) {
+                    $metadata[$flag] = self::isTrueLike($metadata[$flag]);
+                }
+            }
+            foreach (array('created', 'updated') as $stamp) {
+                if (array_key_exists($stamp, $metadata)) {
+                    $metadata[$stamp] = self::normalizeInteger($metadata[$stamp]);
+                }
+            }
+            foreach (array('tags', 'relatedItems') as $listKey) {
+                if (array_key_exists($listKey, $metadata) && !is_null($metadata[$listKey])) {
+                    $metadata[$listKey] = self::normalizeList($metadata[$listKey]);
+                }
+            }
+            $item->metadata = $isArray ? $metadata : (object) $metadata;
+        }
+        return $item;
+    }
+    /**
+     * Canonical site-level metadata: metadata.site.tags as an array and
+     * metadata.site.created / updated as integers.
+     */
+    public static function normalizeSiteMetadata($metadata)
+    {
+        if (!is_object($metadata) || !isset($metadata->site) || !is_object($metadata->site)) {
+            return $metadata;
+        }
+        if (isset($metadata->site->tags)) {
+            $metadata->site->tags = self::normalizeList($metadata->site->tags);
+        }
+        foreach (array('created', 'updated') as $stamp) {
+            if (property_exists($metadata->site, $stamp)) {
+                $metadata->site->{$stamp} = self::normalizeInteger($metadata->site->{$stamp});
+            }
+        }
+        return $metadata;
+    }
+    private static function normalizeInteger($value)
+    {
+        if (is_string($value) && preg_match('/^-?[0-9]+$/', trim($value))) {
+            return (int) trim($value);
+        }
+        if (is_float($value) && floor($value) == $value) {
+            return (int) $value;
+        }
+        return $value;
+    }
+    private static function isFalseLike($value)
+    {
+        if ($value === false || $value === 0) {
+            return true;
+        }
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), array('0', 'false', 'no', 'off'), true);
+        }
+        return false;
+    }
+    private static function isTrueLike($value)
+    {
+        if ($value === true || $value === 1) {
+            return true;
+        }
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), array('1', 'true', 'yes', 'on'), true);
+        }
+        return false;
+    }
+    /**
+     * Comma-separated string or array -> array of trimmed, non-empty, unique strings.
+     */
+    private static function normalizeList($value)
+    {
+        $parts = is_array($value) ? $value : (is_object($value) ? array_values(get_object_vars($value)) : explode(',', (string) $value));
+        $list = array();
+        foreach ($parts as $part) {
+            if (is_scalar($part)) {
+                $part = trim((string) $part);
+                if ($part !== '' && !in_array($part, $list, true)) {
+                    $list[] = $part;
+                }
+            }
+        }
+        return $list;
     }
     /**
      * Organize the items based on tree order. This makes front end navigation line up correctly
