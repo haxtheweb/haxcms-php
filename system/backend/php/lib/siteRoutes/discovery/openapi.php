@@ -82,12 +82,13 @@ return function ($context) {
             'description' => 'HAXcms site base URL',
         ),
     );
-    // haxtheweb/issues#3104: anonymous callers (agents, crawlers) get the
-    // public profile: only operations they can call without logging in, so
-    // they don't plan around endpoints that answer 401. ?profile=full (or a
-    // logged-in caller) gets the whole spec; it is not a security boundary.
+    // haxtheweb/issues#3104: ?profile=public returns only the operations
+    // that work without logging in, so agents don't plan around endpoints
+    // that answer 401. It is opt-in: the editor bootstraps its operation
+    // registry from this spec using cookies only (no bearer), so it looks
+    // anonymous here and must always get the full spec by default.
     $requestedProfile = isset($_GET['profile']) ? strtolower(trim((string) $_GET['profile'])) : '';
-    if ($requestedProfile !== 'full' && SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+    if ($requestedProfile === 'public') {
         $openapi = SiteRouteUtils::filterOpenApiToPublicOperations($openapi);
     }
     $allowedFormats = array('json', 'yaml');

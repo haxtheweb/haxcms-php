@@ -4,9 +4,10 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/SiteRoutesTestHelpers.php';
 
 /**
- * GET x/api/openapi: anonymous callers get the public profile (only
- * operations that need no login), the server URL is the site base the
- * request came through, and the spec carries examples for agents.
+ * GET x/api/openapi: ?profile=public returns only operations that need no
+ * login (the default stays complete because the editor reads it), the
+ * server URL is the site base the request came through, and the spec
+ * carries examples for agents.
  * haxtheweb/issues#3104
  */
 class SiteRoutesOpenApiProfileTest extends TestCase
@@ -46,9 +47,9 @@ class SiteRoutesOpenApiProfileTest extends TestCase
         return $ids;
     }
 
-    public function testAnonymousGetsOnlyPublicOperations(): void
+    public function testPublicProfileHasOnlyPublicOperations(): void
     {
-        $spec = $this->fetchSpec(false);
+        $spec = $this->fetchSpec(false, array('profile' => 'public'));
         $ids = $this->operationIds($spec);
         $this->assertContains('searchContent', $ids);
         $this->assertContains('getItemByIdOrSlug', $ids);
@@ -56,7 +57,7 @@ class SiteRoutesOpenApiProfileTest extends TestCase
         $this->assertNotContains('updateItem', $ids);
         $this->assertNotContains('listFiles', $ids);
         $this->assertSame('public', $spec['x-haxcms-profile']);
-        $this->assertStringContainsString('?profile=full', $spec['info']['description']);
+        $this->assertStringContainsString('?profile=public', $spec['info']['description']);
         foreach ($spec['paths'] as $pathItem) {
             foreach ($pathItem as $operation) {
                 if (is_array($operation) && isset($operation['operationId'])) {
@@ -66,14 +67,20 @@ class SiteRoutesOpenApiProfileTest extends TestCase
         }
     }
 
-    public function testFullProfileAndLoggedInCallersGetEverything(): void
+    /**
+     * The editor bootstraps its operation registry from this spec with
+     * cookies only, so to the API it looks anonymous. Without ?profile it
+     * must always get every operation or editing breaks.
+     */
+    public function testDefaultSpecIsCompleteForAnonymousAndLoggedInCallers(): void
     {
-        $full = $this->operationIds($this->fetchSpec(false, array('profile' => 'full')));
+        $anon = $this->operationIds($this->fetchSpec(false));
         $authed = $this->operationIds($this->fetchSpec(true));
-        $this->assertContains('createItem', $full);
-        $this->assertContains('createItem', $authed);
-        $this->assertSame(count($full), count($authed));
-        $this->assertGreaterThan(count($this->operationIds($this->fetchSpec(false))), count($full));
+        $this->assertContains('createItem', $anon);
+        $this->assertContains('updateItem', $anon);
+        $this->assertSame(count($anon), count($authed));
+        $this->assertArrayNotHasKey('x-haxcms-profile', $this->fetchSpec(false));
+        $this->assertGreaterThan(count($this->operationIds($this->fetchSpec(false, array('profile' => 'public')))), count($anon));
     }
 
     public function testServerUrlIsTheSiteBase(): void

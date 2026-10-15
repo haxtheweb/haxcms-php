@@ -1556,7 +1556,7 @@ class SiteRouteUtils
         if (!isset($openapi['info']) || !is_array($openapi['info'])) {
             $openapi['info'] = array();
         }
-        $note = 'This is the public profile: only operations that work without logging in. Request ?profile=full for every operation.';
+        $note = 'This is the public profile: only operations that work without logging in. Omit ?profile=public for every operation.';
         $openapi['info']['description'] = isset($openapi['info']['description']) && is_string($openapi['info']['description']) && $openapi['info']['description'] !== ''
             ? $openapi['info']['description'] . "\n\n" . $note
             : $note;
