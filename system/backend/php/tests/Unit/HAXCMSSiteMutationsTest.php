@@ -611,6 +611,42 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertStringEndsWith('word…', $out);
     }
 
+    // ---- getSiteMetadata (haxtheweb/issues#3104) ----
+
+    public function testSiteMetadataUsesLicenseLinkAndOmitsAuthorEmail(): void
+    {
+        $this->site->manifest->metadata->author = (object) array(
+            'name' => 'Pat Author',
+            'email' => 'pat@example.edu',
+        );
+        $this->site->manifest->metadata->site->domain = 'https://example.org/course';
+        $page = $this->site->manifest->items[1];
+        $html = $this->site->getSiteMetadata($page, 'https://example.org/course/about');
+        $this->assertStringContainsString('<link rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/"', $html);
+        $this->assertStringNotContainsString('cc:license', $html);
+        $this->assertStringNotContainsString('pat@example.edu', $html);
+        $this->assertStringContainsString('property="og:site_name"', $html);
+        $this->assertSame(1, preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $html, $m));
+        $graph = json_decode($m[1], true)['@graph'];
+        $byType = array();
+        foreach ($graph as $node) {
+            $byType[$node['@type']] = $node;
+        }
+        $this->assertSame('https://creativecommons.org/licenses/by-sa/4.0/', $byType['WebSite']['license']);
+        $this->assertSame('https://creativecommons.org/licenses/by-sa/4.0/', $byType['WebPage']['license']);
+        $this->assertSame('Pat Author', $byType['Person']['name']);
+        $this->assertArrayNotHasKey('email', $byType['Person']);
+    }
+
+    public function testSiteMetadataOmitsEmptySocialImageTags(): void
+    {
+        $page = $this->site->manifest->items[1];
+        $html = $this->site->getSiteMetadata($page, '/');
+        $this->assertStringNotContainsString('og:image" content=""', $html);
+        $this->assertStringNotContainsString('property="og:image"', $html);
+        $this->assertStringNotContainsString('property="twitter:image"', $html);
+    }
+
     // ---- jsonFeedFormat ----
 
     public function testJsonFeedFormatReturnsStructureWithItems(): void
@@ -935,6 +971,27 @@ class HAXCMSSiteTestHaxcms extends OperationsTestHaxcms
     public $cdn = './';
     public $developerMode = false;
     private $cacheData = array();
+
+    // getSiteMetadata collaborators (haxtheweb/issues#3104 head tests)
+    public function buildShellModulepreloadPaths($site, $base = './', $themePath = '', $cap = 12)
+    {
+        return array();
+    }
+
+    public function getContentTagPath($site, $base, $tag)
+    {
+        return null;
+    }
+
+    public function getURI()
+    {
+        return '/';
+    }
+
+    public function dispatchEvent($event, &$value = NULL)
+    {
+        return $value;
+    }
 
     public function __construct()
     {
