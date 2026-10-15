@@ -6,7 +6,7 @@ class HAXCMSSystemStatusService
     const RELEASES_PAGE_URL = 'https://github.com/haxtheweb/haxcms-php/releases';
     const RELEASES_LATEST_URL = 'https://github.com/haxtheweb/haxcms-php/releases/latest';
     const UPLOAD_LIMIT_HELP_URL = 'https://www.php.net/manual/en/ini.core.php#ini.upload-max-filesize';
-    const DISCORD_SUPPORT_URL = 'https://discord.gg/qGBZMBnHc';
+    const DISCORD_SUPPORT_URL = 'https://discord.gg/aCGxmRHEJP';
     const HAXTHEWEB_URL = 'https://haxtheweb.org';
     const PHP_RELEASES_URL = 'https://www.php.net/releases/';
     const APACHE_URL = 'https://httpd.apache.org/';
