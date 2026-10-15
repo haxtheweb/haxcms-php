@@ -230,7 +230,9 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('https://new.example.com', $result->metadata->site->domain);
         // scheme-less values pass through sanitizeURLValue unchanged
         $this->assertSame('files/logo.png', $result->metadata->site->logo);
-        $this->assertSame('hax,test', $result->metadata->site->tags);
+        // comma-separated input is canonicalized to a list per
+        // haxtheweb/json-outline-schema
+        $this->assertSame(array('hax', 'test'), $result->metadata->site->tags);
         // homePageId validated against the fixture item before being set
         $this->assertSame('item-uuid-1', $result->metadata->site->homePageId);
 
@@ -276,6 +278,7 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('cc-by', $persisted->license);
         $this->assertSame('0.0.0-test', $persisted->metadata->site->version);
         $this->assertSame('https://new.example.com', $persisted->metadata->site->domain);
+        $this->assertSame(array('hax', 'test'), $persisted->metadata->site->tags);
         $this->assertSame('item-uuid-1', $persisted->metadata->site->homePageId);
         $this->assertSame('--simple-colors-default-theme-grey-7', $persisted->metadata->theme->variables->cssVariable);
         $this->assertSame('expert', $persisted->metadata->platform->audience);

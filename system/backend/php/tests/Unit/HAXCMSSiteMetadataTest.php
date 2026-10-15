@@ -174,7 +174,7 @@ class HAXCMSSiteMetadataTest extends TestCase
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
         $this->assertStringContainsString('<title>Meta Test Site | Home</title>', $metadata);
-        $this->assertStringContainsString('<meta name="og:sitename" property="og:sitename" content="Meta Test Site" />', $metadata);
+        $this->assertStringContainsString('<meta name="og:site_name" property="og:site_name" content="Meta Test Site" />', $metadata);
         $this->assertStringContainsString('<meta name="og:title" property="og:title" content="Home" />', $metadata);
         $this->assertStringContainsString('<meta name="apple-mobile-web-app-title" content="Home" />', $metadata);
     }
@@ -224,11 +224,11 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertStringNotContainsString('<link rel="next"', $metadata);
     }
 
-    public function testGetSiteMetadataLicenseMeta(): void
+    public function testGetSiteMetadataLicenseLink(): void
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
         $this->assertStringContainsString(
-            '<meta rel="cc:license" href="https://creativecommons.org/licenses/by-sa/4.0/" content="License: Creative Commons: Attribution Share a like"/>',
+            '<link rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/" title="Creative Commons: Attribution Share a like" />',
             $metadata
         );
     }
@@ -454,7 +454,8 @@ class HAXCMSSiteMetadataTest extends TestCase
         $author = $this->graphNodeByType($graph, 'Person');
         $this->assertSame('https://meta.example.com#author', $author['@id']);
         $this->assertSame('Test Author', $author['name']);
-        $this->assertSame('author@example.com', $author['email']);
+        // author email is deliberately not published in structured data
+        $this->assertArrayNotHasKey('email', $author);
         $this->assertSame(array('https://x.com/author'), $author['sameAs']);
         $this->assertSame('https://example.com/author.png', $author['image']['url']);
     }
