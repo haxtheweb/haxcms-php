@@ -21,7 +21,7 @@ class JSONOutlineSchemaTest extends TestCase
         $this->assertSame('', $item->location);
         $this->assertSame('', $item->slug);
         $this->assertSame(0, $item->order);
-        $this->assertSame('', $item->parent);
+        $this->assertNull($item->parent);
         $this->assertSame('New item', $item->title);
         $this->assertSame('', $item->description);
         $this->assertEquals(new stdClass(), $item->metadata);
@@ -139,6 +139,103 @@ class JSONOutlineSchemaTest extends TestCase
         $this->assertSame('page-1', $found->slug);
         $this->assertSame('pages/page-1/index.html', $found->location);
 
+        unlink($tmp);
+    }
+
+    public function testAddItemKeepsNullParent(): void
+    {
+        $jos = new JSONOutlineSchema();
+        $item = $jos->newItem();
+        $item->id = 'root';
+        $item->parent = null;
+        $jos->addItem($item);
+        $this->assertNull($jos->getItemById('root')->parent);
+        $child = $jos->newItem();
+        $child->id = 'child';
+        $child->parent = 'root';
+        $jos->addItem($child);
+        $this->assertSame('root', $jos->getItemById('child')->parent);
+    }
+
+    public function testNormalizeItemValuesWritesCanonicalTypes(): void
+    {
+        $item = new JSONOutlineSchemaItem();
+        $item->parent = '';
+        $item->indent = '2';
+        $item->order = '3';
+        $item->metadata = (object) array(
+            'published' => '1',
+            'hideInMenu' => '',
+            'locked' => '0',
+            'created' => '1422799200',
+            'updated' => 1422799201,
+            'tags' => 'intro, welcome,,intro',
+            'relatedItems' => 'item-b',
+            'icon' => 'icons:book',
+        );
+        $out = JSONOutlineSchema::normalizeItemValues($item);
+        $this->assertNull($out->parent);
+        $this->assertSame(2, $out->indent);
+        $this->assertSame(3, $out->order);
+        $this->assertTrue($out->metadata->published);
+        $this->assertFalse($out->metadata->hideInMenu);
+        $this->assertFalse($out->metadata->locked);
+        $this->assertSame(1422799200, $out->metadata->created);
+        $this->assertSame(1422799201, $out->metadata->updated);
+        $this->assertSame(array('intro', 'welcome'), $out->metadata->tags);
+        $this->assertSame(array('item-b'), $out->metadata->relatedItems);
+        $this->assertSame('icons:book', $out->metadata->icon);
+    }
+
+    public function testNormalizeItemValuesPreservesFlagMeaning(): void
+    {
+        $cases = array(
+            // value => [published, hideInMenu]
+            array('', true, false),
+            array('0', false, false),
+            array('false', false, false),
+            array(0, false, false),
+            array(1, true, true),
+            array('true', true, true),
+            array(null, true, false),
+            array(false, false, false),
+            array(true, true, true),
+        );
+        foreach ($cases as $case) {
+            $item = new JSONOutlineSchemaItem();
+            $item->metadata = (object) array('published' => $case[0], 'hideInMenu' => $case[0]);
+            $out = JSONOutlineSchema::normalizeItemValues($item);
+            $this->assertSame($case[1], $out->metadata->published, 'published for ' . var_export($case[0], true));
+            $this->assertSame($case[2], $out->metadata->hideInMenu, 'hideInMenu for ' . var_export($case[0], true));
+        }
+        // absent flags stay absent
+        $item = new JSONOutlineSchemaItem();
+        $out = JSONOutlineSchema::normalizeItemValues($item);
+        $this->assertFalse(property_exists($out->metadata, 'published'));
+    }
+
+    public function testSaveWritesCanonicalTypes(): void
+    {
+        $tmp = sys_get_temp_dir() . '/jos_canon_' . uniqid() . '.json';
+        $jos = new JSONOutlineSchema();
+        $jos->metadata = (object) array('site' => (object) array('tags' => 'a, b', 'created' => '1422799200'));
+        $item = $jos->newItem();
+        $item->id = 'p1';
+        $item->parent = '';
+        $item->order = '0';
+        $item->indent = '0';
+        $item->metadata = (object) array('published' => '1', 'tags' => 'x');
+        $jos->addItem($item);
+        $jos->file = $tmp;
+        $this->assertNotFalse($jos->save());
+        $raw = json_decode(file_get_contents($tmp), true);
+        $this->assertNull($raw['items'][0]['parent']);
+        $this->assertSame(0, $raw['items'][0]['order']);
+        $this->assertSame(0, $raw['items'][0]['indent']);
+        $this->assertTrue($raw['items'][0]['metadata']['published']);
+        $this->assertSame(array('x'), $raw['items'][0]['metadata']['tags']);
+        $this->assertSame(array('a', 'b'), $raw['metadata']['site']['tags']);
+        $this->assertSame(1422799200, $raw['metadata']['site']['created']);
         unlink($tmp);
     }
 

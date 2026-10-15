@@ -42,7 +42,8 @@ class JSONOutlineSchemaItem
         $this->location = '';
         $this->slug = '';
         $this->order = 0;
-        $this->parent = '';
+        // top-level items have a null parent (JSON Outline Schema canonical form)
+        $this->parent = null;
         $this->title = 'New item';
         $this->description = '';
         $this->metadata = new stdClass();
