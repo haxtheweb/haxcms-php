@@ -161,12 +161,13 @@ This audit is the diagnosis step. Apply the fixes with these related skills and 
   - `/hax add a multiple choice quiz to this page based on the page content`
   - `/hax add 5 flash cards to <page> using the best HAX web component`
 - **`hax-site-building`** — owns page structure. The CLI owns `site.json` / page structure; you own
-  page **content**. To remediate an existing page, edit its HTML content file at `pages/<slug>.html`
-  directly (split paragraphs, insert `stop-note` / `self-check` / `a11y-collapse`). To add a new
-  chunked page:
-  - Pages with content (single or bulk): give each item a `content` field and run
+  page **content**. To remediate an existing page, rewrite its content (split paragraphs, insert
+  `stop-note` / `self-check` / `a11y-collapse`) and save it with
+  `hax site node:edit --item-id <id-or-slug> --content <file-or-html> --y --no-i`. To add new
+  chunked pages:
+  - Single page: `hax site node:add --title "<title>" --content <file-or-html> --y --no-i`
+  - Bulk: give each item a `content` field and run
     `hax site site:items-import --items-import <items.json> --y --no-i`
-    (`node:add --content` does not persist page content yet; see haxtheweb/issues#3125.)
   - Verify: `hax site site:items`
 - **`hax-design-system`** — DDD tokens for spacing, color, icon sizing on any inserted component.
 - **`grad-blooms`** — when a check-in is recommended, confirm its cognitive level matches the
