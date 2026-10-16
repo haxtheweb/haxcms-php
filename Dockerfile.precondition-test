@@ -16,10 +16,11 @@
 
 FROM php:8.3-apache
 
-# Enable Apache rewrite (required for HAXcms routing) but do NOT install
+# Enable Apache rewrite (required for HAXcms routing) and headers (used by the
+# .htaccess security headers, same as the full image) but do NOT install
 # git, libcurl4-openssl-dev, or the php curl extension — those omissions are
 # the point of this image.
-RUN a2enmod rewrite
+RUN a2enmod rewrite headers
 
 # Custom apache conf (same as the full image so routing behaves identically).
 COPY ./scripts/docker/apache2.conf /etc/apache2/apache2.conf
