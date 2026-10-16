@@ -2196,6 +2196,7 @@ class HAXCMS
           isset($refreshTokenDecoded->user) &&
           is_string($refreshTokenDecoded->user) &&
           $refreshTokenDecoded->user != '' &&
+          $this->validateUser($refreshTokenDecoded->user) &&
           $this->validateRefreshSession(
             $refreshTokenDecoded->user,
             isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
