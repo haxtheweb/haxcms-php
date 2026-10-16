@@ -102,11 +102,12 @@ ok($sessions2[$user]['currentJtiHash'] !== $oldJtiHash, 'store has new current j
 echo "\nTest 4: old jti valid within grace window\n";
 ok($hax->validateRefreshSession($user, $decoded1->family, $decoded1->jti), 'old jti still accepted (grace)');
 
-// Test 5: revokeRefreshSession removes the entry
-echo "\nTest 5: revokeRefreshSession removes the entry\n";
+// Test 5: revokeRefreshSession tombstones the entry (SEC-SESSION)
+echo "\nTest 5: revokeRefreshSession writes a tombstone\n";
 $hax->revokeRefreshSession($user);
 $sessions3 = json_decode(file_get_contents($storePath), true);
-ok(!isset($sessions3[$user]), 'session revoked');
+ok(isset($sessions3[$user]['revoked']) && $sessions3[$user]['revoked'] === true, 'session tombstoned');
+ok(!$hax->validateRefreshSession($user, $decoded1->family, $decoded1->jti), 'revoked family rejected');
 
 // Test 6: replay detection revokes family
 echo "\nTest 6: replay detection revokes family\n";
@@ -118,17 +119,18 @@ $rotateOk = $hax->rotateRefreshSession($user, 'fam-replay', 'jti-bogus', 'jti-ne
 ok(!$rotateOk, 'bogus jti rotation rejected');
 
 $sessions5 = json_decode(file_get_contents($storePath), true);
-ok(!isset($sessions5[$user]), 'family revoked on bogus jti');
+ok(isset($sessions5[$user]['revoked']) && $sessions5[$user]['revoked'] === true, 'family tombstoned on bogus jti');
 
 // Test 7: legacy token (no family/jti) is accepted and upgraded
 echo "\nTest 7: legacy token (no family/jti) accepted and upgraded\n";
 $legacyToken = $hax->getRefreshToken($user, false);
 $legacyDecoded = JWT::decode($legacyToken, $hax->refreshPrivateKey . $hax->salt);
 ok(!isset($legacyDecoded->family) && !isset($legacyDecoded->jti), 'legacy token has no family/jti');
-ok($hax->validateRefreshSession($user, null, null), 'legacy token accepted by validateRefreshSession');
-
-// clear store so legacy rotation has a clean slate
-$hax->revokeRefreshSession($user);
+// SEC-SESSION: legacy tokens are only accepted when the user has NO store
+// entry (a tombstone or live family rejects them). Clear the store file.
+ok(!$hax->validateRefreshSession($user, null, null), 'legacy token rejected while tombstoned');
+@unlink($storePath);
+ok($hax->validateRefreshSession($user, null, null), 'legacy token accepted by validateRefreshSession (no entry)');
 $legacyAccessJwt = $hax->rotateRefreshTokenAndCookie($legacyDecoded);
 ok($legacyAccessJwt !== null, 'legacy token upgraded via rotation');
 

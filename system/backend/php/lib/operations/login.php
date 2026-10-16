@@ -59,8 +59,38 @@ trait OperationsRouteLogin {
       // Cache library does not enforce expiry on retrieval, so store with conservative ttl
       // while still validating timestamps explicitly in code.
       $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
+      // Security (SEC-SESSION): Cache::eraseExpired() was never called, so
+      // every distinct ip+username pair stayed in the cache file forever
+      // (unbounded growth under credential-stuffing). Prune opportunistically
+      // before writing. The ttl above outlives window+block, so pruned
+      // entries can never still hold an active block.
+      $this->maybeEraseExpiredLoginAttempts();
       $GLOBALS['HAXCMS']->cache->store($key, $entry, $ttlSeconds);
     }
+  }
+  /**
+   * Security (SEC-SESSION): prune expired cache entries on a login-throttle
+   * write. Always runs once the cache file exceeds 64 KB; otherwise on ~1 in
+   * 20 writes so the common path stays a single read/write. Best-effort.
+   */
+  private function maybeEraseExpiredLoginAttempts() {
+    if (!isset($GLOBALS['HAXCMS']->cache) || !$GLOBALS['HAXCMS']->cache || !method_exists($GLOBALS['HAXCMS']->cache, 'eraseExpired')) {
+      return;
+    }
+    try {
+      $run = (mt_rand(1, 20) === 1);
+      if (!$run && method_exists($GLOBALS['HAXCMS']->cache, 'getCacheDir')) {
+        $cacheFile = $GLOBALS['HAXCMS']->cache->getCacheDir();
+        clearstatcache(true, $cacheFile);
+        if (is_string($cacheFile) && file_exists($cacheFile) && filesize($cacheFile) > 65536) {
+          $run = true;
+        }
+      }
+      if ($run) {
+        $GLOBALS['HAXCMS']->cache->eraseExpired();
+      }
+    }
+    catch (Exception $e) {}
   }
   /**
    * Clear tracked login state after successful authentication.

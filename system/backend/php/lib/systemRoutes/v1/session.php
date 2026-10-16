@@ -61,25 +61,31 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         ) {
             return null;
         }
-        // Security (H1 rotation): reject a revoked/stolen refresh family before
-        // minting an access token. validateRefreshSession accepts legacy tokens
-        // (no family/jti) so deploys don't log users out during upgrade.
+        // Security (H1 rotation / SEC-SESSION): reject a revoked/stolen refresh
+        // family before minting an access token. Only legacy tokens (no family
+        // claim) for a user with no store entry are accepted. Reuse of a stale
+        // jti tombstones the family inside validateRefreshSession; other
+        // rejections (unknown/mismatched family) only clear this cookie so a
+        // stale cookie can't log out the user's current family.
         $sessionOk = $GLOBALS['HAXCMS']->validateRefreshSession(
             $refreshTokenDecoded->user,
             isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
             isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null
         );
         if (!$sessionOk) {
-            if (isset($refreshTokenDecoded->user)) {
-                $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user);
-            }
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
         }
-        // Rotate the refresh cookie on recovery so a stolen cookie is bounded;
-        // fall back to a plain access token if rotation fails.
+        // Rotate the refresh cookie on recovery so a stolen cookie is bounded.
+        // Security (SEC-SESSION): no fallback to a plain access token when
+        // rotation fails -- that would mint a JWT for a session the store just
+        // refused.
         $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($refreshTokenDecoded);
-        $accessJwt = ($rotated !== null) ? $rotated : $GLOBALS['HAXCMS']->getJWT($refreshTokenDecoded->user);
+        if ($rotated === null) {
+            $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+            return null;
+        }
+        $accessJwt = $rotated;
         return array(
             'jwt' => $accessJwt,
             'user' => $GLOBALS['HAXCMS']->generateMachineName($refreshTokenDecoded->user),
@@ -263,6 +269,30 @@ return function ($context) {
             $sessionContext = haxcmsResolveBearerSessionContext($requestedJWT);
         }
         if ($sessionContext === null) {
+            // Security (SEC-SESSION): the refresh-cookie recovery below rotates
+            // the cookie (state change), so apply the same same-origin gate as
+            // session/refresh (incl. Sec-Fetch-Site: cross-site) before it. A
+            // valid Bearer above is not cookie-authenticated and is unaffected.
+            if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
+                $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'status' => 403,
+                        'authenticated' => false,
+                        'reason' => 'cross_origin',
+                        'message' => 'Cross-origin request denied',
+                    ),
+                    array(
+                        'statusCode' => 403,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             $sessionContext = haxcmsResolveRefreshSessionContext();
             $refreshed = $sessionContext !== null;
         }
