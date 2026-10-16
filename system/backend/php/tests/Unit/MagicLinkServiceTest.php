@@ -59,6 +59,7 @@ class MagicLinkServiceTest extends TestCase
     protected function tearDown(): void
     {
         putenv('HAXCMS_MAGIC_LINK_DISABLED');
+        putenv('HAXCMS_MAGIC_LINK_ENABLED');
         $_SERVER = $this->savedServer;
         $_GET = $this->savedGet;
         $GLOBALS['HAXCMS'] = $this->savedGlobal;
@@ -201,6 +202,44 @@ class MagicLinkServiceTest extends TestCase
         $this->assertTrue(MagicLinkService::isEnabled($this->haxcms), '"0" leaves it on');
     }
 
+    public function testHaxiamIsOffByDefaultAndTenantConfigCannotEnableIt(): void
+    {
+        $this->haxcms->config->security = (object) array('magicLink' => (object) array('enabled' => true));
+        $this->haxcms->config->iam = true;
+        $this->assertTrue(MagicLinkService::isHaxiamDeployment($this->haxcms));
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        unset($this->haxcms->config->iam);
+        $this->haxcms->config->deploymentProfile = 'haxiam-managed';
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        $this->expectException(RuntimeException::class);
+        MagicLinkService::issue($this->haxcms);
+    }
+
+    public function testOperatorEnvEnablesHaxiamAndDisabledStillWins(): void
+    {
+        $this->haxcms->config->iam = true;
+        // Apache SetEnv after the system/api rewrite
+        $_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_ENABLED'] = 'true';
+        $this->assertTrue(MagicLinkService::isEnabled($this->haxcms));
+        $issued = MagicLinkService::issue($this->haxcms);
+        $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
+        putenv('HAXCMS_MAGIC_LINK_DISABLED=1');
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+    }
+
+    public function testSingleAndSelfHostedMultisiteStayOn(): void
+    {
+        foreach (array(null, 'single-site', 'self-hosted-multi-site') as $profile) {
+            if ($profile === null) {
+                unset($this->haxcms->config->deploymentProfile);
+            }
+            else {
+                $this->haxcms->config->deploymentProfile = $profile;
+            }
+            $this->assertTrue(MagicLinkService::isEnabled($this->haxcms), (string) $profile);
+        }
+    }
+
     public function testTtlIsClamped(): void
     {
         $this->assertSame(60, MagicLinkService::issue($this->haxcms, array('ttlSeconds' => 1))['ttlSeconds']);
@@ -329,6 +368,10 @@ class MagicLinkServiceTest extends TestCase
         $this->assertSame(404, $post['status']);
         $this->assertSame(array(), $this->haxcms->cookies);
         unset($_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
+        // a HAXiam tenant without the operator opt-in is the same 404
+        $this->haxcms->config->iam = true;
+        $this->assertSame(404, $this->route('POST', array('token' => $issued['token']))['status']);
+        unset($this->haxcms->config->iam);
         $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
     }
 
