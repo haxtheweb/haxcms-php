@@ -190,6 +190,9 @@ paths:
         endpoint. GET never consumes the link, so link scanners and prefetchers
         cannot burn it. Links are minted by an operator with filesystem access
         (`hax site site:login-link`); see haxtheweb/issues#2854.
+        Returns 404 for both methods when the feature is turned off with
+        HAXCMS_MAGIC_LINK_DISABLED (e.g. HAXiam behind third-party OAuth/SSO)
+        or security.magicLink.enabled=false.
       security: []
       parameters:
         - name: token
@@ -207,6 +210,8 @@ paths:
                 type: string
         "400":
           $ref: "#/components/responses/BadRequest"
+        "404":
+          description: One-time sign-in links are turned off on this deployment
     post:
       tags:
         - session
@@ -248,6 +253,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          description: One-time sign-in links are turned off on this deployment
         "429":
           description: Too many failed attempts from this client
   /system/api/v1/session/refresh:

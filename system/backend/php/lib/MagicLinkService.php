@@ -49,6 +49,43 @@ class MagicLinkService
     }
 
     /**
+     * Read a server-level setting from wherever the SAPI exposes it: the
+     * process env (docker / php-fpm env), Apache SetEnv or nginx fastcgi_param
+     * ($_SERVER), and Apache's REDIRECT_ copy that appears after the
+     * system/api rewrite.
+     */
+    private static function readEnv($name)
+    {
+        $value = getenv($name);
+        if ($value !== false && $value !== '') {
+            return $value;
+        }
+        foreach (array($name, 'REDIRECT_' . $name) as $key) {
+            if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
+                return $_SERVER[$key];
+            }
+            if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+                return $_ENV[$key];
+            }
+        }
+        return false;
+    }
+
+    private static function isTruthyFlag($value)
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+        return in_array(strtolower(trim($value)), array('1', 'true', 'yes', 'on'), true);
+    }
+
+    public static function isEnabled($haxcms)
+    {
+        $settings = self::getSettings($haxcms);
+        return $settings['enabled'];
+    }
+
+    /**
      * Resolve policy from config.security.magicLink with env overrides.
      * Enabled by default: with no HTTP issuance path, the only exposure is the
      * consume endpoint, which can only redeem links minted by a trusted operator.
@@ -66,11 +103,13 @@ class MagicLinkService
             $source = $haxcms->config->security->magicLink;
         }
         $enabled = !(isset($source->enabled) && $source->enabled === false);
-        $disabledEnv = getenv('HAXCMS_MAGIC_LINK_DISABLED');
-        if ($disabledEnv === '1' || $disabledEnv === 'true') {
+        // System-level kill switch, e.g. HAXiam deploys that sign in through a
+        // third-party OAuth/SSO provider and have no local password account to
+        // recover. Wins over config so a site/tenant config can't re-enable it.
+        if (self::isTruthyFlag(self::readEnv('HAXCMS_MAGIC_LINK_DISABLED'))) {
             $enabled = false;
         }
-        $ttlEnv = getenv('HAXCMS_MAGIC_LINK_TTL_SECONDS');
+        $ttlEnv = self::readEnv('HAXCMS_MAGIC_LINK_TTL_SECONDS');
         $ttlSource = ($ttlEnv !== false && $ttlEnv !== '')
             ? $ttlEnv
             : (isset($source->ttlSeconds) ? $source->ttlSeconds : null);
@@ -194,7 +233,7 @@ class MagicLinkService
     {
         $settings = self::getSettings($haxcms);
         if (!$settings['enabled']) {
-            throw new RuntimeException('One-time sign-in links are disabled for this HAXcms (security.magicLink.enabled=false).', 1);
+            throw new RuntimeException('One-time sign-in links are turned off for this HAXcms (HAXCMS_MAGIC_LINK_DISABLED or security.magicLink.enabled=false).', 1);
         }
         $user = (isset($options['user']) && is_string($options['user']) && trim($options['user']) !== '')
             ? trim($options['user'])
