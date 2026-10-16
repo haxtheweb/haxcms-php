@@ -616,7 +616,8 @@ class HAXCMSSite
           if (file_exists($siteDirectoryPath . '/' . $location)) {
             @file_put_contents(
                 $siteDirectoryPath . '/' . $location,
-                $twig->render($location, $templateVars)
+                // Security (SEC-SANITIZE): per-format escaping of title/description
+                $twig->render($location, SanitizeContent::managedTemplateVars($templateVars, $location))
             );
           }
       }

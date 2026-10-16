@@ -37,6 +37,10 @@ class SanitizeContentSchemeTest extends TestCase
             'arbitrary attr vbscript' => ['<my-widget foo="VBScript:msgbox(1)"></my-widget>', 'foo'],
             'arbitrary attr numeric no semicolon' => ['<my-widget foo="&amp;#106avascript:alert(1)"></my-widget>', 'foo'],
             'arbitrary attr double-encoded Tab' => ['<my-widget foo="java&amp;Tab;script:alert(1)"></my-widget>', 'foo'],
+            'arbitrary attr svg data uri' => ['<my-widget foo="data:image/svg+xml,&lt;svg onload=alert(1)&gt;"></my-widget>', 'foo'],
+            'arbitrary attr data text/html' => ['<my-widget foo="data:text/html,hi"></my-widget>', 'foo'],
+            'arbitrary attr mocha' => ['<my-widget foo="mocha:alert(1)"></my-widget>', 'foo'],
+            'arbitrary attr livescript' => ['<my-widget foo="livescript:alert(1)"></my-widget>', 'foo'],
             'href double-encoded' => ['<a href="&amp;#106;avascript:alert(1)">x</a>', 'href'],
         ];
     }
@@ -49,6 +53,38 @@ class SanitizeContentSchemeTest extends TestCase
         $this->assertStringNotContainsStringIgnoringCase('vbscript', $out);
         $this->assertStringNotContainsStringIgnoringCase('data:', $out);
         $this->assertDoesNotMatchRegularExpression('/\s' . preg_quote($attribute, '/') . '=/i', $out);
+    }
+
+    public function testRasterDataUriOnNewlyUrlNamedAttributesKeepsWorking(): void
+    {
+        // source/link/file/sources/tracks were unchecked on master, so raster
+        // data:image URIs keep working there
+        $out = SanitizeContent::sanitizeHTMLForStorage('<media-image source="data:image/png;base64,iVBORw0KGgo=" alt="a"></media-image>');
+        $this->assertStringContainsString('source="data:image/png;base64,iVBORw0KGgo="', $out);
+        $out = SanitizeContent::sanitizeHTMLForStorage('<media-image source="data:image/jpeg;base64,/9j/4AAQ"></media-image>');
+        $this->assertStringContainsString('source="data:image/jpeg;base64,/9j/4AAQ"', $out);
+        // non-raster data: on those attributes is still removed
+        foreach (array('data:image/svg+xml;base64,PHN2Zz4=', 'data:text/html,x', 'data:,x') as $value) {
+            $out = SanitizeContent::sanitizeHTMLForStorage('<media-image source="' . $value . '"></media-image>');
+            $this->assertStringNotContainsString('source=', $out, $value);
+        }
+        // src keeps master behaviour: every data: URI rejected
+        $this->assertSame('', SanitizeContent::sanitizeURLValue('data:image/png;base64,iVBORw0KGgo=', ''));
+        $out = SanitizeContent::sanitizeHTMLForStorage('<img src="data:image/png;base64,iVBORw0KGgo=">');
+        $this->assertStringNotContainsString('src=', $out);
+    }
+
+    public function testDangerousSchemeHelper(): void
+    {
+        $this->assertTrue(SanitizeContent::hasDangerousScheme('data:text/html,x'));
+        $this->assertTrue(SanitizeContent::hasDangerousScheme('DATA:image/SVG+xml,x'));
+        $this->assertTrue(SanitizeContent::hasDangerousScheme('data:application/xhtml+xml;base64,x'));
+        $this->assertFalse(SanitizeContent::hasDangerousScheme('data:image/png;base64,x'));
+        $this->assertFalse(SanitizeContent::hasDangerousScheme('data:image/avif;base64,x'));
+        $this->assertFalse(SanitizeContent::hasDangerousScheme('Data: 2024 results'));
+        $this->assertFalse(SanitizeContent::hasDangerousScheme('data:,plain'));
+        $this->assertTrue(SanitizeContent::hasDangerousScheme("  java\tscript:x"));
+        $this->assertFalse(SanitizeContent::hasDangerousScheme('https://x'));
     }
 
     public function testUrlNamedCustomAttributesUseTheAllowlist(): void
@@ -79,6 +115,13 @@ class SanitizeContentSchemeTest extends TestCase
             'hax icon name' => ['<simple-icon-button icon="hax:page-edit"></simple-icon-button>', 'icon="hax:page-edit"'],
             'boolean attribute' => ['<my-widget correct></my-widget>', 'correct'],
             'non-script scheme on non-URL attr' => ['<my-widget foo="ftp://x"></my-widget>', 'foo="ftp://x"'],
+            'alt with javascript prefix' => ['<img alt="JavaScript: the good parts" src="x.png">', 'alt="JavaScript: the good parts"'],
+            'title with data prefix' => ['<p title="Data: 2024 results">x</p>', 'title="Data: 2024 results"'],
+            'aria-label with javascript prefix' => ['<button aria-label="javascript: tips">x</button>', 'aria-label="javascript: tips"'],
+            'placeholder with vbscript prefix' => ['<input placeholder="VBScript: legacy">', 'placeholder="VBScript: legacy"'],
+            'non-text attr with Data: prose' => ['<my-widget foo="Data: 2024 results"></my-widget>', 'foo="Data: 2024 results"'],
+            'interior space breaks scheme' => ['<my-widget foo="java script:alert(1)"></my-widget>', 'foo="java script:alert(1)"'],
+            'raster data uri on non-URL attr' => ['<my-widget foo="data:image/png;base64,iVBORw0KGgo="></my-widget>', 'foo="data:image/png;base64,iVBORw0KGgo="'],
         ];
     }
 
@@ -94,10 +137,14 @@ class SanitizeContentSchemeTest extends TestCase
         return [
             ['javascript:alert(1)', 'javascript'],
             ["  JAVA\tSCRIPT:x", 'javascript'],
+            ["java\r\nscript:x", 'javascript'],
+            ["\x01\x1fjavascript:x", 'javascript'],
+            ['java script:x', ''],
+            ['javascript: the good parts', 'javascript'],
             ['&#106;avascript:x', 'javascript'],
             ['&#106avascript:x', 'javascript'],
             ['&#X6a;avascript:x', 'javascript'],
-            ['&#x6A avascript:x', 'javascript'],
+            ['&#x6A avascript:x', ''],
             ['javascript&colon;x', 'javascript'],
             ['java&Tab;script:x', 'javascript'],
             ['java&NewLine;script:x', 'javascript'],
@@ -183,7 +230,10 @@ class SanitizeContentSchemeTest extends TestCase
             'created' => 5,
             'ratio' => 1.5,
             'customThing' => '<b>x</b>',
-            'images' => array('files/a.png', '<x>'),
+            'quoteAmp' => "Tom's R&D",
+            'badLink' => ' JavaScript:alert(1)',
+            'dataLink' => 'data:text/html,x',
+            'images' => array('files/a.png', '<x>', 'javascript:alert(1)'),
             'deep' => array('a' => array('b' => array('c' => array('d' => array('e' => array('f' => 'too deep')))))),
             'nested' => (object)array('constructor' => 'x', 'ok' => '"q"'),
             '__proto__' => 'x',
@@ -207,6 +257,10 @@ class SanitizeContentSchemeTest extends TestCase
         $this->assertSame(1.5, $out->ratio);
         $this->assertSame('&lt;b&gt;x&lt;/b&gt;', $out->customThing);
         $this->assertSame(array('files/a.png', '&lt;x&gt;'), $out->images);
+        // unknown keys: only < > " escaped, script schemes dropped
+        $this->assertSame("Tom's R&D", $out->quoteAmp);
+        $this->assertFalse(property_exists($out, 'badLink'));
+        $this->assertSame('data:text/html,x', $out->dataLink);
         // depth limit 5: the 6th level is dropped
         $this->assertFalse(property_exists($out->deep->a->b->c->d, 'e'));
         $this->assertFalse(property_exists($out->nested, 'constructor'));
@@ -254,8 +308,8 @@ class SanitizeContentSchemeTest extends TestCase
         $title = "Evil\\\"\n,\"injected\":\"1\r\n\t\x01\\";
         $description = "line1\nline2 \\u0022 \"quoted\" <b>x</b>";
         $vars = array(
-            'title' => SanitizeContent::sanitizeManagedTemplateText($title),
-            'description' => SanitizeContent::sanitizeManagedTemplateText($description),
+            'title' => $title,
+            'description' => $description,
             'short' => 'evil-site',
             'version' => '1.0.0',
             'basePath' => '/sites/evil-site/',
@@ -264,20 +318,49 @@ class SanitizeContentSchemeTest extends TestCase
         );
         $twig = new \Twig\Environment(new \Twig\Loader\FilesystemLoader($boilerplate));
         foreach (array('manifest.json', 'package.json') as $template) {
-            $decoded = json_decode($twig->render($template, $vars), true);
+            $decoded = json_decode($twig->render($template, SanitizeContent::managedTemplateVars($vars, $template)), true);
             $this->assertSame(JSON_ERROR_NONE, json_last_error(), $template . ' must stay valid JSON');
             $this->assertArrayNotHasKey('injected', $decoded);
-            $this->assertStringNotContainsString("\n", $decoded['description']);
+            $this->assertSame('line1 line2 u0022 "quoted" <b>x</b>', $decoded['description']);
         }
-        $manifest = json_decode($twig->render('manifest.json', $vars), true);
-        $this->assertStringStartsWith('Evil', $manifest['name']);
-        $xml = simplexml_load_string($twig->render('imsmanifest.xml', $vars));
+        $manifest = json_decode($twig->render('manifest.json', SanitizeContent::managedTemplateVars($vars, 'manifest.json')), true);
+        // the injection attempt is now inert string content of "name"
+        $this->assertSame('Evil","injected":"1', str_replace(' ', '', $manifest['name']));
+        $xml = simplexml_load_string($twig->render('imsmanifest.xml', SanitizeContent::managedTemplateVars($vars, 'imsmanifest.xml')));
         $this->assertNotFalse($xml);
 
         // control: unsanitized values would have broken manifest.json
-        $raw = $vars;
-        $raw['title'] = $title;
-        json_decode($twig->render('manifest.json', $raw), true);
+        json_decode($twig->render('manifest.json', $vars), true);
         $this->assertNotSame(JSON_ERROR_NONE, json_last_error());
+    }
+
+    public function testManagedTemplatesKeepQuotesAndAmpersandsLiteral(): void
+    {
+        $boilerplate = dirname(__DIR__, 4) . '/boilerplate/site';
+        $title = 'Tom\'s R&D "x"';
+        $vars = array(
+            'title' => $title,
+            'description' => 'A & B <c>',
+            'short' => 'site',
+            'version' => '1.0.0',
+            'basePath' => '/sites/site/',
+            'hexCode' => '#000000',
+            'lang' => 'en',
+        );
+        $twig = new \Twig\Environment(new \Twig\Loader\FilesystemLoader($boilerplate));
+        $manifest = json_decode($twig->render('manifest.json', SanitizeContent::managedTemplateVars($vars, 'manifest.json')), true);
+        $this->assertSame(JSON_ERROR_NONE, json_last_error());
+        $this->assertSame($title, $manifest['name']);
+        $this->assertSame('A & B <c>', $manifest['description']);
+        $package = json_decode($twig->render('package.json', SanitizeContent::managedTemplateVars($vars, 'package.json')), true);
+        $this->assertSame('A & B <c>', $package['description']);
+        $llms = $twig->render('llms.txt', SanitizeContent::managedTemplateVars($vars, 'llms.txt'));
+        $this->assertStringContainsString('# ' . $title, $llms);
+        $this->assertStringContainsString('> A & B <c>', $llms);
+        $xml = simplexml_load_string($twig->render('imsmanifest.xml', SanitizeContent::managedTemplateVars($vars, 'imsmanifest.xml')));
+        $this->assertNotFalse($xml);
+        $this->assertStringContainsString($title, $xml->asXML() !== false ? html_entity_decode((string)$xml->organizations->organization->title, ENT_QUOTES | ENT_XML1) : '');
+        // other templates (e.g. index.html) keep Twig's HTML autoescape
+        $this->assertSame($vars, SanitizeContent::managedTemplateVars($vars, 'index.html'));
     }
 }

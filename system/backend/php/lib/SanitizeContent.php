@@ -53,7 +53,40 @@ class SanitizeContent
         'vbscript',
         'livescript',
         'mocha',
-        'data',
+    ];
+
+    // Security (SEC-SANITIZE): data: URIs are only rejected when they carry
+    // an explicit media type that is not one of these raster image types.
+    private const SAFE_DATA_MEDIA_TYPES = [
+        'image/png',
+        'image/jpeg',
+        'image/gif',
+        'image/webp',
+        'image/avif',
+        'image/bmp',
+    ];
+
+    // Security (SEC-SANITIZE): URL names added for SEC-SANITIZE. They were
+    // unchecked on master, where HAX content relies on raster data: URIs
+    // (media-image source="data:image/png;..."), so raster data:image URIs
+    // keep working on them; every other value uses the URL allowlist.
+    private const DATA_IMAGE_URL_ATTRIBUTE_NAMES = [
+        'link',
+        'source',
+        'file',
+        'sources',
+        'tracks',
+    ];
+
+    // Security (SEC-SANITIZE): human-readable text attributes are never
+    // treated as URLs (alt="JavaScript: the good parts" must survive).
+    private const TEXT_ATTRIBUTE_NAMES = [
+        'alt',
+        'title',
+        'label',
+        'caption',
+        'placeholder',
+        'summary',
     ];
 
     private const TEXT_TEMPLATE_HOSTS = [
@@ -175,21 +208,29 @@ class SanitizeContent
     }
 
     /**
-     * Security (SEC-SANITIZE): leading scheme of a value after
-     * decodeSchemeEntities, removing every [\x00-\x20\x7F] character and
-     * lowercasing; '' when there is no leading ^[a-z][a-z0-9+.-]*: scheme.
-     * Parity contract with Node getNormalizedScheme.
+     * Security (SEC-SANITIZE): normalised value used for scheme detection,
+     * mirroring the browser URL parser: decodeSchemeEntities, remove TAB /
+     * LF / CR anywhere, strip LEADING [\x00-\x20], lowercase. Interior spaces
+     * are kept, so "javascript: the good parts" is not "javascript:".
+     * Parity contract with Node.
      */
-    public static function getNormalizedScheme($value)
+    public static function normalizeSchemeValue($value)
     {
         if ($value === null || is_array($value) || is_object($value)) {
             return '';
         }
-        $normalized = preg_replace('/[\x00-\x20\x7f]+/', '', self::decodeSchemeEntities($value));
-        if ($normalized === null) {
-            return '';
-        }
-        if (!preg_match('/^([a-z][a-z0-9+.-]*):/', strtolower($normalized), $matches)) {
+        $normalized = str_replace(array("\t", "\n", "\r"), '', self::decodeSchemeEntities($value));
+        $normalized = ltrim($normalized, "\x00..\x20");
+        return strtolower($normalized);
+    }
+
+    /**
+     * Security (SEC-SANITIZE): leading ^[a-z][a-z0-9+.-]*: scheme of
+     * normalizeSchemeValue($value), or '' when there is none.
+     */
+    public static function getNormalizedScheme($value)
+    {
+        if (!preg_match('/^([a-z][a-z0-9+.-]*):/', self::normalizeSchemeValue($value), $matches)) {
             return '';
         }
         return $matches[1];
@@ -197,7 +238,7 @@ class SanitizeContent
 
     /**
      * Security (SEC-SANITIZE): true when the value starts with a
-     * script-capable scheme (javascript:, vbscript:, livescript:, mocha:, data:).
+     * script-capable scheme (javascript:, vbscript:, livescript:, mocha:).
      */
     public static function hasScriptCapableScheme($value)
     {
@@ -205,22 +246,69 @@ class SanitizeContent
     }
 
     /**
+     * Security (SEC-SANITIZE): true for a script-capable scheme, or for a
+     * data: URI with an explicit media type (^data:type/subtype) that is not
+     * an allowed raster image type (so data:text/html and
+     * data:image/svg+xml are dangerous, data:image/png is not).
+     */
+    public static function hasDangerousScheme($value)
+    {
+        $scheme = self::getNormalizedScheme($value);
+        if (in_array($scheme, self::SCRIPT_CAPABLE_SCHEMES, true)) {
+            return true;
+        }
+        if ($scheme === 'data') {
+            if (preg_match('/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+)/', self::normalizeSchemeValue($value), $matches)) {
+                return !in_array($matches[1], self::SAFE_DATA_MEDIA_TYPES, true);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Security (SEC-SANITIZE): data: URI with an explicit raster image type
+     * (png, jpeg, gif, webp, avif, bmp).
+     */
+    public static function isSafeRasterDataURI($value)
+    {
+        return preg_match('/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+)/', self::normalizeSchemeValue($value), $matches) === 1 &&
+            in_array($matches[1], self::SAFE_DATA_MEDIA_TYPES, true);
+    }
+
+    private static function isTextAttribute($attributeName)
+    {
+        return in_array($attributeName, self::TEXT_ATTRIBUTE_NAMES, true) ||
+            str_starts_with($attributeName, 'aria-');
+    }
+
+    /**
      * Security (SEC-SANITIZE): value to keep, or null when the attribute must
      * be removed. URL-named attributes go through the sanitizeURLValue
-     * allowlist; every attribute is then rejected if its normalised value
-     * starts with a script-capable scheme. Empty (boolean) values are kept.
-     * Parity contract with Node sanitizeAttributeValue.
+     * allowlist (link/source/file/sources/tracks additionally accept raster
+     * data:image URIs, as on master) and then the dangerous-scheme check; text attributes (alt,
+     * title, label, caption, placeholder, summary, aria-*) are kept as-is;
+     * every other attribute is removed when hasDangerousScheme(). Empty
+     * (boolean) values are kept. Parity contract with Node.
      */
     public static function sanitizeAttributeValue($attributeName, $value)
     {
+        $attributeName = strtolower((string)$attributeName);
         $safeValue = ($value === null) ? '' : (string)$value;
-        if (self::isURLLikeAttribute(strtolower((string)$attributeName))) {
-            $safeValue = self::sanitizeURLValue($safeValue, '');
-            if ($safeValue === '') {
-                return null;
+        if (self::isURLLikeAttribute($attributeName)) {
+            if (!(
+                in_array($attributeName, self::DATA_IMAGE_URL_ATTRIBUTE_NAMES, true) &&
+                self::isSafeRasterDataURI($safeValue)
+            )) {
+                $safeValue = self::sanitizeURLValue($safeValue, '');
+                if ($safeValue === '') {
+                    return null;
+                }
             }
         }
-        if (self::hasScriptCapableScheme($safeValue)) {
+        else if (self::isTextAttribute($attributeName)) {
+            return $safeValue;
+        }
+        if (self::hasDangerousScheme($safeValue)) {
             return null;
         }
         return $safeValue;
@@ -306,6 +394,53 @@ class SanitizeContent
         return str_replace('\\', '', (string)$stringValue);
     }
 
+    /**
+     * Security (SEC-SANITIZE): title / description for one managed template.
+     * JSON templates get JSON string contents (json_encode without the
+     * surrounding quotes), imsmanifest.xml gets escapeXMLValue, llms.txt
+     * gets the plain control-char-stripped text. Returns null for any other
+     * template (Twig's default HTML autoescape applies). Parity with Node PR8.
+     */
+    public static function escapeManagedTemplateValue($value, $templateLocation)
+    {
+        $text = self::sanitizeManagedTemplateText($value);
+        switch (basename((string)$templateLocation)) {
+            case 'manifest.json':
+            case 'package.json':
+                $encoded = json_encode(
+                    $text,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+                );
+                return ($encoded === false) ? '' : substr($encoded, 1, -1);
+            case 'imsmanifest.xml':
+                return self::escapeXMLValue($text);
+            case 'llms.txt':
+                return $text;
+        }
+        return null;
+    }
+
+    /**
+     * Security (SEC-SANITIZE): template variables for one managed template.
+     * title / description are pre-escaped for the template's format and
+     * wrapped as Twig Markup so Twig's HTML autoescape does not turn
+     * `Tom's R&D` into `Tom&#039;s R&amp;D`; every other variable keeps
+     * Twig's existing autoescape.
+     */
+    public static function managedTemplateVars(array $templateVars, $templateLocation)
+    {
+        foreach (array('title', 'description') as $key) {
+            if (!array_key_exists($key, $templateVars)) {
+                continue;
+            }
+            $escaped = self::escapeManagedTemplateValue($templateVars[$key], $templateLocation);
+            if ($escaped !== null) {
+                $templateVars[$key] = new \Twig\Markup($escaped, 'UTF-8');
+            }
+        }
+        return $templateVars;
+    }
+
     private const METADATA_URL_KEYS = ['image', 'linkUrl'];
     private const METADATA_TEXT_KEYS = ['tags', 'icon', 'accentColor', 'linkTarget', 'relatedItems'];
     private const METADATA_FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
@@ -356,7 +491,7 @@ class SanitizeContent
                     $result['values']->{$key} = self::sanitizeMetadataValue((string)$value, false);
                 }
                 else {
-                    $clean = self::sanitizeMetadataNested($value, 0);
+                    $clean = self::sanitizeMetadataNested($value, 0, true);
                     if ($clean['keep']) {
                         $result['values']->{$key} = $clean['value'];
                     }
@@ -373,7 +508,7 @@ class SanitizeContent
                 }
                 continue;
             }
-            $clean = self::sanitizeMetadataNested($value, 0);
+            $clean = self::sanitizeMetadataNested($value, 0, false);
             if ($clean['keep']) {
                 $result['values']->{$key} = $clean['value'];
             }
@@ -443,13 +578,33 @@ class SanitizeContent
         return $theme;
     }
 
-    // unknown keys: strings escaped (no double-encode), finite numbers /
-    // booleans / null kept, lists and maps walked (forbidden keys dropped),
-    // anything else dropped. Returns ['keep' => bool, 'value' => mixed].
-    private static function sanitizeMetadataNested($value, $depth)
+    /**
+     * Security (SEC-SANITIZE): metadata strings under unknown keys. Only
+     * < > " are escaped (& and ' are left alone so URLs such as
+     * files/a.png?x=1&y=2 in metadata.images round-trip unchanged); values
+     * starting with a script-capable scheme are dropped (returns null).
+     */
+    public static function sanitizeUnknownMetadataString($value)
+    {
+        $stringValue = (string)$value;
+        if (self::hasScriptCapableScheme($stringValue)) {
+            return null;
+        }
+        return str_replace(array('<', '>', '"'), array('&lt;', '&gt;', '&quot;'), $stringValue);
+    }
+
+    // finite numbers / booleans / null kept, lists and maps walked (forbidden
+    // keys dropped), anything else dropped. Strings: known text fields use
+    // saveNode's escaping (htmlspecialchars, no double-encode), unknown keys
+    // use sanitizeUnknownMetadataString. Returns ['keep' => bool, 'value' => mixed].
+    private static function sanitizeMetadataNested($value, $depth, $textField)
     {
         if (is_string($value)) {
-            return array('keep' => true, 'value' => self::sanitizeMetadataValue($value, false));
+            if ($textField) {
+                return array('keep' => true, 'value' => self::sanitizeMetadataValue($value, false));
+            }
+            $clean = self::sanitizeUnknownMetadataString($value);
+            return array('keep' => $clean !== null, 'value' => $clean);
         }
         if ($value === null || is_bool($value) || is_int($value)) {
             return array('keep' => true, 'value' => $value);
@@ -463,7 +618,7 @@ class SanitizeContent
         if (is_array($value) && array_is_list($value)) {
             $out = array();
             foreach ($value as $entry) {
-                $clean = self::sanitizeMetadataNested($entry, $depth + 1);
+                $clean = self::sanitizeMetadataNested($entry, $depth + 1, $textField);
                 if ($clean['keep']) {
                     $out[] = $clean['value'];
                 }
@@ -477,7 +632,7 @@ class SanitizeContent
                 if (in_array($childKey, self::METADATA_FORBIDDEN_KEYS, true)) {
                     continue;
                 }
-                $clean = self::sanitizeMetadataNested($childValue, $depth + 1);
+                $clean = self::sanitizeMetadataNested($childValue, $depth + 1, $textField);
                 if ($clean['keep']) {
                     $out->{$childKey} = $clean['value'];
                 }
