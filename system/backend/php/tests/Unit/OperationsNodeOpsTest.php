@@ -890,8 +890,8 @@ class OperationsNodeOpsTest extends TestCase
         }
         $a = $byId['item-a'];
         $this->assertSame('Item A', $a->title);
-        $this->assertSame('', $a->metadata->image);
-        $this->assertSame('', $a->metadata->linkUrl);
+        $this->assertFalse(isset($a->metadata->image));
+        $this->assertFalse(isset($a->metadata->linkUrl));
         $this->assertStringNotContainsString('<', $a->metadata->icon);
         $this->assertFalse(isset($a->metadata->theme));
         $this->assertTrue($a->metadata->published);
@@ -933,7 +933,7 @@ class OperationsNodeOpsTest extends TestCase
         }
         $this->assertNotNull($page);
         $this->assertSame('Imported page', $page->title);
-        $this->assertSame('', $page->metadata->image);
+        $this->assertFalse(isset($page->metadata->image));
         // tags are normalised to a list on save
         $this->assertStringNotContainsString('<', json_encode($page->metadata->tags, JSON_UNESCAPED_SLASHES));
         $this->assertFalse(isset($page->metadata->constructor));

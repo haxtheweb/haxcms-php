@@ -110,8 +110,12 @@ trait OperationsRouteSaveOutline {
         }
         // set a title if we have one
         if ($item->title != '' && $item->title) {
-          // Security (SEC-SANITIZE): titles are plain text, same as saveNode
-          $page->title = SanitizeContent::plainText($item->title);
+          // Security (SEC-SANITIZE): titles are plain text, same as saveNode;
+          // a title that is nothing but markup keeps the existing title
+          $plainTitle = SanitizeContent::plainText($item->title);
+          if ($plainTitle !== '') {
+            $page->title = $plainTitle;
+          }
         }
         // description belongs to the JSON Outline Schema item; same handling
         // as the setDescription node operation
@@ -225,17 +229,11 @@ trait OperationsRouteSaveOutline {
         if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
           // Security (SEC-SANITIZE): route client metadata through the same
           // per-field sanitisation saveNode applies instead of mass-assigning
-          if (!isset($page->metadata) || !is_object($page->metadata)) {
-            $page->metadata = new stdClass();
-          }
-          $safeMetadata = SanitizeContent::sanitizePageMetadata(
+          SanitizeContent::applyPageMetadata(
+            $page,
             $item->metadata,
-            $page->metadata,
             $GLOBALS['HAXCMS']->getThemes()
           );
-          foreach ($safeMetadata as $key => $value) {
-              $page->metadata->{$key} = $value;
-          }
         }
         // safety check for new things
         if (!isset($page->metadata->created)) {

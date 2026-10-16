@@ -35,6 +35,8 @@ class SanitizeContentSchemeTest extends TestCase
             'arbitrary attr whitespace' => ["<my-widget foo=\" \t java\nscript:alert(1)\"></my-widget>", 'foo'],
             'arbitrary attr data' => ['<my-widget foo="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="></my-widget>', 'foo'],
             'arbitrary attr vbscript' => ['<my-widget foo="VBScript:msgbox(1)"></my-widget>', 'foo'],
+            'arbitrary attr numeric no semicolon' => ['<my-widget foo="&amp;#106avascript:alert(1)"></my-widget>', 'foo'],
+            'arbitrary attr double-encoded Tab' => ['<my-widget foo="java&amp;Tab;script:alert(1)"></my-widget>', 'foo'],
             'href double-encoded' => ['<a href="&amp;#106;avascript:alert(1)">x</a>', 'href'],
         ];
     }
@@ -73,6 +75,10 @@ class SanitizeContentSchemeTest extends TestCase
             'text with later colon' => ['<my-widget foo="see javascript: later"></my-widget>', 'foo="see javascript: later"'],
             'json-ish sources' => ['<video-player sources=\'[{"src":"files/v.mp4"}]\'></video-player>', 'files/v.mp4'],
             'time value' => ['<my-widget start="10:30"></my-widget>', 'start="10:30"'],
+            'iron-icon name' => ['<simple-icon icon="icons:check"></simple-icon>', 'icon="icons:check"'],
+            'hax icon name' => ['<simple-icon-button icon="hax:page-edit"></simple-icon-button>', 'icon="hax:page-edit"'],
+            'boolean attribute' => ['<my-widget correct></my-widget>', 'correct'],
+            'non-script scheme on non-URL attr' => ['<my-widget foo="ftp://x"></my-widget>', 'foo="ftp://x"'],
         ];
     }
 
@@ -89,21 +95,46 @@ class SanitizeContentSchemeTest extends TestCase
             ['javascript:alert(1)', 'javascript'],
             ["  JAVA\tSCRIPT:x", 'javascript'],
             ['&#106;avascript:x', 'javascript'],
+            ['&#106avascript:x', 'javascript'],
+            ['&#X6a;avascript:x', 'javascript'],
+            ['&#x6A avascript:x', 'javascript'],
             ['javascript&colon;x', 'javascript'],
+            ['java&Tab;script:x', 'javascript'],
+            ['java&NewLine;script:x', 'javascript'],
+            // named entities are case-sensitive and need ';'
+            ['javascript&COLON;x', ''],
+            ['javascript&colonx', ''],
+            // not part of the scheme entity set
+            ['javascript&#58x', 'javascript'],
             ['https://x', 'https'],
             ['note: hi', 'note'],
-            ['/relative:thing', null],
-            ['#frag:x', null],
-            ['1abc:x', null],
-            ['', null],
-            [null, null],
+            ['icons:check', 'icons'],
+            ['/relative:thing', ''],
+            ['#frag:x', ''],
+            ['1abc:x', ''],
+            ['', ''],
+            [null, ''],
         ];
     }
 
     #[DataProvider('schemeDetectionProvider')]
-    public function testDetectURLScheme(?string $input, ?string $expected): void
+    public function testGetNormalizedScheme(?string $input, string $expected): void
     {
-        $this->assertSame($expected, SanitizeContent::detectURLScheme($input));
+        $this->assertSame($expected, SanitizeContent::getNormalizedScheme($input));
+    }
+
+    public function testDecodeSchemeEntitiesSinglePassAndInvalidCodePoints(): void
+    {
+        // one pass only: &#38;#106; -> &#106; (not decoded again)
+        $this->assertSame('&#106;', SanitizeContent::decodeSchemeEntities('&#38;#106;'));
+        $this->assertSame('', SanitizeContent::decodeSchemeEntities('&#0;'));
+        $this->assertSame('', SanitizeContent::decodeSchemeEntities('&#x110000;'));
+        $this->assertSame('', SanitizeContent::decodeSchemeEntities('&#xD800;'));
+        $this->assertSame('', SanitizeContent::decodeSchemeEntities('&#99999999999999999999;'));
+        $this->assertSame("\u{1F600}", SanitizeContent::decodeSchemeEntities('&#x1F600;'));
+        $this->assertSame(':+.', SanitizeContent::decodeSchemeEntities('&colon;&plus;&period;'));
+        // html_entity_decode-only named entities are left alone
+        $this->assertSame('&amp;&lt;&quot;', SanitizeContent::decodeSchemeEntities('&amp;&lt;&quot;'));
     }
 
     public static function plainTextProvider(): array
@@ -139,45 +170,81 @@ class SanitizeContentSchemeTest extends TestCase
         $themes = (object)array(
             'clean-one' => (object)array('element' => 'clean-one', 'name' => 'Clean one'),
         );
-        $existing = (object)array('tags' => 'a &amp; b', 'created' => 5);
         $incoming = (object)array(
             'image' => 'javascript:alert(1)',
             'linkUrl' => 'https://ok.example/',
-            'tags' => 'a &amp; b',
+            'tags' => 'a &amp; b & c',
             'icon' => '"><img src=x onerror=alert(1)>',
-            'accentColor' => 'red',
+            'accentColor' => '',
+            'linkTarget' => 7,
+            'relatedItems' => array('x<y>'),
             'theme' => (object)array('key' => 'clean-one', 'element' => '<evil>'),
             'published' => true,
             'created' => 5,
+            'ratio' => 1.5,
             'customThing' => '<b>x</b>',
             'images' => array('files/a.png', '<x>'),
+            'deep' => array('a' => array('b' => array('c' => array('d' => array('e' => array('f' => 'too deep')))))),
+            'nested' => (object)array('constructor' => 'x', 'ok' => '"q"'),
             '__proto__' => 'x',
             'constructor' => 'x',
             'prototype' => 'x',
         );
-        $out = SanitizeContent::sanitizePageMetadata($incoming, $existing, $themes);
-        $this->assertSame('', $out->image);
+        $res = SanitizeContent::sanitizePageMetadata($incoming, $themes);
+        $out = $res['values'];
+        $this->assertSame(array('image', 'accentColor'), $res['remove']);
+        $this->assertFalse(property_exists($out, 'image'));
         $this->assertSame('https://ok.example/', $out->linkUrl);
-        // unchanged value is not re-escaped
-        $this->assertSame('a &amp; b', $out->tags);
-        $this->assertStringNotContainsString('<', $out->icon);
-        $this->assertSame('red', $out->accentColor);
+        // no double-encoding: existing entities survive, bare & is escaped
+        $this->assertSame('a &amp; b &amp; c', $out->tags);
+        $this->assertSame('&quot;&gt;&lt;img src=x onerror=alert(1)&gt;', $out->icon);
+        $this->assertSame('7', $out->linkTarget);
+        $this->assertSame(array('x&lt;y&gt;'), $out->relatedItems);
         $this->assertSame('clean-one', $out->theme->key);
         $this->assertSame('clean-one', $out->theme->element);
         $this->assertTrue($out->published);
         $this->assertSame(5, $out->created);
+        $this->assertSame(1.5, $out->ratio);
         $this->assertSame('&lt;b&gt;x&lt;/b&gt;', $out->customThing);
         $this->assertSame(array('files/a.png', '&lt;x&gt;'), $out->images);
+        // depth limit 5: the 6th level is dropped
+        $this->assertFalse(property_exists($out->deep->a->b->c->d, 'e'));
+        $this->assertFalse(property_exists($out->nested, 'constructor'));
+        $this->assertSame('&quot;q&quot;', $out->nested->ok);
         $this->assertFalse(property_exists($out, '__proto__'));
         $this->assertFalse(property_exists($out, 'constructor'));
         $this->assertFalse(property_exists($out, 'prototype'));
+        // idempotent: a second pass over the output changes nothing
+        $again = SanitizeContent::sanitizePageMetadata(json_decode(json_encode($out)), $themes)['values'];
+        $this->assertSame($out->tags, $again->tags);
+        $this->assertSame($out->icon, $again->icon);
+    }
 
-        $bad = SanitizeContent::sanitizePageMetadata(
-            (object)array('theme' => (object)array('key' => 'not-installed')),
-            null,
-            $themes
+    public function testApplyPageMetadataRemovesBadThemeAndEscapesStoredValues(): void
+    {
+        $themes = (object)array('clean-one' => (object)array('element' => 'clean-one'));
+        $page = new stdClass();
+        $page->metadata = (object)array(
+            'theme' => (object)array('key' => 'clean-one'),
+            'image' => 'files/old.png',
+            'untouched' => '<kept as stored>',
         );
-        $this->assertFalse(property_exists($bad, 'theme'));
+        // client echoes back a stored-but-malicious value: still escaped
+        SanitizeContent::applyPageMetadata($page, array(
+            'theme' => '_none_',
+            'image' => 'vbscript:x',
+            'icon' => '<svg onload=alert(1)>',
+        ), $themes);
+        $this->assertFalse(isset($page->metadata->theme));
+        $this->assertFalse(isset($page->metadata->image));
+        $this->assertSame('&lt;svg onload=alert(1)&gt;', $page->metadata->icon);
+        $this->assertSame('<kept as stored>', $page->metadata->untouched);
+
+        SanitizeContent::applyPageMetadata($page, array('theme' => 'not-installed'), $themes);
+        $this->assertFalse(isset($page->metadata->theme));
+        SanitizeContent::applyPageMetadata($page, array('theme' => 'clean-one'), $themes);
+        $this->assertSame('clean-one', $page->metadata->theme->key);
+        $this->assertFalse(isset($themes->{'clean-one'}->key), 'shared themes entry must not be mutated');
     }
 
     public function testManagedTemplatesStayParseableWithHostileTitle(): void

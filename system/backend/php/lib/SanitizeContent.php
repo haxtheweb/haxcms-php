@@ -43,12 +43,12 @@ class SanitizeContent
         'tel',
     ];
 
-    // Security (SEC-SANITIZE): schemes that execute script or render active
-    // documents. Attributes that are NOT URL-named are only scrubbed when
-    // their value starts with one of these, so plain text such as
-    // title="Note: hi" keeps working. URL-named attributes use the stricter
-    // ALLOWED_PROTOCOLS allowlist instead.
-    private const DANGEROUS_PROTOCOLS = [
+    // Security (SEC-SANITIZE): script-capable schemes, rejected on EVERY
+    // attribute regardless of name. This is a denylist on purpose: HAX
+    // attribute values are routinely scheme-shaped (icon="icons:check",
+    // title="Note: hi") so the http/https/mailto/tel allowlist can only apply
+    // to URL-named attributes. Parity contract with Node SCRIPT_CAPABLE_SCHEMES.
+    private const SCRIPT_CAPABLE_SCHEMES = [
         'javascript',
         'vbscript',
         'livescript',
@@ -129,59 +129,117 @@ class SanitizeContent
     }
 
     /**
-     * Security (SEC-SANITIZE): detect the URL scheme a value would be
-     * interpreted with. Decodes HTML entities once (so &#106;avascript: and
-     * javascript&colon; are caught), strips ASCII whitespace and control
-     * characters (U+0000-U+0020, U+007F) anywhere in the value, lowercases,
-     * then matches ^[a-z][a-z0-9+.-]*: . Returns the scheme or null.
+     * Security (SEC-SANITIZE): single-pass decode of the entity forms that can
+     * spell a scheme: numeric &#NNN / &#xHH with optional ';', plus the
+     * case-sensitive named &colon; &Tab; &NewLine; &plus; &period; (';'
+     * required). Invalid code points (0, > 0x10FFFF, surrogates) decode to ''.
+     * Deliberately NOT html_entity_decode: parity contract with Node
+     * decodeSchemeEntities. Because the DOM already decoded the attribute once,
+     * this second pass also catches double-encoded `&amp;#106;avascript:`.
      */
-    public static function detectURLScheme($value)
+    public static function decodeSchemeEntities($value)
+    {
+        $decoded = preg_replace_callback(
+            '/&#[xX]([0-9a-fA-F]+);?|&#([0-9]+);?|&(colon|Tab|NewLine|plus|period);/',
+            function ($match) {
+                if (isset($match[3]) && $match[3] !== '') {
+                    $named = array(
+                        'colon' => ':',
+                        'Tab' => "\t",
+                        'NewLine' => "\n",
+                        'plus' => '+',
+                        'period' => '.',
+                    );
+                    return $named[$match[3]];
+                }
+                if (isset($match[1]) && $match[1] !== '') {
+                    $digits = ltrim($match[1], '0');
+                    $codePoint = (strlen($digits) > 6) ? PHP_INT_MAX : (int)hexdec($digits === '' ? '0' : $digits);
+                }
+                else {
+                    $digits = ltrim($match[2], '0');
+                    $codePoint = (strlen($digits) > 7) ? PHP_INT_MAX : (int)($digits === '' ? '0' : $digits);
+                }
+                if (
+                    $codePoint <= 0 ||
+                    $codePoint > 0x10FFFF ||
+                    ($codePoint >= 0xD800 && $codePoint <= 0xDFFF)
+                ) {
+                    return '';
+                }
+                return mb_chr($codePoint, 'UTF-8');
+            },
+            (string)$value
+        );
+        return $decoded === null ? '' : $decoded;
+    }
+
+    /**
+     * Security (SEC-SANITIZE): leading scheme of a value after
+     * decodeSchemeEntities, removing every [\x00-\x20\x7F] character and
+     * lowercasing; '' when there is no leading ^[a-z][a-z0-9+.-]*: scheme.
+     * Parity contract with Node getNormalizedScheme.
+     */
+    public static function getNormalizedScheme($value)
     {
         if ($value === null || is_array($value) || is_object($value)) {
-            return null;
+            return '';
         }
-        $stringValue = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $stringValue = preg_replace('/[\x00-\x20\x7f]+/', '', $stringValue);
-        if ($stringValue === null || $stringValue === '') {
-            return null;
+        $normalized = preg_replace('/[\x00-\x20\x7f]+/', '', self::decodeSchemeEntities($value));
+        if ($normalized === null) {
+            return '';
         }
-        if (!preg_match('/^([a-z][a-z0-9+.-]*):/', strtolower($stringValue), $matches)) {
-            return null;
+        if (!preg_match('/^([a-z][a-z0-9+.-]*):/', strtolower($normalized), $matches)) {
+            return '';
         }
         return $matches[1];
     }
 
     /**
-     * Security (SEC-SANITIZE): true when the value carries a scheme outside
-     * the URL allowlist (http, https, mailto, tel).
+     * Security (SEC-SANITIZE): true when the value starts with a
+     * script-capable scheme (javascript:, vbscript:, livescript:, mocha:, data:).
      */
-    public static function hasDisallowedURLScheme($value)
+    public static function hasScriptCapableScheme($value)
     {
-        $scheme = self::detectURLScheme($value);
-        return $scheme !== null && !in_array($scheme, self::ALLOWED_PROTOCOLS, true);
+        return in_array(self::getNormalizedScheme($value), self::SCRIPT_CAPABLE_SCHEMES, true);
     }
 
     /**
-     * Security (SEC-SANITIZE): true when the value carries a script-capable
-     * scheme (javascript:, vbscript:, data:, ...).
+     * Security (SEC-SANITIZE): value to keep, or null when the attribute must
+     * be removed. URL-named attributes go through the sanitizeURLValue
+     * allowlist; every attribute is then rejected if its normalised value
+     * starts with a script-capable scheme. Empty (boolean) values are kept.
+     * Parity contract with Node sanitizeAttributeValue.
      */
-    public static function hasDangerousURLScheme($value)
+    public static function sanitizeAttributeValue($attributeName, $value)
     {
-        $scheme = self::detectURLScheme($value);
-        return $scheme !== null && in_array($scheme, self::DANGEROUS_PROTOCOLS, true);
+        $safeValue = ($value === null) ? '' : (string)$value;
+        if (self::isURLLikeAttribute(strtolower((string)$attributeName))) {
+            $safeValue = self::sanitizeURLValue($safeValue, '');
+            if ($safeValue === '') {
+                return null;
+            }
+        }
+        if (self::hasScriptCapableScheme($safeValue)) {
+            return null;
+        }
+        return $safeValue;
     }
 
-    public static function sanitizeMetadataValue($value)
+    // Security (SEC-SANITIZE): $doubleEncode = false leaves an '&' that
+    // already starts an entity alone, so metadata round-tripped by the
+    // outline designer does not accumulate &amp;amp;... (parity with Node).
+    public static function sanitizeMetadataValue($value, $doubleEncode = true)
     {
-        return self::escapeHTMLAttribute($value);
+        return self::escapeHTMLAttribute($value, $doubleEncode);
     }
 
-    public static function escapeHTMLAttribute($value)
+    public static function escapeHTMLAttribute($value, $doubleEncode = true)
     {
         if ($value === null) {
             return '';
         }
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', $doubleEncode !== false);
     }
 
     public static function escapeXMLValue($value)
@@ -249,59 +307,114 @@ class SanitizeContent
     }
 
     private const METADATA_URL_KEYS = ['image', 'linkUrl'];
+    private const METADATA_TEXT_KEYS = ['tags', 'icon', 'accentColor', 'linkTarget', 'relatedItems'];
     private const METADATA_FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
-    private const METADATA_MAX_DEPTH = 8;
+    private const METADATA_MAX_DEPTH = 5;
 
     /**
      * Security (SEC-SANITIZE): sanitize client-supplied page metadata the
      * same way saveNode does per field, for bulk paths (saveOutline,
-     * createNode items[] / addPage). Values identical to what is already
-     * stored are kept as-is so round-tripped metadata is not re-escaped on
-     * every save.
+     * createNode items[] / addPage). Parity contract with Node
+     * sanitizePageMetadata.
      *
      * @param mixed $incoming metadata object/array from the request
-     * @param object|null $existing the page's current metadata
      * @param object|null $themes result of HAXCMS::getThemes()
-     * @return stdClass sanitized key => value pairs to apply
+     * @return array ['values' => stdClass of keys to set, 'remove' => keys to delete]
      */
-    public static function sanitizePageMetadata($incoming, $existing = null, $themes = null)
+    public static function sanitizePageMetadata($incoming, $themes = null)
     {
-        $result = new \stdClass();
-        if (!is_array($incoming) && !is_object($incoming)) {
+        $result = array('values' => new \stdClass(), 'remove' => array());
+        if (!self::isMetadataMap($incoming)) {
             return $result;
         }
         foreach ($incoming as $key => $value) {
             $key = (string)$key;
-            if ($key === '' || in_array($key, self::METADATA_FORBIDDEN_KEYS, true)) {
-                continue;
-            }
-            $hasExisting = is_object($existing) && property_exists($existing, $key);
-            if ($key === 'theme') {
-                $theme = self::sanitizeThemeMetadata($value, $themes);
-                if ($theme !== null) {
-                    $result->theme = $theme;
-                }
-                continue;
-            }
-            // unchanged values were already sanitized when first stored
-            if ($hasExisting && $existing->{$key} == $value) {
-                $result->{$key} = $existing->{$key};
+            if (in_array($key, self::METADATA_FORBIDDEN_KEYS, true)) {
                 continue;
             }
             if (in_array($key, self::METADATA_URL_KEYS, true)) {
-                if (is_string($value)) {
-                    $result->{$key} = self::sanitizeURLValue($value, '');
+                if ($value === null || $value === '') {
+                    $result['remove'][] = $key;
+                }
+                else if (is_string($value)) {
+                    $clean = self::sanitizeURLValue($value, '');
+                    if ($clean === '') {
+                        $result['remove'][] = $key;
+                    }
+                    else {
+                        $result['values']->{$key} = $clean;
+                    }
+                }
+                // non-string URL values are ignored (existing value kept)
+                continue;
+            }
+            if (in_array($key, self::METADATA_TEXT_KEYS, true)) {
+                if ($value === null || $value === '') {
+                    $result['remove'][] = $key;
+                }
+                else if (is_string($value) || is_int($value) || is_float($value)) {
+                    $result['values']->{$key} = self::sanitizeMetadataValue((string)$value, false);
+                }
+                else {
+                    $clean = self::sanitizeMetadataNested($value, 0);
+                    if ($clean['keep']) {
+                        $result['values']->{$key} = $clean['value'];
+                    }
                 }
                 continue;
             }
-            $result->{$key} = self::sanitizeMetadataTree($value, 0);
+            if ($key === 'theme') {
+                $theme = self::resolveThemeMetadata($value, $themes);
+                if ($theme === null) {
+                    $result['remove'][] = $key;
+                }
+                else {
+                    $result['values']->theme = $theme;
+                }
+                continue;
+            }
+            $clean = self::sanitizeMetadataNested($value, 0);
+            if ($clean['keep']) {
+                $result['values']->{$key} = $clean['value'];
+            }
         }
         return $result;
     }
 
-    private static function sanitizeThemeMetadata($value, $themes)
+    /**
+     * Security (SEC-SANITIZE): apply sanitized incoming metadata onto
+     * $page->metadata (merge: keys not sent are left untouched).
+     */
+    public static function applyPageMetadata($page, $incoming, $themes = null)
     {
-        $themeKey = null;
+        if (!is_object($page)) {
+            return $page;
+        }
+        if (!isset($page->metadata) || !is_object($page->metadata)) {
+            $page->metadata = new \stdClass();
+        }
+        $sanitized = self::sanitizePageMetadata($incoming, $themes);
+        foreach ($sanitized['remove'] as $key) {
+            unset($page->metadata->{$key});
+        }
+        foreach ($sanitized['values'] as $key => $value) {
+            $page->metadata->{$key} = $value;
+        }
+        return $page;
+    }
+
+    // stdClass or associative array (JSON object); lists are not maps
+    private static function isMetadataMap($value)
+    {
+        if (is_object($value)) {
+            return $value instanceof \stdClass;
+        }
+        return is_array($value) && (count($value) === 0 || !array_is_list($value));
+    }
+
+    private static function resolveThemeMetadata($value, $themes)
+    {
+        $themeKey = '';
         if (is_string($value)) {
             $themeKey = $value;
         }
@@ -311,9 +424,17 @@ class SanitizeContent
         else if (is_array($value) && isset($value['key']) && is_string($value['key'])) {
             $themeKey = $value['key'];
         }
-        if ($themeKey === null || !is_object($themes) || !isset($themes->{$themeKey})) {
+        if (
+            $themeKey === '' ||
+            $themeKey === '_none_' ||
+            in_array($themeKey, self::METADATA_FORBIDDEN_KEYS, true) ||
+            !is_object($themes) ||
+            !property_exists($themes, $themeKey) ||
+            !(is_object($themes->{$themeKey}) || is_array($themes->{$themeKey}))
+        ) {
             return null;
         }
+        // copy so the shared themes entry is never mutated
         $theme = json_decode(json_encode($themes->{$themeKey}));
         if (!is_object($theme)) {
             return null;
@@ -322,34 +443,48 @@ class SanitizeContent
         return $theme;
     }
 
-    private static function sanitizeMetadataTree($value, $depth)
+    // unknown keys: strings escaped (no double-encode), finite numbers /
+    // booleans / null kept, lists and maps walked (forbidden keys dropped),
+    // anything else dropped. Returns ['keep' => bool, 'value' => mixed].
+    private static function sanitizeMetadataNested($value, $depth)
     {
         if (is_string($value)) {
-            return self::sanitizeMetadataValue($value);
+            return array('keep' => true, 'value' => self::sanitizeMetadataValue($value, false));
         }
-        if ($value === null || is_bool($value) || is_int($value) || is_float($value)) {
-            return $value;
+        if ($value === null || is_bool($value) || is_int($value)) {
+            return array('keep' => true, 'value' => $value);
+        }
+        if (is_float($value)) {
+            return array('keep' => is_finite($value), 'value' => $value);
         }
         if ($depth >= self::METADATA_MAX_DEPTH) {
-            return null;
+            return array('keep' => false, 'value' => null);
         }
-        if (is_array($value) || is_object($value)) {
-            $isList = is_array($value) && array_is_list($value);
-            $out = $isList ? array() : new \stdClass();
-            foreach ($value as $childKey => $childValue) {
-                if ($isList) {
-                    $out[] = self::sanitizeMetadataTree($childValue, $depth + 1);
-                    continue;
+        if (is_array($value) && array_is_list($value)) {
+            $out = array();
+            foreach ($value as $entry) {
+                $clean = self::sanitizeMetadataNested($entry, $depth + 1);
+                if ($clean['keep']) {
+                    $out[] = $clean['value'];
                 }
-                $childKey = (string)$childKey;
-                if ($childKey === '' || in_array($childKey, self::METADATA_FORBIDDEN_KEYS, true)) {
-                    continue;
-                }
-                $out->{$childKey} = self::sanitizeMetadataTree($childValue, $depth + 1);
             }
-            return $out;
+            return array('keep' => true, 'value' => $out);
         }
-        return null;
+        if (self::isMetadataMap($value)) {
+            $out = new \stdClass();
+            foreach ($value as $childKey => $childValue) {
+                $childKey = (string)$childKey;
+                if (in_array($childKey, self::METADATA_FORBIDDEN_KEYS, true)) {
+                    continue;
+                }
+                $clean = self::sanitizeMetadataNested($childValue, $depth + 1);
+                if ($clean['keep']) {
+                    $out->{$childKey} = $clean['value'];
+                }
+            }
+            return array('keep' => true, 'value' => $out);
+        }
+        return array('keep' => false, 'value' => null);
     }
 
     private static function isURLLikeAttribute($attributeName)
@@ -590,25 +725,16 @@ class SanitizeContent
                 continue;
             }
 
-            if (self::isURLLikeAttribute($attributeName)) {
-                $safeValue = self::sanitizeURLValue($attributeValue, '');
-                // Security (SEC-SANITIZE): also apply the entity-decoding
-                // scheme detection so encoded schemes cannot slip past.
-                if ($safeValue !== '' && self::hasDisallowedURLScheme($attributeValue)) {
-                    $safeValue = '';
-                }
-                if ($safeValue === '') {
-                    $element->removeAttribute($attributeOriginalName);
-                }
-                else if ($safeValue !== $attributeValue) {
-                    $element->setAttribute($attributeOriginalName, $safeValue);
-                }
-            }
-            // Security (SEC-SANITIZE): custom elements consume URLs on
-            // arbitrary attribute names; any attribute whose value starts with
-            // a script-capable scheme is removed, exactly as a disallowed href is.
-            else if (self::hasDangerousURLScheme($attributeValue)) {
+            // Security (SEC-SANITIZE): URL-named attributes use the allowlist,
+            // every attribute (custom elements consume URLs on arbitrary names)
+            // is removed when it starts with a script-capable scheme, exactly
+            // as a disallowed href is.
+            $safeValue = self::sanitizeAttributeValue($attributeName, $attributeValue);
+            if ($safeValue === null) {
                 $element->removeAttribute($attributeOriginalName);
+            }
+            else if ($safeValue !== $attributeValue) {
+                $element->setAttribute($attributeOriginalName, $safeValue);
             }
         }
 

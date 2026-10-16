@@ -863,14 +863,11 @@ class HAXCMSSite
         if (!is_null($metadata)) {
           // Security (SEC-SANITIZE): per-field sanitisation instead of
           // copying every request metadata key verbatim
-          $safeMetadata = SanitizeContent::sanitizePageMetadata(
+          SanitizeContent::applyPageMetadata(
+            $page,
             $metadata,
-            null,
             $GLOBALS['HAXCMS']->getThemes()
           );
-          foreach ($safeMetadata as $key => $value) {
-            $page->metadata->{$key} = $value;
-          }
         }
         $page->metadata->created = time();
         $page->metadata->updated = time();
