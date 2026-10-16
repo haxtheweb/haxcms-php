@@ -61,18 +61,21 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         ) {
             return null;
         }
-        // Security (H1 rotation / SEC-SESSION): reject a revoked/stolen refresh
-        // family before minting an access token. Only legacy tokens (no family
-        // claim) for a user with no store entry are accepted. Reuse of a stale
-        // jti tombstones the family inside validateRefreshSession; other
-        // rejections (unknown/mismatched family) only clear this cookie so a
-        // stale cookie can't log out the user's current family.
+        // Security (H1 rotation / SEC-SESSION): reject a revoked/stolen/unknown
+        // refresh family before minting an access token. Only legacy tokens
+        // that carry NO family claim are accepted without a store entry. On
+        // reject, tombstone ONLY the presented family (legacy -> legacy
+        // tombstone); other devices' families are untouched. Parity with
+        // NodeJS connectionTest.js getValidatedJWTFromRefresh.
+        $presentedFamily = (isset($refreshTokenDecoded->family) && $refreshTokenDecoded->family !== '') ? $refreshTokenDecoded->family : null;
         $sessionOk = $GLOBALS['HAXCMS']->validateRefreshSession(
             $refreshTokenDecoded->user,
-            isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
-            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null
+            $presentedFamily,
+            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null,
+            isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
         );
         if (!$sessionOk) {
+            $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
         }
@@ -82,6 +85,7 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         // refused.
         $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($refreshTokenDecoded);
         if ($rotated === null) {
+            $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
         }
@@ -272,8 +276,13 @@ return function ($context) {
             // Security (SEC-SESSION): the refresh-cookie recovery below rotates
             // the cookie (state change), so apply the same same-origin gate as
             // session/refresh (incl. Sec-Fetch-Site: cross-site) before it. A
-            // valid Bearer above is not cookie-authenticated and is unaffected.
-            if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
+            // valid Bearer above is not cookie-authenticated and is unaffected;
+            // like NodeJS, the gate only applies when a refresh cookie is sent.
+            if (
+                isset($_COOKIE['haxcms_refresh_token']) &&
+                $_COOKIE['haxcms_refresh_token'] !== '' &&
+                !$GLOBALS['HAXCMS']->isSameOriginRequest()
+            ) {
                 $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
                 SiteRouteUtils::sendFormattedResponse(
                     array(

@@ -2199,7 +2199,8 @@ class HAXCMS
           $this->validateRefreshSession(
             $refreshTokenDecoded->user,
             isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
-            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null
+            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null,
+            isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
           )
         ) {
           $refreshUser = $this->generateMachineName($refreshTokenDecoded->user);
@@ -2645,21 +2646,27 @@ class HAXCMS
       $token['user'] = $name;
       $token['iat'] = time();
       $token['exp'] = time() + (24 * 60 * 60);
-      if ($storeRefreshSession) {
+      if ($storeRefreshSession && $name !== null && $name !== '') {
         $token['family'] = $this->generateUUID();
         $token['jti'] = $this->generateUUID();
-      }
-      $this->dispatchEvent('haxcms-refresh-token-get', $token);
-      $signed = JWT::encode($token, $this->refreshPrivateKey . $this->salt);
-      if ($storeRefreshSession && $name !== null && $name !== '') {
+        $recorded = false;
         try {
-          $this->recordRefreshSession($name, $token['family'], $token['jti'], $token['exp']);
+          $recorded = $this->recordRefreshSession($name, $token['family'], $token['jti'], $token['exp']);
         }
         catch (Exception $e) {
-          // non-fatal: stateless validation still works as a fallback
+          $recorded = false;
+        }
+        // Security (SEC-SESSION): family-bearing tokens are only accepted when
+        // the store knows the family. If the store cannot be written (e.g. a
+        // read-only config dir) fall back to a legacy no-family token so login
+        // keeps working (parity with NodeJS getRefreshToken).
+        if (!$recorded) {
+          unset($token['family']);
+          unset($token['jti']);
         }
       }
-      return $signed;
+      $this->dispatchEvent('haxcms-refresh-token-get', $token);
+      return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }
     /**
      * Security best practice (M3): centralize the haxcms_refresh_token cookie
@@ -2717,12 +2724,22 @@ class HAXCMS
         );
     }
     /**
-     * Security (H1 rotation): refresh-session store. A file-backed JSON under
-     * the protected _config/settings directory maps user -> { family,
-     * currentJtiHash, previousJtiHash, previousValidUntil, exp }. Only SHA-256
-     * hashes of jti are stored, never raw token ids. Lets refresh rotate the
-     * token (a stolen old copy dies on the legitimate user's next refresh) and
-     * lets logout revoke the whole family server-side. Mirrors NodeJS helpers.
+     * Security (H1 rotation + SEC-SESSION): refresh-session store, v2 shape
+     * (parity with NodeJS):
+     *   {"version":2,"users":{"<user>":{"families":{"<family>":
+     *     {currentJtiHash, previousJtiHash, previousValidUntil, exp}
+     *     | {revoked:true, revokedAt, exp}},
+     *    "legacyRevokedAt"?:N, "legacyRevokedExp"?:N}}}
+     * File-backed JSON under the protected _config/settings directory. Only
+     * SHA-256 hashes of jti are stored, never raw token ids. Families are
+     * tracked per login so several devices can be signed in at once.
+     * Revocation writes a tombstone instead of deleting, so a revoked (or
+     * never-recorded) family can never be re-seeded by presenting an old
+     * token. The v1 shape ({<user>: {family, currentJtiHash, ...}}) is
+     * migrated on load so live sessions survive the upgrade. Grace window:
+     * the immediately previous jti stays valid for
+     * HAXCMS_REFRESH_GRACE_SECONDS so concurrent multi-tab refreshes don't
+     * mutually invalidate.
      */
     protected function getRefreshSessionsPath() {
       $dir = isset($this->configDirectory) ? $this->configDirectory : (HAXCMS_ROOT . '/_config');
@@ -2731,259 +2748,387 @@ class HAXCMS
     protected function hashJti($jti) {
       return hash('sha256', (string) $jti);
     }
-    protected function loadRefreshSessions() {
-      $path = $this->getRefreshSessionsPath();
-      if (!file_exists($path)) {
-        return array();
-      }
-      try {
-        $raw = @file_get_contents($path);
-        if (!is_string($raw) || $raw === '') {
-          return array();
-        }
-        $parsed = json_decode($raw, true);
-        return is_array($parsed) ? $parsed : array();
-      }
-      catch (Exception $e) {
-        return array();
-      }
-    }
-    protected function saveRefreshSessions($sessions) {
-      if (!is_array($sessions)) {
-        return;
-      }
-      $path = $this->getRefreshSessionsPath();
-      try {
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-          @mkdir($dir, 0700, true);
-        }
-        // prune expired entries before writing. Security (SEC-SESSION):
-        // tombstones carry their own exp (revokedAt + refresh lifetime) so
-        // they are pruned here too once every token they could block is dead.
-        $now = time();
-        $cleaned = array();
-        foreach ($sessions as $k => $entry) {
-          if (is_array($entry) && isset($entry['exp']) && (int) $entry['exp'] > $now) {
-            $cleaned[$k] = $entry;
-          }
-        }
-        @file_put_contents($path, json_encode($cleaned), LOCK_EX);
-        @chmod($path, 0600);
-      }
-      catch (Exception $e) {
-        // non-fatal: stateless validation still works as a fallback
-      }
-    }
     /**
-     * Security (SEC-SESSION): lifetime (seconds) of a refresh token. Matches
-     * getRefreshToken / rotateRefreshTokenAndCookie (24h) and is used as the
-     * tombstone lifetime: once revokedAt + this has passed, every token the
-     * tombstone could have blocked has expired on its own.
+     * Security (SEC-SESSION): lifetime (seconds) of a refresh token; matches
+     * getRefreshToken / rotateRefreshTokenAndCookie (24h).
      */
     protected function getRefreshTokenLifetime() {
       return 24 * 60 * 60;
     }
-    /**
-     * Security (SEC-SESSION): true when a store entry is a revocation
-     * tombstone ({revoked: true, revokedAt, exp}).
-     */
-    protected function isRefreshSessionTombstone($entry) {
-      return is_array($entry) && isset($entry['revoked']) && $entry['revoked'] === true;
+    protected function isSafeRefreshStoreKey($key) {
+      return is_string($key) && $key !== '' &&
+        $key !== '__proto__' && $key !== 'constructor' && $key !== 'prototype';
+    }
+    protected function emptyRefreshStore() {
+      return array('version' => 2, 'users' => array());
     }
     /**
-     * Security (SEC-SESSION): replace a user's store entry with a tombstone
-     * instead of deleting it. Deleting made revocation a no-op because a
-     * missing entry used to be accepted (and re-seeded) as "legacy".
+     * Normalize any parsed store (v1 or v2) into the v2 shape (arrays).
      */
-    protected function tombstoneRefreshSession(&$sessions, $key) {
-      $now = time();
-      $exp = $now + $this->getRefreshTokenLifetime();
-      if (isset($sessions[$key]) && is_array($sessions[$key]) && isset($sessions[$key]['exp']) && (int) $sessions[$key]['exp'] > $exp) {
-        $exp = (int) $sessions[$key]['exp'];
+    protected function normalizeRefreshStore($parsed) {
+      $store = $this->emptyRefreshStore();
+      if (!is_array($parsed)) {
+        return $store;
       }
-      $sessions[$key] = array(
-        'revoked' => true,
-        'revokedAt' => $now,
-        'exp' => $exp,
-      );
+      if (isset($parsed['version']) && (int) $parsed['version'] === 2 && isset($parsed['users']) && is_array($parsed['users'])) {
+        foreach ($parsed['users'] as $userKey => $userEntry) {
+          $userKey = (string) $userKey;
+          if (!$this->isSafeRefreshStoreKey($userKey) || !is_array($userEntry)) {
+            continue;
+          }
+          $normalizedUser = array('families' => array());
+          $families = (isset($userEntry['families']) && is_array($userEntry['families'])) ? $userEntry['families'] : array();
+          foreach ($families as $familyKey => $familyEntry) {
+            $familyKey = (string) $familyKey;
+            if ($this->isSafeRefreshStoreKey($familyKey) && is_array($familyEntry)) {
+              $normalizedUser['families'][$familyKey] = $familyEntry;
+            }
+          }
+          if (isset($userEntry['legacyRevokedAt']) && (is_int($userEntry['legacyRevokedAt']) || is_float($userEntry['legacyRevokedAt']))) {
+            $normalizedUser['legacyRevokedAt'] = (int) $userEntry['legacyRevokedAt'];
+            $normalizedUser['legacyRevokedExp'] = isset($userEntry['legacyRevokedExp']) ? (int) $userEntry['legacyRevokedExp'] : 0;
+          }
+          $store['users'][$userKey] = $normalizedUser;
+        }
+        return $store;
+      }
+      // v1 migration: {<user>: {family, currentJtiHash, previousJtiHash, previousValidUntil, exp}}
+      foreach ($parsed as $userKey => $entry) {
+        $userKey = (string) $userKey;
+        if (
+          !$this->isSafeRefreshStoreKey($userKey) ||
+          !is_array($entry) ||
+          !isset($entry['family']) ||
+          !$this->isSafeRefreshStoreKey($entry['family'])
+        ) {
+          continue;
+        }
+        $store['users'][$userKey] = array('families' => array());
+        $store['users'][$userKey]['families'][$entry['family']] = array(
+          'currentJtiHash' => (isset($entry['currentJtiHash']) && $entry['currentJtiHash']) ? $entry['currentJtiHash'] : null,
+          'previousJtiHash' => (isset($entry['previousJtiHash']) && $entry['previousJtiHash']) ? $entry['previousJtiHash'] : null,
+          'previousValidUntil' => isset($entry['previousValidUntil']) ? (int) $entry['previousValidUntil'] : 0,
+          'exp' => isset($entry['exp']) ? (int) $entry['exp'] : 0,
+        );
+      }
+      return $store;
+    }
+    protected function loadRefreshSessions() {
+      $path = $this->getRefreshSessionsPath();
+      if (!file_exists($path)) {
+        return $this->emptyRefreshStore();
+      }
+      try {
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || $raw === '') {
+          return $this->emptyRefreshStore();
+        }
+        return $this->normalizeRefreshStore(json_decode($raw, true));
+      }
+      catch (Exception $e) {
+        return $this->emptyRefreshStore();
+      }
+    }
+    /**
+     * Persist the store, pruning expired live entries, expired tombstones,
+     * expired legacy tombstones and users left empty. Returns true when the
+     * store was written, false on any failure.
+     */
+    protected function saveRefreshSessions($sessions) {
+      $path = $this->getRefreshSessionsPath();
+      try {
+        $store = $this->normalizeRefreshStore($sessions);
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+          @mkdir($dir, 0700, true);
+        }
+        $now = time();
+        $cleanedUsers = new stdClass();
+        foreach ($store['users'] as $userKey => $userEntry) {
+          $keptFamilies = new stdClass();
+          $keep = false;
+          foreach ($userEntry['families'] as $familyKey => $familyEntry) {
+            if (is_array($familyEntry) && isset($familyEntry['exp']) && is_numeric($familyEntry['exp']) && (int) $familyEntry['exp'] > $now) {
+              $keptFamilies->{$familyKey} = $familyEntry;
+              $keep = true;
+            }
+          }
+          $keptUser = array('families' => $keptFamilies);
+          if (isset($userEntry['legacyRevokedAt']) && (int) $userEntry['legacyRevokedExp'] > $now) {
+            $keptUser['legacyRevokedAt'] = (int) $userEntry['legacyRevokedAt'];
+            $keptUser['legacyRevokedExp'] = (int) $userEntry['legacyRevokedExp'];
+            $keep = true;
+          }
+          if ($keep) {
+            $cleanedUsers->{$userKey} = $keptUser;
+          }
+        }
+        $json = json_encode(array('version' => 2, 'users' => $cleanedUsers));
+        if (!is_string($json)) {
+          return false;
+        }
+        $written = @file_put_contents($path, $json, LOCK_EX);
+        if ($written === false) {
+          return false;
+        }
+        @chmod($path, 0600);
+        return true;
+      }
+      catch (Exception $e) {
+        return false;
+      }
+    }
+    /**
+     * Tombstones outlive every refresh token the family could have issued:
+     * any token in the family expires at most the refresh lifetime after now
+     * (+60s clock tolerance, parity with NodeJS).
+     */
+    protected function refreshTombstoneExp($existingExp = 0) {
+      return max((int) $existingExp, time() + $this->getRefreshTokenLifetime() + 60);
+    }
+    /**
+     * Fetch (or create) a user's entry key; returns null for unsafe keys or
+     * when the user is absent and $create is false.
+     */
+    protected function refreshUserKey(&$store, $user, $create = false) {
+      if ($user === null || !is_scalar($user)) {
+        return null;
+      }
+      $key = (string) $user;
+      if (!$this->isSafeRefreshStoreKey($key)) {
+        return null;
+      }
+      if (!isset($store['users'][$key])) {
+        if (!$create) {
+          return null;
+        }
+        $store['users'][$key] = array('families' => array());
+      }
+      return $key;
     }
     /**
      * Record a new refresh session (called on login / institutional issuance).
-     * A fresh login replaces any tombstone with a brand-new family; tokens of
-     * the revoked family still fail (family mismatch).
+     * Adds a live family for the user without touching the user's other
+     * families (other devices stay signed in). Returns true when persisted.
      */
     public function recordRefreshSession($user, $family, $jti, $exp) {
-      if ($user === null || $user === '' || $family === '' || $jti === '') {
-        return;
+      if ($user === null || $user === '' || $family === null || $family === '' || $jti === null || $jti === '' || !$this->isSafeRefreshStoreKey((string) $family)) {
+        return false;
       }
-      $sessions = $this->loadRefreshSessions();
-      $sessions[(string) $user] = array(
-        'family' => (string) $family,
+      $store = $this->loadRefreshSessions();
+      $key = $this->refreshUserKey($store, $user, true);
+      if ($key === null) {
+        return false;
+      }
+      $store['users'][$key]['families'][(string) $family] = array(
         'currentJtiHash' => $this->hashJti($jti),
         'previousJtiHash' => null,
         'previousValidUntil' => 0,
         'exp' => (int) $exp,
       );
-      $this->saveRefreshSessions($sessions);
+      return $this->saveRefreshSessions($store);
     }
     /**
-     * Security (SEC-SESSION): single decision point for refresh-session state.
-     * Returns 'accept' (family-bearing token is the current jti or the
-     * previous jti within the grace window), 'legacy' (token carries NO family
-     * claim and the user has NO store entry at all -- the only case that may be
-     * accepted + seeded), or 'reject'.
-     *
-     * Truth table (parity with NodeJS):
-     *   no family claim, no entry            -> legacy (accept; rotate seeds)
-     *   no family claim, active or tombstone -> reject (store unchanged)
-     *   family claim, no entry               -> reject (store unchanged)
-     *   family claim, tombstone              -> reject (store unchanged)
-     *   family claim != stored family        -> reject (store unchanged)
-     *   family match, jti == current         -> accept
-     *   family match, jti == previous, grace -> accept
-     *   family match, any other jti (reuse)  -> tombstone family + reject
-     *   family claim present, jti missing    -> reject (malformed)
+     * Security (SEC-SESSION): pure (non-mutating) store check for a decoded
+     * refresh token. Truth table (parity contract with NodeJS
+     * checkRefreshSession):
+     *   - no family claim (legacy token):  accept, unless iat <= the user's
+     *                                      legacyRevokedAt tombstone
+     *   - family claim but no jti:         reject ('invalid')
+     *   - family with no store entry:      reject ('no_entry')
+     *   - family tombstoned:               reject ('revoked')
+     *   - jti == current:                  accept
+     *   - jti == previous within grace:    accept
+     *   - any other jti:                   reject ('stale_jti'); callers
+     *                                      tombstone the family
+     * Returns array('ok' => bool, 'reason' => string, 'legacy' => bool).
      */
-    protected function evaluateRefreshSession($user, $family, $jti) {
-      if ($user === null || !is_scalar($user) || (string) $user === '') {
-        return 'reject';
+    public function checkRefreshSession($decoded) {
+      if (is_array($decoded)) {
+        $decoded = (object) $decoded;
       }
-      $key = (string) $user;
-      $sessions = $this->loadRefreshSessions();
-      $entry = isset($sessions[$key]) ? $sessions[$key] : null;
-      $hasFamily = ($family !== null && is_scalar($family) && (string) $family !== '');
+      if (!is_object($decoded) || !isset($decoded->user) || !is_scalar($decoded->user) || (string) $decoded->user === '') {
+        return array('ok' => false, 'reason' => 'invalid', 'legacy' => false);
+      }
+      $store = $this->loadRefreshSessions();
+      $key = $this->refreshUserKey($store, $decoded->user, false);
+      $userEntry = ($key !== null) ? $store['users'][$key] : null;
+      $hasFamily = isset($decoded->family) && $decoded->family !== '';
       if (!$hasFamily) {
-        return is_null($entry) ? 'legacy' : 'reject';
+        $iat = (isset($decoded->iat) && is_numeric($decoded->iat)) ? (int) $decoded->iat : 0;
+        if (is_array($userEntry) && isset($userEntry['legacyRevokedAt']) && $iat <= (int) $userEntry['legacyRevokedAt']) {
+          return array('ok' => false, 'reason' => 'revoked', 'legacy' => true);
+        }
+        return array('ok' => true, 'reason' => 'legacy', 'legacy' => true);
       }
-      if ($jti === null || !is_scalar($jti) || (string) $jti === '') {
-        return 'reject';
+      if (!isset($decoded->jti) || !is_string($decoded->jti) || $decoded->jti === '' || !is_string($decoded->family)) {
+        return array('ok' => false, 'reason' => 'invalid', 'legacy' => false);
       }
-      if (!is_array($entry) || $this->isRefreshSessionTombstone($entry)) {
-        return 'reject';
+      if (!is_array($userEntry) || !isset($userEntry['families'][$decoded->family])) {
+        return array('ok' => false, 'reason' => 'no_entry', 'legacy' => false);
       }
-      if (!isset($entry['family']) || $entry['family'] !== (string) $family) {
-        return 'reject';
+      $entry = $userEntry['families'][$decoded->family];
+      if (!is_array($entry) || (isset($entry['revoked']) && $entry['revoked'] === true)) {
+        return array('ok' => false, 'reason' => 'revoked', 'legacy' => false);
       }
       $now = time();
-      $hash = $this->hashJti($jti);
+      $hash = $this->hashJti($decoded->jti);
       if (isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $hash) {
-        return 'accept';
+        return array('ok' => true, 'reason' => 'current', 'legacy' => false);
       }
       if (isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $hash
         && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0)) {
-        return 'accept';
+        return array('ok' => true, 'reason' => 'previous', 'legacy' => false);
       }
-      // reuse of a rotated-away jti within the live family: possible token
-      // theft -> tombstone the family so every later attempt also fails.
-      $this->tombstoneRefreshSession($sessions, $key);
-      $this->saveRefreshSessions($sessions);
-      return 'reject';
+      return array('ok' => false, 'reason' => 'stale_jti', 'legacy' => false);
     }
     /**
-     * Rotate a refresh session: validate family/jti against the store, then move
-     * the current jti to previous (with a grace window) and record a new
-     * current. Returns true on accept, false otherwise.
-     *
-     * Security (SEC-SESSION): the old "family mismatch / missing entry ->
-     * accept and overwrite" fallback is gone (it let a pre-logout token back in
-     * after the user logged in again). Only a legacy token (no family claim)
-     * for a user with no store entry may seed the store; callers signal that
-     * with $legacySeed = TRUE, passing the freshly generated family/jti.
-     * Reuse of a stale jti tombstones the family (see evaluateRefreshSession).
+     * Rotate a refresh session: validate family/jti against the store, then
+     * move the current jti to previous (with a grace window) and record a new
+     * current. Returns true if the rotation was accepted and persisted.
+     * Security (SEC-SESSION): a missing store entry is NO LONGER accepted +
+     * seeded (that made revocation a no-op); a stale/reused jti tombstones
+     * the family. Legacy no-family tokens never reach this method --
+     * rotateRefreshTokenAndCookie seeds a brand new family for them.
      */
-    public function rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp, $legacySeed = FALSE) {
-      if ($user === null || $user === '' || $family === '' || $family === null || $newJti === '') {
+    public function rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp) {
+      if ($user === null || $user === '' || $family === null || $family === '' || $oldJti === null || $oldJti === '' || $newJti === null || $newJti === '') {
         return false;
       }
-      if (!$legacySeed && ($oldJti === '' || $oldJti === null)) {
+      $check = $this->checkRefreshSession((object) array(
+        'user' => $user,
+        'family' => (string) $family,
+        'jti' => (string) $oldJti,
+      ));
+      if (!$check['ok']) {
+        if ($check['reason'] === 'stale_jti') {
+          // possible token theft / replay of an older jti -> revoke the family
+          $this->revokeRefreshSession($user, (string) $family);
+        }
         return false;
       }
-      $decision = $legacySeed
-        ? $this->evaluateRefreshSession($user, null, null)
-        : $this->evaluateRefreshSession($user, $family, $oldJti);
-      if (($legacySeed && $decision !== 'legacy') || (!$legacySeed && $decision !== 'accept')) {
+      $store = $this->loadRefreshSessions();
+      $key = $this->refreshUserKey($store, $user, false);
+      if ($key === null || !isset($store['users'][$key]['families'][(string) $family])) {
         return false;
       }
-      $sessions = $this->loadRefreshSessions();
-      $key = (string) $user;
-      $now = time();
-      $next = (!$legacySeed && isset($sessions[$key]) && is_array($sessions[$key])) ? $sessions[$key] : array();
-      $next['family'] = (string) $family;
-      if ($legacySeed) {
-        $next['previousJtiHash'] = null;
-        $next['previousValidUntil'] = 0;
-      }
-      else {
-        $next['previousJtiHash'] = $this->hashJti($oldJti);
-        $next['previousValidUntil'] = $now + (int) HAXCMS_REFRESH_GRACE_SECONDS;
-      }
+      $next = $store['users'][$key]['families'][(string) $family];
+      $next['previousJtiHash'] = $this->hashJti($oldJti);
+      $next['previousValidUntil'] = time() + (int) HAXCMS_REFRESH_GRACE_SECONDS;
       $next['currentJtiHash'] = $this->hashJti($newJti);
       $next['exp'] = (int) $newExp;
-      $sessions[$key] = $next;
-      $this->saveRefreshSessions($sessions);
-      return true;
+      $store['users'][$key]['families'][(string) $family] = $next;
+      return $this->saveRefreshSessions($store);
     }
     /**
-     * Revoke a user's refresh family (called on logout). Best-effort.
-     * Security (SEC-SESSION): writes a tombstone instead of deleting the entry
-     * so the revoked family (and any legacy token) is rejected until a fresh
-     * login records a new family or the tombstone expires.
+     * Revoke a refresh family (logout / theft detection). Writes a tombstone
+     * rather than deleting, so the family can never be re-seeded. Only the
+     * given family is touched (other devices stay signed in). When no family
+     * is given (legacy no-family token) a per-user legacy tombstone is
+     * written instead: every legacy token issued up to now is rejected.
+     * Best-effort.
      */
-    public function revokeRefreshSession($user) {
+    public function revokeRefreshSession($user, $family = null) {
       if ($user === null || !is_scalar($user) || (string) $user === '') {
         return;
       }
-      $sessions = $this->loadRefreshSessions();
-      $this->tombstoneRefreshSession($sessions, (string) $user);
-      $this->saveRefreshSessions($sessions);
+      $store = $this->loadRefreshSessions();
+      $key = $this->refreshUserKey($store, $user, true);
+      if ($key === null) {
+        return;
+      }
+      $now = time();
+      if ($family !== null && $family !== '') {
+        if (!is_scalar($family) || !$this->isSafeRefreshStoreKey((string) $family)) {
+          return;
+        }
+        $familyKey = (string) $family;
+        $existing = isset($store['users'][$key]['families'][$familyKey]) ? $store['users'][$key]['families'][$familyKey] : null;
+        $store['users'][$key]['families'][$familyKey] = array(
+          'revoked' => true,
+          'revokedAt' => $now,
+          'exp' => $this->refreshTombstoneExp((is_array($existing) && isset($existing['exp'])) ? $existing['exp'] : 0),
+        );
+      }
+      else {
+        $store['users'][$key]['legacyRevokedAt'] = $now;
+        $store['users'][$key]['legacyRevokedExp'] = $this->refreshTombstoneExp(
+          isset($store['users'][$key]['legacyRevokedExp']) ? $store['users'][$key]['legacyRevokedExp'] : 0
+        );
+      }
+      $this->saveRefreshSessions($store);
     }
     /**
-     * Validate a refresh token's family/jti against the store WITHOUT rotating.
-     * Used by connection-test recovery and getAuthenticatedUserName. Returns
-     * true for 'accept' and 'legacy' (see evaluateRefreshSession); reuse of a
-     * stale jti tombstones the family as a side effect.
+     * Validate a refresh token's family/jti against the store WITHOUT
+     * rotating (pure; never writes). Used by connection-test recovery and
+     * getAuthenticatedUserName. Only legacy tokens with NO family claim are
+     * accepted without a store entry (see checkRefreshSession).
      */
-    public function validateRefreshSession($user, $family, $jti) {
-      return $this->evaluateRefreshSession($user, $family, $jti) !== 'reject';
+    public function validateRefreshSession($user, $family, $jti, $iat = 0) {
+      $check = $this->checkRefreshSession((object) array(
+        'user' => $user,
+        'family' => $family,
+        'jti' => $jti,
+        'iat' => $iat,
+      ));
+      return $check['ok'];
     }
     /**
      * Issue a rotated refresh token + cookie for a validated decoded refresh
      * token, returning the new access JWT. Used by refreshAccessToken and
-     * connection-test recovery. On any rotation failure returns null so callers
-     * can clear the cookie and 401. Legacy tokens (no family claim) are
-     * upgraded only when the user has no store entry.
+     * connection-test recovery. On any rotation failure returns null so
+     * callers can clear the cookie and 401. Legacy tokens (no family claim)
+     * that are not tombstoned are upgraded into a brand new family; if the
+     * store can't be written they get another legacy token instead (parity
+     * with NodeJS: login keeps working on a read-only config dir).
      */
     public function rotateRefreshTokenAndCookie($decodedRefresh) {
-      if (!is_object($decodedRefresh) || !isset($decodedRefresh->user) || !is_string($decodedRefresh->user) || $decodedRefresh->user === '') {
+      if (!is_object($decodedRefresh) || !isset($decodedRefresh->user) || !is_scalar($decodedRefresh->user) || (string) $decodedRefresh->user === '') {
         return null;
       }
       $user = $decodedRefresh->user;
-      $legacy = !(isset($decodedRefresh->family) && is_scalar($decodedRefresh->family) && (string) $decodedRefresh->family !== '');
-      $family = $legacy ? $this->generateUUID() : (string) $decodedRefresh->family;
-      $oldJti = (isset($decodedRefresh->jti) && is_scalar($decodedRefresh->jti)) ? (string) $decodedRefresh->jti : '';
+      $isLegacy = !isset($decodedRefresh->family) || $decodedRefresh->family === '';
       // Generate a fresh jti + iat/exp for the rotated token. We build the
       // payload directly (not via getRefreshToken) so we preserve the existing
       // family and avoid recording a competing session entry.
       $newJti = $this->generateUUID();
       $newIat = time();
       $newExp = $newIat + $this->getRefreshTokenLifetime();
+      $family = $isLegacy ? null : $decodedRefresh->family;
+      if ($isLegacy) {
+        $legacyCheck = $this->checkRefreshSession($decodedRefresh);
+        if (!$legacyCheck['ok']) {
+          return null;
+        }
+        $family = $this->generateUUID();
+        if (!$this->recordRefreshSession($user, $family, $newJti, $newExp)) {
+          // store not writable: keep the session alive with another legacy
+          // (no-family) token rather than logging the user out
+          $family = null;
+        }
+      }
+      else {
+        $ok = $this->rotateRefreshSession(
+          $user,
+          $family,
+          isset($decodedRefresh->jti) ? $decodedRefresh->jti : '',
+          $newJti,
+          $newExp
+        );
+        if (!$ok) {
+          return null;
+        }
+      }
       $newPayload = array(
         'user' => $user,
-        'family' => $family,
-        'jti' => $newJti,
         'iat' => $newIat,
         'exp' => $newExp,
       );
-      $rotated = JWT::encode($newPayload, $this->refreshPrivateKey . $this->salt);
-      // Security (SEC-SESSION): no blanket revoke on failure here -- a
-      // family mismatch (e.g. a stale cookie from another browser) must not
-      // log out the user's current family. Reuse within the live family is
-      // tombstoned inside evaluateRefreshSession.
-      $ok = $this->rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp, $legacy);
-      if (!$ok) {
-        return null;
+      if ($family) {
+        $newPayload['family'] = $family;
+        $newPayload['jti'] = $newJti;
       }
+      $rotated = JWT::encode($newPayload, $this->refreshPrivateKey . $this->salt);
       $this->setRefreshTokenCookie($rotated);
       return $this->getJWT($user);
     }

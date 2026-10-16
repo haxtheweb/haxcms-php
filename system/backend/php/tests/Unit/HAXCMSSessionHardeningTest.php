@@ -130,41 +130,107 @@ class HAXCMSSessionHardeningTest extends TestCase
         return JWT::encode($payload, $h->refreshPrivateKey . $h->salt);
     }
 
+    private function fam(string $user, string $family): ?array
+    {
+        return $this->sessions()['users'][$user]['families'][$family] ?? null;
+    }
+
+    private function writeStore(array $raw): void
+    {
+        file_put_contents($this->tmpConfigDir . '/settings/refreshSessions.json', json_encode($raw));
+    }
+
     // ---------------------------------------------------------------
-    // 2. refresh-session store: tombstones + legacy policy
+    // 2. refresh-session store (v2, per-family): tombstones + legacy policy
     // ---------------------------------------------------------------
 
-    public function testLogoutTombstoneRejectsEveryLaterAttempt(): void
+    public function testTwoBrowsersBothRefreshAndLogoutOnAOnlyAffectsA(): void
+    {
+        $h = $this->bareHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $ops = new Operations();
+        // browser A logs in, then browser B logs in
+        $cookieA = $h->getRefreshToken('alice', true);
+        $cookieB = $h->getRefreshToken('alice', true);
+        $famA = $h->decodeRefreshToken($cookieA)->family;
+        $famB = $h->decodeRefreshToken($cookieB)->family;
+        $this->assertNotSame($famA, $famB);
+        // both refresh successfully (rotation of A doesn't disturb B and v.v.)
+        $_COOKIE['haxcms_refresh_token'] = $cookieA;
+        $resA = $ops->refreshAccessToken();
+        $this->assertSame(200, $resA['status']);
+        $_COOKIE['haxcms_refresh_token'] = $cookieB;
+        $resB = $ops->refreshAccessToken();
+        $this->assertSame(200, $resB['status']);
+        // rotate A once more using its (now previous, in-grace) jti is fine,
+        // and A's current family entry is live
+        $this->assertArrayNotHasKey('revoked', $this->fam('alice', $famA));
+        // logout on A (presenting A's original cookie, same family)
+        $_COOKIE['haxcms_refresh_token'] = $cookieA;
+        $ops->logout();
+        $this->assertTrue($this->fam('alice', $famA)['revoked']);
+        $this->assertArrayNotHasKey('revoked', $this->fam('alice', $famB));
+        // A is out, B still refreshes and still authenticates
+        $_COOKIE['haxcms_refresh_token'] = $cookieA;
+        $this->assertNull($h->getAuthenticatedUserName());
+        $this->assertSame(401, $ops->refreshAccessToken()['__failed']['status']);
+        $decodedB = $h->decodeRefreshToken($cookieB);
+        $this->assertTrue($h->validateRefreshSession('alice', $decodedB->family, $decodedB->jti),
+            'B previous jti still inside the grace window');
+        $this->assertArrayNotHasKey('revoked', $this->fam('alice', $famB));
+    }
+
+    public function testV1StoreIsMigratedOnLoadAndSessionsSurvive(): void
+    {
+        $h = $this->bareHaxcms();
+        $exp = time() + 3600;
+        $this->writeStore(array(
+            'alice' => array(
+                'family' => 'fam-v1',
+                'currentJtiHash' => hash('sha256', 'jti-cur'),
+                'previousJtiHash' => hash('sha256', 'jti-prev'),
+                'previousValidUntil' => time() + 20,
+                'exp' => $exp,
+            ),
+            'bob' => array('garbage' => true),
+            '__proto__' => array('family' => 'x', 'exp' => $exp),
+        ));
+        $this->assertTrue($h->validateRefreshSession('alice', 'fam-v1', 'jti-cur'));
+        $this->assertTrue($h->validateRefreshSession('alice', 'fam-v1', 'jti-prev'));
+        // first write persists the v2 shape
+        $this->assertTrue($h->rotateRefreshSession('alice', 'fam-v1', 'jti-cur', 'jti-new', $exp));
+        $store = $this->sessions();
+        $this->assertSame(2, $store['version']);
+        $this->assertSame(array('alice'), array_keys($store['users']));
+        $this->assertSame(hash('sha256', 'jti-new'), $store['users']['alice']['families']['fam-v1']['currentJtiHash']);
+        $this->assertTrue($h->validateRefreshSession('alice', 'fam-v1', 'jti-new'));
+    }
+
+    public function testLogoutTombstoneRejectsEveryLaterAttemptForThatFamily(): void
     {
         $h = $this->bareHaxcms();
         $token = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
         $this->assertTrue($h->validateRefreshSession('alice', $token->family, $token->jti));
-        $h->revokeRefreshSession('alice');
-        $entry = $this->sessions()['alice'];
+        $h->revokeRefreshSession('alice', $token->family);
+        $entry = $this->fam('alice', $token->family);
         $this->assertTrue($entry['revoked']);
         $this->assertIsInt($entry['revokedAt']);
-        $this->assertGreaterThanOrEqual(time() + 24 * 60 * 60 - 5, $entry['exp']);
-        // current jti, legacy token, rotation, and the connection-test path
-        // via rotateRefreshTokenAndCookie are all rejected now
+        $this->assertGreaterThanOrEqual(time() + 86400 + 60 - 2, $entry['exp']);
         $this->assertFalse($h->validateRefreshSession('alice', $token->family, $token->jti));
-        $this->assertFalse($h->validateRefreshSession('alice', null, null));
         $this->assertFalse($h->rotateRefreshSession('alice', $token->family, $token->jti, 'n', time() + 100));
         $this->assertNull($h->rotateRefreshTokenAndCookie($token));
-        $this->assertNull($h->rotateRefreshTokenAndCookie((object) array('user' => 'alice')));
-        // tombstone is still in place after all those attempts
-        $this->assertTrue($this->sessions()['alice']['revoked']);
+        $this->assertTrue($this->fam('alice', $token->family)['revoked']);
     }
 
     public function testFreshLoginAfterLogoutDoesNotRevivePreLogoutToken(): void
     {
         $h = $this->bareHaxcms();
         $stolen = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
-        $h->revokeRefreshSession('alice');
+        $h->revokeRefreshSession('alice', $stolen->family);
         $fresh = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
         $this->assertTrue($h->validateRefreshSession('alice', $fresh->family, $fresh->jti));
         $this->assertFalse($h->validateRefreshSession('alice', $stolen->family, $stolen->jti));
         $this->assertNull($h->rotateRefreshTokenAndCookie($stolen));
-        // the stolen token's failure didn't disturb the fresh session
         $this->assertTrue($h->validateRefreshSession('alice', $fresh->family, $fresh->jti));
     }
 
@@ -174,33 +240,49 @@ class HAXCMSSessionHardeningTest extends TestCase
         $decoded = (object) array('user' => 'alice', 'family' => 'fam-x', 'jti' => 'jti-x');
         $this->assertFalse($h->validateRefreshSession('alice', 'fam-x', 'jti-x'));
         $this->assertNull($h->rotateRefreshTokenAndCookie($decoded));
-        $this->assertSame(array(), $this->sessions());
+        $this->assertNull($this->fam('alice', 'fam-x'));
     }
 
-    public function testLegacyTokenWithNoEntryIsAcceptedAndSeeded(): void
+    public function testLegacyTokenIsAcceptedAndRotatesIntoNewFamily(): void
     {
         $h = $this->bareHaxcms();
+        // another device already has a live family: legacy is still accepted
+        $h->recordRefreshSession('alice', 'other-device', 'jo', time() + 3600);
         $legacy = $h->decodeRefreshToken($h->getRefreshToken('alice', false));
         $this->assertFalse(isset($legacy->family));
-        $this->assertTrue($h->validateRefreshSession('alice', null, null));
-        $access = $h->rotateRefreshTokenAndCookie($legacy);
-        $this->assertNotNull($access);
-        $entry = $this->sessions()['alice'];
-        $this->assertNotEmpty($entry['family']);
-        $this->assertArrayNotHasKey('revoked', $entry);
-        // the same legacy token cannot seed/rotate again now that an entry exists
-        $this->assertFalse($h->validateRefreshSession('alice', null, null));
-        $this->assertNull($h->rotateRefreshTokenAndCookie($legacy));
-        // and that rejection did not tombstone the newly-seeded family
-        $this->assertSame($entry, $this->sessions()['alice']);
+        $this->assertTrue($h->validateRefreshSession('alice', null, null, $legacy->iat));
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($legacy));
+        $families = $this->sessions()['users']['alice']['families'];
+        $this->assertCount(2, $families, 'a NEW family was seeded; other device untouched');
+        $this->assertArrayHasKey('other-device', $families);
     }
 
-    public function testStaleJtiTombstonesFamilyViaValidate(): void
+    public function testLegacyLogoutSetsLegacyRevokedAt(): void
+    {
+        $h = $this->bareHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $legacyCookie = $this->signRefresh($h, array('user' => 'alice', 'iat' => time() - 30));
+        $h->recordRefreshSession('alice', 'other-device', 'jo', time() + 3600);
+        $_COOKIE['haxcms_refresh_token'] = $legacyCookie;
+        (new Operations())->logout();
+        $user = $this->sessions()['users']['alice'];
+        $this->assertIsInt($user['legacyRevokedAt']);
+        $legacy = $h->decodeRefreshToken($legacyCookie);
+        $this->assertFalse($h->validateRefreshSession('alice', null, null, $legacy->iat));
+        $this->assertNull($h->rotateRefreshTokenAndCookie($legacy));
+        $this->assertNull($h->getAuthenticatedUserName());
+        // the family-bearing session on the other device is unaffected
+        $this->assertTrue($h->validateRefreshSession('alice', 'other-device', 'jo'));
+    }
+
+    public function testStaleJtiCheckIsPureButRotationTombstones(): void
     {
         $h = $this->bareHaxcms();
         $t = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
         $this->assertFalse($h->validateRefreshSession('alice', $t->family, 'stale-jti'));
-        $this->assertTrue($this->sessions()['alice']['revoked']);
+        $this->assertArrayNotHasKey('revoked', $this->fam('alice', $t->family), 'validate is pure');
+        $this->assertNull($h->rotateRefreshTokenAndCookie((object) array('user' => 'alice', 'family' => $t->family, 'jti' => 'stale-jti')));
+        $this->assertTrue($this->fam('alice', $t->family)['revoked']);
         $this->assertFalse($h->validateRefreshSession('alice', $t->family, $t->jti));
     }
 
@@ -209,27 +291,55 @@ class HAXCMSSessionHardeningTest extends TestCase
         $h = $this->bareHaxcms();
         $h->recordRefreshSession('alice', 'fam', 'a', time() + 3600);
         $this->assertTrue($h->rotateRefreshSession('alice', 'fam', 'a', 'b', time() + 3600));
-        // force the grace window into the past
         $s = $this->sessions();
-        $s['alice']['previousValidUntil'] = time() - 1;
-        file_put_contents($this->tmpConfigDir . '/settings/refreshSessions.json', json_encode($s));
+        $s['users']['alice']['families']['fam']['previousValidUntil'] = time() - 1;
+        $this->writeStore($s);
         $this->assertFalse($h->rotateRefreshSession('alice', 'fam', 'a', 'c', time() + 3600));
-        $this->assertTrue($this->sessions()['alice']['revoked']);
+        $this->assertTrue($this->fam('alice', 'fam')['revoked']);
         $this->assertFalse($h->validateRefreshSession('alice', 'fam', 'b'));
     }
 
-    public function testExpiredTombstonesArePrunedOnWrite(): void
+    public function testPruningOnWrite(): void
     {
         $h = $this->bareHaxcms();
-        file_put_contents($this->tmpConfigDir . '/settings/refreshSessions.json', json_encode(array(
-            'old' => array('revoked' => true, 'revokedAt' => time() - 90000, 'exp' => time() - 10),
-            'live' => array('revoked' => true, 'revokedAt' => time(), 'exp' => time() + 1000),
+        $now = time();
+        $this->writeStore(array('version' => 2, 'users' => array(
+            'old' => array('families' => array(
+                'f1' => array('revoked' => true, 'revokedAt' => $now - 90000, 'exp' => $now - 10),
+            )),
+            'mixed' => array(
+                'families' => array(
+                    'dead' => array('currentJtiHash' => 'x', 'exp' => $now - 1),
+                    'live' => array('revoked' => true, 'revokedAt' => $now, 'exp' => $now + 1000),
+                ),
+                'legacyRevokedAt' => $now - 90000,
+                'legacyRevokedExp' => $now - 5,
+            ),
+            'legacyonly' => array('families' => array(), 'legacyRevokedAt' => $now, 'legacyRevokedExp' => $now + 500),
         )));
-        $h->recordRefreshSession('alice', 'f', 'j', time() + 3600);
-        $s = $this->sessions();
-        $this->assertArrayNotHasKey('old', $s);
-        $this->assertArrayHasKey('live', $s);
-        $this->assertArrayHasKey('alice', $s);
+        $h->recordRefreshSession('alice', 'f', 'j', $now + 3600);
+        $users = $this->sessions()['users'];
+        $this->assertArrayNotHasKey('old', $users, 'users left empty are dropped');
+        $this->assertSame(array('live'), array_keys($users['mixed']['families']));
+        $this->assertArrayNotHasKey('legacyRevokedAt', $users['mixed']);
+        $this->assertArrayHasKey('legacyonly', $users);
+        $this->assertArrayHasKey('alice', $users);
+    }
+
+    public function testStoreWriteFailureFallsBackToLegacyToken(): void
+    {
+        $h = $this->bareHaxcms();
+        // make settings/ a file so the store can't be written
+        $this->rrmdir($this->tmpConfigDir . '/settings');
+        file_put_contents($this->tmpConfigDir . '/settings', 'not a dir');
+        $decoded = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $this->assertSame('alice', $decoded->user);
+        $this->assertFalse(isset($decoded->family), 'login still works with a legacy token');
+        $this->assertFalse(isset($decoded->jti));
+        // legacy rotation also falls back to another legacy token
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($decoded));
+        @unlink($this->tmpConfigDir . '/settings');
+        mkdir($this->tmpConfigDir . '/settings', 0777, true);
     }
 
     public function testGetAuthenticatedUserNameConsultsStore(): void
@@ -237,9 +347,8 @@ class HAXCMSSessionHardeningTest extends TestCase
         $h = $this->bareHaxcms();
         $_COOKIE['haxcms_refresh_token'] = $h->getRefreshToken('alice', true);
         $this->assertSame('alice', $h->getAuthenticatedUserName());
-        $h->revokeRefreshSession('alice');
+        $h->revokeRefreshSession('alice', $h->decodeRefreshToken($_COOKIE['haxcms_refresh_token'])->family);
         $this->assertNull($h->getAuthenticatedUserName(), 'revoked refresh cookie must not authenticate');
-        // a signature-valid family token that the store never saw
         $_COOKIE['haxcms_refresh_token'] = $this->signRefresh($h, array('user' => 'bob', 'family' => 'f', 'jti' => 'j'));
         $this->assertNull($h->getAuthenticatedUserName());
     }
@@ -279,7 +388,7 @@ class HAXCMSSessionHardeningTest extends TestCase
         $h = $this->fullHaxcms();
         $GLOBALS['HAXCMS'] = $h;
         $_COOKIE['haxcms_refresh_token'] = $h->getRefreshToken('alice', true);
-        $h->revokeRefreshSession('alice');
+        $h->revokeRefreshSession('alice', $h->decodeRefreshToken($_COOKIE['haxcms_refresh_token'])->family);
         $this->assertNoTokens($h->appJWTConnectionSettings('/'));
         $_COOKIE['haxcms_refresh_token'] = $this->signRefresh($h, array('user' => 'alice', 'family' => 'nope', 'jti' => 'nope'));
         $this->assertNoTokens($h->appJWTConnectionSettings('/'));

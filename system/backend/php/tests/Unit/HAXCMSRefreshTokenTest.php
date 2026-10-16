@@ -9,15 +9,18 @@ use PHPUnit\Framework\TestCase;
  * token theft via jti reuse. Only SHA-256 hashes of jti are stored.
  *
  * Spec-derived expected behavior:
- *   - recordRefreshSession: writes {family, currentJtiHash, previousJtiHash=null, exp}
- *   - validateRefreshSession (SEC-SESSION): legacy (no family claim) -> true
- *     ONLY when the user has no store entry; family-bearing token with no
- *     entry -> false; family mismatch -> false; current jti -> true;
- *     previous jti within 30s grace -> true; unknown jti -> tombstone + false
- *   - rotateRefreshSession: current OR previous-within-grace -> accept + rotate;
- *     unknown jti (theft) -> TOMBSTONE whole family + false; family mismatch
- *     -> false, store unchanged
- *   - revokeRefreshSession: writes a {revoked, revokedAt, exp} tombstone
+ *   - store is v2: {version:2, users:{<user>:{families:{<fam>:{...}}}}}
+ *   - recordRefreshSession: adds families[fam] = {currentJtiHash,
+ *     previousJtiHash=null, previousValidUntil=0, exp}; other families kept
+ *   - validateRefreshSession (pure, SEC-SESSION): legacy (no family claim) ->
+ *     true unless iat <= legacyRevokedAt; family with no entry -> false;
+ *     tombstoned family -> false; current jti -> true; previous jti within
+ *     30s grace -> true; any other jti -> false (no write)
+ *   - rotateRefreshSession: current OR previous-within-grace -> accept +
+ *     rotate; stale jti -> TOMBSTONE that family + false; unknown family ->
+ *     false, nothing touched
+ *   - revokeRefreshSession(user, family): tombstones only that family;
+ *     (user, null) sets legacyRevokedAt
  *   - getRefreshToken(store=true): 24h JWT with user/family/jti, session recorded
  *   - decodeRefreshToken: round-trip; wrong (access) key -> false; empty -> false
  *   - validateRefreshToken(false): no cookie -> false; valid -> decoded; expired -> false
@@ -113,6 +116,12 @@ class HAXCMSRefreshTokenTest extends TestCase
         return is_array($parsed) ? $parsed : array();
     }
 
+    private function fam(string $user, string $family): ?array
+    {
+        $store = $this->loadSessionsFile();
+        return $store['users'][$user]['families'][$family] ?? null;
+    }
+
     // --- recordRefreshSession ---
 
     public function testRecordRefreshSessionWritesCurrentJtiHash(): void
@@ -120,21 +129,31 @@ class HAXCMSRefreshTokenTest extends TestCase
         $family = $this->uuid();
         $jti = $this->uuid();
         $exp = time() + 3600;
-        $this->haxcms->recordRefreshSession('alice', $family, $jti, $exp);
-        $sessions = $this->loadSessionsFile();
-        $this->assertArrayHasKey('alice', $sessions);
-        $this->assertSame($family, $sessions['alice']['family']);
-        $this->assertSame(hash('sha256', $jti), $sessions['alice']['currentJtiHash']);
-        $this->assertNull($sessions['alice']['previousJtiHash']);
-        $this->assertSame($exp, $sessions['alice']['exp']);
+        $this->assertTrue($this->haxcms->recordRefreshSession('alice', $family, $jti, $exp));
+        $store = $this->loadSessionsFile();
+        $this->assertSame(2, $store['version']);
+        $entry = $this->fam('alice', $family);
+        $this->assertSame(hash('sha256', $jti), $entry['currentJtiHash']);
+        $this->assertNull($entry['previousJtiHash']);
+        $this->assertSame(0, $entry['previousValidUntil']);
+        $this->assertSame($exp, $entry['exp']);
+    }
+
+    public function testRecordRefreshSessionKeepsOtherFamilies(): void
+    {
+        $this->haxcms->recordRefreshSession('alice', 'fam-a', 'ja', time() + 3600);
+        $this->haxcms->recordRefreshSession('alice', 'fam-b', 'jb', time() + 3600);
+        $this->assertNotNull($this->fam('alice', 'fam-a'));
+        $this->assertNotNull($this->fam('alice', 'fam-b'));
     }
 
     public function testRecordRefreshSessionIgnoresEmptyInputs(): void
     {
-        $this->haxcms->recordRefreshSession('', 'f', 'j', time() + 100);
-        $this->haxcms->recordRefreshSession('alice', '', 'j', time() + 100);
-        $this->haxcms->recordRefreshSession('alice', 'f', '', time() + 100);
-        $this->assertSame(array(), $this->loadSessionsFile());
+        $this->assertFalse($this->haxcms->recordRefreshSession('', 'f', 'j', time() + 100));
+        $this->assertFalse($this->haxcms->recordRefreshSession('alice', '', 'j', time() + 100));
+        $this->assertFalse($this->haxcms->recordRefreshSession('alice', 'f', '', time() + 100));
+        $this->assertFalse($this->haxcms->recordRefreshSession('alice', '__proto__', 'j', time() + 100));
+        $this->assertFalse(file_exists($this->sessionsPath()));
     }
 
     // --- validateRefreshSession ---
@@ -150,8 +169,14 @@ class HAXCMSRefreshTokenTest extends TestCase
         // Security (SEC-SESSION): a family-bearing token with no store entry
         // is rejected (only tokens with NO family claim are legacy-accepted).
         $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'f', 'j'));
-        // and the reject does not seed the store
-        $this->assertSame(array(), $this->loadSessionsFile());
+        $this->assertFalse(file_exists($this->sessionsPath()), 'pure check never writes');
+    }
+
+    public function testValidateRefreshSessionRejectsFamilyWithoutJti(): void
+    {
+        $this->haxcms->recordRefreshSession('alice', 'f', 'j', time() + 3600);
+        $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'f', null));
+        $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'f', ''));
     }
 
     public function testValidateRefreshSessionAcceptsCurrentJti(): void
@@ -170,12 +195,14 @@ class HAXCMSRefreshTokenTest extends TestCase
         $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'wrong-family', $jti));
     }
 
-    public function testValidateRefreshSessionRejectsUnknownJti(): void
+    public function testValidateRefreshSessionRejectsUnknownJtiWithoutWriting(): void
     {
         $family = $this->uuid();
         $jti = $this->uuid();
         $this->haxcms->recordRefreshSession('alice', $family, $jti, time() + 3600);
+        $before = $this->loadSessionsFile();
         $this->assertFalse($this->haxcms->validateRefreshSession('alice', $family, 'never-issued-jti'));
+        $this->assertSame($before, $this->loadSessionsFile());
     }
 
     public function testValidateRefreshSessionAcceptsPreviousJtiWithinGrace(): void
@@ -200,46 +227,36 @@ class HAXCMSRefreshTokenTest extends TestCase
         $this->haxcms->recordRefreshSession('alice', $family, $jtiA, time() + 3600);
         $newExp = time() + 7200;
         $this->assertTrue($this->haxcms->rotateRefreshSession('alice', $family, $jtiA, $jtiB, $newExp));
-        $sessions = $this->loadSessionsFile();
-        $this->assertSame(hash('sha256', $jtiB), $sessions['alice']['currentJtiHash']);
-        $this->assertSame(hash('sha256', $jtiA), $sessions['alice']['previousJtiHash']);
-        // exp is stored verbatim as the newExp passed to rotation
-        $this->assertSame($newExp, $sessions['alice']['exp']);
+        $entry = $this->fam('alice', $family);
+        $this->assertSame(hash('sha256', $jtiB), $entry['currentJtiHash']);
+        $this->assertSame(hash('sha256', $jtiA), $entry['previousJtiHash']);
+        $this->assertSame($newExp, $entry['exp']);
     }
 
-    public function testRotateRefreshSessionDetectsTheftAndRevokesFamily(): void
+    public function testRotateRefreshSessionDetectsTheftAndTombstonesFamily(): void
     {
-        // issue jtiA, rotate to jtiB (prev=jtiA, current=jtiB). A THIRD jti
-        // (stolen, never current nor previous-within-grace) must trigger
-        // family revocation: rotate returns false AND the session entry is gone.
         $family = $this->uuid();
         $jtiA = $this->uuid();
         $jtiB = $this->uuid();
         $jtiStolen = $this->uuid();
         $this->haxcms->recordRefreshSession('alice', $family, $jtiA, time() + 3600);
         $this->assertTrue($this->haxcms->rotateRefreshSession('alice', $family, $jtiA, $jtiB, time() + 3600));
-        // reuse of a stolen jti that is neither current (jtiB) nor previous (jtiA)
         $this->assertFalse($this->haxcms->rotateRefreshSession('alice', $family, $jtiStolen, $this->uuid(), time() + 3600));
-        $sessions = $this->loadSessionsFile();
-        $this->assertTrue($sessions['alice']['revoked'], 'family tombstoned, not deleted');
-        // subsequent validation of the legitimate current jti now fails (revoked)
+        $entry = $this->fam('alice', $family);
+        $this->assertTrue($entry['revoked'], 'family tombstoned, not deleted');
+        $this->assertGreaterThanOrEqual(time() + 86400 + 60 - 2, $entry['exp']);
         $this->assertFalse($this->haxcms->validateRefreshSession('alice', $family, $jtiB),
             'after reuse detection every later attempt is rejected');
         $this->assertFalse($this->haxcms->rotateRefreshSession('alice', $family, $jtiB, $this->uuid(), time() + 3600));
     }
 
-    public function testRotateRefreshSessionRejectsFamilyMismatchWithoutTouchingStore(): void
+    public function testRotateRefreshSessionRejectsUnknownFamilyWithoutTouchingStore(): void
     {
-        // Security (SEC-SESSION): the old accept-and-overwrite on family
-        // mismatch let a pre-logout token back in after a fresh login. A
-        // mismatched family is now rejected and the live entry is left intact
-        // (no tombstone: a stale cookie must not log out the current family).
         $family = $this->uuid();
         $jti = $this->uuid();
         $this->haxcms->recordRefreshSession('alice', $family, $jti, time() + 3600);
         $before = $this->loadSessionsFile();
         $this->assertFalse($this->haxcms->rotateRefreshSession('alice', $this->uuid(), $jti, $this->uuid(), time() + 3600));
-        $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'wrong-family', $jti));
         $this->assertSame($before, $this->loadSessionsFile());
         $this->assertTrue($this->haxcms->validateRefreshSession('alice', $family, $jti));
     }
@@ -254,26 +271,29 @@ class HAXCMSRefreshTokenTest extends TestCase
 
     // --- revokeRefreshSession ---
 
-    public function testRevokeRefreshSessionWritesTombstone(): void
+    public function testRevokeRefreshSessionTombstonesOnlyThatFamily(): void
     {
-        $family = $this->uuid();
-        $jti = $this->uuid();
-        $this->haxcms->recordRefreshSession('alice', $family, $jti, time() + 3600);
-        $this->haxcms->revokeRefreshSession('alice');
-        $sessions = $this->loadSessionsFile();
-        $this->assertTrue($sessions['alice']['revoked']);
-        $this->assertArrayNotHasKey('family', $sessions['alice']);
-        $this->assertFalse($this->haxcms->validateRefreshSession('alice', $family, $jti));
+        $this->haxcms->recordRefreshSession('alice', 'fam-a', 'ja', time() + 3600);
+        $this->haxcms->recordRefreshSession('alice', 'fam-b', 'jb', time() + 3600);
+        $this->haxcms->revokeRefreshSession('alice', 'fam-a');
+        $a = $this->fam('alice', 'fam-a');
+        $this->assertTrue($a['revoked']);
+        $this->assertIsInt($a['revokedAt']);
+        $this->assertArrayNotHasKey('currentJtiHash', $a);
+        $this->assertFalse($this->haxcms->validateRefreshSession('alice', 'fam-a', 'ja'));
+        $this->assertTrue($this->haxcms->validateRefreshSession('alice', 'fam-b', 'jb'));
     }
 
-    public function testRevokeRefreshSessionTombstonesUserWithoutEntry(): void
+    public function testRevokeRefreshSessionWithoutFamilyWritesLegacyTombstone(): void
     {
-        // logout of a legacy (no-family) session still blocks that user's
-        // legacy tokens until the next login
-        $this->haxcms->revokeRefreshSession('nobody');
-        $sessions = $this->loadSessionsFile();
-        $this->assertTrue($sessions['nobody']['revoked']);
-        $this->assertFalse($this->haxcms->validateRefreshSession('nobody', null, null));
+        $legacyIat = time() - 10;
+        $this->haxcms->revokeRefreshSession('alice');
+        $store = $this->loadSessionsFile();
+        $this->assertIsInt($store['users']['alice']['legacyRevokedAt']);
+        $this->assertGreaterThan(time(), $store['users']['alice']['legacyRevokedExp']);
+        $this->assertFalse($this->haxcms->validateRefreshSession('alice', null, null, $legacyIat));
+        // a legacy token issued AFTER the tombstone is accepted
+        $this->assertTrue($this->haxcms->validateRefreshSession('alice', null, null, time() + 5));
     }
 
     public function testRevokeRefreshSessionIgnoresEmptyUser(): void
@@ -379,15 +399,12 @@ class HAXCMSRefreshTokenTest extends TestCase
 
     public function testRotateRefreshTokenAndCookieRevokesOnTheft(): void
     {
-        // record jtiA, then attempt rotation presenting a stolen unknown jti
         $family = $this->uuid();
         $jtiA = $this->uuid();
         $this->haxcms->recordRefreshSession('alice', $family, $jtiA, time() + 3600);
         $decoded = (object)array('user' => 'alice', 'family' => $family, 'jti' => 'stolen-unknown-jti');
         $this->assertNull($this->haxcms->rotateRefreshTokenAndCookie($decoded));
-        // family revoked (tombstoned)
-        $sessions = $this->loadSessionsFile();
-        $this->assertTrue($sessions['alice']['revoked']);
+        $this->assertTrue($this->fam('alice', $family)['revoked']);
     }
 
     public function testRotateRefreshTokenAndCookieReturnsNullForMissingUser(): void

@@ -30,10 +30,16 @@ trait OperationsRouteRefreshAccessToken {
           "jwt" => $rotatedAccessJwt,
         );
       }
-      // rotation rejected -> clear the cookie. Security (SEC-SESSION): no
-      // blanket revoke here; reuse of a stale jti within the live family is
-      // already tombstoned by HAXCMS::evaluateRefreshSession, and a
-      // mismatched/unknown family must not log out the user's current one.
+      // rotation rejected (possible replay/theft) -> tombstone ONLY the
+      // presented family (a legacy no-family token sets the user's legacy
+      // tombstone) and clear. Security (SEC-SESSION): other families (other
+      // devices) are untouched. Parity with NodeJS refreshAccessToken.js.
+      if (isset($validRefresh->user)) {
+        $GLOBALS['HAXCMS']->revokeRefreshSession(
+          $validRefresh->user,
+          (isset($validRefresh->family) && $validRefresh->family !== '') ? $validRefresh->family : null
+        );
+      }
       $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(
