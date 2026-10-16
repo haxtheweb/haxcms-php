@@ -170,4 +170,60 @@ class StageRemoteFileTest extends TestCase
         $this->assertFalse(haxcms_import_stage_remote_file($client, 'gopher://example.org/x.png', 'x.png'));
         $this->assertSame(1, $mock->count(), 'nothing was fetched');
     }
+
+    // Security (SEC-SSRF): the staged extension comes from a remote-supplied
+    // path, so only allowlisted upload extensions survive.
+    public function testDisallowedExtensionsAreStagedWithoutAnExtension(): void
+    {
+        $client = $this->mockClient(array(
+            new Response(200, array(), 'A'),
+            new Response(200, array(), 'B'),
+            new Response(200, array(), 'C'),
+        ), $mock);
+        $php = haxcms_import_stage_remote_file($client, self::REMOTE . '/x.php', 'files/x.php');
+        $phtml = haxcms_import_stage_remote_file($client, self::REMOTE . '/x', 'files/x.png/../evil.phtml');
+        $upper = haxcms_import_stage_remote_file($client, self::REMOTE . '/x.PNG', 'files/x.PNG');
+        $this->assertSame('', pathinfo($php, PATHINFO_EXTENSION));
+        $this->assertSame('', pathinfo($phtml, PATHINFO_EXTENSION));
+        $this->assertSame('png', pathinfo($upper, PATHINFO_EXTENSION));
+    }
+
+    public function testResponsesOverTheByteCapAreNotStaged(): void
+    {
+        $over = SsrfGuard::DEFAULT_MAX_RESPONSE_BYTES + 1;
+        $client = $this->mockClient(array(
+            new Response(200, array('Content-Length' => (string) $over), 'tiny-but-lies'),
+        ), $mock);
+        $this->assertFalse(haxcms_import_stage_remote_file($client, self::REMOTE . '/huge.mp4', 'files/huge.mp4'));
+        $this->assertSame(array(), $this->stagedFiles());
+    }
+
+    public function testStaleStagedFilesAreSweptAndFreshOnesKept(): void
+    {
+        $root = haxcms_import_get_staging_root();
+        $stale = $root . '/haxbi_stale.png';
+        $fresh = $root . '/haxbi_fresh.png';
+        $other = $root . '/someone-else.png';
+        file_put_contents($stale, 'x');
+        file_put_contents($fresh, 'x');
+        file_put_contents($other, 'x');
+        touch($stale, time() - 2 * 86400);
+        touch($other, time() - 2 * 86400);
+        $this->assertSame(1, haxcms_import_sweep_staging_root($root));
+        $this->assertFileDoesNotExist($stale);
+        $this->assertFileExists($fresh);
+        $this->assertFileExists($other, 'only haxbi_* files are swept');
+    }
+
+    public function testUnlinkStagedFilesOnlyTouchesTheStagingRoot(): void
+    {
+        $root = haxcms_import_get_staging_root();
+        $inside = $root . '/haxbi_a.png';
+        file_put_contents($inside, 'x');
+        $outside = $this->tmpRoot . '/keep.png';
+        file_put_contents($outside, 'x');
+        haxcms_import_unlink_staged_files(array($inside, $outside, $root . '/../keep.png', 42));
+        $this->assertFileDoesNotExist($inside);
+        $this->assertFileExists($outside);
+    }
 }

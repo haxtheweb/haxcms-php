@@ -32,6 +32,10 @@
  * DNS server returns a public IP for the check and a private IP for the
  * connect (DNS rebinding). Guzzle is forced to allow_redirects=false so the
  * manual walk is the only redirect path and every hop is re-validated.
+ *
+ * Byte cap (Security SEC-SSRF, parity with safeFetch.js maxBytes): every
+ * wrapper buffers at most DEFAULT_MAX_RESPONSE_BYTES (20 MiB) per hop unless
+ * the caller passes its own cap; over-cap responses throw SSRF_TOO_LARGE.
  */
 class SsrfGuard
 {
@@ -49,109 +53,180 @@ class SsrfGuard
      */
     private static $MAX_REDIRECTS = 5;
     /**
-     * True for private / reserved / loopback / link-local / metadata IPs.
-     * Matches the Node.js isPrivateOrReservedIP list.
+     * Security (SEC-SSRF): default cap on the number of response-body bytes
+     * any safe-fetch wrapper will buffer (20 MiB). Parity with the
+     * haxcms-nodejs safeFetch.js maxBytes default. A response whose
+     * Content-Length exceeds the cap is rejected before the body is read; a
+     * response without (or lying about) Content-Length is aborted as soon as
+     * the streamed body crosses the cap. Either way the wrapper throws
+     * SsrfGuardException with ssrfCode SSRF_TOO_LARGE. Callers can pass a
+     * smaller or larger per-call cap (safeCurlExec $maxBytes,
+     * safeFileGetContents $maxBytes, safeGuzzleRequest option 'max_bytes').
+     */
+    const DEFAULT_MAX_RESPONSE_BYTES = 20971520; // 20 * 1024 * 1024
+
+    /**
+     * Security (SEC-SSRF): IPv4 ranges that are never a legitimate outbound
+     * fetch target. Compared as packed-address CIDRs (not string prefixes).
+     * Parity contract with haxcms-nodejs HAXCMSFile.isPrivateOrReservedIP —
+     * keep the two lists identical.
+     */
+    private static $BLOCKED_IPV4_CIDRS = array(
+        '0.0.0.0/8',        // "this network" (RFC 1122), incl. 0.0.0.0
+        '10.0.0.0/8',       // private (RFC 1918)
+        '100.64.0.0/10',    // carrier-grade NAT (RFC 6598)
+        '127.0.0.0/8',      // loopback
+        '169.254.0.0/16',   // link-local / cloud metadata (169.254.169.254)
+        '172.16.0.0/12',    // private (RFC 1918)
+        '192.0.0.0/24',     // IETF protocol assignments (RFC 6890)
+        '192.0.2.0/24',     // TEST-NET-1 (RFC 5737)
+        '192.168.0.0/16',   // private (RFC 1918)
+        '198.18.0.0/15',    // benchmarking (RFC 2544)
+        '198.51.100.0/24',  // TEST-NET-2 (RFC 5737)
+        '203.0.113.0/24',   // TEST-NET-3 (RFC 5737)
+        '224.0.0.0/4',      // multicast
+        '240.0.0.0/4',      // reserved (RFC 1112), incl. 255.255.255.255 broadcast
+    );
+
+    /**
+     * Security (SEC-SSRF): IPv6 ranges rejected outright.
+     */
+    private static $BLOCKED_IPV6_CIDRS = array(
+        '::/128',           // unspecified
+        '::1/128',          // loopback
+        '100::/64',         // discard-only (RFC 6666)
+        '64:ff9b:1::/48',   // local-use NAT64 (RFC 8215) — never globally reachable
+        'fc00::/7',         // unique local (ULA)
+        'fe80::/10',        // link-local
+        'ff00::/8',         // multicast
+    );
+
+    /**
+     * Security (SEC-SSRF): IPv6 ranges that embed an IPv4 address. The
+     * embedded address is decoded from the packed bytes at the given offset
+     * and re-checked against the IPv4 list, so e.g. 64:ff9b::7f00:1 (NAT64
+     * for 127.0.0.1) and 2002:a9fe:a9fe:: (6to4 for 169.254.169.254) are
+     * rejected while 64:ff9b::808:808 (NAT64 for 8.8.8.8) is allowed.
+     */
+    private static $EMBEDDED_IPV4_IPV6_CIDRS = array(
+        array('::ffff:0:0/96', 12),  // IPv4-mapped
+        array('::/96', 12),          // IPv4-compatible (deprecated)
+        array('64:ff9b::/96', 12),   // NAT64 well-known prefix (RFC 6052)
+        array('2002::/16', 2),       // 6to4 (RFC 3056)
+    );
+
+    /** @var array packed CIDR cache: cidr => array(packedNetwork, prefixBits) */
+    private static $packedCidrCache = array();
+
+    /**
+     * Parse a CIDR string into array(packedNetwork, prefixBits), cached.
+     */
+    private static function packCidr($cidr)
+    {
+        if (isset(self::$packedCidrCache[$cidr])) {
+            return self::$packedCidrCache[$cidr];
+        }
+        $parts = explode('/', $cidr, 2);
+        $packed = @inet_pton($parts[0]);
+        $bits = isset($parts[1]) ? (int) $parts[1] : ($packed === false ? 0 : strlen($packed) * 8);
+        self::$packedCidrCache[$cidr] = array($packed, $bits);
+        return self::$packedCidrCache[$cidr];
+    }
+
+    /**
+     * Security (SEC-SSRF): true when the packed address $packed (4 or 16
+     * bytes, as produced by inet_pton) lies inside $cidr. Byte-wise prefix
+     * comparison on packed addresses — never a textual prefix match.
+     */
+    public static function packedIpInCidr($packed, $cidr)
+    {
+        list($network, $bits) = self::packCidr($cidr);
+        if (!is_string($packed) || $network === false || strlen($packed) !== strlen($network)) {
+            return false;
+        }
+        $fullBytes = intdiv($bits, 8);
+        if ($fullBytes > 0 && substr($packed, 0, $fullBytes) !== substr($network, 0, $fullBytes)) {
+            return false;
+        }
+        $remainder = $bits % 8;
+        if ($remainder === 0) {
+            return true;
+        }
+        $mask = (0xff << (8 - $remainder)) & 0xff;
+        return (ord($packed[$fullBytes]) & $mask) === (ord($network[$fullBytes]) & $mask);
+    }
+
+    /**
+     * True for private / reserved / loopback / link-local / metadata /
+     * multicast / documentation IPs, and for anything that does not parse as
+     * an IP address (fail closed). Matches the Node.js isPrivateOrReservedIP
+     * list (see the CIDR tables above).
+     *
+     * Security (HAX-SEC-007 / SSRF hex-form bypass) is preserved: every
+     * spelling is canonicalised by inet_pton first, so ::ffff:7f00:1,
+     * ::ffff:127.0.0.1 and 0:0:0:0:0:ffff:7f00:0001 all decode to the same
+     * 16 bytes and the embedded IPv4 (127.0.0.1) is re-checked. Legitimate
+     * public v6 like 2001:db8::1.2.3.4 is not touched because its prefix is
+     * not one of the embedded-IPv4 prefixes.
      */
     public static function isPrivateOrReservedIP($ip)
     {
         if (!is_string($ip) || $ip === '') {
             return true;
         }
-        // IPv6 normalization via inet_pton so ::1 / :: / ULA / link-local match
         $packed = @inet_pton($ip);
-        if ($packed !== false && strlen($packed) === 16) {
-            $lower = strtolower($ip);
-            // IPv6 loopback (::1) and unspecified (::) — matched on the packed
-            // bytes so every equivalent textual spelling (::1, ::0001,
-            // 0:0:0:0:0:0:0:1, etc.) is caught, not just the canonical forms.
-            $zero16 = str_repeat("\x00", 16);
-            if ($packed === $zero16 || $packed === substr($zero16, 0, 15) . "\x01") {
-                return true;
-            }
-            // IPv6 unique local (fc00::/7 -> starts fc or fd)
-            if (strpos($lower, 'fc') === 0 || strpos($lower, 'fd') === 0) {
-                return true;
-            }
-            // IPv6 link-local (fe80::/10)
-            if (strpos($lower, 'fe80') === 0) {
-                return true;
-            }
-            // IPv4-mapped IPv6 (::ffff:0:0/96) and IPv4-compatible IPv6
-            // (::/96): normalize by decoding the trailing 4 bytes of the
-            // packed address via inet_ntop and re-checking with
-            // isPrivateOrReservedIPv4.
-            //
-            // Security (HAX-SEC-007 / SSRF hex-form bypass): the previous
-            // text-based match only recognized the dotted-quad spelling
-            // (::ffff:127.0.0.1) and passed substr($ip, 7) — yielding
-            // "7f00:1" for the hex spelling — which matched no private IPv4
-            // prefix, so ::ffff:7f00:1 (loopback 127.0.0.1),
-            // ::ffff:a9fe:a9fe (metadata 169.254.169.254), and
-            // ::ffff:c0a8:0001 (192.168.0.1) were all misclassified as
-            // public and reached loopback/internal/metadata targets. inet_pton
-            // canonicalizes every equivalent spelling to the same 16 bytes, so
-            // decoding the trailing 4 bytes recovers the canonical dotted-quad
-            // for both hex and dotted input. The prefix check (first 10 bytes
-            // zero + bytes 10-11 = 0xffff for mapped; first 12 bytes zero for
-            // compat) avoids touching legitimate public v6 like
-            // 2001:db8::1.2.3.4, whose trailing 4 bytes happen to look like an
-            // IPv4 address but whose prefix is not the mapped/compat prefix.
-            $prefix10 = substr($packed, 0, 10);
-            $octets10to11 = substr($packed, 10, 2);
-            $isMapped = ($prefix10 === str_repeat("\x00", 10) && $octets10to11 === "\xff\xff");
-            $isCompat = ($prefix10 === str_repeat("\x00", 10) && $octets10to11 === "\x00\x00");
-            if ($isMapped || $isCompat) {
-                $v4 = @inet_ntop(substr($packed, 12, 4));
-                if ($v4 !== false) {
-                    return self::isPrivateOrReservedIPv4($v4);
-                }
-                return true; // fail-closed if inet_ntop somehow fails
-            }
-            return false;
+        if ($packed === false) {
+            // Not a literal IP (or a zone-scoped / malformed one): fail closed.
+            return true;
         }
-        return self::isPrivateOrReservedIPv4($ip);
+        if (strlen($packed) === 4) {
+            return self::isPrivateOrReservedPackedIPv4($packed);
+        }
+        if (strlen($packed) !== 16) {
+            return true;
+        }
+        foreach (self::$BLOCKED_IPV6_CIDRS as $cidr) {
+            if (self::packedIpInCidr($packed, $cidr)) {
+                return true;
+            }
+        }
+        foreach (self::$EMBEDDED_IPV4_IPV6_CIDRS as $entry) {
+            if (self::packedIpInCidr($packed, $entry[0])) {
+                return self::isPrivateOrReservedPackedIPv4(substr($packed, $entry[1], 4));
+            }
+        }
+        return false;
     }
 
-    private static function isPrivateOrReservedIPv4($ip)
+    /**
+     * Decode the IPv4 address embedded in a NAT64 (64:ff9b::/96), 6to4
+     * (2002::/16), IPv4-mapped or IPv4-compatible IPv6 address. Returns the
+     * dotted quad, or null when $ip is not one of those forms. Exposed for
+     * tests and diagnostics.
+     */
+    public static function decodeEmbeddedIPv4($ip)
     {
-        if (!is_string($ip) || $ip === '') {
-            return true;
+        $packed = is_string($ip) ? @inet_pton($ip) : false;
+        if ($packed === false || strlen($packed) !== 16) {
+            return null;
         }
-        if ($ip === '0.0.0.0') {
-            return true;
-        }
-        if (strpos($ip, '127.') === 0) {
-            return true;
-        }
-        // link-local / cloud metadata (169.254.169.254)
-        if (strpos($ip, '169.254.') === 0) {
-            return true;
-        }
-        if (strpos($ip, '10.') === 0) {
-            return true;
-        }
-        if (strpos($ip, '192.168.') === 0) {
-            return true;
-        }
-        // private Class B (172.16.0.0/12)
-        if (strpos($ip, '172.') === 0) {
-            $parts = explode('.', $ip);
-            if (isset($parts[1])) {
-                $second = (int) $parts[1];
-                if ($second >= 16 && $second <= 31) {
-                    return true;
-                }
+        foreach (self::$EMBEDDED_IPV4_IPV6_CIDRS as $entry) {
+            if (self::packedIpInCidr($packed, $entry[0])) {
+                $v4 = @inet_ntop(substr($packed, $entry[1], 4));
+                return ($v4 === false) ? null : $v4;
             }
         }
-        // carrier-grade NAT (100.64.0.0/10, RFC 6598) — reachable in some
-        // cloud/LAN topologies; parity with haxcms-nodejs isPrivateOrReservedIPv4.
-        if (strpos($ip, '100.') === 0) {
-            $parts = explode('.', $ip);
-            if (isset($parts[1])) {
-                $second = (int) $parts[1];
-                if ($second >= 64 && $second <= 127) {
-                    return true;
-                }
+        return null;
+    }
+
+    private static function isPrivateOrReservedPackedIPv4($packed)
+    {
+        if (!is_string($packed) || strlen($packed) !== 4) {
+            return true;
+        }
+        foreach (self::$BLOCKED_IPV4_CIDRS as $cidr) {
+            if (self::packedIpInCidr($packed, $cidr)) {
+                return true;
             }
         }
         return false;
@@ -362,9 +437,54 @@ class SsrfGuard
      * semantics). Throws SsrfGuardException on SSRF rejection, hop cap
      * (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT).
      */
-    public static function safeFileGetContents($url)
+    public static function safeFileGetContents($url, $maxBytes = null)
     {
-        return self::safeCurlExec($url);
+        return self::safeCurlExec($url, array(), $maxBytes);
+    }
+
+    /**
+     * Security (SEC-SSRF): normalise a caller-supplied byte cap. Anything
+     * that is not a positive integer falls back to DEFAULT_MAX_RESPONSE_BYTES.
+     */
+    public static function resolveMaxBytes($maxBytes = null)
+    {
+        if (is_int($maxBytes) && $maxBytes > 0) {
+            return $maxBytes;
+        }
+        if (is_string($maxBytes) && ctype_digit($maxBytes) && (int) $maxBytes > 0) {
+            return (int) $maxBytes;
+        }
+        return self::DEFAULT_MAX_RESPONSE_BYTES;
+    }
+
+    /**
+     * Security (SEC-SSRF): the exception every wrapper throws when a response
+     * body exceeds the byte cap.
+     */
+    private static function tooLarge($limit)
+    {
+        return new SsrfGuardException(
+            'Remote response exceeded the maximum allowed size of ' . (int) $limit . ' bytes',
+            'SSRF_TOO_LARGE'
+        );
+    }
+
+    /**
+     * Security (SEC-SSRF): true when a Content-Length header value announces
+     * more than $limit bytes.
+     */
+    private static function contentLengthExceeds($value, $limit)
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !ctype_digit($value)) {
+            return false;
+        }
+        // compare as strings-of-digits first so a 30-digit value cannot
+        // overflow into a small int
+        if (strlen(ltrim($value, '0')) > 18) {
+            return true;
+        }
+        return ((int) $value) > $limit;
     }
 
     /**
@@ -416,7 +536,11 @@ class SsrfGuard
      */
     public static function safeGuzzleRequest($client, $method, $url, array $options = array())
     {
-        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($client, $method, $options) {
+        // Security (SEC-SSRF): byte cap. 'max_bytes' is a HAXcms option, not a
+        // Guzzle one, so strip it before the options reach the client.
+        $limit = self::resolveMaxBytes(isset($options['max_bytes']) ? $options['max_bytes'] : null);
+        unset($options['max_bytes']);
+        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($client, $method, $options, $limit) {
             $merged = $options;
             // Force off so Guzzle never auto-follows without a per-hop SSRF
             // re-check; the manual walk in walkRedirects handles every hop.
@@ -425,7 +549,47 @@ class SsrfGuard
                 $merged['timeout'] = self::$SAFE_TIMEOUT;
             }
             $merged = self::applyPinnedResolveToGuzzle($merged, $parsed, $pinnedIp);
-            $response = $client->request($method, $currentUrl, $merged);
+            // Security (SEC-SSRF): reject an announced Content-Length over the
+            // cap before any body is read, then stream the body into a sink
+            // that refuses writes past the cap (catches chunked responses and
+            // lying Content-Length; with decode_content the cap applies to the
+            // decoded bytes, so a compression bomb is also stopped).
+            $callerOnHeaders = isset($merged['on_headers']) && is_callable($merged['on_headers']) ? $merged['on_headers'] : null;
+            $merged['on_headers'] = function ($response) use ($limit, $callerOnHeaders) {
+                if (
+                    $response instanceof \Psr\Http\Message\ResponseInterface &&
+                    self::contentLengthExceeds($response->getHeaderLine('Content-Length'), $limit)
+                ) {
+                    throw self::tooLarge($limit);
+                }
+                if ($callerOnHeaders !== null) {
+                    call_user_func($callerOnHeaders, $response);
+                }
+            };
+            $sink = null;
+            if (!isset($merged['sink']) && class_exists('SsrfGuardCappedStream', false)) {
+                $sink = new SsrfGuardCappedStream(\GuzzleHttp\Psr7\Utils::streamFor(fopen('php://temp', 'w+b')), $limit);
+                $merged['sink'] = $sink;
+            }
+            try {
+                $response = $client->request($method, $currentUrl, $merged);
+            } catch (\GuzzleHttp\Exception\RequestException $e) {
+                if ($sink !== null && $sink->exceeded) {
+                    throw self::tooLarge($limit);
+                }
+                $previous = $e->getPrevious();
+                if ($previous instanceof SsrfGuardException) {
+                    throw $previous;
+                }
+                throw $e;
+            }
+            if ($sink !== null && $sink->exceeded) {
+                throw self::tooLarge($limit);
+            }
+            $bodySize = $response->getBody()->getSize();
+            if ($bodySize !== null && $bodySize > $limit) {
+                throw self::tooLarge($limit);
+            }
             return array(
                 'status' => $response->getStatusCode(),
                 'location' => $response->getHeaderLine('Location'),
@@ -444,9 +608,10 @@ class SsrfGuard
      * failure (caller decides how to handle). Throws SsrfGuardException on
      * SSRF rejection, hop cap (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT).
      */
-    public static function safeCurlExec($url, array $extraOptions = array())
+    public static function safeCurlExec($url, array $extraOptions = array(), $maxBytes = null)
     {
-        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($extraOptions) {
+        $limit = self::resolveMaxBytes($maxBytes);
+        $fetcher = function ($currentUrl, $parsed, $pinnedIp) use ($extraOptions, $limit) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $currentUrl);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -466,12 +631,26 @@ class SsrfGuard
                     curl_setopt($ch, CURLOPT_RESOLVE, $entries);
                 }
             }
+            // Security (SEC-SSRF): byte cap. CURLOPT_MAXFILESIZE rejects an
+            // announced Content-Length over the cap up front; the progress
+            // callback aborts a streamed (chunked / lying) body as soon as it
+            // crosses the cap; the final strlen check is belt and braces.
+            curl_setopt($ch, CURLOPT_MAXFILESIZE, $limit);
+            curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+            curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $dlTotal, $dlNow, $ulTotal, $ulNow) use ($limit) {
+                return ($dlTotal > $limit || $dlNow > $limit) ? 1 : 0;
+            });
             foreach ($extraOptions as $key => $value) {
                 curl_setopt($ch, $key, $value);
             }
             $raw = curl_exec($ch);
             if ($raw === false) {
+                $errno = curl_errno($ch);
                 curl_close($ch);
+                // 63 = CURLE_FILESIZE_EXCEEDED, 42 = CURLE_ABORTED_BY_CALLBACK
+                if ($errno === 63 || $errno === 42) {
+                    throw self::tooLarge($limit);
+                }
                 // Surface as a non-redirect final with false body so walkRedirects
                 // returns false (matching the legacy safeCurlExec contract).
                 return array('status' => 200, 'location' => '', 'body' => false);
@@ -481,6 +660,9 @@ class SsrfGuard
             $headers = substr($raw, 0, $headerSize);
             $body = substr($raw, $headerSize);
             curl_close($ch);
+            if (strlen($body) > $limit) {
+                throw self::tooLarge($limit);
+            }
             return array(
                 'status' => $status,
                 'location' => self::extractHeader($headers, 'Location'),
@@ -488,6 +670,48 @@ class SsrfGuard
             );
         };
         return self::walkRedirects($url, $fetcher);
+    }
+}
+
+/**
+ * Security (SEC-SSRF): Guzzle sink that refuses writes past a byte cap.
+ * Returning 0 from write() makes cURL abort the transfer (CURLE_WRITE_ERROR)
+ * and the stream handler stop copying; `exceeded` lets safeGuzzleRequest turn
+ * that into SSRF_TOO_LARGE. Declared only when the PSR-7 interfaces are
+ * autoloadable, because this file is also included by standalone scripts
+ * that never load composer.
+ */
+if (
+    !class_exists('SsrfGuardCappedStream', false) &&
+    interface_exists('\\Psr\\Http\\Message\\StreamInterface') &&
+    trait_exists('\\GuzzleHttp\\Psr7\\StreamDecoratorTrait')
+) {
+    class SsrfGuardCappedStream implements \Psr\Http\Message\StreamInterface
+    {
+        use \GuzzleHttp\Psr7\StreamDecoratorTrait;
+
+        /** @var \Psr\Http\Message\StreamInterface */
+        private $stream;
+        private $limit;
+        private $written = 0;
+        public $exceeded = false;
+
+        public function __construct(\Psr\Http\Message\StreamInterface $stream, $limit)
+        {
+            $this->stream = $stream;
+            $this->limit = (int) $limit;
+        }
+
+        public function write($string): int
+        {
+            $length = strlen($string);
+            if ($this->exceeded || $this->written + $length > $this->limit) {
+                $this->exceeded = true;
+                return 0;
+            }
+            $this->written += $length;
+            return $this->stream->write($string);
+        }
     }
 }
 

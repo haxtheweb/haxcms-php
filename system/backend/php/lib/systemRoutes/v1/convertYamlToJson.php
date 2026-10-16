@@ -31,9 +31,21 @@ return function ($context) {
     if (isset($body['type']) && $body['type'] === 'link' && $yamlData !== '') {
         try {
             $client   = new \GuzzleHttp\Client(['timeout' => 30]);
-            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', trim($yamlData));
+            // Security (SEC-SSRF): never buffer more than the YAML input cap.
+            $response = SsrfGuard::safeGuzzleRequest($client, 'GET', trim($yamlData), array(
+                'max_bytes' => SiteRouteUtils::YAML_MAX_INPUT_BYTES,
+            ));
             $yamlData = (string) $response->getBody();
         } catch (\Exception $e) {
+            if ($e instanceof SsrfGuardException && $e->ssrfCode === 'SSRF_TOO_LARGE') {
+                SiteRouteUtils::sendFormattedResponse(
+                    array('status' => 400, 'data' => array('error' => 'YAML input exceeds the maximum size of ' . SiteRouteUtils::YAML_MAX_INPUT_BYTES . ' bytes', 'contents' => '')),
+                    array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             SiteRouteUtils::sendFormattedResponse(
                 array('status' => 400, 'data' => array('error' => 'Failed to fetch YAML from link: ' . $e->getMessage(), 'contents' => '')),
                 array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
@@ -47,6 +59,28 @@ return function ($context) {
     if (trim($yamlData) === '') {
         SiteRouteUtils::sendFormattedResponse(
             array('status' => 400, 'data' => array('error' => 'Invalid or empty YAML content', 'contents' => '')),
+            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
+
+    // Security (SEC-SSRF / YAML alias amplification): cap the input size and
+    // refuse anchors/aliases before parsing, so a "billion laughs" document
+    // cannot expand into gigabytes of JSON. Same limit + message as Node.
+    if (strlen($yamlData) > SiteRouteUtils::YAML_MAX_INPUT_BYTES) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('status' => 400, 'data' => array('error' => 'YAML input exceeds the maximum size of ' . SiteRouteUtils::YAML_MAX_INPUT_BYTES . ' bytes', 'contents' => '')),
+            array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
+    if (SiteRouteUtils::yamlUsesAnchorsOrAliases($yamlData)) {
+        SiteRouteUtils::sendFormattedResponse(
+            array('status' => 400, 'data' => array('error' => SiteRouteUtils::YAML_ANCHOR_ALIAS_ERROR, 'contents' => '')),
             array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
             $apiBasePath
