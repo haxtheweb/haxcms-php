@@ -105,6 +105,15 @@ ok($fam2['currentJtiHash'] !== $oldJtiHash, 'store has new current jti');
 echo "\nTest 4: old jti valid within grace window\n";
 ok($hax->validateRefreshSession($user, $decoded1->family, $decoded1->jti), 'old jti still accepted (grace)');
 
+// Test 4b (SEC-SESSION): a second tab refreshing with the same cookie is a
+// grace-path accept that re-issues the SAME successor jti without rotating
+echo "\nTest 4b: concurrent tab grace accept re-issues current jti\n";
+$beforeTab2 = json_decode(file_get_contents($storePath), true)['users'][$user]['families'][$decoded1->family];
+ok($hax->rotateRefreshTokenAndCookie($decoded1) !== null, 'second tab accepted via grace');
+$afterTab2 = json_decode(file_get_contents($storePath), true)['users'][$user]['families'][$decoded1->family];
+ok($beforeTab2['currentJtiHash'] === $afterTab2['currentJtiHash'] && $beforeTab2['previousJtiHash'] === $afterTab2['previousJtiHash'], 'current/previous unchanged by grace accept');
+ok($afterTab2['currentJtiHash'] === hash('sha256', $hax->successorJti($decoded1->family, $decoded1->jti)), 'current is the deterministic successor');
+
 // Test 5: revokeRefreshSession tombstones the entry (SEC-SESSION)
 echo "\nTest 5: revokeRefreshSession writes a tombstone\n";
 $hax->revokeRefreshSession($user, $decoded1->family);

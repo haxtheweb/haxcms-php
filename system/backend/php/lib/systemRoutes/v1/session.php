@@ -75,6 +75,11 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
             isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
         );
         if (!$sessionOk) {
+            // Security (SEC-SESSION, PHP-only): store unreadable -> no
+            // tombstone, no cookie clear; the caller answers 503.
+            if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
+                return array('storeError' => true);
+            }
             $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
@@ -85,6 +90,9 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         // refused.
         $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($refreshTokenDecoded);
         if ($rotated === null) {
+            if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
+                return array('storeError' => true);
+            }
             $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
@@ -303,6 +311,25 @@ return function ($context) {
                 return;
             }
             $sessionContext = haxcmsResolveRefreshSessionContext();
+            if (is_array($sessionContext) && isset($sessionContext['storeError'])) {
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'status' => 503,
+                        'authenticated' => false,
+                        'reason' => 'store_unavailable',
+                        'message' => 'Session store unavailable',
+                    ),
+                    array(
+                        'statusCode' => 503,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             $refreshed = $sessionContext !== null;
         }
         if ($sessionContext === null) {
@@ -369,13 +396,22 @@ return function ($context) {
             );
             return;
         }
+        // Security (SEC-SESSION): include fresh request tokens (userToken, and
+        // siteToken when a site context is resolvable) for an editor that
+        // booted anonymously from connection-settings (NodeJS parity).
         SiteRouteUtils::sendFormattedResponse(
-            array(
-                'status' => 200,
-                'authenticated' => true,
-                'jwt' => $sessionContext['jwt'],
-                'refreshed' => $refreshed,
-                'user' => $sessionContext['user'],
+            array_merge(
+                array(
+                    'status' => 200,
+                    'authenticated' => true,
+                    'jwt' => $sessionContext['jwt'],
+                    'refreshed' => $refreshed,
+                    'user' => $sessionContext['user'],
+                ),
+                $GLOBALS['HAXCMS']->getSessionRequestTokens(
+                    $sessionContext['user'],
+                    is_array($context->body) ? $context->body : array()
+                )
             ),
             array(
                 'statusCode' => 200,

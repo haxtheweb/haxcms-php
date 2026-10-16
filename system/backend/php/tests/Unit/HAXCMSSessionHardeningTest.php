@@ -432,7 +432,12 @@ class HAXCMSSessionHardeningTest extends TestCase
             'matching origin, case-insensitive'   => array(array('HTTP_ORIGIN' => 'http://EXAMPLE.test'), true),
             'matching referer (no origin)'        => array(array('HTTP_REFERER' => 'http://example.test/sites/a/'), true),
             'foreign origin'                      => array(array('HTTP_ORIGIN' => 'https://evil.test'), false),
-            'scheme mismatch'                     => array(array('HTTP_ORIGIN' => 'https://example.test'), false),
+            // scheme is deliberately NOT compared (NodeJS parity): both
+            // directions of server/browser scheme disagreement must pass
+            'scheme mismatch (TLS proxy, no trustedProxies)' => array(array('HTTP_ORIGIN' => 'https://example.test', 'HTTP_X_FORWARDED_PROTO' => 'https'), true),
+            'Apache plain http, protossl=""'      => array(array('HTTP_ORIGIN' => 'http://example.test', 'protossl' => ''), true),
+            'Apache https, protossl="s", http origin' => array(array('HTTP_ORIGIN' => 'http://example.test', 'protossl' => 's'), true),
+            'foreign host over matching scheme'   => array(array('HTTP_ORIGIN' => 'http://example.test.evil.test'), false),
             'port mismatch'                       => array(array('HTTP_ORIGIN' => 'http://example.test:8080'), false),
             'foreign referer'                     => array(array('HTTP_REFERER' => 'http://evil.test/x'), false),
             'origin null'                         => array(array('HTTP_ORIGIN' => 'null'), false),
@@ -471,6 +476,169 @@ class HAXCMSSessionHardeningTest extends TestCase
         $res = $ops->refreshAccessToken();
         $this->assertSame(200, $res['status']);
         $this->assertNotEmpty($res['jwt']);
+    }
+
+    public function testRefreshResponseCarriesUserAndSiteTokens(): void
+    {
+        $h = $this->bareHaxcms();
+        $h->basePath = '/';
+        $h->sitesDirectory = '_sites';
+        $GLOBALS['HAXCMS'] = $h;
+        $_COOKIE['haxcms_refresh_token'] = $h->getRefreshToken('alice', true);
+        $_SERVER['HTTP_REFERER'] = 'http://example.test/sites/my-site/page';
+        $ops = new Operations();
+        $ops->params = array();
+        $res = $ops->refreshAccessToken();
+        $this->assertSame(200, $res['status']);
+        $this->assertSame($h->getRequestToken('alice'), $res['userToken']);
+        $this->assertSame($h->getRequestToken('alice:my-site'), $res['siteToken']);
+        // explicit body site wins; no resolvable site -> no siteToken key
+        $this->assertSame('other', $h->resolveSessionSiteName(array('site' => array('name' => 'other'))));
+        unset($_SERVER['HTTP_REFERER']);
+        $this->assertArrayNotHasKey('siteToken', $h->getSessionRequestTokens('alice', array()));
+        $this->assertSame('', $h->resolveSessionSiteName(array('siteName' => '../etc')));
+    }
+
+    // ---------------------------------------------------------------
+    // grace path: two tabs refresh with the same cookie
+    // ---------------------------------------------------------------
+
+    /**
+     * Tab 1 and tab 2 both refresh with the SAME cookie (jti J0). The second
+     * is a grace-path accept that must re-issue the jti tab 1 received
+     * (deterministic successor) without rotating again, so whichever
+     * Set-Cookie the browser keeps refreshes successfully next time.
+     */
+    #[DataProvider('cookieOrderProvider')]
+    public function testConcurrentTabsGracePathKeepsBothCookiesValid(string $keep): void
+    {
+        $h = $this->bareHaxcms();
+        $t0 = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($t0), 'tab 1 rotates');
+        $afterTab1 = $this->fam('alice', $t0->family);
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($t0), 'tab 2 grace accept');
+        $afterTab2 = $this->fam('alice', $t0->family);
+        // grace accept left current/previous untouched
+        $this->assertSame($afterTab1['currentJtiHash'], $afterTab2['currentJtiHash']);
+        $this->assertSame($afterTab1['previousJtiHash'], $afterTab2['previousJtiHash']);
+        $successor = $h->successorJti($t0->family, $t0->jti);
+        $this->assertSame(hash('sha256', $successor), $afterTab2['currentJtiHash']);
+        // both Set-Cookies carried the same jti; whichever the browser kept
+        // ($keep only labels the order -- the jti is identical) rotates fine
+        $kept = (object) array('user' => 'alice', 'family' => $t0->family, 'jti' => $successor, 'iat' => time(), 'exp' => time() + 3600);
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($kept), "kept cookie from $keep refreshes");
+        $this->assertArrayNotHasKey('revoked', $this->fam('alice', $t0->family));
+        // and the chain continues: the next successor is now current
+        $this->assertSame(hash('sha256', $h->successorJti($t0->family, $successor)), $this->fam('alice', $t0->family)['currentJtiHash']);
+    }
+
+    public static function cookieOrderProvider(): array
+    {
+        return array('tab 1 Set-Cookie kept' => array('tab1'), 'tab 2 Set-Cookie kept' => array('tab2'));
+    }
+
+    public function testSuccessorJtiMatchesNodeDerivation(): void
+    {
+        $h = $this->bareHaxcms();
+        $expected = substr(hash_hmac('sha256', 'haxcms-refresh-successor:fam:jti', 'rpk' . 's'), 0, 32);
+        $this->assertSame($expected, $h->successorJti('fam', 'jti'));
+    }
+
+    // ---------------------------------------------------------------
+    // store locking / atomic write / unreadable store
+    // ---------------------------------------------------------------
+
+    public function testCorruptStoreIsAnErrorNotAnEmptyStore(): void
+    {
+        $h = $this->bareHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $path = $this->tmpConfigDir . '/settings/refreshSessions.json';
+        foreach (array('{"version":2,"users":{"al', '') as $corrupt) {
+            file_put_contents($path, $corrupt);
+            $check = $h->checkRefreshSession((object) array('user' => 'alice', 'family' => 'f', 'jti' => 'j'));
+            $this->assertSame('store_error', $check['reason']);
+            $this->assertTrue($h->refreshStoreError);
+            // mutators refuse to overwrite the unreadable store
+            $this->assertFalse($h->recordRefreshSession('alice', 'f2', 'j2', time() + 100));
+            $h->revokeRefreshSession('alice', 'f');
+            $this->assertFalse($h->rotateRefreshSession('alice', 'f', 'j', 'k', time() + 100));
+            $this->assertSame($corrupt, file_get_contents($path));
+            // refresh answers 503 and does NOT clear/tombstone
+            $_COOKIE['haxcms_refresh_token'] = $this->signRefresh($h, array('user' => 'alice', 'family' => 'f', 'jti' => 'j'));
+            $res = (new Operations())->refreshAccessToken();
+            $this->assertSame(503, $res['__failed']['status']);
+            $this->assertSame($corrupt, file_get_contents($path));
+            // and the cookie doesn't authenticate this request (fail closed)
+            $this->assertNull($h->getAuthenticatedUserName());
+        }
+    }
+
+    public function testSaveIsAtomicAndLeavesNoTempFiles(): void
+    {
+        $h = $this->bareHaxcms();
+        for ($i = 0; $i < 5; $i++) {
+            $this->assertTrue($h->recordRefreshSession('alice', 'f' . $i, 'j', time() + 100));
+        }
+        $files = array_values(array_diff(scandir($this->tmpConfigDir . '/settings'), array('.', '..')));
+        sort($files);
+        $this->assertSame(array('refreshSessions.json', 'refreshSessions.json.lock'), $files);
+        $this->assertSame('600', substr(sprintf('%o', fileperms($this->tmpConfigDir . '/settings/refreshSessions.json')), -3));
+    }
+
+    /**
+     * N parallel PHP processes each rotate their OWN family many times
+     * against the same store. Without the exclusive lock held across
+     * load -> rotate -> save, lost updates would leave some family on a
+     * stale current jti (and the next rotation would tombstone it).
+     */
+    public function testParallelRotationsOfDifferentFamiliesAllSurvive(): void
+    {
+        $workers = 6;
+        $rounds = 15;
+        $h = $this->bareHaxcms();
+        for ($w = 0; $w < $workers; $w++) {
+            $this->assertTrue($h->recordRefreshSession('alice', 'fam' . $w, 'jti' . $w . '-0', time() + 3600));
+        }
+        $lib = dirname(__DIR__, 2) . '/lib';
+        $child = $this->tmpConfigDir . '/child.php';
+        file_put_contents($child, '<?php
+error_reporting(E_ALL & ~E_DEPRECATED);
+define("HAXCMS_ROOT", ' . var_export($this->tmpConfigDir, true) . ');
+$_SERVER["SERVER_SOFTWARE"] = "child";
+include_once ' . var_export($lib . '/HAXCMS.php', true) . ';
+$h = (new ReflectionClass("HAXCMS"))->newInstanceWithoutConstructor();
+$h->privateKey = "pk"; $h->refreshPrivateKey = "rpk"; $h->salt = "s";
+$h->config = new stdClass(); $h->configDirectory = HAXCMS_ROOT;
+$fam = $argv[1]; $jti = $argv[2]; $rounds = (int) $argv[3]; $ok = 0;
+for ($i = 0; $i < $rounds; $i++) {
+  $next = $h->successorJti($fam, $jti);
+  if ($h->rotateRefreshSession("alice", $fam, $jti, $next, time() + 3600)) { $ok++; $jti = $next; }
+}
+echo $ok . " " . $jti;
+');
+        $procs = array();
+        for ($w = 0; $w < $workers; $w++) {
+            $cmd = array(PHP_BINARY, $child, 'fam' . $w, 'jti' . $w . '-0', (string) $rounds);
+            $pipes = array();
+            $procs[$w] = array(proc_open($cmd, array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes), $pipes);
+        }
+        $finals = array();
+        foreach ($procs as $w => $p) {
+            $out = stream_get_contents($p[1][1]);
+            $err = stream_get_contents($p[1][2]);
+            fclose($p[1][1]);
+            fclose($p[1][2]);
+            proc_close($p[0]);
+            $this->assertSame('', trim($err), "worker $w stderr");
+            list($ok, $finalJti) = explode(' ', trim($out));
+            $this->assertSame($rounds, (int) $ok, "worker $w: every rotation accepted");
+            $finals[$w] = $finalJti;
+        }
+        foreach ($finals as $w => $finalJti) {
+            $entry = $this->fam('alice', 'fam' . $w);
+            $this->assertArrayNotHasKey('revoked', $entry, "fam$w not tombstoned");
+            $this->assertSame(hash('sha256', $finalJti), $entry['currentJtiHash'], "fam$w update not lost");
+        }
     }
 
     // ---------------------------------------------------------------

@@ -25,9 +25,30 @@ trait OperationsRouteRefreshAccessToken {
       // next refresh. Legacy tokens without family/jti are upgraded in place.
       $rotatedAccessJwt = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($validRefresh);
       if ($rotatedAccessJwt !== null) {
+        // Security (SEC-SESSION): include fresh request tokens (userToken, and
+        // siteToken when a site context is resolvable) so an editor that
+        // booted anonymously can pick them up without reloading
+        // connection-settings. Parity with NodeJS refreshAccessToken.js.
+        return array_merge(
+          array(
+            "status" => 200,
+            "jwt" => $rotatedAccessJwt,
+          ),
+          $GLOBALS['HAXCMS']->getSessionRequestTokens(
+            $GLOBALS['HAXCMS']->generateMachineName($validRefresh->user),
+            is_array($this->params) ? $this->params : array()
+          )
+        );
+      }
+      // Security (SEC-SESSION, PHP-only): the session store could not be read
+      // or written (e.g. corrupt file / disk error). Do NOT tombstone or
+      // clear the cookie -- that would log the user out for a server fault.
+      if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
         return array(
-          "status" => 200,
-          "jwt" => $rotatedAccessJwt,
+          '__failed' => array(
+            'status' => 503,
+            'message' => 'Session store unavailable',
+          )
         );
       }
       // rotation rejected (possible replay/theft) -> tombstone ONLY the
