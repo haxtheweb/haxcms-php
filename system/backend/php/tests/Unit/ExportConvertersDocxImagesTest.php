@@ -197,6 +197,58 @@ class ExportConvertersDocxImagesTest extends TestCase
         $this->assertStringContainsString('<p', $out);
     }
 
+    public function testTotalImageBudgetDefaultsTo50MiB(): void
+    {
+        $this->assertSame(50 * 1024 * 1024, ExportConverters::DOCX_MAX_TOTAL_IMAGE_BYTES);
+    }
+
+    public function testImagesPastTheTotalBudgetAreDroppedAndNotFetched(): void
+    {
+        $png = $this->sitePng;
+        $size = strlen($png);
+        $calls = array();
+        $fetcher = function ($url, $maxBytes) use (&$calls, $png) {
+            $calls[] = array($url, $maxBytes);
+            return $png;
+        };
+        $html = '<img src="https://cdn.example.org/1.png"/><img src="files/ok.png"/>'
+            . '<img src="https://cdn.example.org/2.png"/><img src="https://cdn.example.org/3.png"/>';
+        // room for exactly two images
+        $out = ExportConverters::resolveDocxImageSources($html, '/mysite/', $this->siteDir, $fetcher, $size * 2);
+        $this->assertSame(array($this->dataUri($png), $this->dataUri($png)), $this->imgSrcs($out));
+        // the remaining budget caps each fetch; once spent, nothing is fetched
+        $this->assertSame(array(array('https://cdn.example.org/1.png', $size * 2)), $calls);
+    }
+
+    public function testRepeatedImageCountsAgainstTheBudgetEachTime(): void
+    {
+        $size = strlen($this->sitePng);
+        $html = str_repeat('<img src="files/ok.png"/>', 5);
+        $out = ExportConverters::resolveDocxImageSources($html, '/mysite/', $this->siteDir, null, $size * 3);
+        $this->assertCount(3, $this->imgSrcs($out));
+    }
+
+    public function testZeroBudgetDropsAllImages(): void
+    {
+        $out = ExportConverters::resolveDocxImageSources('<p>x</p><img src="files/ok.png"/>', '/mysite/', $this->siteDir, null, 0);
+        $this->assertSame(array(), $this->imgSrcs($out));
+        $this->assertStringContainsString('<p', $out);
+    }
+
+    public function testHtmlToDocxStringHonoursTheBudget(): void
+    {
+        $png = $this->sitePng;
+        $fetcher = function () use ($png) { return $png; };
+        $media = $this->docxMedia(ExportConverters::htmlToDocxString(
+            '<p>x</p><img src="https://cdn.example.org/a.png"/><img src="https://cdn.example.org/b.png"/>',
+            '/',
+            null,
+            $fetcher,
+            strlen($png) + 1
+        ));
+        $this->assertCount(1, $media);
+    }
+
     // ---------------------------------------------------------------
     // enforceDocxImageSources (the gate in front of PhpWord)
     // ---------------------------------------------------------------

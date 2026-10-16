@@ -1,4 +1,12 @@
 <?php
+// Security (SEC-SSRF): the Guzzle streaming byte cap (SsrfGuardCappedStream)
+// needs the PSR-7 interfaces, so load composer's autoloader here rather than
+// relying on every includer having loaded it first.
+$__ssrfGuardAutoload = dirname(__FILE__) . '/../vendor/autoload.php';
+if (file_exists($__ssrfGuardAutoload)) {
+    require_once $__ssrfGuardAutoload;
+}
+unset($__ssrfGuardAutoload);
 /**
  * SSRF guard for haxcms-php.
  *
@@ -458,6 +466,18 @@ class SsrfGuard
     }
 
     /**
+     * Security (SEC-SSRF): make sure SsrfGuardCappedStream is declared. It
+     * lives in its own file (it implements a PSR-7 interface, which must be
+     * autoloadable at declaration time) and is required on first use.
+     */
+    public static function loadCappedStream()
+    {
+        if (!class_exists('SsrfGuardCappedStream', false)) {
+            require_once dirname(__FILE__) . '/SsrfGuardCappedStream.php';
+        }
+    }
+
+    /**
      * Security (SEC-SSRF): the exception every wrapper throws when a response
      * body exceeds the byte cap.
      */
@@ -567,7 +587,10 @@ class SsrfGuard
                 }
             };
             $sink = null;
-            if (!isset($merged['sink']) && class_exists('SsrfGuardCappedStream', false)) {
+            if (!isset($merged['sink'])) {
+                // Loaded at first use so the cap cannot silently go missing
+                // because of include order; throws if PSR-7 is unavailable.
+                self::loadCappedStream();
                 $sink = new SsrfGuardCappedStream(\GuzzleHttp\Psr7\Utils::streamFor(fopen('php://temp', 'w+b')), $limit);
                 $merged['sink'] = $sink;
             }
@@ -670,48 +693,6 @@ class SsrfGuard
             );
         };
         return self::walkRedirects($url, $fetcher);
-    }
-}
-
-/**
- * Security (SEC-SSRF): Guzzle sink that refuses writes past a byte cap.
- * Returning 0 from write() makes cURL abort the transfer (CURLE_WRITE_ERROR)
- * and the stream handler stop copying; `exceeded` lets safeGuzzleRequest turn
- * that into SSRF_TOO_LARGE. Declared only when the PSR-7 interfaces are
- * autoloadable, because this file is also included by standalone scripts
- * that never load composer.
- */
-if (
-    !class_exists('SsrfGuardCappedStream', false) &&
-    interface_exists('\\Psr\\Http\\Message\\StreamInterface') &&
-    trait_exists('\\GuzzleHttp\\Psr7\\StreamDecoratorTrait')
-) {
-    class SsrfGuardCappedStream implements \Psr\Http\Message\StreamInterface
-    {
-        use \GuzzleHttp\Psr7\StreamDecoratorTrait;
-
-        /** @var \Psr\Http\Message\StreamInterface */
-        private $stream;
-        private $limit;
-        private $written = 0;
-        public $exceeded = false;
-
-        public function __construct(\Psr\Http\Message\StreamInterface $stream, $limit)
-        {
-            $this->stream = $stream;
-            $this->limit = (int) $limit;
-        }
-
-        public function write($string): int
-        {
-            $length = strlen($string);
-            if ($this->exceeded || $this->written + $length > $this->limit) {
-                $this->exceeded = true;
-                return 0;
-            }
-            $this->written += $length;
-            return $this->stream->write($string);
-        }
     }
 }
 

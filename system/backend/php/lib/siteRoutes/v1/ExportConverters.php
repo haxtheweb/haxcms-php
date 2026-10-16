@@ -640,7 +640,7 @@ class ExportConverters
         return $raw;
     }
 
-    public static function htmlToDocxString($html = '', $base = '/', $site = null, $remoteImageFetcher = null)
+    public static function htmlToDocxString($html = '', $base = '/', $site = null, $remoteImageFetcher = null, $maxTotalImageBytes = null)
     {
         // PhpWord's HTML parser expects a fragment, not a full HTML document.
         // buildItemExportHtml/buildSiteExportHtml produce full documents, so
@@ -662,7 +662,7 @@ class ExportConverters
         if ($site !== null) {
             $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
         }
-        $normalized = self::resolveDocxImageSources($normalized, $normalizedBase, $siteDirectory, $remoteImageFetcher);
+        $normalized = self::resolveDocxImageSources($normalized, $normalizedBase, $siteDirectory, $remoteImageFetcher, $maxTotalImageBytes);
         $tempDir = sys_get_temp_dir();
         if (!is_dir($tempDir) || !is_writable($tempDir)) {
             throw new Exception('DOCX export requires a writable temp directory');
@@ -779,6 +779,16 @@ class ExportConverters
     const DOCX_SAFE_IMAGE_SRC_PATTERN = '#^data:image/(png|jpeg|gif);base64,[A-Za-z0-9+/]+={0,2}$#';
 
     /**
+     * Security (SEC-SSRF): total decoded image bytes one DOCX export may
+     * inline (50 MiB, parity with Node). Images past the budget are dropped
+     * (and not fetched), so a whole-site export cannot inline hundreds of
+     * 20 MiB images and exhaust memory_limit. Override per call via the
+     * $maxTotalImageBytes argument of htmlToDocxString /
+     * resolveDocxImageSources.
+     */
+    const DOCX_MAX_TOTAL_IMAGE_BYTES = 52428800; // 50 * 1024 * 1024
+
+    /**
      * Security (SEC-SSRF): rewrite every <img> in an export HTML fragment so
      * its src is an inline data: URI PhpWord can embed without any I/O of its
      * own, and drop images that cannot be resolved safely:
@@ -797,11 +807,18 @@ class ExportConverters
      * srcset/sizes are removed (PhpWord ignores them; nothing should fetch
      * them). $remoteFetcher is an optional callable(url, maxBytes) returning
      * the body (used by tests); it defaults to SsrfGuard::safeFileGetContents.
+     * Every inlined image (each occurrence) counts against
+     * $maxTotalImageBytes (default DOCX_MAX_TOTAL_IMAGE_BYTES); once the
+     * budget is spent, remaining images are dropped, and fetches/reads are
+     * capped at the remaining budget.
      *
      * @return string XHTML fragment (saveXML, as normalizeHtmlForDocumentExport)
      */
-    public static function resolveDocxImageSources($html, $basePath = '/', $siteDirectory = '', $remoteFetcher = null)
+    public static function resolveDocxImageSources($html, $basePath = '/', $siteDirectory = '', $remoteFetcher = null, $maxTotalImageBytes = null)
     {
+        $budget = (is_int($maxTotalImageBytes) && $maxTotalImageBytes >= 0)
+            ? $maxTotalImageBytes
+            : self::DOCX_MAX_TOTAL_IMAGE_BYTES;
         if ((string) $html == '') {
             return '';
         }
@@ -824,10 +841,25 @@ class ExportConverters
             $img->removeAttribute('srcset');
             $img->removeAttribute('sizes');
             $src = $img->hasAttribute('src') ? trim((string) $img->getAttribute('src')) : '';
-            if (!array_key_exists($src, $cache)) {
-                $cache[$src] = self::resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher);
+            $dataUri = '';
+            if ($budget > 0) {
+                if (!array_key_exists($src, $cache)) {
+                    $perImageCap = min(SsrfGuard::DEFAULT_MAX_RESPONSE_BYTES, $budget);
+                    $cache[$src] = self::resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher, $perImageCap);
+                }
+                $dataUri = $cache[$src];
             }
-            $dataUri = $cache[$src];
+            if ($dataUri !== '') {
+                // decoded size of this occurrence; drop it if over budget
+                $b64 = substr($dataUri, strpos($dataUri, ',') + 1);
+                $imageBytes = intdiv(strlen($b64), 4) * 3 - (strlen($b64) - strlen(rtrim($b64, '=')));
+                if ($imageBytes > $budget) {
+                    $dataUri = '';
+                }
+                else {
+                    $budget -= $imageBytes;
+                }
+            }
             if ($dataUri === '') {
                 if ($img->parentNode) {
                     $img->parentNode->removeChild($img);
@@ -851,13 +883,13 @@ class ExportConverters
      * Security (SEC-SSRF): resolve one <img src> to a validated data: URI, or
      * '' when it must be dropped. See resolveDocxImageSources.
      */
-    public static function resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher = null)
+    public static function resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher = null, $maxBytes = null)
     {
         $src = trim((string) $src);
         if ($src === '' || strpos($src, chr(0)) !== false) {
             return '';
         }
-        $maxBytes = SsrfGuard::DEFAULT_MAX_RESPONSE_BYTES;
+        $maxBytes = SsrfGuard::resolveMaxBytes($maxBytes);
         // inline data: URI — only base64 png/jpeg/gif, re-validated
         if (preg_match('#^data:#i', $src)) {
             if (!preg_match('#^data:image/(png|jpe?g|gif);base64,([A-Za-z0-9+/=\s]+)$#i', $src, $m)) {

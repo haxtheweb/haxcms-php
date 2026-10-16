@@ -234,6 +234,7 @@ class SsrfGuardRangesAndCapTest extends TestCase
 
     public function testCappedStreamRefusesWritesPastTheLimit(): void
     {
+        SsrfGuard::loadCappedStream();
         $this->assertTrue(class_exists('SsrfGuardCappedStream', false));
         $stream = new SsrfGuardCappedStream(\GuzzleHttp\Psr7\Utils::streamFor(''), 10);
         $this->assertSame(6, $stream->write('abcdef'));
@@ -242,6 +243,45 @@ class SsrfGuardRangesAndCapTest extends TestCase
         $this->assertTrue($stream->exceeded);
         $this->assertSame(0, $stream->write('z'), 'stays closed once exceeded');
         $this->assertSame('abcdef', (string) $stream);
+    }
+
+    /**
+     * The streaming cap must not depend on include order: a fresh PHP process
+     * that includes ONLY SsrfGuard.php (no composer autoloader loaded first,
+     * as convertYamlToJson.php does) must still send the body through the
+     * SsrfGuardCappedStream sink and reject an over-cap body.
+     */
+    public function testStreamingCapWorksWhenSsrfGuardIsIncludedBeforeTheAutoloader(): void
+    {
+        if (!function_exists('proc_open')) {
+            $this->markTestSkipped('proc_open unavailable');
+        }
+        $guard = dirname(__DIR__, 2) . '/lib/SsrfGuard.php';
+        $script = <<<'PHP'
+<?php
+$before = class_exists('Composer\Autoload\ClassLoader', false) ? 'autoloader-preloaded' : 'no-autoloader';
+require $argv[1];
+$mock = new GuzzleHttp\Handler\MockHandler(array(new GuzzleHttp\Psr7\Response(200, array(), str_repeat('x', 5000))));
+$client = new GuzzleHttp\Client(array('handler' => GuzzleHttp\HandlerStack::create($mock)));
+$code = 'none';
+try {
+    SsrfGuard::safeGuzzleRequest($client, 'GET', 'http://93.184.215.14/x', array('max_bytes' => 1000));
+} catch (SsrfGuardException $e) {
+    $code = $e->ssrfCode;
+}
+$opts = $mock->getLastOptions();
+$sink = (isset($opts['sink']) && is_object($opts['sink'])) ? get_class($opts['sink']) : 'none';
+echo json_encode(array('before' => $before, 'code' => $code, 'sink' => $sink));
+PHP;
+        $file = sys_get_temp_dir() . '/haxcms_ssrf_noautoload_' . uniqid() . '.php';
+        file_put_contents($file, $script);
+        $out = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($file) . ' ' . escapeshellarg($guard) . ' 2>&1');
+        @unlink($file);
+        $result = json_decode((string) $out, true);
+        $this->assertIsArray($result, 'subprocess output: ' . $out);
+        $this->assertSame('no-autoloader', $result['before']);
+        $this->assertSame('SsrfGuardCappedStream', $result['sink'], 'the capped sink was used');
+        $this->assertSame('SSRF_TOO_LARGE', $result['code']);
     }
 
     // ------------------------------------------------------------------
