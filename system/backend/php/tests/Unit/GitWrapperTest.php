@@ -94,6 +94,19 @@ class GitWrapperTest extends TestCase
     }
 
     /**
+     * Configure a repo-local identity so real commits have an author regardless
+     * of the host's global config (CI runners ship with no user.name/email).
+     * Values are single tokens on purpose: GitRepo::run() splits on whitespace
+     * and does not parse quotes, so multi-word values would never be written.
+     */
+    private function withRepoIdentity(): void
+    {
+        $repo = Git::open($this->siteDir(), true);
+        $repo->run('config user.name haxcmstest');
+        $repo->run('config user.email haxcmstest@example.com');
+    }
+
+    /**
      * Isolate the process from any discoverable git identity (global/system
      * config) so gitFallbackIdentity()'s "no identity configured" branch is
      * actually reachable, regardless of the host's ~/.gitconfig.
@@ -112,6 +125,7 @@ class GitWrapperTest extends TestCase
     {
         mkdir($this->siteDir(), 0777, true);
         file_put_contents($this->siteDir() . '/page.html', '<p>hello</p>');
+        $this->withRepoIdentity();
         $site = $this->buildSite();
 
         $result = $site->gitCommit('my test commit message');
@@ -142,6 +156,7 @@ class GitWrapperTest extends TestCase
         // files are included even without an explicit add call from the caller.
         mkdir($this->siteDir(), 0777, true);
         file_put_contents($this->siteDir() . '/first.html', 'first');
+        $this->withRepoIdentity();
         $site = $this->buildSite();
         $site->gitCommit('first commit');
 
@@ -163,7 +178,7 @@ class GitWrapperTest extends TestCase
         $site = $this->buildSite();
         $repo = Git::open($this->siteDir(), true);
         $repo->run('config user.email identity@example.com');
-        $repo->run('config user.name "Identity Already Set"');
+        $repo->run('config user.name IdentityAlreadySet');
 
         $keys = $site->gitFallbackIdentity($repo);
 
@@ -227,6 +242,7 @@ class GitWrapperTest extends TestCase
     {
         mkdir($this->siteDir(), 0777, true);
         file_put_contents($this->siteDir() . '/page.html', 'v1');
+        $this->withRepoIdentity();
         $site = $this->buildSite();
         $site->gitCommit('first commit');
         $repo = Git::open($this->siteDir(), true);
@@ -249,6 +265,7 @@ class GitWrapperTest extends TestCase
     {
         mkdir($this->siteDir(), 0777, true);
         file_put_contents($this->siteDir() . '/page.html', 'content');
+        $this->withRepoIdentity();
         $site = $this->buildSite();
 
         $result = $site->gitPush();
