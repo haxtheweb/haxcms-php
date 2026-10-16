@@ -28,6 +28,7 @@ class OperationsNodeOpsTest extends TestCase
     private $savedHaxcms;
     private $savedServerSoftware;
     private $tmpRoot;
+    private $bodyFixtureDir = null;
     private $siteName = 'my-site';
 
     protected function setUp(): void
@@ -80,6 +81,10 @@ class OperationsNodeOpsTest extends TestCase
             $this->savedServerSoftware = null;
         } else {
             unset($_SERVER['SERVER_SOFTWARE']);
+        }
+        if ($this->bodyFixtureDir !== null) {
+            $this->rrmdir($this->bodyFixtureDir);
+            $this->bodyFixtureDir = null;
         }
         $this->rrmdir($this->tmpRoot);
     }
@@ -481,6 +486,206 @@ class OperationsNodeOpsTest extends TestCase
     }
 
     // =========================================================================
+    // saveNode — body write to an EXISTING page (real pageBreakParser +
+    // writeLocation + FileContentScanner + updateNode round trip).
+    // The route writes via HAXCMS_ROOT/<sitesDirectory>/<siteName>/ (not
+    // $site->directory), so these tests nest a fixture under HAXCMS_ROOT and
+    // point sitesDirectory at that folder, mirroring OperationsSiteSearchTest.
+    // =========================================================================
+
+    /**
+     * Build a nested temp fixture under HAXCMS_ROOT (same 2-item site as
+     * buildSiteFixture) and rebind the mock's loadedSite + sitesDirectory so
+     * saveNode's HAXCMS_ROOT-based write path resolves onto it.
+     */
+    private function setUpBodyFixture(): void
+    {
+        $fixtureDirName = 'fixtures_nodebody_' . uniqid();
+        $this->bodyFixtureDir = HAXCMS_ROOT . '/' . $fixtureDirName;
+        $siteDir = $this->bodyFixtureDir . '/' . $this->siteName;
+        mkdir($siteDir . '/pages/item-a', 0777, true);
+        mkdir($siteDir . '/pages/item-b', 0777, true);
+        file_put_contents($siteDir . '/pages/item-a/index.html', '<p>Original A</p>');
+        file_put_contents($siteDir . '/pages/item-b/index.html', '<p>Original B</p>');
+        $manifest = (object)array(
+            'id' => 'site-uuid-body',
+            'title' => 'Body Site',
+            'author' => '',
+            'description' => '',
+            'license' => 'by-sa',
+            'metadata' => (object)array(
+                'site' => (object)array(
+                    'name' => $this->siteName,
+                    'settings' => (object)array('pathauto' => false),
+                ),
+                'platform' => (object)array(
+                    'features' => (object)array(),
+                ),
+            ),
+            'items' => array(
+                (object)array(
+                    'id' => 'item-a',
+                    'indent' => 0,
+                    'location' => 'pages/item-a/index.html',
+                    'slug' => 'item-a',
+                    'order' => 0,
+                    'parent' => null,
+                    'title' => 'Item A',
+                    'description' => 'Old description',
+                    'metadata' => (object)array('created' => 1000000, 'updated' => 1000000),
+                ),
+                (object)array(
+                    'id' => 'item-b',
+                    'indent' => 0,
+                    'location' => 'pages/item-b/index.html',
+                    'slug' => 'item-b',
+                    'order' => 1,
+                    'parent' => null,
+                    'title' => 'Item B',
+                    'description' => '',
+                    'metadata' => (object)array('created' => 1000000, 'updated' => 1000000),
+                ),
+            ),
+        );
+        file_put_contents($siteDir . '/site.json', json_encode($manifest, JSON_PRETTY_PRINT));
+
+        // saveNode's writeLocation resolves HAXCMS_ROOT/<sitesDirectory>/<siteName>/
+        $this->haxcms->sitesDirectory = $fixtureDirName;
+        $site = new OperationsNodeTestSite();
+        $site->load($this->bodyFixtureDir, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+    }
+
+    public function testSaveNodeBodyWritesSanitizedContentToExistingPage(): void
+    {
+        $this->setUpBodyFixture();
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array(
+                'id' => 'item-a',
+                'body' => '<page-break title="Item A" item-id="item-a" slug="item-a"></page-break><p>Fresh body</p>',
+                'schema' => array(
+                    array('tag' => 'img', 'properties' => array('src' => 'files/pic.png')),
+                    array('tag' => 'a11y-gif-player', 'properties' => array('src' => 'files/anim.gif')),
+                    array('tag' => 'video-player', 'properties' => array('source' => 'files/vid.mp4')),
+                ),
+            ),
+        );
+        $result = $this->ops->saveNode();
+
+        $this->assertSame(200, $result['status']);
+        $page = $result['data'];
+        $this->assertSame('item-a', $page->id);
+        $this->assertSame('Item A', $page->title);
+        // description auto-generated from stripped body text
+        $this->assertSame('Fresh body', $page->description);
+        // tiny body -> readtime floor of 1
+        $this->assertSame(1, $page->metadata->readtime);
+        // images/videos rebuilt from the shipped schema
+        $this->assertSame(array('files/pic.png', 'files/anim.gif'), $page->metadata->images);
+        $this->assertSame(array('files/vid.mp4'), $page->metadata->videos);
+        // #3043: no files/ references in the content -> empty uuid set
+        $this->assertSame(array(), $page->metadata->files);
+        // attribute-less booleans default to false
+        $this->assertFalse($page->metadata->published);
+        $this->assertFalse($page->metadata->locked);
+        $this->assertFalse($page->metadata->hideInMenu);
+        $this->assertFalse($page->metadata->overridePathauto);
+
+        // observable mutation: sanitized body replaced the original on disk
+        $pageFile = $this->bodyFixtureDir . '/' . $this->siteName . '/pages/item-a/index.html';
+        $this->assertSame('<p>Fresh body</p>', file_get_contents($pageFile));
+
+        // git collaborator recorded with the canonical message
+        $site = $this->haxcms->loadedSite;
+        $this->assertSame(array('Page updated: Item A (item-a)'), $site->gitCommits);
+
+        // independent source of truth: persisted site.json carries the new
+        // title + the rebuilt (empty) files uuid list
+        $persisted = json_decode(file_get_contents($this->bodyFixtureDir . '/' . $this->siteName . '/site.json'));
+        $byId = array();
+        foreach ($persisted->items as $item) {
+            $byId[$item->id] = $item;
+        }
+        $this->assertSame('Item A', $byId['item-a']->title);
+        $this->assertSame('Fresh body', $byId['item-a']->description);
+        $this->assertSame(array(), (array) $byId['item-a']->metadata->files);
+    }
+
+    // =========================================================================
+    // saveNode — body whose item-id does not exist yet creates the page from
+    // the boilerplate (recurseCopy + addItem + Page added:/Page updated:)
+    // =========================================================================
+
+    public function testSaveNodeBodyCreatesNewPageWhenItemIdUnknown(): void
+    {
+        $this->setUpBodyFixture();
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array(
+                'id' => 'item-a',
+                'body' => '<page-break title="Brand New" item-id="brand-new-page"></page-break><p>Brand new body</p>',
+            ),
+        );
+        $result = $this->ops->saveNode();
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('brand-new-page', $result['data']->id);
+
+        // manifest grew by one (in memory + persisted)
+        $this->assertCount(3, $this->haxcms->loadedSite->manifest->items);
+        $persisted = json_decode(file_get_contents($this->bodyFixtureDir . '/' . $this->siteName . '/site.json'));
+        $persistedIds = array();
+        foreach ($persisted->items as $item) {
+            $persistedIds[] = $item->id;
+        }
+        $this->assertCount(3, $persistedIds);
+        $this->assertContains('brand-new-page', $persistedIds);
+
+        // boilerplate page dir was created and then overwritten with the body
+        $pageFile = $this->bodyFixtureDir . '/' . $this->siteName . '/pages/brand-new-page/index.html';
+        $this->assertFileExists($pageFile);
+        $this->assertSame('<p>Brand new body</p>', file_get_contents($pageFile));
+
+        // two commits: Page added: (no space after colon) then Page updated:
+        $site = $this->haxcms->loadedSite;
+        $this->assertSame('Page added:Brand New (brand-new-page)', $site->gitCommits[0]);
+        $this->assertSame('Page updated: Brand New (brand-new-page)', $site->gitCommits[1]);
+    }
+
+    // =========================================================================
+    // saveNode — unknown item-id + addPage disabled -> 403 refusal, nothing
+    // written (the addPage gate sits behind the second loadNode)
+    // =========================================================================
+
+    public function testSaveNodeBodyRefusesNewPageWhenAddPageDisabled(): void
+    {
+        $this->setUpBodyFixture();
+        $this->haxcms->validRequestToken = true;
+        // must run AFTER setUpBodyFixture replaced loadedSite
+        $this->disablePlatformFeature('addPage');
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array(
+                'id' => 'item-a',
+                'body' => '<page-break title="Nope" item-id="never-created"></page-break><p>x</p>',
+            ),
+        );
+        $result = $this->ops->saveNode();
+
+        $this->assertSame(403, $result['__failed']['status']);
+        $this->assertSame('Adding pages is disabled for this site', $result['__failed']['message']);
+        $this->assertFileDoesNotExist(
+            $this->bodyFixtureDir . '/' . $this->siteName . '/pages/never-created/index.html'
+        );
+    }
+
+    // =========================================================================
     // saveOutline — site_token gate
     // =========================================================================
 
@@ -649,6 +854,24 @@ class OperationsNodeTestHaxcms extends OperationsTestHaxcms
     {
         parent::__construct();
         $this->outlineSchema = new JSONOutlineSchema();
+    }
+
+    /**
+     * Mirror HAXCMS::generateMachineName so itemFromParams can mint ids for
+     * saveNode's new-page-from-body path (it is invoked when the page-break
+     * carries an item-id). Security filters kept identical to the original.
+     */
+    public function generateMachineName($name)
+    {
+        $name = str_replace(chr(0), '', (string) $name);
+        $name = urldecode($name);
+        $name = preg_replace('/\.{2,}/', '', $name);
+        $name = str_replace(array('\\\\', '/'), '', $name);
+        $name = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $name);
+        $name = preg_replace('/[-_]{2,}/', '-', $name);
+        $name = trim($name, '-_');
+        $name = strtolower($name);
+        return $name === '' ? 'default' : $name;
     }
 
     /**
