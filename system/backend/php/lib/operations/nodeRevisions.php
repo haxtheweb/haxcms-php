@@ -646,6 +646,9 @@ trait OperationsRouteNodeRevisions {
         false
       );
       $siteDirectory = $context['site']->directory . '/' . $context['site']->manifest->metadata->site->name . '/';
+      // Security (SEC-SANITIZE): historic revisions may predate sanitizer
+      // fixes; re-sanitize before the content becomes live again
+      $revisionContent = SanitizeContent::sanitizeHTMLForStorage($revisionContent);
       $bytes = $context['page']->writeLocation($revisionContent, $siteDirectory);
       if ($bytes === false) {
         return $this->nodeRevisionFailed(500, 'Failed writing restored revision');

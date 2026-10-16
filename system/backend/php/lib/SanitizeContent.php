@@ -26,6 +26,14 @@ class SanitizeContent
         'poster',
         'srcset',
         'xlink:href',
+        // Security (SEC-SANITIZE): HAX custom elements take URLs on these
+        // attribute names (simple-cta link, media-image source,
+        // pdf-browser-viewer file, video-player sources/tracks, h5p source).
+        'link',
+        'source',
+        'file',
+        'sources',
+        'tracks',
     ];
 
     private const ALLOWED_PROTOCOLS = [
@@ -33,6 +41,19 @@ class SanitizeContent
         'https',
         'mailto',
         'tel',
+    ];
+
+    // Security (SEC-SANITIZE): schemes that execute script or render active
+    // documents. Attributes that are NOT URL-named are only scrubbed when
+    // their value starts with one of these, so plain text such as
+    // title="Note: hi" keeps working. URL-named attributes use the stricter
+    // ALLOWED_PROTOCOLS allowlist instead.
+    private const DANGEROUS_PROTOCOLS = [
+        'javascript',
+        'vbscript',
+        'livescript',
+        'mocha',
+        'data',
     ];
 
     private const TEXT_TEMPLATE_HOSTS = [
@@ -107,6 +128,49 @@ class SanitizeContent
         return $fallback;
     }
 
+    /**
+     * Security (SEC-SANITIZE): detect the URL scheme a value would be
+     * interpreted with. Decodes HTML entities once (so &#106;avascript: and
+     * javascript&colon; are caught), strips ASCII whitespace and control
+     * characters (U+0000-U+0020, U+007F) anywhere in the value, lowercases,
+     * then matches ^[a-z][a-z0-9+.-]*: . Returns the scheme or null.
+     */
+    public static function detectURLScheme($value)
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return null;
+        }
+        $stringValue = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $stringValue = preg_replace('/[\x00-\x20\x7f]+/', '', $stringValue);
+        if ($stringValue === null || $stringValue === '') {
+            return null;
+        }
+        if (!preg_match('/^([a-z][a-z0-9+.-]*):/', strtolower($stringValue), $matches)) {
+            return null;
+        }
+        return $matches[1];
+    }
+
+    /**
+     * Security (SEC-SANITIZE): true when the value carries a scheme outside
+     * the URL allowlist (http, https, mailto, tel).
+     */
+    public static function hasDisallowedURLScheme($value)
+    {
+        $scheme = self::detectURLScheme($value);
+        return $scheme !== null && !in_array($scheme, self::ALLOWED_PROTOCOLS, true);
+    }
+
+    /**
+     * Security (SEC-SANITIZE): true when the value carries a script-capable
+     * scheme (javascript:, vbscript:, data:, ...).
+     */
+    public static function hasDangerousURLScheme($value)
+    {
+        $scheme = self::detectURLScheme($value);
+        return $scheme !== null && in_array($scheme, self::DANGEROUS_PROTOCOLS, true);
+    }
+
     public static function sanitizeMetadataValue($value)
     {
         return self::escapeHTMLAttribute($value);
@@ -125,7 +189,167 @@ class SanitizeContent
         if ($value === null) {
             return '';
         }
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8');
+        // Security (SEC-SANITIZE): drop characters XML 1.0 forbids
+        // (allowed: #x9 #xA #xD [#x20-#xD7FF] [#xE000-#xFFFD] [#x10000-#x10FFFF])
+        // so feeds/sitemaps stay well-formed.
+        return htmlspecialchars(
+            self::stripXMLIllegalChars((string)$value),
+            ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE,
+            'UTF-8'
+        );
+    }
+
+    /**
+     * Security (SEC-SANITIZE): remove characters not allowed in XML 1.0.
+     * Invalid UTF-8 is first replaced with U+FFFD so the /u regex can run.
+     */
+    public static function stripXMLIllegalChars($value)
+    {
+        $stringValue = (string)$value;
+        if (!mb_check_encoding($stringValue, 'UTF-8')) {
+            $stringValue = mb_convert_encoding($stringValue, 'UTF-8', 'UTF-8');
+        }
+        $cleaned = preg_replace(
+            '/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+            '',
+            $stringValue
+        );
+        return $cleaned === null ? '' : $cleaned;
+    }
+
+    /**
+     * Security (SEC-SANITIZE): turn user-supplied text (titles, descriptions)
+     * into plain text. Entities are decoded FIRST and tags stripped after, so
+     * an encoded payload like &lt;img onerror=...&gt; cannot re-emerge as
+     * markup after stripping.
+     */
+    public static function plainText($value)
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return '';
+        }
+        return strip_tags(html_entity_decode((string)$value));
+    }
+
+    /**
+     * Security (SEC-SANITIZE): values interpolated into managed JSON / XML /
+     * text files (manifest.json, package.json, imsmanifest.xml, llms.txt).
+     * Twig's HTML autoescape handles quotes, but a raw newline or backslash
+     * still breaks JSON string literals. CR/LF/tab become a space; other
+     * control characters and backslashes are dropped.
+     */
+    public static function sanitizeManagedTemplateText($value)
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return '';
+        }
+        $stringValue = str_replace(array("\r", "\n", "\t"), ' ', (string)$value);
+        $stringValue = preg_replace('/[\x00-\x1f\x7f]/', '', $stringValue);
+        return str_replace('\\', '', (string)$stringValue);
+    }
+
+    private const METADATA_URL_KEYS = ['image', 'linkUrl'];
+    private const METADATA_FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
+    private const METADATA_MAX_DEPTH = 8;
+
+    /**
+     * Security (SEC-SANITIZE): sanitize client-supplied page metadata the
+     * same way saveNode does per field, for bulk paths (saveOutline,
+     * createNode items[] / addPage). Values identical to what is already
+     * stored are kept as-is so round-tripped metadata is not re-escaped on
+     * every save.
+     *
+     * @param mixed $incoming metadata object/array from the request
+     * @param object|null $existing the page's current metadata
+     * @param object|null $themes result of HAXCMS::getThemes()
+     * @return stdClass sanitized key => value pairs to apply
+     */
+    public static function sanitizePageMetadata($incoming, $existing = null, $themes = null)
+    {
+        $result = new \stdClass();
+        if (!is_array($incoming) && !is_object($incoming)) {
+            return $result;
+        }
+        foreach ($incoming as $key => $value) {
+            $key = (string)$key;
+            if ($key === '' || in_array($key, self::METADATA_FORBIDDEN_KEYS, true)) {
+                continue;
+            }
+            $hasExisting = is_object($existing) && property_exists($existing, $key);
+            if ($key === 'theme') {
+                $theme = self::sanitizeThemeMetadata($value, $themes);
+                if ($theme !== null) {
+                    $result->theme = $theme;
+                }
+                continue;
+            }
+            // unchanged values were already sanitized when first stored
+            if ($hasExisting && $existing->{$key} == $value) {
+                $result->{$key} = $existing->{$key};
+                continue;
+            }
+            if (in_array($key, self::METADATA_URL_KEYS, true)) {
+                if (is_string($value)) {
+                    $result->{$key} = self::sanitizeURLValue($value, '');
+                }
+                continue;
+            }
+            $result->{$key} = self::sanitizeMetadataTree($value, 0);
+        }
+        return $result;
+    }
+
+    private static function sanitizeThemeMetadata($value, $themes)
+    {
+        $themeKey = null;
+        if (is_string($value)) {
+            $themeKey = $value;
+        }
+        else if (is_object($value) && isset($value->key) && is_string($value->key)) {
+            $themeKey = $value->key;
+        }
+        else if (is_array($value) && isset($value['key']) && is_string($value['key'])) {
+            $themeKey = $value['key'];
+        }
+        if ($themeKey === null || !is_object($themes) || !isset($themes->{$themeKey})) {
+            return null;
+        }
+        $theme = json_decode(json_encode($themes->{$themeKey}));
+        if (!is_object($theme)) {
+            return null;
+        }
+        $theme->key = $themeKey;
+        return $theme;
+    }
+
+    private static function sanitizeMetadataTree($value, $depth)
+    {
+        if (is_string($value)) {
+            return self::sanitizeMetadataValue($value);
+        }
+        if ($value === null || is_bool($value) || is_int($value) || is_float($value)) {
+            return $value;
+        }
+        if ($depth >= self::METADATA_MAX_DEPTH) {
+            return null;
+        }
+        if (is_array($value) || is_object($value)) {
+            $isList = is_array($value) && array_is_list($value);
+            $out = $isList ? array() : new \stdClass();
+            foreach ($value as $childKey => $childValue) {
+                if ($isList) {
+                    $out[] = self::sanitizeMetadataTree($childValue, $depth + 1);
+                    continue;
+                }
+                $childKey = (string)$childKey;
+                if ($childKey === '' || in_array($childKey, self::METADATA_FORBIDDEN_KEYS, true)) {
+                    continue;
+                }
+                $out->{$childKey} = self::sanitizeMetadataTree($childValue, $depth + 1);
+            }
+            return $out;
+        }
+        return null;
     }
 
     private static function isURLLikeAttribute($attributeName)
@@ -368,12 +592,23 @@ class SanitizeContent
 
             if (self::isURLLikeAttribute($attributeName)) {
                 $safeValue = self::sanitizeURLValue($attributeValue, '');
+                // Security (SEC-SANITIZE): also apply the entity-decoding
+                // scheme detection so encoded schemes cannot slip past.
+                if ($safeValue !== '' && self::hasDisallowedURLScheme($attributeValue)) {
+                    $safeValue = '';
+                }
                 if ($safeValue === '') {
                     $element->removeAttribute($attributeOriginalName);
                 }
                 else if ($safeValue !== $attributeValue) {
                     $element->setAttribute($attributeOriginalName, $safeValue);
                 }
+            }
+            // Security (SEC-SANITIZE): custom elements consume URLs on
+            // arbitrary attribute names; any attribute whose value starts with
+            // a script-capable scheme is removed, exactly as a disallowed href is.
+            else if (self::hasDangerousURLScheme($attributeValue)) {
+                $element->removeAttribute($attributeOriginalName);
             }
         }
 
