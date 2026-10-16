@@ -135,18 +135,51 @@ class FilesMarkupDownloadGuardConfigTest extends TestCase
         $this->assertNginxLocationRule('.ddev/nginx-site.conf');
     }
 
+    /**
+     * Return the body of the brace-delimited block whose opening `{` is the
+     * first one at or after $offset (nested blocks included).
+     */
+    private static function blockBody($conf, $offset)
+    {
+        $open = strpos($conf, '{', $offset);
+        $depth = 0;
+        $len = strlen($conf);
+        for ($i = $open; $i < $len; $i++) {
+            if ($conf[$i] === '{') {
+                $depth++;
+            } elseif ($conf[$i] === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($conf, $open + 1, $i - $open - 1);
+                }
+            }
+        }
+        throw new RuntimeException('unbalanced braces');
+    }
+
     private function assertNginxLocationRule($file)
     {
         $conf = self::read($file);
         $this->assertSame(
             1,
-            preg_match('/location ~\* (\/files\/\S+) \{(.*?)\}/s', $conf, $m),
+            preg_match('/^\s*location ~\* (\/files\/\S+) \{/m', $conf, $m, PREG_OFFSET_CAPTURE),
             $file . ' must contain the /files/ markup location'
         );
-        $this->assertGuardRegex('#' . $m[1] . '#i', $file);
-        $this->assertStringContainsString('add_header Content-Disposition attachment always;', $m[2]);
+        $this->assertGuardRegex('#' . $m[1][0] . '#i', $file);
+        $body = self::blockBody($conf, $m[0][1]);
+        $this->assertStringContainsString('add_header Content-Disposition attachment always;', $body);
         // add_header in a location disables inheritance of server-level ones
-        $this->assertStringContainsString('add_header X-Content-Type-Options nosniff always;', $m[2]);
+        $this->assertStringContainsString('add_header X-Content-Type-Options nosniff always;', $body);
+        return array($conf, $m[0][1], $body);
+    }
+
+    private static function regexLocationOffset($conf, $needle)
+    {
+        $pos = strpos($conf, $needle);
+        if ($pos === false) {
+            throw new RuntimeException('location not found: ' . $needle);
+        }
+        return $pos;
     }
 
     public function testDdevFilesLocationPrecedesStaticSvgLocation()
@@ -159,5 +192,50 @@ class FilesMarkupDownloadGuardConfigTest extends TestCase
         $this->assertNotFalse($guard);
         $this->assertNotFalse($svg);
         $this->assertLessThan($svg, $guard);
+    }
+
+    public function testDdevDenyRegexLocationsPrecedeAllOtherRegexLocations()
+    {
+        // A deny regex placed below the /files/ guard (or \.php$) is skipped
+        // for /files/.secret.xml (or /.hidden.php), since the first matching
+        // regex location wins.
+        $conf = self::read('.ddev/nginx-site.conf');
+        $dotDeny = self::regexLocationOffset($conf, 'location ~* /\.(?!well-known\/) {');
+        $backupDeny = self::regexLocationOffset($conf, 'location ~* (?:\.(?:bak|conf|');
+        $this->assertStringContainsString('deny all;', self::blockBody($conf, $dotDeny));
+        $this->assertStringContainsString('deny all;', self::blockBody($conf, $backupDeny));
+        preg_match_all('/^\s*location ~\*? /m', $conf, $all, PREG_OFFSET_CAPTURE);
+        $firstTwo = array($all[0][0][1], $all[0][1][1]);
+        $this->assertSame(
+            array($dotDeny, $backupDeny),
+            array_map(function ($o) use ($conf) { return strpos($conf, 'location', $o); }, $firstTwo),
+            'dotfile and backup-file deny must be the first two regex locations'
+        );
+    }
+
+    public function testDdevConfigDirUsesCaretTildePrefix()
+    {
+        // A plain prefix location loses to any regex location, which served
+        // /_config/x.svg via the static-asset block; ^~ stops regex checks.
+        $conf = self::read('.ddev/nginx-site.conf');
+        $this->assertSame(1, preg_match('/^\s*location \^~ \/_config \{/m', $conf, $m, PREG_OFFSET_CAPTURE));
+        $this->assertStringContainsString('deny all;', self::blockBody($conf, $m[0][1]));
+        $this->assertSame(0, preg_match('/^\s*location \/_config\b/m', $conf));
+    }
+
+    public function testNginxReferenceSnippetNestsDotfileDenyAndDocumentsConfigDir()
+    {
+        list($conf, , $body) = $this->assertNginxLocationRule('scripts/nginx/haxcms-nginx.conf');
+        $this->assertSame(
+            1,
+            preg_match('/location ~ (\S+) \{\s*deny all;\s*\}/', $body, $n),
+            'reference /files/ guard must nest a hidden-file deny'
+        );
+        $nested = '#' . $n[1] . '#';
+        $this->assertSame(1, preg_match($nested, '/_sites/s/files/.secret.xml'));
+        $this->assertSame(1, preg_match($nested, '/_sites/s/files/.git/x.html'));
+        $this->assertSame(0, preg_match($nested, '/_sites/s/files/x.html'));
+        $this->assertSame(0, preg_match($nested, '/_sites/s/.well-known/files/x.xml'));
+        $this->assertStringContainsString('location ^~ /_config { deny all; return 404; }', $conf);
     }
 }
