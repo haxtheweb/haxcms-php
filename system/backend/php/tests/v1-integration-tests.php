@@ -634,18 +634,18 @@ assertContains("'html'", $f6FileLib, 'F6: .html remains in HAXCMSFile allowedUpl
 // DDEV/dev nginx: a regex location forces Content-Disposition: attachment for
 // /files/*.html, placed before the catch-all location /.
 $f6NginxConf = file_get_contents($repoRoot . '/.ddev/nginx-site.conf');
-assertContains('location ~* /files/.*\\.html?$', $f6NginxConf, 'F6: .ddev/nginx-site.conf has /files/*.html location rule');
+assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxConf, 'F6/SEC-UPLOAD: .ddev/nginx-site.conf has /files/ markup (html|htm|xhtml|xml|svg) location rule');
 assertContains('Content-Disposition attachment', $f6NginxConf, 'F6: .ddev/nginx-site.conf sets Content-Disposition attachment');
 
 // Reference production nginx snippet ships the same rule for prod deployments.
 $f6NginxProd = file_get_contents($repoRoot . '/scripts/nginx/haxcms-nginx.conf');
-assertContains('location ~* /files/.*\\.html?$', $f6NginxProd, 'F6: scripts/nginx/haxcms-nginx.conf reference snippet has /files/*.html location rule');
+assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxProd, 'F6/SEC-UPLOAD: scripts/nginx/haxcms-nginx.conf reference snippet has /files/ markup location rule');
 assertContains('Content-Disposition attachment', $f6NginxProd, 'F6: scripts/nginx/haxcms-nginx.conf sets Content-Disposition attachment');
 
 // Apache: the existing .htaccess force-download rule is retained.
 $f6Htaccess = file_get_contents($repoRoot . '/.htaccess');
 assertContains('Content-Disposition', $f6Htaccess, 'F6: .htaccess retains Apache Content-Disposition force-download rule');
-assertContains('/files/.*\\.html?$', $f6Htaccess, 'F6: .htaccess force-download rule matches /files/*.html');
+assertContains('<If "%{REQUEST_URI} =~ m#/files/.*\\.(?:html?|xhtml|xml|svg)$#i">', $f6Htaccess, 'F6/SEC-UPLOAD: .htaccess force-download rule matches decoded /files/ markup paths');
 
 // Summary
 echo "\n=== Results ===\n";
