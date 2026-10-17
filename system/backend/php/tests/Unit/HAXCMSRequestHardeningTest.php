@@ -518,6 +518,13 @@ class HAXCMSRequestHardeningTest extends TestCase
             'protossl set -> https' => [
                 [], '203.0.113.5', null, null, '1', null, 'https',
             ],
+            // SEC-SESSION: root .htaccess sets protossl="" on plain http
+            'protossl empty (Apache plain http) -> http' => [
+                [], '203.0.113.5', null, null, '', null, 'http',
+            ],
+            'protossl "s" (Apache https) -> https' => [
+                [], '203.0.113.5', null, null, 's', null, 'https',
+            ],
             'remote trusted + XFP=https -> https' => [
                 ['10.0.0.1'], '10.0.0.1', null, null, null, 'https', 'https',
             ],

@@ -157,7 +157,12 @@ class Cache {
     if (true === is_array($cacheData)) {
       $counter = 0;
       foreach ($cacheData as $key => $entry) {
-        if (true === $this->_checkExpired($entry['time'], $entry['expire'])) {
+        // Security (SEC-SESSION): eraseExpired is now called opportunistically
+        // from the login throttle; skip malformed entries instead of warning.
+        if (!is_array($entry) || !isset($entry['time']) || !isset($entry['expire'])) {
+          continue;
+        }
+        if (true === $this->_checkExpired((int) $entry['time'], (int) $entry['expire'])) {
           unset($cacheData[$key]);
           $counter++;
         }
