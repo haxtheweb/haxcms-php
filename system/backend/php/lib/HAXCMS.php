@@ -115,15 +115,18 @@ class HAXCMS
         if ($this->protocol == 'http' && isset($_SERVER["HTTP_USESSL"]) && $_SERVER["HTTP_USESSL"]) {
           $this->protocol = 'https';
         }
-        else if ($this->protocol == 'http' && isset($_SERVER["protossl"])) {
+        // Security (SEC-SESSION): the root .htaccess always sets protossl
+        // (empty on http, "s" on https), so isset() misdetected every plain
+        // http request as https. Only a non-empty value means https.
+        else if ($this->protocol == 'http' && !empty($_SERVER["protossl"])) {
           $this->protocol = 'https';
         }
-        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_X_FORWARDED_PROTO"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"] == 'https') {
-          $this->protocol = 'https';
-        }
-        else if ($this->protocol == 'http' && isset($_SERVER["HTTP_HTTPS_ENABLED"]) && $_SERVER["HTTP_X_FORWARDED_PROTO"]) {
-          $this->protocol = 'https';
-        }
+        // Security (SEC-SESSION): the client-controllable X-Forwarded-Proto
+        // header (and the HTTPS_ENABLED branch, which also keyed off XFP) is NOT
+        // honoured here any more. Config is not loaded yet at this point, so the
+        // trusted-proxy allowlist can't be consulted; once config loads, the
+        // re-finalize below calls resolveTrustedProtocol(), which honours XFP
+        // only when REMOTE_ADDR is a configured trustedProxies entry.
         // CLIs dont have a domain argument
         if (isset($_SERVER['HTTP_HOST'])) {
           $this->domain = $_SERVER['HTTP_HOST'];
@@ -344,6 +347,9 @@ class HAXCMS
             // and the host is validated against the allowlist. This only runs
             // when the operator has opted in via config; deploys that don't set
             // trustedProxies/allowedHosts keep the bootstrap values above.
+            // Security (SEC-SESSION): the bootstrap values no longer include
+            // X-Forwarded-Proto, so a TLS-terminating proxy must be listed in
+            // config.security.trustedProxies for XFP=https to be honoured.
             if (count($this->getTrustedProxies()) > 0 || count($this->getAllowedHosts()) > 0) {
                 $this->protocol = $this->resolveTrustedProtocol();
                 $this->domain = $this->resolveTrustedHost();
@@ -1870,7 +1876,10 @@ class HAXCMS
       }
       // `protossl` is set by the root .htaccess RewriteRule (server-side), so
       // it is safe to trust directly.
-      if ($protocol == 'http' && isset($_SERVER['protossl'])) {
+      // Security (SEC-SESSION): .htaccess sets protossl="" on http and "s"
+      // on https, so only a non-empty value signals https (isset() was
+      // always true under Apache and misdetected plain http).
+      if ($protocol == 'http' && !empty($_SERVER['protossl'])) {
         $protocol = 'https';
       }
       if ($protocol == 'http') {
@@ -1922,6 +1931,54 @@ class HAXCMS
       // no allowlist configured: preserve existing behavior (use the header
       // value), falling back to the bootstrap domain when no header is present.
       return $candidate !== '' ? $candidate : (is_string($this->domain) ? $this->domain : '');
+    }
+    /**
+     * Security (SEC-SESSION): same-origin gate for cookie-authenticated,
+     * state-changing session endpoints (session/refresh, session/connection-
+     * test). Port of NodeJS isSameOriginRequest (refreshAccessToken.js) plus a
+     * Sec-Fetch-Site check:
+     *   - Sec-Fetch-Site: cross-site            -> reject (even with no Origin)
+     *   - Origin (else Referer) absent          -> allow (non-browser clients;
+     *                                              SameSite=Lax stays primary)
+     *   - Origin/Referer unparseable / no host  -> reject
+     *   - host[:port] != resolveTrustedHost()   -> reject (case-insensitive)
+     * The scheme is deliberately NOT compared (parity with NodeJS): behind a
+     * TLS-terminating proxy without trustedProxies config, or with protossl
+     * misdetection, the server-side scheme differs from the browser's and
+     * comparing it caused false 403s. A cross-site attacker can't forge the
+     * host part of Origin.
+     *   - otherwise                             -> allow
+     * Sec-Fetch-Site values same-origin / same-site / none fall through to
+     * the Origin/Referer comparison.
+     */
+    public function isSameOriginRequest() {
+      if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_string($_SERVER['HTTP_SEC_FETCH_SITE'])) {
+        if (strtolower(trim($_SERVER['HTTP_SEC_FETCH_SITE'])) === 'cross-site') {
+          return false;
+        }
+      }
+      $originHeader = '';
+      if (isset($_SERVER['HTTP_ORIGIN']) && is_string($_SERVER['HTTP_ORIGIN'])) {
+        $originHeader = trim($_SERVER['HTTP_ORIGIN']);
+      }
+      if ($originHeader === '' && isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
+        $originHeader = trim($_SERVER['HTTP_REFERER']);
+      }
+      if ($originHeader === '') {
+        return true;
+      }
+      $parsed = parse_url($originHeader);
+      if (!is_array($parsed) || !isset($parsed['scheme']) || !isset($parsed['host']) || $parsed['host'] === '') {
+        return false;
+      }
+      $originHost = $parsed['host'];
+      if (isset($parsed['port'])) {
+        $originHost .= ':' . $parsed['port'];
+      }
+      if (strtolower($originHost) !== strtolower((string) $this->resolveTrustedHost())) {
+        return false;
+      }
+      return true;
     }
     /**
      * Timing-safe string comparison helper for credential checks.
@@ -2137,10 +2194,22 @@ class HAXCMS
       $refreshUser = null;
       if (isset($_COOKIE['haxcms_refresh_token']) && $_COOKIE['haxcms_refresh_token'] != '') {
         $refreshTokenDecoded = $this->validateRefreshToken(FALSE);
+        // Security (SEC-SESSION): a signature-valid refresh cookie is not
+        // enough on its own -- it must also pass the server-side session store
+        // (revoked / rotated-away / reused families are rejected) so a cookie
+        // exfiltrated before logout can't keep authenticating requests.
         if (
-          $refreshTokenDecoded &&
+          is_object($refreshTokenDecoded) &&
           isset($refreshTokenDecoded->user) &&
-          $refreshTokenDecoded->user != ''
+          is_string($refreshTokenDecoded->user) &&
+          $refreshTokenDecoded->user != '' &&
+          $this->validateUser($refreshTokenDecoded->user) &&
+          $this->validateRefreshSession(
+            $refreshTokenDecoded->user,
+            isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
+            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null,
+            isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
+          )
         ) {
           $refreshUser = $this->generateMachineName($refreshTokenDecoded->user);
         }
@@ -2585,21 +2654,27 @@ class HAXCMS
       $token['user'] = $name;
       $token['iat'] = time();
       $token['exp'] = time() + (24 * 60 * 60);
-      if ($storeRefreshSession) {
+      if ($storeRefreshSession && $name !== null && $name !== '') {
         $token['family'] = $this->generateUUID();
         $token['jti'] = $this->generateUUID();
-      }
-      $this->dispatchEvent('haxcms-refresh-token-get', $token);
-      $signed = JWT::encode($token, $this->refreshPrivateKey . $this->salt);
-      if ($storeRefreshSession && $name !== null && $name !== '') {
+        $recorded = false;
         try {
-          $this->recordRefreshSession($name, $token['family'], $token['jti'], $token['exp']);
+          $recorded = $this->recordRefreshSession($name, $token['family'], $token['jti'], $token['exp']);
         }
         catch (Exception $e) {
-          // non-fatal: stateless validation still works as a fallback
+          $recorded = false;
+        }
+        // Security (SEC-SESSION): family-bearing tokens are only accepted when
+        // the store knows the family. If the store cannot be written (e.g. a
+        // read-only config dir) fall back to a legacy no-family token so login
+        // keeps working (parity with NodeJS getRefreshToken).
+        if (!$recorded) {
+          unset($token['family']);
+          unset($token['jti']);
         }
       }
-      return $signed;
+      $this->dispatchEvent('haxcms-refresh-token-get', $token);
+      return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }
     /**
      * Security best practice (M3): centralize the haxcms_refresh_token cookie
@@ -2657,12 +2732,22 @@ class HAXCMS
         );
     }
     /**
-     * Security (H1 rotation): refresh-session store. A file-backed JSON under
-     * the protected _config/settings directory maps user -> { family,
-     * currentJtiHash, previousJtiHash, previousValidUntil, exp }. Only SHA-256
-     * hashes of jti are stored, never raw token ids. Lets refresh rotate the
-     * token (a stolen old copy dies on the legitimate user's next refresh) and
-     * lets logout revoke the whole family server-side. Mirrors NodeJS helpers.
+     * Security (H1 rotation + SEC-SESSION): refresh-session store, v2 shape
+     * (parity with NodeJS):
+     *   {"version":2,"users":{"<user>":{"families":{"<family>":
+     *     {currentJtiHash, previousJtiHash, previousValidUntil, exp}
+     *     | {revoked:true, revokedAt, exp}},
+     *    "legacyRevokedAt"?:N, "legacyRevokedExp"?:N}}}
+     * File-backed JSON under the protected _config/settings directory. Only
+     * SHA-256 hashes of jti are stored, never raw token ids. Families are
+     * tracked per login so several devices can be signed in at once.
+     * Revocation writes a tombstone instead of deleting, so a revoked (or
+     * never-recorded) family can never be re-seeded by presenting an old
+     * token. The v1 shape ({<user>: {family, currentJtiHash, ...}}) is
+     * migrated on load so live sessions survive the upgrade. Grace window:
+     * the immediately previous jti stays valid for
+     * HAXCMS_REFRESH_GRACE_SECONDS so concurrent multi-tab refreshes don't
+     * mutually invalidate.
      */
     protected function getRefreshSessionsPath() {
       $dir = isset($this->configDirectory) ? $this->configDirectory : (HAXCMS_ROOT . '/_config');
@@ -2671,190 +2756,647 @@ class HAXCMS
     protected function hashJti($jti) {
       return hash('sha256', (string) $jti);
     }
-    protected function loadRefreshSessions() {
-      $path = $this->getRefreshSessionsPath();
-      if (!file_exists($path)) {
-        return array();
+    /**
+     * Security (SEC-SESSION): lifetime (seconds) of a refresh token; matches
+     * getRefreshToken / rotateRefreshTokenAndCookie (24h).
+     */
+    protected function getRefreshTokenLifetime() {
+      return 24 * 60 * 60;
+    }
+    protected function isSafeRefreshStoreKey($key) {
+      return is_string($key) && $key !== '' &&
+        $key !== '__proto__' && $key !== 'constructor' && $key !== 'prototype';
+    }
+    protected function emptyRefreshStore() {
+      return array('version' => 2, 'users' => array());
+    }
+    /**
+     * Normalize any parsed store (v1 or v2) into the v2 shape (arrays).
+     */
+    protected function normalizeRefreshStore($parsed) {
+      $store = $this->emptyRefreshStore();
+      if (!is_array($parsed)) {
+        return $store;
       }
-      try {
-        $raw = @file_get_contents($path);
-        if (!is_string($raw) || $raw === '') {
-          return array();
+      if (isset($parsed['version']) && (int) $parsed['version'] === 2 && isset($parsed['users']) && is_array($parsed['users'])) {
+        foreach ($parsed['users'] as $userKey => $userEntry) {
+          $userKey = (string) $userKey;
+          if (!$this->isSafeRefreshStoreKey($userKey) || !is_array($userEntry)) {
+            continue;
+          }
+          $normalizedUser = array('families' => array());
+          $families = (isset($userEntry['families']) && is_array($userEntry['families'])) ? $userEntry['families'] : array();
+          foreach ($families as $familyKey => $familyEntry) {
+            $familyKey = (string) $familyKey;
+            if ($this->isSafeRefreshStoreKey($familyKey) && is_array($familyEntry)) {
+              $normalizedUser['families'][$familyKey] = $familyEntry;
+            }
+          }
+          if (isset($userEntry['legacyRevokedAt']) && (is_int($userEntry['legacyRevokedAt']) || is_float($userEntry['legacyRevokedAt']))) {
+            $normalizedUser['legacyRevokedAt'] = (int) $userEntry['legacyRevokedAt'];
+            $normalizedUser['legacyRevokedExp'] = isset($userEntry['legacyRevokedExp']) ? (int) $userEntry['legacyRevokedExp'] : 0;
+          }
+          $store['users'][$userKey] = $normalizedUser;
         }
-        $parsed = json_decode($raw, true);
-        return is_array($parsed) ? $parsed : array();
+        return $store;
       }
-      catch (Exception $e) {
-        return array();
+      // v1 migration: {<user>: {family, currentJtiHash, previousJtiHash, previousValidUntil, exp}}
+      foreach ($parsed as $userKey => $entry) {
+        $userKey = (string) $userKey;
+        if (
+          !$this->isSafeRefreshStoreKey($userKey) ||
+          !is_array($entry) ||
+          !isset($entry['family']) ||
+          !$this->isSafeRefreshStoreKey($entry['family'])
+        ) {
+          continue;
+        }
+        $store['users'][$userKey] = array('families' => array());
+        $store['users'][$userKey]['families'][$entry['family']] = array(
+          'currentJtiHash' => (isset($entry['currentJtiHash']) && $entry['currentJtiHash']) ? $entry['currentJtiHash'] : null,
+          'previousJtiHash' => (isset($entry['previousJtiHash']) && $entry['previousJtiHash']) ? $entry['previousJtiHash'] : null,
+          'previousValidUntil' => isset($entry['previousValidUntil']) ? (int) $entry['previousValidUntil'] : 0,
+          'exp' => isset($entry['exp']) ? (int) $entry['exp'] : 0,
+        );
+      }
+      return $store;
+    }
+    /**
+     * Security (SEC-SESSION): refresh-store concurrency control. PHP serves
+     * requests from parallel workers, so every mutating path holds ONE
+     * exclusive flock() on a dedicated lock file across load -> check/rotate
+     * -> save, and read-only checks hold a shared lock. Nested calls (rotate
+     * -> check -> revoke) reuse the outer lock. Writes go to a temp file in
+     * the same directory and are rename()d into place, so a reader never sees
+     * a truncated/empty store. $refreshStoreError is set when the store could
+     * not be read or written during the last outermost store operation so
+     * callers can answer 503 instead of treating the user as logged out.
+     */
+    protected $refreshStoreLockHandle = null;
+    protected $refreshStoreLockDepth = 0;
+    protected $refreshStoreLockExclusive = false;
+    public $refreshStoreError = false;
+    protected function getRefreshSessionsLockPath() {
+      return $this->getRefreshSessionsPath() . '.lock';
+    }
+    protected function withRefreshStoreLock($exclusive, $fn) {
+      if ($this->refreshStoreLockDepth > 0) {
+        // nested call: the outer lock already covers this operation. (No
+        // shared -> exclusive upgrade path exists: read-only checks never
+        // call mutators.)
+        $this->refreshStoreLockDepth++;
+        try {
+          return $fn();
+        }
+        finally {
+          $this->refreshStoreLockDepth--;
+        }
+      }
+      $this->refreshStoreError = false;
+      $handle = null;
+      $lockPath = $this->getRefreshSessionsLockPath();
+      $dir = dirname($lockPath);
+      if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+      }
+      if (is_dir($dir)) {
+        $opened = @fopen($lockPath, 'c');
+        if ($opened !== false) {
+          @chmod($lockPath, 0600);
+          if (@flock($opened, $exclusive ? LOCK_EX : LOCK_SH)) {
+            $handle = $opened;
+          }
+          else {
+            @fclose($opened);
+          }
+        }
+      }
+      // If the lock can't be taken (e.g. read-only config dir) proceed
+      // without it: reads still work and writes fail cleanly.
+      $this->refreshStoreLockHandle = $handle;
+      $this->refreshStoreLockExclusive = (bool) $exclusive;
+      $this->refreshStoreLockDepth = 1;
+      try {
+        return $fn();
+      }
+      finally {
+        $this->refreshStoreLockDepth = 0;
+        if ($handle !== null) {
+          @flock($handle, LOCK_UN);
+          @fclose($handle);
+        }
+        $this->refreshStoreLockHandle = null;
+        $this->refreshStoreLockExclusive = false;
       }
     }
-    protected function saveRefreshSessions($sessions) {
-      if (!is_array($sessions)) {
-        return;
+    /**
+     * Load the store. A missing file is an empty store; an unreadable,
+     * empty or non-JSON file is an ERROR (retried once) -- never silently an
+     * empty store, which would reject every family as no_entry.
+     * @throws RuntimeException (code 503)
+     */
+    protected function loadRefreshSessions() {
+      $path = $this->getRefreshSessionsPath();
+      for ($attempt = 0; $attempt < 2; $attempt++) {
+        clearstatcache(true, $path);
+        if (!file_exists($path)) {
+          return $this->emptyRefreshStore();
+        }
+        $raw = @file_get_contents($path);
+        if (is_string($raw) && trim($raw) !== '') {
+          $decoded = json_decode($raw, true);
+          if (is_array($decoded)) {
+            return $this->normalizeRefreshStore($decoded);
+          }
+        }
+        if ($attempt === 0) {
+          usleep(50000);
+        }
       }
+      throw new RuntimeException('haxcms refresh session store unreadable', 503);
+    }
+    /**
+     * Persist the store, pruning expired live entries, expired tombstones,
+     * expired legacy tombstones and users left empty. Atomic: temp file in
+     * the same directory + rename(). Returns true when the store was
+     * written, false on any failure.
+     */
+    protected function saveRefreshSessions($sessions) {
       $path = $this->getRefreshSessionsPath();
       try {
+        $store = $this->normalizeRefreshStore($sessions);
         $dir = dirname($path);
         if (!is_dir($dir)) {
           @mkdir($dir, 0700, true);
         }
-        // prune expired entries before writing
+        if (!is_dir($dir)) {
+          return false;
+        }
         $now = time();
-        $cleaned = array();
-        foreach ($sessions as $k => $entry) {
-          if (is_array($entry) && isset($entry['exp']) && (int) $entry['exp'] > $now) {
-            $cleaned[$k] = $entry;
+        $cleanedUsers = new stdClass();
+        foreach ($store['users'] as $userKey => $userEntry) {
+          $keptFamilies = new stdClass();
+          $keep = false;
+          foreach ($userEntry['families'] as $familyKey => $familyEntry) {
+            if (is_array($familyEntry) && isset($familyEntry['exp']) && is_numeric($familyEntry['exp']) && (int) $familyEntry['exp'] > $now) {
+              $keptFamilies->{$familyKey} = $familyEntry;
+              $keep = true;
+            }
+          }
+          $keptUser = array('families' => $keptFamilies);
+          if (isset($userEntry['legacyRevokedAt']) && (int) $userEntry['legacyRevokedExp'] > $now) {
+            $keptUser['legacyRevokedAt'] = (int) $userEntry['legacyRevokedAt'];
+            $keptUser['legacyRevokedExp'] = (int) $userEntry['legacyRevokedExp'];
+            $keep = true;
+          }
+          if ($keep) {
+            $cleanedUsers->{$userKey} = $keptUser;
           }
         }
-        @file_put_contents($path, json_encode($cleaned), LOCK_EX);
-        @chmod($path, 0600);
+        $json = json_encode(array('version' => 2, 'users' => $cleanedUsers));
+        if (!is_string($json)) {
+          return false;
+        }
+        $tmp = @tempnam($dir, '.refreshSessions.');
+        if ($tmp === false) {
+          return false;
+        }
+        // tempnam() silently falls back to the system temp dir; a rename from
+        // there would not be atomic (or could land elsewhere) -> refuse.
+        if (realpath(dirname($tmp)) !== realpath($dir)) {
+          @unlink($tmp);
+          return false;
+        }
+        if (@file_put_contents($tmp, $json) === false) {
+          @unlink($tmp);
+          return false;
+        }
+        @chmod($tmp, 0600);
+        if (!@rename($tmp, $path)) {
+          @unlink($tmp);
+          return false;
+        }
+        return true;
       }
       catch (Exception $e) {
-        // non-fatal: stateless validation still works as a fallback
+        return false;
       }
+    }
+    /**
+     * Tombstones outlive every refresh token the family could have issued:
+     * any token in the family expires at most the refresh lifetime after now
+     * (+60s clock tolerance, parity with NodeJS).
+     */
+    protected function refreshTombstoneExp($existingExp = 0) {
+      return max((int) $existingExp, time() + $this->getRefreshTokenLifetime() + 60);
+    }
+    /**
+     * Fetch (or create) a user's entry key; returns null for unsafe keys or
+     * when the user is absent and $create is false.
+     */
+    protected function refreshUserKey(&$store, $user, $create = false) {
+      if ($user === null || !is_scalar($user)) {
+        return null;
+      }
+      $key = (string) $user;
+      if (!$this->isSafeRefreshStoreKey($key)) {
+        return null;
+      }
+      if (!isset($store['users'][$key])) {
+        if (!$create) {
+          return null;
+        }
+        $store['users'][$key] = array('families' => array());
+      }
+      return $key;
     }
     /**
      * Record a new refresh session (called on login / institutional issuance).
+     * Adds a live family for the user without touching the user's other
+     * families (other devices stay signed in). Returns true when persisted.
      */
     public function recordRefreshSession($user, $family, $jti, $exp) {
-      if ($user === null || $user === '' || $family === '' || $jti === '') {
-        return;
+      if ($user === null || $user === '' || $family === null || $family === '' || $jti === null || $jti === '' || !$this->isSafeRefreshStoreKey((string) $family)) {
+        return false;
       }
-      $sessions = $this->loadRefreshSessions();
-      $sessions[(string) $user] = array(
-        'family' => (string) $family,
-        'currentJtiHash' => $this->hashJti($jti),
-        'previousJtiHash' => null,
-        'previousValidUntil' => 0,
-        'exp' => (int) $exp,
-      );
-      $this->saveRefreshSessions($sessions);
+      try {
+        return $this->withRefreshStoreLock(true, function () use ($user, $family, $jti, $exp) {
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $user, true);
+          if ($key === null) {
+            return false;
+          }
+          $store['users'][$key]['families'][(string) $family] = array(
+            'currentJtiHash' => $this->hashJti($jti),
+            'previousJtiHash' => null,
+            'previousValidUntil' => 0,
+            'exp' => (int) $exp,
+          );
+          if (!$this->saveRefreshSessions($store)) {
+            $this->refreshStoreError = true;
+            return false;
+          }
+          return true;
+        });
+      }
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
+        return false;
+      }
     }
     /**
-     * Rotate a refresh session: validate family/jti against the store, then move
-     * the current jti to previous (with a grace window) and record a new
-     * current. Returns true on accept, false when the family MATCHES and the
-     * presented jti is neither current nor previous-within-grace (possible
-     * token theft / replay of an older jti -> the whole family is revoked).
-     *
-     * Family-mismatch policy (parity with NodeJS rotateRefreshSession): a
-     * non-matching family does NOT return false. It falls through and
-     * overwrites the entry with the presented family + new jti, returning true.
-     * This accept-and-overwrite is the intended legacy-migration path —
-     * rotateRefreshTokenAndCookie generates a fresh family UUID for a legacy
-     * token (no stored family to match), and this lets the upgrade seed the
-     * store going forward without logging the user out. A missing store entry
-     * is likewise treated as legacy-accepted so deployments upgrade without
-     * logging users out.
+     * Security (SEC-SESSION): pure (non-mutating) store check for a decoded
+     * refresh token. Truth table (parity contract with NodeJS
+     * checkRefreshSession):
+     *   - no family claim (legacy token):  accept, unless iat <= the user's
+     *                                      legacyRevokedAt tombstone
+     *   - family claim but no jti:         reject ('invalid')
+     *   - family with no store entry:      reject ('no_entry')
+     *   - family tombstoned:               reject ('revoked')
+     *   - jti == current:                  accept
+     *   - jti == previous within grace:    accept
+     *   - any other jti:                   reject ('stale_jti'); callers
+     *                                      tombstone the family
+     * PHP-only: an unreadable store yields reject ('store_error') and sets
+     * $refreshStoreError; callers answer 503 and must not tombstone/clear.
+     * Returns array('ok' => bool, 'reason' => string, 'legacy' => bool).
+     */
+    public function checkRefreshSession($decoded) {
+      if (is_array($decoded)) {
+        $decoded = (object) $decoded;
+      }
+      if (!is_object($decoded) || !isset($decoded->user) || !is_scalar($decoded->user) || (string) $decoded->user === '') {
+        return array('ok' => false, 'reason' => 'invalid', 'legacy' => false);
+      }
+      try {
+        return $this->withRefreshStoreLock(false, function () use ($decoded) {
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $decoded->user, false);
+          $userEntry = ($key !== null) ? $store['users'][$key] : null;
+          $hasFamily = isset($decoded->family) && $decoded->family !== '';
+          if (!$hasFamily) {
+            $iat = (isset($decoded->iat) && is_numeric($decoded->iat)) ? (int) $decoded->iat : 0;
+            if (is_array($userEntry) && isset($userEntry['legacyRevokedAt']) && $iat <= (int) $userEntry['legacyRevokedAt']) {
+              return array('ok' => false, 'reason' => 'revoked', 'legacy' => true);
+            }
+            return array('ok' => true, 'reason' => 'legacy', 'legacy' => true);
+          }
+          if (!isset($decoded->jti) || !is_string($decoded->jti) || $decoded->jti === '' || !is_string($decoded->family)) {
+            return array('ok' => false, 'reason' => 'invalid', 'legacy' => false);
+          }
+          if (!is_array($userEntry) || !isset($userEntry['families'][$decoded->family])) {
+            return array('ok' => false, 'reason' => 'no_entry', 'legacy' => false);
+          }
+          $entry = $userEntry['families'][$decoded->family];
+          if (!is_array($entry) || (isset($entry['revoked']) && $entry['revoked'] === true)) {
+            return array('ok' => false, 'reason' => 'revoked', 'legacy' => false);
+          }
+          $now = time();
+          $hash = $this->hashJti($decoded->jti);
+          if (isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $hash) {
+            return array('ok' => true, 'reason' => 'current', 'legacy' => false);
+          }
+          if (isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $hash
+            && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0)) {
+            return array('ok' => true, 'reason' => 'previous', 'legacy' => false);
+          }
+          return array('ok' => false, 'reason' => 'stale_jti', 'legacy' => false);
+        });
+      }
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
+        return array('ok' => false, 'reason' => 'store_error', 'legacy' => false);
+      }
+    }
+    /**
+     * Security (SEC-SESSION): deterministic successor of a jti within a
+     * family (HMAC with the refresh signing key; identical to NodeJS
+     * successorJti). Rotating from the same jti always yields the same
+     * successor, so two tabs that refresh concurrently with the same cookie
+     * both receive the SAME new jti and whichever Set-Cookie the browser
+     * keeps stays valid.
+     */
+    public function successorJti($family, $jti) {
+      return substr(
+        hash_hmac('sha256', 'haxcms-refresh-successor:' . (string) $family . ':' . (string) $jti, $this->refreshPrivateKey . $this->salt),
+        0,
+        32
+      );
+    }
+    /**
+     * Rotate a refresh session: validate family/jti against the store, then
+     * move the current jti to previous (with a grace window) and record a new
+     * current. Returns true if the rotation was accepted and persisted.
+     * Security (SEC-SESSION): a missing store entry is NO LONGER accepted +
+     * seeded (that made revocation a no-op); a stale/reused jti tombstones
+     * the family. Grace-path accept (presented jti == previous) whose
+     * deterministic successor is already current re-issues the current jti
+     * and leaves current/previous untouched (NodeJS parity). Legacy
+     * no-family tokens never reach this method.
      */
     public function rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp) {
-      if ($user === null || $user === '' || $family === '' || $oldJti === '' || $newJti === '') {
+      if ($user === null || $user === '' || $family === null || $family === '' || $oldJti === null || $oldJti === '' || $newJti === null || $newJti === '') {
         return false;
       }
-      $sessions = $this->loadRefreshSessions();
-      $key = (string) $user;
-      $entry = isset($sessions[$key]) ? $sessions[$key] : null;
-      $now = time();
-      $oldHash = $this->hashJti($oldJti);
-      if (is_array($entry) && isset($entry['family']) && $entry['family'] === (string) $family) {
-        $currentMatch = isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $oldHash;
-        $previousMatch = isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $oldHash
-          && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0);
-        if (!$currentMatch && !$previousMatch) {
-          // possible token theft / replay of an older jti -> revoke the family
-          unset($sessions[$key]);
-          $this->saveRefreshSessions($sessions);
-          return false;
-        }
+      try {
+        return $this->withRefreshStoreLock(true, function () use ($user, $family, $oldJti, $newJti, $newExp) {
+          $check = $this->checkRefreshSession((object) array(
+            'user' => $user,
+            'family' => (string) $family,
+            'jti' => (string) $oldJti,
+          ));
+          if (!$check['ok']) {
+            if ($check['reason'] === 'stale_jti') {
+              // possible token theft / replay of an older jti -> revoke the family
+              $this->revokeRefreshSession($user, (string) $family);
+            }
+            return false;
+          }
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $user, false);
+          if ($key === null || !isset($store['users'][$key]['families'][(string) $family])) {
+            return false;
+          }
+          $next = $store['users'][$key]['families'][(string) $family];
+          $newHash = $this->hashJti($newJti);
+          if ($check['reason'] === 'previous' && isset($next['currentJtiHash']) && $next['currentJtiHash'] === $newHash) {
+            // grace-path accept: a sibling tab already rotated from this jti
+            // and received $newJti; re-issue it, don't rotate again
+            $next['exp'] = max((int) (isset($next['exp']) ? $next['exp'] : 0), (int) $newExp);
+          }
+          else {
+            // normal rotation from the current jti (or a grace accept on a
+            // family whose current jti wasn't derived deterministically, e.g.
+            // migrated from the v1 store)
+            $next['previousJtiHash'] = $this->hashJti($oldJti);
+            $next['previousValidUntil'] = time() + (int) HAXCMS_REFRESH_GRACE_SECONDS;
+            $next['currentJtiHash'] = $newHash;
+            $next['exp'] = (int) $newExp;
+          }
+          $store['users'][$key]['families'][(string) $family] = $next;
+          if (!$this->saveRefreshSessions($store)) {
+            $this->refreshStoreError = true;
+            return false;
+          }
+          return true;
+        });
       }
-      $next = is_array($entry) ? $entry : array();
-      $next['family'] = (string) $family;
-      $next['previousJtiHash'] = $oldHash;
-      $next['previousValidUntil'] = $now + (int) HAXCMS_REFRESH_GRACE_SECONDS;
-      $next['currentJtiHash'] = $this->hashJti($newJti);
-      $next['exp'] = (int) $newExp;
-      $sessions[$key] = $next;
-      $this->saveRefreshSessions($sessions);
-      return true;
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
+        return false;
+      }
     }
     /**
-     * Revoke a user's refresh family (called on logout). Best-effort.
+     * Revoke a refresh family (logout / theft detection). Writes a tombstone
+     * rather than deleting, so the family can never be re-seeded. Only the
+     * given family is touched (other devices stay signed in). When no family
+     * is given (legacy no-family token) a per-user legacy tombstone is
+     * written instead: every legacy token issued up to now is rejected.
+     * Best-effort; sets $refreshStoreError on failure.
      */
-    public function revokeRefreshSession($user) {
-      if ($user === null || $user === '') {
+    public function revokeRefreshSession($user, $family = null) {
+      if ($user === null || !is_scalar($user) || (string) $user === '') {
         return;
       }
-      $sessions = $this->loadRefreshSessions();
-      $key = (string) $user;
-      if (array_key_exists($key, $sessions)) {
-        unset($sessions[$key]);
-        $this->saveRefreshSessions($sessions);
+      if ($family !== null && $family !== '' && (!is_scalar($family) || !$this->isSafeRefreshStoreKey((string) $family))) {
+        return;
+      }
+      try {
+        $this->withRefreshStoreLock(true, function () use ($user, $family) {
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $user, true);
+          if ($key === null) {
+            return;
+          }
+          $now = time();
+          if ($family !== null && $family !== '') {
+            $familyKey = (string) $family;
+            $existing = isset($store['users'][$key]['families'][$familyKey]) ? $store['users'][$key]['families'][$familyKey] : null;
+            $store['users'][$key]['families'][$familyKey] = array(
+              'revoked' => true,
+              'revokedAt' => $now,
+              'exp' => $this->refreshTombstoneExp((is_array($existing) && isset($existing['exp'])) ? $existing['exp'] : 0),
+            );
+          }
+          else {
+            $store['users'][$key]['legacyRevokedAt'] = $now;
+            $store['users'][$key]['legacyRevokedExp'] = $this->refreshTombstoneExp(
+              isset($store['users'][$key]['legacyRevokedExp']) ? $store['users'][$key]['legacyRevokedExp'] : 0
+            );
+          }
+          if (!$this->saveRefreshSessions($store)) {
+            $this->refreshStoreError = true;
+          }
+        });
+      }
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
       }
     }
     /**
-     * Validate a refresh token's family/jti against the store WITHOUT rotating.
-     * Used by connection-test recovery. Returns true when acceptable (including
-     * the legacy/missing-entry case so deploys don't log users out).
+     * Validate a refresh token's family/jti against the store WITHOUT
+     * rotating (pure; never writes). Used by connection-test recovery and
+     * getAuthenticatedUserName. Only legacy tokens with NO family claim are
+     * accepted without a store entry (see checkRefreshSession).
      */
-    public function validateRefreshSession($user, $family, $jti) {
-      if ($user === null || $user === '' || $family === '' || $family === null || $jti === '' || $jti === null) {
-        // tokens without family/jti (legacy) are accepted for migration
-        return true;
-      }
-      $sessions = $this->loadRefreshSessions();
-      $key = (string) $user;
-      if (!isset($sessions[$key])) {
-        return true;
-      }
-      $entry = $sessions[$key];
-      if (!is_array($entry) || !isset($entry['family']) || $entry['family'] !== (string) $family) {
-        return false;
-      }
-      $now = time();
-      $hash = $this->hashJti($jti);
-      if (isset($entry['currentJtiHash']) && $entry['currentJtiHash'] === $hash) {
-        return true;
-      }
-      if (isset($entry['previousJtiHash']) && $entry['previousJtiHash'] === $hash
-        && $now < (int) (isset($entry['previousValidUntil']) ? $entry['previousValidUntil'] : 0)) {
-        return true;
-      }
-      return false;
+    public function validateRefreshSession($user, $family, $jti, $iat = 0) {
+      $check = $this->checkRefreshSession((object) array(
+        'user' => $user,
+        'family' => $family,
+        'jti' => $jti,
+        'iat' => $iat,
+      ));
+      return $check['ok'];
     }
     /**
      * Issue a rotated refresh token + cookie for a validated decoded refresh
      * token, returning the new access JWT. Used by refreshAccessToken and
-     * connection-test recovery. On any rotation failure returns null so callers
-     * can clear the cookie and 401. Legacy tokens (no family/jti) are upgraded.
+     * connection-test recovery. On any rotation failure returns null so
+     * callers can clear the cookie and 401 (or 503 when $refreshStoreError).
+     * Family tokens rotate to the deterministic successorJti; legacy tokens
+     * (no family claim) that are not tombstoned are upgraded into a brand new
+     * family with a random jti; if the store can't be written they get
+     * another legacy token instead (parity with NodeJS).
      */
     public function rotateRefreshTokenAndCookie($decodedRefresh) {
-      if (!is_object($decodedRefresh) || !isset($decodedRefresh->user) || $decodedRefresh->user === '') {
+      if (!is_object($decodedRefresh) || !isset($decodedRefresh->user) || !is_scalar($decodedRefresh->user) || (string) $decodedRefresh->user === '') {
         return null;
       }
       $user = $decodedRefresh->user;
-      $family = (isset($decodedRefresh->family) && $decodedRefresh->family !== '') ? $decodedRefresh->family : $this->generateUUID();
-      $oldJti = (isset($decodedRefresh->jti) && $decodedRefresh->jti !== '') ? $decodedRefresh->jti : $this->generateUUID();
-      // Generate a fresh jti + iat/exp for the rotated token. We build the
-      // payload directly (not via getRefreshToken) so we preserve the existing
-      // family and avoid recording a competing session entry.
-      $newJti = $this->generateUUID();
+      $isLegacy = !isset($decodedRefresh->family) || $decodedRefresh->family === '';
       $newIat = time();
-      $newExp = $newIat + (24 * 60 * 60);
+      $newExp = $newIat + $this->getRefreshTokenLifetime();
+      $family = $isLegacy ? null : $decodedRefresh->family;
+      if ($isLegacy) {
+        $newJti = $this->generateUUID();
+        $legacyCheck = $this->checkRefreshSession($decodedRefresh);
+        if (!$legacyCheck['ok']) {
+          return null;
+        }
+        $family = $this->generateUUID();
+        if (!$this->recordRefreshSession($user, $family, $newJti, $newExp)) {
+          // store not writable: keep the session alive with another legacy
+          // (no-family) token rather than logging the user out
+          $family = null;
+        }
+      }
+      else {
+        $oldJti = (isset($decodedRefresh->jti) && is_scalar($decodedRefresh->jti)) ? (string) $decodedRefresh->jti : '';
+        if ($oldJti === '') {
+          return null;
+        }
+        $newJti = $this->successorJti($family, $oldJti);
+        if (!$this->rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp)) {
+          return null;
+        }
+      }
       $newPayload = array(
         'user' => $user,
-        'family' => $family,
-        'jti' => $newJti,
         'iat' => $newIat,
         'exp' => $newExp,
       );
-      $rotated = JWT::encode($newPayload, $this->refreshPrivateKey . $this->salt);
-      $ok = $this->rotateRefreshSession($user, $family, $oldJti, $newJti, $newExp);
-      if (!$ok) {
-        $this->revokeRefreshSession($user);
-        return null;
+      if ($family) {
+        $newPayload['family'] = $family;
+        $newPayload['jti'] = $newJti;
       }
+      $rotated = JWT::encode($newPayload, $this->refreshPrivateKey . $this->salt);
       $this->setRefreshTokenCookie($rotated);
       return $this->getJWT($user);
+    }
+    /**
+     * Security (SEC-SESSION): resolve the site context of a session request
+     * so an authenticated session response can carry a fresh siteToken
+     * (NodeJS resolveSessionSiteName order):
+     *   1. request body: site.name, then siteName
+     *   2. query: siteName
+     *   3. request path: <basePath><sitesDirectory>/<name>/... (also the
+     *      public /sites/<name>/ alias PHP serves)
+     *   4. Referer path, same rule (path only)
+     *   5. single-site context (HAXCMS_ROOT/site.json metadata.site.name / name)
+     * Returns '' when nothing resolves. Only [A-Za-z0-9_-] values.
+     */
+    public function resolveSessionSiteName($body = array()) {
+      $safe = function ($value) {
+        if (!is_string($value)) {
+          return '';
+        }
+        $v = rawurldecode(trim($value));
+        return preg_match('/^[A-Za-z0-9_-]+$/', $v) ? $v : '';
+      };
+      if (is_array($body)) {
+        if (isset($body['site']) && is_array($body['site']) && isset($body['site']['name']) && $safe($body['site']['name']) !== '') {
+          return $safe($body['site']['name']);
+        }
+        if (isset($body['site']) && is_object($body['site']) && isset($body['site']->name) && $safe($body['site']->name) !== '') {
+          return $safe($body['site']->name);
+        }
+        if (isset($body['siteName']) && $safe($body['siteName']) !== '') {
+          return $safe($body['siteName']);
+        }
+      }
+      if (isset($_GET['siteName']) && $safe($_GET['siteName']) !== '') {
+        return $safe($_GET['siteName']);
+      }
+      $base = '/' . trim((string) $this->basePath, '/');
+      $base = ($base === '/') ? '/' : $base . '/';
+      $prefixes = array($base . trim((string) $this->sitesDirectory, '/') . '/', $base . 'sites/');
+      $fromPath = function ($pathValue) use ($prefixes, $safe) {
+        if (!is_string($pathValue) || $pathValue === '') {
+          return '';
+        }
+        foreach ($prefixes as $prefix) {
+          if ($prefix !== '' && strpos($pathValue, $prefix) === 0) {
+            $parts = explode('/', substr($pathValue, strlen($prefix)));
+            $name = $safe($parts[0]);
+            if ($name !== '') {
+              return $name;
+            }
+          }
+        }
+        return '';
+      };
+      if (isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI'])) {
+        $name = $fromPath((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+        if ($name !== '') {
+          return $name;
+        }
+      }
+      if (isset($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] !== '') {
+        $name = $fromPath((string) parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH));
+        if ($name !== '') {
+          return $name;
+        }
+      }
+      $singleSiteJsonPath = HAXCMS_ROOT . '/site.json';
+      if (file_exists($singleSiteJsonPath)) {
+        $singleSite = json_decode((string) @file_get_contents($singleSiteJsonPath));
+        if ($singleSite && isset($singleSite->metadata->site->name) && is_string($singleSite->metadata->site->name)) {
+          return $safe($singleSite->metadata->site->name);
+        }
+        if ($singleSite && isset($singleSite->name) && is_string($singleSite->name)) {
+          return $safe($singleSite->name);
+        }
+      }
+      return '';
+    }
+    /**
+     * Security (SEC-SESSION): request tokens to hand back on a SUCCESSFUL,
+     * authenticated session response (refresh / connection-test) so an
+     * editor that booted anonymously (connection-settings omits tokens for
+     * anonymous callers) can pick them up without a page reload. Returns
+     * array('userToken' => ..., 'siteToken'? => ...). Tokens bind to the
+     * authenticated principal, which is what getActiveUserName() resolves to
+     * on the editor's following Bearer requests.
+     */
+    public function getSessionRequestTokens($user, $body = array()) {
+      $tokens = array(
+        'userToken' => $this->getRequestToken($user),
+      );
+      $siteName = $this->resolveSessionSiteName($body);
+      if ($siteName !== '') {
+        $tokens['siteToken'] = $this->getRequestToken($user . ':' . $siteName);
+      }
+      return $tokens;
     }
     /**
      * Decode the JWT to ensure accuracy, return false if an error happens
@@ -2910,6 +3452,80 @@ class HAXCMS
         exit();
       }
       return FALSE;
+    }
+    /**
+     * Security (SEC-SESSION): whether the connection-settings caller may
+     * receive request tokens: CLI, a valid Bearer JWT, or a valid
+     * (store-checked) refresh-cookie session.
+     */
+    public function connectionSettingsCallerIsAuthenticated() {
+      if ($this->isCLI()) {
+        return TRUE;
+      }
+      $authenticatedUser = $this->getAuthenticatedUserName();
+      return (!is_null($authenticatedUser) && $authenticatedUser !== '');
+    }
+    /**
+     * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
+     * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
+     * 1/true/yes; any other non-empty value means false). Default FALSE until
+     * the front-end consumes the tokens returned by login/refresh/
+     * connection-test (see shouldIncludeRequestTokens). Parity with NodeJS
+     * HAXCMS.getRequireSessionForRequestTokens.
+     */
+    public function getRequireSessionForRequestTokens() {
+      $truthy = function ($value) {
+        return in_array(strtolower(trim((string) $value)), array('1', 'true', 'yes'), TRUE);
+      };
+      $envValue = getenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
+      if (is_string($envValue) && trim($envValue) !== '') {
+        return $truthy($envValue);
+      }
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->requireSessionForRequestTokens)
+      ) {
+        $configured = $this->config->security->requireSessionForRequestTokens;
+        if ($configured === TRUE) {
+          return TRUE;
+        }
+        if (is_string($configured)) {
+          return $truthy($configured);
+        }
+      }
+      return FALSE;
+    }
+    /**
+     * Security (SEC-SESSION): should connection-settings include siteToken /
+     * userToken (and the token header entries)? Evaluated in this order
+     * (parity contract with NodeJS HAXCMS.shouldIncludeRequestTokens):
+     *   1. Sec-Fetch-Site present and 'cross-site' or 'same-site' -> omit,
+     *      whatever the flag says (blocks cross-site script inclusion of the
+     *      JS payload).
+     *   2. caller authenticated (CLI, a valid bearer, or a refresh cookie that
+     *      passes the session store check) -> include.
+     *   3. requireSessionForRequestTokens is true -> omit.
+     *   4. otherwise -> include (pre-existing behaviour; the shipped front-end
+     *      loads connection-settings once, before login, and its request layer
+     *      drops ALL auth headers when a required token is missing).
+     * Returns array('include' => bool, 'reason' => string).
+     */
+    public function shouldIncludeRequestTokens() {
+      $fetchSite = '';
+      if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_string($_SERVER['HTTP_SEC_FETCH_SITE'])) {
+        $fetchSite = strtolower(trim($_SERVER['HTTP_SEC_FETCH_SITE']));
+      }
+      if ($fetchSite === 'cross-site' || $fetchSite === 'same-site') {
+        return array('include' => FALSE, 'reason' => 'sec-fetch-site');
+      }
+      if ($this->connectionSettingsCallerIsAuthenticated()) {
+        return array('include' => TRUE, 'reason' => 'authenticated');
+      }
+      if ($this->getRequireSessionForRequestTokens()) {
+        return array('include' => FALSE, 'reason' => 'session-required');
+      }
+      return array('include' => TRUE, 'reason' => 'anonymous-allowed');
     }
     /**
      * Get Front end JWT based connection settings
@@ -3004,11 +3620,22 @@ class HAXCMS
                 }
             }
         }
-        $requestTokenUser = $this->getRequestTokenUserName();
-        // user token includes user and site name of the request
-        $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
-        // user token is just the name of the logged in user
-        $userToken = $this->getRequestToken($requestTokenUser);
+        // Security (SEC-SESSION): connection-settings is an open route (the
+        // editor boots from it before login). Whether request tokens are
+        // minted is decided by shouldIncludeRequestTokens (ordered rules:
+        // Sec-Fetch-Site cross-site/same-site -> omit; authenticated (CLI,
+        // valid Bearer JWT or store-checked refresh session) -> include;
+        // security.requireSessionForRequestTokens -> omit; else include).
+        $includeRequestTokens = $this->shouldIncludeRequestTokens()['include'];
+        $siteToken = '';
+        $userToken = '';
+        if ($includeRequestTokens) {
+          $requestTokenUser = $this->getRequestTokenUserName();
+          // user token includes user and site name of the request
+          $siteToken = $this->getRequestToken($requestTokenUser . ':' . $sitename);
+          // user token is just the name of the logged in user
+          $userToken = $this->getRequestToken($requestTokenUser);
+        }
         $isDashboardRequest = FALSE;
         if ($this->getDeploymentProfile() !== 'single-site') {
           $pathContainsSiteSegment = function ($pathValue = '') use ($sitePathSegments) {
@@ -3087,8 +3714,13 @@ class HAXCMS
         $settings = new stdClass();
         // Core v1 connection tokens (minimal, mirror NodeJS output)
         $settings->token = $this->getRequestToken();
-        $settings->siteToken = $siteToken;
-        $settings->userToken = $userToken;
+        // Security (SEC-SESSION): siteToken / userToken keys are OMITTED (not
+        // empty) for unauthenticated callers; the front-end registries treat a
+        // missing key as "no token".
+        if ($includeRequestTokens) {
+          $settings->siteToken = $siteToken;
+          $settings->userToken = $userToken;
+        }
         $settings->siteApiBasePath = $siteApiBase;
         $settings->siteOpenApiPath = $siteApiBase . '/openapi.json';
         $settings->systemApiBasePath = $systemApiBase;
@@ -3110,7 +3742,9 @@ class HAXCMS
           'sessionUserGet', $systemApiV1BasePath, 'session/user'
         );
         $settings->getUserDataHeaders = new stdClass();
-        $settings->getUserDataHeaders->{'X-HAXCMS-User-Token'} = $userToken;
+        if ($includeRequestTokens) {
+          $settings->getUserDataHeaders->{'X-HAXCMS-User-Token'} = $userToken;
+        }
         $settings->userTokenHeader = 'X-HAXCMS-User-Token';
         $settings->redirectUrl = $this->basePath;
         // v1 appStore (match NodeJS structure: url, params, headers)
@@ -3122,7 +3756,9 @@ class HAXCMS
         $settings->appStore->params = new stdClass();
         $settings->appStore->params->siteName = $sitename;
         $settings->appStore->headers = new stdClass();
-        $settings->appStore->headers->{'X-HAXCMS-Site-Token'} = $siteToken;
+        if ($includeRequestTokens) {
+          $settings->appStore->headers->{'X-HAXCMS-Site-Token'} = $siteToken;
+        }
         // HAXIAM specific endpoints - only add if HAXIAM mode is enabled
         if (isset($this->config->iam) && $this->config->iam) {
             $settings->haxiamAddUserAccess = $this->resolveSystemOperationPath(
