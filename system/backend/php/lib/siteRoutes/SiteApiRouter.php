@@ -3,6 +3,7 @@ include_once dirname(__FILE__) . '/SiteApiRequestContext.php';
 include_once dirname(__FILE__) . '/SiteRoutesMap.php';
 include_once dirname(__FILE__) . '/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/SiteApiSecurity.php';
+include_once dirname(__FILE__) . '/../HAXCMSInstallGate.php';
 class SiteApiRouter
 {
     public static function dispatch($site)
@@ -19,6 +20,20 @@ class SiteApiRouter
         $context = SiteApiRequestContext::fromSite($site);
         if (!$context->isSiteApiRequest()) {
             return false;
+        }
+        // Security (SEC-DEPLOY): in multi-site mode the site API trusts the
+        // global _config/config.php; refuse it while that file is missing or
+        // still holds the installer placeholder keys/credentials (e.g. a
+        // persisted _sites volume next to a fresh/unfinished _config).
+        if (
+            isset($GLOBALS['HAXCMS']) && $GLOBALS['HAXCMS'] instanceof HAXCMS &&
+            isset($GLOBALS['HAXCMS']->configDirectory) &&
+            is_string($GLOBALS['HAXCMS']->configDirectory) &&
+            $GLOBALS['HAXCMS']->configDirectory !== '' &&
+            HAXCMSInstallGate::isNotInstalled($GLOBALS['HAXCMS'], $GLOBALS['HAXCMS']->configDirectory . '/config.php')
+        ) {
+            HAXCMSInstallGate::sendNotInstalledResponse();
+            return true;
         }
         $allRoutes = SiteRoutesMap::getRoutesMap();
         $allowedMethods = array();

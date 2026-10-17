@@ -81,6 +81,42 @@ pass "Step indicator rendered"
 echo "$BODY" | grep -qi 'Continue' || fail "Continue button to Step 2 not present"
 pass "Continue button to Step 2 present"
 
+# --- Security (SEC-DEPLOY): Apache hardening + installer API gate ----------
+# The image ships scripts/docker/apache2.conf; these assertions prove its
+# .htaccess files are honoured (AllowOverride All), directory listings are off
+# and _config is never web-readable.
+
+# Assertion 7: the system API rewrite works and the API refuses to run while
+# HAXcms is not installed (no _config/config.php yet).
+API_CODE=$(curl --silent --max-time 10 -o /tmp/haxcms-precondition-api.$$ -w '%{http_code}' "http://localhost:$HOST_PORT/system/api/v1/session/connection-settings")
+API_BODY=$(cat /tmp/haxcms-precondition-api.$$ 2>/dev/null); rm -f /tmp/haxcms-precondition-api.$$
+[ "$API_CODE" = "503" ] || fail "system API returned HTTP $API_CODE before install (expected 503)"
+echo "$API_BODY" | grep -q 'HAXcms is not installed' || fail "system API 503 body missing 'HAXcms is not installed'"
+pass "System API rewrite works and is gated (503) until installed"
+
+# Plant a fake secret in _config and an index-less directory inside the
+# running container (the webroot is read-only for www-data, not for root).
+SENTINEL="haxcms-precondition-salt-$$-$RANDOM"
+docker exec "$CONTAINER_NAME" sh -c "mkdir -p /var/www/html/_config /var/www/html/zz-listing-probe && printf '%s' '$SENTINEL' > /var/www/html/_config/SALT.txt && printf probe > /var/www/html/zz-listing-probe/probe.txt" \
+  || fail "could not plant _config/SALT.txt fixture in the container"
+
+# Assertion 8: _config/SALT.txt is not web-readable.
+SALT_CODE=$(curl --silent --max-time 10 -o /tmp/haxcms-precondition-salt.$$ -w '%{http_code}' "http://localhost:$HOST_PORT/_config/SALT.txt")
+if grep -q "$SENTINEL" /tmp/haxcms-precondition-salt.$$ 2>/dev/null; then
+  rm -f /tmp/haxcms-precondition-salt.$$
+  fail "_config/SALT.txt contents were served over HTTP"
+fi
+rm -f /tmp/haxcms-precondition-salt.$$
+[ "$SALT_CODE" = "403" ] || fail "_config/SALT.txt returned HTTP $SALT_CODE (expected 403)"
+pass "_config/SALT.txt is not web-readable (403)"
+
+# Assertion 9: directory listing is off (both _config/ and an index-less dir).
+for DIR_PATH in /_config/ /zz-listing-probe/; do
+  DIR_BODY=$(curl --silent --max-time 10 "http://localhost:$HOST_PORT$DIR_PATH")
+  echo "$DIR_BODY" | grep -qi 'Index of' && fail "directory listing served for $DIR_PATH"
+done
+pass "Directory listing is disabled"
+
 echo ""
 echo "All precondition-test assertions passed."
 docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
