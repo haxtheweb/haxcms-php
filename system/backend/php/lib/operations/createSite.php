@@ -603,6 +603,14 @@ trait OperationsRouteCreateSite {
     if ($downloaded !== false) {
       @unlink($downloaded);
     }
+    // Security (SEC-SSRF): a haxbi_* file an importer staged in an earlier
+    // request (convertHaxcmsToSite hands these back as build.files paths) is
+    // consumed here too, so remove it rather than leaving it in staging.
+    // Only remote-file stagings (haxbi_*) that passed the staging-root check
+    // are removed; other staged inputs are left to their producers.
+    else if ($valid && is_string($downloadLocation) && strpos(basename($downloadLocation), 'haxbi_') === 0) {
+      @unlink($downloadLocation);
+    }
     return $valid;
   }
   /**

@@ -969,6 +969,15 @@ if (!function_exists('haxcmsImportConvertVitepressToSite')) {
             return array('data' => array(), 'body' => $markdown);
         }
         $data = array();
+        // Security (SEC-SSRF / YAML alias amplification): remote frontmatter
+        // that is oversized or uses anchors/aliases is ignored (treated as no
+        // frontmatter) rather than parsed. Parity with Node's front-matter guard.
+        if (
+            strlen($matches[1]) > SiteRouteUtils::YAML_MAX_INPUT_BYTES ||
+            SiteRouteUtils::yamlUsesAnchorsOrAliases($matches[1])
+        ) {
+            return array('data' => $data, 'body' => substr($markdown, strlen($matches[0])));
+        }
         try {
             $parsed = \Symfony\Component\Yaml\Yaml::parse($matches[1]);
             if (is_array($parsed)) {

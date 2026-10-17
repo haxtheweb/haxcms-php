@@ -880,6 +880,172 @@ class SiteRouteUtils
         return null;
     }
     /**
+     * Security (SEC-SSRF / YAML alias amplification): maximum size, in bytes,
+     * of untrusted YAML accepted for parsing (256 KiB). Parity with the
+     * haxcms-nodejs convertYamlToJson limit.
+     */
+    const YAML_MAX_INPUT_BYTES = 262144;
+    /**
+     * Security (SEC-SSRF): error message returned (HTTP 400) when untrusted
+     * YAML uses anchors or aliases. Byte-identical in both backends.
+     */
+    const YAML_ANCHOR_ALIAS_ERROR = 'YAML anchors and aliases are not supported';
+    /**
+     * Security (SEC-SSRF / YAML alias amplification): true when untrusted
+     * YAML text uses an anchor (`&name`) or alias (`*name`) node property.
+     *
+     * Symfony Yaml has no flag to disable aliases and no parse-time hook, and
+     * an alias-heavy "billion laughs" document parses cheaply (copy-on-write
+     * arrays) but explodes when json_encode()d. So untrusted YAML is scanned
+     * BEFORE parsing with a small conservative tokenizer: it skips comments,
+     * single/double-quoted scalars (incl. multi-line) and block scalars
+     * (| / >), and flags `&` or `*` followed by a name character wherever a
+     * YAML node may start (line start, after `- `, `? `, `: `, a tag, `[`, `{`
+     * or a flow `,`). A plain scalar cannot begin with `&` or `*` in valid
+     * YAML, so the only false positives are malformed documents or a
+     * multi-line plain scalar whose continuation line starts with `*word` —
+     * both acceptable for a fail-closed check. Text like `a * b`, `R&D`,
+     * `"*quoted*"` or `- * item` is not flagged.
+     *
+     * @param string $text
+     * @return bool
+     */
+    public static function yamlUsesAnchorsOrAliases($text)
+    {
+        $text = (string) $text;
+        if (strpos($text, '&') === false && strpos($text, '*') === false) {
+            return false;
+        }
+        $lines = preg_split('/\r\n|\r|\n/', $text);
+        $inSingle = false;
+        $inDouble = false;
+        $flowDepth = 0;
+        $blockIndent = null;
+        $isSpace = function ($ch) {
+            return $ch === '' || $ch === ' ' || $ch === "\t";
+        };
+        foreach ($lines as $line) {
+            $len = strlen($line);
+            $indent = strspn($line, ' ');
+            if ($blockIndent !== null) {
+                if (trim($line) === '' || $indent > $blockIndent) {
+                    continue; // block scalar content
+                }
+                $blockIndent = null;
+            }
+            $i = 0;
+            $tokenStart = !$inSingle && !$inDouble;
+            // document start marker "--- " may carry node properties
+            if (!$inSingle && !$inDouble && substr($line, 0, 3) === '---' && $isSpace(substr($line, 3, 1))) {
+                $i = 3;
+            }
+            while ($i < $len) {
+                $c = $line[$i];
+                $next = ($i + 1 < $len) ? $line[$i + 1] : '';
+                if ($inSingle) {
+                    if ($c === "'") {
+                        if ($next === "'") {
+                            $i += 2;
+                            continue;
+                        }
+                        $inSingle = false;
+                        $tokenStart = false;
+                    }
+                    $i++;
+                    continue;
+                }
+                if ($inDouble) {
+                    if ($c === '\\') {
+                        $i += 2;
+                        continue;
+                    }
+                    if ($c === '"') {
+                        $inDouble = false;
+                        $tokenStart = false;
+                    }
+                    $i++;
+                    continue;
+                }
+                if ($c === ' ' || $c === "\t") {
+                    $i++;
+                    continue;
+                }
+                if ($c === '#' && ($i === 0 || $isSpace($line[$i - 1]))) {
+                    break; // comment to end of line
+                }
+                if ($tokenStart) {
+                    if ($c === '&' || $c === '*') {
+                        if (!$isSpace($next) && strpos(',[]{}', $next) === false) {
+                            return true;
+                        }
+                        $tokenStart = false;
+                        $i++;
+                        continue;
+                    }
+                    if (($c === '-' || $c === '?' || $c === ':') && $isSpace($next)) {
+                        $i++; // block indicator; a node may follow
+                        continue;
+                    }
+                    if ($c === '!') {
+                        // tag: skip it, a node property may follow
+                        while ($i < $len && !$isSpace($line[$i])) {
+                            $i++;
+                        }
+                        continue;
+                    }
+                    if ($c === "'") {
+                        $inSingle = true;
+                        $i++;
+                        continue;
+                    }
+                    if ($c === '"') {
+                        $inDouble = true;
+                        $i++;
+                        continue;
+                    }
+                    if (($c === '|' || $c === '>') && $flowDepth === 0) {
+                        $rest = substr($line, $i + 1);
+                        if (preg_match('/^[0-9+\-]*\s*(#.*)?$/', $rest)) {
+                            $blockIndent = $indent;
+                            break;
+                        }
+                    }
+                    if ($c === '[' || $c === '{') {
+                        $flowDepth++;
+                        $i++;
+                        continue;
+                    }
+                    if ($c === ']' || $c === '}') {
+                        $flowDepth = max(0, $flowDepth - 1);
+                        $tokenStart = false;
+                        $i++;
+                        continue;
+                    }
+                    if ($c === ',' && $flowDepth > 0) {
+                        $i++;
+                        continue;
+                    }
+                    // start of a plain scalar
+                    $tokenStart = false;
+                    $i++;
+                    continue;
+                }
+                // inside a plain scalar (or just after a quoted one)
+                if ($c === ':' && ($isSpace($next) || ($flowDepth > 0 && strpos(',[]{}', $next) !== false))) {
+                    $tokenStart = true;
+                }
+                else if ($flowDepth > 0 && $c === ',') {
+                    $tokenStart = true;
+                }
+                else if ($flowDepth > 0 && ($c === ']' || $c === '}')) {
+                    $flowDepth = max(0, $flowDepth - 1);
+                }
+                $i++;
+            }
+        }
+        return false;
+    }
+    /**
      * Normalize an OpenAPI security config array into a policy string.
      * Mirrors Node normalizeSiteApiSecurityPolicy (app.js:1622):
      * - empty array or requirement with no keys => 'public'

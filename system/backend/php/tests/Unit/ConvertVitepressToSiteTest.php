@@ -203,6 +203,23 @@ CONFIG;
     // request validation
     // ------------------------------------------------------------------
 
+    // Security (SEC-SSRF / YAML alias amplification): remote frontmatter with
+    // anchors/aliases (or over 256 KiB) is ignored, the body is kept.
+    public function testFrontmatterWithAliasesIsIgnored(): void
+    {
+        $md = "---\ntitle: &t Hello\nalt: *t\n---\n# Body\n";
+        $split = haxcmsImportVitepressSplitFrontmatter($md);
+        $this->assertSame(array(), $split['data']);
+        $this->assertSame("# Body\n", $split['body']);
+    }
+
+    public function testOrdinaryFrontmatterIsStillParsed(): void
+    {
+        $split = haxcmsImportVitepressSplitFrontmatter("---\ntitle: R&D notes\n---\nbody");
+        $this->assertSame(array('title' => 'R&D notes'), $split['data']);
+        $this->assertSame('body', $split['body']);
+    }
+
     public function testMissingRepoUrlReturns400(): void
     {
         $response = $this->import(array());
