@@ -838,6 +838,141 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('Child', $byId[$newId]->description);
         $this->assertSame('item-a', $byId[$newId]->parent);
     }
+
+    // =========================================================================
+    // Security (SEC-SANITIZE): saveOutline / createNode items[] metadata is
+    // sanitised per field instead of mass-assigned
+    // =========================================================================
+
+    public function testSaveOutlineSanitizesTitleAndMetadata(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+        );
+        $this->ops->rawParams = array(
+            'items' => array(
+                array(
+                    'id' => 'item-a',
+                    'title' => '&lt;img src=x onerror=alert(1)&gt;Item A',
+                    'parent' => null,
+                    'indent' => 0,
+                    'order' => 0,
+                    'slug' => 'item-a',
+                    'metadata' => array(
+                        'created' => 1000000,
+                        'image' => 'javascript:alert(1)',
+                        'linkUrl' => 'javascript:alert(2)',
+                        'icon' => '"><svg onload=alert(1)>',
+                        'theme' => array('key' => 'not-a-theme'),
+                        'published' => true,
+                        'customKey' => '<b>x</b>',
+                    ),
+                ),
+                array(
+                    'id' => 'item-b',
+                    'title' => 'Item B',
+                    'parent' => null,
+                    'indent' => 0,
+                    'order' => 1,
+                    'slug' => 'item-b',
+                    'metadata' => array(),
+                ),
+            ),
+        );
+        $result = $this->ops->saveOutline();
+        $this->assertArrayHasKey('items', $result);
+
+        $byId = array();
+        foreach ($this->readPersistedItems() as $item) {
+            $byId[$item->id] = $item;
+        }
+        $a = $byId['item-a'];
+        $this->assertSame('Item A', $a->title);
+        $this->assertFalse(isset($a->metadata->image));
+        $this->assertFalse(isset($a->metadata->linkUrl));
+        $this->assertStringNotContainsString('<', $a->metadata->icon);
+        $this->assertFalse(isset($a->metadata->theme));
+        $this->assertTrue($a->metadata->published);
+        $this->assertSame('&lt;b&gt;x&lt;/b&gt;', $a->metadata->customKey);
+        $this->assertSame(1000000, $a->metadata->created);
+    }
+
+    public function testSaveOutlineRoundTripsMetadataUrlsWithAmpersands(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $images = array('files/a.png?x=1&y=2', "files/tom's.png");
+        for ($pass = 0; $pass < 2; $pass++) {
+            $metadata = array('images' => $images, 'note' => "Tom's R&D");
+            if ($pass === 1) {
+                // second save echoes back exactly what was stored
+                foreach ($this->readPersistedItems() as $item) {
+                    if ($item->id === 'item-a') {
+                        $metadata = json_decode(json_encode($item->metadata), true);
+                    }
+                }
+            }
+            $this->ops->params = array(
+                'site_token' => 'good',
+                'site' => array('name' => $this->siteName),
+            );
+            $this->ops->rawParams = array(
+                'items' => array(
+                    array('id' => 'item-a', 'title' => 'Item A', 'parent' => null, 'indent' => 0, 'order' => 0, 'slug' => 'item-a', 'metadata' => $metadata),
+                    array('id' => 'item-b', 'title' => 'Item B', 'parent' => null, 'indent' => 0, 'order' => 1, 'slug' => 'item-b', 'metadata' => array()),
+                ),
+            );
+            $result = $this->ops->saveOutline();
+            $this->assertArrayHasKey('items', $result);
+            foreach ($this->readPersistedItems() as $item) {
+                if ($item->id === 'item-a') {
+                    $this->assertSame($images, $item->metadata->images, 'pass ' . $pass);
+                    $this->assertSame("Tom's R&D", $item->metadata->note, 'pass ' . $pass);
+                }
+            }
+        }
+    }
+
+    public function testCreateNodeItemsSanitizesTitleAndMetadata(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'items' => array(
+                array(
+                    // null id: the shared HAXCMS mock has no generateMachineName
+                    'id' => null,
+                    'parent' => null,
+                    'title' => '<b>Imported</b> page',
+                    'slug' => 'imported',
+                    'indent' => 0,
+                    'order' => 2,
+                    'contents' => '<p>Imported</p>',
+                    'metadata' => array(
+                        'image' => 'javascript:alert(1)',
+                        'tags' => '"><script>alert(1)</script>',
+                        'constructor' => 'x',
+                    ),
+                ),
+            ),
+        );
+        $this->ops->createNode();
+
+        $page = null;
+        foreach ($this->readPersistedItems() as $item) {
+            if ($item->id !== 'item-a' && $item->id !== 'item-b') {
+                $page = $item;
+            }
+        }
+        $this->assertNotNull($page);
+        $this->assertSame('Imported page', $page->title);
+        $this->assertFalse(isset($page->metadata->image));
+        // tags are normalised to a list on save
+        $this->assertStringNotContainsString('<', json_encode($page->metadata->tags, JSON_UNESCAPED_SLASHES));
+        $this->assertFalse(isset($page->metadata->constructor));
+    }
 }
 
 /**
