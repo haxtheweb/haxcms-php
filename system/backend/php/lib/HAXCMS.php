@@ -3466,6 +3466,68 @@ class HAXCMS
       return (!is_null($authenticatedUser) && $authenticatedUser !== '');
     }
     /**
+     * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
+     * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
+     * 1/true/yes; any other non-empty value means false). Default FALSE until
+     * the front-end consumes the tokens returned by login/refresh/
+     * connection-test (see shouldIncludeRequestTokens). Parity with NodeJS
+     * HAXCMS.getRequireSessionForRequestTokens.
+     */
+    public function getRequireSessionForRequestTokens() {
+      $truthy = function ($value) {
+        return in_array(strtolower(trim((string) $value)), array('1', 'true', 'yes'), TRUE);
+      };
+      $envValue = getenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
+      if (is_string($envValue) && trim($envValue) !== '') {
+        return $truthy($envValue);
+      }
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->requireSessionForRequestTokens)
+      ) {
+        $configured = $this->config->security->requireSessionForRequestTokens;
+        if ($configured === TRUE) {
+          return TRUE;
+        }
+        if (is_string($configured)) {
+          return $truthy($configured);
+        }
+      }
+      return FALSE;
+    }
+    /**
+     * Security (SEC-SESSION): should connection-settings include siteToken /
+     * userToken (and the token header entries)? Evaluated in this order
+     * (parity contract with NodeJS HAXCMS.shouldIncludeRequestTokens):
+     *   1. Sec-Fetch-Site present and 'cross-site' or 'same-site' -> omit,
+     *      whatever the flag says (blocks cross-site script inclusion of the
+     *      JS payload).
+     *   2. caller authenticated (CLI, a valid bearer, or a refresh cookie that
+     *      passes the session store check) -> include.
+     *   3. requireSessionForRequestTokens is true -> omit.
+     *   4. otherwise -> include (pre-existing behaviour; the shipped front-end
+     *      loads connection-settings once, before login, and its request layer
+     *      drops ALL auth headers when a required token is missing).
+     * Returns array('include' => bool, 'reason' => string).
+     */
+    public function shouldIncludeRequestTokens() {
+      $fetchSite = '';
+      if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_string($_SERVER['HTTP_SEC_FETCH_SITE'])) {
+        $fetchSite = strtolower(trim($_SERVER['HTTP_SEC_FETCH_SITE']));
+      }
+      if ($fetchSite === 'cross-site' || $fetchSite === 'same-site') {
+        return array('include' => FALSE, 'reason' => 'sec-fetch-site');
+      }
+      if ($this->connectionSettingsCallerIsAuthenticated()) {
+        return array('include' => TRUE, 'reason' => 'authenticated');
+      }
+      if ($this->getRequireSessionForRequestTokens()) {
+        return array('include' => FALSE, 'reason' => 'session-required');
+      }
+      return array('include' => TRUE, 'reason' => 'anonymous-allowed');
+    }
+    /**
      * Get Front end JWT based connection settings
      */
     public function appJWTConnectionSettings($base = '/')
@@ -3559,13 +3621,12 @@ class HAXCMS
             }
         }
         // Security (SEC-SESSION): connection-settings is an open route (the
-        // editor boots from it before login), so request tokens are only minted
-        // for a caller that is already authenticated -- a valid Bearer JWT or a
-        // store-checked refresh-cookie session (getAuthenticatedUserName). The
-        // old getRequestTokenUserName() path fell back to the configured
-        // user/superUser for anonymous callers, handing valid tokens to anyone.
-        // CLI callers (local operator) keep receiving tokens.
-        $includeRequestTokens = $this->connectionSettingsCallerIsAuthenticated();
+        // editor boots from it before login). Whether request tokens are
+        // minted is decided by shouldIncludeRequestTokens (ordered rules:
+        // Sec-Fetch-Site cross-site/same-site -> omit; authenticated (CLI,
+        // valid Bearer JWT or store-checked refresh session) -> include;
+        // security.requireSessionForRequestTokens -> omit; else include).
+        $includeRequestTokens = $this->shouldIncludeRequestTokens()['include'];
         $siteToken = '';
         $userToken = '';
         if ($includeRequestTokens) {

@@ -4,9 +4,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Security (SEC-SESSION) regression tests for PR3 session hardening:
- *   1. connection-settings omits siteToken/userToken (and the token header
- *      entries) for callers without a valid Bearer JWT or store-checked
- *      refresh session.
+ *   1. connection-settings token decision (shouldIncludeRequestTokens):
+ *      Sec-Fetch-Site cross-site/same-site always omits; authenticated
+ *      callers (valid Bearer JWT or store-checked refresh session) get
+ *      tokens; anonymous callers get them only while
+ *      security.requireSessionForRequestTokens is off (the default).
  *   2. refresh revocation writes tombstones; family-bearing tokens without a
  *      store entry are rejected; only no-family legacy tokens seed the store;
  *      reuse of a stale jti tombstones the family; getAuthenticatedUserName
@@ -376,16 +378,122 @@ class HAXCMSSessionHardeningTest extends TestCase
         $this->assertNotSame('', $settings->siteToken);
     }
 
+    /** Turn on config->security->requireSessionForRequestTokens. */
+    private function requireSession(HAXCMS $h): HAXCMS
+    {
+        if (!isset($h->config) || !is_object($h->config)) {
+            $h->config = new stdClass();
+        }
+        if (!isset($h->config->security) || !is_object($h->config->security)) {
+            $h->config->security = new stdClass();
+        }
+        $h->config->security->requireSessionForRequestTokens = true;
+        return $h;
+    }
+
     public function testConnectionSettingsOmitsTokensForAnonymousCaller(): void
     {
-        $h = $this->fullHaxcms();
+        $h = $this->requireSession($this->fullHaxcms());
         $GLOBALS['HAXCMS'] = $h;
         $this->assertNoTokens($h->appJWTConnectionSettings('/'));
     }
 
-    public function testConnectionSettingsOmitsTokensForRevokedOrUnknownRefreshCookie(): void
+    public function testConnectionSettingsIncludesTokensForAnonymousCallerByDefault(): void
+    {
+        // flag off (default): pre-existing behaviour so the shipped front-end,
+        // which loads connection-settings once before login, keeps working.
+        $h = $this->fullHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $this->assertSame('anonymous-allowed', $h->shouldIncludeRequestTokens()['reason']);
+        $this->assertTokens($h, $h->appJWTConnectionSettings('/'), 'alice');
+    }
+
+    public static function secFetchSiteMatrixProvider(): array
+    {
+        // [Sec-Fetch-Site, flag on, authenticated, expected include, expected reason]
+        $rows = array();
+        foreach (array(false, true) as $flag) {
+            foreach (array(false, true) as $auth) {
+                foreach (array('cross-site', 'Same-Site') as $site) {
+                    $rows["$site flag=" . ($flag ? 'on' : 'off') . ' auth=' . ($auth ? 'yes' : 'no')] =
+                        array($site, $flag, $auth, false, 'sec-fetch-site');
+                }
+                foreach (array(null, 'same-origin', 'none') as $site) {
+                    if ($auth) {
+                        $expected = array(true, 'authenticated');
+                    } elseif ($flag) {
+                        $expected = array(false, 'session-required');
+                    } else {
+                        $expected = array(true, 'anonymous-allowed');
+                    }
+                    $rows[($site ?? 'absent') . ' flag=' . ($flag ? 'on' : 'off') . ' auth=' . ($auth ? 'yes' : 'no')] =
+                        array($site, $flag, $auth, $expected[0], $expected[1]);
+                }
+            }
+        }
+        return $rows;
+    }
+
+    #[DataProvider('secFetchSiteMatrixProvider')]
+    public function testShouldIncludeRequestTokensMatrix(?string $site, bool $flag, bool $auth, bool $include, string $reason): void
     {
         $h = $this->fullHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        if ($flag) {
+            $this->requireSession($h);
+        }
+        if ($auth) {
+            $h->sessionJwt = $h->getJWT('alice');
+        }
+        if ($site !== null) {
+            $_SERVER['HTTP_SEC_FETCH_SITE'] = $site;
+        }
+        $decision = $h->shouldIncludeRequestTokens();
+        $this->assertSame($include, $decision['include']);
+        $this->assertSame($reason, $decision['reason']);
+        $settings = $h->appJWTConnectionSettings('/');
+        if ($include) {
+            $this->assertTokens($h, $settings, 'alice');
+        } else {
+            $this->assertNoTokens($settings);
+        }
+    }
+
+    public function testRequireSessionFlagResolution(): void
+    {
+        $saved = getenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
+        try {
+            putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
+            $h = $this->bareHaxcms();
+            $this->assertFalse($h->getRequireSessionForRequestTokens(), 'default off');
+            $h->config->security = new stdClass();
+            foreach (array(array(true, true), array('yes', true), array('TRUE', true), array('1', true), array('no', false), array('off', false), array(1, false)) as $pair) {
+                list($v, $want) = $pair;
+                $h->config->security->requireSessionForRequestTokens = $v;
+                $this->assertSame($want, $h->getRequireSessionForRequestTokens(), 'config ' . var_export($v, true));
+            }
+            $h->config->security->requireSessionForRequestTokens = false;
+            $this->assertFalse($h->getRequireSessionForRequestTokens());
+            // env wins over config in both directions
+            putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS=true');
+            $this->assertTrue($h->getRequireSessionForRequestTokens());
+            $h->config->security->requireSessionForRequestTokens = true;
+            putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS=0');
+            $this->assertFalse($h->getRequireSessionForRequestTokens());
+            putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS=   ');
+            $this->assertTrue($h->getRequireSessionForRequestTokens(), 'blank env falls through to config');
+        } finally {
+            if ($saved === false) {
+                putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
+            } else {
+                putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS=' . $saved);
+            }
+        }
+    }
+
+    public function testConnectionSettingsOmitsTokensForRevokedOrUnknownRefreshCookie(): void
+    {
+        $h = $this->requireSession($this->fullHaxcms());
         $GLOBALS['HAXCMS'] = $h;
         $_COOKIE['haxcms_refresh_token'] = $h->getRefreshToken('alice', true);
         $h->revokeRefreshSession('alice', $h->decodeRefreshToken($_COOKIE['haxcms_refresh_token'])->family);
@@ -398,7 +506,7 @@ class HAXCMSSessionHardeningTest extends TestCase
 
     public function testConnectionSettingsOmitsTokensForInvalidBearer(): void
     {
-        $h = $this->fullHaxcms();
+        $h = $this->requireSession($this->fullHaxcms());
         $GLOBALS['HAXCMS'] = $h;
         $h->sessionJwt = 'not-a-jwt';
         $this->assertNoTokens($h->appJWTConnectionSettings('/'));
