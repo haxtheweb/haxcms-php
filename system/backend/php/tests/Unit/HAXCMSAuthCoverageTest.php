@@ -128,9 +128,24 @@ class HAXCMSAuthCoverageTest extends TestCase
         $this->assertNull($this->haxcms->getAuthenticatedUserName());
     }
 
+    /**
+     * Security (SEC-SESSION, haxcms-php#655): getAuthenticatedUserName checks
+     * the refresh cookie against the refresh-session store, so the cookie has
+     * to be one the store issued (getRefreshToken(..., TRUE)).
+     */
+    private function useRefreshSessionStore()
+    {
+        $this->haxcms->configDirectory = $this->tmpDir;
+        if (!is_dir($this->tmpDir . '/settings')) {
+            mkdir($this->tmpDir . '/settings', 0777, true);
+        }
+    }
+
     public function testGetAuthenticatedUserNameFromValidRefreshCookie()
     {
-        $_COOKIE['haxcms_refresh_token'] = $this->haxcms->getRefreshToken('alice', false);
+        $this->useRefreshSessionStore();
+        $this->haxcms->user->name = 'alice';
+        $_COOKIE['haxcms_refresh_token'] = $this->haxcms->getRefreshToken('alice', true);
         $this->assertSame('alice', $this->haxcms->getAuthenticatedUserName());
     }
 
@@ -140,12 +155,18 @@ class HAXCMSAuthCoverageTest extends TestCase
         $this->assertNull($this->haxcms->getAuthenticatedUserName());
     }
 
-    public function testGetAuthenticatedUserNameRequiresAgreementWithSessionJwt()
+    public function testGetAuthenticatedUserNameIgnoresRefreshCookieForUnknownUser()
     {
-        // validateUser must pass for the session JWT identity to count
+        // Security (SEC-SESSION, haxcms-php#655): the refresh-cookie identity
+        // must pass validateUser too, so a store-valid cookie for a user that
+        // is not the configured one is dropped and the session JWT decides.
+        $this->useRefreshSessionStore();
         $this->haxcms->user->name = 'bob';
-        $_COOKIE['haxcms_refresh_token'] = $this->haxcms->getRefreshToken('alice', false);
+        $_COOKIE['haxcms_refresh_token'] = $this->haxcms->getRefreshToken('alice', true);
         $this->haxcms->sessionJwt = $this->haxcms->getJWT('bob');
+        $this->assertSame('bob', $this->haxcms->getAuthenticatedUserName());
+        // with no session JWT, that cookie alone authenticates nobody
+        $this->haxcms->sessionJwt = null;
         $this->assertNull($this->haxcms->getAuthenticatedUserName());
     }
 
