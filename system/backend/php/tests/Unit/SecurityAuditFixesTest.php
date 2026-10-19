@@ -68,6 +68,35 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
+    // ---- H-1 -------------------------------------------------------------
+
+    public function testDotDirectoryDenyRulePresentInRootAndSiteHtaccess(): void
+    {
+        $rule = 'RewriteRule "(^|/)\.(?!well-known(/|$))" - [F]';
+        foreach (array('.htaccess', 'system/boilerplate/site/.htaccess') as $rel) {
+            $conf = (string) file_get_contents($this->repoRoot . '/' . $rel);
+            $rulePos = strpos($conf, $rule);
+            $enginePos = strpos($conf, 'RewriteEngine on');
+            $this->assertNotFalse($rulePos, $rel . ' must deny dot-directories');
+            $this->assertNotFalse($enginePos, $rel);
+            $this->assertGreaterThan($enginePos, $rulePos, $rel . ': rule must follow RewriteEngine on');
+            // first RewriteRule in the file, so nothing can short-circuit it
+            $this->assertSame($rulePos, strpos($conf, 'RewriteRule'), $rel . ': must be the first RewriteRule');
+        }
+    }
+
+    public function testDotDirectoryDenyPatternSemantics(): void
+    {
+        // Same PCRE pattern Apache evaluates against the per-directory path.
+        $pattern = '#(^|/)\.(?!well-known(/|$))#';
+        foreach (array('.git/HEAD', '.git/config', '_sites/blog/.git/objects/ab/cd', '_archived/x/.git/HEAD', '.github/workflows/ci.yml', 'files/.secret', '.env') as $denied) {
+            $this->assertSame(1, preg_match($pattern, $denied), $denied . ' must be denied');
+        }
+        foreach (array('.well-known/agent-skills/index.json', '_sites/blog/.well-known/api-catalog', '_sites/blog/files/a.b.png', 'build/es6/node_modules/lit/index.js', 'index.html', 'site.json') as $allowed) {
+            $this->assertSame(0, preg_match($pattern, $allowed), $allowed . ' must stay reachable');
+        }
+    }
+
     // ---- M-1 -------------------------------------------------------------
 
     public function testBoilerplateConfigSourceIsNotTemplated(): void

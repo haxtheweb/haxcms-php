@@ -2,13 +2,17 @@
 # You can remove the above line if you want to edit and maintain this file yourself.
 /.gitignore
 
+/**/.DS_Store
+/**/Thumbs.db
+/**/desktop.ini
 /**/*.example
 /.dbimageBuild
 /.ddev-docker-*.yaml
 /.*downloads
+/.env.*.local
+/.env.local
 /.homeadditions
 /.importdb*
-/.sshimageBuild
 /.webimageBuild
 /apache/apache-site.conf
 /commands/.gitattributes

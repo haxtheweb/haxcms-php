@@ -41,6 +41,13 @@ DirectoryIndex index.php index.html
 # Various rewrite rules.
 <IfModule mod_rewrite.c>
   RewriteEngine on
+  # Security (H-1): never serve anything inside a dot-directory or dotfile
+  # over HTTP (this site's .git history, .github, ...). Repeated here because
+  # "RewriteEngine on" in this file stops the HAXcms root .htaccess rewrite
+  # rules from applying inside the site directory, and the site may also be
+  # served from its own vhost/docroot. .git stays readable on the server for
+  # HAXcms tooling and site zip downloads. /.well-known/ stays reachable.
+  RewriteRule "(^|/)\.(?!well-known(/|$))" - [F]
   # Set "protossl" to "s" if we were accessed via https://.  This is used later
   # if you enable "www." stripping or enforcement, in order to ensure that
   # you don't bounce between http and https.

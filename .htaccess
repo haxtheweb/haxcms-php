@@ -61,6 +61,13 @@ DirectoryIndex index.php index.html
 # Various rewrite rules.
 <IfModule mod_rewrite.c>
   RewriteEngine on
+  # Security (H-1): never serve anything inside a dot-directory or dotfile
+  # over HTTP (.git history of the root and every site, .github, .ddev, ...).
+  # The FilesMatch above only tests the requested file's basename, so
+  # /.git/HEAD (basename "HEAD") slipped through. .git stays readable on the
+  # server for HAXcms tooling and site zip downloads; only direct HTTP access
+  # is refused. /.well-known/ stays reachable (agent-skills, security.txt).
+  RewriteRule "(^|/)\.(?!well-known(/|$))" - [F]
   # Set "protossl" to "s" if we were accessed via https://.  This is used later
   # if you enable "www." stripping or enforcement, in order to ensure that
   # you don't bounce between http and https.
