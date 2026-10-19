@@ -2,15 +2,18 @@
 /**
  * Characterization tests for lib/systemRoutes/v1/importPptx.php.
  *
- * The file defines UNGUARDED haxcmsSystemExtractPptxToHtml(), so it must only
- * load once per process: every run uses require_once, which re-executes the
- * file the first time and returns the cached closure afterwards.
+ * The route file is loaded with require (never require_once) so handler()
+ * always receives the returned route closure: require_once returns true when
+ * another test file (FormatConvertersFileTest, via convertPptxToHtml.php)
+ * has already loaded importPptx.php in the same process. Re-execution is
+ * safe because haxcmsSystemExtractPptxToHtml() is function_exists-guarded
+ * and the include_once dependencies at the top of the file are idempotent.
  *
  * Fixtures are real zip archives built in-process with ZipArchive — the same
  * extension the extractor relies on.
  *
  * DOCUMENTED NOT-IN-PROCESS-COVERED BLOCKS:
- *   - 'ZipArchive extension is not available' (extractor line 11-13): the
+ *   - 'ZipArchive extension is not available' (extractor line 16-18): the
  *     extension cannot be unloaded mid-process.
  *   - the getFromName-false `continue` inside the slide loop: a listed-but
  *     unreadable slide entry cannot be crafted through ZipArchive writes.
@@ -37,10 +40,14 @@ class SystemRoutesImportPptxTest extends TestCase
 
     private function handler()
     {
-        // require_once only returns the file's closure on first execution;
-        // later calls yield true, so the closure is cached here instead.
+        // require (not require_once) always executes the route file and
+        // returns its closure; require_once would return true when another
+        // test file (FormatConvertersFileTest, via convertPptxToHtml.php)
+        // already loaded importPptx.php in this process. Re-execution is
+        // safe: the extractor function is function_exists-guarded and the
+        // file's include_once dependencies are idempotent.
         if (self::$handler === null) {
-            self::$handler = require_once dirname(__DIR__, 2) . '/lib/systemRoutes/v1/importPptx.php';
+            self::$handler = require dirname(__DIR__, 2) . '/lib/systemRoutes/v1/importPptx.php';
         }
         return self::$handler;
     }
@@ -249,7 +256,7 @@ class SystemRoutesImportPptxTest extends TestCase
         $tmp = $this->buildPptx($this->tempFile(''), $slides, array(
             'docProps/app.xml' => '<props/>',
         ));
-        $this->handler(); // ensure the unguarded function is defined
+        $this->handler(); // ensure the extractor function is defined
         $html = haxcmsSystemExtractPptxToHtml($tmp);
         $this->assertSame(
             "<h2>One</h2>\n<p>two</p>\n<h2>Ten &amp; &lt;More&gt;</h2>",
@@ -265,7 +272,7 @@ class SystemRoutesImportPptxTest extends TestCase
             )),
         );
         $tmp = $this->buildPptx($this->tempFile(''), $slides);
-        $this->handler(); // ensure the unguarded function is defined
+        $this->handler(); // ensure the extractor function is defined
         $this->assertSame('<p>Hello World</p>', haxcmsSystemExtractPptxToHtml($tmp));
     }
 }
