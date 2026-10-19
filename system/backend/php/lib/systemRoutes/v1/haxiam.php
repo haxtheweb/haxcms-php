@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
+include_once dirname(__FILE__) . '/../../HAXCMSApiMessageCodes.php';
 return function ($context) {
     $operations = new Operations();
     $operations->params = array();
@@ -25,8 +26,8 @@ return function ($context) {
     header('Content-Type: application/json; charset=utf-8');
     if (is_array($response) && isset($response['__failed'])) {
         http_response_code($response['__failed']['status']);
-        print json_encode($response['__failed']);
+        print json_encode(HAXCMSApiMessageCodes::annotate($response['__failed'], $response['__failed']['status']));
     } else {
-        print json_encode($response);
+        print json_encode(HAXCMSApiMessageCodes::annotate($response, 200));
     }
 };

@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../HAXCMSApiMessageCodes.php';
 class SiteRouteUtils
 {
     public static function getRequestPath()
@@ -763,6 +764,8 @@ class SiteRouteUtils
         else {
             $payload = $envelope ? array('status' => $statusCode, 'data' => $data) : $data;
         }
+        // translatable API messages: add a `code` next to response messages (issues#3157)
+        $payload = HAXCMSApiMessageCodes::annotate($payload, $statusCode);
         $resourcePath = $routeSuffix == '' ? $apiBasePath : $apiBasePath . '/' . $routeSuffix;
         self::setRepresentationHeaders($resourcePath, $allowedFormats, $format);
         http_response_code($statusCode);
