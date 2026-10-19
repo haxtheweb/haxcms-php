@@ -27,13 +27,15 @@ trait OperationsRouteCreateNode {
             // do nothing
           }
           else {
+            // fields like parent/slug/id/indent are optional for bulk page
+            // creation; addPage() falls back to sane defaults for nulls
             $item = $site->addPage(
-              $nodeParams['items'][$i]['parent'], 
-              $nodeParams['items'][$i]['title'], 
-              'html', 
-              $nodeParams['items'][$i]['slug'],
-              $nodeParams['items'][$i]['id'],
-              $nodeParams['items'][$i]['indent'],
+              (isset($nodeParams['items'][$i]['parent']) ? $nodeParams['items'][$i]['parent'] : null),
+              $nodeParams['items'][$i]['title'],
+              'html',
+              (isset($nodeParams['items'][$i]['slug']) ? $nodeParams['items'][$i]['slug'] : null),
+              (isset($nodeParams['items'][$i]['id']) ? $nodeParams['items'][$i]['id'] : null),
+              (isset($nodeParams['items'][$i]['indent']) ? $nodeParams['items'][$i]['indent'] : null),
               ((isset($nodeParams['items'][$i]['content']) && $nodeParams['items'][$i]['content'] != '') ? $nodeParams['items'][$i]['content'] : (isset($nodeParams['items'][$i]['contents']) ? $nodeParams['items'][$i]['contents'] : '')),
               (isset($nodeParams['items'][$i]['order']) ? $nodeParams['items'][$i]['order'] : null),
               (isset($nodeParams['items'][$i]['metadata']) ? $nodeParams['items'][$i]['metadata'] : null)

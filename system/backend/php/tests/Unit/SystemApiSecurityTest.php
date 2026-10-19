@@ -12,6 +12,23 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *   - enforceSystemReadUserTokenHeader (X-HAXCMS-User-Token on canonical reads)
  *   - enforceSystemApiUserTokenHeader (spec-driven X-HAXCMS-User-Token enforcement)
  *   - getSystemUserTokenPolicyMap (spec-derived policy contract)
+ *   - validateSystemApiAccess (all spec-derived tiers: public,
+ *     site-token-only, authenticated-user, authenticated-site, admin, plus
+ *     bearer/basic resolution and HAXiam authorization)
+ *
+ * The trailing 'Unknown security level' 403 of validateSystemApiAccess is
+ * defensive-only: every policy string normalizeSecurityPolicy can produce
+ * now has a handler branch, so it is unreachable through the public API.
+ * The $sitesDirectory === '' guards in isSiteScopedSystemApiRequest /
+ * isDashboardRefererRequest are likewise dead (getSitesDirectory never
+ * returns '' for an object HAXCMS: the property must be a non-empty string,
+ * else the '_sites' default applies).
+ *
+ * In getSystemUserTokenPolicyMap, the missing/empty/unparseable-spec early
+ * returns, the non-system-path / non-array / empty-route-key loop skips,
+ * the operation-without-security path-level inheritance, and the
+ * securityRequiresUserToken non-array/empty-requirement branches are all
+ * unreachable against the real (valid, all-declared) system-spec.yaml.
  *
  * Expected values come from the security contract: the referer-gate spec
  * (site-scoped admin route from a site-scoped referer is blocked), the
@@ -198,7 +215,17 @@ class SystemApiSecurityTest extends TestCase
 
     // --- enforceSystemReadUserTokenHeader ---
 
-    public function testEnforceSystemReadUserTokenHeaderSkipsNonReadRoute(): void
+    public function testEnforceSystemReadUserTokenHeaderFallsBackToActiveUserName(): void
+    {
+        $this->haxcms->validRequestToken = false;
+        $this->haxcms->requestTokenUserName = '';
+        $result = SystemApiSecurity::enforceSystemReadUserTokenHeader('v1/sites', 'GET', 'bad');
+        $this->assertSame(403, $result['status']);
+        // The token was validated against the active user fallback.
+        $this->assertSame(array(array('bad', 'testuser')), $this->haxcms->tokenCalls);
+    }
+
+    public function testEnforceSystemReadUserTokenHeaderHandlesConcreteSiteRoute(): void
     {
         $this->assertNull(SystemApiSecurity::enforceSystemReadUserTokenHeader(
             'v1/session/login',
@@ -283,6 +310,281 @@ class SystemApiSecurityTest extends TestCase
         ));
     }
 
+    // --- validateSystemApiAccess (spec-derived tiers) ---
+
+    public function testValidateSystemApiAccessAllowsPublicDiscoveryRoute(): void
+    {
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1', 'GET');
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(200, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessTreatsOptionsAsPublic(): void
+    {
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'OPTIONS');
+        $this->assertTrue($result['allowed']);
+    }
+
+    public function testValidateSystemApiAccessAllowsSiteTokenOnlyAppStoreRoute(): void
+    {
+        // system-spec.yaml declares siteTokenHeader (no bearerAuth) for the
+        // app-store manifest route; no bearer JWT is needed to reach it.
+        $result = SystemApiSecurity::validateSystemApiAccess(
+            new SecurityTestContext(),
+            'v1/integrations/app-store',
+            'GET'
+        );
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(200, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessAllowsAuthenticatedUserRouteWithValidBearer(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(200, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessRejectsInvalidBearerWithRefreshable403(): void
+    {
+        $this->haxcms->bearerToken = 'expired-jwt';
+        $this->haxcms->bearerTokenUserName = '';
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('Invalid bearer token', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessReturns401WithoutCredentials(): void
+    {
+        $this->haxcms->basicAuthResult = array('authenticated' => false);
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(401, $result['status']);
+        $this->assertSame('Authentication required', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessReturns429ForBlockedBasicAuth(): void
+    {
+        $this->haxcms->basicAuthResult = array('blocked' => true, 'retryAfterSeconds' => 30);
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(429, $result['status']);
+        $this->assertSame('Too many failed login attempts. Please try again later.', $result['message']);
+        $this->assertSame(30, $result['retryAfterSeconds']);
+    }
+
+    public function testValidateSystemApiAccessAllowsAuthenticatedSiteTier(): void
+    {
+        // provider-search declares bearerAuth + siteTokenHeader in the spec;
+        // the bearer authenticates and the router owns the site-token check.
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $result = SystemApiSecurity::validateSystemApiAccess(
+            new SecurityTestContext(),
+            'v1/integrations/app-store/providers/:provider/search',
+            'GET'
+        );
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(200, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessStillRequiresAuthForAuthenticatedSiteTier(): void
+    {
+        $this->haxcms->basicAuthResult = array('authenticated' => false);
+        $result = SystemApiSecurity::validateSystemApiAccess(
+            new SecurityTestContext(),
+            'v1/integrations/app-store/providers/:provider/search',
+            'GET'
+        );
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(401, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessDeniesNonSuperUserOnAdminMutation(): void
+    {
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/blocks', 'POST');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('Admin access required', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessDeniesNonSuperUserOnElevatedRead(): void
+    {
+        // API keys expose system-wide credentials -> GET is admin-only too.
+        $result = SystemApiSecurity::validateSystemApiAccess(
+            new SecurityTestContext(),
+            'v1/configuration/api-keys',
+            'GET'
+        );
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('Admin access required', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessAllowsSuperUserOnAdminRoute(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $this->haxcms->bearerTokenUserName = 'admin';
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/blocks', 'POST');
+        $this->assertTrue($result['allowed']);
+        $this->assertSame(200, $result['status']);
+    }
+
+    public function testValidateSystemApiAccessHonorsIamDenialOnAdminRoute(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $this->haxcms->bearerTokenUserName = 'admin';
+        $this->haxcms->config->iam = true;
+        $this->haxcms->iamAuthorizationResult = array('allowed' => false, 'status' => 403, 'message' => 'IAM denied');
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/blocks', 'POST');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('IAM denied', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessHonorsIamAllowanceOnAdminRoute(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $this->haxcms->bearerTokenUserName = 'admin';
+        $this->haxcms->config->iam = true;
+        $this->haxcms->iamAuthorizationResult = array('allowed' => true);
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/blocks', 'POST');
+        $this->assertTrue($result['allowed']);
+    }
+
+    public function testValidateSystemApiAccessHonorsIamDenialOnAuthenticatedRoute(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $this->haxcms->config->iam = true;
+        $this->haxcms->iamAuthorizationResult = array('allowed' => false, 'status' => 403, 'message' => 'IAM denied');
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertFalse($result['allowed']);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('IAM denied', $result['message']);
+    }
+
+    public function testValidateSystemApiAccessHonorsIamAllowanceOnAuthenticatedRoute(): void
+    {
+        $this->haxcms->bearerToken = 'valid-jwt';
+        $this->haxcms->config->iam = true;
+        $this->haxcms->iamAuthorizationResult = array('allowed' => true);
+        $result = SystemApiSecurity::validateSystemApiAccess(new SecurityTestContext(), 'v1/system/version', 'GET');
+        $this->assertTrue($result['allowed']);
+    }
+
+    // --- validateSystemV1RouteAccess edge shapes ---
+
+    public function testValidateSystemV1RouteAccessUsesDefaultSitesDirectoryWithoutHaxcms(): void
+    {
+        // With no HAXCMS global the '_sites' default still applies.
+        $GLOBALS['HAXCMS'] = null;
+        $_SERVER['HTTP_REFERER'] = 'https://host/_sites/mysite/some/page';
+        $ctx = new SecurityTestContext(array(), '/_sites/mysite/system/api/v1/sites');
+        $this->assertFalse(SystemApiSecurity::validateSystemV1RouteAccess($ctx, 'v1/sites'));
+    }
+
+    public function testValidateSystemV1RouteAccessTreatsMissingRequestPathAsRootScoped(): void
+    {
+        $_SERVER['HTTP_REFERER'] = 'https://host/_sites/mysite/some/page';
+        $this->assertTrue(SystemApiSecurity::validateSystemV1RouteAccess(new stdClass(), 'v1/sites'));
+    }
+
+    public function testValidateSystemV1RouteAccessTreatsNonStringRequestPathAsRootScoped(): void
+    {
+        $_SERVER['HTTP_REFERER'] = 'https://host/_sites/mysite/some/page';
+        $ctx = new SecurityTestContext(array(), '/_sites/mysite/system/api/v1/sites');
+        $ctx->requestPath = null;
+        $this->assertTrue(SystemApiSecurity::validateSystemV1RouteAccess($ctx, 'v1/sites'));
+    }
+
+    // --- enforceSystemApiUserTokenHeader fallbacks + :param resolution ---
+
+    public function testEnforceSystemApiUserTokenHeaderFallsBackToActiveUserName(): void
+    {
+        $this->haxcms->validRequestToken = false;
+        $this->haxcms->requestTokenUserName = '';
+        $ctx = new SecurityTestContext(array('X-HAXCMS-User-Token' => 'bad'));
+        $result = SystemApiSecurity::enforceSystemApiUserTokenHeader('v1/sites', 'GET', $ctx);
+        $this->assertSame(403, $result['status']);
+        // The token was validated against the active user fallback.
+        $this->assertSame(array(array('bad', 'testuser')), $this->haxcms->tokenCalls);
+    }
+
+    public function testEnforceSystemApiUserTokenHeaderResolvesConcreteRouteFromParams(): void
+    {
+        // The parameterized name is absent from the policy map, so the :param
+        // placeholder resolves to the concrete spec path (vitepress import
+        // declares userTokenHeader) before the header check runs.
+        $ctx = new SecurityTestContext(array(), '', array('fake' => 'vitepress'));
+        $result = SystemApiSecurity::enforceSystemApiUserTokenHeader('v1/site/import/:fake', 'POST', $ctx);
+        $this->assertIsArray($result);
+        $this->assertSame(403, $result['status']);
+        $this->assertStringContainsString('X-HAXCMS-User-Token', $result['message']);
+    }
+
+    public function testEnforceSystemApiUserTokenHeaderReturnsNullWhenConcreteRouteUnknown(): void
+    {
+        $ctx = new SecurityTestContext(array(), '', array('fake' => 'no-such-platform'));
+        $this->assertNull(SystemApiSecurity::enforceSystemApiUserTokenHeader(
+            'v1/site/import/:fake',
+            'POST',
+            $ctx
+        ));
+    }
+
+    public function testEnforceSystemApiUserTokenHeaderSkipsResolutionWhenParamsEmpty(): void
+    {
+        $ctx = new SecurityTestContext(array(), '', array());
+        $this->assertNull(SystemApiSecurity::enforceSystemApiUserTokenHeader(
+            'v1/site/import/:fake',
+            'POST',
+            $ctx
+        ));
+    }
+
+    public function testEnforceSystemApiUserTokenHeaderSkipsResolutionForNonStringParamNames(): void
+    {
+        $ctx = new SecurityTestContext(array(), '', array(0 => 'vitepress'));
+        $this->assertNull(SystemApiSecurity::enforceSystemApiUserTokenHeader(
+            'v1/site/import/:fake',
+            'POST',
+            $ctx
+        ));
+    }
+
+    // --- enforceProviderSearchSiteToken SiteRouteUtils fallback ---
+
+    public function testProviderSearchTokenValidViaSiteRouteUtilsFallback(): void
+    {
+        // Fake lacks validateSiteToken -> SiteRouteUtils::validateSiteToken
+        // resolves the token user and delegates to validateRequestToken.
+        $GLOBALS['HAXCMS'] = new SecurityTestHaxcmsNoSiteTokenMethod();
+        $_GET['siteName'] = 'mysite';
+        $ctx = new SecurityTestContext(array('X-HAXCMS-Site-Token' => 'client-token'));
+        $this->assertNull(SystemApiSecurity::enforceProviderSearchSiteToken(
+            'v1/integrations/app-store/providers/:provider/search',
+            'GET',
+            $ctx
+        ));
+        $this->assertSame(array(array('client-token', 'testuser:mysite')), $GLOBALS['HAXCMS']->tokenCalls);
+    }
+
+    public function testProviderSearchTokenInvalidViaSiteRouteUtilsFallback(): void
+    {
+        $GLOBALS['HAXCMS'] = new SecurityTestHaxcmsNoSiteTokenMethod();
+        $_GET['siteName'] = 'mysite';
+        $ctx = new SecurityTestContext(array('X-HAXCMS-Site-Token' => 'bad-token'));
+        $result = SystemApiSecurity::enforceProviderSearchSiteToken(
+            'v1/integrations/app-store/providers/:provider/search',
+            'GET',
+            $ctx
+        );
+        $this->assertIsArray($result);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('Invalid X-HAXCMS-Site-Token header', $result['message']);
+    }
+
     // --- getSystemUserTokenPolicyMap (spec contract) ---
 
     public function testGetSystemUserTokenPolicyMapIsSpecContract(): void
@@ -299,6 +601,47 @@ class SystemApiSecurityTest extends TestCase
         if (isset($map['POST:v1/session/login'])) {
             $this->assertFalse($map['POST:v1/session/login']);
         }
+    }
+    public function testGetSystemUserTokenPolicyMapIsCached(): void
+    {
+        $this->assertSame(
+            SystemApiSecurity::getSystemUserTokenPolicyMap(),
+            SystemApiSecurity::getSystemUserTokenPolicyMap()
+        );
+    }
+
+    public function testGetSystemUserTokenPolicyMapCoversParameterizedAndPublicKeys(): void
+    {
+        $map = SystemApiSecurity::getSystemUserTokenPolicyMap();
+        // The generic {platform} import path declares userTokenHeader.
+        $this->assertArrayHasKey('POST:v1/site/import/:platform', $map);
+        $this->assertTrue($map['POST:v1/site/import/:platform']);
+        // Discovery + session probe declare empty security -> no user token.
+        $this->assertFalse($map['GET:v1']);
+        $this->assertFalse($map['GET:v1/session']);
+        // OPTIONS never lands in the map (methods are get/post/put/patch/delete).
+        $this->assertArrayNotHasKey('OPTIONS:v1/session', $map);
+    }
+}
+
+/**
+ * HAXCMS collaborator mock lacking validateSiteToken so the
+ * SiteRouteUtils::validateSiteToken fallback path is exercised.
+ */
+class SecurityTestHaxcmsNoSiteTokenMethod
+{
+    public $requestTokenUserName = 'testuser';
+    public $tokenCalls = array();
+
+    public function getRequestTokenUserName()
+    {
+        return $this->requestTokenUserName;
+    }
+
+    public function validateRequestToken($token, $value)
+    {
+        $this->tokenCalls[] = array($token, $value);
+        return $token === 'client-token';
     }
 }
 
@@ -318,6 +661,11 @@ class SecurityTestHaxcms
     public $requestTokenUserName = 'testuser';
     public $activeUserName = 'testuser';
     public $validRequestToken = true;
+    public $bearerToken = '';
+    public $bearerTokenUserName = 'testuser';
+    public $basicAuthResult = array('authenticated' => true, 'userName' => 'testuser');
+    public $iamAuthorizationResult = array('allowed' => true);
+    public $tokenCalls = array();
 
     public function __construct()
     {
@@ -346,7 +694,28 @@ class SecurityTestHaxcms
 
     public function validateRequestToken($token, $value)
     {
+        $this->tokenCalls[] = array($token, $value);
         return $this->validRequestToken;
+    }
+
+    public function getBearerTokenFromRequest()
+    {
+        return $this->bearerToken;
+    }
+
+    public function getBearerTokenUserName($token)
+    {
+        return $this->bearerTokenUserName;
+    }
+
+    public function authenticateBasicAuthorization()
+    {
+        return $this->basicAuthResult;
+    }
+
+    public function validateIAMRouteAuthorization($isSystemRoute = false)
+    {
+        return $this->iamAuthorizationResult;
     }
 }
 

@@ -79,6 +79,20 @@ class SystemApiSecurity
                 'message' => '',
             );
         }
+        if ($security === 'authenticated-site') {
+            // Spec-declared bearerAuth + siteTokenHeader (e.g. the
+            // provider-search route). The bearer/basic resolution above has
+            // already authenticated the principal; the X-HAXCMS-Site-Token is
+            // enforced by the router via enforceProviderSearchSiteToken
+            // (F2/Q14) so the 403 envelope matches the other router gates.
+            // Mirrors the authenticated-site tier in SiteApiSecurity, minus
+            // the inline token check which lives in the system router.
+            return array(
+                'allowed' => true,
+                'status' => 200,
+                'message' => '',
+            );
+        }
         if ($security === 'admin') {
             if ($userName !== $GLOBALS['HAXCMS']->superUser->name) {
                 return array(

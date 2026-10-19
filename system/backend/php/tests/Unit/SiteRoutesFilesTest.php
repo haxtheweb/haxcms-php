@@ -289,4 +289,194 @@ class SiteRoutesFilesTest extends TestCase
         sort($names);
         $this->assertSame(array('c.txt', 'd.txt'), $names);
     }
+
+    // ------------------------------------------------------------------
+    // Top-of-file global helper functions (shared with filesMutation.php
+    // and referenced by HAXCMSFile.php). These are plain global functions
+    // guarded by function_exists, so they can be exercised directly after
+    // the route file has been included once.
+    // ------------------------------------------------------------------
+
+    private function ensureRouteHelpersLoaded(): void
+    {
+        include_once dirname(__DIR__, 2) . '/lib/siteRoutes/v1/files.php';
+    }
+
+    public function testCanonicalPathHelperVariants(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $this->assertSame('files', haxcmsSiteFileCanonicalPath(''));
+        $this->assertSame('files', haxcmsSiteFileCanonicalPath('/'));
+        $this->assertSame('files/image.png', haxcmsSiteFileCanonicalPath('image.png'));
+        $this->assertSame('files/sub/image.png', haxcmsSiteFileCanonicalPath('/sub/image.png'));
+        // Already-canonical paths pass through; backslashes normalize.
+        $this->assertSame('files/sub/image.png', haxcmsSiteFileCanonicalPath('files/sub/image.png'));
+        $this->assertSame('files/sub/image.png', haxcmsSiteFileCanonicalPath('sub\\image.png'));
+    }
+
+    public function testUuidFromHashHelperRejectsShortHashesAndFormatsFullOnes(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $this->assertSame('', haxcmsSiteFileUuidFromHash(''));
+        $this->assertSame('', haxcmsSiteFileUuidFromHash('tooshort'));
+        $hash = str_repeat('abcdef01', 4);
+        $expected = substr($hash, 0, 8) . '-' . substr($hash, 8, 4) . '-' . substr($hash, 12, 4) . '-' . substr($hash, 16, 4) . '-' . substr($hash, 20, 12);
+        // Uppercase input is normalized to lowercase before formatting.
+        $this->assertSame($expected, haxcmsSiteFileUuidFromHash(strtoupper($hash)));
+    }
+
+    public function testUuidSiteNameHelperFallsBackThroughSiteNameToLiteralSite(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $this->assertSame('testsite', haxcmsSiteFileUuidSiteName(new SiteRoutesFakeSite()));
+        $nameOnly = new stdClass();
+        $nameOnly->name = 'name-only-site';
+        $this->assertSame('name-only-site', haxcmsSiteFileUuidSiteName($nameOnly));
+        $this->assertSame('site', haxcmsSiteFileUuidSiteName(new stdClass()));
+        $this->assertSame('site', haxcmsSiteFileUuidSiteName(null));
+    }
+
+    public function testDeterministicFileUuidHelperIsStableAndCanonicalizesSize(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $site = new SiteRoutesFakeSite();
+        $uuid = haxcmsSiteDeterministicFileUuid($site, 'image.png', 123);
+        $this->assertSame($uuid, haxcmsSiteDeterministicFileUuid($site, 'image.png', 123));
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid);
+        // Identity string is 'testsite:files/image.png:<size>' with size <= 0 floored to 0.
+        $this->assertSame(haxcmsSiteFileUuidFromHash(hash('sha256', 'testsite:files/image.png:123')), $uuid);
+        $this->assertSame(haxcmsSiteFileUuidFromHash(hash('sha256', 'testsite:files/image.png:0')), haxcmsSiteDeterministicFileUuid($site, 'image.png', 0));
+    }
+
+    public function testBuildFileRecordReadsRealFileMimetypeAndStats(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $site = $this->buildSiteWithFiles(array('real.txt' => 'hello world'));
+        $record = haxcmsBuildFileRecord($site, array(
+            'relativePath' => 'real.txt',
+            'stats' => array('mtime' => 1700000000, 'size' => 11),
+            'absolutePath' => $site->siteDirectory . '/files/real.txt',
+        ));
+        $this->assertSame('files/real.txt', $record['path']);
+        $this->assertSame('files/real.txt', $record['url']);
+        $this->assertSame('real.txt', $record['name']);
+        // mime_content_type() inspects bytes, not extension (see route test above).
+        $this->assertSame('text/plain', $record['mimetype']);
+        $this->assertSame(11, $record['size']);
+        $this->assertSame(1700000000, $record['dateCreated']);
+        $this->assertSame('files/real.txt?t=1700000000', $record['fullUrl']);
+        $this->assertSame(haxcmsSiteDeterministicFileUuid($site, 'files/real.txt', 11), $record['uuid']);
+    }
+
+    public function testBuildFileRecordDefaultsMissingInputFields(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $site = new SiteRoutesFakeSite();
+        // No stats and an absolutePath that does not exist: no dateCreated,
+        // no ?t= cache buster, and an unmapped extension leaves mimetype empty.
+        $record = haxcmsBuildFileRecord($site, array(
+            'relativePath' => 'missing.bin',
+            'absolutePath' => '/nonexistent-haxcms-files-test/missing.bin',
+        ));
+        $this->assertSame('files/missing.bin', $record['path']);
+        $this->assertSame('files/missing.bin', $record['fullUrl']);
+        $this->assertSame(0, $record['dateCreated']);
+        $this->assertSame(0, $record['size']);
+        $this->assertSame('', $record['mimetype']);
+        // No relativePath at all: apiPath degrades to 'files/'.
+        $record = haxcmsBuildFileRecord($site, array('absolutePath' => '/nonexistent-haxcms-files-test/x.bin'));
+        $this->assertSame('files/', $record['path']);
+    }
+
+    public function testBuildFileRecordExtensionFallbackMap(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $site = new SiteRoutesFakeSite();
+        $cases = array(
+            'photo.jpg' => 'image/jpeg',
+            'photo.jpeg' => 'image/jpeg',
+            'photo.png' => 'image/png',
+            'photo.gif' => 'image/gif',
+            'logo.svg' => 'image/svg+xml',
+            'doc.pdf' => 'application/pdf',
+            'notes.md' => 'text/markdown',
+        );
+        foreach ($cases as $name => $expectedMimetype) {
+            // absolutePath does not exist so mime_content_type is skipped and
+            // the extension fallback map decides the mimetype.
+            $record = haxcmsBuildFileRecord($site, array(
+                'relativePath' => $name,
+                'absolutePath' => '/nonexistent-haxcms-files-test/' . $name,
+            ));
+            $this->assertSame($expectedMimetype, $record['mimetype'], $name);
+        }
+    }
+
+    public function testBuildFileRecordFullUrlUsesHaxcmsGlobalBaseAndSitesDirectory(): void
+    {
+        $this->ensureRouteHelpersLoaded();
+        $site = new SiteRoutesFakeSite();
+        $GLOBALS['HAXCMS'] = (object) array('basePath' => '/base', 'sitesDirectory' => '_sites');
+        try {
+            $record = haxcmsBuildFileRecord($site, array(
+                'relativePath' => 'img.png',
+                'stats' => array('mtime' => 42, 'size' => 7),
+                'absolutePath' => '/nonexistent-haxcms-files-test/img.png',
+            ));
+            $this->assertSame('/base/_sites/testsite/files/img.png?t=42', $record['fullUrl']);
+        } finally {
+            unset($GLOBALS['HAXCMS']);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Remaining list filters: filter.type, filter.startsWith, filename.
+    // ------------------------------------------------------------------
+
+    public function testListFilterTypeRequiresMimetypePrefixMatch(): void
+    {
+        $site = $this->buildSiteWithFiles(array(
+            'image.png' => 'fake-png-bytes',
+            'doc.pdf' => 'fake-pdf-bytes',
+        ));
+        // Fixture bytes are plain text, so no record mimetype starts with 'image'.
+        $_GET['filter.type'] = 'image';
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        $data = invokeSiteRouteHandler('files.php', $context)['data']['data'];
+        $this->assertSame(0, $data['count']);
+        $_GET['filter.type'] = 'text';
+        $data = invokeSiteRouteHandler('files.php', $context)['data']['data'];
+        $this->assertSame(2, $data['count']);
+    }
+
+    public function testListFilterStartsWithRequiresPathPrefixMatch(): void
+    {
+        $site = $this->buildSiteWithFiles(array(
+            'doc.pdf' => 'fake-pdf-bytes',
+            'image.png' => 'fake-png-bytes',
+        ));
+        $_GET['filter.startsWith'] = 'files/doc';
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        $data = invokeSiteRouteHandler('files.php', $context)['data']['data'];
+        $this->assertSame(1, $data['count']);
+        $this->assertSame('doc.pdf', $data['files'][0]['name']);
+    }
+
+    public function testListFilterFilenameMatchesPathOrName(): void
+    {
+        $site = $this->buildSiteWithFiles(array(
+            'vacation.png' => 'fake-png-bytes',
+            'doc.pdf' => 'fake-pdf-bytes',
+        ));
+        $context = makeSiteRouteContext($site, array(), 'v1/files');
+        // No path or name contains the token: both records dropped.
+        $_GET['filename'] = 'nomatch-token';
+        $data = invokeSiteRouteHandler('files.php', $context)['data']['data'];
+        $this->assertSame(0, $data['count']);
+        // The token matches one record's path or name.
+        $_GET['filename'] = 'vacation';
+        $data = invokeSiteRouteHandler('files.php', $context)['data']['data'];
+        $this->assertSame(1, $data['count']);
+        $this->assertSame('vacation.png', $data['files'][0]['name']);
+    }
 }

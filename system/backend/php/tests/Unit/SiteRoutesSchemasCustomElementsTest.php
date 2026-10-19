@@ -142,6 +142,197 @@ class SiteRoutesSchemasCustomElementsTest extends TestCase
         $this->assertSame('my-element', $data['schemas'][0]['schema']['tag']);
     }
 
+    // --- schemas.php haxProperties loading pipeline ---
+
+    private function buildSiteWithNodeModules()
+    {
+        $site = new SiteRoutesFakeSite();
+        $dir = sys_get_temp_dir() . '/site-routes-schemas-' . bin2hex(random_bytes(6));
+        mkdir($dir . '/node_modules', 0777, true);
+        $this->tmpDirs[] = $dir;
+        $site->siteDirectory = $dir;
+        return $site;
+    }
+
+    private function writeHaxPropertiesFixture($siteDirectory, $relativePath, $props)
+    {
+        $fullPath = $siteDirectory . '/node_modules/' . $relativePath;
+        $parentDir = dirname($fullPath);
+        if (!is_dir($parentDir)) {
+            mkdir($parentDir, 0777, true);
+        }
+        file_put_contents($fullPath, json_encode($props));
+        return $fullPath;
+    }
+
+    private function schemasDataWithFilters($site, array $get)
+    {
+        foreach ($get as $key => $value) {
+            $_GET[$key] = $value;
+        }
+        $context = makeSiteRouteContext($site, array(), 'v1/schemas');
+        return invokeSiteRouteHandler('schemas.php', $context)['data']['data'];
+    }
+
+    private function schemaById(array $data, $id)
+    {
+        foreach ($data['schemas'] as $schema) {
+            if ($schema['id'] === $id) {
+                return $schema['schema'];
+            }
+        }
+        $this->fail('Schema descriptor not found: ' . $id);
+    }
+
+    public function testSchemasLoadsHaxPropertiesFromSiteNodeModules(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        $this->writeHaxPropertiesFixture($site->siteDirectory, 'my-element/my-element.haxProperties.json', array(
+            'api' => '2',
+            'canScale' => false,
+            'customKey' => array('nested' => true),
+        ));
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('my-element' => 'my-element/my-element.js')))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'my-element'));
+        $haxPropertiesSchema = $this->schemaById($data, 'hax-properties');
+        $this->assertSame('my-element', $haxPropertiesSchema['tag']);
+        $this->assertSame('2', $haxPropertiesSchema['api']);
+        $this->assertSame(array('nested' => true), $haxPropertiesSchema['customKey']);
+        $haxSchema = $this->schemaById($data, 'hax-schema');
+        $this->assertSame('my-element', $haxSchema['tag']);
+        $this->assertSame('2', $haxSchema['api']);
+        $this->assertFalse($haxSchema['canScale']);
+        $this->assertTrue($haxSchema['canPosition']);
+        $this->assertTrue($haxSchema['canEditSource']);
+    }
+
+    public function testSchemasHaxPropertiesCaseInsensitiveObjectRegistryKey(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        $this->writeHaxPropertiesFixture($site->siteDirectory, 'upper-el/upper-el.haxProperties.json', array('api' => '3'));
+        // Registry key casing differs from the requested tag: the exact-key
+        // isset() misses and the normalized-key loop resolves the import.
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('Upper-El' => 'upper-el/upper-el.js')))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'upper-el'));
+        $this->assertSame('3', $this->schemaById($data, 'hax-properties')['api']);
+    }
+
+    public function testSchemasHaxPropertiesFromArrayRegistry(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        $this->writeHaxPropertiesFixture($site->siteDirectory, 'arr-el/arr-el.haxProperties.json', array('api' => '4'));
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(array('arr-el' => 'arr-el/arr-el.js'));
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'arr-el'));
+        $this->assertSame('4', $this->schemaById($data, 'hax-properties')['api']);
+    }
+
+    public function testSchemasHaxPropertiesFromArrayRegistryCaseInsensitiveKey(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        $this->writeHaxPropertiesFixture($site->siteDirectory, 'arr-el2/arr-el2.haxProperties.json', array('api' => '5'));
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(array('Arr-El2' => 'arr-el2/arr-el2.js'));
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'arr-el2'));
+        $this->assertSame('5', $this->schemaById($data, 'hax-properties')['api']);
+    }
+
+    public function testSchemasHaxPropertiesResolvedViaPackageLibCandidate(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        // Import lives in dist/ but the haxProperties file only exists at the
+        // package-root lib/ candidate, so earlier candidates is_file-miss.
+        $this->writeHaxPropertiesFixture($site->siteDirectory, 'pkg-b/lib/scoped-el.haxProperties.json', array('api' => '6'));
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('scoped-el' => 'pkg-b/dist/scoped-el.js')))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'scoped-el'));
+        $this->assertSame('6', $this->schemaById($data, 'hax-properties')['api']);
+    }
+
+    public function testSchemasHaxPropertiesScopedPackageNameResolvesPackageRoot(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        // '@scope/el/x.js' parses to package '@scope/el'; the file exists at
+        // the <packageRoot>/lib/<tag>.haxProperties.json candidate.
+        $this->writeHaxPropertiesFixture($site->siteDirectory, '@scope/el/lib/el.haxProperties.json', array('api' => '7'));
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('el' => '@scope/el/x.js')))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'el'));
+        $this->assertSame('7', $this->schemaById($data, 'hax-properties')['api']);
+    }
+
+    public function testSchemasHaxPropertiesImportPathValueVariants(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        foreach (array('el-a', 'el-b', 'el-c', 'el-d') as $tag) {
+            $this->writeHaxPropertiesFixture($site->siteDirectory, 'pkg-v/' . $tag . '.haxProperties.json', array('api' => $tag));
+        }
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry((object) array(
+            'el-a' => (object) array('path' => 'pkg-v/dist/el-a.js'),
+            'el-b' => (object) array('import' => 'pkg-v/dist/el-b.js'),
+            'el-c' => array('path' => 'pkg-v/dist/el-c.js'),
+            'el-d' => array('import' => 'pkg-v/dist/el-d.js'),
+        ));
+        foreach (array('el-a', 'el-b', 'el-c', 'el-d') as $tag) {
+            $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => $tag));
+            $this->assertSame($tag, $this->schemaById($data, 'hax-properties')['api'], $tag);
+        }
+    }
+
+    public function testSchemasHaxPropertiesNonStringImportValueFallsBackToDefaults(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('el-e' => 42)))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'el-e'));
+        $haxPropertiesSchema = $this->schemaById($data, 'hax-properties');
+        $this->assertSame('object', $haxPropertiesSchema['type']);
+        $this->assertSame('el-e', $haxPropertiesSchema['tag']);
+    }
+
+    public function testSchemasHaxPropertiesSlashImportPathYieldsNoPackage(): void
+    {
+        $site = $this->buildSiteWithNodeModules();
+        // '/' explodes to zero path parts, so parsePackageName returns '' and
+        // no package-root candidates are generated; nothing resolves on disk.
+        $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+            json_decode(json_encode(array('el-slash' => '/')))
+        );
+        $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'el-slash'));
+        $this->assertSame('object', $this->schemaById($data, 'hax-properties')['type']);
+    }
+
+    public function testSchemasSearchRootsDeduplicateIdenticalCandidates(): void
+    {
+        // Run against a temp CWD and derive siteDirectory from it: the
+        // site-derived node_modules candidate then string-equals the
+        // getcwd()-derived one AND exists on disk, so the first occurrence is
+        // added to the roots and the duplicate trips the in_array() continue.
+        $originalCwd = getcwd();
+        $tmp = sys_get_temp_dir() . '/site-routes-schemas-cwd-' . bin2hex(random_bytes(6));
+        mkdir($tmp . '/src/public/build/es6/node_modules', 0777, true);
+        $this->tmpDirs[] = $tmp;
+        try {
+            chdir($tmp);
+            $site = new SiteRoutesFakeSite();
+            $site->siteDirectory = $tmp . '/src/public/build/es6';
+            $GLOBALS['HAXCMS'] = new SiteRoutesFakeHaxcmsWcRegistry(
+                json_decode(json_encode(array('dedupe-el' => 'dedupe-el/dedupe-el.js')))
+            );
+            $data = $this->schemasDataWithFilters($site, array('filter.webcomponentName' => 'dedupe-el'));
+        } finally {
+            chdir($originalCwd);
+        }
+        $haxPropertiesSchema = $this->schemaById($data, 'hax-properties');
+        $this->assertSame('object', $haxPropertiesSchema['type']);
+        $this->assertSame('dedupe-el', $haxPropertiesSchema['tag']);
+    }
+
     // --- customElements.php ---
 
     public function testCustomElementsMissingSiteReturns404(): void
