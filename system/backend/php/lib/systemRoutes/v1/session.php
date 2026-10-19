@@ -31,7 +31,8 @@ if (!function_exists('haxcmsResolveBearerSessionContext')) {
             !isset($decoded->id) ||
             !isset($decoded->user) ||
             $decoded->user === '' ||
-            $decoded->id != $GLOBALS['HAXCMS']->getRequestToken('user') ||
+            // Security (L-7): constant-time, type-strict compare.
+            !hash_equals((string) $GLOBALS['HAXCMS']->getRequestToken('user'), is_string($decoded->id) ? $decoded->id : '') ||
             !$GLOBALS['HAXCMS']->validateUser($decoded->user)
         ) {
             return null;

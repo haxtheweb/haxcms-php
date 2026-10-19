@@ -107,7 +107,7 @@ class SystemRoutesImportDocxTest extends TestCase
         $result = $this->runRoute(array());
         $this->assertSame(400, $result['code']);
         $this->assertSame(
-            array('status' => 400, 'message' => 'No file uploaded'),
+            array('status' => 400, 'message' => 'No file uploaded', 'code' => 'UPLOAD_MISSING'),
             $result['data']
         );
     }
@@ -122,6 +122,8 @@ class SystemRoutesImportDocxTest extends TestCase
             array(
                 'status' => 400,
                 'message' => 'Invalid file type. Expected .docx, got: doc.doc',
+                'code' => 'UPLOAD_WRONG_TYPE',
+                'params' => array('expected' => '.docx', 'filename' => 'doc.doc'),
             ),
             $result['data']
         );

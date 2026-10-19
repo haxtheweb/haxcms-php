@@ -9,7 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
-    function haxcmsImportConvertPressbooksToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertPressbooksToSite($context, $client = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -63,7 +64,9 @@ if (!function_exists('haxcmsImportConvertPressbooksToSite')) {
         $tocUrl  = $baseUrl . '/wp-json/pressbooks/v2/toc';
 
         try {
-            $client      = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+            if ($client === null) {
+                $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+            }
             $tocResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $tocUrl, [
                 'headers' => [
                     'Accept' => 'application/json',

@@ -122,8 +122,9 @@ class HAXCMSInstallGateTest extends TestCase
 
     public function testUsernameContainingJeffIsNotMisreadAsPlaceholder()
     {
-        // index.php/install.php substring-scan for "jeff"; the API gate checks
-        // loaded values so a real account named jeff/jeffrey still works.
+        // The API gate checks loaded values (and index.php/install.php now use
+        // the exact-assignment configSourceIsNotTemplated) so a real account
+        // named jeff/jeffrey still works.
         foreach (array('jeff', 'jeffrey') as $name) {
             $path = $this->templatedConfig($name, 'Sup3r!Secret-pass');
             $h = $this->loadConfig($path);

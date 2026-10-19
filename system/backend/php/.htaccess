@@ -1,0 +1,11 @@
+# Security (H-2): nothing under system/backend/php is meant to be requested
+# directly over HTTP. The API is served via system/api.php and system/api/v1,
+# which include these files server-side. This blocks direct execution of
+# tests, diagnostic scripts, vendor code and libraries.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

@@ -13,14 +13,9 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  * route (e.g. non-image source, unsupported format, unsupported transform
  * mode) are exercised without needing to fabricate route-level plumbing.
  *
- * Note: scaleImageToPresetFile, buildImageOpsOutputPath, and
- * ensureImageOpsOutputDirectory were investigated and found to have no call
- * sites anywhere in the repository outside their own definitions (dead
- * code: scaleImageToPresetFile is never called; buildImageOpsOutputPath is
- * only called by ensureImageOpsOutputDirectory's own sibling, and neither
- * is referenced by fileOperation() or any other route). Per the plan, these
- * are intentionally NOT tested here to avoid fabricating artificial
- * test-only call sites for code with no production caller.
+ * Note: the former scaleImageToPresetFile / buildImageOpsOutputPath /
+ * ensureImageOpsOutputDirectory / getSafeImageOpsBaseName helpers had no
+ * production call sites and were removed from Operations.php as dead code.
  */
 class OperationsImageOpsTest extends TestCase
 {

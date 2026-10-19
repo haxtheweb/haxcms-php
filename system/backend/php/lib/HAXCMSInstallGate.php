@@ -59,6 +59,33 @@ class HAXCMSInstallGate
     }
 
     /**
+     * Security (M-1): source-level twin of isNotInstalled() for callers that
+     * run before bootstrap (index.php, install.php). Matches only the exact
+     * boilerplate ASSIGNMENTS (e.g. `->superUser->password = 'jimmerson';`),
+     * never a bare substring, so a real config that merely contains "jeff"
+     * (username "jeffrey", a comment, ...) is not misread as uninstalled --
+     * which previously reopened the unauthenticated installer.
+     * Unreadable input returns FALSE (pre-existing behavior).
+     */
+    public static function configSourceIsNotTemplated($raw)
+    {
+        if (!is_string($raw)) {
+            return false;
+        }
+        $patterns = array(
+            '/->privateKey\s*=\s*([\'"])' . self::PLACEHOLDER_PRIVATE_KEY . '\1\s*;/',
+            '/->refreshPrivateKey\s*=\s*([\'"])' . self::PLACEHOLDER_REFRESH_PRIVATE_KEY . '\1\s*;/',
+            '/->superUser->password\s*=\s*([\'"])' . self::PLACEHOLDER_SUPERUSER_PASSWORD . '\1\s*;/',
+        );
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $raw) === 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Emit the 503 "not installed" response used by every API entry point.
      * Same envelope shape as system/api.php's unknown-route 404.
      */

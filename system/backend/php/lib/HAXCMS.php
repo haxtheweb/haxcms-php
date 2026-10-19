@@ -1507,7 +1507,8 @@ class HAXCMS
         }
         if ($token != null) {
           $normalizedValue = $this->normalizeIAMTokenValue($value);
-          if ($token == $this->getRequestToken($normalizedValue)) {
+          // Security (L-7): constant-time, type-strict compare.
+          if ($this->safeStringCompare($this->getRequestToken($normalizedValue), is_string($token) ? $token : '')) {
             return TRUE;
           }
         }
@@ -2402,7 +2403,11 @@ class HAXCMS
      */
     public function getRequestToken($value = '')
     {
-        return $this->hmacBase64($value, $this->privateKey . $this->salt);
+        // Security (L-3): domain-separated key. JWTs are signed with
+        // privateKey . salt directly; request tokens use a key derived from it
+        // so the same secret never MACs two different kinds of message.
+        $requestTokenKey = hash_hmac('sha256', 'haxcms-request-token', $this->privateKey . $this->salt);
+        return $this->hmacBase64($value, $requestTokenKey);
     }
     /**
      * Read Authorization header and extract Bearer token
@@ -2681,13 +2686,12 @@ class HAXCMS
      * so the Secure and SameSite flags are applied consistently at every call
      * site (login, logout, refresh, connection-test, invalid-session clear).
      *
-     * D56: `secure` is now driven by isProductionRuntime() (parity with Node's
-     * setRefreshTokenCookie in HAXCMS.js:4380-4394) instead of the request
-     * protocol. This means dev environments get non-Secure cookies even on
-     * HTTPS (so they work on HTTP too), and production always gets Secure
-     * cookies regardless of whether PHP sees the request as HTTP behind a
+     * D56: production (NODE_ENV=production) always gets Secure cookies
+     * regardless of whether PHP sees the request as HTTP behind a
      * TLS-terminating proxy. The config.security.forceSecureCookie override
-     * remains for non-production environments that need Secure cookies.
+     * remains for environments that need Secure cookies unconditionally.
+     * Security (L-2): requests PHP sees as HTTPS are ALSO marked Secure,
+     * since PHP hosts rarely set NODE_ENV (see refreshCookieShouldBeSecure).
      *
      * D56: the default cookie lifetime is now 24 hours (matching Node's
      * maxAge=24*60*60*1000) instead of a session cookie (expires=0). Pass a
@@ -2701,17 +2705,31 @@ class HAXCMS
         $nodeEnv = getenv('NODE_ENV');
         return is_string($nodeEnv) && strtolower(trim($nodeEnv)) === 'production';
     }
-    public function setRefreshTokenCookie($value, $expires = null)
+    /**
+     * Security (L-2): Secure flag decision for the refresh cookie. TRUE when
+     * NODE_ENV=production, when the request is HTTPS ($this->protocol only
+     * honours X-Forwarded-Proto from trusted proxies), or when
+     * config.security.forceSecureCookie is TRUE. Plain-HTTP dev installs
+     * stay non-Secure so login keeps working there.
+     */
+    public function refreshCookieShouldBeSecure()
     {
-        $secure = $this->isProductionRuntime();
-        if (
+        if ($this->isProductionRuntime()) {
+            return TRUE;
+        }
+        if (isset($this->protocol) && $this->protocol === 'https') {
+            return TRUE;
+        }
+        return (
             isset($this->config) &&
             isset($this->config->security) &&
             isset($this->config->security->forceSecureCookie) &&
             $this->config->security->forceSecureCookie === TRUE
-        ) {
-            $secure = TRUE;
-        }
+        );
+    }
+    public function setRefreshTokenCookie($value, $expires = null)
+    {
+        $secure = $this->refreshCookieShouldBeSecure();
         // D56: default to a 24-hour cookie (matching Node's maxAge=24*60*60*1000)
         // instead of a session cookie. When $expires is null, compute the
         // expiry as now + 24h. Pass a small value (e.g. 1) to clear the cookie.
@@ -3468,15 +3486,13 @@ class HAXCMS
     /**
      * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
      * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
-     * 1/true/yes; any other non-empty value means false). Default TRUE: the
-     * front-end (webcomponents jwt-login / AppHaxBackendAPI / haxcms-backend-*)
-     * now stores the tokens returned by login, refresh and connection-test, so
-     * anonymous connection-settings loads no longer need them. Set the config
-     * value to false (or the env var to 0/false/no) to restore the old
-     * behaviour for a deployment still serving an older front-end build.
-     * Config: a boolean is used as-is, a non-empty string goes through the
-     * truthy list, anything else (unset, null, numbers) falls back to the
-     * default. Parity with NodeJS HAXCMS.getRequireSessionForRequestTokens.
+     * 1/true/yes; any other non-empty value means false).
+     * Security (L-3): default TRUE now that the front-end (jwt-login /
+     * session-request-tokens.js) picks up the tokens returned by login,
+     * refresh and connection-test, so anonymous connection-settings callers
+     * no longer receive request tokens. Opt out with config FALSE or a
+     * falsy string (0/false/no/off), or a non-truthy env value.
+     * NOTE: the NodeJS backend default must be flipped to match.
      */
     public function getRequireSessionForRequestTokens() {
       $truthy = function ($value) {
@@ -3492,11 +3508,11 @@ class HAXCMS
         isset($this->config->security->requireSessionForRequestTokens)
       ) {
         $configured = $this->config->security->requireSessionForRequestTokens;
-        if (is_bool($configured)) {
-          return $configured;
+        if ($configured === FALSE) {
+          return FALSE;
         }
-        if (is_string($configured) && trim($configured) !== '') {
-          return $truthy($configured);
+        if (is_string($configured)) {
+          return !in_array(strtolower(trim($configured)), array('0', 'false', 'no', 'off'), TRUE);
         }
       }
       return TRUE;
@@ -3510,10 +3526,9 @@ class HAXCMS
      *      JS payload).
      *   2. caller authenticated (CLI, a valid bearer, or a refresh cookie that
      *      passes the session store check) -> include.
-     *   3. requireSessionForRequestTokens is true -> omit.
-     *   4. otherwise -> include (pre-existing behaviour; the shipped front-end
-     *      loads connection-settings once, before login, and its request layer
-     *      drops ALL auth headers when a required token is missing).
+     *   3. requireSessionForRequestTokens is true (the default, L-3) -> omit;
+     *      the front-end picks tokens up from login/refresh/connection-test.
+     *   4. otherwise (explicit opt-out) -> include (legacy behaviour).
      * Returns array('include' => bool, 'reason' => string).
      */
     public function shouldIncludeRequestTokens() {
@@ -3993,7 +4008,8 @@ class HAXCMS
       if (  
           $request != FALSE &&
           isset($request->id) &&
-          $request->id == $this->getRequestToken('user') &&
+          // Security (L-7): constant-time, type-strict compare.
+          $this->safeStringCompare($this->getRequestToken('user'), is_string($request->id) ? $request->id : '') &&
           isset($request->user) &&
           $this->validateUser($request->user)) {
         return TRUE;

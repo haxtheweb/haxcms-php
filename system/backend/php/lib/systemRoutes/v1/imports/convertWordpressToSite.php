@@ -9,7 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertWordpressToSite')) {
-    function haxcmsImportConvertWordpressToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertWordpressToSite($context, $client = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -44,7 +45,9 @@ if (!function_exists('haxcmsImportConvertWordpressToSite')) {
 
         $baseUrl = rtrim($repoUrl, '/');
         $wpApi   = $baseUrl . '/wp-json/wp/v2';
-        $client  = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
 
         // Fetch pages with hierarchy
         $pages     = array();

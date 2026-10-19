@@ -227,7 +227,10 @@ if (!function_exists('haxcmsGitbookSummaryHtmlToItems')) {
 // ---------------------------------------------------------------------------
 
 if (!function_exists('haxcmsImportConvertGitbookToSite')) {
-    function haxcmsImportConvertGitbookToSite($context)
+    // $client is an optional Guzzle client and $origins an optional
+    // array('api' => ..., 'raw' => ...) override (tests inject both, the
+    // same seam convertVitepressToSite exposes)
+    function haxcmsImportConvertGitbookToSite($context, $client = null, $origins = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -259,7 +262,11 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
 
         list($owner, $repo, $branch) = $parsedRepo;
 
-        $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
+        $apiOrigin = (is_array($origins) && isset($origins['api'])) ? $origins['api'] : 'https://api.github.com';
+        $rawOrigin = (is_array($origins) && isset($origins['raw'])) ? $origins['raw'] : 'https://raw.githubusercontent.com';
         $apiHeaders = array(
             'headers' => array('Accept' => 'application/vnd.github.v3+json', 'User-Agent' => 'HAXcms-Import/1.0'),
         );
@@ -272,7 +279,7 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
         if (!$branch) {
             $branch = '';
             try {
-                $repoMetaResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', 'https://api.github.com/repos/' . $owner . '/' . $repo, $apiHeaders);
+                $repoMetaResponse = SsrfGuard::safeGuzzleRequest($client, 'GET', $apiOrigin . '/repos/' . $owner . '/' . $repo, $apiHeaders);
                 $repoMeta = json_decode((string) $repoMetaResponse->getBody(), true);
                 if (is_array($repoMeta) && isset($repoMeta['default_branch']) && is_string($repoMeta['default_branch']) && $repoMeta['default_branch'] !== '') {
                     $branch = (string) $repoMeta['default_branch'];
@@ -285,8 +292,8 @@ if (!function_exists('haxcmsImportConvertGitbookToSite')) {
             }
         }
 
-        $rawBase = 'https://raw.githubusercontent.com/' . $owner . '/' . $repo . '/' . $branch . '/';
-        $apiBase = 'https://api.github.com/repos/' . $owner . '/' . $repo . '/';
+        $rawBase = $rawOrigin . '/' . $owner . '/' . $repo . '/' . $branch . '/';
+        $apiBase = $apiOrigin . '/repos/' . $owner . '/' . $repo . '/';
 
         // Fetch the recursive git tree once: it gives us both the SUMMARY.md
         // location and every non-markdown asset to stage as a downloaded file

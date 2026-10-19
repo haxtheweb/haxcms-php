@@ -9,7 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertElmslnToSite')) {
-    function haxcmsImportConvertElmslnToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertElmslnToSite($context, $client = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -32,7 +33,9 @@ if (!function_exists('haxcmsImportConvertElmslnToSite')) {
 
         $baseUrl   = rtrim($repoUrl, '/');
         $siteJsonUrl = $baseUrl . '/site.json';
-        $client    = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
 
         // Fetch site.json (JSON Outline Schema)
         try {

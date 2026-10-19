@@ -9,7 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertHtmlToSite')) {
-    function haxcmsImportConvertHtmlToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertHtmlToSite($context, $client = null)
     {
         $apiBasePath  = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body         = $context->body;
@@ -41,7 +42,9 @@ if (!function_exists('haxcmsImportConvertHtmlToSite')) {
             $html = (string) @file_get_contents($file['tmp_name']);
         } elseif (isset($body['repoUrl']) && $body['repoUrl'] !== '') {
             try {
-            $client   = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+            if ($client === null) {
+                $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+            }
             $response = SsrfGuard::safeGuzzleRequest($client, 'GET', (string) $body['repoUrl']);
             $html     = (string) $response->getBody();
             $parts    = explode('/', $body['repoUrl']);
