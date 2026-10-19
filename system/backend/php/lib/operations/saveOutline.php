@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteSaveOutline {
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
@@ -109,7 +110,12 @@ trait OperationsRouteSaveOutline {
         }
         // set a title if we have one
         if ($item->title != '' && $item->title) {
-          $page->title = $item->title;
+          // Security (SEC-SANITIZE): titles are plain text, same as saveNode;
+          // a title that is nothing but markup keeps the existing title
+          $plainTitle = SanitizeContent::plainText($item->title);
+          if ($plainTitle !== '') {
+            $page->title = $plainTitle;
+          }
         }
         // description belongs to the JSON Outline Schema item; same handling
         // as the setDescription node operation
@@ -221,9 +227,13 @@ trait OperationsRouteSaveOutline {
         $safeLocationMap[$page->id] = $page->location;
         // check for any metadata keys that did come over
         if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
-          foreach ($item->metadata as $key => $value) {
-              $page->metadata->{$key} = $value;
-          }
+          // Security (SEC-SANITIZE): route client metadata through the same
+          // per-field sanitisation saveNode applies instead of mass-assigning
+          SanitizeContent::applyPageMetadata(
+            $page,
+            $item->metadata,
+            $GLOBALS['HAXCMS']->getThemes()
+          );
         }
         // safety check for new things
         if (!isset($page->metadata->created)) {

@@ -465,6 +465,37 @@ class OperationsNodeRevisionsTest extends TestCase
         $this->assertStringContainsString(substr($this->commitHashes[0], 0, 12), $site->gitCommits[0]);
     }
 
+    // Security (SEC-SANITIZE): restored revisions are re-sanitized
+    public function testRestoreNodeRevisionSanitizesHistoricContent(): void
+    {
+        $pageFile = $this->siteRoot . '/pages/item-a/index.html';
+        file_put_contents(
+            $pageFile,
+            '<p>Old</p><script>alert(1)</script><simple-cta link="javascript:alert(1)" label="go"></simple-cta>'
+        );
+        $this->runGitCommand($this->siteRoot, array('add', 'pages/item-a/index.html'));
+        $this->runGitCommand($this->siteRoot, array('commit', '-m', 'Malicious commit'));
+        $badHash = trim($this->runGitCommand($this->siteRoot, array('rev-parse', 'HEAD')));
+        file_put_contents($pageFile, '<p>Clean</p>');
+        $this->runGitCommand($this->siteRoot, array('add', 'pages/item-a/index.html'));
+        $this->runGitCommand($this->siteRoot, array('commit', '-m', 'Clean commit'));
+
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+            'hash' => $badHash,
+        );
+        $result = $this->ops->restoreNodeRevision();
+        $this->assertSame(200, $result['status']);
+        $content = file_get_contents($pageFile);
+        $this->assertStringContainsString('Old', $content);
+        $this->assertStringContainsString('label="go"', $content);
+        $this->assertStringNotContainsString('<script', $content);
+        $this->assertStringNotContainsString('javascript:', $content);
+    }
+
     // =========================================================================
     // restoreNodeRevision — non-existent hash
     // =========================================================================

@@ -496,10 +496,11 @@ class HAXCMSSite
           'basePath' =>
               $this->getPWAScopePath(),
           'domain' => $domain,
-          'title' => $this->manifest->title,
+          // Security (SEC-SANITIZE): no raw newlines/backslashes in managed JSON/XML
+          'title' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->title),
           'short' => $this->manifest->metadata->site->name,
           'privateSite' => $privateSetting,
-          'description' => $this->manifest->description,
+          'description' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->description),
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
           'swhash' => array(),
@@ -615,7 +616,8 @@ class HAXCMSSite
           if (file_exists($siteDirectoryPath . '/' . $location)) {
             @file_put_contents(
                 $siteDirectoryPath . '/' . $location,
-                $twig->render($location, $templateVars)
+                // Security (SEC-SANITIZE): per-format escaping of title/description
+                $twig->render($location, SanitizeContent::managedTemplateVars($templateVars, $location))
             );
           }
       }
@@ -827,7 +829,8 @@ class HAXCMSSite
           $page->id = $GLOBALS['HAXCMS']->generateMachineName($id);
         }
         // set a crappy default title
-        $page->title = $title;
+        // Security (SEC-SANITIZE): titles are plain text (matches saveNode)
+        $page->title = SanitizeContent::plainText($title);
         if ($parent == null) {
           $page->parent = null;
           $page->indent = 0;
@@ -859,9 +862,13 @@ class HAXCMSSite
         $page->slug = $this->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($slug));
         // support presetting multiple metadata attributes like tags, pageType, etc
         if (!is_null($metadata)) {
-          foreach ($metadata as $key => $value) {
-            $page->metadata->{$key} = $value;
-          }
+          // Security (SEC-SANITIZE): per-field sanitisation instead of
+          // copying every request metadata key verbatim
+          SanitizeContent::applyPageMetadata(
+            $page,
+            $metadata,
+            $GLOBALS['HAXCMS']->getThemes()
+          );
         }
         $page->metadata->created = time();
         $page->metadata->updated = time();
@@ -1040,9 +1047,9 @@ class HAXCMSSite
           $lastmod = gmdate('c', intval($item->metadata->updated));
         }
         $xml[] = '  <url>';
-        $xml[] = '    <loc>' . htmlspecialchars($loc, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>';
+        $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
         if ($lastmod != '') {
-          $xml[] = '    <lastmod>' . htmlspecialchars($lastmod, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</lastmod>';
+          $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue($lastmod) . '</lastmod>';
         }
         $xml[] = '  </url>';
       }
@@ -1064,7 +1071,7 @@ class HAXCMSSite
       $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
       $xml[] = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
       $xml[] = '  <sitemap>';
-      $xml[] = '    <loc>' . htmlspecialchars($loc, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>';
+      $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
       $xml[] = '    <lastmod>' . gmdate('c') . '</lastmod>';
       $xml[] = '  </sitemap>';
       $xml[] = '</sitemapindex>';

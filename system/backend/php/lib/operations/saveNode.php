@@ -130,7 +130,8 @@ trait OperationsRouteSaveNode {
                 // update attributes in the page
                 if (isset($data["attributes"]["title"])) {
                   // decode entities and strip tags so manifest stores clean text
-                  $page->title = html_entity_decode(strip_tags($data["attributes"]["title"]));
+                  // Security (SEC-SANITIZE): decode BEFORE stripping so encoded tags can't survive
+                  $page->title = SanitizeContent::plainText($data["attributes"]["title"]);
                 }
                 // support for defining and updating overridePathauto (manual slug lock).
                 // Mirrors NodeJS saveNode.js. The override-pathauto attribute is a
@@ -328,10 +329,12 @@ trait OperationsRouteSaveNode {
                 // auto generate a text only description from first 200 chars
                 // unless we were sent one to use
                 if (isset($data["attributes"]["description"]) && $data["attributes"]["description"] != '') {
-                  $page->description = html_entity_decode(strip_tags($data["attributes"]["description"]));
+                  // Security (SEC-SANITIZE): decode BEFORE stripping
+                  $page->description = SanitizeContent::plainText($data["attributes"]["description"]);
                 }
                 else {
-                  $decodedClean = html_entity_decode($clean);
+                  // Security (SEC-SANITIZE): decode BEFORE stripping
+                  $decodedClean = SanitizeContent::plainText($clean);
                   $page->description = str_replace(
                     "\n",
                     '',
