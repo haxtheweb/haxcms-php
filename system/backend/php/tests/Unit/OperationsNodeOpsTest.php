@@ -973,6 +973,144 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertStringNotContainsString('<', json_encode($page->metadata->tags, JSON_UNESCAPED_SLASHES));
         $this->assertFalse(isset($page->metadata->constructor));
     }
+
+    // =========================================================================
+    // saveNode — page-break attribute handling (set, then clear on re-save)
+    // =========================================================================
+
+    private function saveNodeBody(string $body, array $extraNode = array()): array
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array_merge(array('id' => 'item-a', 'body' => $body), $extraNode),
+        );
+        return $this->ops->saveNode();
+    }
+
+    public function testSaveNodeAppliesEveryPageBreakAttribute(): void
+    {
+        $this->setUpBodyFixture();
+        $this->haxcms->themes = (object) array('polaris-flex' => (object) array('element' => 'polaris-flex'));
+        $body = '<page-break title="Item A" item-id="item-a" slug="x" parent="item-b"'
+            . ' developer-theme="polaris-flex" depth="2" order="7" published="published" page-type="lesson"'
+            . ' hide-in-menu override-pathauto related-items="item-b" image="files/hero.png" tags="one,two"'
+            . ' accent-color="blue" icon="icons:star" author="Ada" link-url="https://example.org/x"'
+            . ' link-target="_blank" locked="locked" description="Custom &lt;b&gt;desc&lt;/b&gt;">'
+            . '</page-break><p>Body</p>';
+        $result = $this->saveNodeBody($body, array(
+            'schema' => array(array('tag' => 'media-image', 'properties' => array('source' => 'files/m.jpg'))),
+        ));
+
+        $this->assertSame(200, $result['status']);
+        $page = $result['data'];
+        $m = $page->metadata;
+        $this->assertSame('x-x', $page->slug);
+        $this->assertSame('item-b', $page->parent);
+        $this->assertSame('polaris-flex', $m->theme->key);
+        $this->assertSame(2, $page->indent);
+        $this->assertSame(7, $page->order);
+        $this->assertTrue($m->published);
+        $this->assertSame('lesson', $m->pageType);
+        $this->assertTrue($m->hideInMenu);
+        $this->assertTrue($m->overridePathauto);
+        $this->assertSame('files/hero.png', $m->image);
+        $this->assertSame('Ada', $m->author);
+        $this->assertSame('https://example.org/x', $m->linkUrl);
+        $this->assertSame('_blank', $m->linkTarget);
+        $this->assertTrue($m->locked);
+        $this->assertSame('Custom desc', $page->description);
+        $this->assertSame(array('files/m.jpg'), $m->images);
+        foreach (array('relatedItems', 'tags', 'accentColor', 'icon') as $key) {
+            $this->assertTrue(isset($m->$key), $key);
+        }
+
+        // re-save with none of the optional attributes: every one is cleared
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" override-pathauto="false"></page-break><p>Body</p>');
+        $m = $result['data']->metadata;
+        foreach (array('theme', 'pageType', 'relatedItems', 'image', 'tags', 'accentColor', 'icon', 'author', 'linkUrl', 'linkTarget') as $key) {
+            $this->assertFalse(isset($m->$key), $key . ' should be cleared');
+        }
+        $this->assertNull($result['data']->parent);
+        $this->assertFalse($m->overridePathauto);
+        $this->assertFalse($m->hideInMenu);
+        $this->assertFalse($m->locked);
+    }
+
+    public function testSaveNodeSubRouteSlugAndUnknownThemeAreNeutralised(): void
+    {
+        $this->setUpBodyFixture();
+        $this->haxcms->loadedSite->manifest->items[0]->metadata->theme = (object) array('key' => 'old');
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="x/sub" developer-theme="nope"></page-break><p>b</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertStringStartsWith('x-x', $result['data']->slug);
+        $this->assertFalse(isset($result['data']->metadata->theme));
+    }
+
+    public function testSaveNodeMergesDetailsAndDefaultsTitleAndPath(): void
+    {
+        $this->setUpBodyFixture();
+        // no title / path attributes: defaults to 'New page' and the title as path
+        $result = $this->saveNodeBody('<page-break item-id="item-a" path="#"></page-break><p>b</p>', array(
+            'details' => array('node' => array('configure' => array('a' => 1), 'advanced' => array('b' => 2))),
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('New page', $result['data']->title);
+    }
+
+    public function testSaveNodeUnknownNodeIdFails500(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody('<page-break title="t"></page-break><p>b</p>', array('id' => 'no-such-item'));
+        $this->assertSame(500, $result['__failed']['status']);
+        $this->assertSame('failed to write', $result['__failed']['message']);
+    }
+
+    public function testSaveNodeWriteFailureFails500(): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('root ignores read-only file permissions');
+        }
+        $this->setUpBodyFixture();
+        $pageDir = $this->bodyFixtureDir . '/' . $this->siteName . '/pages/item-a';
+        chmod($pageDir . '/index.html', 0444);
+        chmod($pageDir, 0555);
+        try {
+            $result = @$this->saveNodeBody('<page-break title="Item A" item-id="item-a"></page-break><p>b</p>');
+        } finally {
+            chmod($pageDir, 0777);
+            chmod($pageDir . '/index.html', 0666);
+        }
+        $this->assertSame(500, $result['__failed']['status']);
+    }
+
+    public function testSaveNodePathautoRegeneratesPageAndChildSlugs(): void
+    {
+        $this->setUpBodyFixture();
+        $site = $this->haxcms->loadedSite;
+        $site->manifest->metadata->site->settings->pathauto = true;
+        // item-b becomes a child of item-a; a locked grandchild keeps its slug
+        $site->manifest->items[1]->parent = 'item-a';
+        $locked = clone $site->manifest->items[1];
+        $locked->id = 'item-c';
+        $locked->parent = 'item-b';
+        $locked->slug = 'keep-me';
+        $locked->title = 'Item C';
+        $locked->metadata = (object) array('overridePathauto' => true);
+        $site->manifest->items[] = $locked;
+
+        $result = $this->saveNodeBody('<page-break title="Renamed Parent" item-id="item-a"></page-break><p>b</p>');
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('renamed-parent', $result['data']->slug);
+        $bySlug = array();
+        foreach ($site->manifest->items as $item) {
+            $bySlug[$item->id] = $item->slug;
+        }
+        $this->assertStringStartsWith('renamed-parent/', $bySlug['item-b']);
+        $this->assertSame('keep-me', $bySlug['item-c']);
+    }
 }
 
 /**
@@ -983,7 +1121,14 @@ class OperationsNodeOpsTest extends TestCase
 class OperationsNodeTestHaxcms extends OperationsTestHaxcms
 {
     public $outlineSchema;
+    // optional themes map returned by getThemes() (saveNode developer-theme)
+    public $themes = null;
     private $realPageBreakParser;
+
+    public function getThemes()
+    {
+        return $this->themes !== null ? $this->themes : parent::getThemes();
+    }
 
     public function __construct()
     {

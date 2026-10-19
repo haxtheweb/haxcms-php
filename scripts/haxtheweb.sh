@@ -77,6 +77,10 @@ fi
 if [ ! -f "_config/user/files/.htaccess" ]; then
   cp system/boilerplate/systemsetup/.user-files-htaccess _config/user/files/.htaccess
 fi
+# Security (M-2): archived sites must not stay publicly served
+if [ ! -f "_archived/.htaccess" ]; then
+  cp system/boilerplate/systemsetup/.archived-htaccess _archived/.htaccess
+fi
 # may need to revisit this at some point
 chmod 755 _config
 chmod 755 _config/tmp

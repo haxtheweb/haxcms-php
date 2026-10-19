@@ -163,7 +163,7 @@ class SystemRoutesIntegrationsTest extends TestCase
         $result = $this->runHandler('v1/integrations/bogus');
         $this->assertSame(404, $result['code']);
         $this->assertSame(
-            array('status' => 404, 'message' => 'Unknown integrations route'),
+            array('status' => 404, 'message' => 'Unknown integrations route', 'code' => 'ROUTE_NOT_FOUND'),
             $result['data']
         );
     }

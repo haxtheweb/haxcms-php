@@ -11,7 +11,8 @@ include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 include_once dirname(__FILE__) . '/../../../stageRemoteFile.php';
 
 if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
-    function haxcmsImportConvertHaxcmsToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertHaxcmsToSite($context, $client = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -45,7 +46,9 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         $path   = isset($parsed['path'])   ? $parsed['path']   : '';
         $base   = $scheme . '://' . $host . $path;
 
-        $client     = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
         $siteJson   = null;
         try {
             $response = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/site.json');

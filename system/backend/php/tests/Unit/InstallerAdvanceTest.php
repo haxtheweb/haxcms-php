@@ -63,13 +63,9 @@ class InstallerAdvanceTest extends TestCase
         if ($raw === '') {
             return false;
         }
-        // Placeholder tokens present => not finished installing.
-        return (
-            strpos($raw, 'HAXTHEWEBPRIVATEKEY') === false &&
-            strpos($raw, 'HAXTHEWEBREFRESHPRIVATEKEY') === false &&
-            strpos($raw, 'jeff') === false &&
-            strpos($raw, 'jimmerson') === false
-        );
+        // Placeholder assignments present => not finished installing. Same
+        // exact-match rule install.php uses (M-1), not a substring scan.
+        return !HAXCMSInstallGate::configSourceIsNotTemplated($raw);
     }
 
     /**

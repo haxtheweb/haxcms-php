@@ -87,7 +87,7 @@ class SystemRoutesHaxiamTest extends TestCase
         ));
         $this->assertSame(400, $result['code']);
         $this->assertSame(
-            array('status' => 400, 'message' => 'HAXIAM mode is not enabled'),
+            array('status' => 400, 'message' => 'HAXIAM mode is not enabled', 'code' => 'HAXIAM_DISABLED'),
             $result['data']
         );
     }
@@ -110,7 +110,7 @@ class SystemRoutesHaxiamTest extends TestCase
         ));
         $this->assertSame(403, $result['code']);
         $this->assertSame(
-            array('status' => 403, 'message' => 'invalid request token'),
+            array('status' => 403, 'message' => 'invalid request token', 'code' => 'USER_TOKEN_INVALID'),
             $result['data']
         );
     }

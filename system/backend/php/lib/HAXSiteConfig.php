@@ -41,11 +41,27 @@ class HAXSiteConfig {
     ) {
       $this->site->sendPageAlternateHeaders($this->page);
     }
-    $this->color = 'var(' . $this->site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
-    $this->name = $this->site->name;
+    // Security (L-5): these values come from site.json (possibly imported /
+    // cloned without passing save-time filters) and are printed raw by
+    // index.php inside <style>, an attribute and <h1>. Encode at output.
+    $cssVariable = isset($this->site->manifest->metadata->theme->variables->cssVariable) ? (string) $this->site->manifest->metadata->theme->variables->cssVariable : '';
+    $this->color = self::safeCssColor($cssVariable);
+    $this->name = htmlspecialchars((string) $this->site->name, ENT_QUOTES, 'UTF-8');
+  }
+  /**
+   * Security (L-5): only a bare CSS custom-property name may be wrapped in
+   * var(); anything else (e.g. a value that closes the style block) falls
+   * back to the default accent color.
+   */
+  public static function safeCssColor($cssVariable) {
+    if (is_string($cssVariable) && preg_match('/^--[A-Za-z0-9_-]+$/', $cssVariable) === 1) {
+      return 'var(' . $cssVariable . ', #FF2222)';
+    }
+    return '#FF2222';
   }
   public function getLanguage() {
-    return $this->site->getLanguage();
+    // Security (L-5): printed into <html lang="...">.
+    return htmlspecialchars((string) $this->site->getLanguage(), ENT_QUOTES, 'UTF-8');
   }
   public function getBaseTag() {
     return $this->site->getBaseTag();

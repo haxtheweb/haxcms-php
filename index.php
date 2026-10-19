@@ -3,18 +3,12 @@
 // does not exist OR config.php still has boilerplate placeholder tokens (the
 // install wizard has not run step 4 yet), redirect to the installer instead
 // of fatalling in HAXCMS.php or running with known placeholder private keys.
+// Security (M-1): exact placeholder-assignment match, not a substring scan.
+include_once __DIR__ . '/system/backend/php/lib/HAXCMSInstallGate.php';
 $indexConfigPhpPath = __DIR__ . '/_config/config.php';
 $indexConfigNotTemplated = false;
 if (file_exists($indexConfigPhpPath)) {
-    $indexConfigRaw = @file_get_contents($indexConfigPhpPath);
-    if (is_string($indexConfigRaw) && (
-        strpos($indexConfigRaw, 'HAXTHEWEBPRIVATEKEY') !== false ||
-        strpos($indexConfigRaw, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
-        strpos($indexConfigRaw, 'jeff') !== false ||
-        strpos($indexConfigRaw, 'jimmerson') !== false
-    )) {
-        $indexConfigNotTemplated = true;
-    }
+    $indexConfigNotTemplated = HAXCMSInstallGate::configSourceIsNotTemplated(@file_get_contents($indexConfigPhpPath));
 }
 if (
     !is_dir('_config') ||

@@ -1,1 +1,9 @@
-Allow from all
+# _config/user/files holds public user uploads; re-allow access beneath the
+# deny-all _config/.htaccess. Same 2.4 / 2.2 syntax as the parent so the
+# override is reliable (mixing Require and Allow across levels is not).
+<IfModule mod_authz_core.c>
+  Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Allow from all
+</IfModule>

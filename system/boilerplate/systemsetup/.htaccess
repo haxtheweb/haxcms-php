@@ -1,1 +1,10 @@
-Deny from all
+# Security (L-6): _config holds private keys, SALT.txt, API keys and user
+# data. Deny all HTTP access using Apache 2.4 syntax, with a 2.2 fallback
+# (plain "Deny from all" alone needs mod_access_compat on 2.4).
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

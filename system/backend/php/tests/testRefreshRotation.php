@@ -1,4 +1,6 @@
 <?php
+// Security (H-2): CLI only; never executable over HTTP against live config.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * Integration test for PHP refresh-token rotation + logout revocation.
  * Exercises the HAXCMS helpers directly with a temp config directory.

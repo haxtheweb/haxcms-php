@@ -110,7 +110,7 @@ class SystemRoutesConvertDocxToHtmlTest extends TestCase
         $result = $this->runRoute(array());
         $this->assertSame(400, $result['code']);
         $this->assertSame(
-            array('status' => 400, 'data' => array('error' => 'No file uploaded')),
+            array('status' => 400, 'data' => array('error' => 'No file uploaded', 'code' => 'UPLOAD_MISSING')),
             $result['data']
         );
     }

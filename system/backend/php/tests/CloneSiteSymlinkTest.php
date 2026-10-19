@@ -1,4 +1,6 @@
 <?php
+// Security (H-2): CLI only; never executable over HTTP against live config.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * Test that cloneSite's realpath + mirror produces a standalone directory
  * when the source site is a symlink (e.g. a HAXiam shared site).

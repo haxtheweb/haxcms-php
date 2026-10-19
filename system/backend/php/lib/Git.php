@@ -469,6 +469,46 @@ class GitRepo
         return $this->run_command($args);
     }
     /**
+     * Security (L-4): a ref / remote-name / path argument must be a
+     * non-empty string that cannot be parsed as a git OPTION (leading '-',
+     * e.g. --upload-pack=... / --receive-pack=...) and carries no control
+     * characters. Values can originate from site.json (git branch), so they
+     * are untrusted. Commands still use argv arrays (no shell).
+     */
+    public static function isSafeArg($value)
+    {
+        return is_string($value) && $value !== '' && $value[0] !== '-' &&
+            preg_match('/[\x00-\x1F\x7F]/', $value) !== 1;
+    }
+    /**
+     * Security (L-4): remote URLs are limited to network transports
+     * (https/http/ssh/git schemes, or scp-like user@host:path). This blocks
+     * ext:: (runs a command), file:// / fd:: and option-like values.
+     */
+    public static function isSafeRemoteUrl($url)
+    {
+        if (!self::isSafeArg($url)) {
+            return false;
+        }
+        return preg_match('#^(https?|ssh|git)://#i', $url) === 1 ||
+            preg_match('#^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:[^:]#', $url) === 1;
+    }
+    /**
+     * Security (L-4): returns TRUE when every argument is safe; otherwise logs
+     * and returns FALSE so the caller can skip the command. Failures return
+     * '' to match this class's swallowed-failure convention (see run_command).
+     */
+    protected function argsAreSafe(array $values, $command)
+    {
+        foreach ($values as $value) {
+            if (!self::isSafeArg($value)) {
+                error_log('HAXcms: refused unsafe git ' . $command . ' argument');
+                return false;
+            }
+        }
+        return true;
+    }
+    /**
      * return the current sha as a string
      */
     public function currentSHA() {
@@ -523,6 +563,10 @@ class GitRepo
      */
     public function set_remote($destination, $url)
     {
+        if (!$this->argsAreSafe(array($destination), 'remote') || !self::isSafeRemoteUrl($url)) {
+            error_log('HAXcms: refused unsafe git remote URL');
+            return '';
+        }
         return $this->run_args(array('remote', 'add', $destination, $url));
     }
 
@@ -614,8 +658,14 @@ class GitRepo
      */
     public function clone_remote($source, $reference)
     {
+        if (!$this->argsAreSafe(array($source), 'clone')) {
+            return '';
+        }
         $args = array('clone');
         if (is_string($reference) && strlen($reference)) {
+            if (!$this->argsAreSafe(array($reference), 'clone')) {
+                return '';
+            }
             $args[] = '--reference';
             $args[] = $reference;
         }
@@ -652,6 +702,9 @@ class GitRepo
      */
     public function create_branch($branch)
     {
+        if (!$this->argsAreSafe(array($branch), 'branch')) {
+            return '';
+        }
         return $this->run_args(array('branch', $branch));
     }
 
@@ -666,6 +719,9 @@ class GitRepo
      */
     public function delete_branch($branch, $force = false)
     {
+        if (!$this->argsAreSafe(array($branch), 'branch')) {
+            return '';
+        }
         return $this->run_args(array('branch', ($force ? '-D' : '-d'), $branch));
     }
 
@@ -741,6 +797,9 @@ class GitRepo
      */
     public function checkout($branch)
     {
+        if (!$this->argsAreSafe(array($branch), 'checkout')) {
+            return '';
+        }
         return $this->run_args(array('checkout', $branch));
     }
 
@@ -755,6 +814,9 @@ class GitRepo
      */
     public function merge($branch)
     {
+        if (!$this->argsAreSafe(array($branch), 'merge')) {
+            return '';
+        }
         return $this->run_args(array('merge', $branch, '--no-ff'));
     }
 
@@ -771,6 +833,9 @@ class GitRepo
      */
     public function reset($branch = 'master', $remote = 'origin', $hard = true)
     {
+        if (!$this->argsAreSafe(array($branch, $remote), 'reset')) {
+            return '';
+        }
         $args = array('reset');
         if ($hard) {
             $args[] = '--hard';
@@ -873,6 +938,11 @@ class GitRepo
      */
     public function push($remote, $branch, $flags = '--tags')
     {
+        // $flags are caller-supplied constants; $remote/$branch may come from
+        // site.json and must not be parsed as options (e.g. --receive-pack=).
+        if (!$this->argsAreSafe(array($remote, $branch), 'push')) {
+            return '';
+        }
         $args = array('push', $remote, $branch);
         if (is_array($flags)) {
             foreach ($flags as $flag) {
@@ -900,6 +970,9 @@ class GitRepo
      */
     public function pull($remote, $branch)
     {
+        if (!$this->argsAreSafe(array($remote, $branch), 'pull')) {
+            return '';
+        }
         return $this->run_args(array('pull', $remote, $branch));
     }
 

@@ -1,4 +1,6 @@
 <?php
+// Security (H-2): CLI only; never executable over HTTP.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/lib/SanitizeContent.php';
 
 $payloadFile = __DIR__ . '/sanitize-policy-payloads.json';

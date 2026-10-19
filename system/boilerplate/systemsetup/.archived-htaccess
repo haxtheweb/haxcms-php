@@ -1,0 +1,9 @@
+# Security (M-2): archived sites are taken offline. Nothing in _archived is
+# meant to be served over HTTP; unarchive/restore works server-side.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

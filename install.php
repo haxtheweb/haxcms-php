@@ -37,6 +37,7 @@ $passwordWasGenerated = false;
 include_once __DIR__ . '/system/backend/php/lib/SystemStatusService.php';
 include_once __DIR__ . '/system/backend/php/lib/LocalizationSettingsService.php';
 include_once __DIR__ . '/system/backend/php/lib/Git.php';
+include_once __DIR__ . '/system/backend/php/lib/HAXCMSInstallGate.php';
 
 // Ensure _config/tmp/ exists for the wizard state file. This is lightweight
 // and non-destructive — it does NOT create config.php or any boilerplate, so
@@ -49,24 +50,19 @@ include_once __DIR__ . '/system/backend/php/lib/Git.php';
 // logic again — it is an unauthenticated endpoint that creates credentials.
 // Redirect to the dashboard and stop before any POST/file logic executes.
 //
-// The "not finished installing" flag: if config.php still contains boilerplate
-// placeholder tokens (HAXTHEWEBPRIVATEKEY / HAXTHEWEBREFRESHPRIVATEKEY /
-// jeff / jimmerson), step 4 has NOT run yet. We must keep serving the wizard
+// The "not finished installing" flag: if config.php still holds the exact
+// boilerplate placeholder assignments (privateKey / refreshPrivateKey /
+// superUser password), step 4 has NOT run yet. We must keep serving the wizard
 // so the user can enter credentials and complete the install. Redirecting
 // away in this state returns HTML to the wizard's ?op=state JSON fetch and
 // breaks the front-end (issue #2974).
+// Security (M-1): exact assignment match via HAXCMSInstallGate, never a
+// substring scan -- a username like "jeffrey" used to reopen this
+// unauthenticated installer on a live site.
 $installerConfigPhpPath = __DIR__ . '/_config/config.php';
 $installerConfigNotTemplated = false;
 if (file_exists($installerConfigPhpPath)) {
-  $installerConfigRaw = @file_get_contents($installerConfigPhpPath);
-  if (is_string($installerConfigRaw) && (
-    strpos($installerConfigRaw, 'HAXTHEWEBPRIVATEKEY') !== false ||
-    strpos($installerConfigRaw, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
-    strpos($installerConfigRaw, 'jeff') !== false ||
-    strpos($installerConfigRaw, 'jimmerson') !== false
-  )) {
-    $installerConfigNotTemplated = true;
-  }
+  $installerConfigNotTemplated = HAXCMSInstallGate::configSourceIsNotTemplated(@file_get_contents($installerConfigPhpPath));
 }
 if (
   is_dir(__DIR__ . '/_sites') &&
@@ -270,6 +266,10 @@ if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
         }
       }
     }
+    // Security (M-2): archived sites must not stay publicly served.
+    if (is_dir(__DIR__ . '/_archived')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
+    }
   }
 }
 
@@ -342,8 +342,26 @@ if (!function_exists('haxcmsInstallerSanitizeUsername')) {
     if (!is_string($value) || trim($value) === '') {
       return 'admin';
     }
-    $clean = filter_var(trim($value), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    // Security (L-1): strict allowlist. The username is written into
+    // config.php; characters such as a trailing backslash previously broke
+    // the PHP string literal and took the site down.
+    $clean = substr(preg_replace('/[^A-Za-z0-9_.-]/', '', trim($value)), 0, 64);
     return $clean !== '' ? $clean : 'admin';
+  }
+}
+
+if (!function_exists('haxcmsInstallerSetConfigValue')) {
+  // Security (L-1/M-1): replace ONE exact boilerplate assignment
+  // (`$HAXCMS-><property> = '<placeholder>';`) with a var_export()-escaped
+  // PHP literal. Never a global str_replace, so other text in config.php is
+  // untouched and user input can never break out of the string literal.
+  function haxcmsInstallerSetConfigValue($configFile, $property, $placeholder, $value)
+  {
+    $pattern = '/(\$HAXCMS->' . preg_quote($property, '/') . '\s*=\s*)([\'"])' . preg_quote($placeholder, '/') . '\2(\s*;)/';
+    $result = preg_replace_callback($pattern, function ($m) use ($value) {
+      return $m[1] . var_export((string) $value, true) . $m[3];
+    }, $configFile, 1);
+    return is_string($result) ? $result : $configFile;
   }
 }
 
@@ -525,21 +543,16 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
       $configPhpPath = __DIR__ . '/_config/config.php';
       if (file_exists($configPhpPath)) {
         $configFile = file_get_contents($configPhpPath);
-        $needsTemplating = (
-          strpos($configFile, 'HAXTHEWEBPRIVATEKEY') !== false ||
-          strpos($configFile, 'HAXTHEWEBREFRESHPRIVATEKEY') !== false ||
-          strpos($configFile, 'jeff') !== false ||
-          strpos($configFile, 'jimmerson') !== false
-        );
+        $needsTemplating = HAXCMSInstallGate::configSourceIsNotTemplated($configFile);
         if ($needsTemplating) {
-          $configFile = str_replace('HAXTHEWEBPRIVATEKEY', haxcmsInstallerGenerateSecureSecret(), $configFile);
-          $configFile = str_replace('HAXTHEWEBREFRESHPRIVATEKEY', haxcmsInstallerGenerateSecureSecret(), $configFile);
-          $configFile = str_replace('jeff', $resolvedUsername, $configFile);
+          $configFile = haxcmsInstallerSetConfigValue($configFile, 'privateKey', 'HAXTHEWEBPRIVATEKEY', haxcmsInstallerGenerateSecureSecret());
+          $configFile = haxcmsInstallerSetConfigValue($configFile, 'refreshPrivateKey', 'HAXTHEWEBREFRESHPRIVATEKEY', haxcmsInstallerGenerateSecureSecret());
+          $configFile = haxcmsInstallerSetConfigValue($configFile, 'superUser->name', 'jeff', $resolvedUsername);
           // persist a password_hash (bcrypt/argon2), never the plaintext
-          $configFile = str_replace('jimmerson', password_hash($pass, PASSWORD_DEFAULT), $configFile);
+          $configFile = haxcmsInstallerSetConfigValue($configFile, 'superUser->password', 'jimmerson', password_hash($pass, PASSWORD_DEFAULT));
           // basePath locked to where this was installed
           $basePath = str_replace('install.php', '', $_SERVER['SCRIPT_NAME']);
-          $configFile = str_replace("->basePath = '/'", "->basePath = '$basePath'", $configFile);
+          $configFile = haxcmsInstallerSetConfigValue($configFile, 'basePath', '/', $basePath);
           // config.php holds JWT private key + password hash; restrict to 0600
           file_put_contents($configPhpPath, $configFile, LOCK_EX);
           @chmod($configPhpPath, 0600);
@@ -578,6 +591,10 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
         @chown(__DIR__ . '/_archived', get_current_user());
         @chgrp(__DIR__ . '/_archived', get_current_user());
       }
+    }
+    // Security (M-2): archived sites must not stay publicly served.
+    if (is_dir(__DIR__ . '/_archived')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
     }
   }
 }

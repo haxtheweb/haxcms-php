@@ -9,7 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertPloneToSite')) {
-    function haxcmsImportConvertPloneToSite($context)
+    // $client is an optional Guzzle client (tests inject a handler-backed one)
+    function haxcmsImportConvertPloneToSite($context, $client = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -31,7 +32,9 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
         }
 
         $baseUrl = rtrim($repoUrl, '/');
-        $client  = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
         $headers = ['Accept' => 'application/json', 'Content-Type' => 'application/json'];
 
         // Fetch site root info

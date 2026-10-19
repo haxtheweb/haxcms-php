@@ -1,4 +1,6 @@
 <?php
+// Security (H-2): CLI only; never executable over HTTP against live config.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 // Test bootstrap for siteRoutes v1 mutations and security layer
 // Usage: cd /path/to/haxcms-php && php system/backend/php/tests/run.php
 

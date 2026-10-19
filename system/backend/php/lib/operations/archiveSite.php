@@ -19,6 +19,11 @@ trait OperationsRouteArchiveSite {
         if (!file_exists($archivedRoot)) {
           mkdir($archivedRoot, 0755, true);
         }
+        // Security (M-2): archived sites are offline; deny HTTP access to
+        // the archive directory (self-heals installs that predate this).
+        if (!file_exists($archivedRoot . '/.htaccess')) {
+          @copy(HAXCMS_ROOT . '/system/boilerplate/systemsetup/.archived-htaccess', $archivedRoot . '/.htaccess');
+        }
         $sourcePath = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $siteName;
         $destinationPath = $archivedRoot . '/' . $siteName;
         // collision handling: find next available path if destination exists

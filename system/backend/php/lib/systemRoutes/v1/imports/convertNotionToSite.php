@@ -9,7 +9,10 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 
 if (!function_exists('haxcmsImportConvertNotionToSite')) {
-    function haxcmsImportConvertNotionToSite($context)
+    // $client is an optional Guzzle client and $origins an optional
+    // array('api' => ..., 'raw' => ...) override (tests inject both, the
+    // same seam convertVitepressToSite exposes)
+    function haxcmsImportConvertNotionToSite($context, $client = null, $origins = null)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
@@ -44,9 +47,13 @@ if (!function_exists('haxcmsImportConvertNotionToSite')) {
         $repo   = rtrim($m[2], '/');
         $branch = (isset($m[3]) && $m[3] !== '') ? $m[3] : 'main';
 
-        $client  = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
-        $apiBase = 'https://api.github.com/repos/' . $owner . '/' . $repo . '/contents/';
-        $rawBase = 'https://raw.githubusercontent.com/' . $owner . '/' . $repo . '/' . $branch . '/';
+        if ($client === null) {
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'connect_timeout' => 10]);
+        }
+        $apiOrigin = (is_array($origins) && isset($origins['api'])) ? $origins['api'] : 'https://api.github.com';
+        $rawOrigin = (is_array($origins) && isset($origins['raw'])) ? $origins['raw'] : 'https://raw.githubusercontent.com';
+        $apiBase = $apiOrigin . '/repos/' . $owner . '/' . $repo . '/contents/';
+        $rawBase = $rawOrigin . '/' . $owner . '/' . $repo . '/' . $branch . '/';
 
         // Fetch root contents
         try {

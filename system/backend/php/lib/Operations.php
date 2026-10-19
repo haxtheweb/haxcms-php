@@ -1051,9 +1051,6 @@ class Operations {
     );
   }
 
-  private function getSiteFilesDirectory($site) {
-    return $site->directory . '/' . $site->manifest->metadata->site->name . '/files';
-  }
   private function isSiteInMultisiteContext($site) {
     if (
       isset($GLOBALS['HAXCMS']->operatingContext) &&
@@ -1287,80 +1284,6 @@ class Operations {
       'quality' => $this->compressQualityByLevel[$key],
     );
   }
-  private function getSafeImageOpsBaseName($relativePath) {
-    $baseName = pathinfo($relativePath, PATHINFO_FILENAME);
-    $safeBaseName = preg_replace('/[^a-zA-Z0-9._-]/', '-', $baseName);
-    $safeBaseName = preg_replace('/-+/', '-', $safeBaseName);
-    $safeBaseName = trim($safeBaseName, '.-_');
-    if ($safeBaseName === '') {
-      $safeBaseName = 'image';
-    }
-    return $safeBaseName;
-  }
-  private function ensureImageOpsOutputDirectory($filesRoot) {
-    $outputDirectory = rtrim($filesRoot, '/') . '/imgops';
-    if (file_exists($outputDirectory) && is_link($outputDirectory)) {
-      return array(
-        'valid' => false,
-        'status' => 400,
-        'message' => 'Output path is not writable',
-      );
-    }
-    if (!is_dir($outputDirectory) && !@mkdir($outputDirectory, 0755, true)) {
-      return array(
-        'valid' => false,
-        'status' => 500,
-        'message' => 'Unable to prepare image operations directory',
-      );
-    }
-    $resolvedOutputDirectory = realpath($outputDirectory);
-    if ($resolvedOutputDirectory === false) {
-      return array(
-        'valid' => false,
-        'status' => 500,
-        'message' => 'Unable to prepare image operations directory',
-      );
-    }
-    $resolvedOutputDirectory = rtrim($this->normalizeFilePathValue($resolvedOutputDirectory), '/');
-    $normalizedFilesRoot = rtrim($this->normalizeFilePathValue($filesRoot), '/');
-    if (
-      $resolvedOutputDirectory !== $normalizedFilesRoot . '/imgops' &&
-      strpos($resolvedOutputDirectory, $normalizedFilesRoot . '/') !== 0
-    ) {
-      return array(
-        'valid' => false,
-        'status' => 403,
-        'message' => 'Invalid output file path',
-      );
-    }
-    return array(
-      'valid' => true,
-      'outputDirectory' => $resolvedOutputDirectory,
-    );
-  }
-  private function buildImageOpsOutputPath($filesRoot, $sourceRelativePath, $width, $height) {
-    $directoryResult = $this->ensureImageOpsOutputDirectory($filesRoot);
-    if (!$directoryResult['valid']) {
-      return $directoryResult;
-    }
-    $outputFileName = $this->getSafeImageOpsBaseName($sourceRelativePath) .
-      '-' . ((int) $width) .
-      'x' . ((int) $height) .
-      '.jpg';
-    $outputPath = $directoryResult['outputDirectory'] . '/' . $outputFileName;
-    if (file_exists($outputPath) && is_link($outputPath)) {
-      return array(
-        'valid' => false,
-        'status' => 400,
-        'message' => 'Output path is not writable',
-      );
-    }
-    return array(
-      'valid' => true,
-      'outputPath' => $outputPath,
-      'relativePath' => 'files/imgops/' . $outputFileName,
-    );
-  }
   private function isImageProcessingAvailable() {
     return
       function_exists('imagecreatefromstring') &&
@@ -1486,81 +1409,6 @@ class Operations {
       'success' => true,
       'width' => $width,
       'height' => $height,
-    );
-  }
-  private function scaleImageToPresetFile($sourcePath, $outputPath, $targetWidth, $targetHeight, $jpgQuality = null) {
-    if (!$this->isImageProcessingAvailable()) {
-      return array(
-        'success' => false,
-        'status' => 500,
-        'message' => 'Image scaling support is unavailable on this server',
-      );
-    }
-    $sourceImage = $this->createImageResourceFromPath($sourcePath);
-    if (!$sourceImage) {
-      return array(
-        'success' => false,
-        'status' => 400,
-        'message' => 'Only raster images can be scaled',
-      );
-    }
-    $sourceWidth = imagesx($sourceImage);
-    $sourceHeight = imagesy($sourceImage);
-    if ($sourceWidth <= 0 || $sourceHeight <= 0) {
-      imagedestroy($sourceImage);
-      return array(
-        'success' => false,
-        'status' => 500,
-        'message' => 'Unable to determine source image size',
-      );
-    }
-    $targetWidth = max((int) $targetWidth, 1);
-    $targetHeight = max((int) $targetHeight, 1);
-    $ratio = min(
-      $targetWidth / $sourceWidth,
-      $targetHeight / $sourceHeight,
-      1
-    );
-    $outputWidth = max((int) floor($sourceWidth * $ratio), 1);
-    $outputHeight = max((int) floor($sourceHeight * $ratio), 1);
-    $targetImage = imagecreatetruecolor($outputWidth, $outputHeight);
-    if (!$targetImage) {
-      imagedestroy($sourceImage);
-      return array(
-        'success' => false,
-        'status' => 500,
-        'message' => 'Unable to prepare image scaling',
-      );
-    }
-    $background = imagecolorallocate($targetImage, 255, 255, 255);
-    imagefill($targetImage, 0, 0, $background);
-    imagecopyresampled(
-      $targetImage,
-      $sourceImage,
-      0,
-      0,
-      0,
-      0,
-      $outputWidth,
-      $outputHeight,
-      $sourceWidth,
-      $sourceHeight
-    );
-    $jpgQuality = $this->resolveJpegQualityValue($jpgQuality);
-    $saved = @imagejpeg($targetImage, $outputPath, $jpgQuality);
-    imagedestroy($sourceImage);
-    imagedestroy($targetImage);
-    if (!$saved) {
-      return array(
-        'success' => false,
-        'status' => 500,
-        'message' => 'Unable to save scaled image',
-      );
-    }
-    return array(
-      'success' => true,
-      'width' => $outputWidth,
-      'height' => $outputHeight,
     );
   }
   private function scaleImageInPlaceFile($sourcePath, $targetWidth, $targetHeight, $jpgQuality = null) {
@@ -2132,19 +1980,22 @@ class Operations {
       return array('valid' => false, 'reason' => 'Only simple selectors are supported (tag, tag[attr], tag[attr="value"], [attr])');
     }
     $pattern = '/^([a-zA-Z][a-zA-Z0-9-]*)?(?:\[\s*([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*(?:=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\]\s"\']+)))?\s*\])?$/';
-    if (!preg_match($pattern, $selector, $matches)) {
+    // PREG_UNMATCHED_AS_NULL: a skipped alternative (e.g. the double-quoted
+    // group when the value is single-quoted) is null instead of '', so the
+    // isset() chain below picks the group that actually matched
+    if (!preg_match($pattern, $selector, $matches, PREG_UNMATCHED_AS_NULL)) {
       return array('valid' => false, 'reason' => 'Invalid selector syntax');
     }
     $tag = isset($matches[1]) && $matches[1] != '' ? strtolower($matches[1]) : null;
     $attr = isset($matches[2]) && $matches[2] != '' ? strtolower($matches[2]) : null;
     $attrValue = null;
-    if (array_key_exists(3, $matches)) {
+    if (isset($matches[3])) {
       $attrValue = $matches[3];
     }
-    else if (array_key_exists(4, $matches)) {
+    else if (isset($matches[4])) {
       $attrValue = $matches[4];
     }
-    else if (array_key_exists(5, $matches)) {
+    else if (isset($matches[5])) {
       $attrValue = $matches[5];
     }
     if (is_null($tag) && is_null($attr)) {
