@@ -10,3 +10,7 @@ _config
 yarn.lock
 .dockerignore
 docker-compose.yml
+# Security (SEC-DEPLOY): never bake VCS history or local secrets into the image
+.git
+.env
+.env.*
