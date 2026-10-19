@@ -190,6 +190,7 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 | `--ddd-font-primary` | `"Roboto", "Franklin Gothic Medium", Tahoma, sans-serif` |  |
 | `--ddd-font-secondary` | `"Roboto Slab", serif` |  |
 | `--ddd-font-navigation` | `"Roboto Condensed", sans-serif` | navigation font |
+| `--ddd-font-mono` | `ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace` | code, keyboard input, tabular data |
 
 ## Font weights
 
@@ -208,8 +209,8 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 | `--ddd-font-size-6xs` | `12px` |  |
 | `--ddd-font-size-5xs` | `14px` |  |
 | `--ddd-font-size-4xs` | `16px` |  |
-| `--ddd-font-size-3xs` | `18px` | body default |
-| `--ddd-font-size-xxs` | `20px` | h6 |
+| `--ddd-font-size-3xs` | `18px` |  |
+| `--ddd-font-size-xxs` | `20px` | h6; body default via --ddd-theme-body-font-size |
 | `--ddd-font-size-xs` | `22px` | h5 |
 | `--ddd-font-size-s` | `24px` | h4 |
 | `--ddd-font-size-ms` | `28px` | h3 |
@@ -371,10 +372,30 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 
 | Token | Value | Source note |
 |---|---|---|
-| `--ddd-breakpoint-sm` | `360px` | Small devices (phones) |
-| `--ddd-breakpoint-md` | `768px` | Medium devices (tablets) |
-| `--ddd-breakpoint-lg` | `1080px` | Large devices (laptops) |
-| `--ddd-breakpoint-xl` | `1440px` | Extra large devices (desktops) |
+| `--ddd-breakpoint-sm` | `600px` | narrow, phones |
+| `--ddd-breakpoint-md` | `900px` | tablets, sidebar collapses below this |
+| `--ddd-breakpoint-lg` | `1200px` | sidebar + content column + gutters fit |
+| `--ddd-breakpoint-xl` | `1440px` | wide desktop |
+
+## Layout
+
+| Token | Value | Source note |
+|---|---|---|
+| `--ddd-content-width-sm` | `640px` |  |
+| `--ddd-content-width-md` | `840px` | de-facto theme default |
+| `--ddd-content-width-lg` | `960px` |  |
+| `--ddd-sidebar-width-rail` | `var(--ddd-spacing-14)` → `56px` | collapsed, icons only |
+| `--ddd-sidebar-width-sm` | `240px` |  |
+| `--ddd-sidebar-width-md` | `300px` | de-facto theme default |
+| `--ddd-sidebar-width-lg` | `360px` |  |
+| `--ddd-container-width-md` | `1200px` |  |
+| `--ddd-container-width-lg` | `1440px` |  |
+| `--ddd-theme-content-width` | `var(--ddd-content-width-md)` → `840px` |  |
+| `--ddd-theme-sidebar-width` | `var(--ddd-sidebar-width-md)` → `300px` |  |
+| `--ddd-theme-container-width` | `var(--ddd-container-width-md)` → `1200px` |  |
+| `--ddd-theme-layout-gutter` | `var(--ddd-spacing-6)` → `24px` |  |
+| `--ddd-grid-gap` | `var(--ddd-spacing-4)` → `16px` |  |
+| `--ddd-grid-item-spacing` | `var(--ddd-spacing-4)` → `16px` |  |
 
 ## Border radius
 
@@ -427,7 +448,7 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 | `--ddd-z-sticky` | `200` | Sticky positioned elements |
 | `--ddd-z-overlay` | `300` | Background overlays |
 | `--ddd-z-modal` | `10000` | Modal dialogs and critical UI |
-| `--ddd-z-tooltip` | `500` | Tooltips and popovers |
+| `--ddd-z-tooltip` | `10100` | Tooltips and popovers, above modals |
 
 ## Opacity
 
@@ -448,6 +469,11 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 | `--ddd-duration-normal` | `300ms` | Standard transitions |
 | `--ddd-duration-slow` | `600ms` | Slow transitions (1/2 speed) |
 | `--ddd-timing-ease` | `cubic-bezier(0.4, 0, 0.2, 1)` | Material design easing |
+| `--ddd-timing-enter` | `cubic-bezier(0, 0, 0.2, 1)` | decelerate, elements entering |
+| `--ddd-timing-exit` | `cubic-bezier(0.4, 0, 1, 1)` | accelerate, elements leaving |
+| `--ddd-timing-emphasized` | `cubic-bezier(0.2, 0, 0, 1)` | large or deliberate moves |
+| `--ddd-timing-linear` | `linear` | progress, spinners, continuous loops |
+| `--ddd-duration-reduced` | `0.01ms` |  |
 
 ## Focus
 
@@ -463,6 +489,44 @@ Guidance elsewhere has named tokens DDD never declared. Do not use them:
 | `--ddd-textfield-height-sm` | `40px` | compact - clears the WCAG 2.5.8 AA 24px minimum |
 | `--ddd-textfield-height-md` | `48px` | default - 48px tap target, clears the WCAG 2.5.5 AAA 44px minimum |
 | `--ddd-textfield-height-lg` | `56px` | large - Material standard field height |
+
+## Control sizes and touch targets
+
+| Token | Value | Source note |
+|---|---|---|
+| `--ddd-control-height-xs` | `32px` | dense toolbars only |
+| `--ddd-control-height-sm` | `40px` | matches --ddd-textfield-height-sm |
+| `--ddd-control-height-md` | `48px` | default, matches --ddd-textfield-height-md |
+| `--ddd-control-height-lg` | `56px` | matches --ddd-textfield-height-lg |
+| `--ddd-target-min` | `24px` | WCAG 2.5.8 AA minimum target size |
+| `--ddd-target-comfortable` | `44px` | WCAG 2.5.5 AAA, preferred for touch |
+
+## Interaction states
+
+| Token | Value | Source note |
+|---|---|---|
+| `--ddd-state-hover-opacity` | `0.08` |  |
+| `--ddd-state-focus-opacity` | `0.12` |  |
+| `--ddd-state-pressed-opacity` | `0.12` |  |
+| `--ddd-state-selected-opacity` | `0.16` |  |
+| `--ddd-state-disabled-opacity` | `0.5` |  |
+
+## Measure (line length)
+
+| Token | Value | Source note |
+|---|---|---|
+| `--ddd-measure-sm` | `45ch` |  |
+| `--ddd-measure-md` | `65ch` | default for body copy |
+| `--ddd-measure-lg` | `80ch` |  |
+| `--ddd-theme-measure` | `var(--ddd-measure-md)` → `65ch` |  |
+
+## Aspect ratios
+
+| Token | Value | Source note |
+|---|---|---|
+| `--ddd-aspect-video` | `16 / 9` |  |
+| `--ddd-aspect-standard` | `4 / 3` |  |
+| `--ddd-aspect-square` | `1 / 1` |  |
 
 ## Component defaults DDD sets
 

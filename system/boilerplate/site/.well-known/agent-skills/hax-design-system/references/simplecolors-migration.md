@@ -10,7 +10,6 @@ SimpleColors is the extended palette DDD builds on. Use DDD first; reach for Sim
 - `--simple-colors-default-theme-<hue>-<n>` follows dark mode: under `[dark]`, shade n takes the value of shade 13−n.
 - `--simple-colors-fixed-theme-<hue>-<n>` never changes. Use it for brand fills, charts and palette swatches.
 - `--simple-colors-default-theme-accent-<n>` follows the element's `accent-color` attribute (grey when unset). Shade 7 is the CSS `accent-color`.
-- Dark mode is not a pure inversion for `cyan-12` (`#ddf8ff`, not `#ccf3fd`), `teal-12` (`#d9fff0`, not `#d4ffee`).
 
 ## Contrast rule (WCAG AA)
 
@@ -181,7 +180,7 @@ For text of shade N on another hue, the compliant shades of that hue. Grey pairs
 
 | Shade | Hex (fixed) | Nearest DDD | ΔE | White / black text |
 |---|---|---|---|---|
-| 1 | `#ccf3fd` | `--ddd-theme-default-skyLight` `#ccf0ff` | 3.0 ✓ | 1.2 / 17.8 |
+| 1 | `#ddf8ff` | `--ddd-theme-default-infoLight` `#e5f6fd` | 3.3 ✓ | 1.1 / 18.9 |
 | 2 | `#9beaff` | `--ddd-theme-default-skyLight` `#ccf0ff` | 13.2 | 1.3 / 15.6 |
 | 3 | `#77e2ff` | `--ddd-theme-default-skyLight` `#ccf0ff` | 20.8 | 1.5 / 14.1 |
 | 4 | `#33d4ff` | `--ddd-theme-default-pughBlue` `#96bee6` | 23.9 | 1.7 / 12.0 |
@@ -198,7 +197,7 @@ For text of shade N on another hue, the compliant shades of that hue. Grey pairs
 
 | Shade | Hex (fixed) | Nearest DDD | ΔE | White / black text |
 |---|---|---|---|---|
-| 1 | `#d4ffee` | `--ddd-theme-default-creekLight` `#cfeceb` | 11.0 | 1.1 / 19.3 |
+| 1 | `#d9fff0` | `--ddd-theme-default-creekLight` `#cfeceb` | 9.7 ✓ | 1.1 / 19.5 |
 | 2 | `#98ffd7` | `--ddd-theme-default-alertAllClear` `#f2ffcc` | 29.7 | 1.2 / 17.6 |
 | 3 | `#79ffcb` | `--ddd-theme-default-alertAllClear` `#f2ffcc` | 37.8 | 1.2 / 17.0 |
 | 4 | `#56ffbd` | `--ddd-theme-default-opportunityGreen` `#008755` | 43.4 | 1.3 / 16.4 |

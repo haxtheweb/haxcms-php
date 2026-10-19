@@ -31,11 +31,11 @@
       "files": [
         {
           "path": "references/ddd-tokens.md",
-          "digest": "sha256:e1d0dc567668a2b9a7322137c3d662c03612eed3a9dd0afb130859594fb9da46"
+          "digest": "sha256:5ec2513300d0612a23948beadbb689ee4207675a42aac6cec09a2599ae1363ea"
         },
         {
           "path": "references/simplecolors-migration.md",
-          "digest": "sha256:0598f0f9e7f2dc7b0a598a260f3a06cc028e8f9bbdabf3cd4c7db0180e54b477"
+          "digest": "sha256:c2136ce34778216f822a74fce9adda8af431704811bcac77e70595448cbf46a0"
         }
       ]
     },
