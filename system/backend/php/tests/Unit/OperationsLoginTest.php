@@ -159,6 +159,9 @@ class OperationsLoginTest extends TestCase
         $result = $this->ops->login();
         $this->assertSame(200, $result['status']);
         $this->assertSame('test-jwt-token', $result['jwt']);
+        // SEC-SESSION: userToken for the authenticated principal
+        $this->assertSame('request-token:testuser', $result['userToken']);
+        $this->assertArrayNotHasKey('siteToken', $result);
     }
 
     public function testLoginValidCredentialsClearsRateLimitCache(): void
@@ -536,6 +539,17 @@ class LoginTestHaxcms
     public function resolveClientIP()
     {
         return $this->resolvedClientIP;
+    }
+
+    // SEC-SESSION: login now returns a userToken for the logged-in principal
+    public function generateMachineName($name)
+    {
+        return strtolower((string) $name);
+    }
+
+    public function getRequestToken($value = '')
+    {
+        return 'request-token:' . $value;
     }
 
     public function testLogin($username, $password, $fallback = true)

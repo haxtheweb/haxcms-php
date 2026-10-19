@@ -61,25 +61,43 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         ) {
             return null;
         }
-        // Security (H1 rotation): reject a revoked/stolen refresh family before
-        // minting an access token. validateRefreshSession accepts legacy tokens
-        // (no family/jti) so deploys don't log users out during upgrade.
+        // Security (H1 rotation / SEC-SESSION): reject a revoked/stolen/unknown
+        // refresh family before minting an access token. Only legacy tokens
+        // that carry NO family claim are accepted without a store entry. On
+        // reject, tombstone ONLY the presented family (legacy -> legacy
+        // tombstone); other devices' families are untouched. Parity with
+        // NodeJS connectionTest.js getValidatedJWTFromRefresh.
+        $presentedFamily = (isset($refreshTokenDecoded->family) && $refreshTokenDecoded->family !== '') ? $refreshTokenDecoded->family : null;
         $sessionOk = $GLOBALS['HAXCMS']->validateRefreshSession(
             $refreshTokenDecoded->user,
-            isset($refreshTokenDecoded->family) ? $refreshTokenDecoded->family : null,
-            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null
+            $presentedFamily,
+            isset($refreshTokenDecoded->jti) ? $refreshTokenDecoded->jti : null,
+            isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
         );
         if (!$sessionOk) {
-            if (isset($refreshTokenDecoded->user)) {
-                $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user);
+            // Security (SEC-SESSION, PHP-only): store unreadable -> no
+            // tombstone, no cookie clear; the caller answers 503.
+            if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
+                return array('storeError' => true);
             }
+            $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
             $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
             return null;
         }
-        // Rotate the refresh cookie on recovery so a stolen cookie is bounded;
-        // fall back to a plain access token if rotation fails.
+        // Rotate the refresh cookie on recovery so a stolen cookie is bounded.
+        // Security (SEC-SESSION): no fallback to a plain access token when
+        // rotation fails -- that would mint a JWT for a session the store just
+        // refused.
         $rotated = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($refreshTokenDecoded);
-        $accessJwt = ($rotated !== null) ? $rotated : $GLOBALS['HAXCMS']->getJWT($refreshTokenDecoded->user);
+        if ($rotated === null) {
+            if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
+                return array('storeError' => true);
+            }
+            $GLOBALS['HAXCMS']->revokeRefreshSession($refreshTokenDecoded->user, $presentedFamily);
+            $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+            return null;
+        }
+        $accessJwt = $rotated;
         return array(
             'jwt' => $accessJwt,
             'user' => $GLOBALS['HAXCMS']->generateMachineName($refreshTokenDecoded->user),
@@ -263,7 +281,55 @@ return function ($context) {
             $sessionContext = haxcmsResolveBearerSessionContext($requestedJWT);
         }
         if ($sessionContext === null) {
+            // Security (SEC-SESSION): the refresh-cookie recovery below rotates
+            // the cookie (state change), so apply the same same-origin gate as
+            // session/refresh (incl. Sec-Fetch-Site: cross-site) before it. A
+            // valid Bearer above is not cookie-authenticated and is unaffected;
+            // like NodeJS, the gate only applies when a refresh cookie is sent.
+            if (
+                isset($_COOKIE['haxcms_refresh_token']) &&
+                $_COOKIE['haxcms_refresh_token'] !== '' &&
+                !$GLOBALS['HAXCMS']->isSameOriginRequest()
+            ) {
+                $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'status' => 403,
+                        'authenticated' => false,
+                        'reason' => 'cross_origin',
+                        'message' => 'Cross-origin request denied',
+                    ),
+                    array(
+                        'statusCode' => 403,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             $sessionContext = haxcmsResolveRefreshSessionContext();
+            if (is_array($sessionContext) && isset($sessionContext['storeError'])) {
+                SiteRouteUtils::sendFormattedResponse(
+                    array(
+                        'status' => 503,
+                        'authenticated' => false,
+                        'reason' => 'store_unavailable',
+                        'message' => 'Session store unavailable',
+                    ),
+                    array(
+                        'statusCode' => 503,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
             $refreshed = $sessionContext !== null;
         }
         if ($sessionContext === null) {
@@ -330,13 +396,22 @@ return function ($context) {
             );
             return;
         }
+        // Security (SEC-SESSION): include fresh request tokens (userToken, and
+        // siteToken when a site context is resolvable) for an editor that
+        // booted anonymously from connection-settings (NodeJS parity).
         SiteRouteUtils::sendFormattedResponse(
-            array(
-                'status' => 200,
-                'authenticated' => true,
-                'jwt' => $sessionContext['jwt'],
-                'refreshed' => $refreshed,
-                'user' => $sessionContext['user'],
+            array_merge(
+                array(
+                    'status' => 200,
+                    'authenticated' => true,
+                    'jwt' => $sessionContext['jwt'],
+                    'refreshed' => $refreshed,
+                    'user' => $sessionContext['user'],
+                ),
+                $GLOBALS['HAXCMS']->getSessionRequestTokens(
+                    $sessionContext['user'],
+                    is_array($context->body) ? $context->body : array()
+                )
             ),
             array(
                 'statusCode' => 200,

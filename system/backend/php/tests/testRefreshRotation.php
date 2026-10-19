@@ -78,9 +78,11 @@ $storePath = $configDir . '/settings/refreshSessions.json';
 $sessionsRaw = file_get_contents($storePath);
 $sessions = json_decode($sessionsRaw, true);
 $jtiHash = hash('sha256', $decoded1->jti);
-ok(isset($sessions[$user]), 'session recorded for user');
-ok($sessions[$user]['currentJtiHash'] === $jtiHash, 'jti hash recorded');
-ok(!isset($sessions[$user]['previousJtiHash']) || $sessions[$user]['previousJtiHash'] === null, 'no previous jti on first issuance');
+// SEC-SESSION: v2 store {version:2, users:{<user>:{families:{<fam>:{...}}}}}
+$fam1 = isset($sessions['users'][$user]['families'][$decoded1->family]) ? $sessions['users'][$user]['families'][$decoded1->family] : null;
+ok($sessions['version'] === 2 && is_array($fam1), 'session recorded for user (v2 family entry)');
+ok($fam1['currentJtiHash'] === $jtiHash, 'jti hash recorded');
+ok(!isset($fam1['previousJtiHash']) || $fam1['previousJtiHash'] === null, 'no previous jti on first issuance');
 
 // Test 2: validateRefreshSession accepts the current jti
 echo "\nTest 2: validateRefreshSession accepts current jti\n";
@@ -95,40 +97,49 @@ ok($accessJwt1 !== null && is_string($accessJwt1), 'rotation returned an access 
 // read the updated store
 $sessions2 = json_decode(file_get_contents($storePath), true);
 $oldJtiHash = hash('sha256', $decoded1->jti);
-ok($sessions2[$user]['previousJtiHash'] === $oldJtiHash, 'old jti moved to previous');
-ok($sessions2[$user]['currentJtiHash'] !== $oldJtiHash, 'store has new current jti');
+$fam2 = $sessions2['users'][$user]['families'][$decoded1->family];
+ok($fam2['previousJtiHash'] === $oldJtiHash, 'old jti moved to previous');
+ok($fam2['currentJtiHash'] !== $oldJtiHash, 'store has new current jti');
 
 // Test 4: old jti still valid within grace window
 echo "\nTest 4: old jti valid within grace window\n";
 ok($hax->validateRefreshSession($user, $decoded1->family, $decoded1->jti), 'old jti still accepted (grace)');
 
-// Test 5: revokeRefreshSession removes the entry
-echo "\nTest 5: revokeRefreshSession removes the entry\n";
-$hax->revokeRefreshSession($user);
+// Test 4b (SEC-SESSION): a second tab refreshing with the same cookie is a
+// grace-path accept that re-issues the SAME successor jti without rotating
+echo "\nTest 4b: concurrent tab grace accept re-issues current jti\n";
+$beforeTab2 = json_decode(file_get_contents($storePath), true)['users'][$user]['families'][$decoded1->family];
+ok($hax->rotateRefreshTokenAndCookie($decoded1) !== null, 'second tab accepted via grace');
+$afterTab2 = json_decode(file_get_contents($storePath), true)['users'][$user]['families'][$decoded1->family];
+ok($beforeTab2['currentJtiHash'] === $afterTab2['currentJtiHash'] && $beforeTab2['previousJtiHash'] === $afterTab2['previousJtiHash'], 'current/previous unchanged by grace accept');
+ok($afterTab2['currentJtiHash'] === hash('sha256', $hax->successorJti($decoded1->family, $decoded1->jti)), 'current is the deterministic successor');
+
+// Test 5: revokeRefreshSession tombstones the entry (SEC-SESSION)
+echo "\nTest 5: revokeRefreshSession writes a tombstone\n";
+$hax->revokeRefreshSession($user, $decoded1->family);
 $sessions3 = json_decode(file_get_contents($storePath), true);
-ok(!isset($sessions3[$user]), 'session revoked');
+ok($sessions3['users'][$user]['families'][$decoded1->family]['revoked'] === true, 'family tombstoned');
+ok(!$hax->validateRefreshSession($user, $decoded1->family, $decoded1->jti), 'revoked family rejected');
 
 // Test 6: replay detection revokes family
 echo "\nTest 6: replay detection revokes family\n";
 $hax->recordRefreshSession($user, 'fam-replay', 'jti-original', time() + 3600);
 $sessions4 = json_decode(file_get_contents($storePath), true);
-ok($sessions4[$user]['family'] === 'fam-replay', 'replay test session seeded');
+ok(isset($sessions4['users'][$user]['families']['fam-replay']['currentJtiHash']), 'replay test session seeded');
 
 $rotateOk = $hax->rotateRefreshSession($user, 'fam-replay', 'jti-bogus', 'jti-new', time() + 3600);
 ok(!$rotateOk, 'bogus jti rotation rejected');
 
 $sessions5 = json_decode(file_get_contents($storePath), true);
-ok(!isset($sessions5[$user]), 'family revoked on bogus jti');
+ok($sessions5['users'][$user]['families']['fam-replay']['revoked'] === true, 'family tombstoned on bogus jti');
 
 // Test 7: legacy token (no family/jti) is accepted and upgraded
 echo "\nTest 7: legacy token (no family/jti) accepted and upgraded\n";
 $legacyToken = $hax->getRefreshToken($user, false);
 $legacyDecoded = JWT::decode($legacyToken, $hax->refreshPrivateKey . $hax->salt);
 ok(!isset($legacyDecoded->family) && !isset($legacyDecoded->jti), 'legacy token has no family/jti');
-ok($hax->validateRefreshSession($user, null, null), 'legacy token accepted by validateRefreshSession');
-
-// clear store so legacy rotation has a clean slate
-$hax->revokeRefreshSession($user);
+// SEC-SESSION: legacy tokens are accepted unless iat <= legacyRevokedAt.
+ok($hax->validateRefreshSession($user, null, null, $legacyDecoded->iat), 'legacy token accepted by validateRefreshSession');
 $legacyAccessJwt = $hax->rotateRefreshTokenAndCookie($legacyDecoded);
 ok($legacyAccessJwt !== null, 'legacy token upgraded via rotation');
 
