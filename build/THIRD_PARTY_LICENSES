@@ -415,11 +415,6 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #2
 
-@haxtheweb/hax-bookmarklet
-  build path:  es6/node_modules/@haxtheweb/hax-bookmarklet
-  license:     Apache-2.0
-  attribution: see license text #2
-
 @haxtheweb/hax-iconset
   build path:  es6/node_modules/@haxtheweb/hax-iconset
   license:     Apache-2.0
@@ -1508,7 +1503,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#2 - Apache-2.0 (shared by 81 packages)
+#2 - Apache-2.0 (shared by 80 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----

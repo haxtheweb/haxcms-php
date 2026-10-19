@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Read and navigate an existing HAXcms site from its portable files. Use when an agent lands on a HAXsite or HAXcms deployment and needs to understand site.json (JSON Outline Schema), resolve page content in pages/, find assets in files/, locate the theme, compute basePath, or discover the web component registry (wc-registry.json) and the magic-script autoloader. Load this FIRST when working with any HAX site so the rest of the ecosystem makes sense.",
       "url": "hax-site-structure/SKILL.md",
-      "digest": "sha256:97165add1f1cf49a2754864d808e50a33953d85ad15c443fe2f7fd49a8297130"
+      "digest": "sha256:88ddc1e37de23261bc5e77dead53a7c45055b2422569ca09f9d2e9349cea430d"
     },
     {
       "name": "hax-content-authoring",
