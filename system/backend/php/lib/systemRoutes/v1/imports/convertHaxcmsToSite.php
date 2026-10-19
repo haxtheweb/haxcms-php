@@ -69,50 +69,63 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         }
 
         $downloads  = array();
-        $siteFiles  = array();
-        $siteFileKeys = array('theme/theme.css', 'theme/theme.html', 'custom/build/custom.es6.js');
-        $boilerplateEs6 = '// custom comment script here';
+        // Security (SEC-SSRF): files staged below are handed to createSite in
+        // a later request (which removes them once ingested). If this import
+        // fails part-way, remove what was staged instead of leaking it.
+        try {
+            $siteFiles  = array();
+            $siteFileKeys = array('theme/theme.css', 'theme/theme.html', 'custom/build/custom.es6.js');
+            $boilerplateEs6 = '// custom comment script here';
 
-        foreach ($siteJson['items'] as &$item) {
-            if (isset($item['slug'])) {
-                // Security (SEC-16): sanitize remote-sourced slug.
-                $item['slug'] = SiteRouteUtils::cleanSlug((string) $item['slug']);
-            }
-            if (isset($item['location']) && $item['location'] !== '') {
-                try {
-                    $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $item['location']);
-                    $item['contents'] = (string) $resp->getBody();
-                } catch (\Exception $e) {
-                    $item['contents'] = '';
+            foreach ($siteJson['items'] as &$item) {
+                if (isset($item['slug'])) {
+                    // Security (SEC-16): sanitize remote-sourced slug.
+                    $item['slug'] = SiteRouteUtils::cleanSlug((string) $item['slug']);
                 }
-            }
-            if (isset($item['metadata']['files']) && is_array($item['metadata']['files'])) {
-                foreach ($item['metadata']['files'] as $fileEntry) {
-                    if (isset($fileEntry['url'])) {
-                        $stagedPath = haxcms_import_stage_remote_file($client, $base . '/' . $fileEntry['url'], $fileEntry['url']);
-                        if ($stagedPath !== false) {
-                            $downloads[$fileEntry['url']] = $stagedPath;
+                if (isset($item['location']) && $item['location'] !== '') {
+                    try {
+                        $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $item['location']);
+                        $item['contents'] = (string) $resp->getBody();
+                    } catch (\Exception $e) {
+                        $item['contents'] = '';
+                    }
+                }
+                if (isset($item['metadata']['files']) && is_array($item['metadata']['files'])) {
+                    foreach ($item['metadata']['files'] as $fileEntry) {
+                        if (isset($fileEntry['url'])) {
+                            $stagedPath = haxcms_import_stage_remote_file($client, $base . '/' . $fileEntry['url'], $fileEntry['url']);
+                            if ($stagedPath !== false) {
+                                $downloads[$fileEntry['url']] = $stagedPath;
+                            }
                         }
                     }
                 }
             }
-        }
-        unset($item);
+            unset($item);
 
-        foreach ($siteFileKeys as $filePath) {
-            try {
-                $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $filePath);
-                $text = trim((string) $resp->getBody());
-                if ($text !== '') {
-                    if ($filePath === 'custom/build/custom.es6.js' && $text === $boilerplateEs6) { continue; }
-                    $siteFiles[$filePath] = $base . '/' . $filePath;
-                }
-            } catch (\Exception $e) {}
-        }
+            foreach ($siteFileKeys as $filePath) {
+                try {
+                    $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $filePath);
+                    $text = trim((string) $resp->getBody());
+                    if ($text !== '') {
+                        if ($filePath === 'custom/build/custom.es6.js' && $text === $boilerplateEs6) { continue; }
+                        $siteFiles[$filePath] = $base . '/' . $filePath;
+                    }
+                } catch (\Exception $e) {}
+            }
 
-        $filename = (isset($siteJson['metadata']['site']['name']) && $siteJson['metadata']['site']['name'] !== '')
-            ? $siteJson['metadata']['site']['name']
-            : basename($path);
+            $filename = (isset($siteJson['metadata']['site']['name']) && $siteJson['metadata']['site']['name'] !== '')
+                ? $siteJson['metadata']['site']['name']
+                : basename($path);
+        } catch (\Throwable $e) {
+            haxcms_import_unlink_staged_files(array_values($downloads));
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 500, 'data' => array('error' => 'Unable to import site', 'items' => array(), 'filename' => null)),
+                array('statusCode' => 500, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
 
         SiteRouteUtils::sendFormattedResponse(
             array('status' => 200, 'data' => array(

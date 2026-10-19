@@ -640,14 +640,29 @@ class ExportConverters
         return $raw;
     }
 
-    public static function htmlToDocxString($html = '')
+    public static function htmlToDocxString($html = '', $base = '/', $site = null, $remoteImageFetcher = null, $maxTotalImageBytes = null)
     {
         // PhpWord's HTML parser expects a fragment, not a full HTML document.
         // buildItemExportHtml/buildSiteExportHtml produce full documents, so
         // extract the <body> contents first to avoid parser warnings/errors on
         // <html>/<head>/<meta>/<title>.
         $bodyHtml = self::extractBodyInnerHtml($html);
-        $normalized = self::normalizeHtmlForDocumentExport($bodyHtml, '/', array(), 'docx');
+        $normalizedBase = '/';
+        if ($base != '') {
+            $normalizedBase = SiteRouteUtils::normalizeBasePath($base);
+        }
+        $normalized = self::normalizeHtmlForDocumentExport($bodyHtml, $normalizedBase, array(), 'docx');
+        // Security (SEC-SSRF): PhpWord's Html::parseImage hands every <img src>
+        // to a raw @file_get_contents() (remote URLs -> SSRF, local paths ->
+        // cross-site / arbitrary file read). Resolve every image to an inline
+        // data: URI here — site files via resolveLocalImageFile (realpath-
+        // contained in the site dir), remote http(s) via SsrfGuard with the
+        // byte cap — and drop everything else before PhpWord sees the HTML.
+        $siteDirectory = '';
+        if ($site !== null) {
+            $siteDirectory = SiteRouteUtils::getSiteDirectory($site);
+        }
+        $normalized = self::resolveDocxImageSources($normalized, $normalizedBase, $siteDirectory, $remoteImageFetcher, $maxTotalImageBytes);
         $tempDir = sys_get_temp_dir();
         if (!is_dir($tempDir) || !is_writable($tempDir)) {
             throw new Exception('DOCX export requires a writable temp directory');
@@ -678,6 +693,23 @@ class ExportConverters
      */
     public static function renderDocxFromHtml($html, $tempDir)
     {
+        // Security (SEC-SSRF): final gate. Whatever the caller passed, PhpWord
+        // only ever sees <img> elements whose src is an inline base64
+        // png/jpeg/gif data: URI; anything else is removed (null = the HTML
+        // would not parse for PhpWord either).
+        $html = self::enforceDocxImageSources((string) $html);
+        if ($html === null) {
+            return null;
+        }
+        // Security (SEC-SSRF): PhpWord writes each data: image to a temp file
+        // it never deletes. Point its temp dir at a private per-export
+        // directory and remove it afterwards.
+        $workDir = rtrim((string) $tempDir, '/') . '/haxcms_docx_' . bin2hex(random_bytes(8));
+        if (!@mkdir($workDir, 0700, true)) {
+            return null;
+        }
+        $previousPhpWordTemp = \PhpOffice\PhpWord\Settings::getTempDir();
+        \PhpOffice\PhpWord\Settings::setTempDir($workDir);
         $warnings = array();
         $previousHandler = set_error_handler(function ($severity, $message) use (&$warnings) {
             $warnings[] = $message;
@@ -694,7 +726,7 @@ class ExportConverters
             // was never present, so parseNode() received null and silently
             // produced an empty document (the bug behind blank DOCX exports).
             \PhpOffice\PhpWord\Shared\Html::addHtml($section, (string) $html, false);
-            $tmpDocx = tempnam($tempDir, 'haxcms_docx_') . '.docx';
+            $tmpDocx = $workDir . '/export.docx';
             $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
             $objWriter->save($tmpDocx);
             $docxContent = @file_get_contents($tmpDocx);
@@ -710,7 +742,286 @@ class ExportConverters
         finally {
             ob_end_clean();
             restore_error_handler();
+            \PhpOffice\PhpWord\Settings::setTempDir($previousPhpWordTemp === sys_get_temp_dir() ? '' : $previousPhpWordTemp);
+            self::removeDirectoryTree($workDir);
         }
+    }
+
+    /**
+     * Recursively delete a directory this class created (no symlink follow).
+     */
+    private static function removeDirectoryTree($dir)
+    {
+        if (!is_string($dir) || $dir === '' || !is_dir($dir) || is_link($dir)) {
+            return;
+        }
+        $entries = @scandir($dir);
+        if (is_array($entries)) {
+            foreach ($entries as $entry) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $path = $dir . '/' . $entry;
+                if (is_dir($path) && !is_link($path)) {
+                    self::removeDirectoryTree($path);
+                }
+                else {
+                    @unlink($path);
+                }
+            }
+        }
+        @rmdir($dir);
+    }
+
+    /**
+     * Security (SEC-SSRF): the only <img src> form PhpWord is allowed to see.
+     */
+    const DOCX_SAFE_IMAGE_SRC_PATTERN = '#^data:image/(png|jpeg|gif);base64,[A-Za-z0-9+/]+={0,2}$#';
+
+    /**
+     * Security (SEC-SSRF): total decoded image bytes one DOCX export may
+     * inline (50 MiB, parity with Node). Images past the budget are dropped
+     * (and not fetched), so a whole-site export cannot inline hundreds of
+     * 20 MiB images and exhaust memory_limit. Override per call via the
+     * $maxTotalImageBytes argument of htmlToDocxString /
+     * resolveDocxImageSources.
+     */
+    const DOCX_MAX_TOTAL_IMAGE_BYTES = 52428800; // 50 * 1024 * 1024
+
+    /**
+     * Security (SEC-SSRF): rewrite every <img> in an export HTML fragment so
+     * its src is an inline data: URI PhpWord can embed without any I/O of its
+     * own, and drop images that cannot be resolved safely:
+     *   - data:image/(png|jpeg|gif);base64 -> re-validated (decoded bytes must
+     *     be a real png/jpeg/gif) and re-encoded;
+     *   - http(s):// and protocol-relative // -> fetched through SsrfGuard
+     *     (private/reserved targets refused, IP pinned, redirects re-checked,
+     *     byte cap) and inlined;
+     *   - relative / site-absolute paths -> resolved with resolveLocalImageFile
+     *     (NUL/.. rejected, realpath-contained in the site dir, tries
+     *     <site>/<rel> then <site>/files/<rel>) and inlined. Absolute
+     *     filesystem paths such as /var/www/other-site/x.png are therefore
+     *     looked up INSIDE the site dir and normally dropped;
+     *   - any other scheme (file:, php:, phar:, ftp:, data:text/..., C:\...)
+     *     -> dropped.
+     * srcset/sizes are removed (PhpWord ignores them; nothing should fetch
+     * them). $remoteFetcher is an optional callable(url, maxBytes) returning
+     * the body (used by tests); it defaults to SsrfGuard::safeFileGetContents.
+     * Every inlined image (each occurrence) counts against
+     * $maxTotalImageBytes (default DOCX_MAX_TOTAL_IMAGE_BYTES); once the
+     * budget is spent, remaining images are dropped, and fetches/reads are
+     * capped at the remaining budget.
+     *
+     * @return string XHTML fragment (saveXML, as normalizeHtmlForDocumentExport)
+     */
+    public static function resolveDocxImageSources($html, $basePath = '/', $siteDirectory = '', $remoteFetcher = null, $maxTotalImageBytes = null)
+    {
+        $budget = (is_int($maxTotalImageBytes) && $maxTotalImageBytes >= 0)
+            ? $maxTotalImageBytes
+            : self::DOCX_MAX_TOTAL_IMAGE_BYTES;
+        if ((string) $html == '') {
+            return '';
+        }
+        $realSiteDir = '';
+        if (is_string($siteDirectory) && $siteDirectory !== '' && is_dir($siteDirectory)) {
+            $resolvedDir = realpath($siteDirectory);
+            if (is_string($resolvedDir) && $resolvedDir !== '') {
+                $realSiteDir = $resolvedDir;
+            }
+        }
+        $normalizedBase = SiteRouteUtils::normalizeBasePath($basePath);
+        $html5 = new \Masterminds\HTML5();
+        $doc = $html5->loadHTML('<div id="haxcms-docx-wrapper">' . (string) $html . '</div>');
+        $images = array();
+        foreach ($doc->getElementsByTagName('img') as $img) {
+            $images[] = $img;
+        }
+        $cache = array();
+        foreach ($images as $img) {
+            $img->removeAttribute('srcset');
+            $img->removeAttribute('sizes');
+            $src = $img->hasAttribute('src') ? trim((string) $img->getAttribute('src')) : '';
+            $dataUri = '';
+            if ($budget > 0) {
+                if (!array_key_exists($src, $cache)) {
+                    $perImageCap = min(SsrfGuard::DEFAULT_MAX_RESPONSE_BYTES, $budget);
+                    $cache[$src] = self::resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher, $perImageCap);
+                }
+                $dataUri = $cache[$src];
+            }
+            if ($dataUri !== '') {
+                // decoded size of this occurrence; drop it if over budget
+                $b64 = substr($dataUri, strpos($dataUri, ',') + 1);
+                $imageBytes = intdiv(strlen($b64), 4) * 3 - (strlen($b64) - strlen(rtrim($b64, '=')));
+                if ($imageBytes > $budget) {
+                    $dataUri = '';
+                }
+                else {
+                    $budget -= $imageBytes;
+                }
+            }
+            if ($dataUri === '') {
+                if ($img->parentNode) {
+                    $img->parentNode->removeChild($img);
+                }
+                continue;
+            }
+            $img->setAttribute('src', $dataUri);
+        }
+        $wrapper = $doc->getElementById('haxcms-docx-wrapper');
+        if (!$wrapper) {
+            return '';
+        }
+        $inner = '';
+        foreach ($wrapper->childNodes as $child) {
+            $inner .= $doc->saveXML($child);
+        }
+        return $inner;
+    }
+
+    /**
+     * Security (SEC-SSRF): resolve one <img src> to a validated data: URI, or
+     * '' when it must be dropped. See resolveDocxImageSources.
+     */
+    public static function resolveDocxImageDataUri($src, $normalizedBase, $realSiteDir, $remoteFetcher = null, $maxBytes = null)
+    {
+        $src = trim((string) $src);
+        if ($src === '' || strpos($src, chr(0)) !== false) {
+            return '';
+        }
+        $maxBytes = SsrfGuard::resolveMaxBytes($maxBytes);
+        // inline data: URI — only base64 png/jpeg/gif, re-validated
+        if (preg_match('#^data:#i', $src)) {
+            if (!preg_match('#^data:image/(png|jpe?g|gif);base64,([A-Za-z0-9+/=\s]+)$#i', $src, $m)) {
+                return '';
+            }
+            $bytes = base64_decode(preg_replace('/\s+/', '', $m[2]), true);
+            return self::docxImageBytesToDataUri($bytes, $maxBytes);
+        }
+        // remote http(s) or protocol-relative — through SsrfGuard only
+        if (preg_match('#^(https?:)?//#i', $src)) {
+            $url = (substr($src, 0, 2) === '//') ? 'https:' . $src : $src;
+            try {
+                if ($remoteFetcher !== null && is_callable($remoteFetcher)) {
+                    $bytes = call_user_func($remoteFetcher, $url, $maxBytes);
+                }
+                else {
+                    $bytes = SsrfGuard::safeFileGetContents($url, $maxBytes);
+                }
+            }
+            catch (Throwable $e) {
+                return '';
+            }
+            return self::docxImageBytesToDataUri($bytes, $maxBytes);
+        }
+        // any other scheme (file:, php:, phar:, ftp:, javascript:, C:\...)
+        if (preg_match('#^[a-z][a-z0-9+.\-]*:#i', $src) || strpos($src, '\\') !== false) {
+            return '';
+        }
+        // site-relative / relative path — must resolve inside the site dir
+        if ($realSiteDir === '') {
+            return '';
+        }
+        $path = preg_replace('/[?#].*$/s', '', $src);
+        $resolved = self::resolveLocalImageFile($path, $normalizedBase, $realSiteDir);
+        if ($resolved === '' && strpos($path, '%') !== false) {
+            $resolved = self::resolveLocalImageFile(rawurldecode($path), $normalizedBase, $realSiteDir);
+        }
+        if ($resolved === '') {
+            return '';
+        }
+        $size = @filesize($resolved);
+        if ($size === false || $size <= 0 || $size > $maxBytes) {
+            return '';
+        }
+        return self::docxImageBytesToDataUri(@file_get_contents($resolved), $maxBytes);
+    }
+
+    /**
+     * Security (SEC-SSRF): bytes -> data:image/(png|jpeg|gif);base64 URI when
+     * the bytes really are one of those image types, else ''.
+     */
+    public static function docxImageBytesToDataUri($bytes, $maxBytes = null)
+    {
+        if ($maxBytes === null) {
+            $maxBytes = SsrfGuard::DEFAULT_MAX_RESPONSE_BYTES;
+        }
+        if (!is_string($bytes) || $bytes === '' || strlen($bytes) > $maxBytes) {
+            return '';
+        }
+        $info = @getimagesizefromstring($bytes);
+        if (!is_array($info) || !isset($info[2])) {
+            return '';
+        }
+        $types = array(IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpeg', IMAGETYPE_GIF => 'gif');
+        if (!isset($types[$info[2]])) {
+            return '';
+        }
+        return 'data:image/' . $types[$info[2]] . ';base64,' . base64_encode($bytes);
+    }
+
+    /**
+     * Security (SEC-SSRF): last line of defence before PhpWord. Replays
+     * PhpWord Html::addHtml's own preprocessing (strip CR/LF, protect the four
+     * core entities, html_entity_decode, re-escape &) and loads the result
+     * with DOMDocument::loadXML exactly as PhpWord does, so the check sees the
+     * same tree PhpWord will walk — including any <img> smuggled in as
+     * numeric entities (&#60;img ...&#62;) that only PhpWord's decode turns
+     * into markup. Every element PhpWord would treat as an image (nodeName
+     * "img") must carry only src attributes matching
+     * DOCX_SAFE_IMAGE_SRC_PATTERN; otherwise it is removed and the fragment is
+     * re-serialised. Returns the (possibly rewritten) HTML, or null when it
+     * does not parse.
+     */
+    public static function enforceDocxImageSources($html)
+    {
+        $html = (string) $html;
+        $pre = str_replace(array("\n", "\r"), '', $html);
+        $pre = str_replace(array('&lt;', '&gt;', '&amp;', '&quot;'), array('_lt_', '_gt_', '_amp_', '_quot_'), $pre);
+        $pre = html_entity_decode($pre, ENT_QUOTES, 'UTF-8');
+        $pre = str_replace('&', '&amp;', $pre);
+        $pre = str_replace(array('_lt_', '_gt_', '_amp_', '_quot_'), array('&lt;', '&gt;', '&amp;', '&quot;'), $pre);
+        $dom = new DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $dom->loadXML('<body>' . $pre . '</body>', LIBXML_NONET);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if (!$loaded || !$dom->documentElement) {
+            return null;
+        }
+        $unsafe = array();
+        foreach ($dom->getElementsByTagName('*') as $el) {
+            if ($el->nodeName !== 'img') {
+                continue;
+            }
+            $hasSrc = false;
+            $ok = true;
+            foreach ($el->attributes as $attr) {
+                if ($attr->name !== 'src') {
+                    continue;
+                }
+                $hasSrc = true;
+                if (!preg_match(self::DOCX_SAFE_IMAGE_SRC_PATTERN, (string) $attr->value)) {
+                    $ok = false;
+                }
+            }
+            if (!$hasSrc || !$ok) {
+                $unsafe[] = $el;
+            }
+        }
+        if (count($unsafe) === 0) {
+            return $html;
+        }
+        foreach ($unsafe as $el) {
+            if ($el->parentNode) {
+                $el->parentNode->removeChild($el);
+            }
+        }
+        $out = '';
+        foreach ($dom->documentElement->childNodes as $child) {
+            $out .= $dom->saveXML($child);
+        }
+        return $out;
     }
 
     public static function htmlToMarkdown($html = '')

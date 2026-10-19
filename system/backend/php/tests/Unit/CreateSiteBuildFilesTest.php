@@ -217,6 +217,20 @@ class CreateSiteBuildFilesTest extends TestCase
         $this->assertSame(array(), preg_grep('/^haxbi_/', $this->stagedFiles()), 'the download is removed from staging');
     }
 
+    // Security (SEC-SSRF): a haxbi_* file staged by an importer in an earlier
+    // request is removed once createSite has ingested it.
+    public function testPreviouslyStagedRemoteFileIsRemovedAfterIngest(): void
+    {
+        $client = $this->mockClient(array(), $mock);
+        $staged = $this->stage('haxbi_0123abcd.png');
+        $keep = $this->stage('other-producer.png');
+        $this->assertTrue($this->importBuildFile('files/staged.png', $staged, $client));
+        $this->assertTrue($this->importBuildFile('files/kept.png', $keep, $client));
+        $this->assertInstanceOf(FileEntity::class, $this->entityAt('files/staged.png'));
+        $this->assertFileDoesNotExist($staged);
+        $this->assertFileExists($keep, 'non-haxbi staged inputs are left alone');
+    }
+
     public function testUppercaseSchemeIsStillTreatedAsAUrl(): void
     {
         $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);

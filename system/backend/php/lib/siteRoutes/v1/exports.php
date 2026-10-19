@@ -130,7 +130,7 @@ return function ($context) {
                         $output = ExportConverters::htmlToPdfString($siteHtml, $siteBasePath, $site);
                     }
                     else {
-                        $output = ExportConverters::htmlToDocxString($siteHtml);
+                        $output = ExportConverters::htmlToDocxString($siteHtml, $siteBasePath, $site);
                     }
                 }
             }
@@ -239,7 +239,7 @@ return function ($context) {
                 $output = ExportConverters::htmlToPdfString($itemHtml, $siteBasePath, $site);
             }
             else {
-                $output = ExportConverters::htmlToDocxString($itemHtml);
+                $output = ExportConverters::htmlToDocxString($itemHtml, $siteBasePath, $site);
             }
         }
             catch (Exception $e) {
