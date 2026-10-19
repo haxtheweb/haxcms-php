@@ -109,8 +109,30 @@ DirectoryIndex index.php index.html
   # Disable content sniffing, since it's an attack vector.
   Header always set X-Content-Type-Options nosniff
   
-  # Security: Force download of HTML files in files directories to prevent XSS  
-  # Direct approach using SetEnvIf to bypass .htaccess inheritance issues
-  SetEnvIfNoCase Request_URI "/files/.*\.html?$" force_html_download=1
-  Header always set Content-Disposition "attachment" env=force_html_download
+  # Security (SEC-UPLOAD): force-download browser-renderable markup uploaded
+  # under any /files/ directory (site files, system/user/files) so it can never
+  # execute inline as stored XSS in the site origin. Extensions (html, htm,
+  # xhtml, xml, svg; case-insensitive) match haxcms-nodejs app.js.
+  # The test uses an ap_expr <If> on %{REQUEST_URI}, which is r->uri: the
+  # path AFTER Apache has percent-decoded and normalised it, so encodings such
+  # as /files/x%2ehtml or /%66iles/x.html cannot bypass it, and it behaves the
+  # same whether this block lives in .htaccess or is copied into a vhost
+  # (SetEnvIf Request_URI in server context runs before decoding). The site's
+  # files/.htaccess (managed boilerplate) adds the same rule keyed on the
+  # on-disk filename for sites served from their own vhost/docroot.
+  # Requires AllowOverride FileInfo (or All) for this directory.
+  <IfModule mod_authz_core.c>
+    # Apache 2.4+ (<If> is 2.4-only; mod_authz_core is the existing 2.4 marker
+    # used throughout HAXcms .htaccess files).
+    <If "%{REQUEST_URI} =~ m#/files/.*\.(?:html?|xhtml|xml|svg)$#i">
+      Header always set Content-Disposition "attachment"
+      Header always set X-Content-Type-Options nosniff
+    </If>
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    # Apache 2.2 fallback. In .htaccess (per-directory) context SetEnvIf runs
+    # after URL decoding, so Request_URI is the decoded path here too.
+    SetEnvIfNoCase Request_URI "/files/.*\.(html?|xhtml|xml|svg)$" force_html_download=1
+    Header always set Content-Disposition "attachment" env=force_html_download
+  </IfModule>
 </IfModule>

@@ -310,8 +310,9 @@ class HAXCMSSystemStatusService
                 ),
             ),
         );
-        // Security (F5): nginx has no .htaccess equivalent, so the uploaded-HTML
-        // forced-download mitigation (Apache root .htaccess:112-115 / NodeJS
+        // Security (F5, SEC-UPLOAD): nginx has no .htaccess equivalent, so the
+        // uploaded-markup forced-download mitigation (Apache root .htaccess <If>
+        // + site files/.htaccess FilesMatch / NodeJS
         // app.js middleware / DDEV .ddev/nginx-site.conf) must be hand-applied
         // via the reference location block in scripts/nginx/haxcms-nginx.conf.
         // Without it, an uploaded .html under any /files/ tree renders inline as
@@ -322,7 +323,7 @@ class HAXCMSSystemStatusService
                 'tone' => 'warning',
                 'title' => 'Uploaded HTML XSS protection (nginx)',
                 'value' => 'Verify required',
-                'description' => 'nginx has no .htaccess; apply the reference location block from scripts/nginx/haxcms-nginx.conf so uploaded .html under /files/ is downloaded, not rendered inline: `location ~* /files/.*\\.html?$ { add_header Content-Disposition attachment; }`.',
+                'description' => 'nginx has no .htaccess; apply the reference location block from scripts/nginx/haxcms-nginx.conf so uploaded .html/.htm/.xhtml/.xml/.svg under /files/ is downloaded, not rendered inline. Place it before any other regex location matching these extensions: `location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$ { add_header Content-Disposition attachment always; add_header X-Content-Type-Options nosniff always; }`.',
             );
         }
         $gitVersion = isset($options['gitVersion']) && is_string($options['gitVersion'])
