@@ -33,8 +33,12 @@ trait OperationsRouteDownloadSite {
       $filtered = new DirFilter($directory, array('node_modules'));
       $files = new RecursiveIteratorIterator($filtered);
       foreach ($files as $name => $file) {
-        // Skip directories (they would be added automatically)
-        if (!$file->isDir()) {
+        // Skip directories (they would be added automatically) and symlinks.
+        // A scaffolded site links build, dist, wc-registry.json and the babel
+        // files to the multi-site root; those are multi-site plumbing, not
+        // site content, and a link's real path lies outside $rootPath so the
+        // relative name cut from it below would be wrong.
+        if (!$file->isDir() && !$file->isLink()) {
           // Get real and relative path for current file
           $filePath = $file->getRealPath();
           $relativePath = substr($filePath, strlen($rootPath) + 1);

@@ -402,6 +402,63 @@ class OperationsSiteLifecycleTest extends TestCase
         $this->assertGreaterThan(0, filesize($zipPath));
     }
 
+    public function testDownloadSiteZipLeavesSymlinksOut(): void
+    {
+        if (!class_exists('ZipArchive')) {
+            $this->markTestSkipped('ZipArchive extension not available');
+        }
+        $siteDir = $this->buildMinimalSiteFixture($this->siteName);
+        file_put_contents($siteDir . '/index.html', '<html><body>hello</body></html>');
+        @mkdir($siteDir . '/assets', 0777, true);
+        file_put_contents($siteDir . '/assets/logo.svg', '<svg/>');
+        @mkdir(HAXCMS_ROOT . '/_published', 0777, true);
+        // multi-site layout: shared assets live above the site directory and a
+        // scaffolded site links to them (HAXCMS::createSite)
+        @mkdir(HAXCMS_ROOT . '/build/es6', 0777, true);
+        file_put_contents(HAXCMS_ROOT . '/build/es6/x.js', 'x');
+        file_put_contents(HAXCMS_ROOT . '/wc-registry.json', '{}');
+        symlink('../../build', $siteDir . '/build');
+        symlink('../../dist', $siteDir . '/dist');
+        symlink('../../wc-registry.json', $siteDir . '/wc-registry.json');
+        // a link to a file whose real path is longer than the site's own path
+        // (the relative name in the zip is cut from that real path)
+        @mkdir(HAXCMS_ROOT . '/shared-assets-with-a-long-directory-name/babel', 0777, true);
+        file_put_contents(HAXCMS_ROOT . '/shared-assets-with-a-long-directory-name/babel/babel-top.js', 'bt');
+        symlink(
+            HAXCMS_ROOT . '/shared-assets-with-a-long-directory-name/babel/babel-top.js',
+            $siteDir . '/assets/babel-top.js'
+        );
+        // and one whose target sits outside this layout, so it dangles
+        symlink('../../../babel/babel-bottom.js', $siteDir . '/assets/babel-bottom.js');
+
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+
+        try {
+            $result = $this->ops->downloadSite();
+            $this->assertSame(200, $result['status']);
+            $zip = new ZipArchive();
+            $this->assertTrue(
+                $zip->open(HAXCMS_ROOT . '/_published/' . $this->siteName . '.zip') === true
+            );
+            $names = array();
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $names[] = $zip->getNameIndex($i);
+            }
+            $zip->close();
+            sort($names);
+            // only the real files, under their real names: a linked file used
+            // to be added from its resolved path, which gave it a mangled name
+            $this->assertSame(array('assets/logo.svg', 'index.html', 'site.json'), $names);
+        } finally {
+            // these sit outside _sites, so tearDown does not remove them
+            @unlink(HAXCMS_ROOT . '/wc-registry.json');
+            $this->rrmdir(HAXCMS_ROOT . '/build');
+            $this->rrmdir(HAXCMS_ROOT . '/shared-assets-with-a-long-directory-name');
+        }
+    }
+
     // =========================================================================
     // downloadSiteSkeleton
     // =========================================================================
