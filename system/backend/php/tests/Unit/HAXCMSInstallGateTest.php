@@ -145,7 +145,7 @@ class HAXCMSInstallGateTest extends TestCase
         ob_start();
         HAXCMSInstallGate::sendNotInstalledResponse();
         $out = ob_get_clean();
-        $this->assertSame(array('status' => 503, 'message' => 'HAXcms is not installed'), json_decode($out, true));
+        $this->assertSame(array('status' => 503, 'message' => 'HAXcms is not installed', 'code' => 'NOT_INSTALLED'), json_decode($out, true));
     }
 
     public function testApiEntryPointsAreGatedBeforeDispatch()

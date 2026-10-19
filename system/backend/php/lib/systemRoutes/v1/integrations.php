@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
+include_once dirname(__FILE__) . '/../../HAXCMSApiMessageCodes.php';
 if (!function_exists('haxcmsResolveIntegrationsSiteToken')) {
     function haxcmsResolveIntegrationsSiteToken()
     {
@@ -85,10 +86,10 @@ return function ($context) {
             print json_encode($response['__failed']['message']);
         }
         else {
-            print json_encode($response['__failed']);
+            print json_encode(HAXCMSApiMessageCodes::annotate($response['__failed'], $failedStatus));
         }
     }
     else {
-        print json_encode($response);
+        print json_encode(HAXCMSApiMessageCodes::annotate($response, $status));
     }
 };

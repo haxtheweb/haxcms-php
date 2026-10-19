@@ -73,14 +73,18 @@ trait OperationsRouteSaveManifest {
           $site->manifest->metadata->site->domain,
           ''
         );
-        $site->manifest->metadata->site->logo = filter_var(
-            $this->params['manifest']['site']['manifest-metadata-site-logo'],
-            FILTER_SANITIZE_URL
-        );
-        $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
-          $site->manifest->metadata->site->logo,
-          ''
-        );
+        // only update the logo when it came across; if it did not come across
+        // don't unset the existing value (matches the form-save contract above)
+        if (isset($this->params['manifest']['site']['manifest-metadata-site-logo'])) {
+          $site->manifest->metadata->site->logo = filter_var(
+              $this->params['manifest']['site']['manifest-metadata-site-logo'],
+              FILTER_SANITIZE_URL
+          );
+          $site->manifest->metadata->site->logo = SanitizeContent::sanitizeURLValue(
+            $site->manifest->metadata->site->logo,
+            ''
+          );
+        }
         $site->manifest->metadata->site->tags = filter_var(
           $this->params['manifest']['site']['manifest-metadata-site-tags'],
           FILTER_SANITIZE_FULL_SPECIAL_CHARS

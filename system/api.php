@@ -19,5 +19,6 @@ if (!SystemApiRouter::dispatch()) {
     print json_encode(array(
         'status' => 404,
         'message' => 'Unknown system API route',
+        'code' => 'ROUTE_NOT_FOUND',
     ));
 }
