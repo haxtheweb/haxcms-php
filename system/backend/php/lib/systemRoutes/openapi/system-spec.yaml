@@ -2900,6 +2900,20 @@ components:
           properties:
             message:
               type: string
+              description: English text of the message.
+            code:
+              type: string
+              pattern: '^[A-Z][A-Z0-9_]*$'
+              description: >
+                Stable message code from the shared HAXcms API code list
+                (@haxtheweb/haxcms-elements/lib/haxcms-api-codes.json). Clients
+                translate it with locales/haxcms-api.<lang>.json and fall back
+                to `message`.
+            params:
+              type: object
+              additionalProperties:
+                type: string
+              description: Values for the {placeholders} in the translated text.
     LoginRequest:
       type: object
       description: >

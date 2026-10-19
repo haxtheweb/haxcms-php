@@ -72,6 +72,7 @@ class HAXCMSInstallGate
         print json_encode(array(
             'status' => 503,
             'message' => 'HAXcms is not installed',
+            'code' => 'NOT_INSTALLED',
         ));
     }
 }
