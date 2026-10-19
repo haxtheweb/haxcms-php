@@ -164,6 +164,38 @@ class OperationsLoginTest extends TestCase
         $this->assertArrayNotHasKey('siteToken', $result);
     }
 
+    public function testLoginFromASiteContextAlsoReturnsSiteToken(): void
+    {
+        $this->haxcms->testLoginResult = true;
+        $this->haxcms->jwtValue = 'test-jwt-token';
+        $this->ops->params = array(
+            'username' => 'TestUser',
+            'password' => 'correctpass',
+            'site' => array('name' => 'my-site'),
+        );
+        $result = $this->ops->login();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('request-token:testuser', $result['userToken']);
+        $this->assertSame('request-token:testuser:my-site', $result['siteToken']);
+        // the request params are what site resolution sees
+        $this->assertSame('my-site', end($this->haxcms->sessionTokenBodies)['site']['name']);
+    }
+
+    public function testFailedLoginCarriesNoTokens(): void
+    {
+        $this->haxcms->testLoginResult = false;
+        $this->ops->params = array(
+            'username' => 'testuser',
+            'password' => 'wrong',
+            'site' => array('name' => 'my-site'),
+        );
+        $result = $this->ops->login();
+        $this->assertSame(401, $result['__failed']['status']);
+        $this->assertSame(array(), $this->haxcms->sessionTokenBodies);
+        $this->assertArrayNotHasKey('userToken', $result);
+        $this->assertArrayNotHasKey('siteToken', $result);
+    }
+
     public function testLoginValidCredentialsClearsRateLimitCache(): void
     {
         $this->haxcms->testLoginResult = true;
@@ -550,6 +582,19 @@ class LoginTestHaxcms
     public function getRequestToken($value = '')
     {
         return 'request-token:' . $value;
+    }
+
+    // SEC-SESSION: login returns the same request tokens as refresh /
+    // connection-test (siteToken only when a site context resolves)
+    public $sessionTokenBodies = array();
+    public function getSessionRequestTokens($user, $body = array())
+    {
+        $this->sessionTokenBodies[] = $body;
+        $tokens = array('userToken' => $this->getRequestToken($user));
+        if (is_array($body) && isset($body['site']['name']) && $body['site']['name'] !== '') {
+            $tokens['siteToken'] = $this->getRequestToken($user . ':' . $body['site']['name']);
+        }
+        return $tokens;
     }
 
     public function testLogin($username, $password, $fallback = true)
