@@ -160,13 +160,21 @@ trait OperationsRouteLogin {
     }
     // Security (SEC-SESSION): connection-settings omits request tokens for
     // anonymous callers and the editor loads it once per page, so hand the
-    // userToken back with the JWT for an in-page login (NodeJS parity). Bound
-    // to the authenticated principal, which is what getActiveUserName()
-    // resolves to on the editor's following Bearer requests.
-    return array(
-      "status" => 200,
-      "jwt" => $GLOBALS['HAXCMS']->getJWT($u),
-      "userToken" => $GLOBALS['HAXCMS']->getRequestToken($GLOBALS['HAXCMS']->generateMachineName($u)),
+    // request tokens back with the JWT for an in-page login (NodeJS parity):
+    // userToken always, siteToken when a site context resolves (body, path,
+    // Referer, single-site) -- the same shape refresh and connection-test
+    // return. Bound to the authenticated principal, which is what
+    // getActiveUserName() resolves to on the editor's following Bearer
+    // requests.
+    return array_merge(
+      array(
+        "status" => 200,
+        "jwt" => $GLOBALS['HAXCMS']->getJWT($u),
+      ),
+      $GLOBALS['HAXCMS']->getSessionRequestTokens(
+        $GLOBALS['HAXCMS']->generateMachineName($u),
+        is_array($this->params) ? $this->params : array()
+      )
     );
   }
   public function login() {

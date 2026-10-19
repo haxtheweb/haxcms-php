@@ -3468,10 +3468,15 @@ class HAXCMS
     /**
      * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
      * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
-     * 1/true/yes; any other non-empty value means false). Default FALSE until
-     * the front-end consumes the tokens returned by login/refresh/
-     * connection-test (see shouldIncludeRequestTokens). Parity with NodeJS
-     * HAXCMS.getRequireSessionForRequestTokens.
+     * 1/true/yes; any other non-empty value means false). Default TRUE: the
+     * front-end (webcomponents jwt-login / AppHaxBackendAPI / haxcms-backend-*)
+     * now stores the tokens returned by login, refresh and connection-test, so
+     * anonymous connection-settings loads no longer need them. Set the config
+     * value to false (or the env var to 0/false/no) to restore the old
+     * behaviour for a deployment still serving an older front-end build.
+     * Config: a boolean is used as-is, a non-empty string goes through the
+     * truthy list, anything else (unset, null, numbers) falls back to the
+     * default. Parity with NodeJS HAXCMS.getRequireSessionForRequestTokens.
      */
     public function getRequireSessionForRequestTokens() {
       $truthy = function ($value) {
@@ -3487,14 +3492,14 @@ class HAXCMS
         isset($this->config->security->requireSessionForRequestTokens)
       ) {
         $configured = $this->config->security->requireSessionForRequestTokens;
-        if ($configured === TRUE) {
-          return TRUE;
+        if (is_bool($configured)) {
+          return $configured;
         }
-        if (is_string($configured)) {
+        if (is_string($configured) && trim($configured) !== '') {
           return $truthy($configured);
         }
       }
-      return FALSE;
+      return TRUE;
     }
     /**
      * Security (SEC-SESSION): should connection-settings include siteToken /

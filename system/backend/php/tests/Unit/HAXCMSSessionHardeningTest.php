@@ -378,8 +378,8 @@ class HAXCMSSessionHardeningTest extends TestCase
         $this->assertNotSame('', $settings->siteToken);
     }
 
-    /** Turn on config->security->requireSessionForRequestTokens. */
-    private function requireSession(HAXCMS $h): HAXCMS
+    /** Set config->security->requireSessionForRequestTokens (default on). */
+    private function requireSession(HAXCMS $h, bool $value = true): HAXCMS
     {
         if (!isset($h->config) || !is_object($h->config)) {
             $h->config = new stdClass();
@@ -387,7 +387,7 @@ class HAXCMSSessionHardeningTest extends TestCase
         if (!isset($h->config->security) || !is_object($h->config->security)) {
             $h->config->security = new stdClass();
         }
-        $h->config->security->requireSessionForRequestTokens = true;
+        $h->config->security->requireSessionForRequestTokens = $value;
         return $h;
     }
 
@@ -398,11 +398,21 @@ class HAXCMSSessionHardeningTest extends TestCase
         $this->assertNoTokens($h->appJWTConnectionSettings('/'));
     }
 
-    public function testConnectionSettingsIncludesTokensForAnonymousCallerByDefault(): void
+    public function testConnectionSettingsOmitsTokensForAnonymousCallerByDefault(): void
     {
-        // flag off (default): pre-existing behaviour so the shipped front-end,
-        // which loads connection-settings once before login, keeps working.
+        // flag on by default: the front-end stores the tokens login / refresh /
+        // connection-test return, so anonymous loads get none.
         $h = $this->fullHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $this->assertSame('session-required', $h->shouldIncludeRequestTokens()['reason']);
+        $this->assertNoTokens($h->appJWTConnectionSettings('/'));
+    }
+
+    public function testConnectionSettingsIncludesTokensForAnonymousCallerWhenOptedOut(): void
+    {
+        // flag off (opt-out for a deployment on an older front-end build):
+        // pre-existing behaviour, anonymous loads get the tokens.
+        $h = $this->requireSession($this->fullHaxcms(), false);
         $GLOBALS['HAXCMS'] = $h;
         $this->assertSame('anonymous-allowed', $h->shouldIncludeRequestTokens()['reason']);
         $this->assertTokens($h, $h->appJWTConnectionSettings('/'), 'alice');
@@ -439,9 +449,7 @@ class HAXCMSSessionHardeningTest extends TestCase
     {
         $h = $this->fullHaxcms();
         $GLOBALS['HAXCMS'] = $h;
-        if ($flag) {
-            $this->requireSession($h);
-        }
+        $this->requireSession($h, $flag);
         if ($auth) {
             $h->sessionJwt = $h->getJWT('alice');
         }
@@ -465,9 +473,10 @@ class HAXCMSSessionHardeningTest extends TestCase
         try {
             putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
             $h = $this->bareHaxcms();
-            $this->assertFalse($h->getRequireSessionForRequestTokens(), 'default off');
+            $this->assertTrue($h->getRequireSessionForRequestTokens(), 'default on');
             $h->config->security = new stdClass();
-            foreach (array(array(true, true), array('yes', true), array('TRUE', true), array('1', true), array('no', false), array('off', false), array(1, false)) as $pair) {
+            $this->assertTrue($h->getRequireSessionForRequestTokens(), 'unset -> default on');
+            foreach (array(array(true, true), array(false, false), array('yes', true), array('TRUE', true), array('1', true), array('no', false), array('off', false), array('false', false), array('  ', true), array(1, true), array(0, true), array(null, true)) as $pair) {
                 list($v, $want) = $pair;
                 $h->config->security->requireSessionForRequestTokens = $v;
                 $this->assertSame($want, $h->getRequireSessionForRequestTokens(), 'config ' . var_export($v, true));
