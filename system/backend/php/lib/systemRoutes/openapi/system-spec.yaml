@@ -757,7 +757,7 @@ paths:
       summary: Return system entity descriptors and links
       description: >
         Returns the full merged set of entity descriptors sourced from the
-        single entities.yaml registry (EntityRegistry::getDefinitions()).
+        single entities.yaml registry (EntityRegistry getDefinitions()).
         Both /x/api/v1/entities and /system/api/v1/entities read from the same
         registry, so the API surface and the in-code object are one shape.
         Optional ?scope=site|system filters the merged set by scope. Each
@@ -2937,7 +2937,7 @@ components:
       description: >
         Collection of entity descriptors returned by /system/api/v1/entities
         (and /x/api/v1/entities). Both endpoints read from the single merged
-        entities.yaml registry via EntityRegistry::getDefinitions().
+        entities.yaml registry via EntityRegistry getDefinitions().
       properties:
         count:
           type: integer
