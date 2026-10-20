@@ -1,0 +1,73 @@
+name: sbom
+# CycloneDX SBOM for the PHP backend, generated from
+# system/backend/php/composer.lock (haxtheweb/issues#3092).
+#  - pull_request / workflow_dispatch: generate and upload as a workflow artifact
+#  - release published: additionally attach sbom.cdx.json to that GitHub release
+on:
+  pull_request:
+    paths:
+      - "system/backend/php/composer.json"
+      - "system/backend/php/composer.lock"
+      - ".github/workflows/sbom.yml"
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  generate:
+    name: Generate CycloneDX SBOM
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: system/backend/php
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - name: Install CycloneDX composer plugin (global, pinned)
+        # Installed globally so the project's composer.json / composer.lock are
+        # not modified. Plugins must be explicitly allowed in non-interactive CI.
+        run: |
+          composer global config --no-interaction allow-plugins.cyclonedx/cyclonedx-php-composer true
+          composer global require --no-interaction --no-progress cyclonedx/cyclonedx-php-composer:6.2.0
+      - name: Generate SBOM (production dependencies only)
+        run: |
+          composer CycloneDX:make-sbom --no-interaction \
+            --output-format=JSON --spec-version=1.6 --omit=dev \
+            --output-file="$RUNNER_TEMP/sbom.cdx.json" --validate \
+            composer.json
+      - name: Show SBOM summary
+        run: |
+          php -r '$j=json_decode(file_get_contents(getenv("RUNNER_TEMP")."/sbom.cdx.json"),true); echo $j["bomFormat"]," ",$j["specVersion"],": ",count($j["components"] ?? [])," components\n";'
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v7 # major tag: full-SHA pin could not be verified from this environment
+        with:
+          name: sbom-cyclonedx
+          path: ${{ runner.temp }}/sbom.cdx.json
+          if-no-files-found: error
+
+  attach:
+    name: Attach SBOM to release
+    if: github.event_name == 'release'
+    needs: generate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to upload release assets; only this job has it
+    steps:
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v8 # major tag: full-SHA pin could not be verified from this environment
+        with:
+          name: sbom-cyclonedx
+      - name: Upload SBOM to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: gh release upload "$TAG" sbom.cdx.json --repo "$REPO" --clobber
