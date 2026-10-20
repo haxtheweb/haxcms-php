@@ -1,0 +1,80 @@
+name: release
+# Populates GitHub release notes and publishes SHA256SUMS for a source archive
+# (haxtheweb/issues#3092). Releases are currently cut by hand: `yarn release`
+# (commit-and-tag-version + git push --follow-tags) and then a release is
+# created in the GitHub UI, which has shipped with an empty body (26.8.2).
+#
+# This workflow handles both orders:
+#   - tag pushed, no release yet  -> creates the release with generated notes
+#   - release published (UI)      -> fills the body ONLY if it is empty
+# A non-empty, hand-written release body is never overwritten.
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)process, e.g. 26.8.2"
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  notes-and-checksums:
+    name: Release notes + SHA256SUMS
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create/edit the release and upload assets
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+    steps:
+      - name: Validate tag name
+        run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Refusing unexpected tag name: $TAG" >&2
+            exit 1
+          fi
+      - name: Checkout tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
+          persist-credentials: false
+      - name: Generate release notes
+        run: |
+          gh api --method POST "repos/$REPO/releases/generate-notes" \
+            -f tag_name="$TAG" --jq .body > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "Generated notes were empty; falling back to a compare link." >&2
+            echo "Full changelog: https://github.com/$REPO/commits/$TAG" > "$RUNNER_TEMP/notes.md"
+          fi
+          cat "$RUNNER_TEMP/notes.md"
+      - name: Create release or fill an empty body
+        run: |
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            body=$(gh release view "$TAG" --repo "$REPO" --json body --jq .body)
+            if [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
+              gh release edit "$TAG" --repo "$REPO" --notes-file "$RUNNER_TEMP/notes.md"
+            else
+              echo "Release $TAG already has a body; leaving it untouched."
+            fi
+          else
+            gh release create "$TAG" --repo "$REPO" --verify-tag \
+              --title "${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+      - name: Build source archive and SHA256SUMS
+        run: |
+          mkdir -p "$RUNNER_TEMP/dist"
+          name="haxcms-php-${TAG#v}"
+          git archive --format=tar.gz --prefix="$name/" -o "$RUNNER_TEMP/dist/$name.tar.gz" "refs/tags/$TAG"
+          (cd "$RUNNER_TEMP/dist" && sha256sum "$name.tar.gz" > SHA256SUMS && cat SHA256SUMS)
+      - name: Upload archive and SHA256SUMS
+        run: gh release upload "$TAG" "$RUNNER_TEMP"/dist/* --repo "$REPO" --clobber
