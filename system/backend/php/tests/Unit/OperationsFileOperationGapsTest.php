@@ -249,6 +249,10 @@ class OperationsFileOperationGapsTest extends TestCase
 
     public function testDeleteFailsWith500WhenDirectoryNotWritable(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         chmod($this->siteRoot . '/files', 0555);
         $result = $this->runOp('delete', array('path' => 'files/test.txt'));
         $this->assertSame(500, $result['__failed']['status']);
@@ -258,6 +262,10 @@ class OperationsFileOperationGapsTest extends TestCase
 
     public function testRenameFailsWith500WhenDirectoryNotWritable(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         chmod($this->siteRoot . '/files', 0555);
         $result = $this->runOp('rename', array(
             'path' => 'files/test.txt',
@@ -270,6 +278,10 @@ class OperationsFileOperationGapsTest extends TestCase
 
     public function testDuplicateFailsWith500WhenDirectoryNotWritable(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         chmod($this->siteRoot . '/files', 0555);
         $result = $this->runOp('duplicate', array('path' => 'files/test.txt'));
         $this->assertSame(500, $result['__failed']['status']);

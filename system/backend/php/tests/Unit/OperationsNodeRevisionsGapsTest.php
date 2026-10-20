@@ -503,6 +503,10 @@ class OperationsNodeRevisionsGapsTest extends TestCase
 
     public function testUnreadableGitDirectoryReturns500ForList(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         chmod($this->siteRoot . '/.git', 0000);
         try {
             $result = $this->runRevisions('getNodeRevisions', 'item-a');
@@ -514,6 +518,10 @@ class OperationsNodeRevisionsGapsTest extends TestCase
 
     public function testUnreadableGitDirectoryReturns500ForGet(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         chmod($this->siteRoot . '/.git', 0000);
         try {
             $result = $this->runRevisions('getNodeRevision', 'item-a', array(
@@ -769,6 +777,10 @@ class OperationsNodeRevisionsGapsTest extends TestCase
 
     public function testRestoreToReadOnlySiteReturns500FailedWriting(): void
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         // writeLocation() returns file_put_contents() verbatim: an unwritable
         // page file makes it false -> 'Failed writing restored revision'
         $pageFile = $this->siteRoot . '/pages/item-a/index.html';
