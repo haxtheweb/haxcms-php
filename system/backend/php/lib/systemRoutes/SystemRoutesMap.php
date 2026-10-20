@@ -41,6 +41,9 @@ class SystemRoutesMap
             'v1/skeletons',
             'v1/skeletons/:skeletonName',
             'v1/themes',
+            'v1/languages',
+            'v1/languages/:code',
+            'v1/languages/:code/translations',
         );
     }
 
@@ -129,6 +132,9 @@ class SystemRoutesMap
                 'v1/skeletons' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/skeletons/:skeletonName' => dirname(__FILE__) . '/v1/settings.php',
                 'v1/themes' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/languages' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/languages/:code' => dirname(__FILE__) . '/v1/settings.php',
+                'v1/languages/:code/translations' => dirname(__FILE__) . '/v1/settings.php',
             ),
             'POST' => array(
                 'v1/session/login' => dirname(__FILE__) . '/v1/session.php',

@@ -37,6 +37,7 @@ trait OperationsMethods {
   use OperationsRouteFileOpsRateLimit;
   use OperationsRouteSkeletonsList;
   use OperationsRouteThemesList;
+  use OperationsRouteLanguages;
   use OperationsRouteGetSkeleton;
   use OperationsRouteListSites;
   use OperationsRouteCreateSite;

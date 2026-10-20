@@ -470,6 +470,31 @@ return function ($context) {
             );
         }
     }
+    else if ($route === 'v1/languages') {
+        if ($method === 'GET') {
+            $response = $operations->languagesList();
+        }
+        else {
+            $response = array('status' => 405, 'data' => 'Method not allowed');
+        }
+    }
+    else if (
+        $route === 'v1/languages/:code' ||
+        $route === 'v1/languages/:code/translations' ||
+        preg_match('/^v1\\/languages\\/[^\\/]+(\\/translations)?$/', $route) === 1
+    ) {
+        $isTranslations = (substr($route, -13) === '/translations');
+        $operations->params['code'] = isset($context->params['code']) ? $context->params['code'] : '';
+        $operations->rawParams['code'] = $operations->params['code'];
+        if ($method === 'GET') {
+            $response = $isTranslations
+                ? $operations->languageTranslations()
+                : $operations->getLanguage();
+        }
+        else {
+            $response = array('status' => 405, 'data' => 'Method not allowed');
+        }
+    }
     else {
         SiteRouteUtils::sendFormattedResponse(
             array('message' => 'Unknown settings route'),
