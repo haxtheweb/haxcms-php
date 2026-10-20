@@ -2785,6 +2785,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /system/api/v1/site/import/openstax:
+    post:
+      tags:
+        - actions
+      operationId: openstaxToSite
+      summary: Import an OpenStax textbook as a new site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                  description: >-
+                    OpenStax book URL, either
+                    https://openstax.org/details/books/<slug> or
+                    https://openstax.org/books/<slug>/pages/<page-slug>
+              required:
+                - repoUrl
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/site/import/{platform}:
     post:
       tags:
