@@ -37,6 +37,12 @@
     {
       "enabled": false,
       "matchUpdateTypes": ["digest"]
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "pinDigests": true,
+      "enabled": true,
+      "matchUpdateTypes": ["pinDigest", "digest"]
     }
   ]
 }
