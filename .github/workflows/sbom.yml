@@ -47,7 +47,7 @@ jobs:
         run: |
           php -r '$j=json_decode(file_get_contents(getenv("RUNNER_TEMP")."/sbom.cdx.json"),true); echo $j["bomFormat"]," ",$j["specVersion"],": ",count($j["components"] ?? [])," components\n";'
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v7 # major tag: full-SHA pin could not be verified from this environment
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom-cyclonedx
           path: ${{ runner.temp }}/sbom.cdx.json
@@ -62,7 +62,7 @@ jobs:
       contents: write # required to upload release assets; only this job has it
     steps:
       - name: Download SBOM artifact
-        uses: actions/download-artifact@v8 # major tag: full-SHA pin could not be verified from this environment
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: sbom-cyclonedx
       - name: Upload SBOM to release
