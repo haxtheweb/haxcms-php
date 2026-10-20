@@ -10,7 +10,7 @@
     else if (document.location.pathname.indexOf('/sites/') != -1) {
       document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
     }
-    else if (globalThis.location.host.indexOf('github.io') != -1 && globalThis.location.pathname.split('/').length > 1) {
+    else if (/(^|\.)github\.io$/.test(globalThis.location.hostname) && globalThis.location.pathname.split('/').length > 1) {
       document.write("<base href='/" + document.location.pathname.split('/')[1] + "/' />");
     }
     else {

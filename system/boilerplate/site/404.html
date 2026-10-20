@@ -27,7 +27,7 @@
       // account for top level sub-domain on github vs 1 level folder in.
       // this has issues w/ org.github.io/dir/project but will resolve org.github.io from /project
       // this will still choke on org/github.io/project/post/deeper/nesting so a build routine would help
-      if (window.location.host.indexOf('github.io') != -1 && window.location.pathname.split('/').length > 2) {
+      if (/(^|\.)github\.io$/.test(window.location.hostname) && window.location.pathname.split('/').length > 2) {
         segmentCount = 1;
       }
       var l = window.location;
