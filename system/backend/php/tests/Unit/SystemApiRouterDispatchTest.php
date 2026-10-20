@@ -285,6 +285,43 @@ final class SystemApiRouterDispatchTest extends TestCase
         );
     }
 
+    public function testDispatchSkeletonReadsStillRequireAuthentication(): void
+    {
+        $GLOBALS['HAXCMS']->basicAuthResult = array('authenticated' => false);
+        foreach (array('GET', 'POST') as $method) {
+            list($result, $output) = $this->runDispatch('/system/api/v1/skeletons', $method);
+            $this->assertTrue($result);
+            $decoded = json_decode($output, true);
+            $this->assertSame(401, $decoded['status'], $method);
+            $this->assertSame('Authentication required', $decoded['data']['message'], $method);
+        }
+    }
+
+    public function testDispatchSkeletonReadsRejectInvalidBearer(): void
+    {
+        $GLOBALS['HAXCMS']->bearerToken = 'expired-jwt';
+        $GLOBALS['HAXCMS']->bearerTokenUserName = '';
+        list($result, $output) = $this->runDispatch('/system/api/v1/skeletons', 'GET');
+        $this->assertTrue($result);
+        $decoded = json_decode($output, true);
+        $this->assertSame(403, $decoded['status']);
+        $this->assertSame('Invalid bearer token', $decoded['data']['message']);
+    }
+
+    public function testDispatchSkeletonPatchStillRequiresUserTokenHeader(): void
+    {
+        $GLOBALS['HAXCMS']->bearerToken = 'valid-jwt';
+        $GLOBALS['HAXCMS']->bearerTokenUserName = 'admin';
+        list($result, $output) = $this->runDispatch('/system/api/v1/skeletons', 'PATCH');
+        $this->assertTrue($result);
+        $decoded = json_decode($output, true);
+        $this->assertSame(403, $decoded['status']);
+        $this->assertSame(
+            'X-HAXCMS-User-Token header is required for this endpoint',
+            $decoded['data']['message']
+        );
+    }
+
     public function testDispatchReturns403ForInvalidUserTokenHeader(): void
     {
         list($result, $output) = $this->runDispatch('/system/api/v1/system/version', 'GET', array(

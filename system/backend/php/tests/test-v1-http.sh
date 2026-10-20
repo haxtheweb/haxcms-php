@@ -100,6 +100,9 @@ test_endpoint "GET" "/system/api/v1/themes" "200" "Themes list with Bearer token
         "-H \"Authorization: Bearer ${JWT}\""
 test_endpoint "GET" "/system/api/v1/skeletons" "200" "Skeletons list with Bearer token" \
         "-H \"Authorization: Bearer ${JWT}\""
+test_endpoint "POST" "/system/api/v1/skeletons" "200" "Skeletons list (POST alias) with Bearer token, no user token" \
+        "-H \"Authorization: Bearer ${JWT}\""
+test_endpoint "POST" "/system/api/v1/skeletons" "401" "Skeletons list (POST alias) without auth returns 401"
 
     # 6. Site API discovery (read-only, no auth)
 test_endpoint "GET" "/x/api" "200" "Site API discovery"
