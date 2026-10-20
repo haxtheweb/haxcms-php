@@ -54,7 +54,9 @@ if (!function_exists('haxcmsSystemSettingsRequiresUserTokenHeader')) {
         // OpenAPI spec (security alignment). The dispatcher feeds the client
         // X-HAXCMS-User-Token header into params['user_token'] for these reads
         // so the handler validateRequestToken checks validate the actual client
-        // header. Skeleton/theme/block reads stay bearer-only (D10).
+        // header. Skeleton list reads (GET/POST /skeletons and GET
+        // /skeletons/{name}) stay bearer-only (D10): the spec declares only
+        // bearerAuth for them (haxtheweb/issues#3168 item 2).
         if ($normalizedMethod === 'GET' || $normalizedMethod === 'POST') {
             $readRoutesGetPost = array(
                 'v1/status',
@@ -136,8 +138,8 @@ return function ($context) {
     }
     $route = $context->routeSuffix;
     $method = $context->method;
-    // D10/D59 + system-dashboard-write directive: skeleton/theme/block reads
-    // are bearer-only (no X-HAXCMS-User-Token), so keep the legacy
+    // D10/D59 + system-dashboard-write directive: skeleton reads are
+    // bearer-only (no X-HAXCMS-User-Token), so keep the legacy
     // server-resolved token for reads + out-of-scope routes so the handlers'
     // internal validateRequestToken checks stay satisfied (bearer-only -> 200).
     // Every system-dashboard write (toggles, schema-file operations, skeleton

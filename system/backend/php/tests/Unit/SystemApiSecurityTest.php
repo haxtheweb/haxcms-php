@@ -602,6 +602,21 @@ class SystemApiSecurityTest extends TestCase
             $this->assertFalse($map['POST:v1/session/login']);
         }
     }
+    public function testSkeletonReadsAreBearerOnlyInPolicyMap(): void
+    {
+        // Issue haxtheweb/issues#3168 item 2: skeleton list reads (GET and the
+        // POST read alias) are bearer-only, matching NodeJS and D10.
+        $map = SystemApiSecurity::getSystemUserTokenPolicyMap();
+        $this->assertArrayHasKey('GET:v1/skeletons', $map);
+        $this->assertFalse($map['GET:v1/skeletons']);
+        $this->assertArrayHasKey('POST:v1/skeletons', $map);
+        $this->assertFalse($map['POST:v1/skeletons']);
+        $this->assertFalse($map['GET:v1/skeletons/:skeletonName']);
+        // Writes are NOT loosened: detail mutations still need the user token.
+        $this->assertTrue($map['PATCH:v1/skeletons/:skeletonName']);
+        $this->assertTrue($map['PATCH:v1/skeletons']);
+    }
+
     public function testGetSystemUserTokenPolicyMapIsCached(): void
     {
         $this->assertSame(

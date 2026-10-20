@@ -701,6 +701,24 @@ class SystemRoutesSettingsTest extends TestCase
         $this->assertSame(array(), $result['data']['data']);
     }
 
+    public function testSkeletonsGetAndPostSucceedWithoutUserTokenHeader(): void
+    {
+        // haxtheweb/issues#3168 item 2: skeleton list reads are bearer-only.
+        // No X-HAXCMS-User-Token is sent; the handler validates the
+        // server-resolved token instead (NodeJS parity).
+        unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']);
+        $this->assertFalse(haxcmsSystemSettingsRequiresUserTokenHeader('v1/skeletons', 'GET'));
+        $this->assertFalse(haxcmsSystemSettingsRequiresUserTokenHeader('v1/skeletons', 'POST'));
+        $this->assertFalse(haxcmsSystemSettingsRequiresUserTokenHeader('v1/skeletons/my-skel', 'GET'));
+        // Writes still require the header.
+        $this->assertTrue(haxcmsSystemSettingsRequiresUserTokenHeader('v1/skeletons', 'PATCH'));
+        foreach (array('GET', 'POST') as $method) {
+            $result = $this->runHandler('v1/skeletons', $method);
+            $this->assertSame(200, $result['data']['status'], $method);
+            $this->assertSame(array(), $result['data']['data'], $method);
+        }
+    }
+
     public function testSkeletonsGetListsDiscoveredSkeletonsAndPersistsDefaults(): void
     {
         $this->writeSkeletonFixture('my-skel', array(
