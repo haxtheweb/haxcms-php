@@ -512,7 +512,10 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
         if (is_array($configJson)) {
           if (!isset($configJson['localization']) || !is_array($configJson['localization'])) {
             $configJson['localization'] = array();
-            $configJson['localization']['defaultLanguage'] = $selectedLanguage;
+            // store the canonical registry code (zh_CN -> zh-CN, iw -> he);
+            // anything the registry does not know is kept as the installer got it
+            $canonicalLanguage = HAXCMSLocalizationSettingsService::normalizeDefaultLanguageValue($selectedLanguage);
+            $configJson['localization']['defaultLanguage'] = $canonicalLanguage !== null ? $canonicalLanguage : $selectedLanguage;
             file_put_contents($configJsonPath, json_encode($configJson, JSON_PRETTY_PRINT) . PHP_EOL, LOCK_EX);
           }
         }
@@ -812,6 +815,8 @@ $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
     <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-button-lite.js" crossorigin="anonymous">
     <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/git-corner/git-corner.js" crossorigin="anonymous">
     <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/hax-app-installer/hax-app-installer.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-language-picker.js" crossorigin="anonymous">
+    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/i18n-manager/lib/LanguageRegistry.js" crossorigin="anonymous">
     <style>
       /*
         Installer bootstrap styling. The hax-app-installer element provides

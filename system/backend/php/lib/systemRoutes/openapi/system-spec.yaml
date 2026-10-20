@@ -1415,6 +1415,155 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /system/api/v1/languages:
+    get:
+      tags:
+        - settings
+      operationId: systemLanguagesGet
+      summary: List supported languages
+      description: |
+        The canonical language registry (the same languages.json the installer,
+        settings screens and CLI use). `regions` controls which regional
+        variants (en-GB, pt-BR...) are included.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      parameters:
+        - name: regions
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, featured, none]
+            default: all
+      responses:
+        "200":
+          description: Supported languages, sorted by English name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LanguageRecord"
+                additionalProperties: true
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/languages/{code}:
+    get:
+      tags:
+        - settings
+      operationId: systemLanguageGet
+      summary: Get one supported language
+      description: |
+        Accepts a canonical code or an alias / underscore form (zh_CN, iw).
+        The returned `code` is always canonical.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The language
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/LanguageRecord"
+                additionalProperties: true
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /system/api/v1/languages/{code}/translations:
+    get:
+      tags:
+        - settings
+      operationId: systemLanguageTranslationsGet
+      summary: Get translated strings for a language
+      description: |
+        Every translated string for the language, grouped by element
+        namespace (for translators, review tooling and LLMs). A full language
+        is several hundred KB; use `namespace` to fetch a single element.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          description: Only this element, e.g. video-player (its UI and schema strings)
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          description: ui = element UI strings, schema = HAX editor strings
+          schema:
+            type: string
+            enum: [all, ui, schema]
+            default: all
+      responses:
+        "200":
+          description: Translations for the language
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      language:
+                        $ref: "#/components/schemas/LanguageRecord"
+                      locale:
+                        type: string
+                      count:
+                        type: integer
+                      namespaces:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            namespace:
+                              type: string
+                            package:
+                              type: string
+                            type:
+                              type: string
+                              enum: [ui, schema]
+                            file:
+                              type: string
+                            strings:
+                              type: object
+                              additionalProperties: true
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /system/api/v1/themes:
     get:
       tags:
@@ -3204,6 +3353,37 @@ components:
           type: integer
         enabled:
           type: boolean
+      additionalProperties: true
+    LanguageRecord:
+      type: object
+      description: One entry of the canonical language registry (languages.json)
+      properties:
+        code:
+          type: string
+          description: Canonical code that gets stored (en, pt-BR, zh-CN)
+        name:
+          type: string
+        nativeName:
+          type: string
+        locale:
+          type: string
+          description: Translation file suffix (zh-CN loads zh files)
+        dir:
+          type: string
+          enum: [ltr, rtl]
+        parent:
+          type: string
+          description: Present on regional variants (en-GB -> en)
+        featured:
+          type: boolean
+        popular:
+          type: integer
+          description: Rank 1-10 for the most common languages
+        aliases:
+          type: array
+          items:
+            type: string
+      required: [code, name, nativeName, locale, dir]
       additionalProperties: true
     ThemeRecord:
       type: object
