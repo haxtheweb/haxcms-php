@@ -486,12 +486,41 @@ class OperationsCreateSiteTest extends TestCase
         );
         // best-effort: the site is still created, warnings ride the response
         $this->assertSame(200, $result['status']);
-        $this->assertArrayHasKey('warnings', $result);
-        $warnings = $result['warnings'];
+        // warnings live on data (like Node), not on the envelope
+        $this->assertArrayNotHasKey('warnings', $result);
+        $this->assertTrue(isset($result['data']->warnings));
+        $warnings = $result['data']->warnings;
         $this->assertSame('evil.php', $warnings[0]['file']);
         $this->assertSame('Disallowed file extension in build.files', $warnings[0]['reason']);
         $this->assertSame('note.txt', $warnings[1]['file']);
         $this->assertSame('Invalid bulk import source path in build.files', $warnings[1]['reason']);
+        // the normal data fields are still present alongside warnings
+        $this->assertNotEmpty($result['data']->id);
+        $this->assertNotEmpty($result['data']->slug);
+        // nothing leaked into site.json
+        $this->assertStringNotContainsString('warnings', file_get_contents($this->siteDir() . '/site.json'));
+        // and the JSON response body carries data.warnings
+        $encoded = json_decode(json_encode($result), true);
+        $this->assertCount(2, $encoded['data']['warnings']);
+    }
+
+    public function testNoWarningsWhenNoBuildFileIsSkipped(): void
+    {
+        $result = $this->runCreateSite(
+            array('name' => 'New Site', 'theme' => 'my-theme'),
+            array(
+                'structure' => 'course',
+                'type' => 'own',
+                'files' => array(),
+            )
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertArrayNotHasKey('warnings', $result);
+        $this->assertFalse(isset($result['data']->warnings));
+        $encoded = json_decode(json_encode($result), true);
+        $this->assertArrayNotHasKey('warnings', $encoded['data']);
+        $this->assertArrayHasKey('slug', $encoded['data']);
+        $this->assertStringNotContainsString('warnings', file_get_contents($this->siteDir() . '/site.json'));
     }
 
     // =========================================================================
