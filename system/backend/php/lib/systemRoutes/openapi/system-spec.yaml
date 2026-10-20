@@ -3298,7 +3298,9 @@ components:
       type: object
       description: >
         Created site schema record returned by createSite. A JSONOutlineSchemaItem
-        with id, title, location, slug, and metadata.
+        with id, title, location, slug, and metadata. When build.files entries
+        are skipped during best-effort ingestion, a `warnings` array of
+        {file, reason} objects is included detailing each skipped entry.
       properties:
         id:
           type: string
@@ -3311,6 +3313,14 @@ components:
         metadata:
           type: object
           additionalProperties: true
+        warnings:
+          type: array
+          description: >
+            Present only when one or more build.files entries were skipped
+            during best-effort ingestion. Each entry is {file, reason}.
+          items:
+            type: object
+            additionalProperties: true
       additionalProperties: true
     SkeletonRecord:
       type: object

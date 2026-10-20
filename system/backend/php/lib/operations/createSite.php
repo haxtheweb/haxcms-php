@@ -501,24 +501,23 @@ trait OperationsRouteCreateSite {
           );
       }
       // build the success response. Best-effort file-ingest warnings are
-      // response-only metadata: surface them on the response envelope, NOT on
-      // the $schema JSONOutlineSchemaItem. PHP 8.3 flags ad-hoc properties on a
-      // typed class as a Deprecated notice ("Creation of dynamic property"),
-      // and with display_errors on that notice prints to stdout before the
-      // response headers are sent -> "headers already sent" -> no valid JSON
-      // response (the site is already on disk by this point, so the user sees
-      // "created but no response"). Keeping warnings off the schema item also
-      // avoids polluting site.json, since JSONOutlineSchema::save() serializes
-      // every declared/dynamic property of its items. The front-end creation
-      // modal reads only status + data.slug/data.link/data.id; warnings are
-      // optional and not consumed by it.
+      // response-only metadata, returned as data.warnings (same shape as the
+      // Node backend) but NEVER set on the $schema JSONOutlineSchemaItem: PHP
+      // 8.3 flags ad-hoc properties on a typed class as a Deprecated notice
+      // ("Creation of dynamic property") which can print before headers are
+      // sent, and JSONOutlineSchema::save() would serialize the property into
+      // site.json. So when there are warnings, data is a stdClass copy of the
+      // schema's public properties plus warnings; the schema item is untouched.
+      // With no warnings, data is the schema item exactly as before.
+      $data = $schema;
+      if (count($buildFileWarnings) > 0) {
+        $data = (object) get_object_vars($schema);
+        $data->warnings = $buildFileWarnings;
+      }
       $response = array(
         "status" => 200,
-        "data" => $schema
+        "data" => $data
       );
-      if (count($buildFileWarnings) > 0) {
-        $response['warnings'] = $buildFileWarnings;
-      }
       return $response;
     }
     else {
