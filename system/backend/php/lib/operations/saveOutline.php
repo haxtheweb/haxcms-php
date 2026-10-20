@@ -100,6 +100,19 @@ trait OperationsRouteSaveOutline {
         return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
       };
       $pathautoEnabled = $site->isPathautoEnabled();
+      // #3114: the manifest is updated in memory per item and written, along
+      // with the RSS / Atom / sitemap / llms.txt / search index rebuild, once
+      // per request instead of once per item. $pendingPersist tracks whether
+      // an early error return must still flush so the persisted site.json and
+      // generated files match what per-item saving used to leave behind.
+      $pendingPersist = false;
+      $flushPending = function () use ($site, &$pendingPersist) {
+        if ($pendingPersist) {
+          $site->manifest->save(false);
+          $site->updateAlternateFormats();
+          $pendingPersist = false;
+        }
+      };
       // items from the POST
       foreach ($items as $key => $item) {
         // get a fake item of the existing
@@ -244,7 +257,8 @@ trait OperationsRouteSaveOutline {
         // always update at this time
         $page->metadata->updated = time();
         if ($site->loadNode($page->id)) {
-            $site->updateNode($page);
+            $site->updateNode($page, false);
+            $pendingPersist = true;
         } else {
             $site->manifest->addItem($page);
         }
@@ -262,6 +276,7 @@ trait OperationsRouteSaveOutline {
           }
         }
         if (!$page) {
+          $flushPending();
           return array(
             '__failed' => array(
               'status' => 400,
@@ -276,6 +291,7 @@ trait OperationsRouteSaveOutline {
           $expectedLocation = $this->normalizeOutlineLocation($page->location);
         }
         if (!$expectedLocation) {
+          $flushPending();
           return array(
             '__failed' => array(
               'status' => 400,
@@ -285,6 +301,7 @@ trait OperationsRouteSaveOutline {
         }
         // location is backend-controlled based on page id, ignore client input
         if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
+          $flushPending();
           return array(
             '__failed' => array(
               'status' => 400,
@@ -306,6 +323,7 @@ trait OperationsRouteSaveOutline {
             }
           }
           if (!$nodeToDuplicate) {
+            $flushPending();
             return array(
               '__failed' => array(
                 'status' => 400,
@@ -315,6 +333,7 @@ trait OperationsRouteSaveOutline {
           }
           $content = $site->getPageContent($nodeToDuplicate);
           if (!$this->isLikelyHtmlContent($content)) {
+            $flushPending();
             return array(
               '__failed' => array(
                 'status' => 400,
@@ -334,6 +353,7 @@ trait OperationsRouteSaveOutline {
             '/'
           );
           if ($bytes === false) {
+            $flushPending();
             return array(
               '__failed' => array(
                 'status' => 500,
@@ -346,6 +366,7 @@ trait OperationsRouteSaveOutline {
         // contents that were shipped across, and not null, take priority over a dup request
         if (isset($item->contents) && $item->contents && $item->contents != '') {
           if (!$this->isLikelyHtmlContent($item->contents)) {
+            $flushPending();
             return array(
               '__failed' => array(
                 'status' => 400,
@@ -365,6 +386,7 @@ trait OperationsRouteSaveOutline {
             '/'
           );
           if ($bytes === false) {
+            $flushPending();
             return array(
               '__failed' => array(
                 'status' => 500,
@@ -419,7 +441,8 @@ trait OperationsRouteSaveOutline {
             $page->parent = null;
             // force to bottom of things while still being in old order if lots of things got axed
             $page->order = (int)$page->order + count($site->manifest->items) - 1;
-            $site->updateNode($page);
+            // in memory only: the save and rebuild below cover every orphan
+            $site->updateNode($page, false);
           }
         }
       }
