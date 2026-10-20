@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-stage2
-description: >
-  UbD Stage 2 — think like an assessor: build a scrapbook of acceptable evidence,
-  frame ≥1 GRASPS performance task, map the six facets to rubric criteria, enforce
-  problem-not-exercise, and run the 7-question validity self-test. Use when the
-  user says "what evidence do I need", "design a performance task", "build a
-  GRASPS task", "what assessments prove understanding", or "is this assessment
-  valid". Encodes UbD Ch. 7–8. The most distinctive UbD skill.
+description: "UbD Stage 2: build the evidence scrapbook, a GRASPS performance task, facet-mapped rubric and validity self-test. Use for \"what evidence do I need\" or \"design a performance task\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -137,5 +131,5 @@ G: {...} | R: {...} | A: {...} | S: {...} | P: {...} | S (standards): {...}
 - `../hax-ubd-backward-design/references/ubd-element-map.md` — Stage 2 component map
 - `../hax-ubd-backward-design/references/validity-self-test.md` — the 7-question self-test + defect→redesign patterns
 - `../hax-ubd-backward-design/references/design-standards.md` — standards 5–9
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 7–8.

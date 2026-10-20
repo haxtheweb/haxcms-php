@@ -1,11 +1,6 @@
 ---
 name: hax-ubd-essential-questions
-description: >
-  Author UbD essential questions and entry questions from the six-facet question
-  starter bank. Use when the user says "write essential questions", "good
-  questions for X", "craft an essential question", or "what entry question opens
-  this unit". Distinguishes overarching vs. topical and essential vs. leading.
-  Companion to hax-ubd-stage1; sibling to grad-blooms.
+description: "Author UbD essential and entry questions from the six-facet starter bank, separating overarching from topical and essential from leading. Use for \"write essential questions\". Companion to hax-ubd-stage1."
 version: 1.0.0
 license: MIT
 metadata:

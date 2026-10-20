@@ -1,17 +1,6 @@
 ---
 name: oerschema-integration-finder
-description: >
-  READ-ONLY diagnostic: scan HAX webcomponents, themes, CMS backends (PHP/NodeJS HAXcms), the
-  VitePress plugin, and the Google Apps Script add-on for code surfaces that render or consume
-  pedagogical content but do NOT emit or consume OER Schema metadata — e.g. quiz/assessment
-  elements with no Assessment microdata, outline components not mapping to TableOfContents,
-  objective/rubric/syllabus elements with no itemtype. Emit a per-file hit-list of the class +
-  property each surface should expose. Use when the user says "which of my webcomponents should
-  emit oer schema", "find assessment code without schema support", "where in my codebase should
-  oerschema be wired in", "audit my components for oer schema integration opportunities", "does
-  the quiz element emit microdata", or "what elements in HAX could expose oer schema but don't" —
-  even if they don't say "finder" or "oerschema". Diagnoses only; hands off to hax-webcomponent-dev
-  for implementation and to oerschema-audit when the gap is in authored content, not code.
+description: "READ-ONLY scan of webcomponents, themes, CMS backends and plugins for pedagogical-content code that should emit or consume OER Schema but doesn't, with a per-file hit-list. Use for \"which elements should emit oer schema\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -71,7 +60,7 @@ backend/plugin maintainer. Never edit source files from within this skill.
 ## Inputs
 
 - A codebase path to scan. Typical targets:
-  - the webcomponents monorepo (e.g. `~/Documents/git/haxtheweb/webcomponents`)
+  - the webcomponents monorepo (e.g. `https://github.com/haxtheweb/webcomponents`)
   - a single element directory (e.g. `elements/<tag-name>`)
   - a HAXcms theme directory
   - a CMS backend (PHP: `haxcms-php`; NodeJS: `haxcms-nodejs`)
@@ -255,4 +244,4 @@ This finder is the diagnosis step. Implement with:
 - `oerschema-audit` skill's `references/vocabulary.md` — OER Schema v1.2.0 class/property tables
   (consult, do not duplicate)
 - OER Schema vocabulary source: `oerschema` repo `app/lib/schema.ts`
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`

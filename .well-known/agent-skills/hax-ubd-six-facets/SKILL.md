@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-six-facets
-description: >
-  Apply the UbD six facets of understanding (Explanation, Interpretation,
-  Application, Perspective, Empathy, Self-Knowledge) to write understandings and
-  build facet-mapped editable-table rubric criteria. Use when the user says "what
-  facet does this target", "build a rubric for understanding", or "which facets
-  should this assessment tap". Companion to hax-ubd-stage2; bridges to grad-blooms
-  (facets = performance criteria; Bloom's = cognitive level).
+description: "Apply the UbD six facets of understanding to write understandings and facet-mapped rubric criteria. Use for \"what facet does this target\" or \"build a rubric for understanding\". Companion to hax-ubd-stage2."
 version: 1.0.0
 license: MIT
 metadata:

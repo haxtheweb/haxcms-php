@@ -85,7 +85,7 @@ recommend): `instruction-card`, `lrndesign-sidenote`, `link-preview`, `model-vie
 
 ## Rules carried from PRAW RULES.md / Warp rules
 
-IDs shown resolve in `~/Documents/git/haxtheweb/praw/RULES.md`; items marked "(Warp rule)" are
+IDs shown resolve in `https://github.com/haxtheweb/praw/blob/main/RULES.md`; items marked "(Warp rule)" are
 personal ecosystem rules not duplicated in that file.
 
 - `a11y-collapse` MUST set `heading-button` (rule `a11y-collapse-heading-button`).

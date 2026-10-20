@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-backward-design
-description: >
-  Design HAX course units via Understanding by Design (UbD) backward design — start
-  from desired results, derive acceptable evidence, then plan learning experiences.
-  Produces a UbD unit plan AND the HAX site skeleton (site.json node + WHERETO pages
-  with OER schema metadata) that embodies it. Use when the user says "design a unit
-  on X", "backward-design this module", "turn this content into a HAX unit", "build
-  a course around big ideas", or "redesign this unit for understanding".
+description: "Design HAX course units by Understanding by Design backward design, producing a UbD unit plan and a HAX site skeleton. Use for \"design a unit on X\" or \"build a course around big ideas\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -148,5 +142,5 @@ Page-content handoff: {one line per page → component list}
 - `references/ubd-element-map.md` — consolidated UbD → HAX element map (single source of truth)
 - `references/design-standards.md` — the 12 UbD design standards + rating → diagnosis mapping
 - `references/validity-self-test.md` — the 7-question assessment validity self-test
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins, G. & McTighe, J. (2005). *Understanding by Design* (Expanded 2nd ed.). ASCD.

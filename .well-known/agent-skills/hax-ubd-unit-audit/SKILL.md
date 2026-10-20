@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-unit-audit
-description: >
-  READ-ONLY diagnostic: review an existing HAX site/unit against Understanding by
-  Design standards and emit a report with actionable HAX remediation. Use when the
-  user says "review this unit for understanding", "is my course backward-designed",
-  "audit my HAX site against UbD", "are my assessments aligned", or "does this unit
-  have big ideas" — even if they don't say "UbD". Diagnoses only; hands off to the
-  stage skills and hax-claudehax for remediation.
+description: "READ-ONLY review of an existing HAX unit against Understanding by Design with HAX remediation. Use for \"is my course backward-designed\" or \"are my assessments aligned\". Hands off to the stage skills."
 version: 1.0.0
 license: MIT
 metadata:
@@ -192,5 +186,5 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 - `../hax-ubd-backward-design/references/ubd-element-map.md` — remediation component map (real tags only)
 - `../hax-ubd-backward-design/references/validity-self-test.md` — run on each assessment
 - `../hax-ubd-backward-design/references/manifest-schema.md` — for reconstructing/validating a partial manifest
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* — design standards (Appendix) + Fig 8.5.

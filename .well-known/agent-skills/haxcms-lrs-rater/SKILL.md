@@ -1,6 +1,6 @@
 ---
 name: haxcms-lrs-rater
-description: Run BookLooky's Looky Rating System (LRS) content rating and minimum-age recommendation on a HAXcms site's aggregated content — either a local site checkout or a live published URL like btopro.com — entirely through the invoking agent's own reasoning, no API key or network call to an LLM required. Use this whenever the user asks to "rate this HAXcms site", "run an LRS scan on my site/domain", "what age is btopro.com appropriate for", "check this site for violence/romance/language/etc. content", "score this site the way booklooky does", or gives a HAX site URL/path and asks for a content rating or age recommendation. Distinct from booklooky-lrs-rater, which rates a single provided transcript/manuscript — this skill's job is reading a HAXcms site's llms.txt manifest to assemble that transcript first.
+description: "Run BookLooky's Looky Rating System content rating and minimum-age recommendation on a HAXcms site, local or live URL, using the agent's own reasoning. Use for \"rate this HAXcms site\" or \"run an LRS scan\". Reads the site's llms.txt manifest."
 ---
 
 # HAXcms LRS Rater

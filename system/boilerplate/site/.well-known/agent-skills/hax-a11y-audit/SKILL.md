@@ -1,16 +1,6 @@
 ---
 name: hax-a11y-audit
-description: >
-  READ-ONLY diagnostic: review authored HAX page/site content against WCAG 2.0 AA
-  (image alt text, heading hierarchy, landmark structure, link text, form labels, color
-  contrast, media caption/transcript/audio-description presence, keyboard/focus, ARIA
-  correctness, data-table markup, list semantics) and emit a report with actionable HAX
-  web-component + plain-HTML remediation. Use when the user says "is this accessible",
-  "audit for WCAG", "check my page for accessibility", "does this meet WCAG 2.0 AA",
-  "screen reader test", "are my images described", "is my color contrast OK",
-  "do my videos have captions", or "accessibility audit" — even if they don't say
-  "WCAG" or "a11y". Diagnoses only; hands off to hax-claudehax / hax-site-building for
-  remediation and to hax-media-a11y for media-depth work.
+description: "READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \"is this accessible\" or \"audit for WCAG\". Diagnoses only; hands off to hax-site-building."
 version: 1.0.0
 license: MIT
 metadata:
@@ -338,6 +328,6 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 ## References
 
 - `references/a11y-element-map.md` — WCAG failure → HAX component swap / plain-HTML fix map (verified tags only; the iron rule)
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - W3C (2008). *Web Content Accessibility Guidelines (WCAG) 2.0*. https://www.w3.org/TR/WCAG20/
 - W3C (2023). *WCAG 2.0 Quick Reference*. https://www.w3.org/WAI/WCAG20/quickref/

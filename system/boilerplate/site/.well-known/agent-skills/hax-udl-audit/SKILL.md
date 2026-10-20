@@ -1,12 +1,6 @@
 ---
 name: hax-udl-audit
-description: >
-  READ-ONLY diagnostic: review a HAX site/page against Universal Design for Learning (UDL) 3.0 —
-  multiple means of Engagement, Representation, and Action & Expression — and emit a report with
-  actionable HAX web-component remediation. Use when the user says "is this accessible to all
-  learners", "audit for UDL", "does this page reach everyone", "add multiple means of expression",
-  "my course is all reading and video with no interaction", or "universal design" — even if they
-  don't say "UDL". Diagnoses only; hands off to hax-claudehax / hax-site-building for remediation.
+description: "READ-ONLY audit of a HAX page against UDL 3.0 (Engagement, Representation, Action & Expression) with HAX component remediation. Use for \"audit for UDL\" or \"does this page reach everyone\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -216,5 +210,5 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 
 - `references/udl-element-map.md` — UDL → HAX component map (verified tags only; the iron rule)
 - `../hax-ubd-backward-design/references/ubd-element-map.md` — companion UbD map (Stage 2 evidence overlap)
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - CAST (2024). *Universal Design for Learning Guidelines version 3.0*. https://udlguidelines.cast.org/

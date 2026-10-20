@@ -1,12 +1,6 @@
 ---
 name: hax-content-authoring
-description: >
-  Author HAX page content using the right web components and conventions. Use when writing or
-  editing page HTML in pages/, adding HAX-capable elements, applying DDD heading/paragraph
-  attributes, choosing input/icon/button/media components, creating pages via the hax CLI, or
-  remixing a HAX site's content as OER. Covers which tags are valid (HAXSchema/haxProperties),
-  the preferred component families, and the authoring rules that keep content portable and
-  editable in the HAX editor.
+description: "Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor."
 version: 1.0.0
 license: Apache-2.0
 metadata:
