@@ -895,6 +895,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #2
 
+@haxtheweb/self-reflective-nudge
+  build path:  es6/node_modules/@haxtheweb/self-reflective-nudge
+  license:     Apache-2.0
+  attribution: see license text #6
+
 @haxtheweb/shadow-style
   build path:  es6/node_modules/@haxtheweb/shadow-style
   license:     Apache-2.0
@@ -2336,7 +2341,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#6 - Apache-2.0 (shared by 13 packages)
+#6 - Apache-2.0 (shared by 14 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
