@@ -2783,6 +2783,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /system/api/v1/site/import/quarto:
+    post:
+      tags:
+        - actions
+      operationId: quartoToSite
+      summary: Import a Quarto project (book or website) as a new site
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repoUrl:
+                  type: string
+                  description: >-
+                    GitHub repository URL of the Quarto project, optionally
+                    with /tree/<branch>
+              required:
+                - repoUrl
+      responses:
+        "200":
+          description: Imported site schema items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          description: The repository is not a readable Quarto project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/site/import/openstax:
     post:
       tags:
@@ -2845,7 +2891,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal, plone)
+          description: Platform identifier (haxcms, html, pressbooks, gitbook, notion, wordpress, elmsln, drupal, plone, openstax, vitepress, quarto)
       requestBody:
         required: false
         content:
@@ -3600,7 +3646,8 @@ components:
       description: >
         Import result returned by importDocx, importPdf, importPptx, importXlsx,
         htmlToSite, gitbookToSite, haxcmsToSite, notionToSite, pressbooksToSite,
-        wordpressToSite, drupalToSite, ploneToSite. The front-end
+        wordpressToSite, drupalToSite, ploneToSite, openstaxToSite, vitepressToSite,
+        quartoToSite. The front-end
         (processImportTemplate) reads `data.items` (array), `data.filename`
         (string), `data.files` (optional map), and `data.site.license`
         (optional string).
