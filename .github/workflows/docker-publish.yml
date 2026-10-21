@@ -1,0 +1,54 @@
+name: docker-publish
+# Publishes the HAXcms PHP platform image to GitHub Container Registry
+# (haxtheweb/issues#2814). Uses the built-in GITHUB_TOKEN; no extra secrets.
+#
+#   ghcr.io/haxtheweb/haxcms-php:<version>   on every MAJOR.MINOR.PATCH tag
+#   ghcr.io/haxtheweb/haxcms-php:latest       moves with the newest release tag
+#   ghcr.io/haxtheweb/haxcms-php:sha-<short>  manual runs from a branch
+on:
+  push:
+    # same tag shapes as release.yml (bare and v-prefixed)
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  IMAGE_NAME: ghcr.io/haxtheweb/haxcms-php
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io with GITHUB_TOKEN
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # TODO(scorecard Pinned-Dependencies): the docker/* actions below are
+      # referenced by release tag because their commit SHAs were not resolved
+      # when this was written. Replace each tag with its full commit SHA and
+      # keep the trailing "# vX" comment, matching the other workflows here.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,enable=${{ github.ref_type != 'tag' }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
