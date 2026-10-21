@@ -11,6 +11,7 @@ include_once dirname(__FILE__) . '/imports/convertElmslnToSite.php';
 include_once dirname(__FILE__) . '/imports/convertDrupalToSite.php';
 include_once dirname(__FILE__) . '/imports/convertPloneToSite.php';
 include_once dirname(__FILE__) . '/imports/convertVitepressToSite.php';
+include_once dirname(__FILE__) . '/imports/convertQuartoToSite.php';
 include_once dirname(__FILE__) . '/imports/convertOpenstaxToSite.php';
 
 /**
@@ -18,7 +19,7 @@ include_once dirname(__FILE__) . '/imports/convertOpenstaxToSite.php';
  * Dispatcher that routes platform import requests to the correct converter.
  *
  * Supported platforms: haxcms, html, pressbooks, gitbook, notion, wordpress,
- * elmsln, drupal, plone, vitepress, openstax.
+ * elmsln, drupal, plone, vitepress, quarto, openstax.
  * Returns { status: 200, data: { items: [...], filename: string, ... } }
  */
 return function ($context) {
@@ -55,6 +56,9 @@ return function ($context) {
             break;
         case 'vitepress':
             haxcmsImportConvertVitepressToSite($context);
+            break;
+        case 'quarto':
+            haxcmsImportConvertQuartoToSite($context);
             break;
         case 'openstax':
             haxcmsImportConvertOpenstaxToSite($context);
