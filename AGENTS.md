@@ -102,6 +102,9 @@ The PHP backend lives in `system/backend/php`. The web component build tooling d
 - **PR Title Format**: `[<project_name>] <Descriptive Title>`
   - Example: `[my-element] Add dynamic property binding`
 - **Pre-commit checks**:
+  - Run PHPUnit from `system/backend/php` (`composer install`, then `yarn test`) after your last edit and fix every failure. Add or extend a test in `tests/Unit` for any behavior you change.
+  - This repo has no `precheck` script. If the change is mirrored in `haxcms-nodejs`, run `npm run precheck` there too: its Prettier check also covers new test files, which ESLint skips.
+  - In the PR description, say which checks you ran.
   - Run `npm test` to ensure all tests pass.
   - Run `npm run lint` to verify code style.
   - Run `hax audit` for web components to confirm DDD compliance.
