@@ -30,6 +30,10 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         $Y_ALIGNMENT_TOLERANCE = 2.0;
         $MAX_HEADING_WORDS = 16;
         $MAX_HEADING_LENGTH = 140;
+        // Below this size (either dimension) an extracted image is almost
+        // always a decorative artifact or gradient fill. Mirrors Node's
+        // MIN_IMAGE_DIMENSION in pdfToSemanticHtml.js.
+        $MIN_IMAGE_DIMENSION = 16.0;
 
         // Enable font id + size in getDataTm() rows (shape: [Tm, text, fontId, fontSize]).
         $config = new \Smalot\PdfParser\Config();
@@ -124,6 +128,14 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                     $pageLines[] = array('text' => $row['text'], 'effSize' => $row['effSize']);
                 }
             }
+
+            // Images are appended after this page's text content (same
+            // per-page placement convention as Node's pdfToSemanticHtml.js),
+            // not interleaved with specific lines.
+            $pageImages = haxcmsSystemExtractPdfPageImages($page, $MIN_IMAGE_DIMENSION);
+            if (count($pageImages) > 0) {
+                $pageLines[] = array('text' => '', 'effSize' => 0, 'images' => $pageImages);
+            }
         }
 
         if (count($pageLines) === 0) {
@@ -133,6 +145,9 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         // Stage 2: font stats → body size → heading candidates (Node parity).
         $stats = array();
         foreach ($pageLines as $line) {
+            if (isset($line['images'])) {
+                continue;
+            }
             $size = haxcmsSystemNormalizePdfFontSize($line['effSize']);
             $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, strlen($line['text']));
         }
@@ -168,6 +183,16 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         $htmlParts = array();
         $paragraphBuffer = '';
         foreach ($pageLines as $line) {
+            if (isset($line['images'])) {
+                if ($paragraphBuffer !== '') {
+                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                    $paragraphBuffer = '';
+                }
+                foreach ($line['images'] as $imgTag) {
+                    $htmlParts[] = $imgTag;
+                }
+                continue;
+            }
             $info = haxcmsSystemGetPdfLineInfo($line, $headingSizes, $HEADING_TOLERANCE, $MAX_HEADING_WORDS, $MAX_HEADING_LENGTH);
             if ($info['type'] === 'paragraph') {
                 if ($paragraphBuffer === '') {
@@ -194,6 +219,91 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             $html = '<p></p>';
         }
         return $html;
+    }
+}
+
+if (!function_exists('haxcmsSystemExtractPdfPageImages')) {
+    /**
+     * Extract DCTDecode (JPEG) image XObjects from a page as <img> tags.
+     *
+     * smalot/pdfparser's RawDataParser only decodes a filter whitelist
+     * (ASCIIHexDecode, ASCII85Decode, LZWDecode, FlateDecode, RunLengthDecode)
+     * — any other filter name, including DCTDecode, is left untouched in
+     * getContent(). Since DCTDecode streams ARE complete, valid JPEG file
+     * bytes per the PDF spec, that raw content can be used directly as a
+     * data URI. Any other filter (FlateDecode raw samples, JPXDecode,
+     * CCITTFaxDecode, JBIG2Decode, no filter) is skipped silently — v1 does
+     * not attempt bitmap reconstruction from raw samples. Never throws: a
+     * corrupt/unusual image object must not fail the whole import.
+     */
+    function haxcmsSystemExtractPdfPageImages($page, $minDimension)
+    {
+        $images = array();
+        try {
+            $xobjects = $page->getXObjects();
+        } catch (\Exception $e) {
+            return $images;
+        }
+        // Page::getXObjects() stores each XObject under both its original
+        // resource name (e.g. "Im1") and a numeric-cleaned alias (e.g. "1"),
+        // so the same object instance can appear twice in the table. Dedupe
+        // by object identity to avoid emitting duplicate <img> tags.
+        $seen = array();
+        foreach ($xobjects as $xobject) {
+            try {
+                if (!($xobject instanceof \Smalot\PdfParser\XObject\Image)) {
+                    continue;
+                }
+                $objectId = spl_object_id($xobject);
+                if (isset($seen[$objectId])) {
+                    continue;
+                }
+                $seen[$objectId] = true;
+                $filter = haxcmsSystemGetPdfImageFilter($xobject);
+                if ($filter !== 'DCTDecode') {
+                    continue;
+                }
+                $width  = (float) $xobject->get('Width')->getContent();
+                $height = (float) $xobject->get('Height')->getContent();
+                if (($width > 0 && $width < $minDimension) || ($height > 0 && $height < $minDimension)) {
+                    continue;
+                }
+                $content = $xobject->getContent();
+                if (!is_string($content) || $content === '') {
+                    continue;
+                }
+                $images[] = '<img src="data:image/jpeg;base64,' . base64_encode($content) . '">';
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+        return $images;
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfImageFilter')) {
+    /**
+     * Resolve an XObject's /Filter entry, which per PDF spec may be a single
+     * name (ElementName) or an array of names applied in sequence
+     * (ElementArray) — the image-coding filter is the last one applied.
+     */
+    function haxcmsSystemGetPdfImageFilter($xobject)
+    {
+        $filterElement = $xobject->get('Filter');
+        if ($filterElement instanceof \Smalot\PdfParser\Element\ElementArray) {
+            $filters = array();
+            foreach ($filterElement->getContent() as $el) {
+                $filters[] = (is_object($el) && method_exists($el, 'getContent')) ? (string) $el->getContent() : (string) $el;
+            }
+            return count($filters) > 0 ? end($filters) : null;
+        }
+        if (method_exists($filterElement, 'getContent')) {
+            $content = $filterElement->getContent();
+            if (is_string($content)) {
+                return $content;
+            }
+        }
+        return null;
     }
 }
 
@@ -368,11 +478,19 @@ return function ($context) {
     try {
         $html = haxcmsSystemConvertPdfToSemanticHtml($tmpPath);
 
+        // The PDF converter produces trusted, programmatically-generated markup
+        // (not arbitrary untrusted HTML), including inline `<img src="data:...">`
+        // tags for extracted page images. Skip the centralized sanitize-on-import
+        // step here so those tags survive in this route's JSON response; the
+        // content is still sanitized later, when a client round-trips an item
+        // through createNode/addPage (which run MaterializeInlineImages::materialize()
+        // followed by SanitizeContent::sanitizeHTMLForStorage()).
         $items = haxcmsImportHtmlToItems($html, array(
-            'titleValue' => preg_replace('/\.pdf$/i', '', $filename),
-            'method'     => $method,
-            'type'       => $type,
-            'parentId'   => $parentId,
+            'titleValue'   => preg_replace('/\.pdf$/i', '', $filename),
+            'method'       => $method,
+            'type'         => $type,
+            'parentId'     => $parentId,
+            'skipSanitize' => true,
         ));
         SiteRouteUtils::sendFormattedResponse(
             array('status' => 200, 'data' => array('items' => $items, 'filename' => $filename)),
