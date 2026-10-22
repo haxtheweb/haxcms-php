@@ -94,9 +94,13 @@ class LicenseIdentifyTest extends TestCase
     public function testUnknownTextIsReportedNeverGuessed(): void
     {
         $this->assertSame(
-            array('code' => null, 'version' => '', 'label' => 'All rights reserved.'),
-            HAXCMSLicenses::identify('All rights reserved.')
+            array('code' => null, 'version' => '', 'label' => 'Licensed to the Acme guild.'),
+            HAXCMSLicenses::identify('Licensed to the Acme guild.')
         );
+        // an owner keeping the work to themselves is a license, not an unknown
+        $this->assertSame('all-rights-reserved', $this->code('All rights reserved.'));
+        // a license that grants rights is never read as reserving them
+        $this->assertSame('mit', $this->code("MIT License\n\nCopyright (c) 2024 Someone. All rights reserved.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software"));
         $this->assertNull($this->code(''));
         $this->assertNull($this->code(null));
         $this->assertNull($this->code(array()));

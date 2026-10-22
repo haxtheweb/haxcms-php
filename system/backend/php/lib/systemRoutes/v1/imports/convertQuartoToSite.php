@@ -27,6 +27,8 @@ if (!defined('HAXCMS_QUARTO_CONFIG_PATH_REGEX')) {
     define('HAXCMS_QUARTO_IMPORTABLE_ASSET_REGEX', '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|xml)$/iD');
     define('HAXCMS_QUARTO_IMAGE_EXTENSION_REGEX', '/\.(jpg|jpeg|png|gif|webp)$/iD');
     define('HAXCMS_QUARTO_MAX_INCLUDE_DEPTH', 3);
+    // shown when the source reserves all rights, same text as haxcms-nodejs
+    define('HAXCMS_QUARTO_RESERVED_MESSAGE', 'The source states all rights reserved, so it was not imported. Ask the owner for permission, or for a license that allows reuse.');
     // repository files that state a license, best first; read only when the
     // project file does not declare one. The dot is spelled out because
     // JavaScript's does not match \r or U+2028/U+2029.
@@ -128,12 +130,16 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
         try {
             $repo = haxcmsImportQuartoParseRepoUrl($repoUrl);
             $source = haxcmsImportQuartoResolveRepository($client, $repo, $apiOrigin, $rawOrigin);
+            // the owner kept the work to themselves: stop before reading any page
+            if (HAXCMSLicenses::isAllRightsReserved($source['license'])) {
+                throw haxcmsImportQuartoError(403, HAXCMS_QUARTO_RESERVED_MESSAGE);
+            }
             $imported = haxcmsImportQuartoImportSite($client, $source);
         }
         catch (\Throwable $error) {
             $status = 400;
-            if ($error instanceof HaxcmsQuartoImportError && (int) $error->getCode() === 422) {
-                $status = 422;
+            if ($error instanceof HaxcmsQuartoImportError && in_array((int) $error->getCode(), array(403, 422), true)) {
+                $status = (int) $error->getCode();
             }
             haxcmsImportQuartoSendError(
                 $context,
@@ -1472,6 +1478,10 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
             $item['title'] = $pageTitle;
         }
         $pageLicense = haxcmsImportQuartoLicenseCode(haxcmsImportQuartoGet($split['data'], 'license'));
+        // a page can reserve its rights even when the project does not
+        if (HAXCMSLicenses::isAllRightsReserved($pageLicense)) {
+            throw haxcmsImportQuartoError(403, HAXCMS_QUARTO_RESERVED_MESSAGE);
+        }
         if (!haxcmsImportQuartoTruthy($pageLicense)) {
             $pageLicense = $run['source']['license'];
         }

@@ -68,6 +68,15 @@ class RobotsTemplateTest extends TestCase
         }
     }
 
+    public function testReservedSitesAskAiCrawlersToStayOut(): void
+    {
+        $output = $this->render(array('privateSite' => false, 'reservedSite' => true, 'domain' => 'https://example.org/sites/demo/'));
+        foreach (array('GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended') as $agent) {
+            $this->assertSame(array('Disallow: /'), $this->groupFor($output, $agent), $agent);
+        }
+        $this->assertContains('Allow: /', $this->groupFor($output, '*'));
+    }
+
     public function testSitemapAndLlmsAdvertisedWithDomain(): void
     {
         $output = $this->publicOutput();

@@ -3206,7 +3206,7 @@ components:
               description: Theme element machine name (e.g. clean-one, learn-two-theme).
             license:
               type: string
-              description: Optional license code. Creative Commons, public domain and software licenses are supported (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd, cc0, pdm, mit, apache-2.0, bsd-2-clause, bsd-3-clause, isc, mpl-2.0, gpl-2.0, gpl-3.0, lgpl-3.0, agpl-3.0, unlicense).
+              description: Optional license code from the HAXcms license list (Creative Commons, public domain and software licenses). The list is licenses.json, shared by both backends and the client; an unrecognized value is ignored.
             domain:
               type: string
               description: Optional custom domain for the site.

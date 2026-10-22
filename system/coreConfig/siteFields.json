@@ -255,27 +255,7 @@
           "title": "License",
           "description": "The source url for the element this is citing.",
           "inputMethod": "select",
-          "options": {
-            "by": "Creative Commons: Attribution",
-            "by-sa": "Creative Commons: Attribution Share a like",
-            "by-nd": "Creative Commons: Attribution No derivatives",
-            "by-nc": "Creative Commons: Attribution non-commercial",
-            "by-nc-sa": "Creative Commons: Attribution non-commercial share a like",
-            "by-nc-nd": "Creative Commons: Attribution Non-commercial No derivatives",
-            "cc0": "Public domain: CC0 1.0 Universal",
-            "pdm": "Public domain: Public Domain Mark 1.0",
-            "mit": "Software: MIT License",
-            "apache-2.0": "Software: Apache License 2.0",
-            "bsd-2-clause": "Software: BSD 2-Clause License",
-            "bsd-3-clause": "Software: BSD 3-Clause License",
-            "isc": "Software: ISC License",
-            "mpl-2.0": "Software: Mozilla Public License 2.0",
-            "gpl-2.0": "Software: GNU General Public License v2.0",
-            "gpl-3.0": "Software: GNU General Public License v3.0",
-            "lgpl-3.0": "Software: GNU Lesser General Public License v3.0",
-            "agpl-3.0": "Software: GNU Affero General Public License v3.0",
-            "unlicense": "Software: The Unlicense"
-          },
+          "options": {},
           "icon": "link"
         },
         {
