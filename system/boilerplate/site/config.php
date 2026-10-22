@@ -68,6 +68,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
                   'creative-commons' => 'Creative Commons',
                   'public-domain' => 'Public domain',
                   'software' => 'Software',
+                  'copyright' => 'Copyright',
               );
           }
 
@@ -93,6 +94,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
                   array('code' => 'lgpl-3.0', 'group' => 'software', 'name' => 'GNU Lesser General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/lgpl-3.0.html', 'image' => ''),
                   array('code' => 'agpl-3.0', 'group' => 'software', 'name' => 'GNU Affero General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/agpl-3.0.html', 'image' => ''),
                   array('code' => 'unlicense', 'group' => 'software', 'name' => 'The Unlicense', 'link' => 'https://unlicense.org/', 'image' => ''),
+                  array('code' => 'all-rights-reserved', 'group' => 'copyright', 'name' => 'All rights reserved', 'link' => 'https://en.wikipedia.org/wiki/All_rights_reserved', 'image' => ''),
               );
           }
           // END GENERATED: licenses

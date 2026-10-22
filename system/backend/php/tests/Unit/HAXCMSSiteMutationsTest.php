@@ -170,7 +170,7 @@ class HAXCMSSiteMutationsTest extends TestCase
     public function testGetLicenseDataAllReturnsSameFullList(): void
     {
         $all = $this->site->getLicenseData('all');
-        $this->assertCount(19, $all);
+        $this->assertCount(20, $all);
         $this->assertArrayHasKey('by', $all);
         $this->assertArrayHasKey('by-sa', $all);
         $this->assertArrayHasKey('by-nd', $all);
@@ -541,6 +541,14 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertNotSame('', $txt);
         // first line is '# ' + safe title
         $this->assertStringStartsWith('# My Test Site', $txt);
+    }
+
+    public function testGetLLMSTxtTellsAgentsWhenTheOwnerReservesAllRights(): void
+    {
+        $this->site->manifest->license = 'by-sa';
+        $this->assertStringNotContainsString('Rights notice', $this->site->getLLMSTxt(''));
+        $this->site->manifest->license = 'all-rights-reserved';
+        $this->assertStringContainsString('Rights notice', $this->site->getLLMSTxt(''));
     }
 
     public function testGetLLMSTxtIncludesDescriptionAndPagesSections(): void

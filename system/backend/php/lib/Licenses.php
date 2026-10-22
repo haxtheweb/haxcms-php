@@ -10,6 +10,9 @@
 if (!class_exists('HAXCMSLicenses')) {
     class HAXCMSLicenses
     {
+        /** the code an owner chooses to keep a work to themselves */
+        const ALL_RIGHTS_RESERVED = 'all-rights-reserved';
+
         /**
          * The decoded licenses.json, read once. licenses.json is a byte for
          * byte copy of the canonical @haxtheweb/license-element
@@ -158,6 +161,11 @@ if (!class_exists('HAXCMSLicenses')) {
             $value = self::lowercase(self::jsTrim(str_replace('_', '-', $rawValue)));
             if ($value === '') {
                 return null;
+            }
+            // short wordings of an owner keeping the work to themselves
+            if (in_array(self::ALL_RIGHTS_RESERVED, $supported, true)
+                && preg_match('~^(?:all[- ]rights[- ]reserved|proprietary|copyright(?:ed)?)$~', $value)) {
+                return self::ALL_RIGHTS_RESERVED;
             }
             // SPDX style suffixes: GPL-3.0-only, GPL-3.0-or-later
             $value = preg_replace('/-(only|or-later)$/', '', $value);
@@ -385,6 +393,11 @@ if (!class_exists('HAXCMSLicenses')) {
             if (preg_match('~Permission\s+is\s+hereby\s+granted,\s+free\s+of\s+charge,\s+to\s+any\s+person\s+obtaining\s+a\s+copy~i', $subject)) {
                 return array('code' => 'mit', 'version' => '', 'label' => 'MIT License');
             }
+            // an owner keeping the work to themselves. Checked after every known
+            // license, so a file that grants rights is never read as reserving them.
+            if (preg_match('~\ball\s+rights\s+(?:are\s+)?reserved\b~i', $subject)) {
+                return array('code' => self::ALL_RIGHTS_RESERVED, 'version' => '', 'label' => self::specName(self::ALL_RIGHTS_RESERVED));
+            }
             // a bare code or URL, such as the value of a `license:` setting
             $trimmed = self::jsTrim($text);
             if (self::utf16Length($trimmed) <= 120) {
@@ -399,12 +412,24 @@ if (!class_exists('HAXCMSLicenses')) {
             return $result;
         }
 
+        /**
+         * True for the license an owner uses to say the work may not be copied,
+         * adapted or reused without their permission. Importers refuse such sources.
+         */
+        public static function isAllRightsReserved($code)
+        {
+            return $code === self::ALL_RIGHTS_RESERVED;
+        }
+
         /** Terms of a license code the person importing should know about. */
         public static function terms($code)
         {
             $terms = array();
             if (!is_string($code)) {
                 return $terms;
+            }
+            if (self::isAllRightsReserved($code)) {
+                return array('all-rights-reserved');
             }
             $list = self::all();
             if (isset($list[$code]) && $list[$code]['group'] === 'creative-commons') {

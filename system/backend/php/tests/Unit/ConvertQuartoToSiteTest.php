@@ -618,6 +618,35 @@ CONFIG;
         }
     }
 
+    public function testAProjectThatReservesAllRightsIsRefusedBeforeAnyPageIsRead(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => str_replace('license: CC BY-SA 4.0', 'license: All rights reserved', $this->bookConfig()),
+        )));
+        $this->assertSame(403, $response['status']);
+        $this->assertMatchesRegularExpression('~all rights reserved~i', $response['data']['error']);
+        foreach ($this->fetchedUrls() as $url) {
+            $this->assertDoesNotMatchRegularExpression('~\.qmd$~', $url);
+        }
+    }
+
+    public function testALicenseFileThatReservesAllRightsIsRefused(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => $this->noLicenseConfig(),
+            'LICENSE' => "Copyright (c) 2024 Someone. All rights reserved.\n",
+        )));
+        $this->assertSame(403, $response['status']);
+    }
+
+    public function testAPageThatReservesAllRightsRefusesTheImport(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            'preface.qmd' => "---\nlicense: all-rights-reserved\n---\n\nText.\n",
+        )));
+        $this->assertSame(403, $response['status']);
+    }
+
     public function testASoftwareLicenseInTheLicenseFileIsAppliedAndFlaggedForReview(): void
     {
         $response = $this->importRepo(null, array('files' => array(

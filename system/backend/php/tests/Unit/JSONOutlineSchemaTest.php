@@ -286,7 +286,7 @@ class JSONOutlineSchemaTest extends TestCase
         $this->assertArrayHasKey('by', $all);
         $this->assertArrayHasKey('by-sa', $all);
         $this->assertArrayHasKey('by-nc-nd', $all);
-        $this->assertCount(19, $all);
+        $this->assertCount(20, $all);
         $this->assertSame('public-domain', $all['cc0']['group']);
     }
 }
