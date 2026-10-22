@@ -3206,7 +3206,7 @@ components:
               description: Theme element machine name (e.g. clean-one, learn-two-theme).
             license:
               type: string
-              description: Optional Creative Commons license code (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd).
+              description: Optional license code. Creative Commons, public domain and software licenses are supported (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd, cc0, pdm, mit, apache-2.0, bsd-2-clause, bsd-3-clause, isc, mpl-2.0, gpl-2.0, gpl-3.0, lgpl-3.0, agpl-3.0, unlicense).
             domain:
               type: string
               description: Optional custom domain for the site.

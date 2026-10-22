@@ -395,11 +395,21 @@ class OperationsCreateSiteTest extends TestCase
             'license' => 'https://creativecommons.org/licenses/by-nc/4.0/',
         ));
         $this->assertSame(200, $result['status']);
-        // The URL matcher walks the supported list in order and uses strpos,
-        // so '/licenses/by' (the first entry) matches before '/licenses/by-nc':
-        // a by-nc URL normalizes to the 'by' prefix code.
-        $this->assertSame('by', $result['data']->metadata->site->license);
-        $this->assertSame('by', $this->persistedSite()->license);
+        // longest code wins, so a by-nc URL no longer collapses to 'by'
+        $this->assertSame('by-nc', $result['data']->metadata->site->license);
+        $this->assertSame('by-nc', $this->persistedSite()->license);
+    }
+
+    public function testSpdxStyleSoftwareLicenseNormalizesToCode(): void
+    {
+        $result = $this->runCreateSite(array(
+            'name' => 'New Site',
+            'theme' => 'my-theme',
+            'license' => 'GPL-3.0-or-later',
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('gpl-3.0', $result['data']->metadata->site->license);
+        $this->assertSame('gpl-3.0', $this->persistedSite()->license);
     }
 
     public function testUnrecognizedLicenseLeavesManifestLicenseAlone(): void
