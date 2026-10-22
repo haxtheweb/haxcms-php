@@ -36,7 +36,7 @@ if (!defined('HAXCMS_IMPORT_STAGED_MAX_AGE')) {
 if (!function_exists('haxcms_import_staged_extension')) {
     function haxcms_import_staged_extension($relPath) {
         $ext = strtolower((string) pathinfo((string) $relPath, PATHINFO_EXTENSION));
-        if ($ext === '' || preg_match('/^(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf)$/', $ext) !== 1) {
+        if ($ext === '' || preg_match('/^(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf|h5p)$/', $ext) !== 1) {
             return '';
         }
         return $ext;
