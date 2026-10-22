@@ -151,14 +151,8 @@ trait OperationsRouteCreateSite {
           $domain,
           $build
       );
-      $supportedSiteLicenses = array(
-        'by',
-        'by-sa',
-        'by-nd',
-        'by-nc',
-        'by-nc-sa',
-        'by-nc-nd'
-      );
+      include_once dirname(__FILE__) . '/../Licenses.php';
+      $supportedSiteLicenses = array_keys(HAXCMSLicenses::all());
       if (method_exists($site, 'getLicenseData')) {
         $licenseOptions = $site->getLicenseData('select');
         if (is_array($licenseOptions) && count($licenseOptions) > 0) {
@@ -175,27 +169,7 @@ trait OperationsRouteCreateSite {
         }
       }
       $normalizeSiteLicenseValue = function ($rawValue) use ($supportedSiteLicenses) {
-        if (!is_string($rawValue)) {
-          return null;
-        }
-        $value = strtolower(trim(str_replace('_', '-', $rawValue)));
-        if ($value === '') {
-          return null;
-        }
-        if (in_array($value, $supportedSiteLicenses, true)) {
-          return $value;
-        }
-        foreach ($supportedSiteLicenses as $code) {
-          if (
-            strpos($value, '/licenses/' . $code) !== false ||
-            strpos($value, 'cc ' . $code) !== false ||
-            strpos($value, 'cc-' . $code) !== false ||
-            strpos($value, 'cc:' . $code) !== false
-          ) {
-            return $code;
-          }
-        }
-        return null;
+        return HAXCMSLicenses::normalize($rawValue, $supportedSiteLicenses);
       };
       $requestedLicense = null;
       if (isset($this->params['site']['license']) && is_string($this->params['site']['license'])) {

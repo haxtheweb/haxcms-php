@@ -170,13 +170,15 @@ class HAXCMSSiteMutationsTest extends TestCase
     public function testGetLicenseDataAllReturnsSameFullList(): void
     {
         $all = $this->site->getLicenseData('all');
-        $this->assertCount(6, $all);
+        $this->assertCount(19, $all);
         $this->assertArrayHasKey('by', $all);
         $this->assertArrayHasKey('by-sa', $all);
         $this->assertArrayHasKey('by-nd', $all);
         $this->assertArrayHasKey('by-nc', $all);
         $this->assertArrayHasKey('by-nc-sa', $all);
         $this->assertArrayHasKey('by-nc-nd', $all);
+        $this->assertArrayHasKey('cc0', $all);
+        $this->assertArrayHasKey('unlicense', $all);
     }
 
     public function testGetLicenseDataSelectReturnsNameOnlyMap(): void

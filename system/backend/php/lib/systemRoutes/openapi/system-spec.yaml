@@ -3206,7 +3206,7 @@ components:
               description: Theme element machine name (e.g. clean-one, learn-two-theme).
             license:
               type: string
-              description: Optional Creative Commons license code (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd).
+              description: Optional license code. Creative Commons, public domain and software licenses are supported (by, by-sa, by-nd, by-nc, by-nc-sa, by-nc-nd, cc0, pdm, mit, apache-2.0, bsd-2-clause, bsd-3-clause, isc, mpl-2.0, gpl-2.0, gpl-3.0, lgpl-3.0, agpl-3.0, unlicense).
             domain:
               type: string
               description: Optional custom domain for the site.
@@ -3670,7 +3670,31 @@ components:
           properties:
             license:
               type: string
+              nullable: true
+              description: >
+                License code from the HAXcms license list (for example by-sa,
+                cc0, mit), or null when the source states none HAX can apply.
           additionalProperties: true
+        warnings:
+          type: array
+          description: >
+            Notices about the source that the person importing should see
+            before publishing. Returned by quartoToSite; other importers may
+            omit it. A notice is information, not a refusal.
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: >
+                  Stable identifier: license:no-derivatives,
+                  license:non-commercial, license:share-alike,
+                  license:from-file, license:unrecognized or license:not-found.
+              message:
+                type: string
+            required:
+              - code
+              - message
       additionalProperties: true
     ApiEnvelopeWithData:
       type: object
