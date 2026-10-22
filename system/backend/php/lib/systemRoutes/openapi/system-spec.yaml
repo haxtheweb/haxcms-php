@@ -3670,7 +3670,31 @@ components:
           properties:
             license:
               type: string
+              nullable: true
+              description: >
+                License code from the HAXcms license list (for example by-sa,
+                cc0, mit), or null when the source states none HAX can apply.
           additionalProperties: true
+        warnings:
+          type: array
+          description: >
+            Notices about the source that the person importing should see
+            before publishing. Returned by quartoToSite; other importers may
+            omit it. A notice is information, not a refusal.
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: >
+                  Stable identifier: license:no-derivatives,
+                  license:non-commercial, license:share-alike,
+                  license:from-file, license:unrecognized or license:not-found.
+              message:
+                type: string
+            required:
+              - code
+              - message
       additionalProperties: true
     ApiEnvelopeWithData:
       type: object

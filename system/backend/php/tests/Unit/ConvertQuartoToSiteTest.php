@@ -542,7 +542,193 @@ CONFIG;
             '_quarto.yml' => str_replace("license: CC BY-SA 4.0\n", '', $this->bookConfig()),
         )));
         $this->assertNull($response['data']['site']['license']);
+        $this->assertSame(array('license:not-found'), $this->warningCodes($response));
         $this->assertDoesNotMatchRegularExpression('~license-element~', $this->contentsOf($response, 'basics/setup'));
+    }
+
+    // ------------------------------------------------------------------
+    // license detection and notices
+    // ------------------------------------------------------------------
+
+    private function noLicenseConfig(): string
+    {
+        return str_replace("license: CC BY-SA 4.0\n", '', $this->bookConfig());
+    }
+
+    private function warningCodes(array $response): array
+    {
+        return array_map(function ($warning) {
+            return $warning['code'];
+        }, $response['data']['warnings']);
+    }
+
+    public function testAShareAlikeLicenseInTheProjectFileWarnsAboutShareAlikeOnly(): void
+    {
+        $response = $this->importRepo();
+        $this->assertSame(array('license:share-alike'), $this->warningCodes($response));
+        $this->assertSame(
+            'The source is licensed Share Alike. Keep the same license on the imported site.',
+            $response['data']['warnings'][0]['message']
+        );
+    }
+
+    public function testANoDerivativesLicenseWarnsAndSoDoesNonCommercial(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => str_replace('license: CC BY-SA 4.0', 'license: CC BY-NC-ND 4.0', $this->bookConfig()),
+        )));
+        $this->assertSame('by-nc-nd', $response['data']['site']['license']);
+        $this->assertSame(array('license:no-derivatives', 'license:non-commercial'), $this->warningCodes($response));
+        $this->assertSame(
+            'The source is licensed No Derivatives. Converting it into a new site may count as an adaptation; check the license or ask the author before publishing.',
+            $response['data']['warnings'][0]['message']
+        );
+        $this->assertSame(
+            'The source is licensed Non-commercial. The imported site must not be used commercially.',
+            $response['data']['warnings'][1]['message']
+        );
+    }
+
+    public function testALicenseFileIsReadWhenTheProjectFileDeclaresNone(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => $this->noLicenseConfig(),
+            'LICENSE' => "This work is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 4.0 United States License. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/4.0/\n",
+        )));
+        $this->assertSame('by-nc-nd', $response['data']['site']['license']);
+        $this->assertSame(
+            array('license:no-derivatives', 'license:non-commercial', 'license:from-file'),
+            $this->warningCodes($response)
+        );
+        $this->assertSame(
+            "The license (by-nc-nd) was read from the repository's license file because the project file declares none. Confirm it covers the written content and not only the code.",
+            $response['data']['warnings'][2]['message']
+        );
+        $this->assertMatchesRegularExpression('~<license-element license="by-nc-nd"~', $this->contentsOf($response, 'basics/setup'));
+    }
+
+    public function testTheProjectFileWinsAndTheLicenseFileIsNeverFetched(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            'LICENSE' => 'Permission is hereby granted, free of charge, to any person obtaining a copy',
+        )));
+        $this->assertSame('by-sa', $response['data']['site']['license']);
+        foreach ($this->fetchedUrls() as $url) {
+            $this->assertDoesNotMatchRegularExpression('~/LICENSE$~', $url);
+        }
+    }
+
+    public function testASoftwareLicenseInTheLicenseFileIsAppliedAndFlaggedForReview(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => $this->noLicenseConfig(),
+            'LICENSE.md' => "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software\n",
+        )));
+        $this->assertSame('mit', $response['data']['site']['license']);
+        $this->assertSame(array('license:from-file'), $this->warningCodes($response));
+        $this->assertMatchesRegularExpression('~license="mit"~', $this->contentsOf($response, 'basics/setup'));
+    }
+
+    public function testAProjectFileCanStateASoftwareLicenseBySpdxNameOrAsAMap(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => str_replace('license: CC BY-SA 4.0', 'license: Apache-2.0', $this->bookConfig()),
+        )));
+        $this->assertSame('apache-2.0', $response['data']['site']['license']);
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => str_replace(
+                'license: CC BY-SA 4.0',
+                "license:\n  text: Some text\n  url: https://creativecommons.org/publicdomain/zero/1.0/",
+                $this->bookConfig()
+            ),
+        )));
+        $this->assertSame('cc0', $response['data']['site']['license']);
+        $this->assertSame(array(), $this->warningCodes($response));
+        $this->assertMatchesRegularExpression('~"warnings":\s*\[\s*\]~', json_encode($response));
+    }
+
+    public function testACreativeCommonsLicenseAtAnotherVersionIsReportedNotRelabeled(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => str_replace('license: CC BY-SA 4.0', 'license: CC BY-SA 3.0', $this->bookConfig()),
+        )));
+        $this->assertNull($response['data']['site']['license']);
+        $this->assertSame(array('license:unrecognized'), $this->warningCodes($response));
+        $this->assertMatchesRegularExpression('~CC BY-SA 3\.0~', $response['data']['warnings'][0]['message']);
+        $this->assertSame(
+            'The source states a license HAX cannot apply (CC BY-SA 3.0). No license was set on the imported site.',
+            $response['data']['warnings'][0]['message']
+        );
+        $this->assertDoesNotMatchRegularExpression('~license-element~', $this->contentsOf($response, 'basics/setup'));
+    }
+
+    public function testALicenseFileThatCannotBeIdentifiedIsReportedAsUnrecognized(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => $this->noLicenseConfig(),
+            'LICENSE' => "You may look at this but not touch it.\n",
+        )));
+        $this->assertNull($response['data']['site']['license']);
+        $this->assertSame(array('license:unrecognized'), $this->warningCodes($response));
+    }
+
+    public function testARepositoryWithNoLicenseSaysSo(): void
+    {
+        $response = $this->importRepo(null, array('files' => array('_quarto.yml' => $this->noLicenseConfig())));
+        $this->assertNull($response['data']['site']['license']);
+        $this->assertSame(array('license:not-found'), $this->warningCodes($response));
+        $this->assertSame(
+            'No license was declared in the project file or found in a repository license file. Without one, the work is all rights reserved by default; get permission before publishing the import.',
+            $response['data']['warnings'][0]['message']
+        );
+    }
+
+    public function testAnUnreadableLicenseFileIsTheSameAsNone(): void
+    {
+        $response = $this->importRepo(null, array(
+            'files' => array('_quarto.yml' => $this->noLicenseConfig(), 'LICENSE' => 'x'),
+            'unreadable' => array('LICENSE'),
+        ));
+        $this->assertSame(array('license:not-found'), $this->warningCodes($response));
+    }
+
+    public function testTheLicenseFileBesideTheProjectFileIsPreferredThenTheRepositoryRoot(): void
+    {
+        $mit = 'Permission is hereby granted, free of charge, to any person obtaining a copy';
+        $response = $this->importRepo(null, array('only' => true, 'files' => array(
+            'book/_quarto.yml' => $this->noLicenseConfig(),
+            'book/index.qmd' => "# Home\n\nHi.\n",
+            'book/LICENSE' => 'Creative Commons Attribution 4.0 International',
+            'LICENSE' => $mit,
+        )));
+        $this->assertSame('by', $response['data']['site']['license']);
+        $response = $this->importRepo(null, array('only' => true, 'files' => array(
+            'book/_quarto.yml' => $this->noLicenseConfig(),
+            'book/index.qmd' => "# Home\n\nHi.\n",
+            'LICENSE' => $mit,
+        )));
+        $this->assertSame('mit', $response['data']['site']['license']);
+    }
+
+    public function testTheShortestLicenseFileNameWinsThenLocaleOrder(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            '_quarto.yml' => $this->noLicenseConfig(),
+            'LICENSE.txt' => 'Creative Commons Attribution 4.0 International',
+            'LICENSE' => 'Permission is hereby granted, free of charge, to any person obtaining a copy',
+            'COPYING' => 'Mozilla Public License Version 2.0',
+        )));
+        // COPYING is shorter than LICENSE
+        $this->assertSame('mpl-2.0', $response['data']['site']['license']);
+    }
+
+    public function testAPageLicenseInFrontMatterThatCannotBeAppliedFallsBackToTheSiteLicense(): void
+    {
+        $response = $this->importRepo(null, array('files' => array(
+            'preface.qmd' => "---\nlicense: CC BY 3.0\n---\n\nText.\n",
+        )));
+        $preface = $this->itemBySlug($response['data']['items'], 'preface');
+        $this->assertSame('by-sa', $preface['metadata']['quarto']['license']);
     }
 
     // ------------------------------------------------------------------

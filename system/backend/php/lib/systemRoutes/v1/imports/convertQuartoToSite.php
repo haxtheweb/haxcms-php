@@ -8,6 +8,7 @@ if (file_exists($__vendorAutoload)) {
 }
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 include_once dirname(__FILE__) . '/../../../SanitizeContent.php';
+include_once dirname(__FILE__) . '/../../../Licenses.php';
 
 // Constants and limits mirror haxcms-nodejs convertQuartoToSite.js. Page bodies
 // are fetched one at a time; assets travel to createSite as URLs, which
@@ -26,6 +27,11 @@ if (!defined('HAXCMS_QUARTO_CONFIG_PATH_REGEX')) {
     define('HAXCMS_QUARTO_IMPORTABLE_ASSET_REGEX', '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|xml)$/iD');
     define('HAXCMS_QUARTO_IMAGE_EXTENSION_REGEX', '/\.(jpg|jpeg|png|gif|webp)$/iD');
     define('HAXCMS_QUARTO_MAX_INCLUDE_DEPTH', 3);
+    // repository files that state a license, best first; read only when the
+    // project file does not declare one. The dot is spelled out because
+    // JavaScript's does not match \r or U+2028/U+2029.
+    define('HAXCMS_QUARTO_LICENSE_FILE_REGEX', '/^(license|licence|copying|unlicense)([-._ ](?:(?!\xE2\x80[\xA8\xA9])[^\n\r])*)?(\.(md|txt|rst))?$/iD');
+    define('HAXCMS_QUARTO_MAX_LICENSE_FILE_BYTES', 65536);
     // the output format this import stands in for, used by content-visible and
     // content-hidden divs
     define('HAXCMS_QUARTO_TARGET_FORMAT', 'html');
@@ -95,7 +101,7 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
      * not computed, and the result says so.
      *
      * Returns { status: 200, data: { items, filename, files, site, truncated,
-     * unmappedComponents } }.
+     * unmappedComponents, warnings } }.
      */
     function haxcmsImportConvertQuartoToSite($context)
     {
@@ -146,6 +152,7 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
                 'site'               => array('license' => $source['license']),
                 'truncated'          => $imported['truncated'],
                 'unmappedComponents' => $imported['unmappedComponents'],
+                'warnings'           => haxcmsImportQuartoLicenseWarnings($source),
             )),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
@@ -481,6 +488,24 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
             throw haxcmsImportQuartoError(422, 'Unable to read ' . $configPath);
         }
         $config = haxcmsImportQuartoReadConfig($configSource);
+        // the project file wins; otherwise read what the repository itself says
+        $licenseInfo = $config['licenseInfo'];
+        $licenseSource = $licenseInfo['label'] !== '' ? 'config' : '';
+        if ($licenseInfo['code'] === null && $licenseInfo['label'] === '') {
+            $licenseFile = haxcmsImportQuartoFindLicenseFile($paths, $root);
+            if ($licenseFile !== null) {
+                $licenseText = haxcmsImportQuartoFetchText($client, $rawBase . '/' . haxcmsImportQuartoEncodeUri($licenseFile));
+                if ($licenseText !== null) {
+                    $fromFile = HAXCMSLicenses::identify(HAXCMSLicenses::sliceUtf16($licenseText, HAXCMS_QUARTO_MAX_LICENSE_FILE_BYTES));
+                    $licenseInfo = $fromFile;
+                    $licenseSource = 'license-file';
+                    if ($fromFile['label'] === '') {
+                        // a LICENSE file we do not recognize is still a statement
+                        $licenseInfo = array('code' => null, 'version' => '', 'label' => $licenseFile);
+                    }
+                }
+            }
+        }
         $accessed = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
         return array(
             'owner'    => $repo['owner'],
@@ -491,7 +516,9 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
             'rawBase'  => $rawBase,
             'config'   => $config,
             'title'    => $config['title'] !== '' ? $config['title'] : $repo['name'],
-            'license'  => $config['license'],
+            'license'  => $licenseInfo['code'],
+            'licenseInfo'   => $licenseInfo,
+            'licenseSource' => $licenseSource,
             'accessed' => $accessed,
         );
     }
@@ -591,7 +618,7 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
             'title'      => $title,
             'author'     => $author,
             'siteUrl'    => $siteUrl,
-            'license'    => haxcmsImportQuartoNormalizeLicense(haxcmsImportQuartoGet($data, 'license')),
+            'licenseInfo' => haxcmsImportQuartoLicenseStatement(haxcmsImportQuartoGet($data, 'license')),
             'outputDir'  => haxcmsImportQuartoReplace('#^\.?/|/$#D', '', haxcmsImportQuartoStringOf(haxcmsImportQuartoGet($project, 'output-dir'))),
             'render'     => $render,
             'chapters'   => is_array($chapters) ? $chapters : null,
@@ -649,18 +676,135 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
         return null;
     }
 
-    /** CC BY-SA 4.0, cc-by-sa and by-sa all mean the same license code. */
-    function haxcmsImportQuartoNormalizeLicense($value)
+    /**
+     * The license a `license:` setting states. Quarto allows a string, a list, or
+     * a map with `text` and `url`; the first entry we can read wins, and one we
+     * cannot (an unsupported Creative Commons version, a custom text) is kept as
+     * a label so the person is told instead of the license silently vanishing.
+     */
+    function haxcmsImportQuartoLicenseStatement($value)
     {
-        if (!is_string($value)) {
-            return null;
+        $candidates = array();
+        $collect = function ($entry) use (&$candidates, &$collect) {
+            if (is_string($entry)) {
+                $candidates[] = $entry;
+            }
+            elseif (is_array($entry)) {
+                foreach ($entry as $inner) {
+                    $collect($inner);
+                }
+            }
+            elseif ($entry instanceof \stdClass) {
+                $collect(haxcmsImportQuartoGet($entry, 'url'));
+                $collect(haxcmsImportQuartoGet($entry, 'text'));
+                $collect(haxcmsImportQuartoGet($entry, 'type'));
+            }
+        };
+        $collect($value);
+        $fallback = array('code' => null, 'version' => '', 'label' => '');
+        foreach ($candidates as $candidate) {
+            $info = HAXCMSLicenses::identify($candidate);
+            if ($info['code']) {
+                return $info;
+            }
+            if ($fallback['label'] === '' && $info['label'] !== '') {
+                $fallback = $info;
+            }
         }
-        $code = mb_strtolower(haxcmsImportQuartoTrim($value), 'UTF-8');
-        $code = haxcmsImportQuartoReplace('/[\s_]+/u', '-', $code);
-        $code = haxcmsImportQuartoReplace('/^cc-/', '', $code);
-        $code = haxcmsImportQuartoReplace('/-\d+(\.\d+)*$/D', '', $code);
-        $supported = array('by', 'by-sa', 'by-nd', 'by-nc', 'by-nc-sa', 'by-nc-nd');
-        return in_array($code, $supported, true) ? $code : null;
+        return $fallback;
+    }
+
+    /** The license a page's front matter states, as a code, or null. */
+    function haxcmsImportQuartoLicenseCode($value)
+    {
+        $info = haxcmsImportQuartoLicenseStatement($value);
+        return $info['code'];
+    }
+
+    /**
+     * The repository file that states a license: at the project root first, then
+     * the repository root. LICENSE, LICENSE.md and LICENSE.txt come first.
+     */
+    function haxcmsImportQuartoFindLicenseFile($paths, $root)
+    {
+        $directories = $root === '' ? array('') : array($root, '');
+        foreach ($directories as $directory) {
+            $prefix = $directory === '' ? '' : $directory . '/';
+            $names = array();
+            foreach (haxcmsImportQuartoPathList($paths) as $path) {
+                if ($prefix !== '' && strpos($path, $prefix) !== 0) {
+                    continue;
+                }
+                $rest = substr($path, strlen($prefix));
+                if (strpos($rest, '/') === false && preg_match(HAXCMS_QUARTO_LICENSE_FILE_REGEX, $rest)) {
+                    $names[] = $path;
+                }
+            }
+            // shortest first, then locale order; the length is JavaScript's
+            usort($names, function ($a, $b) {
+                $lengths = HAXCMSLicenses::utf16Length($a) - HAXCMSLicenses::utf16Length($b);
+                return $lengths !== 0 ? $lengths : haxcmsImportQuartoCollate($a, $b);
+            });
+            if (count($names) > 0) {
+                return $names[0];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * What the person importing should know about the source's license. These
+     * are notices, not a ruling: whether an import is permitted is theirs to
+     * decide, and the codes let a client show the right words. Codes, order and
+     * messages match haxcms-nodejs licenseWarnings.
+     */
+    function haxcmsImportQuartoLicenseWarnings($source)
+    {
+        $warnings = array();
+        $info = isset($source['licenseInfo']) ? $source['licenseInfo'] : array('code' => null, 'label' => '');
+        $add = function ($code, $message) use (&$warnings) {
+            $warnings[] = array('code' => $code, 'message' => $message);
+        };
+        if ($info['code']) {
+            $terms = HAXCMSLicenses::terms($info['code']);
+            if (in_array('no-derivatives', $terms, true)) {
+                $add(
+                    'license:no-derivatives',
+                    'The source is licensed No Derivatives. Converting it into a new site may count as an adaptation; check the license or ask the author before publishing.'
+                );
+            }
+            if (in_array('non-commercial', $terms, true)) {
+                $add(
+                    'license:non-commercial',
+                    'The source is licensed Non-commercial. The imported site must not be used commercially.'
+                );
+            }
+            if (in_array('share-alike', $terms, true)) {
+                $add(
+                    'license:share-alike',
+                    'The source is licensed Share Alike. Keep the same license on the imported site.'
+                );
+            }
+            if (isset($source['licenseSource']) && $source['licenseSource'] === 'license-file') {
+                $add(
+                    'license:from-file',
+                    'The license (' . $info['code'] . ") was read from the repository's license file because the project file declares none. Confirm it covers the written content and not only the code."
+                );
+            }
+        }
+        elseif ($info['label'] !== '') {
+            $add(
+                'license:unrecognized',
+                'The source states a license HAX cannot apply (' . HAXCMSLicenses::sliceUtf16($info['label'], 80) . '). No license was set on the imported site.'
+            );
+        }
+        else {
+            $add(
+                'license:not-found',
+                'No license was declared in the project file or found in a repository license file. Without one, the work is all rights reserved by default; get permission before publishing the import.'
+            );
+        }
+        return $warnings;
     }
 
     // --- paths and titles -----------------------------------------------------
@@ -1327,8 +1471,8 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
         if ($pageTitle !== '' && !$node['explicit']) {
             $item['title'] = $pageTitle;
         }
-        $pageLicense = haxcmsImportQuartoNormalizeLicense(haxcmsImportQuartoGet($split['data'], 'license'));
-        if ($pageLicense === null) {
+        $pageLicense = haxcmsImportQuartoLicenseCode(haxcmsImportQuartoGet($split['data'], 'license'));
+        if (!haxcmsImportQuartoTruthy($pageLicense)) {
             $pageLicense = $run['source']['license'];
         }
         $author = haxcmsImportQuartoAuthorText(haxcmsImportQuartoGet($split['data'], 'author'));
