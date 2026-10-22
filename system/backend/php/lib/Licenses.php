@@ -1,51 +1,61 @@
 <?php
 /**
- * HAXCMSLicenses - single source of truth for the license list HAXcms offers.
- * Grouped as Creative Commons, Public domain and Software. Mirrors the
- * canonical list shared with the Node.js backend and the web components
- * client; keep all three in sync.
+ * HAXCMSLicenses - the license list HAXcms offers, grouped as Creative
+ * Commons, Public domain and Software. The list is data: licenses.json next
+ * to this file is a byte for byte copy of the canonical
+ * @haxtheweb/license-element lib/licenses.json (webcomponents repo), which
+ * haxcms-nodejs and the client also use. Edit that file and run
+ * `yarn run language-registry-sync` there; do not edit the copy.
  */
 if (!class_exists('HAXCMSLicenses')) {
     class HAXCMSLicenses
     {
         /**
+         * The decoded licenses.json, read once. licenses.json is a byte for
+         * byte copy of the canonical @haxtheweb/license-element
+         * lib/licenses.json in the webcomponents repo; do not edit it here.
+         */
+        protected static function data()
+        {
+            static $data = null;
+            if ($data === null) {
+                $raw = @file_get_contents(dirname(__FILE__) . '/licenses.json');
+                $data = is_string($raw) ? json_decode($raw, true) : null;
+                if (!is_array($data) || !isset($data['groups']) || !isset($data['licenses'])) {
+                    $data = array('groups' => array(), 'licenses' => array());
+                }
+            }
+            return $data;
+        }
+
+        /**
          * Group machine name => group label, in display order.
          */
         public static function groups()
         {
-            return array(
-            'creative-commons' => 'Creative Commons',
-            'public-domain' => 'Public domain',
-            'software' => 'Software',
-            );
+            $groups = array();
+            foreach (self::data()['groups'] as $group) {
+                $groups[$group['id']] = $group['name'];
+            }
+            return $groups;
         }
 
         /**
-         * Raw spec entries in canonical order (name has no group prefix).
+         * Raw entries in canonical order (name has no group prefix).
          */
         public static function entries()
         {
-            return array(
-            array('code' => 'by', 'group' => 'creative-commons', 'name' => 'Attribution', 'link' => 'https://creativecommons.org/licenses/by/4.0/', 'image' => 'https://i.creativecommons.org/l/by/4.0/88x31.png'),
-            array('code' => 'by-sa', 'group' => 'creative-commons', 'name' => 'Attribution Share a like', 'link' => 'https://creativecommons.org/licenses/by-sa/4.0/', 'image' => 'https://i.creativecommons.org/l/by-sa/4.0/88x31.png'),
-            array('code' => 'by-nd', 'group' => 'creative-commons', 'name' => 'Attribution No derivatives', 'link' => 'https://creativecommons.org/licenses/by-nd/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nd/4.0/88x31.png'),
-            array('code' => 'by-nc', 'group' => 'creative-commons', 'name' => 'Attribution non-commercial', 'link' => 'https://creativecommons.org/licenses/by-nc/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc/4.0/88x31.png'),
-            array('code' => 'by-nc-sa', 'group' => 'creative-commons', 'name' => 'Attribution non-commercial share a like', 'link' => 'https://creativecommons.org/licenses/by-nc-sa/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png'),
-            array('code' => 'by-nc-nd', 'group' => 'creative-commons', 'name' => 'Attribution Non-commercial No derivatives', 'link' => 'https://creativecommons.org/licenses/by-nc-nd/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png'),
-            array('code' => 'cc0', 'group' => 'public-domain', 'name' => 'CC0 1.0 Universal', 'link' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'image' => 'https://licensebuttons.net/p/zero/1.0/88x31.png'),
-            array('code' => 'pdm', 'group' => 'public-domain', 'name' => 'Public Domain Mark 1.0', 'link' => 'https://creativecommons.org/publicdomain/mark/1.0/', 'image' => 'https://licensebuttons.net/p/mark/1.0/88x31.png'),
-            array('code' => 'mit', 'group' => 'software', 'name' => 'MIT License', 'link' => 'https://opensource.org/license/mit', 'image' => ''),
-            array('code' => 'apache-2.0', 'group' => 'software', 'name' => 'Apache License 2.0', 'link' => 'https://www.apache.org/licenses/LICENSE-2.0', 'image' => ''),
-            array('code' => 'bsd-2-clause', 'group' => 'software', 'name' => 'BSD 2-Clause License', 'link' => 'https://opensource.org/license/bsd-2-clause', 'image' => ''),
-            array('code' => 'bsd-3-clause', 'group' => 'software', 'name' => 'BSD 3-Clause License', 'link' => 'https://opensource.org/license/bsd-3-clause', 'image' => ''),
-            array('code' => 'isc', 'group' => 'software', 'name' => 'ISC License', 'link' => 'https://opensource.org/license/isc-license-txt', 'image' => ''),
-            array('code' => 'mpl-2.0', 'group' => 'software', 'name' => 'Mozilla Public License 2.0', 'link' => 'https://www.mozilla.org/MPL/2.0/', 'image' => ''),
-            array('code' => 'gpl-2.0', 'group' => 'software', 'name' => 'GNU General Public License v2.0', 'link' => 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html', 'image' => ''),
-            array('code' => 'gpl-3.0', 'group' => 'software', 'name' => 'GNU General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/gpl-3.0.html', 'image' => ''),
-            array('code' => 'lgpl-3.0', 'group' => 'software', 'name' => 'GNU Lesser General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/lgpl-3.0.html', 'image' => ''),
-            array('code' => 'agpl-3.0', 'group' => 'software', 'name' => 'GNU Affero General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/agpl-3.0.html', 'image' => ''),
-            array('code' => 'unlicense', 'group' => 'software', 'name' => 'The Unlicense', 'link' => 'https://unlicense.org/', 'image' => ''),
-            );
+            $entries = array();
+            foreach (self::data()['licenses'] as $license) {
+                $entries[] = array(
+                    'code' => $license['code'],
+                    'group' => $license['group'],
+                    'name' => $license['name'],
+                    'link' => $license['link'],
+                    'image' => $license['image'],
+                );
+            }
+            return $entries;
         }
 
         /**
@@ -68,6 +78,52 @@ if (!class_exists('HAXCMSLicenses')) {
             return $list;
         }
 
+/**
+         * Fill the license choices of a site settings schema from the list so
+         * the options are never a second copy. Finds the field by its
+         * property name ("manifest-license") wherever it sits in the schema.
+         * @param mixed $fields array/object schema, changed in place
+         * @return bool true when a license field was found
+         */
+        public static function applyOptions(&$fields, $depth = 0)
+        {
+            $applied = false;
+            if ($depth > 8 || (!is_array($fields) && !is_object($fields))) {
+                return false;
+            }
+            $isObject = is_object($fields);
+            $property = $isObject
+                ? (isset($fields->property) ? $fields->property : null)
+                : (isset($fields['property']) ? $fields['property'] : null);
+            if ($property === 'manifest-license') {
+                if ($isObject) {
+                    $fields->options = (object) self::getLicenseData('select');
+                } else {
+                    $fields['options'] = self::getLicenseData('select');
+                }
+                $applied = true;
+            }
+            if ($isObject) {
+                foreach (get_object_vars($fields) as $key => $value) {
+                    if (is_array($value) || is_object($value)) {
+                        if (self::applyOptions($fields->{$key}, $depth + 1)) {
+                            $applied = true;
+                        }
+                    }
+                }
+            } else {
+                foreach ($fields as $key => $value) {
+                    if (is_array($value) || is_object($value)) {
+                        if (self::applyOptions($fields[$key], $depth + 1)) {
+                            $applied = true;
+                        }
+                    }
+                }
+            }
+            return $applied;
+        }
+
+        
         /**
          * 'select' => code => display name; anything else => full map.
          */

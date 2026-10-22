@@ -160,4 +160,41 @@ class LicensesTest extends TestCase
         $this->assertNull(HAXCMSLicenses::normalize('mit', ['by', 'by-sa']));
         $this->assertSame('by', HAXCMSLicenses::normalize('cc-by-nc-sa-4.0', ['by']));
     }
+
+    public function testListComesFromSharedJson(): void
+    {
+        $path = dirname(__DIR__, 2) . '/lib/licenses.json';
+        $data = json_decode(file_get_contents($path), true);
+        $this->assertSame(1, $data['version']);
+        $this->assertSame(
+            array_column($data['licenses'], 'code'),
+            array_column(HAXCMSLicenses::entries(), 'code')
+        );
+        $this->assertSame(
+            array_column($data['groups'], 'name', 'id'),
+            HAXCMSLicenses::groups()
+        );
+    }
+
+    public function testApplyOptionsFillsSiteSettingsField(): void
+    {
+        $fields = json_decode(
+            '[{"fields":[{"property":"manifest-license","options":{}}]}]'
+        );
+        $this->assertTrue(HAXCMSLicenses::applyOptions($fields));
+        $options = (array) $fields[0]->fields[0]->options;
+        $this->assertCount(count(self::CODES), $options);
+        $other = json_decode('[{"property":"x"}]');
+        $this->assertFalse(HAXCMSLicenses::applyOptions($other));
+    }
+
+    public function testStandaloneBoilerplateStaysInSync(): void
+    {
+        $file = dirname(__DIR__, 4) . '/boilerplate/site/config.php';
+        $text = file_get_contents($file);
+        $this->assertStringContainsString('BEGIN GENERATED: licenses', $text);
+        foreach (self::CODES as $code) {
+            $this->assertStringContainsString("'" . $code . "'", $text, $code);
+        }
+    }
 }

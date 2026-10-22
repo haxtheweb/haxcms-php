@@ -9,6 +9,7 @@ include_once 'Variables.php';
 include_once 'HAXAppStoreService.php';
 // working with sites
 include_once 'HAXCMSSite.php';
+include_once 'Licenses.php';
 // working with files
 include_once 'HAXCMSFile.php';
 // working with JSON Outline Schema
@@ -310,6 +311,8 @@ class HAXCMS
             foreach ($fieldsData as $name => $data) {
                 $this->config->site->fields[0]->{$name} = $data;
             }
+            // license choices come from the shared license list, not siteFields.json
+            HAXCMSLicenses::applyOptions($this->config->site->fields);
             $themeSelect = array();
             // ensure field schema has correct theme options
             // filter hidden / terrible themes from the site settings dialog
