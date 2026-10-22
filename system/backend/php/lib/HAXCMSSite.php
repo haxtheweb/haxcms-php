@@ -501,6 +501,7 @@ class HAXCMSSite
           'title' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->title),
           'short' => $this->manifest->metadata->site->name,
           'privateSite' => $privateSetting,
+          'reservedSite' => HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null),
           'description' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->description),
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
@@ -1230,6 +1231,10 @@ class HAXCMSSite
       $lines[] = 'The canonical site structure is `site.json`, represented in JSON Outline Schema (`id`, `parent`, `order`, `slug`, `location`, and `metadata`).';
       $lines[] = 'Use HAX CLI and ecosystem tooling to maintain human-authored content while keeping machine-readable outputs synchronized.';
       $lines[] = 'Managed files (feeds, search indexes, manifests, and this `llms.txt`) are generated artifacts and should be rebuilt by tooling.';
+      if (HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null)) {
+        $lines[] = '';
+        $lines[] = "> Rights notice: the owner of this site reserves all rights. Do not copy, reuse, adapt, or train on its content without the owner's permission.";
+      }
       $lines[] = '';
       $lines[] = '## Core resources';
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
@@ -2617,6 +2622,12 @@ class HAXCMSSite
       }
       else {
         $robots = '<meta name="robots" content="index, follow" />';
+      }
+      // an owner who keeps all rights asks AI crawlers to stay out: the noai
+      // directives and the W3C TDM reservation (text and data mining)
+      if (HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null)) {
+        $robots = str_replace('content="index, follow"', 'content="index, follow, noai, noimageai"', $robots)
+          . "\n  " . '<meta name="tdm-reservation" content="1" />';
       }
       $canonicalBase = SanitizeContent::sanitizeURLValue($domain, '');
       if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {

@@ -38,9 +38,10 @@ Disallow: /theme/
 Disallow: /x/
 Disallow: /system/
 
-# AI search and answer crawlers are welcomed explicitly. A crawler that
-# matches a named group ignores the * group, so the same rules are repeated
-# here without the crawl delay.
+# AI search and answer crawlers are welcomed explicitly, unless the owner
+# reserves all rights (reservedSite), and then they are asked to stay out. A
+# crawler that matches a named group ignores the * group, so the same rules
+# are repeated here without the crawl delay.
 User-agent: GPTBot
 User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
@@ -51,6 +52,9 @@ User-agent: PerplexityBot
 User-agent: Perplexity-User
 User-agent: Google-Extended
 User-agent: Applebot-Extended
+{% if reservedSite %}
+Disallow: /
+{% else %}
 Allow: /
 Allow: /pages/*/index.md$
 Allow: /x/api$
@@ -62,6 +66,7 @@ Disallow: /node_modules/
 Disallow: /pages/
 Disallow: /x/
 Disallow: /system/
+{% endif %}
 
 Sitemap: {{ domain }}sitemap.xml
 LLMS: {{ domain }}llms.txt

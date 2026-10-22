@@ -5,7 +5,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 /**
  * Tests for the shared license list (HAXCMSLicenses) and its consumers:
  * HAXCMSSite::getLicenseData and JSONOutlineSchema::getLicenseDetails.
- * Expected values follow the canonical 19 entry grouped spec shared with the
+ * Expected values follow the canonical 20 entry grouped spec shared with the
  * Node.js backend and the web components client.
  */
 class LicensesTest extends TestCase
@@ -15,6 +15,7 @@ class LicensesTest extends TestCase
         'cc0', 'pdm',
         'mit', 'apache-2.0', 'bsd-2-clause', 'bsd-3-clause', 'isc',
         'mpl-2.0', 'gpl-2.0', 'gpl-3.0', 'lgpl-3.0', 'agpl-3.0', 'unlicense',
+        'all-rights-reserved',
     ];
 
     private const LINKS = [
@@ -37,6 +38,7 @@ class LicensesTest extends TestCase
         'lgpl-3.0' => 'https://www.gnu.org/licenses/lgpl-3.0.html',
         'agpl-3.0' => 'https://www.gnu.org/licenses/agpl-3.0.html',
         'unlicense' => 'https://unlicense.org/',
+        'all-rights-reserved' => 'https://en.wikipedia.org/wiki/All_rights_reserved',
     ];
 
     public static function codeProvider(): array
@@ -48,7 +50,7 @@ class LicensesTest extends TestCase
         return $rows;
     }
 
-    public function testAllHasNineteenCodesInSpecOrder(): void
+    public function testAllHasTwentyCodesInSpecOrder(): void
     {
         $this->assertSame(self::CODES, array_keys(HAXCMSLicenses::all()));
         $this->assertSame(self::CODES, array_keys(HAXCMSLicenses::getLicenseData('select')));
@@ -57,12 +59,12 @@ class LicensesTest extends TestCase
     public function testGroupsAndGroupingOrder(): void
     {
         $this->assertSame(
-            ['creative-commons' => 'Creative Commons', 'public-domain' => 'Public domain', 'software' => 'Software'],
+            ['creative-commons' => 'Creative Commons', 'public-domain' => 'Public domain', 'software' => 'Software', 'copyright' => 'Copyright'],
             HAXCMSLicenses::groups()
         );
         $groups = array_map(function ($item) { return $item['group']; }, array_values(HAXCMSLicenses::all()));
         $this->assertSame(
-            array_merge(array_fill(0, 6, 'creative-commons'), array_fill(0, 2, 'public-domain'), array_fill(0, 11, 'software')),
+            array_merge(array_fill(0, 6, 'creative-commons'), array_fill(0, 2, 'public-domain'), array_fill(0, 11, 'software'), array('copyright')),
             $groups
         );
     }
@@ -75,7 +77,7 @@ class LicensesTest extends TestCase
         $this->assertSame(self::LINKS[$code], $item['link']);
         $groups = HAXCMSLicenses::groups();
         $this->assertStringStartsWith($groups[$item['group']] . ': ', $item['name']);
-        if ($item['group'] === 'software') {
+        if ($item['group'] === 'software' || $item['group'] === 'copyright') {
             $this->assertSame('', $item['image']);
         } else {
             $this->assertStringStartsWith('https://', $item['image']);
@@ -109,7 +111,7 @@ class LicensesTest extends TestCase
         $this->assertSame('Software: MIT License', $select['mit']);
         $this->assertIsString($select['mit']);
         $full = $site->getLicenseData('all');
-        $this->assertCount(19, $full);
+        $this->assertCount(20, $full);
         $this->assertSame('software', $full['mit']['group']);
         $this->assertSame(HAXCMSLicenses::all(), $full);
         $this->assertSame($full, $site->getLicenseData('anything-else'));
@@ -124,7 +126,7 @@ class LicensesTest extends TestCase
         $this->assertSame('https://www.gnu.org/licenses/gpl-3.0.html', $details['link']);
         $this->assertSame('', $details['image']);
         $this->assertSame('software', $details['group']);
-        $this->assertCount(19, $jos->getLicenseDetails(true));
+        $this->assertCount(20, $jos->getLicenseDetails(true));
     }
 
     public static function normalizeProvider(): array
@@ -196,5 +198,17 @@ class LicensesTest extends TestCase
         foreach (self::CODES as $code) {
             $this->assertStringContainsString("'" . $code . "'", $text, $code);
         }
+    }
+
+    public function testAllRightsReservedWordingsNormalizeToTheCode(): void
+    {
+        foreach (['All rights reserved', 'all_rights_reserved', 'Proprietary', 'Copyright'] as $value) {
+            $this->assertSame('all-rights-reserved', HAXCMSLicenses::normalize($value), $value);
+        }
+        $this->assertNull(HAXCMSLicenses::normalize('copyright holder'));
+        $this->assertTrue(HAXCMSLicenses::isAllRightsReserved('all-rights-reserved'));
+        $this->assertFalse(HAXCMSLicenses::isAllRightsReserved('by'));
+        $this->assertFalse(HAXCMSLicenses::isAllRightsReserved(null));
+        $this->assertSame(['all-rights-reserved'], HAXCMSLicenses::terms('all-rights-reserved'));
     }
 }
