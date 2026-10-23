@@ -32,6 +32,7 @@ php -l <changed file>                            # quick lint
 - `php system/backend/php/tests/run.php` — every fix round has kept the full harness passing (251/251 baseline)
 - Security Layer suite (within PHPUnit) for auth/JWT/path changes
 - Inline verification: `../`, `....//`, and null-byte payloads must stay blocked at read AND write locations
+- `FallbackRendererSecurityTest` (N6/N7): the single-site fallback (`system/boilerplate/site/config.php` + `index.php`) must encode every manifest-derived value for its output context and keep `getPageContent` contained to the site directory
 
 ## Reporting convention
 
