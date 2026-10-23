@@ -64,9 +64,6 @@ class FallbackRendererSecurityTest extends TestCase
                 'site' => array('name' => 'fallback-test'),
                 'theme' => array('variables' => array('cssVariable' => '--simple-colors-default-theme-blue-7')),
             ), $metadata),
-            // falsy ids on purpose: the fallback's getSiteMetadata() calls
-            // getItemKeyById() on a plain stdClass when an id is truthy, a
-            // separate pre-existing defect that is out of scope here
             'items' => array(array(
                 'id' => '0', 'indent' => 0, 'location' => 'pages/home/index.html',
                 'slug' => 'home', 'order' => 0, 'parent' => null,
