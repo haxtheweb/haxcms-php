@@ -229,6 +229,21 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
     }
     /**
+     * Get an item's position in the manifest by id, to find previous and next
+     * items. The single site manifest is a plain stdClass (not a
+     * JSONOutlineSchema), so it has no getItemKeyById() of its own.
+     * @param string $id id of the item to look for
+     * @return int|bool key in the items array or FALSE if not found
+     */
+    public function getItemKeyById($id) {
+      foreach ($this->manifest->items as $key => $item) {
+        if ($item->id === $id) {
+          return $key;
+        }
+      }
+      return FALSE;
+    }
+    /**
      * Return the base tag accurately which helps with the PWA / SW side of things
      * @return string HTML blob for hte <base> tag
      */
@@ -359,8 +374,8 @@ if (!isset($GLOBALS['HAXCMS'])) {
       $prevResource = '';
       $nextResource = '';
       // if we have a place in the array bc it's a page, then we can get next / prev
-      if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
-        $currentId = $this->manifest->getItemKeyById($page->id);
+      if ($page->id && $this->getItemKeyById($page->id) !== FALSE) {
+        $currentId = $this->getItemKeyById($page->id);
         if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
           $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
         }
