@@ -70,7 +70,7 @@ evidence (the Exhibit references a real `stage2.performanceTasks[*].id`).
 | T | Tailor — differentiate / choice | `a11y-tabs`, `a11y-collapse` (set `heading-button`) |
 | O | Organize — sequence + uncoverage | `site.json` ordering + `map-menu` + `a11y-collapse` (set `heading-button`) |
 
-Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md`.
+Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 ## Output Format
 
@@ -116,8 +116,8 @@ Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md
 
 ## References
 
-- `../hax-ubd-backward-design/references/manifest-schema.md` — `stage3` fields
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — WHERETO component map
-- `../hax-ubd-backward-design/references/design-standards.md` — standards 10–12
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — `stage3` fields
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — WHERETO component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — standards 10–12
 - PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 9–10.

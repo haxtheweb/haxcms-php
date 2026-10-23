@@ -78,7 +78,7 @@ sequence learning (Stage 3).
 | Misconception pre-assessment | `self-check`, `multiple-choice` | page top (before instruction) |
 | Misconception confrontation | `stop-note` + `self-check` | inline where the idea is taught |
 
-Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md`.
+Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 ## Output Format
 
@@ -129,8 +129,8 @@ Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md
 
 ## References
 
-- `../hax-ubd-backward-design/references/manifest-schema.md` — `stage1` fields
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — Stage 1 component map
-- `../hax-ubd-backward-design/references/design-standards.md` — standards 1–4
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — `stage1` fields
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — Stage 1 component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — standards 1–4
 - PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 3–6.

@@ -1,7 +1,7 @@
 # UDL → HAX Element Map
 
 Single source of truth for mapping UDL 3.0 principles and guidelines to real HAX web
-components. Mirrors `../hax-ubd-backward-design/references/ubd-element-map.md`.
+components. Mirrors `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 Every component listed here has been verified to exist in `webcomponents/elements/` and is
 HAX-authorable (registered via `customElements.define` and shipped on the CDN).
@@ -104,4 +104,4 @@ personal ecosystem rules not duplicated in that file.
 - CAST (2024). *Universal Design for Learning Guidelines version 3.0*. Lynnfield, MA: CAST.
   Graphic organizer and guideline text: https://udlguidelines.cast.org/
 - Wiggins, G. & McTighe, J. (2005). *Understanding by Design* (Expanded 2nd ed.). ASCD.
-- Companion map: `../hax-ubd-backward-design/references/ubd-element-map.md`
+- Companion map: `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`

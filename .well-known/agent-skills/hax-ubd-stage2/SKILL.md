@@ -61,7 +61,7 @@ rubrics. Does NOT sequence (Stage 3) or set goals (Stage 1).
    - Self-Knowledge → self-assess/reflect
    Include at least one **impact** criterion (effect on audience / real-world consequence), not just correctness + craft. (Full facet lens: `hax-ubd-six-facets` companion.)
 
-5. **Validity self-test** (`../hax-ubd-backward-design/references/validity-self-test.md`): run the 7 questions on every proposed assessment. Target: all "very-unlikely." Flag any "likely" as a defect and apply the matching redesign pattern before accepting.
+5. **Validity self-test** (`https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/validity-self-test.md`): run the 7 questions on every proposed assessment. Target: all "very-unlikely." Flag any "likely" as a defect and apply the matching redesign pattern before accepting.
 
 6. **Reliability check:** ensure multiple measures over time (`progress-donut` / `simple-progress` / `promise-progress` + `grade-book`), not one high-stakes event. One valid task can still be anomalous; a *pattern* of evidence justifies the inference.
 
@@ -78,7 +78,7 @@ rubrics. Does NOT sequence (Stage 3) or set goals (Stage 1).
 | Perspective evidence | `image-compare-slider`, `a11y-compare-image` | compare viewpoints |
 | Portfolio exhibit | `clean-portfolio-theme`, `glossy-portfolio-theme` | for Exhibit stage |
 
-Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md`.
+Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 ## Output Format
 
@@ -127,9 +127,9 @@ G: {...} | R: {...} | A: {...} | S: {...} | P: {...} | S (standards): {...}
 
 ## References
 
-- `../hax-ubd-backward-design/references/manifest-schema.md` — `stage2` fields
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — Stage 2 component map
-- `../hax-ubd-backward-design/references/validity-self-test.md` — the 7-question self-test + defect→redesign patterns
-- `../hax-ubd-backward-design/references/design-standards.md` — standards 5–9
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — `stage2` fields
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — Stage 2 component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/validity-self-test.md` — the 7-question self-test + defect→redesign patterns
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — standards 5–9
 - PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 7–8.

@@ -49,7 +49,7 @@ apply remediation, hand off to the UbD stage skills and the `hax` CLI / `hax-cla
    - `site.json` (JSON Outline Schema) for the node tree + metadata
    - `pages/<slug>.html` for rendered page content (the canonical content source)
    - `files/ubd/<unit-slug>.manifest.json` if the unit was designed with the UbD skills (else reconstruct a *partial* manifest from the live site for alignment checking)
-2. **Run the 12 UbD design-standards checks** (`../hax-ubd-backward-design/references/design-standards.md`) across the unit:
+2. **Run the 12 UbD design-standards checks** (`https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md`) across the unit:
    - Big-idea focus present, visible, transferable?
    - Enduring understandings proposition-shaped (not topics/facts)?
    - Overarching + topical essential questions present and genuinely open?
@@ -57,12 +57,12 @@ apply remediation, hand off to the UbD stage skills and the `hax` CLI / `hax-cla
    - Assessment aligned to goals (Stage 1 ↔ Stage 2)?
    - ≥1 GRASPS performance task? Problem-not-exercise?
    - Six-facet evidence breadth? Rubric criteria facet-mapped?
-   - Validity self-test pass (run it on each assessment — `../hax-ubd-backward-design/references/validity-self-test.md`)?
+   - Validity self-test pass (run it on each assessment — `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/validity-self-test.md`)?
    - Reliability: multiple measures over time?
    - WHERETO sequence present? Exhibit references a real Stage 2 task?
    - Uncoverage vs coverage?
    - Cross-stage triangulation (Stage 1 ↔ 2 ↔ 3 coherent)?
-3. **Map each finding to a real HAX remediation component.** Use the consolidated map (`../hax-ubd-backward-design/references/ubd-element-map.md`). Never invent tag names.
+3. **Map each finding to a real HAX remediation component.** Use the consolidated map (`https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`). Never invent tag names.
 4. **Determine the overall rating:** Aligned | Partial | Activity-oriented | Coverage-bound (the twin sins are named diagnoses, not vague grades).
 5. **Emit the report** (format below), then an "Implementation handoff" block pointing at the skill/CLI that applies each fix.
 
@@ -182,9 +182,9 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 
 ## References
 
-- `../hax-ubd-backward-design/references/design-standards.md` — the 12 standards + rating → diagnosis mapping (the core checklist)
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — remediation component map (real tags only)
-- `../hax-ubd-backward-design/references/validity-self-test.md` — run on each assessment
-- `../hax-ubd-backward-design/references/manifest-schema.md` — for reconstructing/validating a partial manifest
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — the 12 standards + rating → diagnosis mapping (the core checklist)
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — remediation component map (real tags only)
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/validity-self-test.md` — run on each assessment
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — for reconstructing/validating a partial manifest
 - PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* — design standards (Appendix) + Fig 8.5.

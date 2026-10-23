@@ -111,11 +111,11 @@
       "type": "skill-md",
       "description": "\"READ-ONLY audit of a HAX page against UDL 3.0 (Engagement, Representation, Action & Expression) with HAX component remediation. Use for \\\"audit for UDL\\\" or \\\"does this page reach everyone\\\".\"",
       "url": "hax-udl-audit/SKILL.md",
-      "digest": "sha256:95c14fdd2be637c36d19439614b8efa8c448039c9ec38b984aef5802a2ac17bb",
+      "digest": "sha256:061420fe57cb0908e106e2c5496f513e1429b11962ee6f09c03e125db68296eb",
       "files": [
         {
           "path": "references/udl-element-map.md",
-          "digest": "sha256:72a4067a67506cf64346172db3ccf7197c2e14d8ab98585a3d19c0c49019a18c"
+          "digest": "sha256:5f7544d11f511abeab9d142106a20936c97189bd37fd6a3de177987705cdd3aa"
         }
       ]
     },
@@ -173,49 +173,49 @@
       "type": "skill-md",
       "description": "\"UbD Stage 1: unpack standards into big ideas, enduring understandings, essential questions, knowledge/skills and misconceptions. Use for \\\"what are the big ideas in X\\\" or \\\"write enduring understandings\\\".\"",
       "url": "hax-ubd-stage1/SKILL.md",
-      "digest": "sha256:b2bf044f310afa6ae9e3c4e1fcc25795cf1878e30711bdb08652e1ef3cb7e75a"
+      "digest": "sha256:4a7fc707e85d57fe1cb25bbe7d4b12762d82227862a409a32248c8695a2f6114"
     },
     {
       "name": "hax-ubd-stage2",
       "type": "skill-md",
       "description": "\"UbD Stage 2: build the evidence scrapbook, a GRASPS performance task, facet-mapped rubric and validity self-test. Use for \\\"what evidence do I need\\\" or \\\"design a performance task\\\".\"",
       "url": "hax-ubd-stage2/SKILL.md",
-      "digest": "sha256:2662398a0588d01fae36d3f9fc1e7a65b1ad09943e8a54637c1b98d8b11db3bb"
+      "digest": "sha256:5957c547a4b91ea9cd09ada7e89146a815379332d43c419c3a0a5f25388043dd"
     },
     {
       "name": "hax-ubd-stage3",
       "type": "skill-md",
       "description": "\"UbD Stage 3: plan learning experiences with WHERETO, derived from Stages 1 and 2. Use for \\\"sequence this unit\\\" or \\\"plan the learning activities\\\"; points at Stage 2 evidence and never invents endpoints.\"",
       "url": "hax-ubd-stage3/SKILL.md",
-      "digest": "sha256:1a5c335eb5bdabf82a4b4ccd7631e6eaca77b555bdd535beb2f87ec5b97ff93c"
+      "digest": "sha256:246feee6943ac299b36134d43c14274388faa5f292002d725ebe5dd5e8b1b745"
     },
     {
       "name": "hax-ubd-grasps",
       "type": "skill-md",
       "description": "Frame UbD GRASPS performance tasks (Goal, Role, Audience, Situation, Performance/Product, Standards) and select authentic-context HAX media. Use when the user says \"build a GRASPS task\", \"make this assessment authentic\", \"design a performance task\", or \"frame a real-world task\". Companion to hax-ubd-stage2.",
       "url": "hax-ubd-grasps/SKILL.md",
-      "digest": "sha256:9f5d2996676a5d18a04954387a32b1fde880864ff10153c8b73866ccbd4cb9a6"
+      "digest": "sha256:2cbd92bf0f9ba5c8b6acb314f17dba263b9a03f3f402e1f7570890b5b68ae76c"
     },
     {
       "name": "hax-ubd-essential-questions",
       "type": "skill-md",
       "description": "\"Author UbD essential and entry questions from the six-facet starter bank, separating overarching from topical and essential from leading. Use for \\\"write essential questions\\\". Companion to hax-ubd-stage1.\"",
       "url": "hax-ubd-essential-questions/SKILL.md",
-      "digest": "sha256:732d9f9406528aba6a007990764093d5d1ef2f2cc95df1441a89f6dc6a7ac8e5"
+      "digest": "sha256:85a5bafacba530d1ef8cdcba8e527f1c1da05bd77b56352d06f1b8f9f5da5fa8"
     },
     {
       "name": "hax-ubd-six-facets",
       "type": "skill-md",
       "description": "\"Apply the UbD six facets of understanding to write understandings and facet-mapped rubric criteria. Use for \\\"what facet does this target\\\" or \\\"build a rubric for understanding\\\". Companion to hax-ubd-stage2.\"",
       "url": "hax-ubd-six-facets/SKILL.md",
-      "digest": "sha256:6ec6e8d6acd046727ec3882101a0c23b4deb4aa6f61a5603f684136d150e3af9"
+      "digest": "sha256:148f67d95f15ac18b2e629045e2130defdcfe9c1e168cc7c50b32c431506e9da"
     },
     {
       "name": "hax-ubd-unit-audit",
       "type": "skill-md",
       "description": "\"READ-ONLY review of an existing HAX unit against Understanding by Design with HAX remediation. Use for \\\"is my course backward-designed\\\" or \\\"are my assessments aligned\\\". Hands off to the stage skills.\"",
       "url": "hax-ubd-unit-audit/SKILL.md",
-      "digest": "sha256:d210b8247f414cadca7e96676a620ed9d6224223e38109143d68270815428305"
+      "digest": "sha256:825e2ee70b983b2005f1fdf77147119d73e56605fa9ca4cd8770141f62b8694b"
     }
   ]
 }
