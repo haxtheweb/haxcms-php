@@ -242,6 +242,7 @@ else {
       var FINISH_MS = 600; // ready: the build wraps up in at most this long...
       var MAX_RATE = 6; // ...by playing faster, but never more than this
       var HOLD_MS = 150; // then rests on the built page this long
+      var FAST_MS = 1200; // ready this soon after navigation: skip the show, fade quickly
       function finishFigure(figure, done) {
         var anims = figure.getAnimations({ subtree: true });
         if (!anims.length) {
@@ -287,6 +288,7 @@ else {
           !figure ||
           !figure.getAnimations ||
           document.visibilityState === 'hidden' ||
+          (globalThis.performance && globalThis.performance.now() < FAST_MS) ||
           !!(globalThis.matchMedia && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches);
         if (quick) {
           dissolveLoading(loadingEl, true);
