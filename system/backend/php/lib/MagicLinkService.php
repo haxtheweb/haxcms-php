@@ -86,9 +86,30 @@ class MagicLinkService
     }
 
     /**
-     * Resolve policy from config.security.magicLink with env overrides.
-     * Enabled by default: with no HTTP issuance path, the only exposure is the
-     * consume endpoint, which can only redeem links minted by a trusted operator.
+     * config->iam is set by bootstrapHAX.php when _iamConfig exists (after the
+     * constructor derives deploymentProfile, so check both).
+     */
+    public static function isHaxiamDeployment($haxcms)
+    {
+        if (!is_object($haxcms) || !isset($haxcms->config) || !is_object($haxcms->config)) {
+            return false;
+        }
+        if (isset($haxcms->config->iam) && $haxcms->config->iam) {
+            return true;
+        }
+        return isset($haxcms->config->deploymentProfile) &&
+            strtolower((string) $haxcms->config->deploymentProfile) === 'haxiam-managed';
+    }
+
+    /**
+     * Resolve policy.
+     *   single-site / self-hosted multisite: on by default (with no HTTP
+     *     issuance path, only links minted by someone with _config access can be
+     *     redeemed); config.security.magicLink.enabled=false turns it off.
+     *   HAXiam (config->iam or deploymentProfile haxiam-managed): off by
+     *     default; HAXCMS_MAGIC_LINK_ENABLED (env) turns it on. Tenant config is
+     *     ignored.
+     *   HAXCMS_MAGIC_LINK_DISABLED (env) turns it off everywhere and wins.
      */
     public static function getSettings($haxcms)
     {
@@ -102,10 +123,18 @@ class MagicLinkService
         ) {
             $source = $haxcms->config->security->magicLink;
         }
-        $enabled = !(isset($source->enabled) && $source->enabled === false);
-        // System-level kill switch, e.g. HAXiam deploys that sign in through a
-        // third-party OAuth/SSO provider and have no local password account to
-        // recover. Wins over config so a site/tenant config can't re-enable it.
+        if (self::isHaxiamDeployment($haxcms)) {
+            // HAXiam: off by default. Most HAXiam deploys sign in through
+            // third-party OAuth/SSO, so there's no local account to recover.
+            // Only the operator can turn it on (env), never a tenant's config.
+            $enabled = self::isTruthyFlag(self::readEnv('HAXCMS_MAGIC_LINK_ENABLED'));
+        }
+        else {
+            // single-site / self-hosted multisite: on unless config turns it off
+            $enabled = !(isset($source->enabled) && $source->enabled === false);
+        }
+        // System-level kill switch. Wins over everything, including
+        // HAXCMS_MAGIC_LINK_ENABLED, so "off" is always the safe answer.
         if (self::isTruthyFlag(self::readEnv('HAXCMS_MAGIC_LINK_DISABLED'))) {
             $enabled = false;
         }
@@ -233,7 +262,7 @@ class MagicLinkService
     {
         $settings = self::getSettings($haxcms);
         if (!$settings['enabled']) {
-            throw new RuntimeException('One-time sign-in links are turned off for this HAXcms (HAXCMS_MAGIC_LINK_DISABLED or security.magicLink.enabled=false).', 1);
+            throw new RuntimeException('One-time sign-in links are turned off for this HAXcms (off by default on HAXiam; see HAXCMS_MAGIC_LINK_ENABLED / HAXCMS_MAGIC_LINK_DISABLED / security.magicLink.enabled).', 1);
         }
         $user = (isset($options['user']) && is_string($options['user']) && trim($options['user']) !== '')
             ? trim($options['user'])
