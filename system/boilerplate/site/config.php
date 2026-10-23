@@ -222,11 +222,79 @@ if (!isset($GLOBALS['HAXCMS'])) {
             }
         }
         $this->page = $this->loadNodeByLocation();
+        // Security (N6): site.json may come from an untrusted import, so every
+        // manifest-derived value printed by index.php is encoded for its
+        // context, matching lib/HAXSiteConfig.php in multi-site mode.
         if (isset($this->manifest->metadata->theme->variables->cssVariable)) {
-          $this->color = 'var(' . $this->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
+          $this->color = self::safeCssColor((string) $this->manifest->metadata->theme->variables->cssVariable);
         }
-        $this->name = $this->manifest->metadata->site->name;
+        $this->name = htmlspecialchars((string) $this->manifest->metadata->site->name, ENT_QUOTES, 'UTF-8');
       }
+    }
+    /**
+     * Security (N6): only a bare CSS custom-property name may be wrapped in
+     * var(); anything else (e.g. a value that closes the <style> block) falls
+     * back to the default accent color.
+     */
+    public static function safeCssColor($cssVariable) {
+      if (is_string($cssVariable) && preg_match('/^--[A-Za-z0-9_-]+$/', $cssVariable) === 1) {
+        return 'var(' . $cssVariable . ', #FF2222)';
+      }
+      return '#FF2222';
+    }
+    /**
+     * Security (N6): HTML-attribute encode a value for output.
+     */
+    protected function esc($value) {
+      return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+    /**
+     * Security (N6): sanitize a URL that is printed into an attribute. Only
+     * http(s) and scheme-less (relative) URLs survive; FILTER_SANITIZE_URL
+     * alone permits javascript: and data: schemes. Returns '' when unsafe.
+     */
+    protected function safeUrl($value) {
+      $url = filter_var(trim((string) $value), FILTER_SANITIZE_URL);
+      if (!is_string($url) || $url === '') {
+        return '';
+      }
+      if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $url) === 1 && preg_match('/^https?:\/\//i', $url) !== 1) {
+        return '';
+      }
+      return $url;
+    }
+    /**
+     * Security (N7): resolve a page location to a real, containment-proven
+     * path inside this site directory, or false. Mirrors
+     * HAXCMSSite::resolvePageLocationRealPath (N5): null-byte and ..-segment
+     * reject plus realpath containment.
+     */
+    protected function resolvePageLocationRealPath($location) {
+      if (!is_string($location) || $location === '' || strpos($location, "\0") !== false) {
+        return false;
+      }
+      $normalized = str_replace('\\', '/', $location);
+      if (strpos($normalized, '../') !== false || strpos($normalized, '/..') !== false || $normalized === '..') {
+        return false;
+      }
+      $resolvedBase = realpath(__DIR__);
+      if ($resolvedBase === false) {
+        return false;
+      }
+      $candidate = __DIR__ . '/' . ltrim($normalized, '/');
+      if (!is_file($candidate)) {
+        return false;
+      }
+      $resolved = realpath($candidate);
+      if ($resolved === false) {
+        return false;
+      }
+      $resolvedBase = rtrim(str_replace('\\', '/', $resolvedBase), '/');
+      $resolvedNorm = str_replace('\\', '/', $resolved);
+      if (strpos($resolvedNorm, $resolvedBase . '/') !== 0) {
+        return false;
+      }
+      return $resolved;
     }
     /**
      * Get an item's position in the manifest by id, to find previous and next
@@ -267,8 +335,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * Language of the site
      */
     public function getLanguage() {
+      // Security (N6): printed into <html lang="...">, so encode at output.
       if (isset($this->manifest->metadata->site->settings->lang) && $this->manifest->metadata->site->settings->lang != "" && $this->manifest->metadata->site->settings->lang != null) {
-        return $this->manifest->metadata->site->settings->lang;
+        return $this->esc($this->manifest->metadata->site->settings->lang);
       }
       return "en-US";
     }
@@ -317,18 +386,20 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
+        $preconnect = '<link rel="preconnect" crossorigin href="' . $this->esc($cdn) . '">';
         // base is preload for the calls below
         $base = $cdn;
       }
       $contentPreload = '';
       $wcMap = $this->getWCRegistryJson($base);
+      // Security (N6): $base is only used to build HTML attributes from here on
+      $base = $this->esc($base);
       foreach ($preloadTags as $tag) {
         // means the tag is known in our registry
         if (isset($wcMap->{$tag})) {
           $contentPreload .= '
-          <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
+          <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $this->esc($wcMap->{$tag}) . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $this->esc($wcMap->{$tag}) . '" />';
         }
       }
       $title = htmlspecialchars($page->title, ENT_QUOTES, 'UTF-8');
@@ -338,8 +409,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
       $themePreload = '';
       // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
+        $themePath = $this->esc(str_replace("@lrnwebcomponents/", "@haxtheweb/", (string) $this->manifest->metadata->theme->path));
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" />';
       }
       if ($description == '') {
         $description = htmlspecialchars($this->manifest->description, ENT_QUOTES, 'UTF-8');
@@ -362,13 +434,17 @@ if (!isset($GLOBALS['HAXCMS'])) {
       // canonical flag, if set we use the domain field
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($this->manifest->metadata->site->domain . '/' . $page->slug)) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($domain)) . '" />' . "\n";
         }
       }
       else {
+        $canonical = '';
+      }
+      // Security (N6): an unsafe canonical URL is dropped rather than emitted empty
+      if (strpos($canonical, 'href=""') !== FALSE) {
         $canonical = '';
       }
       $prevResource = '';
@@ -377,10 +453,10 @@ if (!isset($GLOBALS['HAXCMS'])) {
       if ($page->id && $this->getItemKeyById($page->id) !== FALSE) {
         $currentId = $this->getItemKeyById($page->id);
         if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
-          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+          $prevResource = '  <link rel="prev" href="' . $this->esc($this->manifest->items[$currentId-1]->slug) . '" />' . "\n";
         }
         if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
-          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+          $nextResource = '  <link rel="next" href="' . $this->esc($this->manifest->items[$currentId+1]->slug) . '" />' . "\n";
         }
       }
       $metadata = '
@@ -400,7 +476,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
         ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
           <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
           <title>' . $siteTitle . '</title>
-          <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+          <link rel="icon" href="' . $this->esc($this->getLogoSize('16', '16')) . '" />
           <meta name="theme-color" content="' . $hexCode . '" />
           ' . $robots . '
           <meta name="mobile-web-app-capable" content="yes" />
@@ -408,23 +484,23 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="apple-mobile-web-app-title" content="' . $title . '" />
-          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
-          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
-          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
-          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
-          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
-          <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->esc($this->getLogoSize('48', '48')) . '" />
+          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->esc($this->getLogoSize('72', '72')) . '" />
+          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->esc($this->getLogoSize('96', '96')) . '" />
+          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->esc($this->getLogoSize('144', '144')) . '" />
+          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->esc($this->getLogoSize('192', '192')) . '" />
+          <meta name="msapplication-TileImage" content="' . $this->esc($this->getLogoSize('144', '144')) . '" />
           <meta name="msapplication-TileColor" content="' . $hexCode . '" />
           <meta name="msapplication-tap-highlight" content="no" />
           <meta name="description" content="' . $description . '" />
           <meta name="og:site_name" property="og:site_name" content="' . htmlspecialchars($this->manifest->title, ENT_QUOTES, 'UTF-8') . '" />
           <meta name="og:title" property="og:title" content="' . $title . '" />
           <meta name="og:type" property="og:type" content="article" />
-          <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+          <meta name="og:url" property="og:url" content="' . $this->esc($this->safeUrl($domain)) . '" />
           <meta name="og:description" property="og:description" content="' . $description . '" />
 ' . ($this->getSocialShareImage($page) != '' ? '          <meta name="og:image" property="og:image" content="' . htmlspecialchars($this->getSocialShareImage($page), ENT_QUOTES, 'UTF-8') . '" />
 ' : '') . '          <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-          <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+          <meta name="twitter:site" property="twitter:site" content="' . $this->esc($this->safeUrl($domain)) . '" />
           <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
           <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
 ' . ($this->getSocialShareImage($page) != '' ? '          <meta name="twitter:image" property="twitter:image" content="' . htmlspecialchars($this->getSocialShareImage($page), ENT_QUOTES, 'UTF-8') . '" />' : '');
@@ -762,7 +838,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       // add in twitter link if they provided one
       if (isset($this->manifest->metadata->author->socialLink) && strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0) {
-          $metadata .= '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
+          $metadata .= '  <meta name="twitter:creator" content="' . $this->esc(str_replace('https://twitter.com/', '@', (string) $this->manifest->metadata->author->socialLink)) . '" />';
       }
       return $metadata;
     }
@@ -880,7 +956,10 @@ if (!isset($GLOBALS['HAXCMS'])) {
       if (isset($page->location) && $page->location != '') {
         $content = &$this->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          $content = filter_var(file_get_contents('./' . $page->location));
+          // Security (N7): page.location comes from site.json, which may be
+          // untrusted; only read files proven to live inside the site directory
+          $resolved = $this->resolvePageLocationRealPath($page->location);
+          $content = ($resolved !== false) ? (string) file_get_contents($resolved) : '';
         }
         return $content;
       }
@@ -957,8 +1036,14 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * any global setting. Useful for locally developed custom builds.
      */
     public function getCDNForDynamic() {
+      // Security (N6): dynamicCDN is printed into a <script src> and a JS
+      // string by index.php; accept only http(s) or relative path prefixes.
       if (isset($this->manifest->metadata->site->dynamicCDN)) {
-        return $this->manifest->metadata->site->dynamicCDN;
+        $cdn = $this->manifest->metadata->site->dynamicCDN;
+        if (is_string($cdn) && preg_match('#^(https?://[A-Za-z0-9._~:/?\#\[\]@!$&()*+,;=%-]*|\.{1,2}/[A-Za-z0-9._~/%-]*|\./)$#', $cdn) === 1) {
+          return $cdn;
+        }
+        return $this->cdn;
       }
       return $this->cdn;
     }

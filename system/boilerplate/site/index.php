@@ -388,10 +388,10 @@ else {
         }
       } catch (e) {}
     })();
-    globalThis.HAXCMSContext="php";globalThis.__appCDN="<?php print $HAXSiteConfig->getCDNForDynamic();?>";
+    globalThis.HAXCMSContext="php";globalThis.__appCDN=<?php print json_encode((string) $HAXSiteConfig->getCDNForDynamic(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);?>;
   </script>
-  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build-haxcms.js"></script>
-  <script src="<?php print $HAXSiteConfig->getCDNForDynamic();?>build.js"></script>
+  <script src="<?php print htmlspecialchars((string) $HAXSiteConfig->getCDNForDynamic(), ENT_QUOTES, 'UTF-8');?>build-haxcms.js"></script>
+  <script src="<?php print htmlspecialchars((string) $HAXSiteConfig->getCDNForDynamic(), ENT_QUOTES, 'UTF-8');?>build.js"></script>
   <?php print $HAXSiteConfig->getGaCode(); ?>
 </body>
 </html>
