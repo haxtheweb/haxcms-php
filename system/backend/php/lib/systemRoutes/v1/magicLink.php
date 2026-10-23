@@ -10,6 +10,7 @@
  * returns {status, jwt} for JSON clients). Every failure is one generic 401.
  */
 include_once dirname(__FILE__) . '/../../MagicLinkService.php';
+include_once dirname(__FILE__) . '/../../HAXCMSApiMessageCodes.php';
 
 if (!function_exists('haxcmsMagicLinkEscape')) {
     function haxcmsMagicLinkEscape($value)
@@ -59,28 +60,6 @@ if (!function_exists('haxcmsMagicLinkAppRoot')) {
         return $root . '/';
     }
 }
-if (!function_exists('haxcmsMagicLinkIsSameOrigin')) {
-    // Same model as Node's refreshAccessToken isSameOriginRequest: a present
-    // Origin (or Referer) must match the trusted protocol + host; no header
-    // (non-browser clients) is allowed, SameSite=Lax remains the main control.
-    function haxcmsMagicLinkIsSameOrigin()
-    {
-        $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
-        if ($origin === '' && isset($_SERVER['HTTP_REFERER'])) {
-            $origin = trim((string) $_SERVER['HTTP_REFERER']);
-        }
-        if ($origin === '') {
-            return true;
-        }
-        $parts = parse_url($origin);
-        if (!is_array($parts) || !isset($parts['scheme']) || !isset($parts['host'])) {
-            return false;
-        }
-        $host = $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
-        return strtolower($parts['scheme']) === $GLOBALS['HAXCMS']->resolveTrustedProtocol() &&
-            strtolower($host) === strtolower($GLOBALS['HAXCMS']->resolveTrustedHost());
-    }
-}
 if (!function_exists('haxcmsMagicLinkPage')) {
     function haxcmsMagicLinkPage($title, $bodyHtml)
     {
@@ -120,19 +99,33 @@ if (!function_exists('haxcmsMagicLinkRespond')) {
         exit;
     }
 }
+if (!function_exists('haxcmsMagicLinkJson')) {
+    // JSON bodies go through HAXCMSApiMessageCodes so failures carry a code
+    // (AUTH_TOKEN_INVALID, AUTH_RATE_LIMITED, ...) like other routes
+    function haxcmsMagicLinkJson($status, $payload)
+    {
+        return haxcmsMagicLinkRespond($status, array('Content-Type' => 'application/json'), json_encode(
+            HAXCMSApiMessageCodes::annotate($payload, $status)
+        ));
+    }
+}
 if (!function_exists('haxcmsMagicLinkFailure')) {
-    function haxcmsMagicLinkFailure($context, $status, $message)
+    /**
+     * $failure = array('page' => friendly sentence for the HTML page,
+     *                  'api' => registry message so JSON clients get a code)
+     */
+    function haxcmsMagicLinkFailure($context, $status, $failure)
     {
         $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
         if (haxcmsMagicLinkWantsJson()) {
-            return haxcmsMagicLinkRespond($status, array('Content-Type' => 'application/json'), json_encode(array(
+            return haxcmsMagicLinkJson($status, array(
                 'status' => $status,
-                'data' => array('message' => $message),
-            )));
+                'data' => array('message' => $failure['api']),
+            ));
         }
         return haxcmsMagicLinkRespond($status, array('Content-Type' => 'text/html; charset=utf-8'), haxcmsMagicLinkPage(
             'Sign-in link not valid',
-            '<h1>Sign-in link not valid</h1><p>' . haxcmsMagicLinkEscape($message) . '</p>' .
+            '<h1>Sign-in link not valid</h1><p>' . haxcmsMagicLinkEscape($failure['page']) . '</p>' .
             '<p><a class="button" href="' . haxcmsMagicLinkEscape(haxcmsMagicLinkAppRoot($context)) . '">Go to site</a></p>'
         ));
     }
@@ -153,22 +146,26 @@ return function ($context) {
     // Turned off (e.g. HAXiam behind OAuth/SSO): behave as if the endpoint
     // doesn't exist. No confirmation page, no hint a recovery path exists.
     if (!MagicLinkService::isEnabled($GLOBALS['HAXCMS'])) {
-        return haxcmsMagicLinkRespond(404, array('Content-Type' => 'application/json'), json_encode(array(
+        return haxcmsMagicLinkJson(404, array(
             'status' => 404,
             'data' => array('message' => 'Not found'),
-        )));
+        ));
     }
-    $generic = 'This sign-in link is invalid or has expired. Generate a new one and try again.';
+    $generic = array(
+        'page' => 'This sign-in link is invalid or has expired. Generate a new one and try again.',
+        'api' => 'Invalid or expired token',
+    );
     $token = haxcmsMagicLinkSubmittedToken($context);
     if (strtoupper($context->method) === 'GET') {
         if (!MagicLinkService::isWellFormedToken($token)) {
             return haxcmsMagicLinkFailure($context, 400, $generic);
         }
         if (haxcmsMagicLinkWantsJson()) {
-            return haxcmsMagicLinkRespond(405, array('Content-Type' => 'application/json'), json_encode(array(
+            // METHOD_NOT_ALLOWED: JSON clients complete sign-in with POST
+            return haxcmsMagicLinkJson(405, array(
                 'status' => 405,
-                'data' => array('message' => 'POST the token to this endpoint to complete sign-in.'),
-            )));
+                'data' => array('message' => 'Method not allowed'),
+            ));
         }
         return haxcmsMagicLinkRespond(200, array('Content-Type' => 'text/html; charset=utf-8'), haxcmsMagicLinkPage(
             'Sign in to HAXcms',
@@ -179,8 +176,13 @@ return function ($context) {
         ));
     }
     // POST
-    if (!haxcmsMagicLinkIsSameOrigin()) {
-        return haxcmsMagicLinkFailure($context, 403, 'Cross-origin request denied');
+    // shared with session/refresh and connection-test: Sec-Fetch-Site plus
+    // Origin/Referer host (scheme deliberately not compared, see HAXCMS.php)
+    if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
+        return haxcmsMagicLinkFailure($context, 403, array(
+            'page' => 'Cross-origin request denied',
+            'api' => 'Cross-origin request denied',
+        ));
     }
     $settings = $GLOBALS['HAXCMS']->getLoginRateLimitSettings();
     $nowMs = intval(round(microtime(true) * 1000));
@@ -196,7 +198,10 @@ return function ($context) {
     }
     if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
         header('Retry-After: ' . intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000)));
-        return haxcmsMagicLinkFailure($context, 429, 'Too many failed sign-in attempts. Please try again later.');
+        return haxcmsMagicLinkFailure($context, 429, array(
+            'page' => 'Too many failed sign-in attempts. Please try again later.',
+            'api' => 'Too many failed login attempts. Please try again later.',
+        ));
     }
     $result = MagicLinkService::consume($GLOBALS['HAXCMS'], $token, $nowMs);
     if (!$result['ok']) {
@@ -219,10 +224,18 @@ return function ($context) {
     }
     $GLOBALS['HAXCMS']->setRefreshTokenCookie($GLOBALS['HAXCMS']->getRefreshToken($result['user']));
     if (haxcmsMagicLinkWantsJson()) {
-        return haxcmsMagicLinkRespond(200, array('Content-Type' => 'application/json'), json_encode(array(
-            'status' => 200,
-            'jwt' => $GLOBALS['HAXCMS']->getJWT($result['user']),
-        )));
+        // same response shape as session/login: JWT plus request tokens
+        $body = is_array($context->body) ? $context->body : array();
+        return haxcmsMagicLinkJson(200, array_merge(
+            array(
+                'status' => 200,
+                'jwt' => $GLOBALS['HAXCMS']->getJWT($result['user']),
+            ),
+            $GLOBALS['HAXCMS']->getSessionRequestTokens(
+                $GLOBALS['HAXCMS']->generateMachineName($result['user']),
+                $body
+            )
+        ));
     }
     return haxcmsMagicLinkRespond(303, array('Location' => haxcmsMagicLinkAppRoot($context)), '');
 };
