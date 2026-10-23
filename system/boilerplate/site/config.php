@@ -906,21 +906,44 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return $uri;
     }
     /**
+     * The requested page path, relative to where this site is served from
+     * (no leading/trailing slash, query string or fragment). The site folder
+     * is taken from SCRIPT_NAME so this works at the web root, in a
+     * sub-directory, and as /index.php/<slug>. Empty for the home request.
+     * @return string slug-style path such as "lesson/intro"
+     */
+    public function getRequestedPagePath() {
+      $requestPath = parse_url($this->request_uri(), PHP_URL_PATH);
+      $requestPath = rawurldecode(is_string($requestPath) ? $requestPath : '');
+      $requestPath = '/' . trim(str_replace('\\', '/', $requestPath), '/');
+      $scriptName = isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '';
+      $scriptName = '/' . trim(str_replace('\\', '/', $scriptName), '/');
+      // strip /index.php (path-info style requests), then the site folder
+      foreach (array($scriptName, rtrim(dirname($scriptName), '/')) as $prefix) {
+        if ($prefix !== '' && $prefix !== '/' && ($requestPath === $prefix || strpos($requestPath, $prefix . '/') === 0)) {
+          $requestPath = substr($requestPath, strlen($prefix));
+        }
+      }
+      return trim($requestPath, '/');
+    }
+    /**
      * Load a node based on a path
-     * @var $path the path to try loading based on or search for the active from address
+     * @var $path the path to try loading based on or search for the active from address.
+     * Matching is by slug or page location; anything that does not match (including
+     * the home request) falls back to the first item.
      */
     public function loadNodeByLocation($path = NULL) {
       // load from the active address if we have one
       if (is_null($path)) {
-        $opPath = str_replace($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $this->request_uri());
-        $path = $opPath;
+        $path = $this->getRequestedPagePath();
       }
-      $path .= "/index.html";
-      // failsafe in case someone had closing /
-      $path = 'pages/' . str_replace('//', '/', $path);
-      foreach ($this->manifest->items as $item) {
-        if ($item->location == $path || $item->slug == $opPath) {
-          return $item;
+      $path = trim(str_replace('\\', '/', (string) $path), '/');
+      if ($path !== '') {
+        $location = 'pages/' . $path . '/index.html';
+        foreach ($this->manifest->items as $item) {
+          if ($item->location == $location || $item->slug == $path) {
+            return $item;
+          }
         }
       }
       return $this->manifest->items[0];
