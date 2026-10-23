@@ -190,9 +190,10 @@ paths:
         endpoint. GET never consumes the link, so link scanners and prefetchers
         cannot burn it. Links are minted by an operator with filesystem access
         (`hax site site:login-link`); see haxtheweb/issues#2854.
-        Returns 404 for both methods when the feature is turned off with
-        HAXCMS_MAGIC_LINK_DISABLED (e.g. HAXiam behind third-party OAuth/SSO)
-        or security.magicLink.enabled=false.
+        Returns 404 for both methods when the feature is off: by default on
+        HAXiam deployments (turn on with HAXCMS_MAGIC_LINK_ENABLED), with
+        HAXCMS_MAGIC_LINK_DISABLED anywhere, or with
+        security.magicLink.enabled=false on single-site / self-hosted multisite.
       security: []
       parameters:
         - name: token
