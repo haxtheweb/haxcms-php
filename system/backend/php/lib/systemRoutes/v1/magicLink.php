@@ -57,6 +57,12 @@ if (!function_exists('haxcmsMagicLinkAppRoot')) {
         if (!is_string($root) || $root === $apiBase) {
             $root = isset($GLOBALS['HAXCMS']->basePath) ? rtrim((string) $GLOBALS['HAXCMS']->basePath, '/') : '';
         }
+        // only ever redirect to a same-host path: a single leading slash, no
+        // backslashes or control characters (`/\evil.com` and `//evil.com`
+        // would be read by browsers as another host)
+        if ($root !== '' && !preg_match('/^\/[^\/\\\\\x00-\x1f][^\\\\\x00-\x1f]*$/', $root)) {
+            $root = '';
+        }
         return $root . '/';
     }
 }
@@ -86,8 +92,10 @@ if (!function_exists('haxcmsMagicLinkRespond')) {
     function haxcmsMagicLinkRespond($status, $headers, $body)
     {
         $headers['Cache-Control'] = 'no-store';
-        // keep the token out of Referer headers sent to anything the page loads
-        $headers['Referrer-Policy'] = 'no-referrer';
+        // keep the token out of Referer headers sent to other sites. Must not
+        // be no-referrer: that makes browsers post the confirm form with
+        // Origin: null, which the same-origin check (correctly) rejects.
+        $headers['Referrer-Policy'] = 'same-origin';
         if (!empty($GLOBALS['HAXCMS_MAGIC_LINK_TEST_CAPTURE'])) {
             return array('status' => $status, 'headers' => $headers, 'body' => $body);
         }
@@ -116,7 +124,8 @@ if (!function_exists('haxcmsMagicLinkFailure')) {
      */
     function haxcmsMagicLinkFailure($context, $status, $failure)
     {
-        $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+        // leave any existing session alone: clearing the refresh cookie here
+        // would let a cross-site link to this URL sign people out
         if (haxcmsMagicLinkWantsJson()) {
             return haxcmsMagicLinkJson($status, array(
                 'status' => $status,
@@ -131,14 +140,17 @@ if (!function_exists('haxcmsMagicLinkFailure')) {
     }
 }
 if (!function_exists('haxcmsMagicLinkRateKey')) {
-    // one bucket per client IP, separate from password-login buckets so a
-    // lockout on one recovery path doesn't block the other
-    function haxcmsMagicLinkRateKey()
+    // buckets are client IP + the link's (non-secret) selector, apart from
+    // password-login buckets: junk requests (or many users behind one proxy
+    // IP) can't lock out everyone else's links, and guessing a link is
+    // infeasible anyway (256-bit verifier)
+    function haxcmsMagicLinkRateKey($token)
     {
+        $selector = MagicLinkService::getTokenSelector($token);
         $ip = method_exists($GLOBALS['HAXCMS'], 'resolveClientIP')
             ? $GLOBALS['HAXCMS']->resolveClientIP()
             : (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown');
-        return 'magic-link-rate:' . sha1((string) $ip);
+        return 'magic-link-rate:' . sha1((string) $ip . '|' . ($selector !== '' ? $selector : 'malformed'));
     }
 }
 
@@ -187,7 +199,7 @@ return function ($context) {
     $settings = $GLOBALS['HAXCMS']->getLoginRateLimitSettings();
     $nowMs = intval(round(microtime(true) * 1000));
     $cache = (isset($GLOBALS['HAXCMS']->cache) && $GLOBALS['HAXCMS']->cache) ? $GLOBALS['HAXCMS']->cache : null;
-    $rateKey = haxcmsMagicLinkRateKey();
+    $rateKey = haxcmsMagicLinkRateKey($token);
     $entry = $cache ? $cache->retrieve($rateKey) : null;
     if (!is_array($entry) || ($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
         $entry = array(
@@ -203,7 +215,13 @@ return function ($context) {
             'api' => 'Too many failed login attempts. Please try again later.',
         ));
     }
-    $result = MagicLinkService::consume($GLOBALS['HAXCMS'], $token, $nowMs);
+    try {
+        $result = MagicLinkService::consume($GLOBALS['HAXCMS'], $token, $nowMs);
+    }
+    catch (RuntimeException $e) {
+        // store can't be locked or written: fail closed, not an attempt
+        return haxcmsMagicLinkFailure($context, 503, $generic);
+    }
     if (!$result['ok']) {
         if ($settings->enabled && $cache) {
             $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;

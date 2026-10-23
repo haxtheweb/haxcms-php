@@ -54,21 +54,43 @@ class MagicLinkService
      * ($_SERVER), and Apache's REDIRECT_ copy that appears after the
      * system/api rewrite.
      */
-    private static function readEnv($name)
+    private static function readEnvAll($name)
     {
+        $values = array();
         $value = getenv($name);
         if ($value !== false && $value !== '') {
-            return $value;
+            $values[] = $value;
         }
         foreach (array($name, 'REDIRECT_' . $name) as $key) {
-            if (isset($_SERVER[$key]) && is_string($_SERVER[$key]) && $_SERVER[$key] !== '') {
-                return $_SERVER[$key];
+            foreach (array($_SERVER, $_ENV) as $source) {
+                if (isset($source[$key]) && is_string($source[$key]) && $source[$key] !== '') {
+                    $values[] = $source[$key];
+                }
             }
-            if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
-                return $_ENV[$key];
+        }
+        return $values;
+    }
+
+    /**
+     * A flag is on when ANY source sets it truthy, so a stray value in one
+     * place (e.g. DISABLED=0 in the process env) can't override an operator's
+     * Apache SetEnv ...=1. Request headers can't reach these keys: PHP exposes
+     * headers only as HTTP_* / REDIRECT_HTTP_*.
+     */
+    private static function envFlag($name)
+    {
+        foreach (self::readEnvAll($name) as $value) {
+            if (self::isTruthyFlag($value)) {
+                return true;
             }
         }
         return false;
+    }
+
+    private static function readEnv($name)
+    {
+        $values = self::readEnvAll($name);
+        return count($values) > 0 ? $values[0] : false;
     }
 
     private static function isTruthyFlag($value)
@@ -127,7 +149,7 @@ class MagicLinkService
             // HAXiam: off by default. Most HAXiam deploys sign in through
             // third-party OAuth/SSO, so there's no local account to recover.
             // Only the operator can turn it on (env), never a tenant's config.
-            $enabled = self::isTruthyFlag(self::readEnv('HAXCMS_MAGIC_LINK_ENABLED'));
+            $enabled = self::envFlag('HAXCMS_MAGIC_LINK_ENABLED');
         }
         else {
             // single-site / self-hosted multisite: on unless config turns it off
@@ -135,8 +157,13 @@ class MagicLinkService
         }
         // System-level kill switch. Wins over everything, including
         // HAXCMS_MAGIC_LINK_ENABLED, so "off" is always the safe answer.
-        if (self::isTruthyFlag(self::readEnv('HAXCMS_MAGIC_LINK_DISABLED'))) {
+        if (self::envFlag('HAXCMS_MAGIC_LINK_DISABLED')) {
             $enabled = false;
+        }
+        // on HAXiam a tenant's config doesn't shape the policy at all (lifetime
+        // included); only the operator's environment does
+        if (self::isHaxiamDeployment($haxcms)) {
+            $source = new stdClass();
         }
         $ttlEnv = self::readEnv('HAXCMS_MAGIC_LINK_TTL_SECONDS');
         $ttlSource = ($ttlEnv !== false && $ttlEnv !== '')
@@ -183,11 +210,16 @@ class MagicLinkService
         if (!is_dir($dir)) {
             @mkdir($dir, 0700, true);
         }
+        // fail closed: never touch the store without the lock
         $lock = @fopen($path . '.lock', 'c');
-        if ($lock) {
-            @chmod($path . '.lock', 0600);
-            flock($lock, LOCK_EX);
+        if (!$lock || !flock($lock, LOCK_EX)) {
+            if ($lock) {
+                fclose($lock);
+            }
+            throw new RuntimeException('Unable to lock the one-time link store; check that the web server user owns ' . dirname($path) . '.');
         }
+        @chmod($path . '.lock', 0600);
+        self::matchSettingsOwner($path . '.lock');
         try {
             $outcome = call_user_func($fn, self::loadLinks($path));
             if (isset($outcome['links']) && is_array($outcome['links'])) {
@@ -232,6 +264,27 @@ class MagicLinkService
         if (!@rename($tmp, $path)) {
             @unlink($tmp);
             throw new RuntimeException('Unable to write the one-time link store.');
+        }
+        self::matchSettingsOwner($path);
+    }
+
+    /**
+     * Running the script as root would leave 0600 root-owned files the web
+     * server can't read, so every link would fail as "not found". Hand files
+     * we create back to whoever owns the settings directory.
+     */
+    private static function matchSettingsOwner($file)
+    {
+        if (!function_exists('posix_geteuid') || posix_geteuid() !== 0) {
+            return;
+        }
+        $owner = @fileowner(dirname($file));
+        $group = @filegroup(dirname($file));
+        if ($owner !== false && $owner !== 0) {
+            @chown($file, $owner);
+            if ($group !== false) {
+                @chgrp($file, $group);
+            }
         }
     }
 
@@ -366,6 +419,16 @@ class MagicLinkService
     public static function isWellFormedToken($token)
     {
         return self::parseToken($token) !== null;
+    }
+
+    /**
+     * The non-secret selector half of a well-formed token, or '' otherwise.
+     * Used to key rate limiting per link rather than per client IP alone.
+     */
+    public static function getTokenSelector($token)
+    {
+        $parsed = self::parseToken($token);
+        return $parsed === null ? '' : $parsed['selector'];
     }
 
     /**

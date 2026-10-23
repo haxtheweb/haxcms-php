@@ -60,6 +60,7 @@ class MagicLinkServiceTest extends TestCase
     {
         putenv('HAXCMS_MAGIC_LINK_DISABLED');
         putenv('HAXCMS_MAGIC_LINK_ENABLED');
+        unset($_SERVER['HAXCMS_MAGIC_LINK_ENABLED'], $_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
         $_SERVER = $this->savedServer;
         $_GET = $this->savedGet;
         $GLOBALS['HAXCMS'] = $this->savedGlobal;
@@ -240,6 +241,45 @@ class MagicLinkServiceTest extends TestCase
         }
     }
 
+    public function testOnHaxiamTenantConfigCannotStretchTheLifetime(): void
+    {
+        $this->haxcms->config->iam = true;
+        $this->haxcms->config->security = (object) array('magicLink' => (object) array('ttlSeconds' => 86400, 'maxOutstanding' => 20));
+        $_SERVER['HAXCMS_MAGIC_LINK_ENABLED'] = '1';
+        $settings = MagicLinkService::getSettings($this->haxcms);
+        $this->assertSame(MagicLinkService::DEFAULT_TTL_SECONDS, $settings['ttlSeconds']);
+        $this->assertSame(3, $settings['maxOutstanding']);
+    }
+
+    public function testAnyTruthyDisableSourceWinsOverAFalsyOne(): void
+    {
+        // a stray DISABLED=0 in the process env must not override SetEnv ...=1
+        putenv('HAXCMS_MAGIC_LINK_DISABLED=0');
+        $_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED'] = '1';
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        unset($_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
+        $this->assertTrue(MagicLinkService::isEnabled($this->haxcms));
+    }
+
+    public function testStoreFailsClosedWhenItCannotBeLocked(): void
+    {
+        $issued = MagicLinkService::issue($this->haxcms);
+        // the lock file persists between calls; a directory in its place
+        // makes fopen() fail
+        $lockPath = MagicLinkService::getStorePath($this->haxcms) . '.lock';
+        @unlink($lockPath);
+        mkdir($lockPath);
+        try {
+            MagicLinkService::consume($this->haxcms, $issued['token']);
+            $this->fail('consume must not run without the lock');
+        }
+        catch (RuntimeException $e) {
+            $this->assertStringContainsString('lock', $e->getMessage());
+        }
+        rmdir($lockPath);
+        $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok'], 'link untouched');
+    }
+
     public function testTtlIsClamped(): void
     {
         $this->assertSame(60, MagicLinkService::issue($this->haxcms, array('ttlSeconds' => 1))['ttlSeconds']);
@@ -305,7 +345,9 @@ class MagicLinkServiceTest extends TestCase
         $this->assertSame(200, $res['status']);
         $this->assertStringContainsString('<form method="post">', $res['body']);
         $this->assertSame('no-store', $res['headers']['Cache-Control']);
-        $this->assertSame('no-referrer', $res['headers']['Referrer-Policy']);
+        // same-origin, NOT no-referrer: no-referrer makes browsers post the
+        // form with Origin: null, which the same-origin check rejects
+        $this->assertSame('same-origin', $res['headers']['Referrer-Policy']);
         $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
     }
 
@@ -347,7 +389,7 @@ class MagicLinkServiceTest extends TestCase
         $this->assertIsString($body['userToken'], 'request token returned like session/login');
     }
 
-    public function testReplayIsGeneric401AndClearsTheCookie(): void
+    public function testReplayIsGeneric401AndLeavesTheSessionAlone(): void
     {
         $issued = MagicLinkService::issue($this->haxcms);
         $_SERVER['HTTP_ACCEPT'] = 'application/json';
@@ -355,7 +397,7 @@ class MagicLinkServiceTest extends TestCase
         $res = $this->route('POST', array('token' => $issued['token']));
         $this->assertSame(401, $res['status']);
         $this->assertSame('AUTH_TOKEN_INVALID', json_decode($res['body'], true)['data']['code']);
-        $this->assertSame('', end($this->haxcms->cookies)['value']);
+        $this->assertCount(1, $this->haxcms->cookies, 'only the successful redeem set a cookie; the failure cleared nothing');
     }
 
     public function testDisabledRouteIs404ForBothMethodsAndConsumesNothing(): void
@@ -375,6 +417,45 @@ class MagicLinkServiceTest extends TestCase
         $this->assertSame(404, $this->route('POST', array('token' => $issued['token']))['status']);
         unset($this->haxcms->config->iam);
         $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
+    }
+
+    public function testRedirectRootNeverPointsOffHost(): void
+    {
+        foreach (array('/\\evil.com/system/api/v1', '//evil.com/system/api/v1', "/a\x01b/system/api/v1") as $apiBase) {
+            $issued = MagicLinkService::issue($this->haxcms);
+            $res = $this->route('POST', array(), 'token=' . rawurlencode($issued['token']), $apiBase);
+            $this->assertSame(303, $res['status']);
+            $this->assertSame('/', $res['headers']['Location'], json_encode($apiBase));
+        }
+    }
+
+    public function testFailuresDoNotTouchAnExistingSession(): void
+    {
+        $_GET['token'] = 'nope';
+        $this->assertSame(400, $this->route('GET')['status']);
+        $_SERVER['HTTP_ORIGIN'] = 'https://evil.example';
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        $this->assertSame(403, $this->route('POST', array('token' => 'x'))['status']);
+        $this->assertSame(array(), $this->haxcms->cookies);
+    }
+
+    public function testJunkAttemptsDoNotLockOutADifferentLink(): void
+    {
+        // in-memory stand-in for the HAXcms cache so the limiter is active
+        $this->haxcms->cache = new class {
+            private $data = array();
+            public function store($k, $v, $ttl = 0) { $this->data[$k] = $v; }
+            public function retrieve($k) { return isset($this->data[$k]) ? $this->data[$k] : null; }
+            public function erase($k) { unset($this->data[$k]); }
+        };
+        $issued = MagicLinkService::issue($this->haxcms);
+        $_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        for ($i = 0; $i < 8; $i++) {
+            $this->route('POST', array('token' => 'AAAAAAAAAAAAAAAA.' . str_repeat('B', 43)));
+        }
+        $this->assertSame(429, $this->route('POST', array('token' => 'AAAAAAAAAAAAAAAA.' . str_repeat('B', 43)))['status'], 'the junk selector itself is limited');
+        $this->assertSame(200, $this->route('POST', array('token' => $issued['token']))['status'], 'a real link from the same IP still works');
     }
 
     public function testCrossOriginPostIsRefusedWithoutConsuming(): void
