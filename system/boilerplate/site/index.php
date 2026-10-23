@@ -195,12 +195,12 @@ else {
       animation: none;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 600ms cubic-bezier(0.4, 0, 1, 1) 150ms; /* duration-slow, timing-exit */
+      transition: opacity 300ms cubic-bezier(0.4, 0, 1, 1) 50ms; /* duration-normal, timing-exit */
     }
     #loading.ld-out div.messaging {
       opacity: 0;
       transform: translateY(-54%) scale(0.985);
-      transition: opacity 300ms cubic-bezier(0.4, 0, 1, 1), transform 600ms cubic-bezier(0.4, 0, 0.2, 1); /* duration-normal/slow, timing-exit/ease */
+      transition: opacity 150ms cubic-bezier(0.4, 0, 1, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1); /* duration-fast/normal, timing-exit/ease */
     }
     #loading.ld-out.ld-quick {
       transition: opacity 150ms linear;
@@ -239,9 +239,9 @@ else {
       // moment on the built page, and the screen dissolves.
       var LOOP_MS = 3600; // one loop of the figure
       var BUILT_MS = 2850; // when, in a loop, the page is fully built
-      var FINISH_MS = 600; // ready: the build wraps up in at most this long...
-      var MAX_RATE = 6; // ...by playing faster, but never more than this
-      var HOLD_MS = 150; // then rests on the built page this long
+      var FINISH_MS = 400; // ready: the build wraps up in at most this long...
+      var MAX_RATE = 8; // ...by playing faster, but never more than this
+      var HOLD_MS = 100; // then rests on the built page this long
       var FAST_MS = 1200; // ready this soon after navigation: skip the show, fade quickly
       function finishFigure(figure, done) {
         var anims = figure.getAnimations({ subtree: true });
@@ -280,7 +280,7 @@ else {
         loadingEl.setAttribute('aria-busy', 'false');
         setTimeout(function () {
           loadingEl.setAttribute('hidden', 'hidden');
-        }, quick ? 200 : 750);
+        }, quick ? 200 : 350);
       }
       function revealSite(loadingEl) {
         var figure = loadingEl.querySelector('.ld-fig');
