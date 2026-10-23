@@ -179,6 +179,85 @@ paths:
                 $ref: "#/components/schemas/ApiEnvelope"
         "400":
           $ref: "#/components/responses/BadRequest"
+  /system/api/v1/session/magic-link:
+    get:
+      tags:
+        - session
+      operationId: sessionMagicLinkConfirm
+      summary: Show the confirmation page for a one-time sign-in link
+      description: >
+        Renders an HTML page with a button that POSTs the token back to this
+        endpoint. GET never consumes the link, so link scanners and prefetchers
+        cannot burn it. Links are minted by an operator with filesystem access
+        (`hax site site:login-link`); see haxtheweb/issues#2854.
+        Returns 404 for both methods when the feature is off: by default on
+        HAXiam deployments (turn on with HAXCMS_MAGIC_LINK_ENABLED), with
+        HAXCMS_MAGIC_LINK_DISABLED anywhere, or with
+        security.magicLink.enabled=false on single-site / self-hosted multisite.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9_-]{12,64}\\.[A-Za-z0-9_-]{32,128}$"
+      responses:
+        "200":
+          description: Confirmation page
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: One-time sign-in links are turned off on this deployment
+    post:
+      tags:
+        - session
+      operationId: sessionMagicLinkConsume
+      summary: Redeem a one-time sign-in link and establish a dashboard session
+      description: >
+        Consumes the token exactly once. On success sets the
+        haxcms_refresh_token cookie (same as session/login) and either returns
+        the JWT (Accept application/json) or redirects 303 to the app root,
+        where session/connection-test finishes bootstrapping. Every failure
+        (unknown, replayed, expired) returns the same generic 401 and clears
+        the refresh cookie.
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Session established (JSON clients)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "303":
+          description: Session established; redirect to the app root (browser form)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: One-time sign-in links are turned off on this deployment
+        "429":
+          description: Too many failed attempts from this client
   /system/api/v1/session/refresh:
     get:
       tags:
