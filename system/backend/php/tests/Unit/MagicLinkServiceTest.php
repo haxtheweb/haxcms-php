@@ -344,6 +344,7 @@ class MagicLinkServiceTest extends TestCase
         $body = json_decode($res['body'], true);
         $decoded = $this->haxcms->decodeJWT($body['jwt']);
         $this->assertSame('alice', $decoded->user);
+        $this->assertIsString($body['userToken'], 'request token returned like session/login');
     }
 
     public function testReplayIsGeneric401AndClearsTheCookie(): void
@@ -353,6 +354,7 @@ class MagicLinkServiceTest extends TestCase
         $this->route('POST', array('token' => $issued['token']));
         $res = $this->route('POST', array('token' => $issued['token']));
         $this->assertSame(401, $res['status']);
+        $this->assertSame('AUTH_TOKEN_INVALID', json_decode($res['body'], true)['data']['code']);
         $this->assertSame('', end($this->haxcms->cookies)['value']);
     }
 
@@ -383,6 +385,27 @@ class MagicLinkServiceTest extends TestCase
         $res = $this->route('POST', array('token' => $issued['token']));
         $this->assertSame(403, $res['status']);
         $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
+    }
+
+    public function testCrossSiteSecFetchSiteIsRefusedWithoutConsuming(): void
+    {
+        $issued = MagicLinkService::issue($this->haxcms);
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'cross-site';
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        $this->assertSame(403, $this->route('POST', array('token' => $issued['token']))['status']);
+        unset($_SERVER['HTTP_SEC_FETCH_SITE']);
+        $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
+    }
+
+    public function testHttpsBrowserBehindPlainHttpProxyIsAccepted(): void
+    {
+        // TLS terminated upstream: browser Origin is https, server sees http.
+        // The shared origin check compares host only, so this must not 403.
+        $issued = MagicLinkService::issue($this->haxcms);
+        unset($_SERVER['HTTPS']);
+        $_SERVER['HTTP_ORIGIN'] = 'https://cms.example.org';
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        $this->assertSame(200, $this->route('POST', array('token' => $issued['token']))['status']);
     }
 
     public function testSameOriginPostIsAccepted(): void
