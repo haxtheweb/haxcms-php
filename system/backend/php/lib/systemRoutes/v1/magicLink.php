@@ -150,6 +150,14 @@ if (!function_exists('haxcmsMagicLinkRateKey')) {
 }
 
 return function ($context) {
+    // Turned off (e.g. HAXiam behind OAuth/SSO): behave as if the endpoint
+    // doesn't exist. No confirmation page, no hint a recovery path exists.
+    if (!MagicLinkService::isEnabled($GLOBALS['HAXCMS'])) {
+        return haxcmsMagicLinkRespond(404, array('Content-Type' => 'application/json'), json_encode(array(
+            'status' => 404,
+            'data' => array('message' => 'Not found'),
+        )));
+    }
     $generic = 'This sign-in link is invalid or has expired. Generate a new one and try again.';
     $token = haxcmsMagicLinkSubmittedToken($context);
     if (strtoupper($context->method) === 'GET') {

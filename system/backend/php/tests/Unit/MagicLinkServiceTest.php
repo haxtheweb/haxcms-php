@@ -58,6 +58,7 @@ class MagicLinkServiceTest extends TestCase
 
     protected function tearDown(): void
     {
+        putenv('HAXCMS_MAGIC_LINK_DISABLED');
         $_SERVER = $this->savedServer;
         $_GET = $this->savedGet;
         $GLOBALS['HAXCMS'] = $this->savedGlobal;
@@ -179,6 +180,27 @@ class MagicLinkServiceTest extends TestCase
         MagicLinkService::issue($this->haxcms);
     }
 
+    public function testEnvKillSwitchBeatsConfigInEveryForm(): void
+    {
+        $this->haxcms->config->security = (object) array('magicLink' => (object) array('enabled' => true));
+        $issued = MagicLinkService::issue($this->haxcms);
+        // process env (docker / php-fpm)
+        putenv('HAXCMS_MAGIC_LINK_DISABLED=true');
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        putenv('HAXCMS_MAGIC_LINK_DISABLED');
+        // Apache SetEnv / nginx fastcgi_param
+        $_SERVER['HAXCMS_MAGIC_LINK_DISABLED'] = 'yes';
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        unset($_SERVER['HAXCMS_MAGIC_LINK_DISABLED']);
+        // Apache SetEnv after the system/api rewrite
+        $_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED'] = '1';
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        $this->assertSame('disabled', MagicLinkService::consume($this->haxcms, $issued['token'])['reason']);
+        unset($_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
+        $_SERVER['HAXCMS_MAGIC_LINK_DISABLED'] = '0';
+        $this->assertTrue(MagicLinkService::isEnabled($this->haxcms), '"0" leaves it on');
+    }
+
     public function testTtlIsClamped(): void
     {
         $this->assertSame(60, MagicLinkService::issue($this->haxcms, array('ttlSeconds' => 1))['ttlSeconds']);
@@ -293,6 +315,21 @@ class MagicLinkServiceTest extends TestCase
         $res = $this->route('POST', array('token' => $issued['token']));
         $this->assertSame(401, $res['status']);
         $this->assertSame('', end($this->haxcms->cookies)['value']);
+    }
+
+    public function testDisabledRouteIs404ForBothMethodsAndConsumesNothing(): void
+    {
+        $issued = MagicLinkService::issue($this->haxcms);
+        $_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED'] = '1';
+        $_GET['token'] = $issued['token'];
+        $get = $this->route('GET');
+        $this->assertSame(404, $get['status']);
+        $this->assertStringNotContainsString('<form', $get['body']);
+        $post = $this->route('POST', array('token' => $issued['token']));
+        $this->assertSame(404, $post['status']);
+        $this->assertSame(array(), $this->haxcms->cookies);
+        unset($_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
+        $this->assertTrue(MagicLinkService::consume($this->haxcms, $issued['token'])['ok']);
     }
 
     public function testCrossOriginPostIsRefusedWithoutConsuming(): void
