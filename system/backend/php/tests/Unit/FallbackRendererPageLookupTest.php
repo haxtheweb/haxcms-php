@@ -69,13 +69,13 @@ class FallbackRendererPageLookupTest extends TestCase
         rmdir($dir);
     }
 
-    private function render($requestUri, $scriptName)
+    private function render($requestUri, $scriptName, $env = null)
     {
         $code = '$_SERVER["REQUEST_URI"]=' . var_export($requestUri, true)
             . '; $_SERVER["SCRIPT_NAME"]=' . var_export($scriptName, true)
-            . '; $_SERVER["SERVER_NAME"]="x.test"; $_SERVER["SCRIPT_URI"]="https://x.test/"; include "index.php";';
+            . '; $_SERVER["SERVER_NAME"]="x.test"; $_SERVER["SCRIPT_URI"]="https://x.test/"; include "index.php"; echo "\n[STATUS:" . http_response_code() . "]";';
         $cmd = escapeshellarg(PHP_BINARY) . ' -d display_errors=0 -r ' . escapeshellarg($code);
-        $proc = proc_open($cmd, array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes, $this->siteDir);
+        $proc = proc_open($cmd, array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes, $this->siteDir, $env);
         $out = stream_get_contents($pipes[1]);
         stream_get_contents($pipes[2]);
         fclose($pipes[1]);
@@ -105,22 +105,68 @@ class FallbackRendererPageLookupTest extends TestCase
         $this->assertStringContainsString('<title>Lookup test | ' . $expectedTitle . '</title>', $html);
     }
 
-    public static function homeAndUnknownRequests(): array
+    public static function homeRequests(): array
     {
         return array(
             'site root'          => array('/site/', '/site/index.php'),
             'site root no slash' => array('/site', '/site/index.php'),
             'index.php itself'   => array('/site/index.php', '/site/index.php'),
-            'unknown slug'       => array('/site/nope', '/site/index.php'),
-            'traversal attempt'  => array('/site/../../etc/passwd', '/site/index.php'),
         );
     }
 
-    #[DataProvider('homeAndUnknownRequests')]
-    public function testHomeAndUnknownRequestsFallBackToTheFirstPage($uri, $script): void
+    #[DataProvider('homeRequests')]
+    public function testHomeRequestsRenderTheFirstPage($uri, $script): void
     {
         $html = $this->render($uri, $script);
         $this->assertStringContainsString('<haxcms-site-builder', $html);
         $this->assertStringContainsString('<title>Lookup test | One</title>', $html);
+        $this->assertStringNotContainsString('haxcms-page-miss', $html);
+        $this->assertStringNotContainsString('[STATUS:404]', $html);
+    }
+
+    public static function unknownRequests(): array
+    {
+        return array(
+            'unknown slug'      => array('/site/nope', '/site/index.php'),
+            'unknown nested'    => array('/site/two/nope', '/site/index.php'),
+            'unknown web root'  => array('/nope', '/index.php'),
+            'traversal attempt' => array('/site/../../etc/passwd', '/site/index.php'),
+            'real dir, no slug' => array('/site/pages', '/site/index.php'),
+        );
+    }
+
+    #[DataProvider('unknownRequests')]
+    public function testUnknownSlugIsA404WithThePageMissShell($uri, $script): void
+    {
+        $html = $this->render($uri, $script);
+        $this->assertStringContainsString('[STATUS:404]', $html, 'HTTP status is 404');
+        $this->assertStringContainsString('<haxcms-site-builder', $html, 'shell still renders');
+        $this->assertStringContainsString('haxcms-page-miss', $html, 'page miss markup shown');
+        // site title only, never another page's metadata or body
+        $this->assertStringContainsString('<title>Lookup test</title>', $html);
+        $this->assertStringNotContainsString('| One', $html);
+        $this->assertStringNotContainsString('body of one', $html);
+        $this->assertStringNotContainsString('rel="prev"', $html);
+        $this->assertStringNotContainsString('rel="next"', $html);
+    }
+
+    public function testKnownPageIsNot404(): void
+    {
+        $html = $this->render('/site/two', '/site/index.php');
+        $this->assertStringNotContainsString('[STATUS:404]', $html);
+        $this->assertStringNotContainsString('haxcms-page-miss', $html);
+        $this->assertStringContainsString('body of two', $html);
+    }
+
+    public function testProxyPathPrefixCanBeNamedInHaxsiteBaseUrl(): void
+    {
+        $env = array('HAXSITE_BASE_URL' => 'https://example.com/proxy/');
+        $known = $this->render('/proxy/two', '/index.php', $env);
+        $this->assertStringContainsString('<title>Lookup test | Two</title>', $known);
+        $this->assertStringNotContainsString('[STATUS:404]', $known);
+        $home = $this->render('/proxy/', '/index.php', $env);
+        $this->assertStringContainsString('<title>Lookup test | One</title>', $home);
+        $unknown = $this->render('/proxy/nope', '/index.php', $env);
+        $this->assertStringContainsString('[STATUS:404]', $unknown);
     }
 }
