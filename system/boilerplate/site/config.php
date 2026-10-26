@@ -959,7 +959,8 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * Load a node based on a path
      * @var $path the path to try loading based on or search for the active from address.
      * Matching is by slug or page location. The home request (empty path)
-     * loads the first item. A path that matches nothing sets $pageNotFound and
+     * loads metadata.site.homePageId when it names an item, else the first item
+     * (as multi-site does). A path that matches nothing sets $pageNotFound and
      * returns a blank item so the shell can render without a real page.
      */
     public function loadNodeByLocation($path = NULL) {
@@ -988,6 +989,14 @@ if (!isset($GLOBALS['HAXCMS'])) {
         $blank->description = '';
         $blank->metadata = new stdClass();
         return $blank;
+      }
+      // home request: the configured home page if there is one, else the first item
+      if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId) && $this->manifest->metadata->site->homePageId !== '') {
+        foreach ($this->manifest->items as $item) {
+          if (isset($item->id) && $item->id === $this->manifest->metadata->site->homePageId) {
+            return $item;
+          }
+        }
       }
       return $this->manifest->items[0];
     }

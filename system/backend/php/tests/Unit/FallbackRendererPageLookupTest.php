@@ -16,6 +16,13 @@ class FallbackRendererPageLookupTest extends TestCase
     private $workDir;
     private $siteDir;
 
+    private function writeHomePageId($homePageId): void
+    {
+        $manifest = json_decode(file_get_contents($this->siteDir . '/site.json'), true);
+        $manifest['metadata']['site']['homePageId'] = $homePageId;
+        file_put_contents($this->siteDir . '/site.json', json_encode($manifest));
+    }
+
     protected function setUp(): void
     {
         $this->workDir = sys_get_temp_dir() . '/haxcms_fallback_lookup_' . getmypid() . '_' . bin2hex(random_bytes(4));
@@ -169,5 +176,46 @@ class FallbackRendererPageLookupTest extends TestCase
         $this->assertStringContainsString('<title>Lookup test | One</title>', $home);
         $unknown = $this->render('/proxy/nope', '/index.php', $env);
         $this->assertStringContainsString('[STATUS:404]', $unknown);
+    }
+
+    public static function homeRoots(): array
+    {
+        return array(
+            'site root'          => array('/site/'),
+            'site root no slash' => array('/site'),
+            'index.php itself'   => array('/site/index.php'),
+        );
+    }
+
+    #[DataProvider('homeRoots')]
+    public function testHomeRequestLoadsTheConfiguredHomePage($uri): void
+    {
+        $this->writeHomePageId('item-two');
+        $html = $this->render($uri, '/site/index.php');
+        $this->assertStringContainsString('<title>Lookup test | Two</title>', $html);
+        $this->assertStringContainsString('body of two', $html);
+        $this->assertStringNotContainsString('[STATUS:404]', $html);
+    }
+
+    public function testHomePageIdThatMatchesNothingFallsBackToTheFirstPage(): void
+    {
+        $this->writeHomePageId('item-gone');
+        $html = $this->render('/site/', '/site/index.php');
+        $this->assertStringContainsString('<title>Lookup test | One</title>', $html);
+        $this->assertStringNotContainsString('[STATUS:404]', $html);
+    }
+
+    public function testHomePageIdOfTheWrongTypeIsIgnored(): void
+    {
+        $this->writeHomePageId(array('item-two'));
+        $html = $this->render('/site/', '/site/index.php');
+        $this->assertStringContainsString('<title>Lookup test | One</title>', $html);
+    }
+
+    public function testHomePageIdDoesNotAffectOtherPagesOrUnknownSlugs(): void
+    {
+        $this->writeHomePageId('item-two');
+        $this->assertStringContainsString('<title>Lookup test | One</title>', $this->render('/site/one', '/site/index.php'));
+        $this->assertStringContainsString('[STATUS:404]', $this->render('/site/nope', '/site/index.php'));
     }
 }
