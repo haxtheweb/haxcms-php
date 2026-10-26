@@ -31,7 +31,26 @@ header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Pragma: no-cache");
 
 include_once dirname(__FILE__) . '/system/backend/php/bootstrapHAX.php';
-include_once $HAXCMS->configDirectory . '/config.php';
+// The guard above checks the core's own _config. Under HAXiam, bootstrapHAX
+// re-roots HAXCMS_ROOT to users/<first URL segment>; when that segment is not
+// a provisioned user (bot traffic, stray path, unprovisioned account) there is
+// no per-user _config, configDirectory stays unset, and an unguarded include
+// becomes include_once('/config.php') and emits PHP warnings. Treat that as
+// "no such HAXcms here" instead of rendering the app shell.
+$indexUserConfigPhpPath = (
+    isset($HAXCMS->configDirectory) &&
+    is_string($HAXCMS->configDirectory) &&
+    $HAXCMS->configDirectory !== ''
+) ? $HAXCMS->configDirectory . '/config.php' : '';
+if ($indexUserConfigPhpPath === '' || !file_exists($indexUserConfigPhpPath)) {
+    if (!headers_sent()) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+    }
+    print 'Not found';
+    exit;
+}
+include_once $indexUserConfigPhpPath;
 $appSettings = $HAXCMS->appJWTConnectionSettings('');
 ?>
 <!DOCTYPE html>

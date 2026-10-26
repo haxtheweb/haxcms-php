@@ -34,7 +34,16 @@ if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
 if (file_exists(__DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php')) {
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/lib/HAXSiteConfig.php';
-  include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  // guard: under HAXiam an unresolved user leaves configDirectory unset, which
+  // would turn this into include_once('/config.php') and emit PHP warnings
+  if (
+    isset($GLOBALS['HAXCMS']->configDirectory) &&
+    is_string($GLOBALS['HAXCMS']->configDirectory) &&
+    $GLOBALS['HAXCMS']->configDirectory !== '' &&
+    file_exists($GLOBALS['HAXCMS']->configDirectory . '/config.php')
+  ) {
+    include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  }
   $site = $HAXCMS->loadSite(basename(__DIR__));
   $page = $site->loadNodeByLocation();
   $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
