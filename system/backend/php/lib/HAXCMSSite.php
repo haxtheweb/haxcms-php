@@ -1957,7 +1957,17 @@ class HAXCMSSite
             $item->description = str_replace("\n", '', $params['description']);
         }
         if (isset($params['metadata']) && $params['metadata'] != '' && $params['metadata'] != null) {
-            $item->metadata = $params['metadata'];
+            // Request bodies are json_decode'd as arrays, so assigning
+            // $params['metadata'] directly replaced the stdClass with an array
+            // and the ->created / ->updated writes below fatal-errored (HTTP
+            // 500 on every createNode with metadata). Merge through the same
+            // per-field sanitiser addPage() and saveOutline use (SEC-SANITIZE)
+            // so metadata stays an object and is never copied verbatim.
+            SanitizeContent::applyPageMetadata(
+              $item,
+              $params['metadata'],
+              $GLOBALS['HAXCMS']->getThemes()
+            );
         }
         if (isset($params['node']['location']) && $params['node']['location'] != '' && $params['node']['location'] != null) {
           $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($params['node']['location']);
