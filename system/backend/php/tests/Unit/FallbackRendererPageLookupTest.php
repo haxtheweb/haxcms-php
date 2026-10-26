@@ -142,6 +142,7 @@ class FallbackRendererPageLookupTest extends TestCase
         $this->assertStringContainsString('[STATUS:404]', $html, 'HTTP status is 404');
         $this->assertStringContainsString('<haxcms-site-builder', $html, 'shell still renders');
         $this->assertStringContainsString('haxcms-page-miss', $html, 'page miss markup shown');
+        $this->assertStringContainsString('Page not found', $html);
         // site title only, never another page's metadata or body
         $this->assertStringContainsString('<title>Lookup test</title>', $html);
         $this->assertStringNotContainsString('| One', $html);

@@ -989,47 +989,30 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return $this->pageNotFound;
     }
     /**
-     * Markup shown in place of page content for a 404. Mirrors
-     * lib/HAXSiteConfig.php getPageMissShellMarkup() in multi-site mode.
+     * Markup shown in place of page content for a 404. Deliberately plain: the
+     * site's own font and colors apply, and the only way out is the home page.
      */
     public function getPageMissShellMarkup() {
       return '<style>
   .haxcms-page-miss {
-    min-height: 60vh;
+    min-height: 40vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 12px;
+    gap: 8px;
     padding: 24px;
-    font-family: "Press Start 2P", "Courier New", monospace;
   }
-  .haxcms-page-miss__fire {
-    font-size: 64px;
-    line-height: 1;
+  .haxcms-page-miss h1,
+  .haxcms-page-miss p {
     margin: 0;
-  }
-  .haxcms-page-miss__pixel {
-    margin: 0;
-    white-space: pre;
-    line-height: 1.1;
-    font-size: 16px;
-  }
-  .haxcms-page-miss__text {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.4;
   }
 </style>
-<section class="haxcms-page-miss" role="alert" aria-live="polite">
-  <p class="haxcms-page-miss__fire" aria-hidden="true">🔥</p>
-  <pre class="haxcms-page-miss__pixel" aria-hidden="true">  ▗▄▖
- ▐█▀█▌
- ▐█▄█▌
-  ▜█▛
-  ▐▌▐▌</pre>
-  <p class="haxcms-page-miss__text">The page miss, it burns!</p>
+<section class="haxcms-page-miss">
+  <h1>Page not found</h1>
+  <p>This page does not exist on this site.</p>
+  <p><a href="./">Go to the home page</a></p>
 </section>';
     }
     /**
