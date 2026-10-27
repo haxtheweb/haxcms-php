@@ -408,7 +408,7 @@ class SystemRoutesImportPdfTest extends TestCase
         ));
         $html = haxcmsSystemConvertPdfToSemanticHtml($path);
         $this->assertStringContainsString(
-            '<img src="data:image/jpeg;base64,' . base64_encode($jpeg) . '">',
+            '<img src="data:image/jpeg;base64,' . base64_encode($jpeg) . '" width="32">',
             $html
         );
         // Image is appended after the page's text content.
@@ -449,7 +449,7 @@ class SystemRoutesImportPdfTest extends TestCase
         $this->assertSame(200, $result['code']);
         $items = $result['data']['data']['items'];
         $this->assertStringContainsString(
-            '<img src="data:image/jpeg;base64,' . base64_encode($jpeg) . '">',
+            '<img src="data:image/jpeg;base64,' . base64_encode($jpeg) . '" width="32">',
             $items[0]['contents']
         );
     }
