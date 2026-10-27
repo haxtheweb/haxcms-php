@@ -47,6 +47,7 @@ node --test test/e2e/archive-site.e2e.test.cjs
 node --test test/e2e/edit-content.e2e.test.cjs
 node --test test/e2e/export-site.e2e.test.cjs
 node --test test/e2e/page-management.e2e.test.cjs
+node --test test/e2e/export-formats-auth.e2e.test.cjs
 ```
 
 ### Updating visual baselines
@@ -73,6 +74,7 @@ manual inspection and are gitignored.
 | `edit-content.e2e.test.cjs` | Edit & save content in HAX editor | PATCH `/x/api/v1/content/:idOrSlug` -> 200; typed content present in the page HTML file on disk; a11y + visual baseline |
 | `export-site.e2e.test.cjs` | Export/download site as zip | POST `/sites/:siteName/download` -> 200 + `data.link` ends `.zip` + `data.name`; zip exists at `_published/haxsiteautomatedtesting.zip` with PK magic bytes; a11y + visual baselines |
 | `page-management.e2e.test.cjs` | Add + delete a page | POST `/x/api/v1/items` -> 200 + `data.id` + `data.title`; DELETE `/x/api/v1/items/:id` -> 200; page removed from site.json manifest + items list; a11y + visual baselines |
+| `export-formats-auth.e2e.test.cjs` | Logged-in editor exports site + page as pdf/docx/epub | Drives the real `haxcms-site-editor-ui.exportSiteAs()` / `exportPageAs()`; every `/x/api/v1/.../export/<format>` request sends `Authorization: Bearer <jwt>` and returns 200 (the site API ignores cookies; haxtheweb/issues#3179) |
 
 All site operations target the fixed name `HAXSITEAUTOMATEDTESTING`. The
 harness removes any leftover site (`_sites/`, `_archived/`, `_published/*.zip`)
@@ -204,6 +206,7 @@ verifies editor→API integration for the create path.
 ## Environment overrides
 
 - `HAXCMS_E2E_BASE_URL` — override the base URL (default `http://haxcms.ddev.site`; the harness also coerces DDEV's HTTPS primary URL to HTTP).
+- `HAXCMS_E2E_NO_DDEV=1` — skip `ddev start` and run against an already-running server at `HAXCMS_E2E_BASE_URL` (CI, or a local Apache vhost with `AllowOverride All` whose docroot is this repo, seeded with `scripts/haxtheweb.sh admin admin`).
 - `HAXCMS_E2E_USERNAME` / `HAXCMS_E2E_PASSWORD` — override the login creds
   (default `admin` / `admin`).
 - `PUPPETEER_EXECUTABLE_PATH` — override the Chrome binary path.
