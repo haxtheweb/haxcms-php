@@ -232,8 +232,9 @@ class OperationsSaveOutlineBatchingTest extends TestCase
             $counts[$size] = array($site->manifest->saveCount(), $site->alternateFormatRebuilds);
         }
         $this->assertSame($counts[4], $counts[12], 'cost does not grow with item count');
-        // end-of-request: two site.json saves (post-delete, final) and one rebuild
-        $this->assertSame(array(2, 1), $counts[12]);
+        // one checkpoint after the structure pass (save + rebuild), then the
+        // end-of-request saves (post-delete, final) and rebuild
+        $this->assertSame(array(3, 2), $counts[12]);
     }
 
     public function testEarlyErrorStillFlushesPendingSaveAndRebuild(): void
