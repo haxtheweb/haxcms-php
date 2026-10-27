@@ -352,13 +352,27 @@ if (!function_exists('haxcmsImportConvertDocxXmlToHtml')) {
 if (!function_exists('haxcmsImportHtmlToItems')) {
     function haxcmsImportHtmlToItems($html, $options = array())
     {
-        $method     = isset($options['method'])     ? $options['method']     : 'site';
-        $type       = isset($options['type'])       ? $options['type']       : '';
-        $parentId   = isset($options['parentId'])   ? $options['parentId']   : null;
-        $titleValue = isset($options['titleValue']) ? $options['titleValue'] : 'import';
+        $method       = isset($options['method'])       ? $options['method']       : 'site';
+        $type         = isset($options['type'])         ? $options['type']         : '';
+        $parentId     = isset($options['parentId'])     ? $options['parentId']     : null;
+        $titleValue   = isset($options['titleValue'])   ? $options['titleValue']   : 'import';
+        $skipSanitize = isset($options['skipSanitize']) ? (bool) $options['skipSanitize'] : false;
 
         // D36: sanitize untrusted HTML once, centrally, so all import callers are protected.
-        $html = SanitizeContent::sanitizeHTMLForStorage($html);
+        //
+        // Callers that already produce trusted, programmatically-generated markup
+        // (not arbitrary untrusted HTML) may opt out via `skipSanitize`. This is used
+        // by the PDF importer so that inline `<img src="data:...">` tags it emits
+        // survive in the route's JSON response; `SanitizeContent` strips bare `img
+        // src="data:..."` as a security measure (see SanitizeContent::DATA_IMAGE_URL_ATTRIBUTE_NAMES),
+        // so sanitizing here would silently destroy the image data before a later
+        // createNode/addPage call ever gets a chance to materialize it into a
+        // `<media-image>` tag. The later createNode/addPage call still runs
+        // MaterializeInlineImages::materialize() followed by sanitizeHTMLForStorage(),
+        // so the content is sanitized before it is ever persisted.
+        if (!$skipSanitize) {
+            $html = SanitizeContent::sanitizeHTMLForStorage($html);
+        }
 
         $elements = haxcmsImportSimpleHtmlToElements($html);
         $items    = array();

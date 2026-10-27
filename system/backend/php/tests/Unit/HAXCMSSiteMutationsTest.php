@@ -532,6 +532,41 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertNull($item->parent);
     }
 
+    public function testItemFromParamsAcceptsArrayMetadataFromAJsonBody(): void
+    {
+        // createNode passes json_decode($body, true) params, so metadata is an
+        // associative ARRAY; it must merge into the item's stdClass metadata
+        // (previously a fatal "attempt to assign property on array").
+        $params = array(
+            'node' => array('title' => 'With Metadata'),
+            'metadata' => array(
+                'published' => false,
+                'hideInMenu' => true,
+                'tags' => 'alpha,beta',
+            ),
+        );
+        $item = $this->site->itemFromParams($params);
+        $this->assertInstanceOf(stdClass::class, $item->metadata);
+        $this->assertFalse($item->metadata->published);
+        $this->assertTrue($item->metadata->hideInMenu);
+        $this->assertSame('alpha,beta', $item->metadata->tags);
+        $this->assertTrue(is_numeric($item->metadata->created));
+        $this->assertTrue(is_numeric($item->metadata->updated));
+    }
+
+    public function testItemFromParamsDropsForbiddenMetadataKeys(): void
+    {
+        // same SEC-SANITIZE rules as addPage(): prototype-pollution style keys
+        // are never copied from the request
+        $params = array(
+            'node' => array('title' => 'Sanitised'),
+            'metadata' => array('__proto__' => array('x' => 1), 'published' => true),
+        );
+        $item = $this->site->itemFromParams($params);
+        $this->assertFalse(property_exists($item->metadata, '__proto__'));
+        $this->assertTrue($item->metadata->published);
+    }
+
     // ---- getLLMSTxt ----
 
     public function testGetLLMSTxtProducesNonEmptyStringWithTitle(): void

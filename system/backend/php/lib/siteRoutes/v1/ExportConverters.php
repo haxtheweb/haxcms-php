@@ -445,6 +445,60 @@ class ExportConverters
         return implode("\n", $parts);
     }
 
+    /**
+     * Print stylesheet for PDF exports (parity with haxcms-nodejs
+     * PDF_EXPORT_PRINT_CSS). The export HTML is sanitized and theme-less, so
+     * without this Dompdf prints ~12pt Times and images at their natural size:
+     * a phone photo (1536x2048 at 96dpi) runs off the page, is cropped, and
+     * pushes everything after it onto later pages. Injected after sanitizing
+     * because it is ours, not user content. DejaVu Sans ships with Dompdf, so
+     * the font is always available and embeds as TrueType (full Unicode, and
+     * text extracts cleanly on a later PDF import).
+     */
+    const PDF_EXPORT_PRINT_CSS = '@page { size: A4; margin: 18mm 16mm; }
+body { margin: 0; color: #1f2328; font-family: "DejaVu Sans", sans-serif; font-size: 10.5pt; line-height: 1.5; }
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.1em 0 0.45em; page-break-after: avoid; }
+h1:first-child, h2:first-child, h3:first-child, p:first-child { margin-top: 0; }
+h1 { font-size: 20pt; } h2 { font-size: 16pt; } h3 { font-size: 13pt; } h4 { font-size: 11.5pt; } h5, h6 { font-size: 10.5pt; }
+p, ul, ol, dl, blockquote, pre, table, figure { margin: 0 0 0.8em; }
+p, li { orphans: 3; widows: 3; }
+ul, ol { padding-left: 1.4em; } li { margin: 0.2em 0; }
+a { color: #0b5cad; text-decoration: underline; }
+img { max-width: 100%; max-height: 130mm; width: auto; height: auto; margin: 0.6em 0; page-break-inside: avoid; }
+p.hax-pdf-image { text-align: center; }
+figure { page-break-inside: avoid; text-align: center; } figcaption { font-size: 9pt; color: #57606a; margin-top: 0.3em; }
+blockquote { margin-left: 0; padding: 0.2em 0 0.2em 1em; border-left: 3px solid #d0d7de; color: #424a53; }
+pre, code { font-family: "DejaVu Sans Mono", monospace; font-size: 9pt; }
+pre { white-space: pre-wrap; padding: 0.6em 0.8em; background: #f6f8fa; page-break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; } th, td { border: 1px solid #d0d7de; padding: 4px 8px; text-align: left; vertical-align: top; } tr { page-break-inside: avoid; }
+hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
+
+    /**
+     * Put the PDF export print stylesheet in the document head (creating a
+     * head when the fragment has none).
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function withPdfExportStyles($html = '')
+    {
+        $styleTag = '<style>' . self::PDF_EXPORT_PRINT_CSS . '</style>';
+        $html = (string) $html;
+        // Dompdf ignores auto margins on images, so centre an image that is
+        // alone in its paragraph through the paragraph's text-align instead
+        $html = preg_replace(
+            '/<p>(\s*<img\b[^>]*>\s*)<\/p>/i',
+            '<p class="hax-pdf-image">$1</p>',
+            $html
+        );
+        if (preg_match('/<head(\s[^>]*)?>/i', $html)) {
+            return preg_replace_callback('/<head(\s[^>]*)?>/i', function ($m) use ($styleTag) {
+                return $m[0] . $styleTag;
+            }, $html, 1);
+        }
+        return '<head>' . $styleTag . '</head>' . $html;
+    }
+
     public static function htmlToPdfString($html = '', $base = '/', $site = null)
     {
         $sanitized = self::sanitizeExportHtml($html);
@@ -494,9 +548,10 @@ class ExportConverters
         else {
             $sanitized = '<head>' . $baseTag . '<meta charset="utf-8" /></head>' . $sanitized;
         }
+        $sanitized = self::withPdfExportStyles($sanitized);
         $options = array(
             'isRemoteEnabled' => false,
-            'defaultFont' => 'serif',
+            'defaultFont' => 'DejaVu Sans',
             'tempDir' => $tempDir,
         );
         if (count($chrootPaths) > 0) {

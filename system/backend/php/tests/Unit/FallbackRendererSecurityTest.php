@@ -87,7 +87,7 @@ class FallbackRendererSecurityTest extends TestCase
 
     private function render()
     {
-        return $this->runPhp('$_SERVER["REQUEST_URI"]="/site/"; $_SERVER["SERVER_NAME"]="x.test"; $_SERVER["SCRIPT_URI"]="https://x.test/"; include "index.php";');
+        return $this->runPhp('$_SERVER["REQUEST_URI"]="/site/"; $_SERVER["SCRIPT_NAME"]="/site/index.php"; $_SERVER["SERVER_NAME"]="x.test"; $_SERVER["SCRIPT_URI"]="https://x.test/"; include "index.php";');
     }
 
     private function pageContent($location)
