@@ -1,11 +1,6 @@
 ---
 name: hax-site-structure
-description: >
-  Read and navigate an existing HAXcms site from its portable files. Use when an agent lands on a
-  HAXsite or HAXcms deployment and needs to understand site.json (JSON Outline Schema), resolve
-  page content in pages/, find assets in files/, locate the theme, compute basePath, or discover
-  the web component registry (wc-registry.json) and the magic-script autoloader. Load this FIRST
-  when working with any HAX site so the rest of the ecosystem makes sense.
+description: "Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment."
 version: 1.0.0
 license: Apache-2.0
 metadata:

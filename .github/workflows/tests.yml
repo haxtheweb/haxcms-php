@@ -47,3 +47,31 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
       - name: Run PHPUnit
         run: vendor/bin/phpunit
+  # Dependency vulnerability audit (haxtheweb/issues#3092).
+  # REPORTING ONLY for now: the audit step uses continue-on-error, so a finding
+  # shows up as a warning annotation + log output but does not turn the "tests"
+  # check red. Remove `continue-on-error` below once the baseline is clean to
+  # make it a blocking gate. Kept as its own job so PHPUnit is unaffected.
+  composer-audit:
+    name: "Composer audit (reporting only)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: system/backend/php
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - name: Composer audit (reporting only, does not fail the build)
+        id: audit
+        # --locked audits composer.lock directly; no install needed.
+        # Exit code is non-zero when advisories (or abandoned packages) exist.
+        continue-on-error: true
+        run: composer audit --locked --no-interaction
+      - name: Flag audit findings
+        if: steps.audit.outcome == 'failure'
+        run: echo "::warning title=composer audit::Advisories or abandoned packages found in composer.lock. See the previous step's log. This job is reporting-only."

@@ -1,0 +1,71 @@
+name: boilerplate sync
+# The site boilerplate (the folder every new site is copied from, including the
+# single-site PHP fallback config.php / index.php) lives in BOTH backends and
+# must stay byte-identical:
+#   haxcms-nodejs  src/boilerplate/site
+#   haxcms-php     system/boilerplate/site
+# haxcms-nodejs is the source of truth that feeds the PHP copy. This check
+# fails when the two folders differ, so drift is caught on the PR that causes
+# it and by the daily run (which is what notifies you if one side merges first).
+#
+# Changing the boilerplate needs a PR in each repo. Give both PRs the SAME
+# branch name: when the other repo has a branch with this PR's name it is
+# compared against that branch, otherwise against its default branch.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "system/boilerplate/site/**"
+      - ".github/workflows/boilerplate-sync.yml"
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+    paths:
+      - "system/boilerplate/site/**"
+      - ".github/workflows/boilerplate-sync.yml"
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: "boilerplate/site matches haxcms-nodejs"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: self
+      - name: Compare with haxcms-nodejs
+        env:
+          # untrusted, so it is only ever read from the environment
+          HEAD_REF: ${{ github.head_ref }}
+          SELF_DIR: "system/boilerplate/site"
+          OTHER_REPO: "haxcms-nodejs"
+          OTHER_DIR: "src/boilerplate/site"
+        run: |
+          set -euo pipefail
+          other_url="https://github.com/haxtheweb/${OTHER_REPO}.git"
+          ref=""
+          if [[ "${HEAD_REF}" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] \
+            && git ls-remote --exit-code --heads "${other_url}" "refs/heads/${HEAD_REF}" > /dev/null 2>&1; then
+            ref="${HEAD_REF}"
+          fi
+          if [ -z "${ref}" ]; then
+            ref="$(git ls-remote --symref "${other_url}" HEAD | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')"
+          fi
+          if [ -z "${ref}" ]; then
+            echo "::error::Could not resolve a branch of ${OTHER_REPO} to compare against"
+            exit 1
+          fi
+          echo "Comparing ${SELF_DIR} with ${OTHER_REPO}@${ref}:${OTHER_DIR}"
+          git clone --quiet --depth 1 --branch "${ref}" "${other_url}" other
+          if diff -rq --no-dereference "self/${SELF_DIR}" "other/${OTHER_DIR}" > differences.txt; then
+            echo "In sync."
+            exit 0
+          fi
+          cat differences.txt
+          echo
+          diff -ru --no-dereference "other/${OTHER_DIR}" "self/${SELF_DIR}" | head -n 200 || true
+          echo "::error title=boilerplate/site out of sync::${SELF_DIR} differs from ${OTHER_REPO}@${ref}:${OTHER_DIR} (see the log). haxcms-nodejs is the source of truth: make the same change in both repos, using the same branch name on both PRs."
+          exit 1

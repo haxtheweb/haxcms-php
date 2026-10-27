@@ -255,14 +255,7 @@
           "title": "License",
           "description": "The source url for the element this is citing.",
           "inputMethod": "select",
-          "options": {
-            "by": "Attribution",
-            "by-nc": "Attribution non-commercial",
-            "by-nc-nd": "Attribution Non-commercial No derivatives",
-            "by-nc-sa": "Attribution non-commercial share a like",
-            "by-nd": "Attribution No derivatives",
-            "by-sa": "Attribution Share a like"
-          },
+          "options": {},
           "icon": "link"
         },
         {

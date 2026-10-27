@@ -4,23 +4,23 @@
     {
       "name": "hax-site-structure",
       "type": "skill-md",
-      "description": "Read and navigate an existing HAXcms site from its portable files. Use when an agent lands on a HAXsite or HAXcms deployment and needs to understand site.json (JSON Outline Schema), resolve page content in pages/, find assets in files/, locate the theme, compute basePath, or discover the web component registry (wc-registry.json) and the magic-script autoloader. Load this FIRST when working with any HAX site so the rest of the ecosystem makes sense.",
+      "description": "\"Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment.\"",
       "url": "hax-site-structure/SKILL.md",
-      "digest": "sha256:88ddc1e37de23261bc5e77dead53a7c45055b2422569ca09f9d2e9349cea430d"
+      "digest": "sha256:6f87311919eb7090e8305eee3e396baf127ab1fb933d5775db15db59c089eb3f"
     },
     {
       "name": "hax-content-authoring",
       "type": "skill-md",
-      "description": "Author HAX page content using the right web components and conventions. Use when writing or editing page HTML in pages/, adding HAX-capable elements, applying DDD heading/paragraph attributes, choosing input/icon/button/media components, creating pages via the hax CLI, or remixing a HAX site's content as OER. Covers which tags are valid (HAXSchema/haxProperties), the preferred component families, and the authoring rules that keep content portable and editable in the HAX editor.",
+      "description": "\"Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor.\"",
       "url": "hax-content-authoring/SKILL.md",
-      "digest": "sha256:b72ed8ab961b538d0e097d8f26a9ef6c6b0e3b732bccf9c18f42da55c5333fc7"
+      "digest": "sha256:842c367726e12544a70d9469f4f9d48de1bb58e29336fb781930938f5bfe05c2"
     },
     {
       "name": "hax-managed-files",
       "type": "skill-md",
-      "description": "Know which HAXcms files are generated (rebuild, do not hand-edit) vs authored, and the protective rules around builds. Use when an agent is about to edit a managed file, run a build, or pick which CLI command to use. Prevents the common footguns: hand-editing generated artifacts, running the ubiquity script, running a top-level monorepo build, or using npx instead of the local hax CLI. Protective skill — load before modifying files or running builds on a HAX site or deployment.",
+      "description": "\"Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx.\"",
       "url": "hax-managed-files/SKILL.md",
-      "digest": "sha256:9646009eb9513fde2e31f69356147e2c7afde0aff85e94775ed349672210097d"
+      "digest": "sha256:265959a66e2b3112a8ff9b6a74767a6adc26da462f174f989ad1cc755c89a98a"
     },
     {
       "name": "hax-design-system",
@@ -42,26 +42,26 @@
     {
       "name": "hax-a11y-audit",
       "type": "skill-md",
-      "description": "READ-ONLY diagnostic: review authored HAX page/site content against WCAG 2.0 AA (image alt text, heading hierarchy, landmark structure, link text, form labels, color contrast, media caption/transcript/audio-description presence, keyboard/focus, ARIA correctness, data-table markup, list semantics) and emit a report with actionable HAX web-component + plain-HTML remediation. Use when the user says \"is this accessible\", \"audit for WCAG\", \"check my page for accessibility\", \"does this meet WCAG 2.0 AA\", \"screen reader test\", \"are my images described\", \"is my color contrast OK\", \"do my videos have captions\", or \"accessibility audit\" — even if they don't say \"WCAG\" or \"a11y\". Diagnoses only; hands off to hax-claudehax / hax-site-building for remediation and to hax-media-a11y for media-depth work.",
+      "description": "\"READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \\\"is this accessible\\\" or \\\"audit for WCAG\\\". Diagnoses only; hands off to hax-site-building.\"",
       "url": "hax-a11y-audit/SKILL.md",
-      "digest": "sha256:ea17233a6ff5024fd4ee050013f82074cc10edfc158747eb59da108683e297d5",
+      "digest": "sha256:3821d4fcc92f80cdf006c88ef5673dc39a4cc93c6e9b2f887b6a5951355d5dd1",
       "files": [
         {
           "path": "evals/evals.json",
-          "digest": "sha256:c0c8c6bc1423fb3a10f07e283c99956c5916d7a217b132f036218578443abd75"
+          "digest": "sha256:a2c36912d3c390e07338ab6e7f86f10c0463c8b38e6aad86579146559236766d"
         },
         {
           "path": "references/a11y-element-map.md",
-          "digest": "sha256:273df2299a27b1daac900b2ab484f2d185e3bed79a194ba5bb00f72fcba0a4ba"
+          "digest": "sha256:69f545fab1096ba1d98dea141e46e6a09360192f8b092acaa95cab99c8b40a41"
         }
       ]
     },
     {
       "name": "oerschema-audit",
       "type": "skill-md",
-      "description": "READ-ONLY diagnostic: review authored HAX page HTML, site.json outline nodes, VitePress markdown directives, JSON-LD blocks, and Google Docs export HTML against the OER Schema vocabulary (Course/Unit/Module/Lesson, LearningObjective, Assessment/Quiz/Activity/Project, Task/Practice, Rubric family, SupportingMaterial, TableOfContents, ActionType verbs) and emit a report with the recommended class, properties, and markup surface for every finding. Use when the user says \"audit this page for OER schema\", \"what schema should this lesson have\", \"is this quiz marked up as the right oer class\", \"does my site.json map to oerschema\", \"check my VitePress directives against the vocabulary\", \"scan my site for content missing oerschema\", or \"which of these pages need oer schema\" — even if they don't say \"audit\" or \"oerschema\". Diagnoses only; hands off to hax-claudehax / hax-site-building to apply remediation and to oerschema-integration-finder when the gap is in a component (code), not the content.",
+      "description": "\"READ-ONLY audit of authored content (HAX HTML, site.json, VitePress, JSON-LD, Docs export) against the OER Schema vocabulary, recommending class, properties and markup per finding. Use for \\\"audit this page for OER schema\\\".\"",
       "url": "oerschema-audit/SKILL.md",
-      "digest": "sha256:be112b9e2d57d00c2fec8d5b191196b7edc64669ace3497782d10387b0045c67",
+      "digest": "sha256:3ffeead8ba790e03fbae42e7ff6003b0c2089793a0cbab1b0498d1ea5e2f31d4",
       "files": [
         {
           "path": "references/hax-outline-mapping.md",
@@ -84,9 +84,9 @@
     {
       "name": "hax-ubd-backward-design",
       "type": "skill-md",
-      "description": "Design HAX course units via Understanding by Design (UbD) backward design — start from desired results, derive acceptable evidence, then plan learning experiences. Produces a UbD unit plan AND the HAX site skeleton (site.json node + WHERETO pages with OER schema metadata) that embodies it. Use when the user says \"design a unit on X\", \"backward-design this module\", \"turn this content into a HAX unit\", \"build a course around big ideas\", or \"redesign this unit for understanding\".",
+      "description": "\"Design HAX course units by Understanding by Design backward design, producing a UbD unit plan and a HAX site skeleton. Use for \\\"design a unit on X\\\" or \\\"build a course around big ideas\\\".\"",
       "url": "hax-ubd-backward-design/SKILL.md",
-      "digest": "sha256:bbe33ee29e0050d117fc1fd52a1e47e3757134e29789879cc650d7cc92b9e576",
+      "digest": "sha256:9dd36fa4570ee7ca39dc66afcef112c95ce45e5d62fd7190fcdf7d9dcba4a0e9",
       "files": [
         {
           "path": "references/design-standards.md",
@@ -98,7 +98,7 @@
         },
         {
           "path": "references/ubd-element-map.md",
-          "digest": "sha256:4146c226efe5af0b084d8a1b31c65e4d7de08fb4fc52f8797ccf16fb51653882"
+          "digest": "sha256:7fb1005e3500e1f5e7f0e4f53fcd15dae39b105c1129c003e4ec217c346dd058"
         },
         {
           "path": "references/validity-self-test.md",
@@ -109,29 +109,29 @@
     {
       "name": "hax-udl-audit",
       "type": "skill-md",
-      "description": "READ-ONLY diagnostic: review a HAX site/page against Universal Design for Learning (UDL) 3.0 — multiple means of Engagement, Representation, and Action & Expression — and emit a report with actionable HAX web-component remediation. Use when the user says \"is this accessible to all learners\", \"audit for UDL\", \"does this page reach everyone\", \"add multiple means of expression\", \"my course is all reading and video with no interaction\", or \"universal design\" — even if they don't say \"UDL\". Diagnoses only; hands off to hax-claudehax / hax-site-building for remediation.",
+      "description": "\"READ-ONLY audit of a HAX page against UDL 3.0 (Engagement, Representation, Action & Expression) with HAX component remediation. Use for \\\"audit for UDL\\\" or \\\"does this page reach everyone\\\".\"",
       "url": "hax-udl-audit/SKILL.md",
-      "digest": "sha256:ca11e2323b93692e584e526c3bdbd480bd864ef3012fd1fd73bd95f3003297d7",
+      "digest": "sha256:061420fe57cb0908e106e2c5496f513e1429b11962ee6f09c03e125db68296eb",
       "files": [
         {
           "path": "references/udl-element-map.md",
-          "digest": "sha256:e74b0d200c2a4171d4c77d15d11eb90c3cce7f362a7f5606d458beb988d36c25"
+          "digest": "sha256:5f7544d11f511abeab9d142106a20936c97189bd37fd6a3de177987705cdd3aa"
         }
       ]
     },
     {
       "name": "hax-content-chunking-audit",
       "type": "skill-md",
-      "description": "Audit a HAX site page (JSON Outline Schema node, raw HTML in pages/, or markdown) against cognitive-load and content-chunking instructional-design standards, then return actionable HAX web-component remediation. Use when the user asks to review a course page, textbook module, or HAX site for readability, \"wall of text\", overly long sections, list fatigue, media saturation, microlearning chunking, or to \"make this page less overwhelming\" — even if they don't say \"audit\".",
+      "description": "\"Audit a HAX page against cognitive-load and chunking standards and return HAX remediation. Use for \\\"wall of text\\\", overly long sections, list fatigue or \\\"make this page less overwhelming\\\".\"",
       "url": "hax-content-chunking-audit/SKILL.md",
-      "digest": "sha256:1f3cc7772fd7b28d681cf6daa4ea4d92c087b3ed4ffc4e84477cc6d1731ea793"
+      "digest": "sha256:86e4c9f40f8b26415662090178582d8c722b5a57615b1928db25ee6b5ccc5f27"
     },
     {
       "name": "haxcms-lrs-rater",
       "type": "skill-md",
-      "description": "Run BookLooky's Looky Rating System (LRS) content rating and minimum-age recommendation on a HAXcms site's aggregated content — either a local site checkout or a live published URL like btopro.com — entirely through the invoking agent's own reasoning, no API key or network call to an LLM required. Use this whenever the user asks to \"rate this HAXcms site\", \"run an LRS scan on my site/domain\", \"what age is btopro.com appropriate for\", \"check this site for violence/romance/language/etc. content\", \"score this site the way booklooky does\", or gives a HAX site URL/path and asks for a content rating or age recommendation. Distinct from booklooky-lrs-rater, which rates a single provided transcript/manuscript — this skill's job is reading a HAXcms site's llms.txt manifest to assemble that transcript first.",
+      "description": "\"Run BookLooky's Looky Rating System content rating and minimum-age recommendation on a HAXcms site, local or live URL, using the agent's own reasoning. Use for \\\"rate this HAXcms site\\\" or \\\"run an LRS scan\\\". Reads the site's llms.txt manifest.\"",
       "url": "haxcms-lrs-rater/SKILL.md",
-      "digest": "sha256:edd1a3db7a8e4e03e9e9ad87224d55def51ac4a0eb8f872158a9a4c0679afce0",
+      "digest": "sha256:e6e51cf0a62f6d97e3c3e98af50ce86232d9ad77e1ee77a1c095d9019d8eb2ae",
       "files": [
         {
           "path": "references/age-recommendation-prompt.md",
@@ -158,9 +158,9 @@
     {
       "name": "oerschema-integration-finder",
       "type": "skill-md",
-      "description": "READ-ONLY diagnostic: scan HAX webcomponents, themes, CMS backends (PHP/NodeJS HAXcms), the VitePress plugin, and the Google Apps Script add-on for code surfaces that render or consume pedagogical content but do NOT emit or consume OER Schema metadata — e.g. quiz/assessment elements with no Assessment microdata, outline components not mapping to TableOfContents, objective/rubric/syllabus elements with no itemtype. Emit a per-file hit-list of the class + property each surface should expose. Use when the user says \"which of my webcomponents should emit oer schema\", \"find assessment code without schema support\", \"where in my codebase should oerschema be wired in\", \"audit my components for oer schema integration opportunities\", \"does the quiz element emit microdata\", or \"what elements in HAX could expose oer schema but don't\" — even if they don't say \"finder\" or \"oerschema\". Diagnoses only; hands off to hax-webcomponent-dev for implementation and to oerschema-audit when the gap is in authored content, not code.",
+      "description": "\"READ-ONLY scan of webcomponents, themes, CMS backends and plugins for pedagogical-content code that should emit or consume OER Schema but doesn't, with a per-file hit-list. Use for \\\"which elements should emit oer schema\\\".\"",
       "url": "oerschema-integration-finder/SKILL.md",
-      "digest": "sha256:9794cee39fe73bf282870904174d3dd0c07e6c9af17d4ba27cd32a0d0e2164b1",
+      "digest": "sha256:55d95f587c92fed7c40e6f3b281a1a3cd7469b583e1328a8bc0ec8b4f1495d08",
       "files": [
         {
           "path": "references/component-patterns.md",
@@ -171,51 +171,51 @@
     {
       "name": "hax-ubd-stage1",
       "type": "skill-md",
-      "description": "UbD Stage 1 — gain clarity on desired results: unpack standards into big ideas, enduring understandings (full-sentence propositions), overarching + topical essential questions, knowledge/skills, and predictable misunderstandings. Use when the user says \"what are the big ideas in X\", \"write enduring understandings\", \"craft essential questions\", \"unpack this standard\", or \"what misconceptions should I anticipate\". Encodes UbD Ch. 3–6.",
+      "description": "\"UbD Stage 1: unpack standards into big ideas, enduring understandings, essential questions, knowledge/skills and misconceptions. Use for \\\"what are the big ideas in X\\\" or \\\"write enduring understandings\\\".\"",
       "url": "hax-ubd-stage1/SKILL.md",
-      "digest": "sha256:b452004edb76ea62ca9ea080f0e88faae486a0eaabb624f2509d4cad6cc9dfa2"
+      "digest": "sha256:4a7fc707e85d57fe1cb25bbe7d4b12762d82227862a409a32248c8695a2f6114"
     },
     {
       "name": "hax-ubd-stage2",
       "type": "skill-md",
-      "description": "UbD Stage 2 — think like an assessor: build a scrapbook of acceptable evidence, frame ≥1 GRASPS performance task, map the six facets to rubric criteria, enforce problem-not-exercise, and run the 7-question validity self-test. Use when the user says \"what evidence do I need\", \"design a performance task\", \"build a GRASPS task\", \"what assessments prove understanding\", or \"is this assessment valid\". Encodes UbD Ch. 7–8. The most distinctive UbD skill.",
+      "description": "\"UbD Stage 2: build the evidence scrapbook, a GRASPS performance task, facet-mapped rubric and validity self-test. Use for \\\"what evidence do I need\\\" or \\\"design a performance task\\\".\"",
       "url": "hax-ubd-stage2/SKILL.md",
-      "digest": "sha256:6e342be78b44df6a9d94495fd7a1423fca11783c0e12bf9395166ac66c1272b2"
+      "digest": "sha256:5957c547a4b91ea9cd09ada7e89146a815379332d43c419c3a0a5f25388043dd"
     },
     {
       "name": "hax-ubd-stage3",
       "type": "skill-md",
-      "description": "UbD Stage 3 — plan learning experiences via WHERETO, derived from Stages 1+2. Enforce uncoverage over coverage and build feedback/revision cycles. Use when the user says \"sequence this unit\", \"plan the learning activities\", \"WHERETO my unit\", \"how do I teach for understanding\", or \"organize these pages\". Encodes UbD Ch. 9–10. Stage 3 points AT Stage 2 evidence; it never invents new endpoints.",
+      "description": "\"UbD Stage 3: plan learning experiences with WHERETO, derived from Stages 1 and 2. Use for \\\"sequence this unit\\\" or \\\"plan the learning activities\\\"; points at Stage 2 evidence and never invents endpoints.\"",
       "url": "hax-ubd-stage3/SKILL.md",
-      "digest": "sha256:82e083b9206eafeb6001af7676a8768dc1860696bf7589c89460d85f6bec82ea"
+      "digest": "sha256:246feee6943ac299b36134d43c14274388faa5f292002d725ebe5dd5e8b1b745"
     },
     {
       "name": "hax-ubd-grasps",
       "type": "skill-md",
       "description": "Frame UbD GRASPS performance tasks (Goal, Role, Audience, Situation, Performance/Product, Standards) and select authentic-context HAX media. Use when the user says \"build a GRASPS task\", \"make this assessment authentic\", \"design a performance task\", or \"frame a real-world task\". Companion to hax-ubd-stage2.",
       "url": "hax-ubd-grasps/SKILL.md",
-      "digest": "sha256:9f5d2996676a5d18a04954387a32b1fde880864ff10153c8b73866ccbd4cb9a6"
+      "digest": "sha256:2cbd92bf0f9ba5c8b6acb314f17dba263b9a03f3f402e1f7570890b5b68ae76c"
     },
     {
       "name": "hax-ubd-essential-questions",
       "type": "skill-md",
-      "description": "Author UbD essential questions and entry questions from the six-facet question starter bank. Use when the user says \"write essential questions\", \"good questions for X\", \"craft an essential question\", or \"what entry question opens this unit\". Distinguishes overarching vs. topical and essential vs. leading. Companion to hax-ubd-stage1; sibling to grad-blooms.",
+      "description": "\"Author UbD essential and entry questions from the six-facet starter bank, separating overarching from topical and essential from leading. Use for \\\"write essential questions\\\". Companion to hax-ubd-stage1.\"",
       "url": "hax-ubd-essential-questions/SKILL.md",
-      "digest": "sha256:769c6e9ffe4e2c3360da1b3a88e0a3a9569dcccac7ebbc4bbc578f855390b9db"
+      "digest": "sha256:85a5bafacba530d1ef8cdcba8e527f1c1da05bd77b56352d06f1b8f9f5da5fa8"
     },
     {
       "name": "hax-ubd-six-facets",
       "type": "skill-md",
-      "description": "Apply the UbD six facets of understanding (Explanation, Interpretation, Application, Perspective, Empathy, Self-Knowledge) to write understandings and build facet-mapped editable-table rubric criteria. Use when the user says \"what facet does this target\", \"build a rubric for understanding\", or \"which facets should this assessment tap\". Companion to hax-ubd-stage2; bridges to grad-blooms (facets = performance criteria; Bloom's = cognitive level).",
+      "description": "\"Apply the UbD six facets of understanding to write understandings and facet-mapped rubric criteria. Use for \\\"what facet does this target\\\" or \\\"build a rubric for understanding\\\". Companion to hax-ubd-stage2.\"",
       "url": "hax-ubd-six-facets/SKILL.md",
-      "digest": "sha256:bab30e13b0138bc6ff90059bf1a98842834c72458cab71dd66d82bab63d55aad"
+      "digest": "sha256:148f67d95f15ac18b2e629045e2130defdcfe9c1e168cc7c50b32c431506e9da"
     },
     {
       "name": "hax-ubd-unit-audit",
       "type": "skill-md",
-      "description": "READ-ONLY diagnostic: review an existing HAX site/unit against Understanding by Design standards and emit a report with actionable HAX remediation. Use when the user says \"review this unit for understanding\", \"is my course backward-designed\", \"audit my HAX site against UbD\", \"are my assessments aligned\", or \"does this unit have big ideas\" — even if they don't say \"UbD\". Diagnoses only; hands off to the stage skills and hax-claudehax for remediation.",
+      "description": "\"READ-ONLY review of an existing HAX unit against Understanding by Design with HAX remediation. Use for \\\"is my course backward-designed\\\" or \\\"are my assessments aligned\\\". Hands off to the stage skills.\"",
       "url": "hax-ubd-unit-audit/SKILL.md",
-      "digest": "sha256:1b584fadaec5cb614ec0e85e856f4e602b58e55a3f6698fecb64d22395b7371a"
+      "digest": "sha256:825e2ee70b983b2005f1fdf77147119d73e56605fa9ca4cd8770141f62b8694b"
     }
   ]
 }

@@ -15,49 +15,23 @@
  * because the value must be readable before _config/settings is scanned and
  * must be writable by install.php during initial bootstrap.
  */
+include_once dirname(__FILE__) . '/LanguageRegistry.php';
+
 class HAXCMSLocalizationSettingsService
 {
   const DEFAULT_LANGUAGE = 'en-US';
 
-  // Curated set of common BCP-47 language tags. The per-site language field
-  // in SEO settings remains a free-text field (ISO 639-1), so this list is a
-  // convenience default set for the installer + Configuration panel only; it
-  // does not constrain what a site may be set to directly.
-  public static $SUPPORTED_LANGUAGES = array(
-    'en-US' => 'English (United States)',
-    'en-GB' => 'English (United Kingdom)',
-    'es-ES' => 'Spanish (Spain)',
-    'es-MX' => 'Spanish (Mexico)',
-    'fr-FR' => 'French (France)',
-    'de-DE' => 'German (Germany)',
-    'it-IT' => 'Italian (Italy)',
-    'pt-BR' => 'Portuguese (Brazil)',
-    'pt-PT' => 'Portuguese (Portugal)',
-    'nl-NL' => 'Dutch (Netherlands)',
-    'pl-PL' => 'Polish (Poland)',
-    'ru-RU' => 'Russian (Russia)',
-    'uk-UA' => 'Ukrainian (Ukraine)',
-    'ja-JP' => 'Japanese (Japan)',
-    'ko-KR' => 'Korean (Korea)',
-    'zh-CN' => 'Chinese (Simplified)',
-    'zh-TW' => 'Chinese (Traditional)',
-    'ar-SA' => 'Arabic (Saudi Arabia)',
-    'hi-IN' => 'Hindi (India)',
-    'tr-TR' => 'Turkish (Turkey)',
-    'sv-SE' => 'Swedish (Sweden)',
-    'da-DK' => 'Danish (Denmark)',
-    'fi-FI' => 'Finnish (Finland)',
-    'nb-NO' => 'Norwegian (Norway)',
-    'cs-CZ' => 'Czech (Czech Republic)',
-    'el-GR' => 'Greek (Greece)',
-    'he-IL' => 'Hebrew (Israel)',
-    'th-TH' => 'Thai (Thailand)',
-    'vi-VN' => 'Vietnamese (Vietnam)',
-    'id-ID' => 'Indonesian (Indonesia)',
-    'ro-RO' => 'Romanian (Romania)',
-    'hu-HU' => 'Hungarian (Hungary)',
-    'ca-ES' => 'Catalan (Spain)',
-  );
+  /**
+   * code => English name for every language the registry knows
+   * (system/coreConfig/languages.json, see HAXCMSLanguageRegistry). The
+   * installer, the Configuration panel and the site language field all pick
+   * from that one registry; it does not constrain what a site may be set to
+   * directly (see normalizeDefaultLanguageValue).
+   */
+  public static function getSupportedLanguages()
+  {
+    return HAXCMSLanguageRegistry::supportedLanguages();
+  }
 
   /**
    * Resolve the config.json path the localization block lives on.
@@ -78,11 +52,12 @@ class HAXCMSLocalizationSettingsService
   }
 
   /**
-   * Validate / normalize a single language code value. Returns the code if it
+   * Validate / normalize a single language code value. A code or alias the
+   * language registry knows resolves to its canonical code first (en_Us ->
+   * en-US, zh -> zh-CN, fil -> tl, iw -> he). Anything else is returned if it
    * is a non-empty string matching ^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$ (BCP-47
-   * shaped), else null. We intentionally do NOT restrict to the curated
-   * SUPPORTED_LANGUAGES list so that sites / hosts may use any valid tag; the
-   * curated list is only a UI convenience.
+   * shaped), else null. We intentionally do NOT restrict to the registry so
+   * that sites / hosts may use any valid tag.
    */
   public static function normalizeDefaultLanguageValue($value)
   {
@@ -90,6 +65,10 @@ class HAXCMSLocalizationSettingsService
       return null;
     }
     $value = (string) $value;
+    $known = HAXCMSLanguageRegistry::matchLanguageCode($value);
+    if ($known !== null) {
+      return $known;
+    }
     // basic BCP-47-ish shape: 2-3 letter primary, optional 2-4 letter region
     if (preg_match('/^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/', $value) !== 1) {
       return null;

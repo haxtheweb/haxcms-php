@@ -170,13 +170,15 @@ class HAXCMSSiteMutationsTest extends TestCase
     public function testGetLicenseDataAllReturnsSameFullList(): void
     {
         $all = $this->site->getLicenseData('all');
-        $this->assertCount(6, $all);
+        $this->assertCount(20, $all);
         $this->assertArrayHasKey('by', $all);
         $this->assertArrayHasKey('by-sa', $all);
         $this->assertArrayHasKey('by-nd', $all);
         $this->assertArrayHasKey('by-nc', $all);
         $this->assertArrayHasKey('by-nc-sa', $all);
         $this->assertArrayHasKey('by-nc-nd', $all);
+        $this->assertArrayHasKey('cc0', $all);
+        $this->assertArrayHasKey('unlicense', $all);
     }
 
     public function testGetLicenseDataSelectReturnsNameOnlyMap(): void
@@ -530,6 +532,41 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertNull($item->parent);
     }
 
+    public function testItemFromParamsAcceptsArrayMetadataFromAJsonBody(): void
+    {
+        // createNode passes json_decode($body, true) params, so metadata is an
+        // associative ARRAY; it must merge into the item's stdClass metadata
+        // (previously a fatal "attempt to assign property on array").
+        $params = array(
+            'node' => array('title' => 'With Metadata'),
+            'metadata' => array(
+                'published' => false,
+                'hideInMenu' => true,
+                'tags' => 'alpha,beta',
+            ),
+        );
+        $item = $this->site->itemFromParams($params);
+        $this->assertInstanceOf(stdClass::class, $item->metadata);
+        $this->assertFalse($item->metadata->published);
+        $this->assertTrue($item->metadata->hideInMenu);
+        $this->assertSame('alpha,beta', $item->metadata->tags);
+        $this->assertTrue(is_numeric($item->metadata->created));
+        $this->assertTrue(is_numeric($item->metadata->updated));
+    }
+
+    public function testItemFromParamsDropsForbiddenMetadataKeys(): void
+    {
+        // same SEC-SANITIZE rules as addPage(): prototype-pollution style keys
+        // are never copied from the request
+        $params = array(
+            'node' => array('title' => 'Sanitised'),
+            'metadata' => array('__proto__' => array('x' => 1), 'published' => true),
+        );
+        $item = $this->site->itemFromParams($params);
+        $this->assertFalse(property_exists($item->metadata, '__proto__'));
+        $this->assertTrue($item->metadata->published);
+    }
+
     // ---- getLLMSTxt ----
 
     public function testGetLLMSTxtProducesNonEmptyStringWithTitle(): void
@@ -539,6 +576,14 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertNotSame('', $txt);
         // first line is '# ' + safe title
         $this->assertStringStartsWith('# My Test Site', $txt);
+    }
+
+    public function testGetLLMSTxtTellsAgentsWhenTheOwnerReservesAllRights(): void
+    {
+        $this->site->manifest->license = 'by-sa';
+        $this->assertStringNotContainsString('Rights notice', $this->site->getLLMSTxt(''));
+        $this->site->manifest->license = 'all-rights-reserved';
+        $this->assertStringContainsString('Rights notice', $this->site->getLLMSTxt(''));
     }
 
     public function testGetLLMSTxtIncludesDescriptionAndPagesSections(): void

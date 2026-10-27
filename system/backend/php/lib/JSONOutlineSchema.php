@@ -8,6 +8,7 @@
  */
 
 include_once 'JSONOutlineSchemaItem.php';
+include_once dirname(__FILE__) . '/Licenses.php';
 
 class JSONOutlineSchema
 {
@@ -40,42 +41,7 @@ class JSONOutlineSchema
      */
     public function getLicenseDetails($all = FALSE)
     {
-        $list = array(
-            "by" => array(
-                'name' => "Creative Commons: Attribution",
-                'link' => "https://creativecommons.org/licenses/by/4.0/",
-                'image' => "https://i.creativecommons.org/l/by/4.0/88x31.png"
-            ),
-            "by-sa" => array(
-                'name' => "Creative Commons: Attribution Share a like",
-                'link' => "https://creativecommons.org/licenses/by-sa/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
-            ),
-            "by-nd" => array(
-                'name' => "Creative Commons: Attribution No derivatives",
-                'link' => "https://creativecommons.org/licenses/by-nd/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-nd/4.0/88x31.png"
-            ),
-            "by-nc" => array(
-                'name' => "Creative Commons: Attribution non-commercial",
-                'link' => "https://creativecommons.org/licenses/by-nc/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
-            ),
-            "by-nc-sa" => array(
-                'name' =>
-                    "Creative Commons: Attribution non-commercial share a like",
-                'link' => "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-                'image' =>
-                    "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"
-            ),
-            "by-nc-nd" => array(
-                'name' =>
-                    "Creative Commons: Attribution Non-commercial No derivatives",
-                'link' => "https://creativecommons.org/licenses/by-nc-nd/4.0/",
-                'image' =>
-                    "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png"
-            )
-        );
+        $list = HAXCMSLicenses::all();
         if ($all) {
             return $list;
         }

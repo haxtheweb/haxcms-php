@@ -317,8 +317,8 @@ class SystemApiSecurity
     /**
      * Canonical system READ operations that declare userTokenHeader in the
      * OpenAPI spec (security alignment). Both backends enforce the
-     * X-HAXCMS-User-Token header on these reads. Skeleton/theme/block reads
-     * stay bearer-only (D10) and are NOT listed here. Map of parameterized
+     * X-HAXCMS-User-Token header on these reads. Skeleton reads (spec:
+     * bearerAuth only) stay bearer-only (D10) and are NOT listed here. Map of parameterized
      * route => allowed methods.
      */
     public static function getSystemReadUserTokenRoutes()

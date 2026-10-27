@@ -339,7 +339,7 @@ be focusable, use `tabindex="0"` (in DOM order) not a positive value.
 ## Verified tags (quick reference)
 
 Every tag below has a confirmed directory or source file under
-`/home/bto108a/Documents/git/haxtheweb/webcomponents/elements/`.
+`https://github.com/haxtheweb/webcomponents/tree/master/elements/`.
 
 | Tag | Location | Key a11y property |
 |---|---|---|

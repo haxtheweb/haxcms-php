@@ -593,7 +593,7 @@ paths:
       summary: List entity descriptors for the site API
       description: >
         Returns the full merged set of entity descriptors sourced from the
-        single entities.yaml registry (EntityRegistry::getDefinitions()).
+        single entities.yaml registry (EntityRegistry getDefinitions()).
         Both /x/api/v1/entities and /system/api/v1/entities read from the same
         registry, so the API surface and the in-code object are one shape.
         Optional ?scope=site|system filters the merged set by scope. Each

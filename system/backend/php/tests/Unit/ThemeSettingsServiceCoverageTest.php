@@ -332,6 +332,10 @@ class ThemeSettingsServiceCoverageTest extends TestCase
 
     public function testWriteEnabledThemeMapThrowsWhenFileCannotBeWritten()
     {
+        // file mode bits do not restrict root, so these cases cannot fail as root
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $this->markTestSkipped('file permission checks do not apply when running as root');
+        }
         $settingsDir = $this->tmpRoot . '/settings';
         mkdir($settingsDir, 0777, true);
         chmod($settingsDir, 0555);

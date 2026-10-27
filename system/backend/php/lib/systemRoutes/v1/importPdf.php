@@ -30,6 +30,14 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         $Y_ALIGNMENT_TOLERANCE = 2.0;
         $MAX_HEADING_WORDS = 16;
         $MAX_HEADING_LENGTH = 140;
+        // Below this size (either dimension) an extracted image is almost
+        // always a decorative artifact or gradient fill. Mirrors Node's
+        // MIN_IMAGE_DIMENSION in pdfToSemanticHtml.js.
+        $MIN_IMAGE_DIMENSION = 16.0;
+        // An image taller than a page is painted on every page it spans (same
+        // image object); remember extracted images so each imports once.
+        // Mirrors Node's seenImages in pdfToSemanticHtml.js.
+        $seenImages = array();
 
         // Enable font id + size in getDataTm() rows (shape: [Tm, text, fontId, fontSize]).
         $config = new \Smalot\PdfParser\Config();
@@ -119,10 +127,62 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             usort($rows, function ($a, $b) {
                 return $b['y'] <=> $a['y'];
             });
-            foreach ($rows as $row) {
-                if ($row['text'] !== '') {
-                    $pageLines[] = array('text' => $row['text'], 'effSize' => $row['effSize']);
+            // Images with a known position go in reading order between the
+            // lines around them (a line whose baseline is below an image's
+            // top edge comes after it); any without one keep the old place
+            // after the page text. Node parity: linesToSemanticHtml.
+            $pageImages = haxcmsSystemExtractPdfPageImages($page, $MIN_IMAGE_DIMENSION, $seenImages);
+            $placedImages = array();
+            $trailingImages = array();
+            foreach ($pageImages as $image) {
+                if ($image['top'] !== null) {
+                    $placedImages[] = $image;
+                } else {
+                    $trailingImages[] = $image;
                 }
+            }
+            usort($placedImages, function ($a, $b) {
+                return $b['top'] <=> $a['top'];
+            });
+            // getDataTm() does not always apply a transform set before the
+            // text objects (Chrome/Skia flips the page with a top-level cm),
+            // which leaves line y values in a different space than the image
+            // tops. Only interleave when every line sits inside the page box;
+            // otherwise keep images after the page text.
+            $pageTop = haxcmsSystemGetPdfPageTop($page);
+            $positionsAgree = ($pageTop !== null);
+            if ($positionsAgree) {
+                foreach ($rows as $row) {
+                    if ($row['y'] < -1 || $row['y'] > $pageTop + 1) {
+                        $positionsAgree = false;
+                        break;
+                    }
+                }
+            }
+            if (!$positionsAgree) {
+                $trailingImages = array_merge($placedImages, $trailingImages);
+                $placedImages = array();
+            }
+            foreach ($rows as $row) {
+                if ($row['text'] === '') {
+                    continue;
+                }
+                $before = array();
+                while (count($placedImages) > 0 && $placedImages[0]['top'] > $row['y']) {
+                    $image = array_shift($placedImages);
+                    $before[] = $image['tag'];
+                }
+                if (count($before) > 0) {
+                    $pageLines[] = array('text' => '', 'effSize' => 0, 'images' => $before);
+                }
+                $pageLines[] = array('text' => $row['text'], 'effSize' => $row['effSize']);
+            }
+            $after = array();
+            foreach (array_merge($placedImages, $trailingImages) as $image) {
+                $after[] = $image['tag'];
+            }
+            if (count($after) > 0) {
+                $pageLines[] = array('text' => '', 'effSize' => 0, 'images' => $after);
             }
         }
 
@@ -133,6 +193,9 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         // Stage 2: font stats → body size → heading candidates (Node parity).
         $stats = array();
         foreach ($pageLines as $line) {
+            if (isset($line['images'])) {
+                continue;
+            }
             $size = haxcmsSystemNormalizePdfFontSize($line['effSize']);
             $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, strlen($line['text']));
         }
@@ -168,6 +231,16 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         $htmlParts = array();
         $paragraphBuffer = '';
         foreach ($pageLines as $line) {
+            if (isset($line['images'])) {
+                if ($paragraphBuffer !== '') {
+                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                    $paragraphBuffer = '';
+                }
+                foreach ($line['images'] as $imgTag) {
+                    $htmlParts[] = $imgTag;
+                }
+                continue;
+            }
             $info = haxcmsSystemGetPdfLineInfo($line, $headingSizes, $HEADING_TOLERANCE, $MAX_HEADING_WORDS, $MAX_HEADING_LENGTH);
             if ($info['type'] === 'paragraph') {
                 if ($paragraphBuffer === '') {
@@ -194,6 +267,363 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             $html = '<p></p>';
         }
         return $html;
+    }
+}
+
+if (!function_exists('haxcmsSystemExtractPdfPageImages')) {
+    /**
+     * Extract the DCTDecode (JPEG) images painted on a page.
+     *
+     * smalot/pdfparser's RawDataParser only decodes a filter whitelist
+     * (ASCIIHexDecode, ASCII85Decode, LZWDecode, FlateDecode, RunLengthDecode)
+     * — any other filter name, including DCTDecode, is left untouched in
+     * getContent(). Since DCTDecode streams ARE complete, valid JPEG file
+     * bytes per the PDF spec, that raw content can be used directly as a
+     * data URI. Any other filter (FlateDecode raw samples, JPXDecode,
+     * CCITTFaxDecode, JBIG2Decode, no filter) is skipped silently — v1 does
+     * not attempt bitmap reconstruction from raw samples. Never throws: a
+     * corrupt/unusual image object must not fail the whole import.
+     *
+     * Returns a list of array('tag' => '<img ...>', 'top' => float|null), in
+     * paint order. 'top' is the image's top edge in PDF user space (larger is
+     * higher on the page) when the content stream could be read.
+     *
+     * $seenImages (by reference) holds hashes of images already extracted on
+     * earlier pages: a photo taller than a page is painted on each page it
+     * spans and must import once (Node parity: pdfToSemanticHtml.js).
+     */
+    function haxcmsSystemExtractPdfPageImages($page, $minDimension, &$seenImages = null)
+    {
+        $images = array();
+        $inherited = false;
+        $xobjects = haxcmsSystemGetPdfPageXObjects($page, $inherited);
+        if (count($xobjects) === 0) {
+            return $images;
+        }
+        // Which images this page actually paints, and where. Resources can
+        // be inherited from the page tree (Dompdf puts every image of the
+        // document there), so the dictionary alone over-reports.
+        $paints = haxcmsSystemGetPdfImagePaints($page);
+        $candidates = array();
+        if ($paints === null || (count($paints) === 0 && !$inherited)) {
+            // content stream unreadable, or no paints found for the page's
+            // own resources: fall back to every image in those resources,
+            // unpositioned (previous behavior). Inherited resources never
+            // fall back: they list images that belong to other pages.
+            foreach ($xobjects as $xobject) {
+                $candidates[] = array('xobject' => $xobject, 'top' => null);
+            }
+        } else {
+            foreach ($paints as $paint) {
+                $name = $paint['name'];
+                $xobject = null;
+                if (isset($xobjects[$name])) {
+                    $xobject = $xobjects[$name];
+                } else {
+                    $cleaned = preg_replace('/[^0-9\.\-_]/', '', $name);
+                    if ($cleaned !== '' && isset($xobjects[$cleaned])) {
+                        $xobject = $xobjects[$cleaned];
+                    }
+                }
+                if ($xobject !== null) {
+                    $candidates[] = array('xobject' => $xobject, 'top' => $paint['top']);
+                }
+            }
+        }
+        if (!is_array($seenImages)) {
+            $seenImages = array();
+        }
+        // Page::getXObjects() stores each XObject under both its original
+        // resource name (e.g. "Im1") and a numeric-cleaned alias (e.g. "1"),
+        // so the same object instance can appear twice in the table. Dedupe
+        // by object identity within the page, and by content across pages.
+        $seenObjects = array();
+        foreach ($candidates as $candidate) {
+            $xobject = $candidate['xobject'];
+            try {
+                if (!($xobject instanceof \Smalot\PdfParser\XObject\Image)) {
+                    continue;
+                }
+                $objectId = spl_object_id($xobject);
+                if (isset($seenObjects[$objectId])) {
+                    continue;
+                }
+                $seenObjects[$objectId] = true;
+                $filter = haxcmsSystemGetPdfImageFilter($xobject);
+                if ($filter !== 'DCTDecode') {
+                    continue;
+                }
+                $width  = (float) $xobject->get('Width')->getContent();
+                $height = (float) $xobject->get('Height')->getContent();
+                if (($width > 0 && $width < $minDimension) || ($height > 0 && $height < $minDimension)) {
+                    continue;
+                }
+                $content = $xobject->getContent();
+                if (!is_string($content) || $content === '') {
+                    continue;
+                }
+                $hash = sha1($content);
+                if (isset($seenImages[$hash])) {
+                    continue;
+                }
+                $seenImages[$hash] = true;
+                $jpeg = haxcmsSystemDownscalePdfJpeg($content, $width, $height);
+                $images[] = array(
+                    'tag' => haxcmsSystemPdfImageTag($jpeg['data'], $jpeg['width'], $jpeg['height']),
+                    'top' => $candidate['top'],
+                );
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        return $images;
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfPageXObjects')) {
+    /**
+     * XObject table for a page, honoring PDF resource inheritance: when the
+     * page has no XObject resources of its own, use the nearest ancestor in
+     * the page tree that does (PDF 32000 7.7.3.4). smalot only reads the
+     * page's own /Resources, which loses every image in Dompdf output.
+     */
+    function haxcmsSystemGetPdfPageXObjects($page, &$inherited = null)
+    {
+        $inherited = false;
+        try {
+            $own = $page->getXObjects();
+            if (is_array($own) && count($own) > 0) {
+                return $own;
+            }
+        } catch (\Throwable $e) {
+            // fall through to the page tree
+        }
+        $node = $page;
+        for ($depth = 0; $depth < 32; $depth++) {
+            try {
+                $parent = $node->get('Parent');
+            } catch (\Throwable $e) {
+                break;
+            }
+            if (!is_object($parent) || !method_exists($parent, 'get') || $parent === $node) {
+                break;
+            }
+            try {
+                $resources = $parent->get('Resources');
+                if (is_object($resources) && method_exists($resources, 'has') && $resources->has('XObject')) {
+                    $xobjectElement = $resources->get('XObject');
+                    $elements = ($xobjectElement instanceof \Smalot\PdfParser\Header)
+                        ? $xobjectElement->getElements()
+                        : $xobjectElement->getHeader()->getElements();
+                    $table = array();
+                    foreach ($elements as $id => $xobject) {
+                        $table[$id] = $xobject;
+                        $cleaned = preg_replace('/[^0-9\.\-_]/', '', $id);
+                        if ($cleaned !== '') {
+                            $table[$cleaned] = $xobject;
+                        }
+                    }
+                    $inherited = true;
+                    return $table;
+                }
+            } catch (\Throwable $e) {
+                // keep climbing
+            }
+            $node = $parent;
+        }
+        return array();
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfPageTop')) {
+    /**
+     * Upper y of a page's MediaBox (inherited from the page tree when the
+     * page has none), or null when it cannot be read.
+     */
+    function haxcmsSystemGetPdfPageTop($page)
+    {
+        $node = $page;
+        for ($depth = 0; $depth < 32 && is_object($node) && method_exists($node, 'get'); $depth++) {
+            try {
+                $box = $node->get('MediaBox');
+                if (is_object($box) && method_exists($box, 'getContent')) {
+                    $values = $box->getContent();
+                    if (is_array($values) && count($values) === 4) {
+                        $numbers = array();
+                        foreach ($values as $value) {
+                            $numbers[] = (float) ((is_object($value) && method_exists($value, 'getContent')) ? $value->getContent() : $value);
+                        }
+                        return max($numbers[1], $numbers[3]);
+                    }
+                }
+                $parent = $node->get('Parent');
+            } catch (\Throwable $e) {
+                return null;
+            }
+            if ($parent === $node) {
+                break;
+            }
+            $node = $parent;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfImagePaints')) {
+    /**
+     * Walk a page's content stream tracking the current transform matrix
+     * (q / Q / cm) and return every XObject paint (Do) with the top edge of
+     * the unit square it is drawn into, in paint order. Returns null when the
+     * content stream cannot be read. Node parity: getPageImageTops.
+     */
+    function haxcmsSystemGetPdfImagePaints($page)
+    {
+        try {
+            $commands = $page->extractDecodedRawData();
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($commands)) {
+            return null;
+        }
+        $ctm = array(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        $stack = array();
+        $paints = array();
+        foreach ($commands as $command) {
+            if (!is_array($command) || !isset($command['o'])) {
+                continue;
+            }
+            $op = $command['o'];
+            $args = isset($command['c']) ? $command['c'] : '';
+            if ($op === 'q') {
+                $stack[] = $ctm;
+            } elseif ($op === 'Q') {
+                if (count($stack) > 0) {
+                    $ctm = array_pop($stack);
+                }
+            } elseif ($op === 'cm') {
+                $parts = preg_split('/\s+/', trim(is_array($args) ? implode(' ', $args) : (string) $args));
+                if (is_array($parts) && count($parts) === 6) {
+                    $n = array_map('floatval', $parts);
+                    $m = $ctm;
+                    // new CTM = n x m (operand matrix applied first)
+                    $ctm = array(
+                        $n[0] * $m[0] + $n[1] * $m[2],
+                        $n[0] * $m[1] + $n[1] * $m[3],
+                        $n[2] * $m[0] + $n[3] * $m[2],
+                        $n[2] * $m[1] + $n[3] * $m[3],
+                        $n[4] * $m[0] + $n[5] * $m[2] + $m[4],
+                        $n[4] * $m[1] + $n[5] * $m[3] + $m[5],
+                    );
+                }
+            } elseif ($op === 'Do') {
+                $name = ltrim(trim(is_array($args) ? implode(' ', $args) : (string) $args), '/');
+                if ($name === '') {
+                    continue;
+                }
+                // the image fills the unit square; its top is the largest y
+                // of the transformed corners
+                $top = max(
+                    $ctm[5],
+                    $ctm[3] + $ctm[5],
+                    $ctm[1] + $ctm[5],
+                    $ctm[1] + $ctm[3] + $ctm[5]
+                );
+                $paints[] = array('name' => $name, 'top' => $top);
+            }
+        }
+        return $paints;
+    }
+}
+
+if (!function_exists('haxcmsSystemDownscalePdfJpeg')) {
+    /**
+     * Downscale a JPEG to at most 1600px on its longest edge (Node parity:
+     * MAX_IMAGE_EDGE). PDF exports embed photos at print resolution and the
+     * import stores them inline in page HTML. Without GD, or on any failure,
+     * the original bytes are returned unchanged.
+     *
+     * @return array{data: string, width: float, height: float}
+     */
+    function haxcmsSystemDownscalePdfJpeg($jpeg, $width, $height)
+    {
+        $maxEdge = 1600;
+        $result = array('data' => $jpeg, 'width' => $width, 'height' => $height);
+        if ($width <= $maxEdge && $height <= $maxEdge) {
+            return $result;
+        }
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagescale') || !function_exists('imagejpeg')) {
+            return $result;
+        }
+        $source = @imagecreatefromstring($jpeg);
+        if ($source === false) {
+            return $result;
+        }
+        $srcWidth = imagesx($source);
+        $srcHeight = imagesy($source);
+        if ($srcWidth < 1 || $srcHeight < 1) {
+            imagedestroy($source);
+            return $result;
+        }
+        $scale = min($maxEdge / $srcWidth, $maxEdge / $srcHeight, 1);
+        $newWidth = max(1, (int) round($srcWidth * $scale));
+        $newHeight = max(1, (int) round($srcHeight * $scale));
+        $scaled = imagescale($source, $newWidth, $newHeight, IMG_BICUBIC);
+        imagedestroy($source);
+        if ($scaled === false) {
+            return $result;
+        }
+        ob_start();
+        $ok = imagejpeg($scaled, null, 90);
+        $data = ob_get_clean();
+        imagedestroy($scaled);
+        if (!$ok || !is_string($data) || $data === '') {
+            return $result;
+        }
+        return array('data' => $data, 'width' => (float) $newWidth, 'height' => (float) $newHeight);
+    }
+}
+
+if (!function_exists('haxcmsSystemPdfImageTag')) {
+    /**
+     * <img> for an imported image with a display width that keeps it within
+     * 800x600 CSS px (Node parity: getImageDisplayWidth / imageToHtml), so a
+     * portrait phone photo doesn't fill several screens.
+     */
+    function haxcmsSystemPdfImageTag($jpeg, $width, $height)
+    {
+        $src = 'data:image/jpeg;base64,' . base64_encode($jpeg);
+        if (!($width > 0) || !($height > 0)) {
+            return '<img src="' . $src . '">';
+        }
+        $display = max(1, (int) round(min($width, 800, (600 * $width) / $height)));
+        return '<img src="' . $src . '" width="' . $display . '">';
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfImageFilter')) {
+    /**
+     * Resolve an XObject's /Filter entry, which per PDF spec may be a single
+     * name (ElementName) or an array of names applied in sequence
+     * (ElementArray) — the image-coding filter is the last one applied.
+     */
+    function haxcmsSystemGetPdfImageFilter($xobject)
+    {
+        $filterElement = $xobject->get('Filter');
+        if ($filterElement instanceof \Smalot\PdfParser\Element\ElementArray) {
+            $filters = array();
+            foreach ($filterElement->getContent() as $el) {
+                $filters[] = (is_object($el) && method_exists($el, 'getContent')) ? (string) $el->getContent() : (string) $el;
+            }
+            return count($filters) > 0 ? end($filters) : null;
+        }
+        if (method_exists($filterElement, 'getContent')) {
+            $content = $filterElement->getContent();
+            if (is_string($content)) {
+                return $content;
+            }
+        }
+        return null;
     }
 }
 
@@ -368,11 +798,19 @@ return function ($context) {
     try {
         $html = haxcmsSystemConvertPdfToSemanticHtml($tmpPath);
 
+        // The PDF converter produces trusted, programmatically-generated markup
+        // (not arbitrary untrusted HTML), including inline `<img src="data:...">`
+        // tags for extracted page images. Skip the centralized sanitize-on-import
+        // step here so those tags survive in this route's JSON response; the
+        // content is still sanitized later, when a client round-trips an item
+        // through createNode/addPage (which run MaterializeInlineImages::materialize()
+        // followed by SanitizeContent::sanitizeHTMLForStorage()).
         $items = haxcmsImportHtmlToItems($html, array(
-            'titleValue' => preg_replace('/\.pdf$/i', '', $filename),
-            'method'     => $method,
-            'type'       => $type,
-            'parentId'   => $parentId,
+            'titleValue'   => preg_replace('/\.pdf$/i', '', $filename),
+            'method'       => $method,
+            'type'         => $type,
+            'parentId'     => $parentId,
+            'skipSanitize' => true,
         ));
         SiteRouteUtils::sendFormattedResponse(
             array('status' => 200, 'data' => array('items' => $items, 'filename' => $filename)),

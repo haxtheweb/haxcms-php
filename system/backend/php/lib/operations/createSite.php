@@ -151,14 +151,8 @@ trait OperationsRouteCreateSite {
           $domain,
           $build
       );
-      $supportedSiteLicenses = array(
-        'by',
-        'by-sa',
-        'by-nd',
-        'by-nc',
-        'by-nc-sa',
-        'by-nc-nd'
-      );
+      include_once dirname(__FILE__) . '/../Licenses.php';
+      $supportedSiteLicenses = array_keys(HAXCMSLicenses::all());
       if (method_exists($site, 'getLicenseData')) {
         $licenseOptions = $site->getLicenseData('select');
         if (is_array($licenseOptions) && count($licenseOptions) > 0) {
@@ -175,27 +169,7 @@ trait OperationsRouteCreateSite {
         }
       }
       $normalizeSiteLicenseValue = function ($rawValue) use ($supportedSiteLicenses) {
-        if (!is_string($rawValue)) {
-          return null;
-        }
-        $value = strtolower(trim(str_replace('_', '-', $rawValue)));
-        if ($value === '') {
-          return null;
-        }
-        if (in_array($value, $supportedSiteLicenses, true)) {
-          return $value;
-        }
-        foreach ($supportedSiteLicenses as $code) {
-          if (
-            strpos($value, '/licenses/' . $code) !== false ||
-            strpos($value, 'cc ' . $code) !== false ||
-            strpos($value, 'cc-' . $code) !== false ||
-            strpos($value, 'cc:' . $code) !== false
-          ) {
-            return $code;
-          }
-        }
-        return null;
+        return HAXCMSLicenses::normalize($rawValue, $supportedSiteLicenses);
       };
       $requestedLicense = null;
       if (isset($this->params['site']['license']) && is_string($this->params['site']['license'])) {
@@ -501,24 +475,23 @@ trait OperationsRouteCreateSite {
           );
       }
       // build the success response. Best-effort file-ingest warnings are
-      // response-only metadata: surface them on the response envelope, NOT on
-      // the $schema JSONOutlineSchemaItem. PHP 8.3 flags ad-hoc properties on a
-      // typed class as a Deprecated notice ("Creation of dynamic property"),
-      // and with display_errors on that notice prints to stdout before the
-      // response headers are sent -> "headers already sent" -> no valid JSON
-      // response (the site is already on disk by this point, so the user sees
-      // "created but no response"). Keeping warnings off the schema item also
-      // avoids polluting site.json, since JSONOutlineSchema::save() serializes
-      // every declared/dynamic property of its items. The front-end creation
-      // modal reads only status + data.slug/data.link/data.id; warnings are
-      // optional and not consumed by it.
+      // response-only metadata, returned as data.warnings (same shape as the
+      // Node backend) but NEVER set on the $schema JSONOutlineSchemaItem: PHP
+      // 8.3 flags ad-hoc properties on a typed class as a Deprecated notice
+      // ("Creation of dynamic property") which can print before headers are
+      // sent, and JSONOutlineSchema::save() would serialize the property into
+      // site.json. So when there are warnings, data is a stdClass copy of the
+      // schema's public properties plus warnings; the schema item is untouched.
+      // With no warnings, data is the schema item exactly as before.
+      $data = $schema;
+      if (count($buildFileWarnings) > 0) {
+        $data = (object) get_object_vars($schema);
+        $data->warnings = $buildFileWarnings;
+      }
       $response = array(
         "status" => 200,
-        "data" => $schema
+        "data" => $data
       );
-      if (count($buildFileWarnings) > 0) {
-        $response['warnings'] = $buildFileWarnings;
-      }
       return $response;
     }
     else {

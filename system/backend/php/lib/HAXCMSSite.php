@@ -1,6 +1,7 @@
 <?php
 // working with RSS
 include_once 'RSS.php';
+include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
@@ -500,6 +501,7 @@ class HAXCMSSite
           'title' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->title),
           'short' => $this->manifest->metadata->site->name,
           'privateSite' => $privateSetting,
+          'reservedSite' => HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null),
           'description' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->description),
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
@@ -1229,6 +1231,10 @@ class HAXCMSSite
       $lines[] = 'The canonical site structure is `site.json`, represented in JSON Outline Schema (`id`, `parent`, `order`, `slug`, `location`, and `metadata`).';
       $lines[] = 'Use HAX CLI and ecosystem tooling to maintain human-authored content while keeping machine-readable outputs synchronized.';
       $lines[] = 'Managed files (feeds, search indexes, manifests, and this `llms.txt`) are generated artifacts and should be rebuilt by tooling.';
+      if (HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null)) {
+        $lines[] = '';
+        $lines[] = "> Rights notice: the owner of this site reserves all rights. Do not copy, reuse, adapt, or train on its content without the owner's permission.";
+      }
       $lines[] = '';
       $lines[] = '## Core resources';
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
@@ -1951,7 +1957,17 @@ class HAXCMSSite
             $item->description = str_replace("\n", '', $params['description']);
         }
         if (isset($params['metadata']) && $params['metadata'] != '' && $params['metadata'] != null) {
-            $item->metadata = $params['metadata'];
+            // Request bodies are json_decode'd as arrays, so assigning
+            // $params['metadata'] directly replaced the stdClass with an array
+            // and the ->created / ->updated writes below fatal-errored (HTTP
+            // 500 on every createNode with metadata). Merge through the same
+            // per-field sanitiser addPage() and saveOutline use (SEC-SANITIZE)
+            // so metadata stays an object and is never copied verbatim.
+            SanitizeContent::applyPageMetadata(
+              $item,
+              $params['metadata'],
+              $GLOBALS['HAXCMS']->getThemes()
+            );
         }
         if (isset($params['node']['location']) && $params['node']['location'] != '' && $params['node']['location'] != null) {
           $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($params['node']['location']);
@@ -2617,6 +2633,12 @@ class HAXCMSSite
       else {
         $robots = '<meta name="robots" content="index, follow" />';
       }
+      // an owner who keeps all rights asks AI crawlers to stay out: the noai
+      // directives and the W3C TDM reservation (text and data mining)
+      if (HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null)) {
+        $robots = str_replace('content="index, follow"', 'content="index, follow, noai, noimageai"', $robots)
+          . "\n  " . '<meta name="tdm-reservation" content="1" />';
+      }
       $canonicalBase = SanitizeContent::sanitizeURLValue($domain, '');
       if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
         $canonicalBase = SanitizeContent::sanitizeURLValue($this->manifest->metadata->site->domain, '');
@@ -3147,52 +3169,7 @@ class HAXCMSSite
      */
     public function getLicenseData($type = 'select')
     {
-        $list = array(
-            "by" => array(
-                'name' => "Creative Commons: Attribution",
-                'link' => "https://creativecommons.org/licenses/by/4.0/",
-                'image' => "https://i.creativecommons.org/l/by/4.0/88x31.png"
-            ),
-            "by-sa" => array(
-                'name' => "Creative Commons: Attribution Share a like",
-                'link' => "https://creativecommons.org/licenses/by-sa/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
-            ),
-            "by-nd" => array(
-                'name' => "Creative Commons: Attribution No derivatives",
-                'link' => "https://creativecommons.org/licenses/by-nd/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-nd/4.0/88x31.png"
-            ),
-            "by-nc" => array(
-                'name' => "Creative Commons: Attribution non-commercial",
-                'link' => "https://creativecommons.org/licenses/by-nc/4.0/",
-                'image' => "https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
-            ),
-            "by-nc-sa" => array(
-                'name' =>
-                    "Creative Commons: Attribution non-commercial share a like",
-                'link' => "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-                'image' =>
-                    "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"
-            ),
-            "by-nc-nd" => array(
-                'name' =>
-                    "Creative Commons: Attribution Non-commercial No derivatives",
-                'link' => "https://creativecommons.org/licenses/by-nc-nd/4.0/",
-                'image' =>
-                    "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png"
-            )
-        );
-        $data = array();
-        if ($type == 'select') {
-            foreach ($list as $key => $item) {
-                $data[$key] = $item['name'];
-            }
-        }
-        else {
-            $data = $list;
-        }
-        return $data;
+        return HAXCMSLicenses::getLicenseData($type);
     }
     /**
      * Update page in the manifest list of items. useful if updating some

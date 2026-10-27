@@ -260,6 +260,8 @@ class JSONOutlineSchemaTest extends TestCase
         return [
             'by-sa default' => ['by-sa', 'Creative Commons: Attribution Share a like'],
             'by' => ['by', 'Creative Commons: Attribution'],
+            'cc0' => ['cc0', 'Public domain: CC0 1.0 Universal'],
+            'mit' => ['mit', 'Software: MIT License'],
             'unknown license empty' => ['not-a-license', []],
         ];
     }
@@ -284,5 +286,7 @@ class JSONOutlineSchemaTest extends TestCase
         $this->assertArrayHasKey('by', $all);
         $this->assertArrayHasKey('by-sa', $all);
         $this->assertArrayHasKey('by-nc-nd', $all);
+        $this->assertCount(20, $all);
+        $this->assertSame('public-domain', $all['cc0']['group']);
     }
 }

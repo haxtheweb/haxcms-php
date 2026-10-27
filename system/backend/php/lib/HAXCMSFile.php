@@ -7,7 +7,7 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
-    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf)$/i';
+    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf|h5p)$/i';
     private $allowedMimeByExtension = array(
         'jpg' => array('image/jpeg'),
         'jpeg' => array('image/jpeg'),
@@ -40,6 +40,10 @@ class HAXCMSFile
         // stored and served
         'ics' => array('text/calendar', 'text/x-vcalendar', 'text/plain'),
         'vcf' => array('text/vcard', 'text/x-vcard', 'text/directory', 'text/plain'),
+        // an H5P package is a zip archive (h5p.json plus libraries and content);
+        // it is stored as-is and unpacked in the browser by h5p-element, never on
+        // the server, so the same archive types the office formats use are accepted
+        'h5p' => array('application/zip', 'application/x-zip-compressed'),
         'css' => array('text/css'),
         'js' => array('text/javascript', 'application/javascript', 'application/x-javascript', 'text/ecmascript'),
         'svg' => array('image/svg+xml'),

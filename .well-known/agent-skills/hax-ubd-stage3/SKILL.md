@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-stage3
-description: >
-  UbD Stage 3 — plan learning experiences via WHERETO, derived from Stages 1+2.
-  Enforce uncoverage over coverage and build feedback/revision cycles. Use when
-  the user says "sequence this unit", "plan the learning activities", "WHERETO
-  my unit", "how do I teach for understanding", or "organize these pages".
-  Encodes UbD Ch. 9–10. Stage 3 points AT Stage 2 evidence; it never invents new
-  endpoints.
+description: "UbD Stage 3: plan learning experiences with WHERETO, derived from Stages 1 and 2. Use for \"sequence this unit\" or \"plan the learning activities\"; points at Stage 2 evidence and never invents endpoints."
 version: 1.0.0
 license: MIT
 metadata:
@@ -76,7 +70,7 @@ evidence (the Exhibit references a real `stage2.performanceTasks[*].id`).
 | T | Tailor — differentiate / choice | `a11y-tabs`, `a11y-collapse` (set `heading-button`) |
 | O | Organize — sequence + uncoverage | `site.json` ordering + `map-menu` + `a11y-collapse` (set `heading-button`) |
 
-Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md`.
+Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 ## Output Format
 
@@ -122,8 +116,8 @@ Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md
 
 ## References
 
-- `../hax-ubd-backward-design/references/manifest-schema.md` — `stage3` fields
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — WHERETO component map
-- `../hax-ubd-backward-design/references/design-standards.md` — standards 10–12
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — `stage3` fields
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — WHERETO component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — standards 10–12
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 9–10.

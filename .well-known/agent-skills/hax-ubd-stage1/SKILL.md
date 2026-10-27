@@ -1,12 +1,6 @@
 ---
 name: hax-ubd-stage1
-description: >
-  UbD Stage 1 — gain clarity on desired results: unpack standards into big ideas,
-  enduring understandings (full-sentence propositions), overarching + topical
-  essential questions, knowledge/skills, and predictable misunderstandings.
-  Use when the user says "what are the big ideas in X", "write enduring
-  understandings", "craft essential questions", "unpack this standard", or
-  "what misconceptions should I anticipate". Encodes UbD Ch. 3–6.
+description: "UbD Stage 1: unpack standards into big ideas, enduring understandings, essential questions, knowledge/skills and misconceptions. Use for \"what are the big ideas in X\" or \"write enduring understandings\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -84,7 +78,7 @@ sequence learning (Stage 3).
 | Misconception pre-assessment | `self-check`, `multiple-choice` | page top (before instruction) |
 | Misconception confrontation | `stop-note` + `self-check` | inline where the idea is taught |
 
-Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md`.
+Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md`.
 
 ## Output Format
 
@@ -135,8 +129,8 @@ Full map (all stages): `../hax-ubd-backward-design/references/ubd-element-map.md
 
 ## References
 
-- `../hax-ubd-backward-design/references/manifest-schema.md` — `stage1` fields
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — Stage 1 component map
-- `../hax-ubd-backward-design/references/design-standards.md` — standards 1–4
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/manifest-schema.md` — `stage1` fields
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — Stage 1 component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/design-standards.md` — standards 1–4
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 3–6.

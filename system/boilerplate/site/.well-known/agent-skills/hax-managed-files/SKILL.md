@@ -1,11 +1,6 @@
 ---
 name: hax-managed-files
-description: >
-  Know which HAXcms files are generated (rebuild, do not hand-edit) vs authored, and the protective
-  rules around builds. Use when an agent is about to edit a managed file, run a build, or pick
-  which CLI command to use. Prevents the common footguns: hand-editing generated artifacts, running
-  the ubiquity script, running a top-level monorepo build, or using npx instead of the local hax CLI.
-  Protective skill — load before modifying files or running builds on a HAX site or deployment.
+description: "Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx."
 version: 1.0.0
 license: Apache-2.0
 metadata:

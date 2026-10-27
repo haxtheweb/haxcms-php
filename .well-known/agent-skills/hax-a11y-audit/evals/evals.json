@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Can you audit my HAX site for accessibility? The site is at ~/Documents/git/haxtheweb/my-course. I want to make sure it meets WCAG 2.0 AA — things like image alt text, heading order, link text, color contrast, and whether my videos have captions. Give me a report I can hand to my TA to fix.",
+      "prompt": "Can you audit my HAX site for accessibility? The site is at ./my-course. I want to make sure it meets WCAG 2.0 AA — things like image alt text, heading order, link text, color contrast, and whether my videos have captions. Give me a report I can hand to my TA to fix.",
       "expected_output": "A WCAG 2.0 AA diagnostic report with the 📊/🔍/🛠 structure. The report ingests site.json and pages/*.html, runs the WCAG checks (1.1.1 alt text, 1.3.1 headings + landmarks, 1.4.3/1.4.11 contrast, 2.4.4 link text, 3.3.2 form labels, 1.2.x media caption presence, 4.1.2 ARIA, 1.3.1 table markup), rates the site Compliant/Partial/Non-compliant, maps each finding to a real HAX component swap or plain-HTML fix from the verified element map, cites the WCAG criterion for each finding, and includes an Implementation handoff block pointing at hax-claudehax/hax-site-building. Media caption findings flag presence only and hand depth off to hax-media-a11y.",
       "files": []
     },

@@ -112,6 +112,6 @@ If a task fails ≥2 of these, it is an exercise, not a problem — rework it an
 
 ## References
 
-- `../hax-ubd-backward-design/references/ubd-element-map.md` — Stage 2 component map
-- `../hax-ubd-backward-design/references/validity-self-test.md` — run on the framed task
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/ubd-element-map.md` — Stage 2 component map
+- `https://github.com/haxtheweb/praw/blob/main/skills/hax-ubd-backward-design/references/validity-self-test.md` — run on the framed task
 - Source: Wiggins & McTighe (2005), *UbD* Ch. 7, Fig 7.6–7.7.

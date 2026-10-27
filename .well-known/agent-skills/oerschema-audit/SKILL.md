@@ -1,17 +1,6 @@
 ---
 name: oerschema-audit
-description: >
-  READ-ONLY diagnostic: review authored HAX page HTML, site.json outline nodes, VitePress
-  markdown directives, JSON-LD blocks, and Google Docs export HTML against the OER Schema
-  vocabulary (Course/Unit/Module/Lesson, LearningObjective, Assessment/Quiz/Activity/Project,
-  Task/Practice, Rubric family, SupportingMaterial, TableOfContents, ActionType verbs) and emit a
-  report with the recommended class, properties, and markup surface for every finding. Use when the
-  user says "audit this page for OER schema", "what schema should this lesson have", "is this quiz
-  marked up as the right oer class", "does my site.json map to oerschema", "check my VitePress
-  directives against the vocabulary", "scan my site for content missing oerschema", or
-  "which of these pages need oer schema" — even if they don't say "audit" or "oerschema". Diagnoses
-  only; hands off to hax-claudehax / hax-site-building to apply remediation and to
-  oerschema-integration-finder when the gap is in a component (code), not the content.
+description: "READ-ONLY audit of authored content (HAX HTML, site.json, VitePress, JSON-LD, Docs export) against the OER Schema vocabulary, recommending class, properties and markup per finding. Use for \"audit this page for OER schema\"."
 version: 1.0.0
 license: MIT
 metadata:
@@ -323,4 +312,4 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 - `references/hax-outline-mapping.md` — site.json JOS node → OER class + relationship properties
 - `references/ubd-mapping.md` — UbD artifacts (EU, GRASPS, WHERETO) → OER classes/properties
 - OER Schema vocabulary source: `oerschema` repo `app/lib/schema.ts`
-- PRAW RULES.md: `~/Documents/git/haxtheweb/praw/RULES.md`
+- PRAW RULES.md: `https://github.com/haxtheweb/praw/blob/main/RULES.md`

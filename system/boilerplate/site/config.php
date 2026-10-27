@@ -34,7 +34,16 @@ if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
 if (file_exists(__DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php')) {
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/lib/HAXSiteConfig.php';
-  include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  // guard: under HAXiam an unresolved user leaves configDirectory unset, which
+  // would turn this into include_once('/config.php') and emit PHP warnings
+  if (
+    isset($GLOBALS['HAXCMS']->configDirectory) &&
+    is_string($GLOBALS['HAXCMS']->configDirectory) &&
+    $GLOBALS['HAXCMS']->configDirectory !== '' &&
+    file_exists($GLOBALS['HAXCMS']->configDirectory . '/config.php')
+  ) {
+    include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  }
   $site = $HAXCMS->loadSite(basename(__DIR__));
   $page = $site->loadNodeByLocation();
   $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
@@ -50,6 +59,137 @@ if (!isset($GLOBALS['HAXCMS'])) {
    * A slim version of HAXcms that is just config driven off site.json
    */
   define("HAXCMS_FALLBACK_HEX", "#3f51b5");
+  // standalone copy of system/backend/php/lib/Licenses.php (single site mode
+  // may not have the system tree available); keep in sync
+  /**
+   * HAXCMSLicenses - single source of truth for the license list HAXcms offers.
+   * Grouped as Creative Commons, Public domain and Software. Mirrors the
+   * canonical list shared with the Node.js backend and the web components
+   * client; keep all three in sync.
+   */
+  if (!class_exists('HAXCMSLicenses')) {
+      class HAXCMSLicenses
+      {
+          // BEGIN GENERATED: licenses
+          public static function groups()
+          {
+              return array(
+                  'creative-commons' => 'Creative Commons',
+                  'public-domain' => 'Public domain',
+                  'software' => 'Software',
+                  'copyright' => 'Copyright',
+              );
+          }
+
+          public static function entries()
+          {
+              return array(
+                  array('code' => 'by', 'group' => 'creative-commons', 'name' => 'Attribution', 'link' => 'https://creativecommons.org/licenses/by/4.0/', 'image' => 'https://i.creativecommons.org/l/by/4.0/88x31.png'),
+                  array('code' => 'by-sa', 'group' => 'creative-commons', 'name' => 'Attribution Share a like', 'link' => 'https://creativecommons.org/licenses/by-sa/4.0/', 'image' => 'https://i.creativecommons.org/l/by-sa/4.0/88x31.png'),
+                  array('code' => 'by-nd', 'group' => 'creative-commons', 'name' => 'Attribution No derivatives', 'link' => 'https://creativecommons.org/licenses/by-nd/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nd/4.0/88x31.png'),
+                  array('code' => 'by-nc', 'group' => 'creative-commons', 'name' => 'Attribution non-commercial', 'link' => 'https://creativecommons.org/licenses/by-nc/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc/4.0/88x31.png'),
+                  array('code' => 'by-nc-sa', 'group' => 'creative-commons', 'name' => 'Attribution non-commercial share a like', 'link' => 'https://creativecommons.org/licenses/by-nc-sa/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png'),
+                  array('code' => 'by-nc-nd', 'group' => 'creative-commons', 'name' => 'Attribution Non-commercial No derivatives', 'link' => 'https://creativecommons.org/licenses/by-nc-nd/4.0/', 'image' => 'https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png'),
+                  array('code' => 'cc0', 'group' => 'public-domain', 'name' => 'CC0 1.0 Universal', 'link' => 'https://creativecommons.org/publicdomain/zero/1.0/', 'image' => 'https://licensebuttons.net/p/zero/1.0/88x31.png'),
+                  array('code' => 'pdm', 'group' => 'public-domain', 'name' => 'Public Domain Mark 1.0', 'link' => 'https://creativecommons.org/publicdomain/mark/1.0/', 'image' => 'https://licensebuttons.net/p/mark/1.0/88x31.png'),
+                  array('code' => 'mit', 'group' => 'software', 'name' => 'MIT License', 'link' => 'https://opensource.org/license/mit', 'image' => ''),
+                  array('code' => 'apache-2.0', 'group' => 'software', 'name' => 'Apache License 2.0', 'link' => 'https://www.apache.org/licenses/LICENSE-2.0', 'image' => ''),
+                  array('code' => 'bsd-2-clause', 'group' => 'software', 'name' => 'BSD 2-Clause License', 'link' => 'https://opensource.org/license/bsd-2-clause', 'image' => ''),
+                  array('code' => 'bsd-3-clause', 'group' => 'software', 'name' => 'BSD 3-Clause License', 'link' => 'https://opensource.org/license/bsd-3-clause', 'image' => ''),
+                  array('code' => 'isc', 'group' => 'software', 'name' => 'ISC License', 'link' => 'https://opensource.org/license/isc-license-txt', 'image' => ''),
+                  array('code' => 'mpl-2.0', 'group' => 'software', 'name' => 'Mozilla Public License 2.0', 'link' => 'https://www.mozilla.org/MPL/2.0/', 'image' => ''),
+                  array('code' => 'gpl-2.0', 'group' => 'software', 'name' => 'GNU General Public License v2.0', 'link' => 'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html', 'image' => ''),
+                  array('code' => 'gpl-3.0', 'group' => 'software', 'name' => 'GNU General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/gpl-3.0.html', 'image' => ''),
+                  array('code' => 'lgpl-3.0', 'group' => 'software', 'name' => 'GNU Lesser General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/lgpl-3.0.html', 'image' => ''),
+                  array('code' => 'agpl-3.0', 'group' => 'software', 'name' => 'GNU Affero General Public License v3.0', 'link' => 'https://www.gnu.org/licenses/agpl-3.0.html', 'image' => ''),
+                  array('code' => 'unlicense', 'group' => 'software', 'name' => 'The Unlicense', 'link' => 'https://unlicense.org/', 'image' => ''),
+                  array('code' => 'all-rights-reserved', 'group' => 'copyright', 'name' => 'All rights reserved', 'link' => 'https://en.wikipedia.org/wiki/All_rights_reserved', 'image' => ''),
+              );
+          }
+          // END GENERATED: licenses
+
+          /**
+           * code => array(name, link, image, group). The name carries the
+           * group label as a prefix, e.g. "Software: MIT License".
+           * Key order is spec order.
+           */
+          public static function all()
+          {
+              $groups = self::groups();
+              $list = array();
+              foreach (self::entries() as $entry) {
+                  $list[$entry['code']] = array(
+                      'name' => $groups[$entry['group']] . ': ' . $entry['name'],
+                      'link' => $entry['link'],
+                      'image' => $entry['image'],
+                      'group' => $entry['group'],
+                  );
+              }
+              return $list;
+          }
+
+          /**
+           * 'select' => code => display name; anything else => full map.
+           */
+          public static function getLicenseData($type = 'select')
+          {
+              $list = self::all();
+              if ($type == 'select') {
+                  $data = array();
+                  foreach ($list as $key => $item) {
+                      $data[$key] = $item['name'];
+                  }
+                  return $data;
+              }
+              return $list;
+          }
+
+          /**
+           * Normalize a user / importer supplied license value to a code.
+           * @param mixed $rawValue string such as "by-sa", "GPL-3.0-only" or a
+           *   creativecommons.org/licenses/... URL
+           * @param array|null $supported codes allowed (defaults to all)
+           * @return string|null license code or null when not recognized
+           */
+          public static function normalize($rawValue, $supported = null)
+          {
+              if (!is_string($rawValue)) {
+                  return null;
+              }
+              if (!is_array($supported)) {
+                  $supported = array_keys(self::all());
+              }
+              $value = strtolower(trim(str_replace('_', '-', $rawValue)));
+              if ($value === '') {
+                  return null;
+              }
+              // SPDX style suffixes: GPL-3.0-only, GPL-3.0-or-later
+              $value = preg_replace('/-(only|or-later)$/', '', $value);
+              if ($value === '') {
+                  return null;
+              }
+              if (in_array($value, $supported, true)) {
+                  return $value;
+              }
+              // longest code first so cc-by-nc-sa-4.0 is not claimed by "by"
+              $codes = array_values($supported);
+              usort($codes, function ($a, $b) {
+                  return strlen($b) - strlen($a);
+              });
+              foreach ($codes as $code) {
+                  if (
+                      strpos($value, '/licenses/' . $code) !== false ||
+                      strpos($value, 'cc ' . $code) !== false ||
+                      strpos($value, 'cc-' . $code) !== false ||
+                      strpos($value, 'cc:' . $code) !== false
+                  ) {
+                      return $code;
+                  }
+              }
+              return null;
+          }
+      }
+  }
   class HAXSiteConfig {
     public function __construct($basePath = NULL, $location = "./site.json") {
       $this->basePath = $basePath;
@@ -91,11 +231,98 @@ if (!isset($GLOBALS['HAXCMS'])) {
             }
         }
         $this->page = $this->loadNodeByLocation();
-        if (isset($this->manifest->metadata->theme->variables->cssVariable)) {
-          $this->color = 'var(' . $this->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
+        // an unknown slug is a real 404, same as multi-site (lib/HAXSiteConfig.php)
+        if ($this->pageNotFound && !headers_sent()) {
+          http_response_code(404);
         }
-        $this->name = $this->manifest->metadata->site->name;
+        // Security (N6): site.json may come from an untrusted import, so every
+        // manifest-derived value printed by index.php is encoded for its
+        // context, matching lib/HAXSiteConfig.php in multi-site mode.
+        if (isset($this->manifest->metadata->theme->variables->cssVariable)) {
+          $this->color = self::safeCssColor((string) $this->manifest->metadata->theme->variables->cssVariable);
+        }
+        $this->name = htmlspecialchars((string) $this->manifest->metadata->site->name, ENT_QUOTES, 'UTF-8');
       }
+    }
+    /**
+     * Security (N6): only a bare CSS custom-property name may be wrapped in
+     * var(); anything else (e.g. a value that closes the <style> block) falls
+     * back to the default accent color.
+     */
+    public static function safeCssColor($cssVariable) {
+      if (is_string($cssVariable) && preg_match('/^--[A-Za-z0-9_-]+$/', $cssVariable) === 1) {
+        return 'var(' . $cssVariable . ', #FF2222)';
+      }
+      return '#FF2222';
+    }
+    /**
+     * Security (N6): HTML-attribute encode a value for output.
+     */
+    protected function esc($value) {
+      return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+    /**
+     * Security (N6): sanitize a URL that is printed into an attribute. Only
+     * http(s) and scheme-less (relative) URLs survive; FILTER_SANITIZE_URL
+     * alone permits javascript: and data: schemes. Returns '' when unsafe.
+     */
+    protected function safeUrl($value) {
+      $url = filter_var(trim((string) $value), FILTER_SANITIZE_URL);
+      if (!is_string($url) || $url === '') {
+        return '';
+      }
+      if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $url) === 1 && preg_match('/^https?:\/\//i', $url) !== 1) {
+        return '';
+      }
+      return $url;
+    }
+    /**
+     * Security (N7): resolve a page location to a real, containment-proven
+     * path inside this site directory, or false. Mirrors
+     * HAXCMSSite::resolvePageLocationRealPath (N5): null-byte and ..-segment
+     * reject plus realpath containment.
+     */
+    protected function resolvePageLocationRealPath($location) {
+      if (!is_string($location) || $location === '' || strpos($location, "\0") !== false) {
+        return false;
+      }
+      $normalized = str_replace('\\', '/', $location);
+      if (strpos($normalized, '../') !== false || strpos($normalized, '/..') !== false || $normalized === '..') {
+        return false;
+      }
+      $resolvedBase = realpath(__DIR__);
+      if ($resolvedBase === false) {
+        return false;
+      }
+      $candidate = __DIR__ . '/' . ltrim($normalized, '/');
+      if (!is_file($candidate)) {
+        return false;
+      }
+      $resolved = realpath($candidate);
+      if ($resolved === false) {
+        return false;
+      }
+      $resolvedBase = rtrim(str_replace('\\', '/', $resolvedBase), '/');
+      $resolvedNorm = str_replace('\\', '/', $resolved);
+      if (strpos($resolvedNorm, $resolvedBase . '/') !== 0) {
+        return false;
+      }
+      return $resolved;
+    }
+    /**
+     * Get an item's position in the manifest by id, to find previous and next
+     * items. The single site manifest is a plain stdClass (not a
+     * JSONOutlineSchema), so it has no getItemKeyById() of its own.
+     * @param string $id id of the item to look for
+     * @return int|bool key in the items array or FALSE if not found
+     */
+    public function getItemKeyById($id) {
+      foreach ($this->manifest->items as $key => $item) {
+        if ($item->id === $id) {
+          return $key;
+        }
+      }
+      return FALSE;
     }
     /**
      * Return the base tag accurately which helps with the PWA / SW side of things
@@ -121,8 +348,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * Language of the site
      */
     public function getLanguage() {
+      // Security (N6): printed into <html lang="...">, so encode at output.
       if (isset($this->manifest->metadata->site->settings->lang) && $this->manifest->metadata->site->settings->lang != "" && $this->manifest->metadata->site->settings->lang != null) {
-        return $this->manifest->metadata->site->settings->lang;
+        return $this->esc($this->manifest->metadata->site->settings->lang);
       }
       return "en-US";
     }
@@ -171,18 +399,20 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       if ($cdn != '') {
         // preconnect for faster DNS lookup
-        $preconnect = '<link rel="preconnect" crossorigin href="' . $cdn . '">';
+        $preconnect = '<link rel="preconnect" crossorigin href="' . $this->esc($cdn) . '">';
         // base is preload for the calls below
         $base = $cdn;
       }
       $contentPreload = '';
       $wcMap = $this->getWCRegistryJson($base);
+      // Security (N6): $base is only used to build HTML attributes from here on
+      $base = $this->esc($base);
       foreach ($preloadTags as $tag) {
         // means the tag is known in our registry
         if (isset($wcMap->{$tag})) {
           $contentPreload .= '
-          <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $wcMap->{$tag} . '" />';
+          <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $this->esc($wcMap->{$tag}) . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $this->esc($wcMap->{$tag}) . '" />';
         }
       }
       $title = htmlspecialchars($page->title, ENT_QUOTES, 'UTF-8');
@@ -192,8 +422,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
       $themePreload = '';
       // sanity check, then preload the theme
       if (isset($this->manifest->metadata->theme->path)) {
-        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" as="script" crossorigin="anonymous" />
-          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . str_replace("@lrnwebcomponents/", "@haxtheweb/", $this->manifest->metadata->theme->path) . '" />';
+        $themePath = $this->esc(str_replace("@lrnwebcomponents/", "@haxtheweb/", (string) $this->manifest->metadata->theme->path));
+        $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />
+          <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" />';
       }
       if ($description == '') {
         $description = htmlspecialchars($this->manifest->description, ENT_QUOTES, 'UTF-8');
@@ -216,25 +447,29 @@ if (!isset($GLOBALS['HAXCMS'])) {
       // canonical flag, if set we use the domain field
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . filter_var($this->manifest->metadata->site->domain . '/' . $page->slug, FILTER_SANITIZE_URL) . '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($this->manifest->metadata->site->domain . '/' . $page->slug)) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . filter_var($domain, FILTER_SANITIZE_URL). '" />' . "\n";
+          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($domain)) . '" />' . "\n";
         }
       }
       else {
         $canonical = '';
       }
+      // Security (N6): an unsafe canonical URL is dropped rather than emitted empty
+      if (strpos($canonical, 'href=""') !== FALSE) {
+        $canonical = '';
+      }
       $prevResource = '';
       $nextResource = '';
       // if we have a place in the array bc it's a page, then we can get next / prev
-      if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
-        $currentId = $this->manifest->getItemKeyById($page->id);
+      if ($page->id && $this->getItemKeyById($page->id) !== FALSE) {
+        $currentId = $this->getItemKeyById($page->id);
         if ($currentId > 0 && isset($this->manifest->items[$currentId-1]->slug)) {
-          $prevResource = '  <link rel="prev" href="' . $this->manifest->items[$currentId-1]->slug . '" />' . "\n";
+          $prevResource = '  <link rel="prev" href="' . $this->esc($this->manifest->items[$currentId-1]->slug) . '" />' . "\n";
         }
         if ($currentId < count($this->manifest->items)-1 && isset($this->manifest->items[$currentId+1]->slug)) {
-          $nextResource = '  <link rel="next" href="' . $this->manifest->items[$currentId+1]->slug . '" />' . "\n";
+          $nextResource = '  <link rel="next" href="' . $this->esc($this->manifest->items[$currentId+1]->slug) . '" />' . "\n";
         }
       }
       $metadata = '
@@ -254,7 +489,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
         ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />
           <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes" />
           <title>' . $siteTitle . '</title>
-          <link rel="icon" href="' . $this->getLogoSize('16', '16') . '" />
+          <link rel="icon" href="' . $this->esc($this->getLogoSize('16', '16')) . '" />
           <meta name="theme-color" content="' . $hexCode . '" />
           ' . $robots . '
           <meta name="mobile-web-app-capable" content="yes" />
@@ -262,23 +497,23 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="apple-mobile-web-app-title" content="' . $title . '" />
-          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->getLogoSize('48', '48') . '" />
-          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->getLogoSize('72', '72') . '" />
-          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->getLogoSize('96', '96') . '" />
-          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->getLogoSize('144', '144') . '" />
-          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->getLogoSize('192', '192') . '" />
-          <meta name="msapplication-TileImage" content="' . $this->getLogoSize('144', '144') . '" />
+          <link rel="apple-touch-icon" sizes="48x48" href="' . $this->esc($this->getLogoSize('48', '48')) . '" />
+          <link rel="apple-touch-icon" sizes="72x72" href="' . $this->esc($this->getLogoSize('72', '72')) . '" />
+          <link rel="apple-touch-icon" sizes="96x96" href="' . $this->esc($this->getLogoSize('96', '96')) . '" />
+          <link rel="apple-touch-icon" sizes="144x144" href="' . $this->esc($this->getLogoSize('144', '144')) . '" />
+          <link rel="apple-touch-icon" sizes="192x192" href="' . $this->esc($this->getLogoSize('192', '192')) . '" />
+          <meta name="msapplication-TileImage" content="' . $this->esc($this->getLogoSize('144', '144')) . '" />
           <meta name="msapplication-TileColor" content="' . $hexCode . '" />
           <meta name="msapplication-tap-highlight" content="no" />
           <meta name="description" content="' . $description . '" />
           <meta name="og:site_name" property="og:site_name" content="' . htmlspecialchars($this->manifest->title, ENT_QUOTES, 'UTF-8') . '" />
           <meta name="og:title" property="og:title" content="' . $title . '" />
           <meta name="og:type" property="og:type" content="article" />
-          <meta name="og:url" property="og:url" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+          <meta name="og:url" property="og:url" content="' . $this->esc($this->safeUrl($domain)) . '" />
           <meta name="og:description" property="og:description" content="' . $description . '" />
 ' . ($this->getSocialShareImage($page) != '' ? '          <meta name="og:image" property="og:image" content="' . htmlspecialchars($this->getSocialShareImage($page), ENT_QUOTES, 'UTF-8') . '" />
 ' : '') . '          <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-          <meta name="twitter:site" property="twitter:site" content="' . filter_var($domain, FILTER_SANITIZE_URL) . '" />
+          <meta name="twitter:site" property="twitter:site" content="' . $this->esc($this->safeUrl($domain)) . '" />
           <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
           <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
 ' . ($this->getSocialShareImage($page) != '' ? '          <meta name="twitter:image" property="twitter:image" content="' . htmlspecialchars($this->getSocialShareImage($page), ENT_QUOTES, 'UTF-8') . '" />' : '');
@@ -616,7 +851,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       // add in twitter link if they provided one
       if (isset($this->manifest->metadata->author->socialLink) && strpos($this->manifest->metadata->author->socialLink, 'https://twitter.com/') === 0) {
-          $metadata .= '  <meta name="twitter:creator" content="' . str_replace('https://twitter.com/', '@', $this->manifest->metadata->author->socialLink) . '" />';
+          $metadata .= '  <meta name="twitter:creator" content="' . $this->esc(str_replace('https://twitter.com/', '@', (string) $this->manifest->metadata->author->socialLink)) . '" />';
       }
       return $metadata;
     }
@@ -660,48 +895,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * License data for common open license
      */
     public function getLicenseData($type = 'select') {
-      $list = array(
-        "by" => array(
-          'name' => "Creative Commons: Attribution",
-          'link' => "https://creativecommons.org/licenses/by/4.0/",
-          'image' => "https://i.creativecommons.org/l/by/4.0/88x31.png"
-        ),
-        "by-sa" => array(
-          'name' => "Creative Commons: Attribution Share a like",
-          'link' => "https://creativecommons.org/licenses/by-sa/4.0/",
-          'image' => "https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
-        ),
-        "by-nd" => array(
-          'name' => "Creative Commons: Attribution No derivatives",
-          'link' => "https://creativecommons.org/licenses/by-nd/4.0/",
-          'image' => "https://i.creativecommons.org/l/by-nd/4.0/88x31.png"
-        ),
-        "by-nc" => array(
-          'name' => "Creative Commons: Attribution non-commercial",
-          'link' => "https://creativecommons.org/licenses/by-nc/4.0/",
-          'image' => "https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
-        ),
-        "by-nc-sa" => array(
-          'name' => "Creative Commons: Attribution non-commercial share a like",
-          'link' => "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-          'image' => "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"
-        ),
-        "by-nc-nd" => array(
-          'name' => "Creative Commons: Attribution Non-commercial No derivatives",
-          'link' => "https://creativecommons.org/licenses/by-nc-nd/4.0/",
-          'image' => "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png"
-        )
-      );
-      $data = array();
-      if ($type == 'select') {
-        foreach ($list as $key => $item) {
-          $data[$key] = $item['name'];
-        }
-      }
-      else {
-        $data = $list;
-      }
-      return $data;
+      return HAXCMSLicenses::getLicenseData($type);
     }
     /**
      * Request URI resolution
@@ -725,24 +919,119 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return $uri;
     }
     /**
+     * The requested page path, relative to where this site is served from
+     * (no leading/trailing slash, query string or fragment). The site folder
+     * is taken from SCRIPT_NAME so this works at the web root, in a
+     * sub-directory, and as /index.php/<slug>; a proxy path prefix can be
+     * named in HAXSITE_BASE_URL. Empty for the home request.
+     * @return string slug-style path such as "lesson/intro"
+     */
+    public function getRequestedPagePath() {
+      $requestPath = parse_url($this->request_uri(), PHP_URL_PATH);
+      $requestPath = rawurldecode(is_string($requestPath) ? $requestPath : '');
+      $requestPath = '/' . trim(str_replace('\\', '/', $requestPath), '/');
+      $scriptName = isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '';
+      $scriptName = '/' . trim(str_replace('\\', '/', $scriptName), '/');
+      // strip /index.php (path-info style requests), then the site folder
+      foreach (array($scriptName, rtrim(dirname($scriptName), '/')) as $prefix) {
+        if ($prefix !== '' && $prefix !== '/' && ($requestPath === $prefix || strpos($requestPath, $prefix . '/') === 0)) {
+          $requestPath = substr($requestPath, strlen($prefix));
+        }
+      }
+      // behind a proxy that adds a path prefix, HAXSITE_BASE_URL (a URL or a
+      // path, same variable the multi-site renderer reads) names that prefix
+      $envBase = getenv('HAXSITE_BASE_URL');
+      if (is_string($envBase) && $envBase !== '') {
+        $envPath = parse_url($envBase, PHP_URL_PATH);
+        $envPath = is_string($envPath) ? '/' . trim($envPath, '/') : '';
+        if ($envPath !== '' && $envPath !== '/' && ($requestPath === $envPath || strpos($requestPath, $envPath . '/') === 0)) {
+          $requestPath = substr($requestPath, strlen($envPath));
+        }
+      }
+      return trim($requestPath, '/');
+    }
+    /**
+     * TRUE when the last loadNodeByLocation() lookup had a requested path that
+     * matched no page (a 404); FALSE for the home request and for a match.
+     */
+    public $pageNotFound = FALSE;
+    /**
      * Load a node based on a path
-     * @var $path the path to try loading based on or search for the active from address
+     * @var $path the path to try loading based on or search for the active from address.
+     * Matching is by slug or page location. The home request (empty path)
+     * loads metadata.site.homePageId when it names an item, else the first item
+     * (as multi-site does). A path that matches nothing sets $pageNotFound and
+     * returns a blank item so the shell can render without a real page.
      */
     public function loadNodeByLocation($path = NULL) {
+      $this->pageNotFound = FALSE;
       // load from the active address if we have one
       if (is_null($path)) {
-        $opPath = str_replace($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $this->request_uri());
-        $path = $opPath;
+        $path = $this->getRequestedPagePath();
       }
-      $path .= "/index.html";
-      // failsafe in case someone had closing /
-      $path = 'pages/' . str_replace('//', '/', $path);
-      foreach ($this->manifest->items as $item) {
-        if ($item->location == $path || $item->slug == $opPath) {
-          return $item;
+      $path = trim(str_replace('\\', '/', (string) $path), '/');
+      if ($path !== '') {
+        $location = 'pages/' . $path . '/index.html';
+        foreach ($this->manifest->items as $item) {
+          if ($item->location == $location || $item->slug == $path) {
+            return $item;
+          }
+        }
+        $this->pageNotFound = TRUE;
+        $blank = new stdClass();
+        $blank->id = '';
+        $blank->indent = 0;
+        $blank->location = '';
+        $blank->slug = '';
+        $blank->order = 0;
+        $blank->parent = NULL;
+        $blank->title = '';
+        $blank->description = '';
+        $blank->metadata = new stdClass();
+        return $blank;
+      }
+      // home request: the configured home page if there is one, else the first item
+      if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId) && $this->manifest->metadata->site->homePageId !== '') {
+        foreach ($this->manifest->items as $item) {
+          if (isset($item->id) && $item->id === $this->manifest->metadata->site->homePageId) {
+            return $item;
+          }
         }
       }
       return $this->manifest->items[0];
+    }
+    /**
+     * Was the requested page missing? (index.php swaps in the page miss shell)
+     */
+    public function isPageNotFound() {
+      return $this->pageNotFound;
+    }
+    /**
+     * Markup shown in place of page content for a 404. Deliberately plain: the
+     * site's own font and colors apply, and the only way out is the home page.
+     */
+    public function getPageMissShellMarkup() {
+      return '<style>
+  .haxcms-page-miss {
+    min-height: 40vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    padding: 24px;
+  }
+  .haxcms-page-miss h1,
+  .haxcms-page-miss p {
+    margin: 0;
+  }
+</style>
+<section class="haxcms-page-miss">
+  <h1>Page not found</h1>
+  <p>This page does not exist on this site.</p>
+  <p><a href="./">Go to the home page</a></p>
+</section>';
     }
     /**
      * Load wc-registry.json relative to the site in question
@@ -775,7 +1064,10 @@ if (!isset($GLOBALS['HAXCMS'])) {
       if (isset($page->location) && $page->location != '') {
         $content = &$this->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          $content = filter_var(file_get_contents('./' . $page->location));
+          // Security (N7): page.location comes from site.json, which may be
+          // untrusted; only read files proven to live inside the site directory
+          $resolved = $this->resolvePageLocationRealPath($page->location);
+          $content = ($resolved !== false) ? (string) file_get_contents($resolved) : '';
         }
         return $content;
       }
@@ -852,8 +1144,14 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * any global setting. Useful for locally developed custom builds.
      */
     public function getCDNForDynamic() {
+      // Security (N6): dynamicCDN is printed into a <script src> and a JS
+      // string by index.php; accept only http(s) or relative path prefixes.
       if (isset($this->manifest->metadata->site->dynamicCDN)) {
-        return $this->manifest->metadata->site->dynamicCDN;
+        $cdn = $this->manifest->metadata->site->dynamicCDN;
+        if (is_string($cdn) && preg_match('#^(https?://[A-Za-z0-9._~:/?\#\[\]@!$&()*+,;=%-]*|\.{1,2}/[A-Za-z0-9._~/%-]*|\./)$#', $cdn) === 1) {
+          return $cdn;
+        }
+        return $this->cdn;
       }
       return $this->cdn;
     }

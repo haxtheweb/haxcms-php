@@ -17,7 +17,7 @@ fi
 
 # if yarn isn't installed install it
 if ! command -v yarn;then
-	npm -g install yarn
+	npm -g install yarn@1.22.22
 fi
 
 git clone https://github.com/haxtheweb/haxcms.git
@@ -41,7 +41,8 @@ windows_ddev() {
 
 linux_ddev() {
 	if ! command -v ddev;then
-		curl -LO https://raw.githubusercontent.com/drud/ddev/master/scripts/install_ddev.sh && bash install_ddev.sh
+		# pinned to ddev v1.25.4 (script from that tag commit, installing that version)
+		curl -LO https://raw.githubusercontent.com/ddev/ddev/5da91aeb9ebab0b0e66171c450b72099308d332c/scripts/install_ddev.sh && bash install_ddev.sh v1.25.4
 	fi
 }
 
