@@ -34,7 +34,16 @@ if (file_exists("/.dockerenv") && __DIR__ == "/var/www/html") {
 if (file_exists(__DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php')) {
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/bootstrapHAX.php';
   include_once __DIR__ . $bootstrapPath . '/system/backend/php/lib/HAXSiteConfig.php';
-  include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  // guard: under HAXiam an unresolved user leaves configDirectory unset, which
+  // would turn this into include_once('/config.php') and emit PHP warnings
+  if (
+    isset($GLOBALS['HAXCMS']->configDirectory) &&
+    is_string($GLOBALS['HAXCMS']->configDirectory) &&
+    $GLOBALS['HAXCMS']->configDirectory !== '' &&
+    file_exists($GLOBALS['HAXCMS']->configDirectory . '/config.php')
+  ) {
+    include_once $GLOBALS['HAXCMS']->configDirectory . '/config.php';
+  }
   $site = $HAXCMS->loadSite(basename(__DIR__));
   $page = $site->loadNodeByLocation();
   $color = 'var(' . $site->manifest->metadata->theme->variables->cssVariable . ', #FF2222)';
@@ -222,6 +231,10 @@ if (!isset($GLOBALS['HAXCMS'])) {
             }
         }
         $this->page = $this->loadNodeByLocation();
+        // an unknown slug is a real 404, same as multi-site (lib/HAXSiteConfig.php)
+        if ($this->pageNotFound && !headers_sent()) {
+          http_response_code(404);
+        }
         // Security (N6): site.json may come from an untrusted import, so every
         // manifest-derived value printed by index.php is encoded for its
         // context, matching lib/HAXSiteConfig.php in multi-site mode.
@@ -906,24 +919,119 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return $uri;
     }
     /**
+     * The requested page path, relative to where this site is served from
+     * (no leading/trailing slash, query string or fragment). The site folder
+     * is taken from SCRIPT_NAME so this works at the web root, in a
+     * sub-directory, and as /index.php/<slug>; a proxy path prefix can be
+     * named in HAXSITE_BASE_URL. Empty for the home request.
+     * @return string slug-style path such as "lesson/intro"
+     */
+    public function getRequestedPagePath() {
+      $requestPath = parse_url($this->request_uri(), PHP_URL_PATH);
+      $requestPath = rawurldecode(is_string($requestPath) ? $requestPath : '');
+      $requestPath = '/' . trim(str_replace('\\', '/', $requestPath), '/');
+      $scriptName = isset($_SERVER['SCRIPT_NAME']) && is_string($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '';
+      $scriptName = '/' . trim(str_replace('\\', '/', $scriptName), '/');
+      // strip /index.php (path-info style requests), then the site folder
+      foreach (array($scriptName, rtrim(dirname($scriptName), '/')) as $prefix) {
+        if ($prefix !== '' && $prefix !== '/' && ($requestPath === $prefix || strpos($requestPath, $prefix . '/') === 0)) {
+          $requestPath = substr($requestPath, strlen($prefix));
+        }
+      }
+      // behind a proxy that adds a path prefix, HAXSITE_BASE_URL (a URL or a
+      // path, same variable the multi-site renderer reads) names that prefix
+      $envBase = getenv('HAXSITE_BASE_URL');
+      if (is_string($envBase) && $envBase !== '') {
+        $envPath = parse_url($envBase, PHP_URL_PATH);
+        $envPath = is_string($envPath) ? '/' . trim($envPath, '/') : '';
+        if ($envPath !== '' && $envPath !== '/' && ($requestPath === $envPath || strpos($requestPath, $envPath . '/') === 0)) {
+          $requestPath = substr($requestPath, strlen($envPath));
+        }
+      }
+      return trim($requestPath, '/');
+    }
+    /**
+     * TRUE when the last loadNodeByLocation() lookup had a requested path that
+     * matched no page (a 404); FALSE for the home request and for a match.
+     */
+    public $pageNotFound = FALSE;
+    /**
      * Load a node based on a path
-     * @var $path the path to try loading based on or search for the active from address
+     * @var $path the path to try loading based on or search for the active from address.
+     * Matching is by slug or page location. The home request (empty path)
+     * loads metadata.site.homePageId when it names an item, else the first item
+     * (as multi-site does). A path that matches nothing sets $pageNotFound and
+     * returns a blank item so the shell can render without a real page.
      */
     public function loadNodeByLocation($path = NULL) {
+      $this->pageNotFound = FALSE;
       // load from the active address if we have one
       if (is_null($path)) {
-        $opPath = str_replace($this->basePath . $this->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/', '', $this->request_uri());
-        $path = $opPath;
+        $path = $this->getRequestedPagePath();
       }
-      $path .= "/index.html";
-      // failsafe in case someone had closing /
-      $path = 'pages/' . str_replace('//', '/', $path);
-      foreach ($this->manifest->items as $item) {
-        if ($item->location == $path || $item->slug == $opPath) {
-          return $item;
+      $path = trim(str_replace('\\', '/', (string) $path), '/');
+      if ($path !== '') {
+        $location = 'pages/' . $path . '/index.html';
+        foreach ($this->manifest->items as $item) {
+          if ($item->location == $location || $item->slug == $path) {
+            return $item;
+          }
+        }
+        $this->pageNotFound = TRUE;
+        $blank = new stdClass();
+        $blank->id = '';
+        $blank->indent = 0;
+        $blank->location = '';
+        $blank->slug = '';
+        $blank->order = 0;
+        $blank->parent = NULL;
+        $blank->title = '';
+        $blank->description = '';
+        $blank->metadata = new stdClass();
+        return $blank;
+      }
+      // home request: the configured home page if there is one, else the first item
+      if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId) && $this->manifest->metadata->site->homePageId !== '') {
+        foreach ($this->manifest->items as $item) {
+          if (isset($item->id) && $item->id === $this->manifest->metadata->site->homePageId) {
+            return $item;
+          }
         }
       }
       return $this->manifest->items[0];
+    }
+    /**
+     * Was the requested page missing? (index.php swaps in the page miss shell)
+     */
+    public function isPageNotFound() {
+      return $this->pageNotFound;
+    }
+    /**
+     * Markup shown in place of page content for a 404. Deliberately plain: the
+     * site's own font and colors apply, and the only way out is the home page.
+     */
+    public function getPageMissShellMarkup() {
+      return '<style>
+  .haxcms-page-miss {
+    min-height: 40vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    padding: 24px;
+  }
+  .haxcms-page-miss h1,
+  .haxcms-page-miss p {
+    margin: 0;
+  }
+</style>
+<section class="haxcms-page-miss">
+  <h1>Page not found</h1>
+  <p>This page does not exist on this site.</p>
+  <p><a href="./">Go to the home page</a></p>
+</section>';
     }
     /**
      * Load wc-registry.json relative to the site in question
