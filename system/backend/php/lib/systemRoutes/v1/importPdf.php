@@ -350,7 +350,7 @@ if (!function_exists('haxcmsSystemExtractPdfPageImages')) {
                 }
                 $seenObjects[$objectId] = true;
                 $filter = haxcmsSystemGetPdfImageFilter($xobject);
-                if ($filter !== 'DCTDecode') {
+                if ($filter !== 'DCTDecode' && $filter !== 'FlateDecode' && $filter !== null) {
                     continue;
                 }
                 $width  = (float) $xobject->get('Width')->getContent();
@@ -367,9 +367,23 @@ if (!function_exists('haxcmsSystemExtractPdfPageImages')) {
                     continue;
                 }
                 $seenImages[$hash] = true;
-                $jpeg = haxcmsSystemDownscalePdfJpeg($content, $width, $height);
+                if ($filter === 'DCTDecode') {
+                    // DCTDecode streams are complete JPEG files
+                    $jpeg = haxcmsSystemDownscalePdfJpeg($content, $width, $height);
+                } else {
+                    // raw / Flate samples (PNGs embedded by Chrome and Dompdf)
+                    $jpeg = haxcmsSystemDecodePdfRasterImage($xobject, $content, (int) $width, (int) $height);
+                    if ($jpeg === null) {
+                        continue;
+                    }
+                }
                 $images[] = array(
-                    'tag' => haxcmsSystemPdfImageTag($jpeg['data'], $jpeg['width'], $jpeg['height']),
+                    'tag' => haxcmsSystemPdfImageTag(
+                        $jpeg['data'],
+                        $jpeg['width'],
+                        $jpeg['height'],
+                        isset($jpeg['mime']) ? $jpeg['mime'] : 'image/jpeg'
+                    ),
                     'top' => $candidate['top'],
                 );
             } catch (\Throwable $e) {
@@ -584,15 +598,194 @@ if (!function_exists('haxcmsSystemDownscalePdfJpeg')) {
     }
 }
 
+if (!function_exists('haxcmsSystemGetPdfImageComponents')) {
+    /**
+     * Colour components of an image XObject's /ColorSpace: 3 for DeviceRGB,
+     * 1 for DeviceGray, /N of the ICC profile for [/ICCBased ref] (Chrome
+     * writes every PNG this way). Null for anything not handled here
+     * (Indexed, CMYK, Lab, Separation, DeviceN, pattern).
+     */
+    function haxcmsSystemGetPdfImageComponents($xobject)
+    {
+        try {
+            $colorSpace = $xobject->get('ColorSpace');
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if ($colorSpace instanceof \Smalot\PdfParser\Element\ElementArray) {
+            $items = $colorSpace->getContent();
+            if (!is_array($items) || count($items) < 2) {
+                return null;
+            }
+            $family = (is_object($items[0]) && method_exists($items[0], 'getContent')) ? (string) $items[0]->getContent() : (string) $items[0];
+            if ($family !== 'ICCBased') {
+                return null;
+            }
+            $components = 3;
+            $profile = $items[1];
+            if (is_object($profile) && method_exists($profile, 'has') && $profile->has('N')) {
+                $components = (int) $profile->get('N')->getContent();
+            }
+            return ($components === 1 || $components === 3) ? $components : null;
+        }
+        $name = (is_object($colorSpace) && method_exists($colorSpace, 'getContent')) ? $colorSpace->getContent() : null;
+        if ($name === 'DeviceRGB') {
+            return 3;
+        }
+        if ($name === 'DeviceGray') {
+            return 1;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('haxcmsSystemPdfSamplesToPng')) {
+    /**
+     * Wrap 8-bit image samples in a PNG file. $samples is what smalot hands
+     * back for a FlateDecode/unfiltered stream: either raw rows (Chrome) or
+     * rows already carrying a PNG filter byte (Dompdf, /Predictor 15 —
+     * smalot inflates but does not undo predictors). Either way it is valid
+     * PNG IDAT payload once each row has its filter byte, so no per-pixel
+     * work happens in PHP. Returns null when the length fits neither shape.
+     */
+    function haxcmsSystemPdfSamplesToPng($samples, $width, $height, $components)
+    {
+        $rowBytes = $width * $components;
+        $length = strlen($samples);
+        if ($width < 1 || $height < 1 || $rowBytes < 1) {
+            return null;
+        }
+        if ($length === $height * ($rowBytes + 1)) {
+            $filtered = $samples;
+        } elseif ($length === $height * $rowBytes) {
+            $rows = array();
+            for ($y = 0; $y < $height; $y++) {
+                $rows[] = "\0" . substr($samples, $y * $rowBytes, $rowBytes);
+            }
+            $filtered = implode('', $rows);
+        } else {
+            return null;
+        }
+        $chunk = function ($type, $data) {
+            return pack('N', strlen($data)) . $type . $data . pack('N', crc32($type . $data));
+        };
+        // colour type 2 = truecolour, 0 = greyscale; 8 bits, no interlace
+        $ihdr = pack('NNCCCCC', $width, $height, 8, $components === 3 ? 2 : 0, 0, 0, 0);
+        return "\x89PNG\r\n\x1a\n" . $chunk('IHDR', $ihdr) . $chunk('IDAT', gzcompress($filtered, 6)) . $chunk('IEND', '');
+    }
+}
+
+if (!function_exists('haxcmsSystemDecodePdfRasterImage')) {
+    /**
+     * Decode a FlateDecode / unfiltered 8-bit image XObject (how Chrome and
+     * Dompdf embed PNGs) into JPEG, flattening an /SMask (transparency) onto
+     * white and downscaling to the 1600px max edge. Node parity:
+     * pdfToSemanticHtml.js extractPageImages (pdf.js decode + sharp).
+     * Without GD the image is returned as an opaque PNG instead.
+     * Returns null for anything it cannot decode (bit depths other than 8,
+     * Indexed / CMYK colour, /Decode arrays, odd sample lengths).
+     *
+     * @return array{data: string, width: float, height: float, mime: string}|null
+     */
+    function haxcmsSystemDecodePdfRasterImage($xobject, $samples, $width, $height)
+    {
+        if ((int) $xobject->get('BitsPerComponent')->getContent() !== 8 || $xobject->has('Decode')) {
+            return null;
+        }
+        $components = haxcmsSystemGetPdfImageComponents($xobject);
+        if ($components === null) {
+            return null;
+        }
+        $png = haxcmsSystemPdfSamplesToPng($samples, $width, $height, $components);
+        if ($png === null) {
+            return null;
+        }
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return array('data' => $png, 'width' => (float) $width, 'height' => (float) $height, 'mime' => 'image/png');
+        }
+        $image = @imagecreatefromstring($png);
+        if ($image === false) {
+            return null;
+        }
+        if (!imageistruecolor($image)) {
+            imagepalettetotruecolor($image);
+        }
+        haxcmsSystemFlattenPdfSoftMask($image, $xobject, $width, $height);
+        ob_start();
+        $ok = imagejpeg($image, null, 90);
+        $jpeg = ob_get_clean();
+        imagedestroy($image);
+        if (!$ok || !is_string($jpeg) || $jpeg === '') {
+            return null;
+        }
+        $result = haxcmsSystemDownscalePdfJpeg($jpeg, (float) $width, (float) $height);
+        $result['mime'] = 'image/jpeg';
+        return $result;
+    }
+}
+
+if (!function_exists('haxcmsSystemFlattenPdfSoftMask')) {
+    /**
+     * Composite a GD truecolor image onto white using the XObject's /SMask
+     * (8-bit DeviceGray alpha, same size). Transparent regions otherwise
+     * come out in whatever colour the encoder stored under them — black
+     * for Chrome — which hides dark line art. Very large images skip the
+     * per-pixel pass (kept as-is) to bound import time.
+     */
+    function haxcmsSystemFlattenPdfSoftMask($image, $xobject, $width, $height)
+    {
+        if (!$xobject->has('SMask') || $width * $height > 4000000) {
+            return;
+        }
+        try {
+            $mask = $xobject->get('SMask');
+            if (!is_object($mask) || !method_exists($mask, 'getContent')) {
+                return;
+            }
+            if ((int) $mask->get('Width')->getContent() !== $width || (int) $mask->get('Height')->getContent() !== $height) {
+                return;
+            }
+            $alpha = $mask->getContent();
+        } catch (\Throwable $e) {
+            return;
+        }
+        $maskPng = is_string($alpha) ? haxcmsSystemPdfSamplesToPng($alpha, $width, $height, 1) : null;
+        $maskImage = $maskPng !== null ? @imagecreatefromstring($maskPng) : false;
+        if ($maskImage === false) {
+            return;
+        }
+        for ($y = 0; $y < $height; $y++) {
+            for ($x = 0; $x < $width; $x++) {
+                $a = imagecolorat($maskImage, $x, $y);
+                if (!imageistruecolor($maskImage)) {
+                    $a = imagecolorsforindex($maskImage, $a)['red'];
+                } else {
+                    $a = $a & 0xFF;
+                }
+                if ($a === 255) {
+                    continue;
+                }
+                $rgb = imagecolorat($image, $x, $y);
+                $k = $a / 255;
+                $r = (int) round((($rgb >> 16) & 0xFF) * $k + 255 * (1 - $k));
+                $g = (int) round((($rgb >> 8) & 0xFF) * $k + 255 * (1 - $k));
+                $b = (int) round(($rgb & 0xFF) * $k + 255 * (1 - $k));
+                imagesetpixel($image, $x, $y, ($r << 16) | ($g << 8) | $b);
+            }
+        }
+        imagedestroy($maskImage);
+    }
+}
+
 if (!function_exists('haxcmsSystemPdfImageTag')) {
     /**
      * <img> for an imported image with a display width that keeps it within
      * 800x600 CSS px (Node parity: getImageDisplayWidth / imageToHtml), so a
      * portrait phone photo doesn't fill several screens.
      */
-    function haxcmsSystemPdfImageTag($jpeg, $width, $height)
+    function haxcmsSystemPdfImageTag($jpeg, $width, $height, $mime = 'image/jpeg')
     {
-        $src = 'data:image/jpeg;base64,' . base64_encode($jpeg);
+        $src = 'data:' . $mime . ';base64,' . base64_encode($jpeg);
         if (!($width > 0) || !($height > 0)) {
             return '<img src="' . $src . '">';
         }
