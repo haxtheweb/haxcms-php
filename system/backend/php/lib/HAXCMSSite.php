@@ -11,7 +11,7 @@ class HAXCMSSite
 {
     // Full HAX agent skill catalog (agentskills.io index) maintained in PRAW.
     // Linked from every site's llms.txt for skills the site does not ship.
-    const HAX_SKILL_CATALOG_URL = 'https://raw.githubusercontent.com/haxtheweb/praw/main/skills/index.json';
+    const HAX_SKILL_CATALOG_URL = 'https://raw.githubusercontent.com/haxtheweb/praw/stable/skills/index.json';
     public $name;
     public $manifest;
     public $directory;
