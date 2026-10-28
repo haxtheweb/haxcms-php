@@ -586,6 +586,16 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertStringContainsString('Rights notice', $this->site->getLLMSTxt(''));
     }
 
+    public function testGetLLMSTxtLinksThePrawSkillCatalogAfterTheSiteSkills(): void
+    {
+        $txt = $this->site->getLLMSTxt('https://unit.example');
+        $this->assertStringContainsString('[HAX skill catalog](https://raw.githubusercontent.com/haxtheweb/praw/main/skills/index.json)', $txt);
+        $this->assertGreaterThan(
+            strpos($txt, '.well-known/agent-skills/index.json'),
+            strpos($txt, '[HAX skill catalog]')
+        );
+    }
+
     public function testGetLLMSTxtIncludesDescriptionAndPagesSections(): void
     {
         $txt = $this->site->getLLMSTxt('');
