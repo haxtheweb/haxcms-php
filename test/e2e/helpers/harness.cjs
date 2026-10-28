@@ -210,9 +210,21 @@ function cleanupFixedSite() {
 }
 
 async function setupE2ERuntime() {
-  // eslint-disable-next-line no-console
-  console.warn('[e2e] ensuring DDEV is running ...')
-  ensureDdevRunning()
+  // HAXCMS_E2E_NO_DDEV=1 targets an already-running server at
+  // HAXCMS_E2E_BASE_URL (CI, a local Apache/nginx vhost) instead of starting
+  // DDEV. The docroot must still be this repo, since site cleanup works on
+  // the repo's _sites/_archived/_published folders.
+  if (process.env.HAXCMS_E2E_NO_DDEV === '1') {
+    if (!process.env.HAXCMS_E2E_BASE_URL) {
+      throw new Error('HAXCMS_E2E_NO_DDEV=1 requires HAXCMS_E2E_BASE_URL')
+    }
+    // eslint-disable-next-line no-console
+    console.warn('[e2e] HAXCMS_E2E_NO_DDEV=1: skipping ddev start')
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn('[e2e] ensuring DDEV is running ...')
+    ensureDdevRunning()
+  }
 
   const baseUrl = resolveBaseUrl()
   // eslint-disable-next-line no-console
