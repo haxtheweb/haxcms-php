@@ -3,6 +3,7 @@ include_once dirname(__FILE__) . '/SystemApiRequestContext.php';
 include_once dirname(__FILE__) . '/SystemRoutesMap.php';
 include_once dirname(__FILE__) . '/SystemApiSecurity.php';
 include_once dirname(__FILE__) . '/../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../CommitContext.php';
 class SystemApiRouter
 {
     public static function dispatch()
@@ -160,6 +161,14 @@ class SystemApiRouter
                 $context->apiBasePath
             );
             return true;
+        }
+        // haxtheweb/issues#3191: commits made by this request carry its
+        // actor + operationId + txn (GET routes make no commits)
+        if (strtoupper((string) $context->method) !== 'GET') {
+            CommitContext::startRequest(
+                $context->getHeader('X-HAX-Actor'),
+                CommitContext::getOperationId('system', $context->method, $routeName)
+            );
         }
         call_user_func($handler, $context);
         return true;

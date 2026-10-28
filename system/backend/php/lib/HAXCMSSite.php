@@ -3,6 +3,7 @@
 include_once 'RSS.php';
 include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
+include_once dirname(__FILE__) . '/CommitContext.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
 use \Gumlet\ImageResize;
@@ -427,7 +428,7 @@ class HAXCMSSite
           return;
         }
         $this->rebuildManagedFiles();
-        $this->gitCommit('Managed files upgraded: legacy bootstrap');
+        $this->gitCommit('Managed files upgraded: legacy bootstrap', 'upgradeManagedFiles');
       } catch (Exception $e) {}
     }
     /**
@@ -667,8 +668,18 @@ class HAXCMSSite
     /**
      * Basic wrapper to commit current changes to version control of the site
      */
+    /**
+     * Commit current changes to the site's git repo.
+     *
+     * haxtheweb/issues#3191: the message is sanitized and prefixed with the
+     * actor and OpenAPI operationId of the request that made it, e.g.
+     * "[H:updateSiteOutline:kp39] Outline updated in bulk". An optional second
+     * argument overrides the op for this one commit; it is read with
+     * func_get_arg() so existing subclasses keep their one-argument signature.
+     */
     public function gitCommit($msg = 'Committed changes')
     {
+        $op = func_num_args() > 1 ? (string) func_get_arg(1) : '';
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
         $repo = $git->open(
@@ -679,7 +690,7 @@ class HAXCMSSite
         if ($this->gitIdentityFallback) {
             $fallbackKeys = $this->gitFallbackIdentity($repo);
         }
-        $repo->commit($msg);
+        $repo->commit(CommitContext::formatCommitMessage($msg, $op));
         // Git::run_command putenv()s envopts when $_ENV is empty; clear them so
         // the placeholder identity never outlives this one commit
         if (count($_ENV) === 0) {
@@ -743,7 +754,7 @@ class HAXCMSSite
             $this->directory . '/' . $this->manifest->metadata->site->name, true
         );
         $repo->add('.');
-        $repo->commit("commit forced");
+        $repo->commit(CommitContext::formatCommitMessage("commit forced"));
         return true;
     }
 

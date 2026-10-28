@@ -455,12 +455,16 @@ trait OperationsRouteCreateSite {
       );
       $repo->add('.');
       $site->gitIdentityFallback = true;
+      // haxtheweb/issues#3191: the request's op (createSite or the importer
+      // that called it), else siteCreate, matching haxcms-nodejs
+      $createContext = CommitContext::get();
       $site->gitCommit(
           'A new journey begins: ' .
               $site->manifest->title .
               ' (' .
               $site->manifest->id .
-              ')'
+              ')',
+          ($createContext !== null && $createContext['op'] !== '') ? '' : 'siteCreate'
       );
       $site->gitIdentityFallback = false;
       // make a branch but dont use it

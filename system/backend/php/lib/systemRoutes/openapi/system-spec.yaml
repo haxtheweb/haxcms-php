@@ -1,8 +1,16 @@
 openapi: 3.0.3
 info:
   title: HAXcms System API
-  description: Control-plane API for authentication, lifecycle/admin,
+  description: >-
+    Control-plane API for authentication, lifecycle/admin,
     discovery/meta, and system settings/configuration.
+
+
+    Commit attribution (haxtheweb/issues#3191): every write is committed to the
+    site's git history as "[<actor>:<operationId>:<txn>] <message>" (actor H
+    human, A agent, S system). Agents MUST send `X-HAX-Actor: agent` on write
+    requests; requests without the header are recorded as human. The header is
+    informational only and never changes permissions.
   version: 1.0.0
   license:
     name: Apache-2.0
