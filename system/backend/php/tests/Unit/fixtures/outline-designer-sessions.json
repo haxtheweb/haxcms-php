@@ -1,0 +1,1860 @@
+{
+  "description": "outline-designer getData() output for real editing sessions, captured from haxtheweb/webcomponents",
+  "capturedFrom": "https://github.com/haxtheweb/webcomponents/blob/61c02b29ab3b337ac5a882374bb190009f0e3e2a/elements/outline-designer/outline-designer.js",
+  "initial": [
+    {
+      "id": "item-welcome",
+      "title": "Welcome",
+      "slug": "welcome",
+      "location": "pages/item-welcome/index.html",
+      "order": 0,
+      "parent": null,
+      "indent": 0,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-start",
+      "title": "Getting started",
+      "slug": "start",
+      "location": "pages/item-start/index.html",
+      "order": 1,
+      "parent": null,
+      "indent": 0,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-install",
+      "title": "Install",
+      "slug": "install",
+      "location": "pages/item-install/index.html",
+      "order": 0,
+      "parent": "item-start",
+      "indent": 1,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-configure",
+      "title": "Configure",
+      "slug": "configure",
+      "location": "pages/item-configure/index.html",
+      "order": 1,
+      "parent": "item-start",
+      "indent": 1,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-advanced",
+      "title": "Advanced configuration",
+      "slug": "advanced",
+      "location": "pages/item-advanced/index.html",
+      "order": 0,
+      "parent": "item-configure",
+      "indent": 2,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-lessons",
+      "title": "Lessons",
+      "slug": "lessons",
+      "location": "pages/item-lessons/index.html",
+      "order": 2,
+      "parent": null,
+      "indent": 0,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-lesson-1",
+      "title": "Lesson 1",
+      "slug": "lesson-1",
+      "location": "pages/item-lesson-1/index.html",
+      "order": 0,
+      "parent": "item-lessons",
+      "indent": 1,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-lesson-2",
+      "title": "Lesson 2",
+      "slug": "lesson-2",
+      "location": "pages/item-lesson-2/index.html",
+      "order": 1,
+      "parent": "item-lessons",
+      "indent": 1,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-lesson-3",
+      "title": "Lesson 3",
+      "slug": "lesson-3",
+      "location": "pages/item-lesson-3/index.html",
+      "order": 2,
+      "parent": "item-lessons",
+      "indent": 1,
+      "metadata": {
+        "locked": false
+      }
+    },
+    {
+      "id": "item-glossary",
+      "title": "Glossary",
+      "slug": "glossary",
+      "location": "pages/item-glossary/index.html",
+      "order": 3,
+      "parent": null,
+      "indent": 0,
+      "metadata": {
+        "locked": false
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "no-changes",
+      "description": "Open the outline and save without changing anything",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "keyboard-move-down",
+      "description": "Alt+Down on \"Getting started\": it moves below \"Lessons\" with its sub-pages",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "keyboard-indent-outdent",
+      "description": "Alt+Right on \"Glossary\" (nests under \"Lessons\"), Alt+Left on \"Install\" (moves out of \"Getting started\")",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Install<root",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<Lessons"
+      ]
+    },
+    {
+      "name": "delete-parent-with-children",
+      "description": "Delete \"Getting started\"; its sub-pages are deleted with it",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "delete-then-undo",
+      "description": "Delete \"Lessons\", then undo: nothing changes",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "add-page-mid-list",
+      "description": "Add a page after \"Lesson 1\" and name it \"Lesson 1b\"",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-92663ef1-57de-6809-b36a-a09d7d4ef36d",
+          "title": "Lesson 1b",
+          "location": "",
+          "slug": "",
+          "description": "",
+          "parent": "item-lessons",
+          "metadata": {
+            "locked": false
+          },
+          "order": 1,
+          "indent": 1,
+          "new": true,
+          "contents": "<p></p>"
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 3,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 1b<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "add-page-at-top",
+      "description": "Add a page at the top of the outline",
+      "sent": [
+        {
+          "id": "item-309b884d-4e28-b3ab-3103-d851bc645a2a",
+          "title": "New item",
+          "location": "",
+          "slug": "",
+          "description": "",
+          "parent": null,
+          "metadata": {
+            "locked": false
+          },
+          "order": -1,
+          "indent": 0,
+          "new": true,
+          "contents": "<p></p>"
+        },
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "New item<root",
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "duplicate-page",
+      "description": "Duplicate \"Lesson 2\"",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-94d3a51b-fb16-0f94-db69-37b2b71a6a66",
+          "title": "Copy of Lesson 2",
+          "location": "",
+          "slug": "",
+          "description": "",
+          "parent": "item-lessons",
+          "metadata": {
+            "locked": false
+          },
+          "order": 2,
+          "indent": 1,
+          "new": true,
+          "duplicate": "item-lesson-2"
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 3,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Copy of Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "lock-page",
+      "description": "Lock \"Glossary\"",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": true
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "selection-delete",
+      "description": "Select \"Install\" and \"Lesson 3\" and delete them from the toolbar",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Glossary<root"
+      ]
+    },
+    {
+      "name": "mouse-drag",
+      "description": "Drag \"Glossary\" with the mouse onto \"Lessons\": it lands as the last sub-page of \"Lessons\"",
+      "sent": [
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "collapsed": false
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        }
+      ],
+      "shown": [
+        "Welcome<root",
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Advanced configuration<Configure",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Glossary<Lessons"
+      ]
+    },
+    {
+      "name": "combined-edit",
+      "description": "Add \"Lesson 4\" after \"Lesson 3\", move \"Welcome\" down with Alt+Down, delete \"Advanced configuration\"",
+      "sent": [
+        {
+          "id": "item-start",
+          "title": "Getting started",
+          "slug": "start",
+          "location": "pages/item-start/index.html",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-install",
+          "title": "Install",
+          "slug": "install",
+          "location": "pages/item-install/index.html",
+          "order": 0,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-configure",
+          "title": "Configure",
+          "slug": "configure",
+          "location": "pages/item-configure/index.html",
+          "order": 1,
+          "parent": "item-start",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-advanced",
+          "title": "Advanced configuration",
+          "slug": "advanced",
+          "location": "pages/item-advanced/index.html",
+          "order": 0,
+          "parent": "item-configure",
+          "indent": 2,
+          "metadata": {
+            "locked": false
+          },
+          "delete": true
+        },
+        {
+          "id": "item-welcome",
+          "title": "Welcome",
+          "slug": "welcome",
+          "location": "pages/item-welcome/index.html",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          },
+          "modified": true
+        },
+        {
+          "id": "item-lessons",
+          "title": "Lessons",
+          "slug": "lessons",
+          "location": "pages/item-lessons/index.html",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-1",
+          "title": "Lesson 1",
+          "slug": "lesson-1",
+          "location": "pages/item-lesson-1/index.html",
+          "order": 0,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-2",
+          "title": "Lesson 2",
+          "slug": "lesson-2",
+          "location": "pages/item-lesson-2/index.html",
+          "order": 1,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-lesson-3",
+          "title": "Lesson 3",
+          "slug": "lesson-3",
+          "location": "pages/item-lesson-3/index.html",
+          "order": 2,
+          "parent": "item-lessons",
+          "indent": 1,
+          "metadata": {
+            "locked": false
+          }
+        },
+        {
+          "id": "item-fff5c689-777d-9f2f-93cd-c45fec778c9f",
+          "title": "Lesson 4",
+          "location": "",
+          "slug": "",
+          "description": "",
+          "parent": "item-lessons",
+          "metadata": {
+            "locked": false
+          },
+          "order": 3,
+          "indent": 1,
+          "new": true,
+          "contents": "<p></p>"
+        },
+        {
+          "id": "item-glossary",
+          "title": "Glossary",
+          "slug": "glossary",
+          "location": "pages/item-glossary/index.html",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "metadata": {
+            "locked": false
+          }
+        }
+      ],
+      "shown": [
+        "Getting started<root",
+        "Install<Getting started",
+        "Configure<Getting started",
+        "Welcome<root",
+        "Lessons<root",
+        "Lesson 1<Lessons",
+        "Lesson 2<Lessons",
+        "Lesson 3<Lessons",
+        "Lesson 4<Lessons",
+        "Glossary<root"
+      ]
+    }
+  ]
+}
