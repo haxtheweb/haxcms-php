@@ -1,7 +1,15 @@
 openapi: 3.0.3
 info:
   title: HAXcms Site API
-  description: Read-only site API for discovery, metadata, and content/query surfaces.
+  description: >-
+    Read-only site API for discovery, metadata, and content/query surfaces.
+
+
+    Commit attribution (haxtheweb/issues#3191): every write is committed to the
+    site's git history as "[<actor>:<operationId>:<txn>] <message>" (actor H
+    human, A agent, S system). Agents MUST send `X-HAX-Actor: agent` on write
+    requests; requests without the header are recorded as human. The header is
+    informational only and never changes permissions.
   version: 1.0.0
   license:
     name: Apache-2.0
@@ -3495,6 +3503,24 @@ components:
           type: string
         message:
           type: string
+          description: Raw commit subject.
+        actor:
+          type: string
+          enum: ["H", "A", "S", "X"]
+          description: >-
+            Who made the commit, from its op-code prefix (haxtheweb/issues#3191):
+            H human, A agent, S system. X means the subject has no valid prefix
+            (a manual or external commit, or history from before op codes).
+            Self-reported via the X-HAX-Actor request header; informational only.
+        op:
+          type: string
+          description: OpenAPI operationId (or reserved op) that made the commit. Empty when actor is X.
+        txn:
+          type: string
+          description: Short id shared by every commit one request made. Empty when none.
+        summary:
+          type: string
+          description: Commit subject without the op-code prefix (the whole subject when actor is X).
     RevisionDetailRecord:
       type: object
       properties:

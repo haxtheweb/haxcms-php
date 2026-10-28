@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../CommitContext.php';
 trait OperationsRouteNodeRevisions {
   private function nodeRevisionFailed($status, $message) {
     return array(
@@ -419,7 +420,8 @@ trait OperationsRouteNodeRevisions {
             continue;
           }
           $timestamp = intval($parts[4]);
-          $revisions[] = array(
+          // haxtheweb/issues#3191: add actor / op / txn / summary
+          $revisions[] = array_merge(array(
             'revisionNumber' => $offset + count($revisions) + 1,
             'hash' => $parts[0],
             'shortHash' => $parts[1],
@@ -428,7 +430,7 @@ trait OperationsRouteNodeRevisions {
             'timestamp' => $timestamp > 0 ? $timestamp : 0,
             'date' => $parts[5],
             'message' => $parts[6],
-          );
+          ), CommitContext::parse($parts[6]));
         }
       }
       $total = count($revisions);
@@ -549,6 +551,8 @@ trait OperationsRouteNodeRevisions {
         'date' => isset($metadataParts[5]) ? $metadataParts[5] : '',
         'message' => isset($metadataParts[6]) ? $metadataParts[6] : '',
       );
+      // haxtheweb/issues#3191: add actor / op / txn / summary
+      $revisionMetadata = array_merge($revisionMetadata, CommitContext::parse($revisionMetadata['message']));
       $fileContent = $this->runNodeRevisionGitCommand(
         $context['fileContext']['siteRoot'],
         array(

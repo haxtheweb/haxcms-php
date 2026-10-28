@@ -6,6 +6,7 @@
 > - With the `hax` CLI installed, run `hax site` in this folder for an orientation of the site and its scriptable commands.
 > - Always pass `--y --no-i` when scripting, and use the global `hax` command, never `npx hax`.
 > - Change structure only through the `hax` CLI; page content lives in `pages/<id>/index.html`. Generated files (`llms.txt`, feeds, search index, manifests) are rebuilt by tooling, so do not hand-edit them.
+> - Identify yourself as an agent in this site's git history. See [Commit messages](#commit-messages) below.
 
 This file provides comprehensive instructions for AI coding agents working within this specific HAXcms site. HAXcms sites are built on the HAX (Headless Authoring eXperience) ecosystem and follow specific patterns for content management, theming, and deployment.
 
@@ -337,6 +338,22 @@ For full HAXcms features:
 - **Follow HAX patterns** for component configuration
 - **Test component rendering** in the site context
 - **Document custom components** for future maintenance
+
+### Commit messages
+Every change to this site is committed to git with a short op-code prefix, so people can see what changed a page and tools can replay how the site was built:
+
+```
+[<actor>:<op>:<txn>] <message>
+```
+
+- `actor`: `H` human, `A` agent, `S` system
+- `op`: the HAXcms API operationId that made the change (e.g. `updateItem`, `updateSiteOutline`); letters and digits only
+- `txn`: 4 letters/digits shared by every commit from one request
+
+A commit without this prefix is shown as an outside change. As an agent:
+- **API calls**: send `X-HAX-Actor: agent` on every write. Without it the change is recorded as made by a human.
+- **CLI**: run commands with `HAX_ACTOR=agent` set in the environment.
+- **Editing files and committing with git yourself**: start the message with `[A:direct] `, e.g. `[A:direct] Fixed alt text on 3 images`. Keep the whole line under 200 characters. Never put version numbers or secrets in it.
 
 ## Security Considerations
 

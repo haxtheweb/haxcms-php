@@ -4,6 +4,7 @@ include_once dirname(__FILE__) . '/SiteRoutesMap.php';
 include_once dirname(__FILE__) . '/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/SiteApiSecurity.php';
 include_once dirname(__FILE__) . '/../HAXCMSInstallGate.php';
+include_once dirname(__FILE__) . '/../CommitContext.php';
 class SiteApiRouter
 {
     public static function dispatch($site)
@@ -158,6 +159,14 @@ class SiteApiRouter
             return true;
         }
         $context->setRouteParams(isset($match['params']) ? $match['params'] : array());
+        // haxtheweb/issues#3191: commits made by this request carry its
+        // actor + operationId + txn (GET routes make no commits)
+        if (strtoupper((string) $context->method) !== 'GET') {
+            CommitContext::startRequest(
+                $context->getHeader('X-HAX-Actor'),
+                CommitContext::getOperationId('site', $context->method, isset($match['route']) ? $match['route'] : '')
+            );
+        }
         call_user_func($handler, $context);
         return true;
     }
