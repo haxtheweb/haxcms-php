@@ -367,7 +367,11 @@ class JSONOutlineSchema
         &$idList = array()
     ) {
         foreach ($currentItems as $item) {
-            if (!array_search($item->id, $idList)) {
+            // strict: array_search() returns 0 for the first id placed, which
+            // !array_search() read as "not placed yet", so that page was
+            // placed twice, the count check below failed and site.json was
+            // written unsorted (the NodeJS backend never had this)
+            if (!in_array($item->id, $idList, true)) {
                 array_push($idList, $item->id);
                 array_push($sorted, $item);
                 $children = array();

@@ -106,23 +106,38 @@ trait OperationsRouteSaveOutline {
       // an early error return must still flush so the persisted site.json and
       // generated files match what per-item saving used to leave behind.
       //
-      // Per-item saving wrote site.json and rebuilt the feeds only when an
-      // EXISTING page was updated (a new page was added in memory and saved
-      // later), so after any point in the structure pass site.json and the
-      // feeds held the items as of the last existing page. $savedItems is
-      // that array; flushing writes it, not whatever is in memory, so the
-      // checkpoint and every failure leave exactly what per-item saving left.
+      // Same result as the NodeJS backend for the same request: site.json
+      // holds every page handled so far, new pages included (so a failure
+      // never leaves a new page's folder on disk without its outline entry),
+      // and the feeds are rebuilt from the items as of the last EXISTING
+      // page. $savedItems and $feedItems are those arrays; flushing writes
+      // them, not whatever is in memory, so the checkpoint and every failure
+      // leave the same site.json and feeds on both backends.
       $pendingPersist = false;
+      $feedsPending = false;
       $savedItems = null;
-      $flushPending = function () use ($site, &$pendingPersist, &$savedItems) {
+      $feedItems = null;
+      $flushPending = function () use ($site, &$pendingPersist, &$feedsPending, &$savedItems, &$feedItems) {
+        // attempted once: the error handler does not retry a failed write,
+        // nor rebuild the feeds over it
         if ($pendingPersist) {
-          // attempted once, like per-item saving: the error handler does
-          // not retry a failed write, nor rebuild the feeds over it
           $pendingPersist = false;
           $live = $site->manifest->items;
           $site->manifest->items = $savedItems;
           try {
             $site->manifest->save(false);
+          } catch (Throwable $e) {
+            $feedsPending = false;
+            throw $e;
+          } finally {
+            $site->manifest->items = $live;
+          }
+        }
+        if ($feedsPending) {
+          $feedsPending = false;
+          $live = $site->manifest->items;
+          $site->manifest->items = $feedItems;
+          try {
             $site->updateAlternateFormats();
           } finally {
             $site->manifest->items = $live;
@@ -275,13 +290,19 @@ trait OperationsRouteSaveOutline {
           }
           // always update at this time
           $page->metadata->updated = time();
-          if ($site->loadNode($page->id)) {
+          $existing = (bool) $site->loadNode($page->id);
+          if ($existing) {
               $site->updateNode($page, false);
-              $pendingPersist = true;
-              // what per-item saving had just written and rebuilt from
-              $savedItems = $site->manifest->items;
           } else {
               $site->manifest->addItem($page);
+          }
+          // site.json as of this page, and the feeds as of the last
+          // existing one (as the NodeJS backend writes them)
+          $pendingPersist = true;
+          $savedItems = $site->manifest->items;
+          if ($existing) {
+              $feedsPending = true;
+              $feedItems = $savedItems;
           }
         }
         // siblings that share an order are told apart by their position in
