@@ -3192,15 +3192,21 @@ class HAXCMSSite
     /**
      * Update page in the manifest list of items. useful if updating some
      * data about an existing entry.
+     * @param object $page JSONOutlineSchemaItem to swap into the manifest
+     * @param bool $persist when FALSE only the in-memory manifest is updated,
+     * the caller owns saving site.json and rebuilding alternate formats once
+     * after a batch of changes (see saveOutline, haxtheweb/issues#3114)
      * @return JSONOutlineSchemaItem or FALSE
      */
-    public function updateNode($page)
+    public function updateNode($page, $persist = TRUE)
     {
         foreach ($this->manifest->items as $key => $item) {
             if ($item->id === $page->id) {
                 $this->manifest->items[$key] = $page;
-                $this->manifest->save(false);
-                $this->updateAlternateFormats();
+                if ($persist) {
+                    $this->manifest->save(false);
+                    $this->updateAlternateFormats();
+                }
                 return $page;
             }
         }

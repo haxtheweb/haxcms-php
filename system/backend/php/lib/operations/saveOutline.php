@@ -100,298 +100,235 @@ trait OperationsRouteSaveOutline {
         return $site->getUniqueSlugName($normalizedSlug, $page, $pathAuto);
       };
       $pathautoEnabled = $site->isPathautoEnabled();
-      // items from the POST
-      foreach ($items as $key => $item) {
-        // get a fake item of the existing
-        if (!($page = $site->loadNode($item->id))) {
-          $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
-          // we don't trust the front end UUID if it wasn't existing already
-          $itemMap[$item->id] = $page->id;
-        }
-        // set a title if we have one
-        if ($item->title != '' && $item->title) {
-          // Security (SEC-SANITIZE): titles are plain text, same as saveNode;
-          // a title that is nothing but markup keeps the existing title
-          $plainTitle = SanitizeContent::plainText($item->title);
-          if ($plainTitle !== '') {
-            $page->title = $plainTitle;
+      // #3114: the manifest is updated in memory per item and written, along
+      // with the RSS / Atom / sitemap / llms.txt / search index rebuild, once
+      // per request instead of once per item. $pendingPersist tracks whether
+      // an early error return must still flush so the persisted site.json and
+      // generated files match what per-item saving used to leave behind.
+      //
+      // Per-item saving wrote site.json and rebuilt the feeds only when an
+      // EXISTING page was updated (a new page was added in memory and saved
+      // later), so after any point in the structure pass site.json and the
+      // feeds held the items as of the last existing page. $savedItems is
+      // that array; flushing writes it, not whatever is in memory, so the
+      // checkpoint and every failure leave exactly what per-item saving left.
+      $pendingPersist = false;
+      $savedItems = null;
+      $flushPending = function () use ($site, &$pendingPersist, &$savedItems) {
+        if ($pendingPersist) {
+          // attempted once, like per-item saving: the error handler does
+          // not retry a failed write, nor rebuild the feeds over it
+          $pendingPersist = false;
+          $live = $site->manifest->items;
+          $site->manifest->items = $savedItems;
+          try {
+            $site->manifest->save(false);
+            $site->updateAlternateFormats();
+          } finally {
+            $site->manifest->items = $live;
           }
         }
-        // description belongs to the JSON Outline Schema item; same handling
-        // as the setDescription node operation
-        // (mirrors the NodeJS saveOutline fix, haxcms-nodejs PR #46)
-        if (isset($item->description) && is_string($item->description)) {
-          $page->description = ($item->description === '') ? '' : strip_tags($item->description);
-        }
-        $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
-        if ($item->parent == null) {
-          $page->parent = null;
-          $page->indent = 0;
-        } else {
-          // check the item map as backend dictates unique ID
-          if (isset($itemMap[$item->parent])) {
-            $page->parent = $itemMap[$item->parent];
+      };
+      // a failure part-way through must not lose what per-item saving would
+      // already have written: persist what is in memory, then fail as before
+      try {
+        // items from the POST
+        foreach ($items as $key => $item) {
+          // get a fake item of the existing
+          if (!($page = $site->loadNode($item->id))) {
+            $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
+            // we don't trust the front end UUID if it wasn't existing already
+            $itemMap[$item->id] = $page->id;
+          }
+          // set a title if we have one
+          if ($item->title != '' && $item->title) {
+            // Security (SEC-SANITIZE): titles are plain text, same as saveNode;
+            // a title that is nothing but markup keeps the existing title
+            $plainTitle = SanitizeContent::plainText($item->title);
+            if ($plainTitle !== '') {
+              $page->title = $plainTitle;
+            }
+          }
+          // description belongs to the JSON Outline Schema item; same handling
+          // as the setDescription node operation
+          // (mirrors the NodeJS saveOutline fix, haxcms-nodejs PR #46)
+          if (isset($item->description) && is_string($item->description)) {
+            $page->description = ($item->description === '') ? '' : strip_tags($item->description);
+          }
+          $cleanTitle = $GLOBALS['HAXCMS']->cleanTitle($page->title);
+          if ($item->parent == null) {
+            $page->parent = null;
+            $page->indent = 0;
           } else {
-            // set to the parent id
-            $page->parent = $item->parent;
+            // check the item map as backend dictates unique ID
+            if (isset($itemMap[$item->parent])) {
+              $page->parent = $itemMap[$item->parent];
+            } else {
+              // set to the parent id
+              $page->parent = $item->parent;
+            }
+            // move it one indentation below the parent; this can be changed later if desired
+            $page->indent = $item->indent;
           }
-          // move it one indentation below the parent; this can be changed later if desired
-          $page->indent = $item->indent;
-        }
-        if (isset($item->order)) {
-          $page->order = (int)$item->order;
-        } else {
-          $page->order = (int)$key;
-        }
-        // location is backend-controlled to prevent arbitrary writes
-        if (isset($originalLocationMap[$page->id]) && $originalLocationMap[$page->id]) {
-          $page->location = $originalLocationMap[$page->id];
-        } else {
-          // generate a logical page slug
-          $page->location = 'pages/' . $page->id . '/index.html';
-        }
-        // Check for per-page overridePathauto flag
-        $overridePathauto = false;
-        if (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true) {
-          $overridePathauto = true;
-        }
-        // Determine slug based on pathauto and overridePathauto
-        if ($pathautoEnabled && !$overridePathauto) {
-          // Pathauto is on and user has not overridden: auto-generate from title
-          $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
-        } else {
-          // Pathauto is off, or user has overridden: use client-provided slug or generate from title
-          if (isset($item->slug) && $item->slug != '') {
-            $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
+          if (isset($item->order)) {
+            $page->order = (int)$item->order;
           } else {
+            $page->order = (int)$key;
+          }
+          // location is backend-controlled to prevent arbitrary writes
+          if (isset($originalLocationMap[$page->id]) && $originalLocationMap[$page->id]) {
+            $page->location = $originalLocationMap[$page->id];
+          } else {
+            // generate a logical page slug
+            $page->location = 'pages/' . $page->id . '/index.html';
+          }
+          // Check for per-page overridePathauto flag
+          $overridePathauto = false;
+          if (isset($item->metadata) && is_object($item->metadata) && isset($item->metadata->overridePathauto) && $item->metadata->overridePathauto === true) {
+            $overridePathauto = true;
+          }
+          // Determine slug based on pathauto and overridePathauto
+          if ($pathautoEnabled && !$overridePathauto) {
+            // Pathauto is on and user has not overridden: auto-generate from title
             $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
-          }
-        }
-        // verify this exists, front end could have set what they wanted
-        // or it could have just been renamed
-        // if it doesn't exist currently make sure the name is unique
-        if (!$site->loadNode($page->id)) {
-          $site->recurseCopy(
-              HAXCMS_ROOT . '/system/boilerplate/page/default',
-              $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
-          );
-          $pageAlternateContentMap[$page->id] = '';
-        }
-        // this would imply existing item, lets see if it moved or needs moved
-        else {
-            $moved = false;
-            foreach ($original as $key => $tmpItem) {
-                // see if this is something moving as opposed to brand new
-                if (
-                    $tmpItem->id == $page->id &&
-                    $tmpItem->slug != ''
-                ) {
-                    // core support for automatically managing paths to make them nice
-                    if ($pathautoEnabled && !$overridePathauto) {
-                        $moved = true;
-                        $page->slug = $normalizeOutlineSlug(
-                          $GLOBALS['HAXCMS']->cleanTitle($page->title),
-                          $page,
-                          true
-                        );
-                    }
-                    else if ($tmpItem->slug != $page->slug) {
-                        $moved = true;
-                        $page->slug = $normalizeOutlineSlug($page->slug, $page, false);
-                    }
-                }
-            }
-            // it wasn't moved and it doesn't exist... let's fix that
-            // this is beyond an edge case
-            if (
-                !$moved &&
-                !file_exists($siteDirectory . '/' . $page->location)
-            ) {
-                $pAuto = false;
-                if ($pathautoEnabled && !$overridePathauto) {
-                  $pAuto = true;
-                }
-                $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
-                $page->location = 'pages/' . $page->id . '/index.html';
-                $page->slug = $tmpTitle;
-                $site->recurseCopy(
-                    HAXCMS_ROOT . '/system/boilerplate/page/default',
-                    $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
-                );
-                $pageAlternateContentMap[$page->id] = '';
-            }
-        }
-        if (!isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
-            $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
-        }
-        $safeLocationMap[$page->id] = $page->location;
-        // check for any metadata keys that did come over
-        if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
-          // Security (SEC-SANITIZE): route client metadata through the same
-          // per-field sanitisation saveNode applies instead of mass-assigning
-          SanitizeContent::applyPageMetadata(
-            $page,
-            $item->metadata,
-            $GLOBALS['HAXCMS']->getThemes()
-          );
-        }
-        // safety check for new things
-        if (!isset($page->metadata->created)) {
-            $page->metadata->created = time();
-            $page->metadata->images = array();
-            $page->metadata->videos = array();
-        }
-        // always update at this time
-        $page->metadata->updated = time();
-        if ($site->loadNode($page->id)) {
-            $site->updateNode($page);
-        } else {
-            $site->manifest->addItem($page);
-        }
-      }
-      // process any duplicate / contents requests we had now that structure is sane
-      // including potentially duplication of material from something
-      // we are about to act on and now that we have the map
-      $items = $this->rawParams['items'];
-      foreach ($items as $key => $item) {
-        // load the item, or the item as built out of the itemMap
-        // since we reset the UUID on creation
-        if (!($page = $site->loadNode($item->id))) {
-          if (isset($itemMap[$item->id])) {
-            $page = $site->loadNode($itemMap[$item->id]);
-          }
-        }
-        if (!$page) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid page reference',
-            )
-          );
-        }
-        $expectedLocation = null;
-        if (isset($safeLocationMap[$page->id]) && $safeLocationMap[$page->id]) {
-          $expectedLocation = $safeLocationMap[$page->id];
-        } else {
-          $expectedLocation = $this->normalizeOutlineLocation($page->location);
-        }
-        if (!$expectedLocation) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid page location',
-            )
-          );
-        }
-        // location is backend-controlled based on page id, ignore client input
-        if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid write target',
-            )
-          );
-        }
-        $page->location = $expectedLocation;
-        $alternateContent = '';
-        $shouldWriteAlternate = false;
-        if (isset($pageAlternateContentMap[$page->id])) {
-          $shouldWriteAlternate = true;
-        }
-        if (isset($item->duplicate)) {
-          // load the node we are duplicating with support for the same map needed for page loading
-          if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
-            if (isset($itemMap[$item->duplicate])) {
-              $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+          } else {
+            // Pathauto is off, or user has overridden: use client-provided slug or generate from title
+            if (isset($item->slug) && $item->slug != '') {
+              $page->slug = $normalizeOutlineSlug($item->slug, $page, false);
+            } else {
+              $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
             }
           }
-          if (!$nodeToDuplicate) {
-            return array(
-              '__failed' => array(
-                'status' => 400,
-                'message' => 'invalid duplicate source',
-              )
+          // verify this exists, front end could have set what they wanted
+          // or it could have just been renamed
+          // if it doesn't exist currently make sure the name is unique
+          if (!$site->loadNode($page->id)) {
+            $site->recurseCopy(
+                HAXCMS_ROOT . '/system/boilerplate/page/default',
+                $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+            );
+            $pageAlternateContentMap[$page->id] = '';
+          }
+          // this would imply existing item, lets see if it moved or needs moved
+          else {
+              $moved = false;
+              foreach ($original as $key => $tmpItem) {
+                  // see if this is something moving as opposed to brand new
+                  if (
+                      $tmpItem->id == $page->id &&
+                      $tmpItem->slug != ''
+                  ) {
+                      // core support for automatically managing paths to make them nice
+                      if ($pathautoEnabled && !$overridePathauto) {
+                          $moved = true;
+                          $page->slug = $normalizeOutlineSlug(
+                            $GLOBALS['HAXCMS']->cleanTitle($page->title),
+                            $page,
+                            true
+                          );
+                      }
+                      else if ($tmpItem->slug != $page->slug) {
+                          $moved = true;
+                          $page->slug = $normalizeOutlineSlug($page->slug, $page, false);
+                      }
+                  }
+              }
+              // it wasn't moved and it doesn't exist... let's fix that
+              // this is beyond an edge case
+              if (
+                  !$moved &&
+                  !file_exists($siteDirectory . '/' . $page->location)
+              ) {
+                  $pAuto = false;
+                  if ($pathautoEnabled && !$overridePathauto) {
+                    $pAuto = true;
+                  }
+                  $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
+                  $page->location = 'pages/' . $page->id . '/index.html';
+                  $page->slug = $tmpTitle;
+                  $site->recurseCopy(
+                      HAXCMS_ROOT . '/system/boilerplate/page/default',
+                      $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                  );
+                  $pageAlternateContentMap[$page->id] = '';
+              }
+          }
+          if (!isset($page->slug) || !is_string($page->slug) || $page->slug == '') {
+              $page->slug = $normalizeOutlineSlug($cleanTitle, $page, true);
+          }
+          $safeLocationMap[$page->id] = $page->location;
+          // check for any metadata keys that did come over
+          if (isset($item->metadata) && (is_object($item->metadata) || is_array($item->metadata))) {
+            // Security (SEC-SANITIZE): route client metadata through the same
+            // per-field sanitisation saveNode applies instead of mass-assigning
+            SanitizeContent::applyPageMetadata(
+              $page,
+              $item->metadata,
+              $GLOBALS['HAXCMS']->getThemes()
             );
           }
-          $content = $site->getPageContent($nodeToDuplicate);
-          if (!$this->isLikelyHtmlContent($content)) {
-            return array(
-              '__failed' => array(
-                'status' => 400,
-                'message' => 'invalid duplicate content',
-              )
-            );
+          // safety check for new things
+          if (!isset($page->metadata->created)) {
+              $page->metadata->created = time();
+              $page->metadata->images = array();
+              $page->metadata->videos = array();
           }
-          // write it to the file system
-          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
-          $bytes = $page->writeLocation(
-            $alternateContent,
-            HAXCMS_ROOT .
-            '/' .
-            $GLOBALS['HAXCMS']->sitesDirectory .
-            '/' .
-            $site->manifest->metadata->site->name .
-            '/'
-          );
-          if ($bytes === false) {
-            return array(
-              '__failed' => array(
-                'status' => 500,
-                'message' => 'failed to write',
-              )
-            );
+          // always update at this time
+          $page->metadata->updated = time();
+          if ($site->loadNode($page->id)) {
+              $site->updateNode($page, false);
+              $pendingPersist = true;
+              // what per-item saving had just written and rebuilt from
+              $savedItems = $site->manifest->items;
+          } else {
+              $site->manifest->addItem($page);
           }
-          $shouldWriteAlternate = true;
         }
-        // contents that were shipped across, and not null, take priority over a dup request
-        if (isset($item->contents) && $item->contents && $item->contents != '') {
-          if (!$this->isLikelyHtmlContent($item->contents)) {
-            return array(
-              '__failed' => array(
-                'status' => 400,
-                'message' => 'invalid page contents',
-              )
-            );
+        // siblings that share an order are told apart by their position in
+        // the manifest; keep the order the request sent them in (the order
+        // the outline showed), so a tie never depends on how the save ran.
+        // Only sent siblings that share a parent and an order move, and only
+        // between the slots they already hold, so saves without ties write
+        // exactly what they always did
+        $requested = array();
+        foreach ($items as $position => $sent) {
+          $sentId = isset($itemMap[$sent->id]) ? $itemMap[$sent->id] : $sent->id;
+          if (!isset($requested[$sentId])) {
+            $requested[$sentId] = $position;
           }
-          // write it to the file system
-          $alternateContent = SanitizeContent::sanitizeHTMLForStorage($item->contents);
-          $bytes = $page->writeLocation(
-            $alternateContent,
-            HAXCMS_ROOT .
-            '/' .
-            $GLOBALS['HAXCMS']->sitesDirectory .
-            '/' .
-            $site->manifest->metadata->site->name .
-            '/'
-          );
-          if ($bytes === false) {
-            return array(
-              '__failed' => array(
-                'status' => 500,
-                'message' => 'failed to write',
-              )
-            );
+        }
+        $tied = array();
+        foreach ($site->manifest->items as $slot => $manifestItem) {
+          if (!isset($requested[$manifestItem->id])) {
+            continue;
           }
-          $shouldWriteAlternate = true;
+          $tieKey = (string) $manifestItem->parent . "\0" . (string) $manifestItem->order;
+          $tied[$tieKey][] = $slot;
         }
-        if ($shouldWriteAlternate) {
-          $site->writePageAlternateFormats($page, $alternateContent);
+        foreach ($tied as $slots) {
+          if (count($slots) < 2) {
+            continue;
+          }
+          $group = array();
+          foreach ($slots as $slot) {
+            $group[] = $site->manifest->items[$slot];
+          }
+          usort($group, function ($a, $b) use ($requested) {
+            return $requested[$a->id] <=> $requested[$b->id];
+          });
+          foreach ($slots as $k => $slot) {
+            $site->manifest->items[$slot] = $group[$k];
+          }
         }
-        // #3043: rebuild page.metadata.files from a content path-scan so
-        // the uuid set stays in sync. If content was just written, scan that;
-        // otherwise read the current on-disk content so moved pages keep
-        // their uuid refs and legacy object-shape entries self-heal.
-        $scanContent = $shouldWriteAlternate ? $alternateContent : '';
-        if ($scanContent === '' && method_exists($site, 'getPageContent')) {
-          $scanContent = (string) $site->getPageContent($page);
-        }
-        FileContentScanner::rebuildPageFilesUuids($site, $page, $scanContent);
-      }
-      $items = $this->rawParams['items'];
-      // now, we can finally delete as content operations have finished
-      foreach ($items as $key => $item) {
-        // verify if we were told to delete this item via flag not in the real spec
-        if (isset($item->delete) && $item->delete == TRUE) {
+        // checkpoint: write the structure once here, as per-item saving had
+        // it by this point, so a failure in the content or delete phase
+        // below leaves the same site.json and feeds behind
+        $flushPending();
+        // process any duplicate / contents requests we had now that structure is sane
+        // including potentially duplication of material from something
+        // we are about to act on and now that we have the map
+        $items = $this->rawParams['items'];
+        foreach ($items as $key => $item) {
           // load the item, or the item as built out of the itemMap
           // since we reset the UUID on creation
           if (!($page = $site->loadNode($item->id))) {
@@ -400,17 +337,172 @@ trait OperationsRouteSaveOutline {
             }
           }
           if (!$page) {
-            continue;
+            $flushPending();
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid page reference',
+              )
+            );
           }
-          $site->deleteNode($page);
-          $site->gitCommit(
-            'Page deleted: ' . $page->title . ' (' . $page->id . ')'
-          );
+          $expectedLocation = null;
+          if (isset($safeLocationMap[$page->id]) && $safeLocationMap[$page->id]) {
+            $expectedLocation = $safeLocationMap[$page->id];
+          } else {
+            $expectedLocation = $this->normalizeOutlineLocation($page->location);
+          }
+          if (!$expectedLocation) {
+            $flushPending();
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid page location',
+              )
+            );
+          }
+          // location is backend-controlled based on page id, ignore client input
+          if (!$this->getValidatedOutlineWriteTarget($siteDirectory, $expectedLocation)) {
+            $flushPending();
+            return array(
+              '__failed' => array(
+                'status' => 400,
+                'message' => 'invalid write target',
+              )
+            );
+          }
+          $page->location = $expectedLocation;
+          $alternateContent = '';
+          $shouldWriteAlternate = false;
+          if (isset($pageAlternateContentMap[$page->id])) {
+            $shouldWriteAlternate = true;
+          }
+          if (isset($item->duplicate)) {
+            // load the node we are duplicating with support for the same map needed for page loading
+            if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
+              if (isset($itemMap[$item->duplicate])) {
+                $nodeToDuplicate = $site->loadNode($itemMap[$item->duplicate]);
+              }
+            }
+            if (!$nodeToDuplicate) {
+              $flushPending();
+              return array(
+                '__failed' => array(
+                  'status' => 400,
+                  'message' => 'invalid duplicate source',
+                )
+              );
+            }
+            $content = $site->getPageContent($nodeToDuplicate);
+            if (!$this->isLikelyHtmlContent($content)) {
+              $flushPending();
+              return array(
+                '__failed' => array(
+                  'status' => 400,
+                  'message' => 'invalid duplicate content',
+                )
+              );
+            }
+            // write it to the file system
+            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($content);
+            $bytes = $page->writeLocation(
+              $alternateContent,
+              HAXCMS_ROOT .
+              '/' .
+              $GLOBALS['HAXCMS']->sitesDirectory .
+              '/' .
+              $site->manifest->metadata->site->name .
+              '/'
+            );
+            if ($bytes === false) {
+              $flushPending();
+              return array(
+                '__failed' => array(
+                  'status' => 500,
+                  'message' => 'failed to write',
+                )
+              );
+            }
+            $shouldWriteAlternate = true;
+          }
+          // contents that were shipped across, and not null, take priority over a dup request
+          if (isset($item->contents) && $item->contents && $item->contents != '') {
+            if (!$this->isLikelyHtmlContent($item->contents)) {
+              $flushPending();
+              return array(
+                '__failed' => array(
+                  'status' => 400,
+                  'message' => 'invalid page contents',
+                )
+              );
+            }
+            // write it to the file system
+            $alternateContent = SanitizeContent::sanitizeHTMLForStorage($item->contents);
+            $bytes = $page->writeLocation(
+              $alternateContent,
+              HAXCMS_ROOT .
+              '/' .
+              $GLOBALS['HAXCMS']->sitesDirectory .
+              '/' .
+              $site->manifest->metadata->site->name .
+              '/'
+            );
+            if ($bytes === false) {
+              $flushPending();
+              return array(
+                '__failed' => array(
+                  'status' => 500,
+                  'message' => 'failed to write',
+                )
+              );
+            }
+            $shouldWriteAlternate = true;
+          }
+          if ($shouldWriteAlternate) {
+            $site->writePageAlternateFormats($page, $alternateContent);
+          }
+          // #3043: rebuild page.metadata.files from a content path-scan so
+          // the uuid set stays in sync. If content was just written, scan that;
+          // otherwise read the current on-disk content so moved pages keep
+          // their uuid refs and legacy object-shape entries self-heal.
+          $scanContent = $shouldWriteAlternate ? $alternateContent : '';
+          if ($scanContent === '' && method_exists($site, 'getPageContent')) {
+            $scanContent = (string) $site->getPageContent($page);
+          }
+          FileContentScanner::rebuildPageFilesUuids($site, $page, $scanContent);
         }
+        $items = $this->rawParams['items'];
+        // now, we can finally delete as content operations have finished
+        foreach ($items as $key => $item) {
+          // verify if we were told to delete this item via flag not in the real spec
+          if (isset($item->delete) && $item->delete == TRUE) {
+            // load the item, or the item as built out of the itemMap
+            // since we reset the UUID on creation
+            if (!($page = $site->loadNode($item->id))) {
+              if (isset($itemMap[$item->id])) {
+                $page = $site->loadNode($itemMap[$item->id]);
+              }
+            }
+            if (!$page) {
+              continue;
+            }
+            $site->deleteNode($page);
+            $site->gitCommit(
+              'Page deleted: ' . $page->title . ' (' . $page->id . ')'
+            );
+          }
+        }
+      } catch (Throwable $e) {
+        try {
+          $flushPending();
+        } catch (Throwable $flushError) {
+          // the original failure is the one to report
+        }
+        throw $e;
       }
       $site->manifest->save();
       // now, we need to look for orphans if we deleted anything
       $orphanCheck = $site->manifest->items;
+      $orphansRescued = false;
       foreach ($orphanCheck as $key => $item) {
         // just to be safe..
         if ($page = $site->loadNode($item->id)) {
@@ -419,9 +511,18 @@ trait OperationsRouteSaveOutline {
             $page->parent = null;
             // force to bottom of things while still being in old order if lots of things got axed
             $page->order = (int)$page->order + count($site->manifest->items) - 1;
-            $site->updateNode($page);
+            // in memory only: the save and rebuild below cover every orphan
+            $site->updateNode($page, false);
+            $orphansRescued = true;
           }
         }
+      }
+      // per-item saving wrote site.json and rebuilt the feeds after every
+      // rescued orphan; doing that once leaves the same feeds (and service
+      // worker, which hashes site.json) if rebuildManagedFiles() below fails
+      if ($orphansRescued) {
+        $site->manifest->save(false);
+        $site->updateAlternateFormats();
       }
       $site->manifest->metadata->site->updated = time();
       $site->manifest->save();
