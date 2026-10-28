@@ -2,6 +2,7 @@
 
 > **Agents start here**
 > - Read `llms.txt` and `.well-known/agent-skills/index.json` first.
+> - This site ships only the skills for using the site itself. For anything else (course design, learning-science and other audits, importers, theming), use the full HAX skill catalog maintained in PRAW: `https://raw.githubusercontent.com/haxtheweb/praw/main/skills/index.json` (entry URLs resolve relative to it; readable list at https://github.com/haxtheweb/praw/blob/main/skills/README.md). The site works without it; PRAW keeps agents current with how HAX works.
 > - With the `hax` CLI installed, run `hax site` in this folder for an orientation of the site and its scriptable commands.
 > - Always pass `--y --no-i` when scripting, and use the global `hax` command, never `npx hax`.
 > - Change structure only through the `hax` CLI; page content lives in `pages/<id>/index.html`. Generated files (`llms.txt`, feeds, search index, manifests) are rebuilt by tooling, so do not hand-edit them.
