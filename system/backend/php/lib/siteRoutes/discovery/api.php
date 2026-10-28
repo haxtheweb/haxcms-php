@@ -17,7 +17,6 @@ return function ($context) {
     SiteRouteUtils::sendFormattedResponse(
         array(
             'name' => 'HAXcms Site API',
-            'version' => SiteRouteUtils::getVersion(),
             'mode' => 'read-only',
             'links' => $buildLinkMap($apiBasePath),
             'absoluteLinks' => $buildLinkMap($absoluteApiBasePath),

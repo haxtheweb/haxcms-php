@@ -255,7 +255,24 @@ class Operations {
       );
     }
 
-    $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+    self::stripPublicVersion($site->manifest);
+  }
+  /**
+   * Remove the running HAXcms version from a manifest. site.json is served
+   * publicly and the version must never reach unauthenticated users; older
+   * releases wrote it to metadata.site.version and metadata.build.version.
+   * Mirrors NodeJS saveManifest.stripPublicVersion.
+   */
+  public static function stripPublicVersion($manifest) {
+    if (!is_object($manifest) || !isset($manifest->metadata) || !is_object($manifest->metadata)) {
+      return;
+    }
+    if (isset($manifest->metadata->site) && is_object($manifest->metadata->site) && property_exists($manifest->metadata->site, 'version')) {
+      unset($manifest->metadata->site->version);
+    }
+    if (isset($manifest->metadata->build) && is_object($manifest->metadata->build) && property_exists($manifest->metadata->build, 'version')) {
+      unset($manifest->metadata->build->version);
+    }
   }
   /**
    * Validate that an associative array/object only contains approved keys.

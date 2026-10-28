@@ -43,8 +43,8 @@ trait OperationsRouteCreateSite {
       // support for build info. the details used to actually create this site originally
       if (isset($this->params['build'])) {
         $build = new stdClass();
-        // version of the platform used when originally created
-        $build->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+        // the platform version is intentionally not recorded: site.json is
+        // public and the running version must not be shown to visitors
         // course, website, portfolio, etc
         $build->structure = $this->params['build']['structure'];
         // TYPE of structure we are creating

@@ -17,7 +17,7 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  *   - happy path: theme from the registry, description strip_tags, license
  *     normalization, platform scaffold, settings defaults, real manifest
  *     save + first git commit, response shape
- *   - build object passthrough (structure/type/version, items stripped) and
+ *   - build object passthrough (structure/type, no version, items stripped) and
  *     site.domain forwarded to loadSite
  *   - from-skeleton: unresolved machine name -> 400; resolved skeleton ->
  *     trusted platform/theme/settings/license/description/logo applied
@@ -296,7 +296,8 @@ class OperationsCreateSiteTest extends TestCase
         // build metadata stored on the schema item, item replication stripped
         $this->assertSame('course', $schema->metadata->build->structure);
         $this->assertSame('test', $schema->metadata->build->type);
-        $this->assertSame('0.0.0-test', $schema->metadata->build->version);
+        // the platform version is not recorded in the public site.json
+        $this->assertFalse(property_exists($schema->metadata->build, 'version'));
         $this->assertFalse(isset($schema->metadata->build->items));
 
         // domain + build forwarded to loadSite

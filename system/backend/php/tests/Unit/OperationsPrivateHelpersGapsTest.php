@@ -120,7 +120,8 @@ class OperationsPrivateHelpersGapsTest extends TestCase
         $this->assertSame('item-1', $site->manifest->metadata->site->homePageId);
         $this->assertTrue($site->manifest->metadata->site->settings->sw);
         $this->assertFalse($site->manifest->metadata->site->settings->forceUpgrade);
-        $this->assertSame('0.0.0-test', $site->manifest->metadata->site->version);
+        // the HAXcms version is never written to the public site.json
+        $this->assertFalse(property_exists($site->manifest->metadata->site, 'version'));
     }
 
     public function testApplyScopedDetailsFromFlatParamsClearsInvalidHomePage(): void

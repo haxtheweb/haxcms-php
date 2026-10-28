@@ -63,8 +63,10 @@ trait OperationsRouteSaveManifest {
         $site->manifest->description = strip_tags(
             $this->params['manifest']['site']['manifest-description']
         );
-        // store version data here so we know where we were when last globally saved
-        $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
+        // the running HAXcms version is never written to site.json: the file is
+        // public and the version must not be shown to unauthenticated users.
+        // Scrub values older saves left behind.
+        Operations::stripPublicVersion($site->manifest);
         $site->manifest->metadata->site->domain = filter_var(
             $this->params['manifest']['site']['manifest-metadata-site-domain'],
             FILTER_SANITIZE_URL

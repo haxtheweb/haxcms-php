@@ -226,7 +226,8 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('Legacy Form Title', $result->title);
         $this->assertSame('Legacy description', $result->description);
         $this->assertSame('cc-by', $result->license);
-        $this->assertSame('0.0.0-test', $result->metadata->site->version);
+        // the HAXcms version is never written to the public site.json
+        $this->assertFalse(property_exists($result->metadata->site, 'version'));
         $this->assertSame('https://new.example.com', $result->metadata->site->domain);
         // scheme-less values pass through sanitizeURLValue unchanged
         $this->assertSame('files/logo.png', $result->metadata->site->logo);
@@ -276,13 +277,27 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('Legacy Form Title', $persisted->title);
         $this->assertSame('Legacy description', $persisted->description);
         $this->assertSame('cc-by', $persisted->license);
-        $this->assertSame('0.0.0-test', $persisted->metadata->site->version);
+        $this->assertFalse(property_exists($persisted->metadata->site, 'version'));
         $this->assertSame('https://new.example.com', $persisted->metadata->site->domain);
         $this->assertSame(array('hax', 'test'), $persisted->metadata->site->tags);
         $this->assertSame('item-uuid-1', $persisted->metadata->site->homePageId);
         $this->assertSame('--simple-colors-default-theme-grey-7', $persisted->metadata->theme->variables->cssVariable);
         $this->assertSame('expert', $persisted->metadata->platform->audience);
         $this->assertSame('Test Author', $persisted->metadata->author->name);
+    }
+
+    public function testStripPublicVersionRemovesVersionsOlderSavesWrote(): void
+    {
+        $manifest = json_decode('{"metadata":{"site":{"name":"s","version":"26.8.1"},"build":{"structure":"course","type":"docx import","version":"26.8.1"}}}');
+        Operations::stripPublicVersion($manifest);
+        $this->assertFalse(property_exists($manifest->metadata->site, 'version'));
+        $this->assertFalse(property_exists($manifest->metadata->build, 'version'));
+        // provenance the editor still uses is kept
+        $this->assertSame('docx import', $manifest->metadata->build->type);
+        $this->assertSame('s', $manifest->metadata->site->name);
+        // tolerates manifests without those blocks
+        Operations::stripPublicVersion(json_decode('{"metadata":{}}'));
+        Operations::stripPublicVersion(null);
     }
 }
 
