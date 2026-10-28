@@ -110,11 +110,11 @@ class CommitContext
 
     public static function createTxn()
     {
-        $bytes = random_bytes(self::TXN_LENGTH);
+        // random_int is uniform (no modulo bias), matching nodejs crypto.randomInt
         $alphabet = self::TXN_ALPHABET;
         $txn = '';
         for ($i = 0; $i < self::TXN_LENGTH; $i++) {
-            $txn .= $alphabet[ord($bytes[$i]) % strlen($alphabet)];
+            $txn .= $alphabet[random_int(0, strlen($alphabet) - 1)];
         }
         return $txn;
     }
