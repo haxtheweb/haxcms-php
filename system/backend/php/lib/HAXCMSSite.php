@@ -9,6 +9,9 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSSite
 {
+    // Full HAX agent skill catalog (agentskills.io index) maintained in PRAW.
+    // Linked from every site's llms.txt for skills the site does not ship.
+    const HAX_SKILL_CATALOG_URL = 'https://raw.githubusercontent.com/haxtheweb/praw/main/skills/index.json';
     public $name;
     public $manifest;
     public $directory;
@@ -1299,6 +1302,10 @@ class HAXCMSSite
       $lines[] = '- [Atom feed](' . $this->getLLMSResourceURL($domain, 'atom.xml') . '): Site updates in Atom format.';
       $lines[] = '- [Sitemap](' . $this->getLLMSResourceURL($domain, 'sitemap.xml') . '): URL-level discovery map for the published site.';
       $lines[] = '- [Agent skills](' . $this->getLLMSResourceURL($domain, '.well-known/agent-skills/index.json') . '): Agent Skills discovery index (agentskills.io v0.2.0) listing skills that teach an agent how to read, author, audit, and remix this site.';
+      // the site ships only skills for using the site; the full, living catalog
+      // (course design, learning-science audits, importers, theming...) is PRAW.
+      // Mirrors NodeJS HAXCMS.getLLMSTxt.
+      $lines[] = '- [HAX skill catalog](' . self::HAX_SKILL_CATALOG_URL . '): Every HAX agent skill, maintained in PRAW; fetch skills this site does not ship from here.';
       return implode("\n", $lines) . "\n";
     }
     /**
