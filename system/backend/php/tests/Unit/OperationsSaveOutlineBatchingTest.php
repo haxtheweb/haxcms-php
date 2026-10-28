@@ -179,7 +179,9 @@ class OperationsSaveOutlineBatchingTest extends TestCase
     /** site.json with the wall-clock fields blanked so runs compare equal */
     private function normalizedSiteJson(): string
     {
-        $decoded = json_decode(file_get_contents($this->tmpRoot . '/' . $this->siteName . '/site.json'));
+        // as arrays: array_walk_recursive does not descend into objects, so
+        // decoding to objects left the times in and the test flaky
+        $decoded = json_decode(file_get_contents($this->tmpRoot . '/' . $this->siteName . '/site.json'), true);
         array_walk_recursive($decoded, function (&$v, $k) {
             if ($k === 'updated' || $k === 'created') {
                 $v = 0;

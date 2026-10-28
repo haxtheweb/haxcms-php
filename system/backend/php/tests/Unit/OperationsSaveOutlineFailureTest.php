@@ -6,12 +6,14 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  * saveOutline failures (haxtheweb/issues#3114). Mirrors haxcms-nodejs
  * test/unit/save-outline-failure-parity.test.cjs.
  *
- * Saving per item used to write site.json as each existing page was
- * updated, so whatever failed part-way through a request, the structure as
- * far as it got was already saved. Batching the writes must not change that:
- *   - a crash or rejection in the content or delete phase leaves the whole
- *     new structure saved (written once, as a checkpoint, after the
- *     structure pass)
+ * Saving per item used to write site.json as each EXISTING page was
+ * updated; a new page was only added in memory and written by a later save.
+ * So whatever failed part-way through a request, site.json held the outline
+ * as of the last existing page. Batching the writes must not change that:
+ *   - a crash or rejection in the content or delete phase leaves the
+ *     structure up to the last existing page saved (written once, as a
+ *     checkpoint, after the structure pass), without the new pages sent
+ *     after it, exactly as on master
  *   - a crash during the structure pass leaves the pages before it saved
  * and siblings that share an order keep the order the request sent them in.
  */
@@ -200,6 +202,17 @@ class OperationsSaveOutlineFailureTest extends TestCase
         return $out;
     }
 
+    // what a failure after the structure pass leaves on master: every
+    // existing page as sent; D and E are new pages after the last existing
+    // page (B), so per-item saving had not written them yet
+    private $editedUpToLastExisting = array(
+        'C edited<root',
+        'A edited<root',
+        'A1 edited<A edited',
+        'A2 edited<A edited',
+        'B edited<root',
+    );
+
     private $edited = array(
         'C edited<root',
         'A edited<root',
@@ -218,7 +231,7 @@ class OperationsSaveOutlineFailureTest extends TestCase
         $this->assertSame($this->edited, $this->savedTree());
     }
 
-    public function testContentPhaseCrashLeavesTheNewStructureSaved(): void
+    public function testContentPhaseCrashLeavesTheStructureMasterLeft(): void
     {
         $site = $this->buildSite();
         $site->throwOnAlternate = 2;
@@ -229,20 +242,20 @@ class OperationsSaveOutlineFailureTest extends TestCase
             $thrown = $e;
         }
         $this->assertNotNull($thrown, 'the failure is reported');
-        $this->assertSame($this->edited, $this->savedTree());
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
     }
 
-    public function testContentPhaseRejectionLeavesTheNewStructureSaved(): void
+    public function testContentPhaseRejectionLeavesTheStructureMasterLeft(): void
     {
         $this->buildSite();
         $items = $this->editRequest();
         $items[4]['contents'] = 'just text, no markup';
         $result = $this->runOutline($items);
         $this->assertSame(400, $result['__failed']['status']);
-        $this->assertSame($this->edited, $this->savedTree());
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
     }
 
-    public function testDeleteCrashLeavesTheNewStructureSaved(): void
+    public function testDeleteCrashLeavesTheStructureMasterLeft(): void
     {
         $site = $this->buildSite();
         $site->throwOnDelete = true;
@@ -255,7 +268,7 @@ class OperationsSaveOutlineFailureTest extends TestCase
             $thrown = $e;
         }
         $this->assertNotNull($thrown, 'the failure is reported');
-        $this->assertSame($this->edited, $this->savedTree());
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
     }
 
     public function testStructureCrashLeavesThePagesBeforeItSaved(): void
@@ -291,6 +304,92 @@ class OperationsSaveOutlineFailureTest extends TestCase
         ));
         $this->assertArrayNotHasKey('__failed', $result);
         $this->assertSame(array('A<root', 'A2<A', 'A1<A', 'C<root', 'B<root'), $this->savedTree());
+    }
+
+    /** the edit plus a duplicate request as the last item */
+    private function withDuplicate(string $duplicate): array
+    {
+        $items = $this->editRequest();
+        $items[] = array('id' => 'client-copy', 'title' => 'Copy', 'parent' => null, 'indent' => 0, 'order' => 4,
+            'metadata' => array(), 'duplicate' => $duplicate, 'new' => true);
+        return $items;
+    }
+
+    /** a page whose index.html cannot be written: a directory sits in its place */
+    private function makeUnwritable(string $pageId): void
+    {
+        $file = $this->tmpRoot . '/' . $this->siteName . '/pages/' . $pageId . '/index.html';
+        unlink($file);
+        mkdir($file);
+    }
+
+    public function testDuplicateOfMissingPageIsA400ThatLeavesTheStructureMasterLeft(): void
+    {
+        $this->buildSite();
+        $result = $this->runOutline($this->withDuplicate('missing'));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid duplicate source', $result['__failed']['message']);
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+    }
+
+    public function testDuplicateOfPageWithoutHtmlIsA400ThatLeavesTheStructureMasterLeft(): void
+    {
+        $this->buildSite();
+        file_put_contents($this->tmpRoot . '/' . $this->siteName . '/pages/b/index.html', 'plain text, no markup');
+        $result = $this->runOutline($this->withDuplicate('b'));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid duplicate content', $result['__failed']['message']);
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+    }
+
+    // PHP checks that a page's index.html is an existing file before it
+    // writes contents or a duplicate there ("invalid write target"); that
+    // early return leaves the same structure as the others
+    public function testUnwritableContentsTargetIsA400ThatLeavesTheStructureMasterLeft(): void
+    {
+        $this->buildSite();
+        // A2 is sent with new contents, part-way through the request
+        $this->makeUnwritable('a2');
+        $result = $this->runOutline($this->editRequest());
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid write target', $result['__failed']['message']);
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+    }
+
+    public function testUnwritableDuplicateTargetIsA400ThatLeavesTheStructureMasterLeft(): void
+    {
+        $this->buildSite();
+        // C, the first page sent, is a duplicate of B into a location that
+        // cannot be written
+        $items = $this->editRequest();
+        $items[0]['duplicate'] = 'b';
+        $this->makeUnwritable('c');
+        $result = $this->runOutline($items);
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid write target', $result['__failed']['message']);
+        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+    }
+
+    public function testFailedSiteJsonWriteIsNotRetried(): void
+    {
+        $site = $this->buildSite();
+        $siteJson = $this->tmpRoot . '/' . $this->siteName . '/site.json';
+        $before = file_get_contents($siteJson);
+        $failing = new FailingSaveManifest();
+        foreach (get_object_vars($site->manifest) as $k => $v) {
+            $failing->$k = $v;
+        }
+        $site->manifest = $failing;
+        $thrown = null;
+        try {
+            $this->runOutline($this->editRequest());
+        } catch (Throwable $e) {
+            $thrown = $e;
+        }
+        $this->assertNotNull($thrown, 'the failure is reported');
+        // per-item saving failed on its first write and wrote nothing else
+        $this->assertSame(1, FailingSaveManifest::$saves, 'the failed write is not retried');
+        $this->assertSame($before, file_get_contents($siteJson));
     }
 }
 
@@ -360,5 +459,17 @@ class FailureTestSite extends HAXCMSSite
             throw new Exception('disk failure');
         }
         return parent::recurseCopy($src, $dst, $skip);
+    }
+}
+
+/** manifest whose site.json write always fails */
+class FailingSaveManifest extends JSONOutlineSchema
+{
+    public static $saves = 0;
+
+    public function save($reorder = true)
+    {
+        self::$saves++;
+        throw new Exception('disk failure');
     }
 }

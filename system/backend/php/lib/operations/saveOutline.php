@@ -105,12 +105,28 @@ trait OperationsRouteSaveOutline {
       // per request instead of once per item. $pendingPersist tracks whether
       // an early error return must still flush so the persisted site.json and
       // generated files match what per-item saving used to leave behind.
+      //
+      // Per-item saving wrote site.json and rebuilt the feeds only when an
+      // EXISTING page was updated (a new page was added in memory and saved
+      // later), so after any point in the structure pass site.json and the
+      // feeds held the items as of the last existing page. $savedItems is
+      // that array; flushing writes it, not whatever is in memory, so the
+      // checkpoint and every failure leave exactly what per-item saving left.
       $pendingPersist = false;
-      $flushPending = function () use ($site, &$pendingPersist) {
+      $savedItems = null;
+      $flushPending = function () use ($site, &$pendingPersist, &$savedItems) {
         if ($pendingPersist) {
-          $site->manifest->save(false);
-          $site->updateAlternateFormats();
+          // attempted once, like per-item saving: the error handler does
+          // not retry a failed write, nor rebuild the feeds over it
           $pendingPersist = false;
+          $live = $site->manifest->items;
+          $site->manifest->items = $savedItems;
+          try {
+            $site->manifest->save(false);
+            $site->updateAlternateFormats();
+          } finally {
+            $site->manifest->items = $live;
+          }
         }
       };
       // a failure part-way through must not lose what per-item saving would
@@ -262,13 +278,18 @@ trait OperationsRouteSaveOutline {
           if ($site->loadNode($page->id)) {
               $site->updateNode($page, false);
               $pendingPersist = true;
+              // what per-item saving had just written and rebuilt from
+              $savedItems = $site->manifest->items;
           } else {
               $site->manifest->addItem($page);
           }
         }
         // siblings that share an order are told apart by their position in
         // the manifest; keep the order the request sent them in (the order
-        // the outline showed), so a tie never depends on how the save ran
+        // the outline showed), so a tie never depends on how the save ran.
+        // Only sent siblings that share a parent and an order move, and only
+        // between the slots they already hold, so saves without ties write
+        // exactly what they always did
         $requested = array();
         foreach ($items as $position => $sent) {
           $sentId = isset($itemMap[$sent->id]) ? $itemMap[$sent->id] : $sent->id;
@@ -276,26 +297,33 @@ trait OperationsRouteSaveOutline {
             $requested[$sentId] = $position;
           }
         }
-        $before = array();
-        $manifestItems = array_values($site->manifest->items);
-        foreach ($manifestItems as $position => $manifestItem) {
-          $before[$manifestItem->id] = $position;
-        }
-        usort($manifestItems, function ($a, $b) use ($requested, $before) {
-          $ra = isset($requested[$a->id]) ? $requested[$a->id] : PHP_INT_MAX;
-          $rb = isset($requested[$b->id]) ? $requested[$b->id] : PHP_INT_MAX;
-          if ($ra !== $rb) {
-            return $ra <=> $rb;
+        $tied = array();
+        foreach ($site->manifest->items as $slot => $manifestItem) {
+          if (!isset($requested[$manifestItem->id])) {
+            continue;
           }
-          return $before[$a->id] <=> $before[$b->id];
-        });
-        $site->manifest->items = $manifestItems;
-        // checkpoint: write the structure once here, so a failure in the
-        // content or delete phase below leaves site.json as complete as
-        // per-item saving had it by this point
-        $site->manifest->save(false);
-        $site->updateAlternateFormats();
-        $pendingPersist = false;
+          $tieKey = (string) $manifestItem->parent . "\0" . (string) $manifestItem->order;
+          $tied[$tieKey][] = $slot;
+        }
+        foreach ($tied as $slots) {
+          if (count($slots) < 2) {
+            continue;
+          }
+          $group = array();
+          foreach ($slots as $slot) {
+            $group[] = $site->manifest->items[$slot];
+          }
+          usort($group, function ($a, $b) use ($requested) {
+            return $requested[$a->id] <=> $requested[$b->id];
+          });
+          foreach ($slots as $k => $slot) {
+            $site->manifest->items[$slot] = $group[$k];
+          }
+        }
+        // checkpoint: write the structure once here, as per-item saving had
+        // it by this point, so a failure in the content or delete phase
+        // below leaves the same site.json and feeds behind
+        $flushPending();
         // process any duplicate / contents requests we had now that structure is sane
         // including potentially duplication of material from something
         // we are about to act on and now that we have the map
@@ -474,6 +502,7 @@ trait OperationsRouteSaveOutline {
       $site->manifest->save();
       // now, we need to look for orphans if we deleted anything
       $orphanCheck = $site->manifest->items;
+      $orphansRescued = false;
       foreach ($orphanCheck as $key => $item) {
         // just to be safe..
         if ($page = $site->loadNode($item->id)) {
@@ -484,8 +513,16 @@ trait OperationsRouteSaveOutline {
             $page->order = (int)$page->order + count($site->manifest->items) - 1;
             // in memory only: the save and rebuild below cover every orphan
             $site->updateNode($page, false);
+            $orphansRescued = true;
           }
         }
+      }
+      // per-item saving wrote site.json and rebuilt the feeds after every
+      // rescued orphan; doing that once leaves the same feeds (and service
+      // worker, which hashes site.json) if rebuildManagedFiles() below fails
+      if ($orphansRescued) {
+        $site->manifest->save(false);
+        $site->updateAlternateFormats();
       }
       $site->manifest->metadata->site->updated = time();
       $site->manifest->save();
