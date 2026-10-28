@@ -9,6 +9,9 @@
  *     transparency
  *   - Dompdf: DeviceRGB / DeviceGray, FlateDecode with /DecodeParms
  *     /Predictor 15 (PNG row filters), /SMask for transparency
+ *   - Dompdf with ImageMagick installed: [/Indexed /DeviceRGB n lookup] at
+ *     1/2/4/8 bits (ImageMagick reduces few-colour PNGs to palettes); the
+ *     GitHub Actions runners have imagick, which is how CI caught this
  * plus a real Dompdf export -> import of a transparent PNG.
  *
  * Node parity: pdfToSemanticHtml.js decodes these through pdf.js + sharp.
@@ -82,7 +85,7 @@ class PdfImportRasterImagesTest extends TestCase
      * $smask: optional same shape, referenced as /SMask from the image.
      * $iccComponents: when set, the image uses [/ICCBased <profile>] with /N.
      */
-    private function buildPdf(array $image, $smask = null, $iccComponents = null)
+    private function buildPdf(array $image, $smask = null, $iccComponents = null, $lookupStream = null)
     {
         $objects = array();
         $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
@@ -101,6 +104,11 @@ class PdfImportRasterImagesTest extends TestCase
             $profile = 'not-a-real-icc-profile';
             $objects[$next] = '<< /N ' . $iccComponents . ' /Length ' . strlen($profile) . " >>\nstream\n" . $profile . "\nendstream";
             $dict = str_replace('/ColorSpace /ICC', '/ColorSpace [/ICCBased ' . $next . ' 0 R]', $dict);
+            $next++;
+        }
+        if ($lookupStream !== null) {
+            $objects[$next] = '<< /Length ' . strlen($lookupStream) . " >>\nstream\n" . $lookupStream . "\nendstream";
+            $dict = str_replace('LOOKUP_REF', $next . ' 0 R', $dict);
             $next++;
         }
         $objects[5] = rtrim($dict, " >") . $extra . ' /Length ' . strlen($image['data']) . " >>\nstream\n" . $image['data'] . "\nendstream";
@@ -231,12 +239,91 @@ class PdfImportRasterImagesTest extends TestCase
         $this->assertNear(array(220, 40, 40), $this->rgbAt($gd, 5, 15));
     }
 
+    // --- palettes and other bit depths ---------------------------------------
+
+    /** pack 1-bit samples MSB first, rows padded to a byte */
+    private function packBits(array $rows)
+    {
+        $out = '';
+        foreach ($rows as $row) {
+            foreach (str_split(str_pad($row, (int) (ceil(strlen($row) / 8) * 8), '0'), 8) as $byte) {
+                $out .= chr(bindec($byte));
+            }
+        }
+        return $out;
+    }
+
+    public function testDompdfImagickStyleOneBitIndexedPaletteWithSoftMask(): void
+    {
+        // what Dompdf writes for a two-colour transparent PNG when ImageMagick
+        // is installed: [/Indexed /DeviceRGB 1 <lookup stream>], 1 bit per
+        // pixel with PNG row filters, plus an 8-bit /SMask
+        $bits = array();
+        $alpha = '';
+        for ($y = 0; $y < 30; $y++) {
+            $bits[] = str_repeat('0', 20) . str_repeat('1', 20);
+            $alpha .= str_repeat("\x00", 20) . str_repeat("\xFF", 20);
+        }
+        list($gd) = $this->importOne($this->buildPdf(
+            array(
+                'dict' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors 1 /Columns 40 /BitsPerComponent 1>> /ColorSpace [ /Indexed /DeviceRGB 1 LOOKUP_REF ] /BitsPerComponent 1 >>',
+                'data' => gzcompress($this->filterRows($this->packBits($bits), 5)),
+            ),
+            array(
+                'dict' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors 1 /Columns 40 /BitsPerComponent 8>> /ColorSpace /DeviceGray /BitsPerComponent 8 >>',
+                'data' => gzcompress($this->filterRows($alpha, 40)),
+            ),
+            null,
+            "\x00\x00\x00\x1E\xA0\x3C"
+        ));
+        $this->assertNear(array(255, 255, 255), $this->rgbAt($gd, 5, 15), 3);
+        $this->assertNear(array(30, 160, 60), $this->rgbAt($gd, 35, 15));
+    }
+
+    public function testIndexedOverGrayWithHexStringLookup(): void
+    {
+        // 8-bit palette over DeviceGray, lookup written inline as a hex string
+        $samples = $this->halves(40, 30, "\x00", "\x01");
+        list($gd) = $this->importOne($this->buildPdf(array(
+            'dict' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace [/Indexed /DeviceGray 1 <20E0>] /BitsPerComponent 8 /Filter /FlateDecode >>',
+            'data' => gzcompress($samples),
+        )));
+        $this->assertNear(array(32, 32, 32), $this->rgbAt($gd, 5, 15));
+        $this->assertNear(array(224, 224, 224), $this->rgbAt($gd, 35, 15));
+    }
+
+    public function testOneBitGrayImports(): void
+    {
+        $bits = array();
+        for ($y = 0; $y < 30; $y++) {
+            $bits[] = str_repeat('0', 20) . str_repeat('1', 20);
+        }
+        list($gd) = $this->importOne($this->buildPdf(array(
+            'dict' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /FlateDecode >>',
+            'data' => gzcompress($this->packBits($bits)),
+        )));
+        $this->assertNear(array(0, 0, 0), $this->rgbAt($gd, 5, 15));
+        $this->assertNear(array(255, 255, 255), $this->rgbAt($gd, 35, 15));
+    }
+
+    public function testSixteenBitRgbImports(): void
+    {
+        $samples = $this->halves(40, 30, "\xDC\x00\x28\x00\x28\x00", "\x28\x00\x3C\x00\xDC\x00");
+        list($gd) = $this->importOne($this->buildPdf(array(
+            'dict' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceRGB /BitsPerComponent 16 /Filter /FlateDecode >>',
+            'data' => gzcompress($samples),
+        )));
+        $this->assertNear(array(220, 40, 40), $this->rgbAt($gd, 5, 15));
+        $this->assertNear(array(40, 60, 220), $this->rgbAt($gd, 35, 15));
+    }
+
     // --- unsupported encodings are skipped, never fatal ----------------------
 
     public function testUnsupportedRasterEncodingsAreSkipped(): void
     {
         $cases = array(
-            '16 bits per component' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceRGB /BitsPerComponent 16 /Filter /FlateDecode >>',
+            '4-bit RGB (no PNG equivalent)' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceRGB /BitsPerComponent 4 /Filter /FlateDecode >>',
+            'Lab' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace [/Lab << /WhitePoint [0.95 1 1.09] >>] /BitsPerComponent 8 /Filter /FlateDecode >>',
             'CMYK' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /FlateDecode >>',
             'Decode array' => '<< /Type /XObject /Subtype /Image /Width 40 /Height 30 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Decode [1 0 1 0 1 0] /Filter /FlateDecode >>',
         );
