@@ -1,3 +1,5 @@
+<!-- haxcms:managed:start -->
+<!-- HAXcms keeps everything from here to the managed:end marker current; edit outside it. -->
 # AGENTS.md - HAXcms Site Interface
 
 > **Agents start here**
@@ -379,3 +381,8 @@ A commit without this prefix is shown as an outside change. As an agent:
 - **Community**: Join HAX Discord at https://discord.gg/aCGxmRHEJP
 - **Documentation**: Visit https://haxtheweb.org/ for comprehensive guides
 - **Issues**: Report problems at https://github.com/haxtheweb/issues
+<!-- haxcms:managed:end -->
+
+## Site-specific notes
+
+Add guidance for agents about this particular site here. HAXcms updates only the managed block above and keeps everything outside it.
