@@ -289,6 +289,16 @@ class HAXCMSSiteManagedFilesTest extends TestCase
         $this->assertFileExists($this->siteDir() . '/service-worker.js');
     }
 
+    public function testRebuildNeverWritesThroughASymlinkedManagedFile(): void
+    {
+        $outside = $this->tmpRoot . '/outside-robots.txt';
+        file_put_contents($outside, "outside the site\n");
+        symlink($outside, $this->siteDir() . '/robots.txt');
+        $this->site->rebuildManagedFiles();
+        $this->assertSame("outside the site\n", file_get_contents($outside));
+        $this->assertTrue(is_link($this->siteDir() . '/robots.txt'));
+    }
+
     // ---- maybeUpgradeLegacyBootstrap ----
 
     public function testMaybeUpgradeLegacyBootstrapNoopsWhenIndexHtmlMissing(): void

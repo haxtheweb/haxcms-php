@@ -635,8 +635,8 @@ class HAXCMSSite
       // render each managed file in memory, merge it with the site's copy per
       // its policy, and write only when the result differs from what is on
       // disk; best-effort per file so one bad template never fails a save.
-      // The template is registered under its file name so Twig's name-based
-      // autoescape strategy matches the previous FilesystemLoader behavior.
+      // Twig's default autoescape ('html') applies exactly as it did with the
+      // previous FilesystemLoader; the file name is only the template key.
       foreach ($templates as $key => $location) {
           if (!isset($managedSourcePaths[$location])) {
               continue;
@@ -653,6 +653,10 @@ class HAXCMSSite
                   $twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader(array($location => $output)));
                   // Security (SEC-SANITIZE): per-format escaping of title/description
                   $output = $twig->render($location, SanitizeContent::managedTemplateVars($templateVars, $location));
+              }
+              // never write through a symlink (it could point outside the site)
+              if (is_link($destinationPath)) {
+                  continue;
               }
               $existing = $this->readManagedFileIfExists($siteDirectoryPath, $location);
               $next = ManagedFiles::apply($key, $existing, $output);

@@ -83,6 +83,23 @@ class ManagedFiles
     }
 
     /**
+     * Offset of the first occurrence of $marker at the start of a line, at or
+     * after $from; false when absent. Markers only count on their own line so
+     * that owner text quoting a marker mid-line is never mistaken for one.
+     */
+    private static function indexOfLineMarker($text, $marker, $from)
+    {
+        $index = strpos($text, $marker, $from);
+        while ($index !== false) {
+            if ($index === 0 || $text[$index - 1] === "\n") {
+                return $index;
+            }
+            $index = strpos($text, $marker, $index + 1);
+        }
+        return false;
+    }
+
+    /**
      * Locate the first complete managed block. Returns array(start, end) where
      * end is the offset just past the end marker, or null when there is none.
      */
@@ -92,15 +109,27 @@ class ManagedFiles
             return null;
         }
         $markers = self::MARKERS[$markersKey];
-        $start = strpos($text, $markers['start']);
+        $start = self::indexOfLineMarker($text, $markers['start'], 0);
         if ($start === false) {
             return null;
         }
-        $endMarker = strpos($text, $markers['end'], $start + strlen($markers['start']));
+        $endMarker = self::indexOfLineMarker($text, $markers['end'], $start + strlen($markers['start']));
         if ($endMarker === false) {
             return null;
         }
         return array($start, $endMarker + strlen($markers['end']));
+    }
+
+    /**
+     * Whether either marker of the pair appears anywhere in the text.
+     */
+    public static function hasAnyMarker($text, $markersKey)
+    {
+        if (!isset(self::MARKERS[$markersKey]) || !is_string($text)) {
+            return false;
+        }
+        $markers = self::MARKERS[$markersKey];
+        return strpos($text, $markers['start']) !== false || strpos($text, $markers['end']) !== false;
     }
 
     /**
@@ -122,7 +151,10 @@ class ManagedFiles
         if ($existingBlock !== null) {
             return substr($existing, 0, $existingBlock[0]) . $block . substr($existing, $existingBlock[1]);
         }
-        if ($legacy === 'whole') {
+        // an always-managed file is replaced only when it carries no marker at
+        // all; a damaged block (e.g. a deleted END line) means an owner has been
+        // editing it, so keep everything below a fresh block instead
+        if ($legacy === 'whole' && !self::hasAnyMarker($existing, $markersKey)) {
             return $rendered;
         }
         if ($legacy === 'hashes' && self::isKnownLegacyAgentsMd($existing)) {
@@ -132,57 +164,71 @@ class ManagedFiles
         return $block . "\n\n" . $existing;
     }
 
-    private static function isPlainObject($value)
-    {
-        return is_array($value) && ($value === array() || array_keys($value) !== range(0, count($value) - 1));
-    }
-
     /**
      * HAXcms owns the keys it renders; any other keys in the existing file are
      * kept. When the existing file adds nothing, the rendered text is returned
      * verbatim so formatting stays exactly as the boilerplate defines it.
+     * Decoded as objects (not assoc arrays) so {} stays {} and numeric-string
+     * keys stay object keys, matching NodeJS JSON.parse.
      */
     public static function mergeJson($existing, $rendered)
     {
         if ($existing === null) {
             return $rendered;
         }
-        $current = json_decode($existing, true);
-        $next = json_decode($rendered, true);
-        if (!self::isPlainObject($current) || !self::isPlainObject($next)) {
+        $current = json_decode($existing);
+        $next = json_decode($rendered);
+        if (!($current instanceof stdClass) || !($next instanceof stdClass)) {
             return $rendered;
         }
         $hasOwnerKeys = false;
-        $merged = array();
-        foreach ($next as $key => $value) {
+        $merged = new stdClass();
+        foreach (get_object_vars($next) as $key => $value) {
             if (
                 in_array($key, self::JSON_MERGE_NESTED_KEYS, true) &&
-                self::isPlainObject($value) &&
-                isset($current[$key]) &&
-                self::isPlainObject($current[$key])
+                $value instanceof stdClass &&
+                property_exists($current, $key) &&
+                $current->{$key} instanceof stdClass
             ) {
-                $nested = $value;
-                foreach ($current[$key] as $nestedKey => $nestedValue) {
-                    if (!array_key_exists($nestedKey, $value)) {
-                        $nested[$nestedKey] = $nestedValue;
+                $nested = clone $value;
+                foreach (get_object_vars($current->{$key}) as $nestedKey => $nestedValue) {
+                    if (!property_exists($value, $nestedKey)) {
+                        $nested->{$nestedKey} = $nestedValue;
                         $hasOwnerKeys = true;
                     }
                 }
-                $merged[$key] = $nested;
+                $merged->{$key} = $nested;
             } else {
-                $merged[$key] = $value;
+                $merged->{$key} = $value;
             }
         }
-        foreach ($current as $key => $value) {
-            if (!array_key_exists($key, $next)) {
-                $merged[$key] = $value;
+        foreach (get_object_vars($current) as $key => $value) {
+            if (!property_exists($next, $key)) {
+                $merged->{$key} = $value;
                 $hasOwnerKeys = true;
             }
         }
         if (!$hasOwnerKeys) {
             return $rendered;
         }
-        return json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+        return self::encodeJson($merged) . "\n";
+    }
+
+    /**
+     * JSON matching NodeJS JSON.stringify(value, null, 2): 2-space indent,
+     * unescaped slashes, unicode and line separators.
+     */
+    private static function encodeJson($value)
+    {
+        $json = json_encode(
+            $value,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS
+        );
+        // JSON_PRETTY_PRINT indents by 4; JSON strings never contain raw
+        // newlines, so every leading run of spaces is indentation
+        return preg_replace_callback('/^( +)/m', function ($match) {
+            return str_repeat(' ', intdiv(strlen($match[1]), 2));
+        }, $json);
     }
 
     /**
@@ -209,10 +255,22 @@ class ManagedFiles
     public static function getSecurityTxtExpires($existingText, $now = null)
     {
         $nowTs = ($now === null) ? time() : (int) $now;
-        if (is_string($existingText) && preg_match('/^Expires:\s*(\S+)\s*$/m', $existingText, $match)) {
+        // only a full UTC timestamp is reused (date-only values parse
+        // differently across runtimes), and only within the normal lifetime
+        // window (RFC 9116 advises staying under a year)
+        if (
+            is_string($existingText) &&
+            preg_match('/^Expires:\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s*$/m', $existingText, $match)
+        ) {
             $existingTs = strtotime($match[1]);
-            if ($existingTs !== false && ($existingTs - $nowTs) > self::SECURITY_TXT_REFRESH_DAYS * 86400) {
-                return $match[1];
+            if ($existingTs !== false) {
+                $remaining = $existingTs - $nowTs;
+                if (
+                    $remaining > self::SECURITY_TXT_REFRESH_DAYS * 86400 &&
+                    $remaining <= (self::SECURITY_TXT_LIFETIME_DAYS + 1) * 86400
+                ) {
+                    return $match[1];
+                }
             }
         }
         $expires = $nowTs + self::SECURITY_TXT_LIFETIME_DAYS * 86400;

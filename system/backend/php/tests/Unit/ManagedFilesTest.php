@@ -98,4 +98,40 @@ class ManagedFilesTest extends TestCase
         $this->assertSame('2027-04-26T00:00:00.000Z', ManagedFiles::getSecurityTxtExpires(null, $now));
         $this->assertSame('2027-04-26T00:00:00.000Z', ManagedFiles::getSecurityTxtExpires("Expires: garbage\n", $now));
     }
+
+    // shared with haxcms-nodejs (test/fixtures/managed-files/golden.json):
+    // both backends must produce exactly these outputs
+    private function golden()
+    {
+        return json_decode(file_get_contents(__DIR__ . '/fixtures/managed-files-golden.json'), true);
+    }
+
+    public function testGoldenBlockMerges(): void
+    {
+        foreach ($this->golden()['block'] as $case) {
+            $this->assertSame(
+                $case['expected'],
+                ManagedFiles::mergeBlock($case['existing'], $case['rendered'], $case['markers'], $case['legacy']),
+                $case['name']
+            );
+        }
+    }
+
+    public function testGoldenJsonMerges(): void
+    {
+        foreach ($this->golden()['json'] as $case) {
+            $this->assertSame($case['expected'], ManagedFiles::mergeJson($case['existing'], $case['rendered']), $case['name']);
+        }
+    }
+
+    public function testGoldenSecurityTxtExpires(): void
+    {
+        foreach ($this->golden()['securityTxt'] as $case) {
+            $this->assertSame(
+                $case['expected'],
+                ManagedFiles::getSecurityTxtExpires($case['existing'], strtotime($case['now'])),
+                $case['name']
+            );
+        }
+    }
 }
