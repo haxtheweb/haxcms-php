@@ -157,6 +157,10 @@ trait OperationsRouteSiteSearch {
           );
         }
       }
+      // optional page scope for replace; null means every matching page
+      $nodeIds = $this->normalizeSiteSearchNodeIds(
+        isset($this->params['nodeIds']) ? $this->params['nodeIds'] : null
+      );
       $siteDirectory = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name . '/';
       $totalMatches = 0;
       $updatedItems = 0;
@@ -164,6 +168,9 @@ trait OperationsRouteSiteSearch {
       $changedItems = array();
       foreach ($items as $item) {
         if (!isset($item->id) || $item->id == '') {
+          continue;
+        }
+        if (!is_null($nodeIds) && !in_array($item->id, $nodeIds, true)) {
           continue;
         }
         $page = $site->loadNode($item->id);
@@ -346,5 +353,30 @@ trait OperationsRouteSiteSearch {
     $response['data']['matches'] = $matches;
     $response['data']['total'] = count($matches);
     return $response;
+  }
+  /**
+   * Normalize the optional replace-scope list of page ids. Only a non-empty
+   * array yields a filter; anything else (absent, empty, not an array) means
+   * "every matching page" so the default replace behaves exactly as before.
+   * Non-string and blank entries are dropped; unknown ids simply never match.
+   */
+  private function normalizeSiteSearchNodeIds($value) {
+    if (!is_array($value)) {
+      return null;
+    }
+    $ids = array();
+    foreach ($value as $entry) {
+      if (!is_string($entry)) {
+        continue;
+      }
+      $id = trim($entry);
+      if ($id !== '' && !in_array($id, $ids, true)) {
+        $ids[] = $id;
+      }
+    }
+    if (count($ids) === 0) {
+      return null;
+    }
+    return $ids;
   }
 }

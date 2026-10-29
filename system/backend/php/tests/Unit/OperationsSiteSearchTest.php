@@ -447,6 +447,137 @@ class OperationsSiteSearchTest extends TestCase
         $pageContent = file_get_contents($this->siteRoot . '/pages/page-one/index.html');
         $this->assertStringNotContainsString('apple', $pageContent);
     }
+
+    // =========================================================================
+    // replace operation — limited by nodeIds
+    // =========================================================================
+
+    /**
+     * Put "apple" on page two as well so an unscoped replace touches both
+     * pages and a nodeIds-scoped replace can be told apart from it.
+     */
+    private function addAppleToPageTwo(): void
+    {
+        file_put_contents(
+            $this->siteRoot . '/pages/page-two/index.html',
+            '<p>Another apple here.</p>'
+        );
+    }
+
+    /**
+     * Rebuild the on-disk fixture and reload the site so a second replace
+     * in the same test starts from identical state.
+     */
+    private function resetFixture(): void
+    {
+        $this->rrmdir($this->siteRoot);
+        $this->buildSiteFixture();
+        $site = new SiteSearchTestSite();
+        $site->load($this->tmpRoot, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+        $this->haxcms->validRequestToken = true;
+    }
+
+    private function runScopedReplace($nodeIds, bool $includeNodeIds = true): array
+    {
+        $this->resetFixture();
+        $this->addAppleToPageTwo();
+        $params = array(
+            'search' => 'apple',
+            'operation' => 'replace',
+            'replace' => 'orange',
+            'replaceConfirm' => true,
+        );
+        if ($includeNodeIds) {
+            $params['nodeIds'] = $nodeIds;
+        }
+        $this->ops->params = $this->baseParams($params);
+        $result = $this->ops->siteSearch();
+        return array(
+            'result' => $result,
+            'pageOne' => file_get_contents($this->siteRoot . '/pages/page-one/index.html'),
+            'pageTwo' => file_get_contents($this->siteRoot . '/pages/page-two/index.html'),
+            'commits' => $this->haxcms->loadedSite->gitCommits,
+        );
+    }
+
+    public function testSiteSearchReplaceWithNodeIdsOnlyTouchesListedPages(): void
+    {
+        $run = $this->runScopedReplace(array('page-two', 'not-a-page'));
+        $result = $run['result'];
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(1, $result['data']['total']);
+        $this->assertSame(1, $result['data']['updatedItems']);
+        $this->assertSame(1, $result['data']['totalReplacements']);
+        $this->assertCount(1, $result['data']['items']);
+        $this->assertSame('page-two', $result['data']['items'][0]['id']);
+        // unlisted page keeps its text, listed page is rewritten
+        $this->assertStringContainsString('apple', $run['pageOne']);
+        $this->assertStringContainsString('orange', $run['pageTwo']);
+        $this->assertStringNotContainsString('apple', $run['pageTwo']);
+        $this->assertSame(
+            array('Bulk replace "apple" -> "orange" across 1 page'),
+            $run['commits']
+        );
+    }
+
+    public function testSiteSearchReplaceWithoutNodeIdsTouchesEveryMatchingPage(): void
+    {
+        $run = $this->runScopedReplace(null, false);
+        $result = $run['result'];
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(array(
+            'operation' => 'replace',
+            'query' => 'apple',
+            'replace' => 'orange',
+            'caseSensitive' => false,
+            'total' => 2,
+            'updatedItems' => 2,
+            'totalReplacements' => 2,
+            'items' => array(
+                array('id' => 'page-one', 'title' => 'Page One', 'slug' => 'page-one', 'replacements' => 1),
+                array('id' => 'page-two', 'title' => 'Page Two', 'slug' => 'page-two', 'replacements' => 1),
+            ),
+        ), $result['data']);
+        $this->assertStringNotContainsString('apple', $run['pageOne']);
+        $this->assertStringNotContainsString('apple', $run['pageTwo']);
+        $this->assertSame(
+            array('Bulk replace "apple" -> "orange" across 2 pages'),
+            $run['commits']
+        );
+    }
+
+    public function testSiteSearchReplaceEmptyOrInvalidNodeIdsMatchesOmitted(): void
+    {
+        $omitted = $this->runScopedReplace(null, false);
+        $this->assertSame($omitted, $this->runScopedReplace(array()));
+        $this->assertSame($omitted, $this->runScopedReplace(array('', '  ', 7)));
+        $this->assertSame($omitted, $this->runScopedReplace('page-two'));
+    }
+
+    public function testSiteSearchReplaceWithNoListedMatchesReturns400(): void
+    {
+        $run = $this->runScopedReplace(array('not-a-page'));
+        $this->assertSame(400, $run['result']['__failed']['status']);
+        $this->assertSame('Search term not found in site content', $run['result']['__failed']['message']);
+        $this->assertStringContainsString('apple', $run['pageOne']);
+        $this->assertStringContainsString('apple', $run['pageTwo']);
+        $this->assertSame(array(), $run['commits']);
+    }
+
+    public function testSiteSearchNodeIdsDoesNotChangeSearchResults(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->addAppleToPageTwo();
+        $this->ops->params = $this->baseParams();
+        $plain = $this->ops->siteSearch();
+        $this->ops->params = $this->baseParams(array('nodeIds' => array('page-two')));
+        $scoped = $this->ops->siteSearch();
+        $this->assertSame(2, $plain['data']['total']);
+        $this->assertSame($plain, $scoped);
+    }
 }
 
 /**
