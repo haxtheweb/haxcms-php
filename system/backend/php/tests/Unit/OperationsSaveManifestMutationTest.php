@@ -226,7 +226,8 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('Legacy Form Title', $result->title);
         $this->assertSame('Legacy description', $result->description);
         $this->assertSame('cc-by', $result->license);
-        $this->assertSame('0.0.0-test', $result->metadata->site->version);
+        // the running HAXcms version is never written into site.json
+        $this->assertFalse(property_exists($result->metadata->site, 'version'));
         $this->assertSame('https://new.example.com', $result->metadata->site->domain);
         // scheme-less values pass through sanitizeURLValue unchanged
         $this->assertSame('files/logo.png', $result->metadata->site->logo);
@@ -276,7 +277,7 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('Legacy Form Title', $persisted->title);
         $this->assertSame('Legacy description', $persisted->description);
         $this->assertSame('cc-by', $persisted->license);
-        $this->assertSame('0.0.0-test', $persisted->metadata->site->version);
+        $this->assertFalse(property_exists($persisted->metadata->site, 'version'));
         $this->assertSame('https://new.example.com', $persisted->metadata->site->domain);
         $this->assertSame(array('hax', 'test'), $persisted->metadata->site->tags);
         $this->assertSame('item-uuid-1', $persisted->metadata->site->homePageId);

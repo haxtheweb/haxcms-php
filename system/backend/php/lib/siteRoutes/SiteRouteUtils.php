@@ -251,17 +251,6 @@ class SiteRouteUtils
         }
         return gmdate('c', $unixTime);
     }
-    public static function getVersion()
-    {
-        if (
-            isset($GLOBALS['HAXCMS']) &&
-            is_object($GLOBALS['HAXCMS']) &&
-            method_exists($GLOBALS['HAXCMS'], 'getHAXCMSVersion')
-        ) {
-            return $GLOBALS['HAXCMS']->getHAXCMSVersion();
-        }
-        return '0.0.0';
-    }
     public static function normalizePathForResponse($value = '')
     {
         return str_replace('\\', '/', (string) $value);

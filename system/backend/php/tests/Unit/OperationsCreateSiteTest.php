@@ -296,7 +296,8 @@ class OperationsCreateSiteTest extends TestCase
         // build metadata stored on the schema item, item replication stripped
         $this->assertSame('course', $schema->metadata->build->structure);
         $this->assertSame('test', $schema->metadata->build->type);
-        $this->assertSame('0.0.0-test', $schema->metadata->build->version);
+        // build provenance never records the HAXcms version
+        $this->assertFalse(isset($schema->metadata->build->version));
         $this->assertFalse(isset($schema->metadata->build->items));
 
         // domain + build forwarded to loadSite

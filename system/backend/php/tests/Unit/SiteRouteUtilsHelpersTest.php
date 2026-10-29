@@ -338,13 +338,6 @@ class SiteRouteUtilsHelpersTest extends TestCase
         $this->assertSame('haxcms-cleaned', SiteRouteUtils::cleanSlug('whatever'));
     }
 
-    public function testGetVersionDelegatesAndFallsBack(): void
-    {
-        $this->assertSame('0.0.0', SiteRouteUtils::getVersion());
-        $GLOBALS['HAXCMS'] = new SiteRouteUtilsHelpersFakeHaxcms();
-        $this->assertSame('9.9.9-test', SiteRouteUtils::getVersion());
-    }
-
     public function testValidateSiteTokenFailsClosedWithoutHaxcms(): void
     {
         // No $GLOBALS['HAXCMS'] (or missing validateRequestToken): fail closed.

@@ -79,6 +79,8 @@ class SystemDiscoveryAndMapsTest extends TestCase
         $this->assertSame('/system/api/v1/openapi.yaml', $data['links']['openapiYaml']);
         $this->assertSame('https://example.org/system/api/v1/sites', $data['absoluteLinks']['sites']);
         $this->assertTrue($data['openapi']['routeDriven']);
+        // the public discovery document never exposes the HAXcms version
+        $this->assertArrayNotHasKey('version', $data);
     }
 
     public function testApiDiscoveryDefaultsBasePaths(): void
@@ -99,7 +101,8 @@ class SystemDiscoveryAndMapsTest extends TestCase
         $spec = json_decode($this->invoke('openapi.php', array('routeSuffix' => 'v1/openapi.json')), true);
         $this->assertIsArray($spec);
         $this->assertArrayHasKey('paths', $spec);
-        $this->assertSame(SiteRouteUtils::getVersion(), $spec['info']['version']);
+        // spec contract version, never the running HAXcms version
+        $this->assertSame('1.0.0', $spec['info']['version']);
         $this->assertSame(
             array(array('url' => 'https://example.org/cms/', 'description' => 'HAXcms system base URL')),
             $spec['servers']

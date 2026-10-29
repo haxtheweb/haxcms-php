@@ -239,6 +239,39 @@ class JSONOutlineSchemaTest extends TestCase
         unlink($tmp);
     }
 
+    public function testSaveNeverPersistsTheHaxcmsVersion(): void
+    {
+        $tmp = sys_get_temp_dir() . '/jos_version_' . uniqid() . '.json';
+        $jos = new JSONOutlineSchema();
+        // older saves stored the running version here; it must be dropped
+        $jos->metadata = (object) array(
+            'site' => (object) array('name' => 'demo', 'version' => '26.8.0'),
+            'build' => (object) array('structure' => 'course', 'version' => '26.8.0'),
+        );
+        $item = $jos->newItem();
+        $item->id = 'p1';
+        $jos->addItem($item);
+        $jos->file = $tmp;
+        $this->assertNotFalse($jos->save());
+        $raw = json_decode(file_get_contents($tmp), true);
+        $this->assertArrayNotHasKey('version', $raw['metadata']['site']);
+        $this->assertArrayNotHasKey('version', $raw['metadata']['build']);
+        $this->assertSame('demo', $raw['metadata']['site']['name']);
+        $this->assertSame('course', $raw['metadata']['build']['structure']);
+        $this->assertCount(1, $raw['items']);
+        unlink($tmp);
+    }
+
+    public function testNormalizeSiteMetadataStripsVersionFromArrayBuildAndToleratesGaps(): void
+    {
+        $this->assertNull(JSONOutlineSchema::normalizeSiteMetadata(null));
+        $meta = (object) array('build' => array('type' => 'x', 'version' => '1'));
+        $out = JSONOutlineSchema::normalizeSiteMetadata($meta);
+        $this->assertSame(array('type' => 'x'), $out->build);
+        $bare = (object) array('build' => null);
+        $this->assertNull(JSONOutlineSchema::normalizeSiteMetadata($bare)->build);
+    }
+
     public function testLoadReturnsFalseForMissingFile(): void
     {
         $jos = new JSONOutlineSchema();

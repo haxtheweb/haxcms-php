@@ -44,7 +44,8 @@ return function ($context) {
     if (!isset($openapi['info']) || !is_array($openapi['info'])) {
         $openapi['info'] = array();
     }
-    $openapi['info']['version'] = SiteRouteUtils::getVersion();
+    // info.version stays the spec's own API contract version; the running
+    // HAXcms version is never exposed to unauthenticated callers.
     // D54: produce an absolute servers[] URL matching Node's getServerBaseUrl
     // (openapi.js:93-101) so both backends emit ${protocol}://${host}${basePath}
     // instead of a relative path. Falls back to the relative basePath when the

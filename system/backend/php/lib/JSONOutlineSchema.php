@@ -277,6 +277,18 @@ class JSONOutlineSchema
      */
     public static function normalizeSiteMetadata($metadata)
     {
+        // never persist the running HAXcms version into the public site.json;
+        // older saves wrote it to metadata.site.version / metadata.build.version
+        if (is_object($metadata) && isset($metadata->build)) {
+            if (is_object($metadata->build)) {
+                unset($metadata->build->version);
+            } else if (is_array($metadata->build)) {
+                unset($metadata->build['version']);
+            }
+        }
+        if (is_object($metadata) && isset($metadata->site) && is_object($metadata->site)) {
+            unset($metadata->site->version);
+        }
         if (!is_object($metadata) || !isset($metadata->site) || !is_object($metadata->site)) {
             return $metadata;
         }

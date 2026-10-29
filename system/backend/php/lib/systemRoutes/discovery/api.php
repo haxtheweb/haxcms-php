@@ -21,7 +21,6 @@ return function ($context) {
     SiteRouteUtils::sendFormattedResponse(
         array(
             'name' => 'HAXcms System API',
-            'version' => SiteRouteUtils::getVersion(),
             'mode' => 'admin',
             'links' => $buildLinkMap($apiBasePath),
             'absoluteLinks' => $buildLinkMap($absoluteApiBasePath),

@@ -1,6 +1,6 @@
 {
   "name": "{{ short }}",
-  "version": "{{ version }}",
+  "version": "0.0.0",
   "description": "{{ description }}",
   "main": "index.html",
   "author": {

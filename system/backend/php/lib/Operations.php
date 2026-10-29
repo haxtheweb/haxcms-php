@@ -254,8 +254,6 @@ class Operations {
         FILTER_VALIDATE_BOOLEAN
       );
     }
-
-    $site->manifest->metadata->site->version = $GLOBALS['HAXCMS']->getHAXCMSVersion();
   }
   /**
    * Validate that an associative array/object only contains approved keys.
