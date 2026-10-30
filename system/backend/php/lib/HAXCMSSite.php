@@ -669,6 +669,41 @@ class HAXCMSSite
      * Basic wrapper to commit current changes to version control of the site
      */
     /**
+     * haxtheweb/issues#3201: where this site's version control lives.
+     *   'own'    the site folder is a git work tree root (a .git folder, or a
+     *            .git file for worktrees and submodules)
+     *   'parent' no .git of its own, but an enclosing folder has one. That
+     *            repo owns versioning (a HAXsite kept inside a larger repo), so
+     *            HAXcms must not commit, revert, push, set remotes or create a
+     *            nested repo there.
+     *   'none'   not inside any repo; gitCommit() makes the site its own repo
+     *            through Git::open($dir, true).
+     * Mirrors siteGitScope() in haxcms-nodejs.
+     * @return string own|parent|none
+     */
+    public function gitScope()
+    {
+        if (!isset($this->manifest->metadata->site->name)) {
+            return 'none';
+        }
+        $current = realpath($this->directory . '/' . $this->manifest->metadata->site->name);
+        if ($current === false) {
+            return 'none';
+        }
+        if (file_exists($current . '/.git')) {
+            return 'own';
+        }
+        $parent = dirname($current);
+        while ($parent !== $current) {
+            if (file_exists($parent . '/.git')) {
+                return 'parent';
+            }
+            $current = $parent;
+            $parent = dirname($current);
+        }
+        return 'none';
+    }
+    /**
      * Commit current changes to the site's git repo.
      *
      * haxtheweb/issues#3191: the message is sanitized and prefixed with the
@@ -680,6 +715,11 @@ class HAXCMSSite
     public function gitCommit($msg = 'Committed changes')
     {
         $op = func_num_args() > 1 ? (string) func_get_arg(1) : '';
+        // a site inside a larger repo leaves versioning to that repo; opening
+        // it here would create a nested repo the parent then tracks as a gitlink
+        if ($this->gitScope() === 'parent') {
+            return true;
+        }
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
         $repo = $git->open(
@@ -737,6 +777,10 @@ class HAXCMSSite
      */
     public function gitRevert($count = 1)
     {
+        // only ever reset the site's own repo
+        if ($this->gitScope() !== 'own') {
+            return true;
+        }
         $git = new Git();
         $repo = $git->open(
             $this->directory . '/' . $this->manifest->metadata->site->name, true
@@ -749,6 +793,9 @@ class HAXCMSSite
      */
     public function gitPush()
     {
+        if ($this->gitScope() === 'parent') {
+            return true;
+        }
         $git = new Git();
         $repo = $git->open(
             $this->directory . '/' . $this->manifest->metadata->site->name, true
@@ -765,6 +812,10 @@ class HAXCMSSite
      */
     public function gitSetRemote($gitDetails)
     {
+        // never repoint the remote of a repo the site merely lives inside
+        if ($this->gitScope() === 'parent') {
+            return false;
+        }
         $git = new Git();
         $repo = $git->open(
             $this->directory . '/' . $this->manifest->metadata->site->name, true
