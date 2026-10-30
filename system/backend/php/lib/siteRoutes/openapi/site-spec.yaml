@@ -3480,6 +3480,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RevisionRecord"
+        structureScanLimit:
+          type: integer
+          description: >-
+            How many of the most recent site.json commits were checked for
+            structure changes. Older history lists content commits only.
         links:
           type: object
           additionalProperties:
@@ -3521,6 +3526,36 @@ components:
         summary:
           type: string
           description: Commit subject without the op-code prefix (the whole subject when actor is X).
+        kind:
+          type: string
+          enum: ["content", "structure"]
+          description: >-
+            content: the commit changed the page file. structure: it only changed
+            this page's outline entry in site.json (move, rename, publish toggle).
+        changes:
+          type: array
+          description: >-
+            Outline fields of this page that the commit changed (empty when none
+            or when outside the structure scan window). parent values are titles,
+            with fromId/toId carrying the ids. Booleans are "true"/"false".
+          items:
+            $ref: "#/components/schemas/RevisionFieldChange"
+    RevisionFieldChange:
+      type: object
+      properties:
+        field:
+          type: string
+          enum: ["title", "slug", "parent", "order", "published", "hideInMenu", "locked"]
+        from:
+          type: string
+        to:
+          type: string
+        fromId:
+          type: string
+          description: parent only
+        toId:
+          type: string
+          description: parent only
     RevisionDetailRecord:
       type: object
       properties:
