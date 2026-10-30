@@ -93,13 +93,15 @@ class SystemDiscoveryAndMapsTest extends TestCase
     // discovery/openapi.php
     // ------------------------------------------------------------------
 
-    public function testOpenApiJsonUsesAbsoluteServerUrlAndVersion(): void
+    public function testOpenApiJsonUsesAbsoluteServerUrlAndContractVersion(): void
     {
         $this->haxcms(array('protocol' => 'https', 'domain' => 'example.org', 'basePath' => 'cms'));
         $spec = json_decode($this->invoke('openapi.php', array('routeSuffix' => 'v1/openapi.json')), true);
         $this->assertIsArray($spec);
         $this->assertArrayHasKey('paths', $spec);
-        $this->assertSame(SiteRouteUtils::getVersion(), $spec['info']['version']);
+        // info.version is the spec's contract version, never the running HAXcms version
+        $this->assertNotSame(SiteRouteUtils::getVersion(), $spec['info']['version']);
+        $this->assertSame('1.0.0', $spec['info']['version']);
         $this->assertSame(
             array(array('url' => 'https://example.org/cms/', 'description' => 'HAXcms system base URL')),
             $spec['servers']

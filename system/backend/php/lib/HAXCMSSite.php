@@ -501,7 +501,6 @@ class HAXCMSSite
       
       $templateVars = array(
           'hexCode' => HAXCMS_FALLBACK_HEX,
-          'version' => $GLOBALS['HAXCMS']->getHAXCMSVersion(),
           'basePath' =>
               $this->getPWAScopePath(),
           'domain' => $domain,

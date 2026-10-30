@@ -104,7 +104,6 @@ Available template variables (processed by Twig):
 - `{{ description }}` - Site description
 - `{{ basePath }}` - Site base URL path
 - `{{ hexCode }}` - Primary theme color
-- `{{ version }}` - HAXcms version
 
 ### Theme Development Workflow
 1. **Edit theme files** in `theme/` directory

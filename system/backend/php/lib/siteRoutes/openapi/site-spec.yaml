@@ -2644,8 +2644,6 @@ components:
       properties:
         name:
           type: string
-        version:
-          type: string
         mode:
           type: string
         links:
