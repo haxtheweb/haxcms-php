@@ -6,14 +6,12 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  * saveOutline failures (haxtheweb/issues#3114). Mirrors haxcms-nodejs
  * test/unit/save-outline-failure-parity.test.cjs.
  *
- * Saving per item used to write site.json as each EXISTING page was
- * updated; a new page was only added in memory and written by a later save.
- * So whatever failed part-way through a request, site.json held the outline
- * as of the last existing page. Batching the writes must not change that:
- *   - a crash or rejection in the content or delete phase leaves the
- *     structure up to the last existing page saved (written once, as a
- *     checkpoint, after the structure pass), without the new pages sent
- *     after it, exactly as on master
+ * The same request leaves the same site on the NodeJS and PHP backends,
+ * including when it fails part-way through:
+ *   - a crash or rejection in the content or delete phase leaves the whole
+ *     new structure saved, new pages included (written once, as a
+ *     checkpoint, after the structure pass), so no new page's folder is left
+ *     on disk without its outline entry
  *   - a crash during the structure pass leaves the pages before it saved
  * and siblings that share an order keep the order the request sent them in.
  */
@@ -205,14 +203,6 @@ class OperationsSaveOutlineFailureTest extends TestCase
     // what a failure after the structure pass leaves on master: every
     // existing page as sent; D and E are new pages after the last existing
     // page (B), so per-item saving had not written them yet
-    private $editedUpToLastExisting = array(
-        'C edited<root',
-        'A edited<root',
-        'A1 edited<A edited',
-        'A2 edited<A edited',
-        'B edited<root',
-    );
-
     private $edited = array(
         'C edited<root',
         'A edited<root',
@@ -223,6 +213,18 @@ class OperationsSaveOutlineFailureTest extends TestCase
         'E<D',
     );
 
+    // withDuplicate() also sends a new page, "Copy", after the others
+    private $editedWithCopy = array(
+        'C edited<root',
+        'A edited<root',
+        'A1 edited<A edited',
+        'A2 edited<A edited',
+        'B edited<root',
+        'D<root',
+        'E<D',
+        'Copy<root',
+    );
+
     public function testSavedEditLandsAsSent(): void
     {
         $this->buildSite();
@@ -231,7 +233,7 @@ class OperationsSaveOutlineFailureTest extends TestCase
         $this->assertSame($this->edited, $this->savedTree());
     }
 
-    public function testContentPhaseCrashLeavesTheStructureMasterLeft(): void
+    public function testContentPhaseCrashKeepsTheNewStructure(): void
     {
         $site = $this->buildSite();
         $site->throwOnAlternate = 2;
@@ -242,20 +244,20 @@ class OperationsSaveOutlineFailureTest extends TestCase
             $thrown = $e;
         }
         $this->assertNotNull($thrown, 'the failure is reported');
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->edited, $this->savedTree());
     }
 
-    public function testContentPhaseRejectionLeavesTheStructureMasterLeft(): void
+    public function testContentPhaseRejectionKeepsTheNewStructure(): void
     {
         $this->buildSite();
         $items = $this->editRequest();
         $items[4]['contents'] = 'just text, no markup';
         $result = $this->runOutline($items);
         $this->assertSame(400, $result['__failed']['status']);
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->edited, $this->savedTree());
     }
 
-    public function testDeleteCrashLeavesTheStructureMasterLeft(): void
+    public function testDeleteCrashKeepsTheNewStructure(): void
     {
         $site = $this->buildSite();
         $site->throwOnDelete = true;
@@ -268,7 +270,7 @@ class OperationsSaveOutlineFailureTest extends TestCase
             $thrown = $e;
         }
         $this->assertNotNull($thrown, 'the failure is reported');
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->edited, $this->savedTree());
     }
 
     public function testStructureCrashLeavesThePagesBeforeItSaved(): void
@@ -323,29 +325,29 @@ class OperationsSaveOutlineFailureTest extends TestCase
         mkdir($file);
     }
 
-    public function testDuplicateOfMissingPageIsA400ThatLeavesTheStructureMasterLeft(): void
+    public function testDuplicateOfMissingPageIsA400ThatKeepsTheNewStructure(): void
     {
         $this->buildSite();
         $result = $this->runOutline($this->withDuplicate('missing'));
         $this->assertSame(400, $result['__failed']['status']);
         $this->assertSame('invalid duplicate source', $result['__failed']['message']);
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->editedWithCopy, $this->savedTree());
     }
 
-    public function testDuplicateOfPageWithoutHtmlIsA400ThatLeavesTheStructureMasterLeft(): void
+    public function testDuplicateOfPageWithoutHtmlIsA400ThatKeepsTheNewStructure(): void
     {
         $this->buildSite();
         file_put_contents($this->tmpRoot . '/' . $this->siteName . '/pages/b/index.html', 'plain text, no markup');
         $result = $this->runOutline($this->withDuplicate('b'));
         $this->assertSame(400, $result['__failed']['status']);
         $this->assertSame('invalid duplicate content', $result['__failed']['message']);
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->editedWithCopy, $this->savedTree());
     }
 
     // PHP checks that a page's index.html is an existing file before it
     // writes contents or a duplicate there ("invalid write target"); that
     // early return leaves the same structure as the others
-    public function testUnwritableContentsTargetIsA400ThatLeavesTheStructureMasterLeft(): void
+    public function testUnwritableContentsTargetIsA400ThatKeepsTheNewStructure(): void
     {
         $this->buildSite();
         // A2 is sent with new contents, part-way through the request
@@ -353,10 +355,10 @@ class OperationsSaveOutlineFailureTest extends TestCase
         $result = $this->runOutline($this->editRequest());
         $this->assertSame(400, $result['__failed']['status']);
         $this->assertSame('invalid write target', $result['__failed']['message']);
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->edited, $this->savedTree());
     }
 
-    public function testUnwritableDuplicateTargetIsA400ThatLeavesTheStructureMasterLeft(): void
+    public function testUnwritableDuplicateTargetIsA400ThatKeepsTheNewStructure(): void
     {
         $this->buildSite();
         // C, the first page sent, is a duplicate of B into a location that
@@ -367,7 +369,7 @@ class OperationsSaveOutlineFailureTest extends TestCase
         $result = $this->runOutline($items);
         $this->assertSame(400, $result['__failed']['status']);
         $this->assertSame('invalid write target', $result['__failed']['message']);
-        $this->assertSame($this->editedUpToLastExisting, $this->savedTree());
+        $this->assertSame($this->edited, $this->savedTree());
     }
 
     public function testFailedSiteJsonWriteIsNotRetried(): void

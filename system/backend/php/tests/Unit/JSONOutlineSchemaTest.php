@@ -289,4 +289,31 @@ class JSONOutlineSchemaTest extends TestCase
         $this->assertCount(20, $all);
         $this->assertSame('public-domain', $all['cc0']['group']);
     }
+
+    /**
+     * When the page with the lowest order is a sub-page, orderTree() used to
+     * place it twice (!array_search() read its index 0 as "not placed"),
+     * fail its own count check and return the items sorted only by order.
+     * It returns the tree order, the same as the NodeJS backend for the same
+     * items (haxcms-nodejs test/unit/json-outline-schema-order-tree.test.cjs).
+     */
+    public function testOrderTreeWhenTheFirstPageIsASubPage(): void
+    {
+        $jos = new JSONOutlineSchema();
+        $make = function ($id, $parent, $order) use ($jos) {
+            $item = $jos->newItem();
+            $item->id = $id;
+            $item->parent = $parent;
+            $item->order = $order;
+            $jos->addItem($item);
+        };
+        $make('p', null, 1);
+        $make('c', 'p', 0);
+        $make('d', 'r', 1);
+        $make('r', null, 0);
+        $ids = array_map(function ($i) { return $i->id; }, $jos->orderTree($jos->items));
+        $this->assertSame(array('c', 'r', 'd', 'p'), $ids);
+        // and the manifest itself is left as it was
+        $this->assertSame(array('p', 'c', 'd', 'r'), array_map(function ($i) { return $i->id; }, $jos->items));
+    }
 }

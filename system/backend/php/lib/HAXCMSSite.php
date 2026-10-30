@@ -1745,7 +1745,9 @@ class HAXCMSSite
     {
         $loc = '';
         foreach ($current as $item) {
-            if (!array_search($item->id, $rendered)) {
+            // strict, as in JSONOutlineSchema::orderRecurse(): array_search()
+            // returns 0 for the first id rendered, which ! read as "not yet"
+            if (!in_array($item->id, $rendered, true)) {
                 $loc .=
                     '<li><a href="' .
                     htmlspecialchars((string) $item->location, ENT_QUOTES, 'UTF-8') .
