@@ -36,6 +36,10 @@ paths:
         - discovery
       operationId: systemApiDiscovery
       summary: Discover top-level system API links and capabilities
+      description: >-
+        Open discovery document. `data.mcp` publishes this instance's MCP policy so MCP
+        clients can decide, before authenticating, whether they may operate the instance
+        at all and whether they must stay read-only.
       security: []
       responses:
         "200":
@@ -43,7 +47,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                $ref: "#/components/schemas/SystemDiscoveryEnvelope"
         "400":
           $ref: "#/components/responses/BadRequest"
   /system/api/v1/openapi:
@@ -3031,6 +3035,32 @@ components:
           type: integer
         data: {}
       additionalProperties: true
+    McpPolicy:
+      type: object
+      description: >-
+        This instance's MCP policy (config.mcp). `enabled: false` means MCP clients must
+        not operate this instance; `readOnly: true` means MCP clients must not write.
+        Defaults: disabled on haxiam-managed deployments and enabled elsewhere;
+        read-only unless config.mcp.readOnly is set to false.
+      properties:
+        enabled:
+          type: boolean
+        readOnly:
+          type: boolean
+      required:
+        - enabled
+        - readOnly
+    SystemDiscoveryEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                mcp:
+                  $ref: "#/components/schemas/McpPolicy"
+              additionalProperties: true
     EntityCollection:
       type: object
       description: >
