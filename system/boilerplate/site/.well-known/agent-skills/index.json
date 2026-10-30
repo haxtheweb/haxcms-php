@@ -4,30 +4,30 @@
     {
       "name": "hax-site-structure",
       "type": "skill-md",
-      "description": "\"Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment.\"",
+      "description": "Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment.",
       "url": "hax-site-structure/SKILL.md",
-      "digest": "sha256:6f87311919eb7090e8305eee3e396baf127ab1fb933d5775db15db59c089eb3f"
+      "digest": "sha256:8a0d7420ca29db0fde61bcb4f14bca5ed51776fe1374528cc27787ee54a6faf2"
     },
     {
       "name": "hax-content-authoring",
       "type": "skill-md",
-      "description": "\"Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor.\"",
+      "description": "Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor.",
       "url": "hax-content-authoring/SKILL.md",
-      "digest": "sha256:842c367726e12544a70d9469f4f9d48de1bb58e29336fb781930938f5bfe05c2"
+      "digest": "sha256:cbec7f8049b1bdc9157a80c37cc700f9e75546f254cb41d38502a6b3a28171cb"
     },
     {
       "name": "hax-managed-files",
       "type": "skill-md",
-      "description": "\"Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx.\"",
+      "description": "Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx.",
       "url": "hax-managed-files/SKILL.md",
       "digest": "sha256:265959a66e2b3112a8ff9b6a74767a6adc26da462f174f989ad1cc755c89a98a"
     },
     {
       "name": "hax-design-system",
       "type": "skill-md",
-      "description": "Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage. Use when styling components, auditing CSS for DDD compliance, migrating from SimpleColors, or creating new themes in the HAX ecosystem.",
+      "description": "Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage. Use when styling components, auditing CSS for DDD compliance, migrating from SimpleColors, creating new themes, or building admin surfaces (site admin, outline-designer, system admin) with HAX UI, DDD's admin layer.",
       "url": "hax-design-system/SKILL.md",
-      "digest": "sha256:9450b84eb5eb38278b4562aef66f87119702c210137a3a5dd8ce9a8e2fdecb6c",
+      "digest": "sha256:e373f40aee0d8f30e415cbec1b0d28a0d7e6c92eb89b7f670d77a714ac4b2ea8",
       "files": [
         {
           "path": "references/ddd-tokens.md",
@@ -42,9 +42,9 @@
     {
       "name": "hax-a11y-audit",
       "type": "skill-md",
-      "description": "\"READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \\\"is this accessible\\\" or \\\"audit for WCAG\\\". Diagnoses only; hands off to hax-site-building.\"",
+      "description": "READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \"is this accessible\" or \"audit for WCAG\". Diagnoses only; hands off to hax-site-building.",
       "url": "hax-a11y-audit/SKILL.md",
-      "digest": "sha256:3821d4fcc92f80cdf006c88ef5673dc39a4cc93c6e9b2f887b6a5951355d5dd1",
+      "digest": "sha256:9163ab87d5a8a127e3c008e4783266f9d06249fdd695c61b35c4039788859542",
       "files": [
         {
           "path": "evals/evals.json",
@@ -52,79 +52,9 @@
         },
         {
           "path": "references/a11y-element-map.md",
-          "digest": "sha256:69f545fab1096ba1d98dea141e46e6a09360192f8b092acaa95cab99c8b40a41"
+          "digest": "sha256:59d83b57aa8a21dea800290376c4ad9b34239f794d0d5e4f2da91686023bc1d8"
         }
       ]
-    },
-    {
-      "name": "oerschema-audit",
-      "type": "skill-md",
-      "description": "\"READ-ONLY audit of authored content (HAX HTML, site.json, VitePress, JSON-LD, Docs export) against the OER Schema vocabulary, recommending class, properties and markup per finding. Use for \\\"audit this page for OER schema\\\".\"",
-      "url": "oerschema-audit/SKILL.md",
-      "digest": "sha256:3ffeead8ba790e03fbae42e7ff6003b0c2089793a0cbab1b0498d1ea5e2f31d4",
-      "files": [
-        {
-          "path": "references/hax-outline-mapping.md",
-          "digest": "sha256:dd8dc9e39221317d36e18ae8d91d37de070a7b76f62a97efe2f9fb897a3bd57b"
-        },
-        {
-          "path": "references/markup-surfaces.md",
-          "digest": "sha256:b8787741b8ef2e3693ba6b2e72ff946237a12d813b4c7b33c5276429fb87e1c0"
-        },
-        {
-          "path": "references/ubd-mapping.md",
-          "digest": "sha256:d5f959ba6e6dd493c387e3828e635a8f8aecb5c84c12f27ebad4b04ebd741ea7"
-        },
-        {
-          "path": "references/vocabulary.md",
-          "digest": "sha256:79a0d4348cc3f99236c92f9c2751191cc781f1d6d2f62c4afba17cf7c7d05c36"
-        }
-      ]
-    },
-    {
-      "name": "hax-ubd-backward-design",
-      "type": "skill-md",
-      "description": "\"Design HAX course units by Understanding by Design backward design, producing a UbD unit plan and a HAX site skeleton. Use for \\\"design a unit on X\\\" or \\\"build a course around big ideas\\\".\"",
-      "url": "hax-ubd-backward-design/SKILL.md",
-      "digest": "sha256:9dd36fa4570ee7ca39dc66afcef112c95ce45e5d62fd7190fcdf7d9dcba4a0e9",
-      "files": [
-        {
-          "path": "references/design-standards.md",
-          "digest": "sha256:da453f26b826529d8fd0aee7b025d141a21c0abf19b39ca7c675a1c128cbb110"
-        },
-        {
-          "path": "references/manifest-schema.md",
-          "digest": "sha256:294e01d236e2debf329d3469631c4bdd096df110d532c37d5b9427e33d8ce997"
-        },
-        {
-          "path": "references/ubd-element-map.md",
-          "digest": "sha256:7fb1005e3500e1f5e7f0e4f53fcd15dae39b105c1129c003e4ec217c346dd058"
-        },
-        {
-          "path": "references/validity-self-test.md",
-          "digest": "sha256:10a21169e7c2a0db034d5303654d18a0335b8cacf1b5fb86f057a26aaab808ad"
-        }
-      ]
-    },
-    {
-      "name": "hax-udl-audit",
-      "type": "skill-md",
-      "description": "\"READ-ONLY audit of a HAX page against UDL 3.0 (Engagement, Representation, Action & Expression) with HAX component remediation. Use for \\\"audit for UDL\\\" or \\\"does this page reach everyone\\\".\"",
-      "url": "hax-udl-audit/SKILL.md",
-      "digest": "sha256:061420fe57cb0908e106e2c5496f513e1429b11962ee6f09c03e125db68296eb",
-      "files": [
-        {
-          "path": "references/udl-element-map.md",
-          "digest": "sha256:5f7544d11f511abeab9d142106a20936c97189bd37fd6a3de177987705cdd3aa"
-        }
-      ]
-    },
-    {
-      "name": "hax-content-chunking-audit",
-      "type": "skill-md",
-      "description": "\"Audit a HAX page against cognitive-load and chunking standards and return HAX remediation. Use for \\\"wall of text\\\", overly long sections, list fatigue or \\\"make this page less overwhelming\\\".\"",
-      "url": "hax-content-chunking-audit/SKILL.md",
-      "digest": "sha256:86e4c9f40f8b26415662090178582d8c722b5a57615b1928db25ee6b5ccc5f27"
     }
   ]
 }

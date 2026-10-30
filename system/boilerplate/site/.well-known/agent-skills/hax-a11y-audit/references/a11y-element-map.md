@@ -359,6 +359,7 @@ Every tag below has a confirmed directory or source file under
 | `stop-note` | `stop-note/` | accessible labeled callout |
 | `oer-schema` | `oer-schema/` | `oer-property`, `typeof`, `related-resource` |
 | `lrn-math` | `lrn-math/` | accessible math notation |
+| `lrndesign-sidenote` | `lrndesign-sidenote/` | `label` names the note (exposed as a `note` region); icon is decorative and hidden |
 
 ## Excluded legacy / third-party tags (NEVER recommend)
 
@@ -368,7 +369,6 @@ alternatives documented above instead.
 | Excluded tag | Use instead |
 |---|---|
 | `instruction-card` | `stop-note` / `accent-card` (for callout content) |
-| `lrndesign-sidenote` | `a11y-collapse` (with `heading-button`) / `stop-note` |
 | `link-preview` | plain `<a>` with descriptive link text |
 | `model-viewer` | `media-image` / `a11y-figure` (for 3D model screenshots) |
 

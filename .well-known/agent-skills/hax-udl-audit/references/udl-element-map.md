@@ -38,7 +38,7 @@ Guidelines 1–3.
 |---|---|---|---|
 | G1 Perception | 1.1 customize display | `grid-plate` (layout/spacing control), DDD tokens (spacing/typography via `hax-design-system`) | — |
 | G1 | 1.2 multiple ways to perceive | `video-player`, `media-image`, `image-compare-slider`, `a11y-gif-player`, `lrndesign-imagemap` | third-party `<model-viewer>` is NOT a HAX-published element — use `media-image` / `image-compare-slider` |
-| G2 Language & Symbols | 2.1 clarify vocabulary/symbols | `stop-note` (inline clarification), `a11y-collapse` (set `heading-button`) for glossary folds | legacy `lrndesign-sidenote` is NOT in the current monorepo — use `stop-note` / `a11y-collapse` |
+| G2 Language & Symbols | 2.1 clarify vocabulary/symbols | `stop-note` or `lrndesign-sidenote` (inline clarification), `lrn-vocab` (term definitions), `a11y-collapse` (set `heading-button`) for glossary folds | — |
 | G2 | 2.2 decode notation (math/symbols) | `lrn-math` (math notation), `code-sample` (code notation) | — |
 | G2 | 2.5 illustrate through multiple media | `video-player`, `media-image`, `image-compare-slider`, `lrn-math`, `lrndesign-imagemap` | — |
 | G3 Building Knowledge | 3.1 connect prior knowledge | `wikipedia-query` (prior-knowledge bridge) | legacy `link-preview` is NOT in the current monorepo — use `wikipedia-query` / `stop-note` |
@@ -73,7 +73,7 @@ learners.
 
 `a11y-collapse`, `a11y-gif-player`, `a11y-tabs`, `code-sample`, `editable-table`, `fill-in-the-blanks`,
 `flash-card`, `grade-book`, `grid-plate`, `image-compare-slider`, `learning-component`, `lrn-math`,
-`lrndesign-imagemap`, `lrndesign-timeline`, `mark-the-words`, `matching-question`, `media-image`,
+`lrndesign-imagemap`, `lrndesign-sidenote`, `lrndesign-timeline`, `lrn-vocab`, `mark-the-words`, `matching-question`, `media-image`,
 `media-playlist`, `media-quote`, `multiple-choice`, `oer-schema`, `person-testimonial`,
 `progress-donut`, `promise-progress`, `rich-text-editor-highlight`, `rpg-character`, `self-check`,
 `short-answer-question`, `simple-cta`, `simple-fields`, `simple-progress`, `sorting-question`,
@@ -81,7 +81,8 @@ learners.
 `worksheet-download`.
 
 Components intentionally excluded (legacy/third-party, not in the current monorepo — do NOT
-recommend): `instruction-card`, `lrndesign-sidenote`, `link-preview`, `model-viewer`.
+recommend): `instruction-card`, `link-preview`, `model-viewer`. (`lrndesign-sidenote` was
+rebuilt in the monorepo in 2026 and is current again.)
 
 ## Rules carried from PRAW RULES.md / Warp rules
 

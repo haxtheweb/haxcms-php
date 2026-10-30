@@ -68,8 +68,8 @@ ideas / no depth (twin sin #2).
     Fail signal: Exhibit invents a new endpoint, or no sequence.
 
 11. **Uncoverage over coverage.**
-    Manifest/inspection: depth via progressive disclosure (`a11y-collapse` /
-    `a11y-tabs` with `heading-button`), not a page-by-page textbook march.
+    Manifest/inspection: depth via progressive disclosure (`a11y-collapse` with
+    `heading-button`, or `a11y-tabs`), not a page-by-page textbook march.
     Fail signal: every standard sub-topic gets equal shallow treatment.
 
 12. **Cross-stage triangulation (Stage 1 ↔ 2 ↔ 3 coherent).**

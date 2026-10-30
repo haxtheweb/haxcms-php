@@ -3,12 +3,13 @@ name: hax-design-system
 description: >
   Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage.
   Use when styling components, auditing CSS for DDD compliance, migrating from SimpleColors,
-  or creating new themes in the HAX ecosystem.
-version: 1.0.0
+  creating new themes, or building admin surfaces (site admin, outline-designer, system admin)
+  with HAX UI, DDD's admin layer.
+version: 1.1.0
 license: Apache-2.0
 metadata:
   author: haxtheweb
-  tags: [hax, design-system, ddd, simplecolors, css, tokens, accessibility]
+  tags: [hax, design-system, ddd, simplecolors, css, tokens, accessibility, hax-ui, admin]
 ---
 
 # HAX Design System
@@ -22,6 +23,7 @@ Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors l
 - Migrating SimpleColors usage to DDD tokens
 - Creating or updating HAXcms themes
 - Ensuring dark mode compliance across components
+- Building or restyling an admin surface: site admin sections, outline-designer, revisions, reports, system admin, editor chrome (use HAX UI, below)
 
 ## How It Works
 
@@ -64,6 +66,23 @@ Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors l
   }
 }
 ```
+
+## Admin Surfaces (HAX UI)
+
+HAX UI is the admin layer of DDD. Decide first which layer a surface needs:
+
+- **A site visitor can see it** (authored content, HAX blocks, themes, menus, footers): DDD content, as above.
+- **Only a signed-in editor sees it and it changes settings or data** (site admin and its sections, outline-designer, revisions, reports, system admin, editor chrome as it is updated): HAX UI.
+
+Applying HAX UI:
+
+1. Spread `HaxUiAdminTokens` and `HaxUiAdminPrimitives` from `@haxtheweb/hax-body/lib/hax-ui-styles.js` and style with `--hax-ui-*` only: 14px text (`--hax-ui-admin-font-size`), 32px rows and controls (`--hax-ui-row-height`), `--hax-ui-surface` / `--hax-ui-text` / `--hax-ui-line` / `--hax-ui-hover` / `--hax-ui-selected` / `--hax-ui-accent-strong` / `--hax-ui-focus`. No raw hex, no `--ddd-font-size-*`, no SimpleColors.
+2. In site or system admin, build a section for the one admin dialog: no titlebar, no Save button. Report unsaved changes, and let the shell's action bar stage the save (Save lights up with a count; leaving with changes asks first).
+3. Reuse the patterns before inventing: 32px buttons with words beside icons, one primary per bar, segmented controls, filter chips, switches, `.hax-ui-pill`, outline-designer's row states, field rows (label and help left, 40px control right), one-line callouts, empty states.
+4. A value the layer lacks is added to `HaxUiAdminTokens`, mapped to DDD, before use. Proposed tokens (titlebar, sunken, primary, warning, info) are written as their DDD value with a comment naming the token.
+5. Check light, dark and forced colours, keyboard use, and widths down to 360px, then run `hax-pattern-library-audit`, which grades the `contract-admin-*` contracts.
+
+Full guide, token tables and patterns: [`hax-ui-admin.md`](https://github.com/haxtheweb/webcomponents/blob/master/elements/d-d-d/design-system/source/hax-ui-admin.md), also the HAX UI section and the HAX UI admin cards of the DDD Design System artifact. outline-designer is the reference implementation.
 
 ## SimpleColors Migration
 

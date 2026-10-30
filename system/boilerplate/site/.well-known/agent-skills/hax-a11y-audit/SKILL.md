@@ -119,7 +119,7 @@ Recommendations" below). Never edit `pages/*.html` or `site.json` from within th
    HAX component that bakes in the accessibility) or a **plain-HTML fix** (edit the markup in
    `pages/<slug>.html` directly — alt text, headings, landmarks, link text, table markup).
    Never invent a tag name and never recommend a legacy tag (`instruction-card`,
-   `lrndesign-sidenote`, `link-preview`, `model-viewer` are excluded).
+   `link-preview`, `model-viewer` are excluded).
 4. **Apply the overlap / defer rules:**
    - **Media depth (SYMMETRIC with `hax-media-a11y`):** when a media finding is about caption
      *quality*, transcript *fidelity*, or audio-description *authoring/coverage*, defer to
@@ -311,7 +311,7 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 - **Native semantics usually do not need ARIA.** `<button>` already has the button role;
   adding `role="button"` is redundant (flag it). `<nav>` already implies a navigation
   landmark. Only add ARIA when the native semantics are insufficient.
-- **Never recommend legacy/third-party tags.** `instruction-card`, `lrndesign-sidenote`,
+- **Never recommend legacy/third-party tags.** `instruction-card`,
   `link-preview`, and `model-viewer` appear in older courses but are not in the current
   monorepo — use the alternatives in the element map.
 - **Don't edit here.** This skill emits a report. Plain-HTML edits belong in

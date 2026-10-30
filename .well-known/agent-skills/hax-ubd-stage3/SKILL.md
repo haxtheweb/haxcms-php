@@ -30,6 +30,7 @@ learning activity among many.
 - You are `hax-ubd-backward-design` and have reached step 5 of its methodology
 
 **When NOT to use (with redirect):**
+- How much support to give, given the learners' prior skill → `hax-proficiency-scaffolding` (run it first when the audience is uneven or not beginners)
 - Page-level cognitive load / chunking → `hax-content-chunking-audit` (chunking = page scope; WHERETO = unit scope)
 - Cognitive level of an objective → `grad-blooms`
 - Goals → `hax-ubd-stage1`; evidence/assessments → `hax-ubd-stage2`
@@ -52,7 +53,7 @@ evidence (the Exhibit references a real `stage2.performanceTasks[*].id`).
 
 3. **Uncoverage over coverage.** Use progressive disclosure (`a11y-collapse` with `heading-button`, `a11y-tabs`) for depth. Never page-march a textbook. Coverage = "teaching by mentioning it"; uncoverage = going into depth on the big ideas. (A purposeful *survey* is legitimate; coverage is not.)
 
-4. **Feedback + revision cycles.** Insert `self-check` / `stop-note` loops (Rethink/Revise) between Explore and Exhibit. Understanding develops through inquiry + rethinking; build in perform→feedback→revise→perform cycles, as in apprenticeship/coaching.
+4. **Feedback + revision cycles.** Insert `self-check` / `stop-note` loops (Rethink/Revise) between Explore and Exhibit. Understanding develops through inquiry + rethinking; build in perform→feedback→revise→perform cycles, as in apprenticeship/coaching. Write the feedback in each question's slots with `hax-feedback-design`, and bring key ideas back on later pages with `hax-practice-and-retrieval`.
 
 5. **Exhibit points to Stage 2.** The Exhibit is the GRASPS task from `manifest.stage2.performanceTasks[*]` — reference its `id` in `whereto.exhibit.taskRef`. Do NOT create a new endpoint here.
 
@@ -99,7 +100,7 @@ Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-u
 - Exactly one Exhibit step; its `taskRef` resolves to a real `stage2.performanceTasks[*].id`.
 - ≥1 Rethink/Revise loop between Explore and Exhibit.
 - No activity in the sequence lacks a Stage 1/2 justification (no orphan activities — the anti-activity-oriented-sin invariant).
-- `a11y-collapse` / `a11y-tabs` usages set `heading-button` (PRAW rule).
+- Every `a11y-collapse` sets `heading-button` (PRAW rule). `a11y-tabs` has no such property.
 
 ## Gotchas
 
@@ -112,7 +113,7 @@ Full map (all stages): `https://github.com/haxtheweb/praw/blob/main/skills/hax-u
 ## Dependencies
 
 - **Reads:** `manifest.stage1` + `manifest.stage2` (both required)
-- **Hands off to:** `hax-claudehax` / `hax-site-building` (materialization); `hax-content-chunking-audit` (per-page); `hax-design-system` (DDD tokens)
+- **Hands off to:** `hax-claudehax` / `hax-site-building` (materialization); `hax-content-chunking-audit` (per-page); `hax-design-system` (DDD tokens); `hax-feedback-design` (R step feedback); `hax-practice-and-retrieval` (spaced review); `hax-reflection-prompts` (Rethink prompts)
 
 ## References
 
