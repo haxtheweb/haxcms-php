@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../CommitContext.php';
+include_once dirname(__FILE__) . '/../StructureHistory.php';
 trait OperationsRouteNodeRevisions {
   private function nodeRevisionFailed($status, $message) {
     return array(
@@ -109,6 +110,16 @@ trait OperationsRouteNodeRevisions {
       return trim((string) $stdout);
     }
     return (string) $stdout;
+  }
+  private function splitNodeRevisionLines($raw) {
+    $lines = array();
+    foreach (explode("\n", (string) $raw) as $line) {
+      $line = trim($line, "\r");
+      if (trim($line) !== '') {
+        $lines[] = $line;
+      }
+    }
+    return $lines;
   }
   private function parseNodeRevisionLimit($value) {
     $limit = filter_var($value, FILTER_VALIDATE_INT);
@@ -395,70 +406,89 @@ trait OperationsRouteNodeRevisions {
     );
     $logFormat = '%H%x1f%h%x1f%an%x1f%ae%x1f%at%x1f%ad%x1f%s';
     try {
-      $logRaw = $this->runNodeRevisionGitCommand(
-        $context['fileContext']['siteRoot'],
+      // haxtheweb/issues#3191: a page's history is the commits that touched
+      // its file ("content") plus the commits where its outline entry in
+      // site.json changed: moves, renames, publish toggles ("structure").
+      // Newest first, in git's own order. Mirrors haxcms-nodejs.
+      $siteRoot = $context['fileContext']['siteRoot'];
+      $location = $context['fileContext']['location'];
+      $unionRaw = $this->runNodeRevisionGitCommand(
+        $siteRoot,
         array(
           'log',
           '--date=iso-strict',
           '--pretty=format:' . $logFormat,
-          '--max-count=' . $limit,
-          '--skip=' . $offset,
           '--',
-          $context['fileContext']['location'],
+          $location,
+          StructureHistory::SITE_FILE,
         ),
         false
       );
-      $revisions = array();
-      if ($logRaw !== '') {
-        $lines = explode("\n", $logRaw);
-        foreach ($lines as $line) {
-          if ($line === '') {
-            continue;
-          }
-          $parts = explode("\x1f", $line);
-          if (count($parts) < 7) {
-            continue;
-          }
-          $timestamp = intval($parts[4]);
-          // haxtheweb/issues#3191: add actor / op / txn / summary
-          $revisions[] = array_merge(array(
-            'revisionNumber' => $offset + count($revisions) + 1,
-            'hash' => $parts[0],
-            'shortHash' => $parts[1],
-            'author' => $parts[2],
-            'authorEmail' => $parts[3],
-            'timestamp' => $timestamp > 0 ? $timestamp : 0,
-            'date' => $parts[5],
-            'message' => $parts[6],
-          ), CommitContext::parse($parts[6]));
-        }
-      }
-      $total = count($revisions);
-      try {
-        $totalRaw = $this->runNodeRevisionGitCommand(
-          $context['fileContext']['siteRoot'],
-          array(
-            'log',
-            '--pretty=format:%H',
-            '--',
-            $context['fileContext']['location'],
-          ),
+      $pageHashes = array_flip($this->splitNodeRevisionLines(
+        $this->runNodeRevisionGitCommand(
+          $siteRoot,
+          array('log', '--pretty=format:%H', '--', $location),
           false
+        )
+      ));
+      $structureChanges = array();
+      try {
+        // one more than the limit: the oldest is the baseline it is compared to
+        $siteHashes = $this->splitNodeRevisionLines(
+          $this->runNodeRevisionGitCommand(
+            $siteRoot,
+            array(
+              'log',
+              '--pretty=format:%H',
+              '--max-count=' . (StructureHistory::STRUCTURE_SCAN_LIMIT + 1),
+              '--',
+              StructureHistory::SITE_FILE,
+            ),
+            false
+          )
         );
-        if (trim($totalRaw) === '') {
-          $total = 0;
-        }
-        else {
-          $totalLines = array_filter(
-            array_map('trim', explode("\n", $totalRaw)),
-            function($item) {
-              return $item !== '';
-            }
-          );
-          $total = count($totalLines);
-        }
+        $structureChanges = StructureHistory::findStructureChanges(
+          $siteRoot,
+          $context['page']->id,
+          $siteHashes
+        );
       }
-      catch (Exception $e) {}
+      catch (Exception $e) {
+        // structure history is best effort; content history still lists
+        $structureChanges = array();
+      }
+      $history = array();
+      foreach ($this->splitNodeRevisionLines($unionRaw) as $line) {
+        $parts = explode("\x1f", $line);
+        if (count($parts) < 7) {
+          continue;
+        }
+        $isContent = isset($pageHashes[$parts[0]]);
+        $hasChanges = isset($structureChanges[$parts[0]]);
+        if (!$isContent && !$hasChanges) {
+          continue;
+        }
+        $timestamp = intval($parts[4]);
+        // haxtheweb/issues#3191: add actor / op / txn / summary, kind, changes
+        $history[] = array_merge(array(
+          'revisionNumber' => 0,
+          'hash' => $parts[0],
+          'shortHash' => $parts[1],
+          'author' => $parts[2],
+          'authorEmail' => $parts[3],
+          'timestamp' => $timestamp > 0 ? $timestamp : 0,
+          'date' => $parts[5],
+          'message' => $parts[6],
+        ), CommitContext::parse($parts[6]), array(
+          'kind' => $isContent ? 'content' : 'structure',
+          'changes' => $hasChanges ? $structureChanges[$parts[0]] : array(),
+        ));
+      }
+      $total = count($history);
+      $revisions = array_slice($history, $offset, $limit);
+      foreach ($revisions as $index => $row) {
+        $revisions[$index]['revisionNumber'] = $offset + $index + 1;
+      }
       $jsonVariantLocation = $this->getNodeRevisionJSONVariantLocation(
         $context['site'],
         $context['page']
@@ -481,6 +511,7 @@ trait OperationsRouteNodeRevisions {
             'total' => $total,
           ),
           'revisions' => $revisions,
+          'structureScanLimit' => StructureHistory::STRUCTURE_SCAN_LIMIT,
           'links' => array(
             'self' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/revisions',
             'item' => $revisionApiBasePath . '/v1/items/' . rawurlencode($lookupValue),
