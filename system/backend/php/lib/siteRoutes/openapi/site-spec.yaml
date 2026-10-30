@@ -1272,6 +1272,16 @@ paths:
                   type: boolean
                 replaceDestroyConfirm:
                   type: boolean
+                nodeIds:
+                  type: array
+                  items:
+                    type: string
+                  description: >
+                    Optional page ids that limit which pages a replace
+                    touches. When present and non-empty, only matching pages
+                    whose id is in the list are rewritten (and counted in
+                    updatedItems/items); unknown ids are ignored. Absent or
+                    empty replaces across every matching page.
                 searchCaseSensitive:
                   type: boolean
                 searchMode:
