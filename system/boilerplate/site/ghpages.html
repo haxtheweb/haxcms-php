@@ -10,8 +10,12 @@
     else if (document.location.pathname.indexOf('/sites/') != -1) {
       document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.indexOf('/', document.location.pathname.indexOf('/sites/') + 7)) + "/' />");
     }
-    else if (/(^|\.)github\.io$/.test(globalThis.location.hostname) && globalThis.location.pathname.split('/').length > 1) {
-      document.write("<base href='/" + document.location.pathname.split('/')[1] + "/' />");
+    // haxtheweb/issues#3202: a Pages site can sit at any depth (org.github.io/,
+    // org.github.io/repo/ or org.github.io/repo/folder/). Pages only serves this
+    // file for a real folder, and deep links come back through 404.html as
+    // <folder>/?p=/route, so the URL's own folder is the site's folder.
+    else if (/(^|\.)github\.io$/.test(globalThis.location.hostname)) {
+      document.write("<base href='" + document.location.pathname.substring(0, document.location.pathname.lastIndexOf('/') + 1) + "' />");
     }
     else {
       document.write("<base href='/' />");
