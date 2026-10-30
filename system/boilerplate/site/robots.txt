@@ -1,3 +1,7 @@
+# BEGIN HAXcms managed
+# HAXcms rewrites everything between the BEGIN and END markers on rebuild.
+# Put site-specific rules after the END marker, each group starting with its
+# own User-agent line; they are kept.
 User-agent: *
 {% if privateSite %}
 Disallow: /
@@ -71,3 +75,4 @@ Disallow: /system/
 Sitemap: {{ domain }}sitemap.xml
 LLMS: {{ domain }}llms.txt
 {% endif %}
+# END HAXcms managed

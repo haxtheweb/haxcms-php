@@ -1,0 +1,155 @@
+{
+  "description": "Shared cross-backend cases for managed-file policies (haxtheweb/issues#3186). Byte-identical copies live in haxcms-nodejs test/fixtures/managed-files/golden.json and haxcms-php system/backend/php/tests/Unit/fixtures/managed-files-golden.json; both test suites must produce every expected value.",
+  "block": [
+    {
+      "name": "keeps owner content above and below",
+      "existing": "# top\n# BEGIN HAXcms managed\nold\n# END HAXcms managed\n# bottom\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# top\n# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n# bottom\n"
+    },
+    {
+      "name": "missing file gets the baseline",
+      "existing": null,
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n# trailer\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n# trailer\n"
+    },
+    {
+      "name": "unmarked always-managed file is replaced",
+      "existing": "old copy\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n"
+    },
+    {
+      "name": "BEGIN without END keeps the file below a fresh block",
+      "existing": "# owner\n# BEGIN HAXcms managed\nold\nRedirect 301 /a /b\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n\n# owner\n# BEGIN HAXcms managed\nold\nRedirect 301 /a /b\n"
+    },
+    {
+      "name": "END without BEGIN keeps the file below a fresh block",
+      "existing": "Redirect 301 /a /b\n# END HAXcms managed\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n\nRedirect 301 /a /b\n# END HAXcms managed\n"
+    },
+    {
+      "name": "a marker quoted mid-line in owner text is not a marker",
+      "existing": "# see the '# BEGIN HAXcms managed' line below\n# BEGIN HAXcms managed\nold\n# END HAXcms managed\n# bottom\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# see the '# BEGIN HAXcms managed' line below\n# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n# bottom\n"
+    },
+    {
+      "name": "CRLF owner content around the block is preserved",
+      "existing": "# top\r\n# BEGIN HAXcms managed\nold\n# END HAXcms managed\n# bottom\r\n",
+      "rendered": "# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "# top\r\n# BEGIN HAXcms managed\nnew\n# END HAXcms managed\n# bottom\r\n"
+    },
+    {
+      "name": "unmarked edited AGENTS.md is kept below the block",
+      "existing": "# My AGENTS notes\n",
+      "rendered": "<!-- haxcms:managed:start -->\nguide\n<!-- haxcms:managed:end -->\n\n## Site-specific notes\n",
+      "markers": "html",
+      "legacy": "hashes",
+      "expected": "<!-- haxcms:managed:start -->\nguide\n<!-- haxcms:managed:end -->\n\n# My AGENTS notes\n"
+    },
+    {
+      "name": "AGENTS.md block is updated in place",
+      "existing": "intro\n<!-- haxcms:managed:start -->\nold guide\n<!-- haxcms:managed:end -->\n\n## Site-specific notes\nmine\n",
+      "rendered": "<!-- haxcms:managed:start -->\nnew guide\n<!-- haxcms:managed:end -->\n\n## Site-specific notes\n",
+      "markers": "html",
+      "legacy": "hashes",
+      "expected": "intro\n<!-- haxcms:managed:start -->\nnew guide\n<!-- haxcms:managed:end -->\n\n## Site-specific notes\nmine\n"
+    },
+    {
+      "name": "boilerplate without markers falls back to replace",
+      "existing": "anything",
+      "rendered": "plain",
+      "markers": "hash",
+      "legacy": "whole",
+      "expected": "plain"
+    }
+  ],
+  "json": [
+    {
+      "name": "nothing extra returns the rendered text verbatim",
+      "existing": "{\"name\":\"old\",\"scripts\":{\"build\":\"x\"}}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n"
+    },
+    {
+      "name": "missing file",
+      "existing": null,
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n"
+    },
+    {
+      "name": "invalid existing",
+      "existing": "not json",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n"
+    },
+    {
+      "name": "existing that is a list",
+      "existing": "[1,2]",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n"
+    },
+    {
+      "name": "owner keys, empty objects, unicode and slashes are kept",
+      "existing": "{\"name\":\"old\",\"scripts\":{\"build\":\"old\",\"lint\":\"eslint .\"},\"publishConfig\":{},\"homepage\":\"https://example.org/a/b\",\"author\":\"Zoë   x\",\"files\":[],\"numericKeys\":{\"0\":\"a\",\"1\":\"b\"}}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\",\n    \"lint\": \"eslint .\"\n  },\n  \"publishConfig\": {},\n  \"homepage\": \"https://example.org/a/b\",\n  \"author\": \"Zoë   x\",\n  \"files\": [],\n  \"numericKeys\": {\n    \"0\": \"a\",\n    \"1\": \"b\"\n  }\n}\n"
+    }
+  ],
+  "securityTxt": [
+    {
+      "name": "reused inside the lifetime window",
+      "existing": "Contact: x\nExpires: 2027-04-01T00:00:00.000Z\n",
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-01T00:00:00.000Z"
+    },
+    {
+      "name": "refreshed near expiry",
+      "existing": "Expires: 2026-12-01T00:00:00.000Z\n",
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-26T00:00:00.000Z"
+    },
+    {
+      "name": "far-future value is not reused",
+      "existing": "Expires: 9999-01-01T00:00:00.000Z\n",
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-26T00:00:00.000Z"
+    },
+    {
+      "name": "date-only value is not reused",
+      "existing": "Expires: 2027-04-01\n",
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-26T00:00:00.000Z"
+    },
+    {
+      "name": "garbage",
+      "existing": "Expires: garbage\n",
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-26T00:00:00.000Z"
+    },
+    {
+      "name": "missing file",
+      "existing": null,
+      "now": "2026-10-28T12:34:56Z",
+      "expected": "2027-04-26T00:00:00.000Z"
+    }
+  ]
+}
