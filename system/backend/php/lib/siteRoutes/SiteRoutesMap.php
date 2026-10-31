@@ -27,6 +27,7 @@ class SiteRoutesMap
                 'v1/items/:idOrSlug/export/:format' => dirname(__FILE__) . '/v1/exports.php',
                 'v1/items/:idOrSlug/revisions' => dirname(__FILE__) . '/v1/revisions.php',
                 'v1/items/:idOrSlug/revisions/:revisionId' => dirname(__FILE__) . '/v1/revisions.php',
+                'v1/items/:idOrSlug/revisions/:revisionId/compare/:compareRevisionId' => dirname(__FILE__) . '/v1/revisionsCompare.php',
                 'v1/content' => dirname(__FILE__) . '/v1/content.php',
                 'v1/content/:idOrSlug' => dirname(__FILE__) . '/v1/content.php',
                 'v1/files' => dirname(__FILE__) . '/v1/files.php',

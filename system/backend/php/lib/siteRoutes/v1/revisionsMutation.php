@@ -56,6 +56,10 @@ return function ($context) {
         'hash' => $revisionId,
         'site_token' => $siteToken,
     );
+    // haxtheweb/issues#3191: optional note recorded with the restore
+    if (isset($body['note']) && is_string($body['note'])) {
+        $payload['note'] = $body['note'];
+    }
     $operations = new Operations();
     $operations->params = $payload;
     $operations->rawParams = $payload;
