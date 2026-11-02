@@ -372,6 +372,65 @@ class OperationsSaveOutlineFailureTest extends TestCase
         $this->assertSame($this->edited, $this->savedTree());
     }
 
+    // a page file that is not a plain file inside the site: both backends
+    // give the same answer for the same site on disk (haxcms-nodejs
+    // save-outline-failure-parity.test.cjs mirrors these). A page file may
+    // not be a symlink, and its real path must be inside the site
+    private function pageFile(string $pageId): string
+    {
+        return $this->tmpRoot . '/' . $this->siteName . '/pages/' . $pageId . '/index.html';
+    }
+
+    public function testSymlinkedPageFileIsA400AndWhatItPointsAtIsUntouched(): void
+    {
+        $this->buildSite();
+        unlink($this->pageFile('a2'));
+        symlink($this->pageFile('b'), $this->pageFile('a2'));
+        $result = $this->runOutline($this->editRequest());
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid write target', $result['__failed']['message']);
+        $this->assertSame('<p>B</p>', file_get_contents($this->pageFile('b')));
+        $this->assertSame($this->edited, $this->savedTree());
+    }
+
+    public function testPageFolderLinkedOutOfTheSiteIsA400AndTheOutsideFileIsUntouched(): void
+    {
+        $this->buildSite();
+        $outside = $this->tmpRoot . '/outside';
+        mkdir($outside, 0777, true);
+        file_put_contents($outside . '/index.html', '<p>outside</p>');
+        $this->rrmdir(dirname($this->pageFile('a2')));
+        symlink($outside, dirname($this->pageFile('a2')));
+        $result = $this->runOutline($this->editRequest());
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid write target', $result['__failed']['message']);
+        $this->assertSame('<p>outside</p>', file_get_contents($outside . '/index.html'));
+        $this->assertSame($this->edited, $this->savedTree());
+    }
+
+    public function testPageFolderLinkedToAnotherPagesFolderStillSaves(): void
+    {
+        $this->buildSite();
+        $this->rrmdir(dirname($this->pageFile('a2')));
+        symlink(dirname($this->pageFile('b')), dirname($this->pageFile('a2')));
+        $result = $this->runOutline($this->editRequest());
+        $this->assertArrayNotHasKey('__failed', $result);
+        $this->assertSame($this->edited, $this->savedTree());
+    }
+
+    public function testDuplicateOfPageWhoseFileIsAFolderIsA400(): void
+    {
+        $this->buildSite();
+        $items = $this->withDuplicate('b');
+        // the copy goes first, so the duplicate is read before B is checked
+        array_unshift($items, array_pop($items));
+        $this->makeUnwritable('b');
+        $result = $this->runOutline($items);
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid duplicate content', $result['__failed']['message']);
+        $this->assertSame($this->editedWithCopy, $this->savedTree());
+    }
+
     public function testFailedSiteJsonWriteIsNotRetried(): void
     {
         $site = $this->buildSite();
