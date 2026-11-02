@@ -971,7 +971,11 @@ class Operations {
       return false;
     }
     $targetPath = $siteRoot . '/' . $normalizedLocation;
-    if (!file_exists($targetPath) || !is_file($targetPath)) {
+    // an existing regular file, not a symlink (the same rule as the NodeJS
+    // backend's getValidatedWritePath(), so both answer "invalid write
+    // target" for the same site on disk; writing through a symlinked page
+    // file would overwrite whatever it points at)
+    if (is_link($targetPath) || !file_exists($targetPath) || !is_file($targetPath)) {
       return false;
     }
     $targetRealPath = realpath($targetPath);
