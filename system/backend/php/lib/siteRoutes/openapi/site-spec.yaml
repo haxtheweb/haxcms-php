@@ -1155,6 +1155,44 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/items/{idOrSlug}/revisions/{revisionId}/compare/{compareRevisionId}:
+    get:
+      tags:
+        - items
+      operationId: compareItemRevisions
+      summary: Compare two revisions of one item
+      description: >-
+        Returns the page content at both revisions and the page detail fields
+        (title, description, slug, published, hideInMenu, locked, from the
+        .json variant) that differ. "from" is revisionId and "to" is
+        compareRevisionId; either order works.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+        - $ref: "#/components/parameters/RevisionId"
+        - $ref: "#/components/parameters/CompareRevisionId"
+      responses:
+        "200":
+          description: Revision comparison
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RevisionCompareRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /x/api/v1/items/{idOrSlug}/revisions/{revisionId}/restore:
     post:
       tags:
@@ -1167,6 +1205,23 @@ paths:
       parameters:
         - $ref: "#/components/parameters/IdOrSlug"
         - $ref: "#/components/parameters/RevisionId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 120
+                  description: >-
+                    Optional note recorded with the restore. Control characters
+                    are removed, whitespace is collapsed and it is cut to 120
+                    characters; it is appended to the commit summary
+                    ("Page revision restored: Title (id) from abc123: note"),
+                    and the commit line as a whole still keeps the 200
+                    character limit, so a long note is cut first.
       responses:
         "200":
           description: Revision restore result
@@ -2307,6 +2362,15 @@ components:
       name: revisionId
       in: path
       required: true
+      schema:
+        type: string
+        minLength: 7
+        maxLength: 64
+    CompareRevisionId:
+      name: compareRevisionId
+      in: path
+      required: true
+      description: The revision to compare revisionId with (git hash).
       schema:
         type: string
         minLength: 7
@@ -3553,7 +3617,8 @@ components:
       properties:
         field:
           type: string
-          enum: ["title", "slug", "parent", "order", "published", "hideInMenu", "locked"]
+          enum: ["title", "description", "slug", "parent", "order", "published", "hideInMenu", "locked"]
+          description: description only appears in compareItemRevisions results
         from:
           type: string
         to:
@@ -3589,6 +3654,47 @@ components:
           type: object
           additionalProperties:
             type: string
+    RevisionCompareSide:
+      type: object
+      properties:
+        revision:
+          $ref: "#/components/schemas/RevisionRecord"
+        content:
+          type: string
+        hasItemMetadata:
+          type: boolean
+        itemMetadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+    RevisionCompareRecord:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        nodeSlug:
+          type: string
+        nodeTitle:
+          type: string
+        jsonVariantLocation:
+          type: string
+        from:
+          $ref: "#/components/schemas/RevisionCompareSide"
+        to:
+          $ref: "#/components/schemas/RevisionCompareSide"
+        contentChanged:
+          type: boolean
+        itemMetadataChanges:
+          type: array
+          description: >-
+            Page detail fields that differ between the two revisions' .json
+            variants; empty when either has none. Booleans are "true"/"false".
+          items:
+            $ref: "#/components/schemas/RevisionFieldChange"
+        links:
+          type: object
+          additionalProperties:
+            type: string
     RevisionRestoreRecord:
       type: object
       properties:
@@ -3600,6 +3706,9 @@ components:
           type: string
         restoredFromHash:
           type: string
+        note:
+          type: string
+          description: The note recorded with the restore, after cleaning; empty when none.
         jsonVariantLocation:
           type: string
         hasItemMetadata:

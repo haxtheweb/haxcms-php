@@ -372,6 +372,178 @@ trait OperationsRouteNodeRevisions {
     }
     return '/x/api';
   }
+  /**
+   * haxtheweb/issues#3191: an optional note for a restore commit: one line,
+   * no control characters, whitespace collapsed, at most 120 characters
+   * (Node: normalizeRestoreNote). The commit line keeps its 200 limit.
+   */
+  public static function normalizeNodeRevisionRestoreNote($value) {
+    if (!is_string($value)) {
+      return '';
+    }
+    $note = preg_replace('/\s+/u', ' ', $value);
+    $note = preg_replace('/[\x00-\x1f\x7f]/', '', (string) $note);
+    $note = trim((string) $note);
+    if (function_exists('mb_substr')) {
+      $note = mb_substr($note, 0, 120);
+    }
+    else {
+      $note = substr($note, 0, 120);
+    }
+    return trim($note);
+  }
+  /**
+   * Page detail fields that differ between two .json variant payloads, as
+   * RevisionFieldChange rows (Node: diffRevisionItemMetadata).
+   */
+  public static function diffNodeRevisionItemMetadata($from, $to) {
+    if (!is_array($from) || !is_array($to)) {
+      return array();
+    }
+    $read = function ($m, $field) {
+      $meta = isset($m['metadata']) && is_array($m['metadata']) ? $m['metadata'] : array();
+      switch ($field) {
+        case 'published':
+          return (array_key_exists('published', $meta) && $meta['published'] === false) ? 'false' : 'true';
+        case 'hideInMenu':
+        case 'locked':
+          return (array_key_exists($field, $meta) && $meta[$field]) ? 'true' : 'false';
+        default:
+          return (array_key_exists($field, $m) && !is_null($m[$field])) ? (string) $m[$field] : '';
+      }
+    };
+    $changes = array();
+    foreach (array('title', 'description', 'slug', 'published', 'hideInMenu', 'locked') as $field) {
+      $a = $read($from, $field);
+      $b = $read($to, $field);
+      if ($a !== $b) {
+        $changes[] = array('field' => $field, 'from' => $a, 'to' => $b);
+      }
+    }
+    return $changes;
+  }
+  private function loadNodeRevisionSide($siteRoot, $location, $jsonVariantLocation, $hash) {
+    $metadataRaw = $this->runNodeRevisionGitCommand(
+      $siteRoot,
+      array(
+        'show',
+        '--quiet',
+        '--date=iso-strict',
+        '--pretty=format:%H%x1f%h%x1f%an%x1f%ae%x1f%at%x1f%ad%x1f%s',
+        $hash,
+      ),
+      false
+    );
+    if (trim($metadataRaw) === '') {
+      return null;
+    }
+    $parts = explode("\x1f", trim($metadataRaw));
+    $revision = array(
+      'hash' => isset($parts[0]) && $parts[0] !== '' ? $parts[0] : $hash,
+      'shortHash' => isset($parts[1]) && $parts[1] !== '' ? $parts[1] : substr($hash, 0, 7),
+      'author' => isset($parts[2]) ? $parts[2] : '',
+      'authorEmail' => isset($parts[3]) ? $parts[3] : '',
+      'timestamp' => isset($parts[4]) ? intval($parts[4]) : 0,
+      'date' => isset($parts[5]) ? $parts[5] : '',
+      'message' => isset($parts[6]) ? $parts[6] : '',
+    );
+    $revision = array_merge($revision, CommitContext::parse($revision['message']));
+    $content = $this->runNodeRevisionGitCommand(
+      $siteRoot,
+      array('show', $hash . ':' . $location),
+      false
+    );
+    $itemMetadata = $this->loadNodeRevisionItemMetadata($siteRoot, $hash, $jsonVariantLocation);
+    return array(
+      'revision' => $revision,
+      'content' => $content,
+      'hasItemMetadata' => is_array($itemMetadata),
+      'itemMetadata' => $itemMetadata,
+    );
+  }
+  /**
+   * haxtheweb/issues#3191: compare two revisions of one page
+   * (Node: compareItemRevisions). from = hash, to = compareHash.
+   */
+  public function compareNodeRevisions() {
+    if (
+      !isset($this->params['site']) ||
+      !is_array($this->params['site']) ||
+      !isset($this->params['site']['name']) ||
+      !isset($this->params['node']) ||
+      !is_array($this->params['node']) ||
+      !isset($this->params['node']['id']) ||
+      !isset($this->params['hash']) ||
+      !isset($this->params['compareHash'])
+    ) {
+      return $this->nodeRevisionFailed(
+        400,
+        'Missing required body fields: site.name, node.id, hash and compareHash'
+      );
+    }
+    $siteName = trim((string) $this->params['site']['name']);
+    $nodeId = trim((string) $this->params['node']['id']);
+    $fromHash = trim((string) $this->params['hash']);
+    $toHash = trim((string) $this->params['compareHash']);
+    if ($siteName === '' || $nodeId === '') {
+      return $this->nodeRevisionFailed(400, 'Missing required body fields: site.name, node.id, hash and compareHash');
+    }
+    if (
+      preg_match('/^[a-fA-F0-9]{7,64}$/', $fromHash) !== 1 ||
+      preg_match('/^[a-fA-F0-9]{7,64}$/', $toHash) !== 1
+    ) {
+      return $this->nodeRevisionFailed(400, 'Invalid revision hash');
+    }
+    $context = $this->buildNodeRevisionContext($siteName, $nodeId);
+    if (isset($context['__failed'])) {
+      return $context;
+    }
+    try {
+      $siteRoot = $context['fileContext']['siteRoot'];
+      $location = $context['fileContext']['location'];
+      $jsonVariantLocation = $this->getNodeRevisionJSONVariantLocation($context['site'], $context['page']);
+      $from = $this->loadNodeRevisionSide($siteRoot, $location, $jsonVariantLocation, $fromHash);
+      $to = $this->loadNodeRevisionSide($siteRoot, $location, $jsonVariantLocation, $toHash);
+      if (!is_array($from) || !is_array($to)) {
+        return $this->nodeRevisionFailed(404, 'Revision not found');
+      }
+      $nodeSlug = $this->resolveNodeRevisionItemSlug($context['site'], $context['page']->id);
+      $lookupValue = $nodeSlug !== '' ? $nodeSlug : (string) $context['page']->id;
+      $itemBase = $this->resolveNodeRevisionApiBasePath() . '/v1/items/' . rawurlencode($lookupValue);
+      return array(
+        'status' => 200,
+        'data' => array(
+          'nodeId' => $context['page']->id,
+          'nodeSlug' => $nodeSlug,
+          'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
+          'jsonVariantLocation' => $jsonVariantLocation,
+          'from' => $from,
+          'to' => $to,
+          'contentChanged' => $from['content'] !== $to['content'],
+          'itemMetadataChanges' => self::diffNodeRevisionItemMetadata($from['itemMetadata'], $to['itemMetadata']),
+          'links' => array(
+            'self' => $itemBase . '/revisions/' . rawurlencode($fromHash) . '/compare/' . rawurlencode($toHash),
+            'from' => $itemBase . '/revisions/' . rawurlencode($fromHash),
+            'to' => $itemBase . '/revisions/' . rawurlencode($toHash),
+            'revisions' => $itemBase . '/revisions',
+            'item' => $itemBase,
+          ),
+        ),
+      );
+    }
+    catch (Exception $e) {
+      $message = $e->getMessage() ? $e->getMessage() : '';
+      if (
+        strpos($message, 'does not exist') !== false ||
+        strpos($message, 'exists on disk, but not in') !== false ||
+        strpos($message, 'bad object') !== false ||
+        strpos($message, 'unknown revision') !== false
+      ) {
+        return $this->nodeRevisionFailed(404, 'Revision content for this page was not found');
+      }
+      return $this->nodeRevisionFailed(500, $message !== '' ? $message : 'Unable to compare node revisions');
+    }
+  }
   public function getNodeRevisions() {
     if (
       !isset($this->params['site']) ||
@@ -715,13 +887,19 @@ trait OperationsRouteNodeRevisions {
       $context['page']->metadata->updated = $now;
       $context['site']->manifest->metadata->site->updated = $now;
       $context['site']->manifest->save(false);
+      $note = self::normalizeNodeRevisionRestoreNote(
+        isset($this->params['note']) ? $this->params['note'] : ''
+      );
+      // the note goes last: when the line is too long for the 200
+      // character commit limit, it is the note that gets cut
       $context['site']->gitCommit(
         'Page revision restored: ' .
         (isset($context['page']->title) && $context['page']->title !== '' ? $context['page']->title : 'Untitled') .
         ' (' .
         $context['page']->id .
         ') from ' .
-        substr($hash, 0, 12)
+        substr($hash, 0, 12) .
+        ($note !== '' ? ': ' . $note : '')
       );
       $nodeSlug = $this->resolveNodeRevisionItemSlug($context['site'], $context['page']->id);
       $lookupValue = $nodeSlug !== '' ? $nodeSlug : (string) $context['page']->id;
@@ -733,6 +911,7 @@ trait OperationsRouteNodeRevisions {
           'nodeSlug' => $nodeSlug,
           'nodeTitle' => isset($context['page']->title) ? $context['page']->title : '',
           'restoredFromHash' => $hash,
+          'note' => $note,
           'jsonVariantLocation' => $jsonVariantLocation,
           'hasItemMetadata' => is_array($itemMetadata),
           'itemMetadataRestored' => $itemMetadataRestored,

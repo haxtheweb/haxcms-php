@@ -199,6 +199,11 @@ class SiteApiRouter
                 'paramMap' => array('idOrSlug' => 1, 'format' => 2),
             ),
             array(
+                'pattern' => '/^v1\/items\/([^\/]+)\/revisions\/([^\/]+)\/compare\/([^\/]+)$/',
+                'route' => 'v1/items/:idOrSlug/revisions/:revisionId/compare/:compareRevisionId',
+                'paramMap' => array('idOrSlug' => 1, 'revisionId' => 2, 'compareRevisionId' => 3),
+            ),
+            array(
                 'pattern' => '/^v1\/items\/([^\/]+)\/revisions\/([^\/]+)\/restore$/',
                 'route' => 'v1/items/:idOrSlug/revisions/:revisionId/restore',
                 'paramMap' => array('idOrSlug' => 1, 'revisionId' => 2),
