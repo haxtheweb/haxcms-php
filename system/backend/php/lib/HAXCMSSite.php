@@ -31,6 +31,11 @@ class HAXCMSSite
         $tmpname = $GLOBALS['HAXCMS']->cleanTitle($tmpname, false);
         $this->basePath = $siteBasePath;
         $this->directory = $directory;
+        // Security (code-scanning js/path-injection, nodejs parity): never
+        // load the sites directory itself as a site (see HAXCMS::loadSite)
+        if (trim($tmpname, '/') === '') {
+            throw new \Exception('Site name resolves outside the sites directory');
+        }
         $this->manifest = new JSONOutlineSchema();
         $this->manifest->load($this->directory . '/' . $tmpname . '/site.json');
     }
