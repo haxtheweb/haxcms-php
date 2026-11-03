@@ -78,11 +78,14 @@ trait OperationsRouteHaxiamAddUserAccess {
       );
     }
 
-    // Validate that the target user exists in HAXIAM and has a sites directory
+    // Validate that the target user exists in HAXIAM and has a sites directory.
+    // 400, not 403: this is about the request, not the caller's rights, and
+    // the front end treats an unrecognized 403 as an expired session
+    // (refresh -> retry -> logout). Not 404 either: that also logs out.
     if (!$this->_validateHAXIAMUser($targetUserName)) {
       return array(
         '__failed' => array(
-          'status' => 403,
+          'status' => 400,
           'message' => 'User not found or has not set up HAXIAM yet',
         )
       );
@@ -112,9 +115,11 @@ trait OperationsRouteHaxiamAddUserAccess {
           'timestamp' => date('c')
         );
       } else {
+        // the helper says why: 409 already has access, 400 target not set
+        // up; anything else (e.g. symlink permissions) is a server error
         return array(
           '__failed' => array(
-            'status' => 500,
+            'status' => isset($result['status']) ? $result['status'] : 500,
             'message' => $result['error'],
           )
         );

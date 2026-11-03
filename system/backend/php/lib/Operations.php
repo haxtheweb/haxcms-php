@@ -2680,11 +2680,29 @@ class Operations {
 
 
   /**
+   * Directory that holds every HAXiam user's sites folder
+   * (<root>/<userName>/sites/<siteName>). Resolution order:
+   *   1. config->iamSitesRoot, for operators with a non-standard layout
+   *   2. IAM_ROOT/users_sites, which HAXiam defines whenever it is active
+   *   3. /var/www/sites, the location this code assumed before
+   */
+  protected function _haxiamSitesRoot() {
+    $config = isset($GLOBALS['HAXCMS']->config) ? $GLOBALS['HAXCMS']->config : null;
+    if ($config && isset($config->iamSitesRoot) && is_string($config->iamSitesRoot) && $config->iamSitesRoot !== '') {
+      return rtrim($config->iamSitesRoot, '/');
+    }
+    if (defined('IAM_ROOT')) {
+      return rtrim(IAM_ROOT, '/') . '/users_sites';
+    }
+    return '/var/www/sites';
+  }
+
+  /**
    * Helper method to validate if a user exists in HAXIAM and has set up their environment
    */
   private function _validateHAXIAMUser($userName) {
-    // In HAXIAM, users have directories under /var/www/sites/{userName}
-    $userPath = '/var/www/sites/' . $userName;
+    // In HAXIAM, users have directories under <sites root>/{userName}
+    $userPath = $this->_haxiamSitesRoot() . '/' . $userName;
     $sitesPath = $userPath . '/sites';
     
     // User must exist AND have a sites directory (indicating they've logged in and set up HAXIAM)
@@ -2696,7 +2714,7 @@ class Operations {
    */
   private function _validateUserOwnsSite($userName, $siteName) {
     // Check that the site exists in the user's sites directory
-    $sitePath = '/var/www/sites/' . $userName . '/sites/' . $siteName;
+    $sitePath = $this->_haxiamSitesRoot() . '/' . $userName . '/sites/' . $siteName;
     return is_dir($sitePath) && !is_link($sitePath); // Must be actual directory, not symlink
   }
 
@@ -2705,10 +2723,10 @@ class Operations {
    */
   private function _createUserSiteSymlink($sourceUser, $targetUser, $siteName) {
     // Source: the actual site directory owned by the source user
-    $sourceSitePath = '/var/www/sites/' . $sourceUser . '/sites/' . $siteName;
+    $sourceSitePath = $this->_haxiamSitesRoot() . '/' . $sourceUser . '/sites/' . $siteName;
     
     // Target: where the symlink should be created in target user's directory
-    $targetUserSitesDir = '/var/www/sites/' . $targetUser . '/sites';
+    $targetUserSitesDir = $this->_haxiamSitesRoot() . '/' . $targetUser . '/sites';
     $targetSitePath = $targetUserSitesDir . '/' . $siteName;
     
     // Double-check source site exists and is actually a directory (not a symlink)
@@ -2718,12 +2736,12 @@ class Operations {
     
     // Check if target already has access (symlink or directory already exists)
     if (file_exists($targetSitePath)) {
-      return array('success' => false, 'error' => 'User already has access to this site');
+      return array('success' => false, 'status' => 409, 'error' => 'User already has access to this site');
     }
     
     // Ensure target user's sites directory exists - DO NOT create it, fail if it doesn't exist
     if (!is_dir($targetUserSitesDir)) {
-      return array('success' => false, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
+      return array('success' => false, 'status' => 400, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
     }
     
     // Create the symlink using relative path: ../../sourceuser/sites/sitename
