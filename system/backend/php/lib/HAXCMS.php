@@ -1389,6 +1389,13 @@ class HAXCMS
     {
         $tmpname = urldecode($name);
         $tmpname = $this->cleanTitle($tmpname, false);
+        // Security (code-scanning js/path-injection, nodejs parity): a name
+        // that collapses to the sites directory itself ("/", "//") is not a
+        // site; cleanTitle already strips "..", so this is the only way a
+        // cleaned name can fail to name a child folder
+        if (trim($tmpname, '/') === '') {
+            return false;
+        }
         // check if this exists, load but fallback for creating on the fly
         if (
             is_dir(
