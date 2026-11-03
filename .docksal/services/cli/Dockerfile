@@ -1,5 +1,5 @@
 # Use a stock Docksal image as the base
-FROM docksal/cli:php8.3-3.11
+FROM docksal/cli:php8.3-3.11@sha256:448d963e57a0d174de37ac61b7ec6f8df54477c6747efc722c69a451602e6105
 # All further commands will be performed as the docker user.
 USER docker
 
