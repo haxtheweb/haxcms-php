@@ -1685,10 +1685,57 @@ class SiteRouteUtils
         return self::getBearerTokenFromRequest() === null;
     }
     /**
+     * Whether an operation's security list can be satisfied without logging
+     * in: an empty list, or a list holding an empty requirement (login
+     * optional, e.g. searchContent per haxtheweb/issues#3211).
+     * Mirrors Node isSecurityUsableAnonymously.
+     */
+    public static function isSecurityUsableAnonymously($security = array())
+    {
+        if (!is_array($security) || count($security) === 0) {
+            return true;
+        }
+        foreach ($security as $requirement) {
+            if ((is_array($requirement) && count($requirement) === 0) || (is_object($requirement) && count(get_object_vars($requirement)) === 0)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * The YAML parser reads an empty security requirement ({}) as an empty
+     * PHP array, which json_encode prints as []. Restore {} so the served
+     * spec matches Node's byte for byte (haxtheweb/issues#3211).
+     */
+    public static function restoreEmptySecurityRequirements($openapi = array())
+    {
+        if (!is_array($openapi) || !isset($openapi['paths']) || !is_array($openapi['paths'])) {
+            return $openapi;
+        }
+        $methods = array('get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace');
+        foreach ($openapi['paths'] as $pathKey => $pathItem) {
+            if (!is_array($pathItem)) {
+                continue;
+            }
+            foreach ($pathItem as $key => $operation) {
+                if (!in_array(strtolower((string) $key), $methods, true) || !is_array($operation) || !isset($operation['security']) || !is_array($operation['security'])) {
+                    continue;
+                }
+                foreach ($operation['security'] as $index => $requirement) {
+                    if (is_array($requirement) && count($requirement) === 0) {
+                        $openapi['paths'][$pathKey][$key]['security'][$index] = new \stdClass();
+                    }
+                }
+            }
+        }
+        return $openapi;
+    }
+    /**
      * Reduce an OpenAPI document to the operations an anonymous caller can
      * use: an operation is public when its effective security (its own, else
-     * the document's) is an empty list. Paths left with no operations are
-     * dropped. Mirrors Node filterOpenApiToPublicOperations.
+     * the document's) is an empty list or lists an empty requirement. Paths
+     * left with no operations are dropped. Mirrors Node
+     * filterOpenApiToPublicOperations.
      */
     public static function filterOpenApiToPublicOperations($openapi = array())
     {
@@ -1707,7 +1754,7 @@ class SiteRouteUtils
             foreach ($pathItem as $key => $value) {
                 if (in_array(strtolower((string) $key), $methods, true)) {
                     $security = (is_array($value) && array_key_exists('security', $value) && is_array($value['security'])) ? $value['security'] : $globalSecurity;
-                    if (count($security) === 0) {
+                    if (self::isSecurityUsableAnonymously($security)) {
                         $kept[$key] = $value;
                         $hasOperation = true;
                     }
