@@ -89,6 +89,40 @@ class SystemDiscoveryAndMapsTest extends TestCase
         $this->assertSame('/system/api', $data['absoluteLinks']['self']);
     }
 
+    public function testApiDiscoveryPublishesTheMcpPolicy(): void
+    {
+        $cases = array(
+            // config->mcp, expected
+            array(null, array('enabled' => false, 'readOnly' => true)),
+            array(array(), array('enabled' => false, 'readOnly' => true)),
+            array(array('enabled' => true), array('enabled' => true, 'readOnly' => true)),
+            array(array('enabled' => true, 'readOnly' => false), array('enabled' => true, 'readOnly' => false)),
+            // read-only is forced while MCP is disabled
+            array(array('enabled' => false, 'readOnly' => false), array('enabled' => false, 'readOnly' => true)),
+            // only a real boolean TRUE enables it
+            array(array('enabled' => 'true', 'readOnly' => false), array('enabled' => false, 'readOnly' => true)),
+        );
+        foreach ($cases as $case) {
+            $haxcms = new HAXCMS();
+            $haxcms->config = new stdClass();
+            if ($case[0] !== null) {
+                $haxcms->config->mcp = (object) $case[0];
+            }
+            $GLOBALS['HAXCMS'] = $haxcms;
+            $out = json_decode($this->invoke('api.php'), true);
+            $data = isset($out['data']) ? $out['data'] : $out;
+            $this->assertSame($case[1], $data['mcp'], json_encode($case[0]));
+        }
+    }
+
+    public function testApiDiscoveryMcpPolicyWithoutHaxcmsIsOffAndReadOnly(): void
+    {
+        unset($GLOBALS['HAXCMS']);
+        $out = json_decode($this->invoke('api.php'), true);
+        $data = isset($out['data']) ? $out['data'] : $out;
+        $this->assertSame(array('enabled' => false, 'readOnly' => true), $data['mcp']);
+    }
+
     // ------------------------------------------------------------------
     // discovery/openapi.php
     // ------------------------------------------------------------------
