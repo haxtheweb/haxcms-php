@@ -1,4 +1,4 @@
-FROM php:8.3-apache
+FROM php:8.3-apache@sha256:a2d500abd37ddb8b999e52c11f7bb340772ad5665b254bbb0b2762d6f131acb9
 # Adds jpeg-support for gd
 RUN apt-get update && apt-get install -y \
         libfreetype6-dev \
