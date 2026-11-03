@@ -92,6 +92,7 @@ return function ($context) {
     if ($requestedProfile === 'public') {
         $openapi = SiteRouteUtils::filterOpenApiToPublicOperations($openapi);
     }
+    $openapi = SiteRouteUtils::restoreEmptySecurityRequirements($openapi);
     $allowedFormats = array('json', 'yaml');
     $format = SiteRouteUtils::detectResponseFormat($allowedFormats, 'json', $routeSuffix);
     if ($format == 'yaml') {

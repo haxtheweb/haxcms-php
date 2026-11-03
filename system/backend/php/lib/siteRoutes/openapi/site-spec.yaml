@@ -1784,8 +1784,10 @@ paths:
         - search
       operationId: searchContent
       summary: Search item metadata and content
-      description: Anonymous requests only search published items that are not hidden from navigation.
-      security: []
+      description: Anonymous requests only search published items that are not hidden from navigation. Send a bearer token to also search unpublished and hidden items (logged-in editors).
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: "#/components/parameters/RequiredSearchQuery"
         - $ref: "#/components/parameters/FilterParent"
