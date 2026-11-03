@@ -10,21 +10,21 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  * access to a site by creating a symlink in the target user's sites
  * directory.
  *
- * SCOPE NOTE: The symlink-creation success path (_createUserSiteSymlink)
- * cannot be tested because the validation helpers hardcode /var/www/sites
- * which is root-owned and not writable in this environment. Tests cover:
- *   - IAM mode disabled → 400
- *   - Missing/invalid user_token → 403
- *   - Missing userName/siteName → 400
- *   - Invalid machine name format → 400
- *   - Self-access prevention → 400
- *   - _validateHAXIAMUser fails (user not in /var/www/sites) → 403
- *   - _validateUserOwnsSite fails (site not owned by user) → 403
+ * The sites root is resolved by _haxiamSitesRoot() (config->iamSitesRoot,
+ * then IAM_ROOT/users_sites, then /var/www/sites). Filesystem tests point
+ * config->iamSitesRoot at a temp directory laid out like HAXiam's
+ * users_sites tree (<user>/_sites plus a "sites" symlink), so the success
+ * path and every validation failure can be exercised.
  *
- * The _validateHAXIAMUser and _validateUserOwnsSite 403 paths are
- * naturally occurring because /var/www/sites does not exist in this
- * sandbox, so is_dir() returns false for any path under it.
- */
+ * Status contract (front end treats unknown 403s and any 404 as an expired
+ * session and logs the user out, so business-rule failures avoid them):
+ *   - IAM mode disabled, bad input, self grant, user not set up -> 400
+ *   - missing/invalid user_token, site neither owned by nor
+ *     shared with the caller                                    -> 403
+ * Anyone a site was shared with can share it onward; the new link always
+ * points at the real owner's site.
+ *   - target user already has access                             -> 409
+  */
 class OperationsHaxiamAddUserAccessTest extends TestCase
 {
     private $haxcms;
@@ -221,24 +221,261 @@ class OperationsHaxiamAddUserAccessTest extends TestCase
     }
 
     // =========================================================================
-    // _validateHAXIAMUser fails → 403 (naturally occurring: /var/www/sites
-    // doesn't exist in this sandbox so is_dir returns false)
+    // Filesystem-backed paths, against a temp HAXiam users_sites tree
     // =========================================================================
 
-    public function testHaxiamAddUserAccessUserNotFoundReturns403(): void
+    private $sitesRoot;
+
+    /**
+     * Build <root>/<user>/_sites with a "sites" -> "./_sites" symlink, the
+     * way haxiam's IAM::liberate() does, and point the operation at it.
+     */
+    private function makeSitesRoot(array $users, array $ownedSites = array()): string
     {
-        $this->haxcms->activeUserName = 'currentuser';
+        $root = sys_get_temp_dir() . '/haxiam-sites-' . bin2hex(random_bytes(6));
+        mkdir($root, 0755, true);
+        foreach ($users as $user) {
+            mkdir($root . '/' . $user . '/_sites', 0755, true);
+            symlink('./_sites', $root . '/' . $user . '/sites');
+        }
+        foreach ($ownedSites as $user => $sites) {
+            foreach ($sites as $site) {
+                mkdir($root . '/' . $user . '/_sites/' . $site, 0755, true);
+                file_put_contents($root . '/' . $user . '/_sites/' . $site . '/site.json', '{}');
+            }
+        }
+        $this->haxcms->config->iamSitesRoot = $root;
+        $this->sitesRoot = $root;
+        return $root;
+    }
+
+    private function removeTree(string $path): void
+    {
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+            return;
+        }
+        if (!is_dir($path)) {
+            return;
+        }
+        foreach (scandir($path) as $entry) {
+            if ($entry !== '.' && $entry !== '..') {
+                $this->removeTree($path . '/' . $entry);
+            }
+        }
+        rmdir($path);
+    }
+
+    private function grant(string $target, string $site): array
+    {
+        $this->haxcms->activeUserName = 'owner';
         $this->ops->params = array(
             'user_token' => 'good',
-            'userName' => 'nonexistentuser',
-            'siteName' => 'mysite',
+            'userName' => $target,
+            'siteName' => $site,
         );
-        $result = $this->ops->haxiamAddUserAccess();
-        $this->assertSame(403, $result['__failed']['status']);
-        $this->assertSame(
-            'User not found or has not set up HAXIAM yet',
-            $result['__failed']['message']
-        );
+        return $this->ops->haxiamAddUserAccess();
+    }
+
+    public function testUserNotSetUpReturns400NotA403(): void
+    {
+        $this->makeSitesRoot(array('owner'), array('owner' => array('mysite')));
+        try {
+            $result = $this->grant('nonexistentuser', 'mysite');
+            $this->assertSame(400, $result['__failed']['status']);
+            $this->assertSame(
+                'User not found or has not set up HAXIAM yet',
+                $result['__failed']['message']
+            );
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testSiteNotOwnedByCallerReturns403(): void
+    {
+        $this->makeSitesRoot(array('owner', 'friend'));
+        try {
+            $result = $this->grant('friend', 'notmine');
+            $this->assertSame(403, $result['__failed']['status']);
+            $this->assertSame(
+                'You do not own this site or site does not exist',
+                $result['__failed']['message']
+            );
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testSharedSiteCanBeSharedOnward(): void
+    {
+        // "owner" (the caller) only has mysite because author shared it
+        $root = $this->makeSitesRoot(array('owner', 'friend', 'author'), array('author' => array('mysite')));
+        symlink('../../author/sites/mysite', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame('success', $result['status']);
+            $link = $root . '/friend/sites/mysite';
+            // the new link points straight at the real owner, not at the
+            // person who shared it, so it survives them losing access
+            $this->assertSame('../../author/sites/mysite', readlink($link));
+            $this->assertSame(realpath($root . '/author/_sites/mysite'), realpath($link));
+            unlink($root . '/owner/_sites/mysite');
+            $this->assertFileExists($link . '/site.json');
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testSharedSiteCannotBeSharedBackWithItsOwner(): void
+    {
+        $root = $this->makeSitesRoot(array('owner', 'author'), array('author' => array('mysite')));
+        symlink('../../author/sites/mysite', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('author', 'mysite');
+            $this->assertSame(409, $result['__failed']['status']);
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testLinkOutsideSitesRootIsNotShareable(): void
+    {
+        // a link a user planted pointing anywhere else must not count
+        $root = $this->makeSitesRoot(array('owner', 'friend'));
+        $outside = sys_get_temp_dir() . '/haxiam-outside-' . bin2hex(random_bytes(6));
+        mkdir($outside . '/mysite', 0755, true);
+        symlink($outside . '/mysite', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame(403, $result['__failed']['status']);
+            $this->assertFalse(is_link($root . '/friend/sites/mysite'));
+        } finally {
+            $this->removeTree($this->sitesRoot);
+            $this->removeTree($outside);
+        }
+    }
+
+    public function testLinkToDifferentlyNamedSiteIsNotShareable(): void
+    {
+        // owner/sites/mysite -> author/_sites/secret must not grant "secret"
+        $root = $this->makeSitesRoot(array('owner', 'friend', 'author'), array('author' => array('secret')));
+        symlink('../../author/sites/secret', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame(403, $result['__failed']['status']);
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testLinkToNonSiteFolderIsNotShareable(): void
+    {
+        // pointing at another user's whole folder, not one of their sites
+        $root = $this->makeSitesRoot(array('owner', 'friend', 'author'));
+        mkdir($root . '/author/mysite', 0755, true);
+        symlink('../../author/mysite', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame(403, $result['__failed']['status']);
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testBrokenSharedLinkIsNotShareable(): void
+    {
+        // the original owner deleted the site; the old link dangles
+        $root = $this->makeSitesRoot(array('owner', 'friend', 'author'));
+        symlink('../../author/sites/mysite', $root . '/owner/_sites/mysite');
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame(403, $result['__failed']['status']);
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testSiteOwnerResolvesThroughSymlinkedRoot(): void
+    {
+        // e.g. /var/www/sites -> <haxiam>/users_sites on a real server
+        $real = $this->makeSitesRoot(array('owner', 'friend', 'author'), array('author' => array('mysite')));
+        symlink('../../author/sites/mysite', $real . '/owner/_sites/mysite');
+        $alias = $real . '-alias';
+        symlink($real, $alias);
+        $this->haxcms->config->iamSitesRoot = $alias;
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame('success', $result['status']);
+            $this->assertSame('../../author/sites/mysite', readlink($real . '/friend/_sites/mysite'));
+        } finally {
+            unlink($alias);
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testGrantCreatesWorkingSymlinkInTargetSites(): void
+    {
+        $root = $this->makeSitesRoot(array('owner', 'friend'), array('owner' => array('mysite')));
+        try {
+            $result = $this->grant('friend', 'mysite');
+            $this->assertSame('success', $result['status']);
+            $link = $root . '/friend/sites/mysite';
+            $this->assertTrue(is_link($link));
+            // the relative target resolves through the "sites" alias to the
+            // owner's real site directory
+            $this->assertSame(
+                realpath($root . '/owner/_sites/mysite'),
+                realpath($link)
+            );
+            $this->assertFileExists($link . '/site.json');
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testAlreadyHasAccessReturns409(): void
+    {
+        $this->makeSitesRoot(array('owner', 'friend'), array('owner' => array('mysite')));
+        try {
+            $this->assertSame('success', $this->grant('friend', 'mysite')['status']);
+            $again = $this->grant('friend', 'mysite');
+            $this->assertSame(409, $again['__failed']['status']);
+            $this->assertSame('User already has access to this site', $again['__failed']['message']);
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testNoFailureUsesA404(): void
+    {
+        // a 404 from this route would log the user out in app-hax
+        $this->makeSitesRoot(array('owner'), array('owner' => array('mysite')));
+        try {
+            foreach (array(array('ghost', 'mysite'), array('owner2', 'nope')) as $case) {
+                $result = $this->grant($case[0], $case[1]);
+                $this->assertNotSame(404, $result['__failed']['status']);
+            }
+        } finally {
+            $this->removeTree($this->sitesRoot);
+        }
+    }
+
+    public function testSitesRootDefaultsWhenNotConfigured(): void
+    {
+        unset($this->haxcms->config->iamSitesRoot);
+        $method = new ReflectionMethod(Operations::class, '_haxiamSitesRoot');
+        $method->setAccessible(true);
+        $expected = defined('IAM_ROOT') ? rtrim(IAM_ROOT, '/') . '/users_sites' : '/var/www/sites';
+        $this->assertSame($expected, $method->invoke($this->ops));
+    }
+
+    public function testSitesRootHonorsConfigOverride(): void
+    {
+        $this->haxcms->config->iamSitesRoot = '/srv/haxiam/users_sites/';
+        $method = new ReflectionMethod(Operations::class, '_haxiamSitesRoot');
+        $method->setAccessible(true);
+        $this->assertSame('/srv/haxiam/users_sites', $method->invoke($this->ops));
     }
 }
 

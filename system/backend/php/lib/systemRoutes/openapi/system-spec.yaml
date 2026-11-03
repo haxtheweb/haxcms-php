@@ -656,13 +656,16 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - siteName
+                - userName
               properties:
-                site:
+                siteName:
                   type: string
-                  description: Site machine name to grant access to
-                user:
+                  description: Machine name of a site the caller owns or has been given access to
+                userName:
                   type: string
-                  description: User name to grant access for
+                  description: HAXiam user name to grant access to
               additionalProperties: true
       responses:
         "200":
@@ -672,9 +675,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiEnvelope"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: >
+            Invalid request, HAXiam disabled, self grant, or the target user
+            has not signed in to HAXiam yet (code USER_NOT_SET_UP). Business
+            rule failures use 400/409 rather than 403/404, because clients
+            treat an unrecognized 403 or any 404 as an expired session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: >
+            Invalid request token (USER_TOKEN_INVALID), or the site is neither
+            owned by nor shared with the caller (SITE_ACCESS_DENIED). A site
+            shared with the caller can be shared onward; the new access
+            points at the real owner's site.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Target user already has access to this site (USER_ALREADY_HAS_ACCESS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: The access link could not be created (ACCESS_GRANT_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/status:
     get:
       tags:
