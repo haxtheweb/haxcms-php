@@ -69,6 +69,7 @@ class HAXCMSApiMessageCodesTest extends TestCase
             array('Too many login attempts. Please retry later.', 'AUTH_RATE_LIMITED', array()),
             array('Admin access required', 'ACCESS_DENIED', array()),
             array('User access granted successfully', 'ACCESS_GRANTED', array()),
+            array('The source states all rights reserved, so it was not imported. Ask the owner for permission, or for a license that allows reuse.', 'IMPORT_RIGHTS_RESERVED', array()),
         );
     }
 
@@ -182,6 +183,80 @@ class HAXCMSApiMessageCodesTest extends TestCase
             }
         }
         $this->assertSame(array(), $missing, "messages without a code:\n" . implode("\n", $missing));
+    }
+
+    /**
+     * The literal scan above only sees 'message' => / 'error' => pairs. A
+     * 401/403/405 thrown through a helper (haxcmsImportQuartoError(403,
+     * SOME_MESSAGE), ...) is sent the same way, and without a code the front
+     * end treats it as a possibly expired sign-in (refresh -> retry ->
+     * logout) instead of a final answer.
+     */
+    public function testAuthStatusMessagesPassedToHelpersAllHaveACode()
+    {
+        $root = dirname(__DIR__, 2) . '/lib';
+        $authStatuses = array('401', '403', '405');
+        $missing = array();
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if (substr($file->getFilename(), -4) !== '.php') {
+                continue;
+            }
+            // significant tokens only, so argument positions are easy to read
+            $tokens = array_values(array_filter(token_get_all(file_get_contents($file->getPathname())), function ($token) {
+                return !is_array($token) || !in_array($token[0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true);
+            }));
+            $count = count($tokens);
+            // define('NAME', 'text') constants in this file
+            $constants = array();
+            for ($i = 0; $i + 4 < $count; $i++) {
+                if (is_array($tokens[$i]) && $tokens[$i][0] === T_STRING && strtolower($tokens[$i][1]) === 'define' && $tokens[$i + 1] === '('
+                    && is_array($tokens[$i + 2]) && $tokens[$i + 2][0] === T_CONSTANT_ENCAPSED_STRING && $tokens[$i + 3] === ','
+                    && is_array($tokens[$i + 4]) && $tokens[$i + 4][0] === T_CONSTANT_ENCAPSED_STRING) {
+                    $constants[substr($tokens[$i + 2][1], 1, -1)] = $this->literalValue($tokens, $i + 4);
+                }
+            }
+            for ($i = 0; $i + 1 < $count; $i++) {
+                if (!is_array($tokens[$i]) || $tokens[$i][0] !== T_STRING || $tokens[$i + 1] !== '(') {
+                    continue;
+                }
+                // the call's own top-level arguments
+                $depth = 0;
+                $status = null;
+                $message = null;
+                for ($j = $i + 1; $j < $count; $j++) {
+                    $token = $tokens[$j];
+                    if ($token === '(' || $token === '[') {
+                        $depth++;
+                        continue;
+                    }
+                    if ($token === ')' || $token === ']') {
+                        $depth--;
+                        if ($depth === 0) {
+                            break;
+                        }
+                        continue;
+                    }
+                    if ($depth !== 1 || !is_array($token)) {
+                        continue;
+                    }
+                    if ($token[0] === T_LNUMBER && in_array($token[1], $authStatuses, true)) {
+                        $status = $token[1];
+                    } elseif ($message === null && $token[0] === T_CONSTANT_ENCAPSED_STRING) {
+                        $message = $this->literalValue($tokens, $j);
+                    } elseif ($message === null && $token[0] === T_STRING && isset($constants[$token[1]])) {
+                        $message = $constants[$token[1]];
+                    }
+                }
+                if ($status === null || $message === null || !preg_match('/[a-z]{3}/i', $message)) {
+                    continue;
+                }
+                if (HAXCMSApiMessageCodes::match($message) === null) {
+                    $missing[] = substr($file->getPathname(), strlen($root) + 1) . ':' . $tokens[$i][2] . ' ' . $status . ' ' . json_encode($message);
+                }
+            }
+        }
+        $this->assertSame(array(), $missing, "auth-status messages without a code:\n" . implode("\n", $missing));
     }
 
     // a string literal, "interpolated $vars", or 'a' . $b . 'c' concatenation; variables become "1"
