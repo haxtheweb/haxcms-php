@@ -91,7 +91,8 @@ trait OperationsRouteHaxiamAddUserAccess {
       );
     }
 
-    // Validate that the current user owns the specified site
+    // Validate that the current user owns the specified site, or that it was
+    // shared with them (anyone with access can share it onward)
     if (!$this->_validateUserOwnsSite($currentUser, $siteName)) {
       return array(
         '__failed' => array(
@@ -106,7 +107,8 @@ trait OperationsRouteHaxiamAddUserAccess {
       $result = $this->_createUserSiteSymlink($currentUser, $targetUserName, $siteName);
       if ($result['success']) {
         // Log the access grant
-        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' to user '{$targetUserName}'");
+        $owner = isset($result['owner']) ? $result['owner'] : $currentUser;
+        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' (owner '{$owner}') to user '{$targetUserName}'");
         
         return array(
           'status' => 'success',

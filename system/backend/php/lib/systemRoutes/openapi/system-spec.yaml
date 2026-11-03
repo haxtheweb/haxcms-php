@@ -662,7 +662,7 @@ paths:
               properties:
                 siteName:
                   type: string
-                  description: Machine name of a site the caller owns
+                  description: Machine name of a site the caller owns or has been given access to
                 userName:
                   type: string
                   description: HAXiam user name to grant access to
@@ -686,8 +686,10 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "403":
           description: >
-            Invalid request token (USER_TOKEN_INVALID) or the caller does not
-            own the site (SITE_ACCESS_DENIED)
+            Invalid request token (USER_TOKEN_INVALID), or the site is neither
+            owned by nor shared with the caller (SITE_ACCESS_DENIED). A site
+            shared with the caller can be shared onward; the new access
+            points at the real owner's site.
           content:
             application/json:
               schema:
