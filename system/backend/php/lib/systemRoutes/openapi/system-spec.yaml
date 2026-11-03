@@ -3071,8 +3071,8 @@ components:
       description: >-
         This instance's MCP policy (config.mcp). `enabled: false` means MCP clients must
         not operate this instance; `readOnly: true` means MCP clients must not write.
-        Defaults: disabled on haxiam-managed deployments and enabled elsewhere;
-        read-only unless config.mcp.readOnly is set to false.
+        Defaults: disabled on every deployment profile unless config.mcp.enabled is
+        set to true; read-only unless config.mcp.readOnly is set to false.
       properties:
         enabled:
           type: boolean
