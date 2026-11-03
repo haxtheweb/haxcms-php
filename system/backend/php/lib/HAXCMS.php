@@ -246,8 +246,10 @@ class HAXCMS
             if (!isset($this->config->mcp)) {
                 $this->config->mcp = new stdClass();
             }
+            // MCP is opt-in on every deployment profile: an operator turns it on in
+            // config.json (and, later, through a plugin that says what it enables)
             if (!isset($this->config->mcp->enabled)) {
-                $this->config->mcp->enabled = ($this->getDeploymentProfile() != 'haxiam-managed');
+                $this->config->mcp->enabled = FALSE;
             }
             if (!isset($this->config->mcp->readOnly)) {
                 $this->config->mcp->readOnly = TRUE;
@@ -452,7 +454,7 @@ class HAXCMS
         $config->site->static = new stdClass();
         $config->site->publishers = new stdClass();
         $config->mcp = new stdClass();
-        $config->mcp->enabled = TRUE;
+        $config->mcp->enabled = FALSE;
         $config->mcp->readOnly = TRUE;
         $config->deploymentProfile = 'single-site';
         return $config;
