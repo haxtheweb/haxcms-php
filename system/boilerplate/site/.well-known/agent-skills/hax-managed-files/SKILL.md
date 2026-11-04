@@ -37,9 +37,10 @@ output or running forbidden builds.
 ## Managed files (generated — rebuild, never hand-edit)
 
 These are produced by `rebuildManagedFiles()` and the ubiquity build. Editing them in place is
-futile (the next rebuild overwrites them) and can corrupt a site.
+futile (the next rebuild overwrites them) and can corrupt a site. The exceptions are the
+partly managed files in the next section.
 
-- SEO / discovery: `llms.txt`, `robots.txt`, `sitemap.xml`, `sitemap-index.xml`, `rss.xml`,
+- SEO / discovery: `llms.txt`, `sitemap.xml`, `sitemap-index.xml`, `rss.xml`,
   `atom.xml`.
 - Search: `lunrSearchIndex.json`.
 - PWA: `manifest.json`, `service-worker.js`, `push-manifest.json`, `browserconfig.xml`,
@@ -48,8 +49,7 @@ futile (the next rebuild overwrites them) and can corrupt a site.
 - Static fallbacks: `index.html`, `404.html`, `ghpages.html`, `assets/upgrade-browser.html`.
 - well-known: `.well-known/security.txt`, `.well-known/api-catalog`,
   `.well-known/agent-skills/index.json` and the agent-skills skill files.
-- Config / tooling: `package.json`, `web-dev-server.haxcms.config.cjs`, `.htaccess`,
-  `files/.htaccess`.
+- Config / tooling: `web-dev-server.haxcms.config.cjs`, `files/.htaccess`.
 - Backend (PHP/Node): `index.php`, `config.php` (PHP); SCORM `imsmanifest.xml` + the `*.xsd` files.
 - Per-page alternate formats: `pages/<item-id>/index.md`, `index.json`, `index.yaml`, `index.xml`
   (and any other `index.*` next to `index.html`). They are built from `index.html` whenever the
@@ -57,8 +57,26 @@ futile (the next rebuild overwrites them) and can corrupt a site.
   `index.html` directly, they stay stale until the next content save; to update content and its
   alternates together, use `hax site node:edit --item-id <id-or-slug> --content <file-or-html> --y --no-i`.
 
+## Partly managed files (edit only outside the managed block)
+
+HAXcms owns part of these files and the site owner owns the rest. A rebuild rewrites only
+HAXcms's part, and only when it changed; everything else is kept.
+
+| File | HAXcms-owned part | Where site-specific changes go |
+|---|---|---|
+| `AGENTS.md` | between `<!-- haxcms:managed:start -->` and `<!-- haxcms:managed:end -->` | below the block (the "Site-specific notes" section) |
+| `.htaccess` | between `# BEGIN HAXcms managed` and `# END HAXcms managed` | above or below the markers |
+| `robots.txt` | between `# BEGIN HAXcms managed` and `# END HAXcms managed` | after the END marker, each group starting with its own `User-agent` line |
+| `package.json` | the keys the boilerplate defines | extra keys, scripts and dependencies are kept |
+
+- Never edit inside a managed block or remove a marker. A file with only one marker left is
+  treated as damaged: a fresh block is added above it, and the old content is kept for the
+  owner to clean up.
+- Markers count only at the start of a line, and contain no version number.
+- `files/.htaccess` (execution hardening for uploads) stays fully managed. Do not edit it.
+
 When a managed file is wrong, fix the **source** it is generated from, then rebuild:
-- `llms.txt` / `robots.txt` / `sitemap` / `lunrSearchIndex` — regenerate via `rebuildManagedFiles`
+- `llms.txt` / the managed block of `robots.txt` / `sitemap` / `lunrSearchIndex` — regenerate via `rebuildManagedFiles`
   (triggered by save operations or the `hax` CLI).
 - `wc-registry.json` / `build*.js` / minified `build/` assets — fix in the **webcomponents
   monorepo** source, verify locally, then the user runs the ubiquity build (see below).

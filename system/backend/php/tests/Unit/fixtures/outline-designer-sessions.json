@@ -1,6 +1,6 @@
 {
   "description": "outline-designer getData() output for real editing sessions, captured from haxtheweb/webcomponents",
-  "capturedFrom": "https://github.com/haxtheweb/webcomponents/blob/61c02b29ab3b337ac5a882374bb190009f0e3e2a/elements/outline-designer/outline-designer.js",
+  "capturedFrom": "https://github.com/haxtheweb/webcomponents/blob/59f6b145873e1531b1439359b501b70907e93663/elements/outline-designer/outline-designer.js",
   "initial": [
     {
       "id": "item-welcome",
@@ -908,7 +908,7 @@
           }
         },
         {
-          "id": "item-92663ef1-57de-6809-b36a-a09d7d4ef36d",
+          "id": "item-new-1",
           "title": "Lesson 1b",
           "location": "",
           "slug": "",
@@ -980,7 +980,7 @@
       "description": "Add a page at the top of the outline",
       "sent": [
         {
-          "id": "item-309b884d-4e28-b3ab-3103-d851bc645a2a",
+          "id": "item-new-1",
           "title": "New item",
           "location": "",
           "slug": "",
@@ -1230,7 +1230,7 @@
           }
         },
         {
-          "id": "item-94d3a51b-fb16-0f94-db69-37b2b71a6a66",
+          "id": "item-new-1",
           "title": "Copy of Lesson 2",
           "location": "",
           "slug": "",
@@ -1816,7 +1816,7 @@
           }
         },
         {
-          "id": "item-fff5c689-777d-9f2f-93cd-c45fec778c9f",
+          "id": "item-new-1",
           "title": "Lesson 4",
           "location": "",
           "slug": "",

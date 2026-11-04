@@ -1265,11 +1265,6 @@ msr
   license:     MIT
   attribution: see license text #35
 
-safari-14-idb-fix
-  build path:  es6/node_modules/safari-14-idb-fix
-  license:     Apache-2.0
-  attribution: see license text #1
-
 scrollable-component
   build path:  es6/node_modules/scrollable-component
   license:     MIT
@@ -1295,7 +1290,7 @@ LICENSE TEXTS
 ================================================================================
 
 --------------------------------------------------------------------------------
-#1 - Apache-2.0 (shared by 2 packages)
+#1 - Apache-2.0 - @google/model-viewer
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -5715,7 +5710,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
-Copyright (c) 2022-24 StackBlitz Inc.
+Copyright (c) 2022-25 StackBlitz Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -5810,7 +5805,7 @@ source files: LICENSE
 ---- LICENSE ----
 MIT License
 
-Copyright (c) 2023 Arjun Barrett
+Copyright (c) 2026 Arjun Barrett
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
