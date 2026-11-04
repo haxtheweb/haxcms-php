@@ -210,8 +210,17 @@ class ConfigJsonSafeguardTest extends TestCase
         $this->assertIsObject($config->site->git);
         $this->assertIsObject($config->site->static);
         $this->assertIsObject($config->site->publishers);
-        $this->assertTrue($config->mcp->enabled);
+        $this->assertFalse($config->mcp->enabled);
         $this->assertTrue($config->mcp->readOnly);
         $this->assertSame('single-site', $config->deploymentProfile);
+    }
+
+    public function testBoilerplateConfigShipsWithMcpDisabled(): void
+    {
+        $boilerplate = json_decode(file_get_contents(
+            dirname(__DIR__, 4) . '/boilerplate/systemsetup/config.json'
+        ));
+        $this->assertFalse($boilerplate->mcp->enabled);
+        $this->assertTrue($boilerplate->mcp->readOnly);
     }
 }

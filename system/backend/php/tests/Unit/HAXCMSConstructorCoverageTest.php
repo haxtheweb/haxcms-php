@@ -221,9 +221,9 @@ class HAXCMSConstructorCoverageTest extends TestCase
         $themeSelect = $haxcms->config->site->fields[0]->properties[1]->properties[0]->options;
         $this->assertIsArray($themeSelect);
         $this->assertNotEmpty($themeSelect);
-        // defaults seeded for a self-hosted multi-site profile
+        // defaults seeded for a self-hosted multi-site profile: MCP is opt-in
         $this->assertSame('self-hosted-multi-site', $haxcms->config->deploymentProfile);
-        $this->assertTrue($haxcms->config->mcp->enabled);
+        $this->assertFalse($haxcms->config->mcp->enabled);
         $this->assertTrue($haxcms->config->mcp->readOnly);
         $this->assertInstanceOf('stdClass', $haxcms->config->security->loginRateLimit);
         $this->assertSame('en-US', $haxcms->config->localization->defaultLanguage);

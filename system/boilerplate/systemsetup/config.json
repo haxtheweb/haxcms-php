@@ -1,7 +1,7 @@
 {
   "deploymentProfile": "self-hosted-multi-site",
   "mcp": {
-    "enabled": true,
+    "enabled": false,
     "readOnly": true
   },
   "security": {

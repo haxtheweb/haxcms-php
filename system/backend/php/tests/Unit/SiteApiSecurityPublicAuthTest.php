@@ -87,6 +87,30 @@ class SiteApiSecurityPublicAuthTest extends TestCase
         $this->assertSame('bob', $result['userName']);
     }
 
+    /**
+     * haxtheweb/issues#3211: search declares optional auth
+     * ([bearerAuth, {}]). It stays a public route: a logged-in editor's
+     * bearer authenticates (so unpublished pages are searched), anything
+     * else is anonymous and never blocked.
+     */
+    public function testSearchRouteAuthenticatesAnOptionalBearer(): void
+    {
+        $context = makeSiteRouteContext(new SiteRoutesFakeSite(), array(), 'v1/search');
+        $anon = SiteApiSecurity::validateSiteApiAccess($context, 'v1/search', 'GET');
+        $this->assertTrue($anon['allowed']);
+        $this->assertFalse($anon['authenticated']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer expired-token';
+        $expired = SiteApiSecurity::validateSiteApiAccess($context, 'v1/search', 'GET');
+        $this->assertTrue($expired['allowed']);
+        $this->assertFalse($expired['authenticated']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer valid-token';
+        $GLOBALS['HAXCMS']->bearerUser = 'alice';
+        $editor = SiteApiSecurity::validateSiteApiAccess($context, 'v1/search', 'GET');
+        $this->assertTrue($editor['allowed']);
+        $this->assertTrue($editor['authenticated']);
+        $this->assertSame('alice', $editor['userName']);
+    }
+
     public function testRouterContextReflectsAnonymousPublicRequest(): void
     {
         // Simulate the SiteApiRouter assignment so isAnonymousSiteApiRequest

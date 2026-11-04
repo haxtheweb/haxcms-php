@@ -971,7 +971,11 @@ class Operations {
       return false;
     }
     $targetPath = $siteRoot . '/' . $normalizedLocation;
-    if (!file_exists($targetPath) || !is_file($targetPath)) {
+    // an existing regular file, not a symlink (the same rule as the NodeJS
+    // backend's getValidatedWritePath(), so both answer "invalid write
+    // target" for the same site on disk; writing through a symlinked page
+    // file would overwrite whatever it points at)
+    if (is_link($targetPath) || !file_exists($targetPath) || !is_file($targetPath)) {
       return false;
     }
     $targetRealPath = realpath($targetPath);
@@ -2676,11 +2680,29 @@ class Operations {
 
 
   /**
+   * Directory that holds every HAXiam user's sites folder
+   * (<root>/<userName>/sites/<siteName>). Resolution order:
+   *   1. config->iamSitesRoot, for operators with a non-standard layout
+   *   2. IAM_ROOT/users_sites, which HAXiam defines whenever it is active
+   *   3. /var/www/sites, the location this code assumed before
+   */
+  protected function _haxiamSitesRoot() {
+    $config = isset($GLOBALS['HAXCMS']->config) ? $GLOBALS['HAXCMS']->config : null;
+    if ($config && isset($config->iamSitesRoot) && is_string($config->iamSitesRoot) && $config->iamSitesRoot !== '') {
+      return rtrim($config->iamSitesRoot, '/');
+    }
+    if (defined('IAM_ROOT')) {
+      return rtrim(IAM_ROOT, '/') . '/users_sites';
+    }
+    return '/var/www/sites';
+  }
+
+  /**
    * Helper method to validate if a user exists in HAXIAM and has set up their environment
    */
   private function _validateHAXIAMUser($userName) {
-    // In HAXIAM, users have directories under /var/www/sites/{userName}
-    $userPath = '/var/www/sites/' . $userName;
+    // In HAXIAM, users have directories under <sites root>/{userName}
+    $userPath = $this->_haxiamSitesRoot() . '/' . $userName;
     $sitesPath = $userPath . '/sites';
     
     // User must exist AND have a sites directory (indicating they've logged in and set up HAXIAM)
@@ -2688,45 +2710,88 @@ class Operations {
   }
 
   /**
-   * Helper method to validate that the current user owns the specified site
+   * Who really owns a site the user can see in their sites folder.
+   *
+   * A real directory at <root>/<user>/sites/<site> belongs to <user>. A
+   * symlink there is a site someone shared with <user>; it is followed to
+   * the real directory, which must sit at <root>/<owner>/_sites/<site> (or
+   * <root>/<owner>/sites/<site>) inside the sites root, and <owner> is
+   * returned. Anything else (missing, broken link, a link pointing outside
+   * the sites root or at a differently named folder) returns null.
+   *
+   * @return string|null owner user name, or null when there is no such site
    */
-  private function _validateUserOwnsSite($userName, $siteName) {
-    // Check that the site exists in the user's sites directory
-    $sitePath = '/var/www/sites/' . $userName . '/sites/' . $siteName;
-    return is_dir($sitePath) && !is_link($sitePath); // Must be actual directory, not symlink
+  protected function _haxiamSiteOwner($userName, $siteName) {
+    $root = $this->_haxiamSitesRoot();
+    $sitePath = $root . '/' . $userName . '/sites/' . $siteName;
+    if (!is_dir($sitePath)) {
+      return null;
+    }
+    if (!is_link($sitePath)) {
+      return $userName;
+    }
+    $realRoot = realpath($root);
+    $realSite = realpath($sitePath);
+    if ($realRoot === false || $realSite === false) {
+      return null;
+    }
+    $prefix = rtrim($realRoot, '/') . '/';
+    if (strpos($realSite, $prefix) !== 0) {
+      return null;
+    }
+    // <owner>/<_sites|sites>/<site> and nothing deeper
+    $parts = explode('/', substr($realSite, strlen($prefix)));
+    if (
+      count($parts) !== 3 ||
+      $parts[0] === '' ||
+      ($parts[1] !== '_sites' && $parts[1] !== 'sites') ||
+      $parts[2] !== $siteName
+    ) {
+      return null;
+    }
+    return $parts[0];
   }
 
   /**
-   * Helper method to create a symlink in the target user's sites directory
+   * Helper method to validate that the user can share the specified site:
+   * they own it, or it was shared with them (see _haxiamSiteOwner).
+   */
+  private function _validateUserOwnsSite($userName, $siteName) {
+    return $this->_haxiamSiteOwner($userName, $siteName) !== null;
+  }
+
+  /**
+   * Helper method to create a symlink in the target user's sites directory.
+   * The link always points at the real owner's site, even when the person
+   * sharing it only has it because it was shared with them, so access never
+   * depends on a chain of links through other users.
    */
   private function _createUserSiteSymlink($sourceUser, $targetUser, $siteName) {
-    // Source: the actual site directory owned by the source user
-    $sourceSitePath = '/var/www/sites/' . $sourceUser . '/sites/' . $siteName;
-    
-    // Target: where the symlink should be created in target user's directory
-    $targetUserSitesDir = '/var/www/sites/' . $targetUser . '/sites';
-    $targetSitePath = $targetUserSitesDir . '/' . $siteName;
-    
-    // Double-check source site exists and is actually a directory (not a symlink)
-    if (!is_dir($sourceSitePath) || is_link($sourceSitePath)) {
+    $owner = $this->_haxiamSiteOwner($sourceUser, $siteName);
+    if ($owner === null) {
       return array('success' => false, 'error' => 'Source site does not exist or is not owned by you');
     }
-    
-    // Check if target already has access (symlink or directory already exists)
-    if (file_exists($targetSitePath)) {
-      return array('success' => false, 'error' => 'User already has access to this site');
+
+    // Target: where the symlink should be created in target user's directory
+    $targetUserSitesDir = $this->_haxiamSitesRoot() . '/' . $targetUser . '/sites';
+    $targetSitePath = $targetUserSitesDir . '/' . $siteName;
+
+    // Check if target already has access (symlink or directory already
+    // exists). This also covers sharing a site back with its owner.
+    if (file_exists($targetSitePath) || is_link($targetSitePath)) {
+      return array('success' => false, 'status' => 409, 'error' => 'User already has access to this site');
     }
-    
+
     // Ensure target user's sites directory exists - DO NOT create it, fail if it doesn't exist
     if (!is_dir($targetUserSitesDir)) {
-      return array('success' => false, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
+      return array('success' => false, 'status' => 400, 'error' => 'Target user has not set up HAXIAM yet - they must log in first');
     }
-    
-    // Create the symlink using relative path: ../../sourceuser/sites/sitename
-    $relativePath = '../../' . $sourceUser . '/sites/' . $siteName;
-    
+
+    // Create the symlink using relative path: ../../owner/sites/sitename
+    $relativePath = '../../' . $owner . '/sites/' . $siteName;
+
     if (@symlink($relativePath, $targetSitePath)) {
-      return array('success' => true);
+      return array('success' => true, 'owner' => $owner);
     } else {
       return array('success' => false, 'error' => 'Failed to create symlink - check permissions');
     }

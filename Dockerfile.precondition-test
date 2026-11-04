@@ -14,7 +14,7 @@
 #
 # The full-featured image is Dockerfile (php:8.3-apache + git + gd + curl).
 
-FROM php:8.3-apache
+FROM php:8.3-apache@sha256:a2d500abd37ddb8b999e52c11f7bb340772ad5665b254bbb0b2762d6f131acb9
 
 # Enable Apache rewrite (required for HAXcms routing) and headers (used by the
 # .htaccess security headers, same as the full image) but do NOT install

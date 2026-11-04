@@ -512,6 +512,139 @@ class OperationsNodeRevisionsTest extends TestCase
         $result = $this->ops->restoreNodeRevision();
         $this->assertSame(404, $result['__failed']['status']);
     }
+
+    // =========================================================================
+    // compareNodeRevisions (haxtheweb/issues#3191; Node: compareItemRevisions)
+    // =========================================================================
+
+    private function compareParams($from, $to): array
+    {
+        return array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+            'hash' => $from,
+            'compareHash' => $to,
+        );
+    }
+
+    public function testCompareNodeRevisionsMissingCompareHashReturns400(): void
+    {
+        $this->ops->params = array(
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+            'hash' => $this->commitHashes[0],
+        );
+        $result = $this->ops->compareNodeRevisions();
+        $this->assertSame(400, $result['__failed']['status']);
+    }
+
+    public function testCompareNodeRevisionsInvalidHashReturns400(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = $this->compareParams($this->commitHashes[0], 'zz;rm');
+        $result = $this->ops->compareNodeRevisions();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Invalid revision hash', $result['__failed']['message']);
+    }
+
+    public function testCompareNodeRevisionsReturnsBothContents(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = $this->compareParams($this->commitHashes[0], $this->commitHashes[1]);
+        $result = $this->ops->compareNodeRevisions();
+        $this->assertSame(200, $result['status']);
+        $data = $result['data'];
+        $this->assertSame('item-a', $data['nodeId']);
+        $this->assertSame($this->commitHashes[0], $data['from']['revision']['hash']);
+        $this->assertSame($this->commitHashes[1], $data['to']['revision']['hash']);
+        $this->assertSame('<p>Original content</p>', $data['from']['content']);
+        $this->assertSame('<p>Updated content</p>', $data['to']['content']);
+        $this->assertTrue($data['contentChanged']);
+        $this->assertSame(array(), $data['itemMetadataChanges']);
+        $this->assertSame('X', $data['to']['revision']['actor']);
+        $this->assertStringContainsString('/compare/', $data['links']['self']);
+    }
+
+    public function testCompareNodeRevisionsMissingRevisionReturns404(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = $this->compareParams(
+            $this->commitHashes[0],
+            'abcdef1234567890abcdef1234567890abcdef12'
+        );
+        $result = $this->ops->compareNodeRevisions();
+        $this->assertSame(404, $result['__failed']['status']);
+    }
+
+    public function testDiffNodeRevisionItemMetadataMatchesNode(): void
+    {
+        $this->assertSame(array(), Operations::diffNodeRevisionItemMetadata(null, array('title' => 'x')));
+        $this->assertSame(
+            array(
+                array('field' => 'title', 'from' => 'Welcome', 'to' => 'Intro'),
+                array('field' => 'description', 'from' => '', 'to' => 'Start here'),
+                array('field' => 'published', 'from' => 'false', 'to' => 'true'),
+            ),
+            Operations::diffNodeRevisionItemMetadata(
+                array('title' => 'Welcome', 'metadata' => array('published' => false)),
+                array('title' => 'Intro', 'description' => 'Start here', 'metadata' => array())
+            )
+        );
+        $this->assertSame(
+            array(array('field' => 'locked', 'from' => 'true', 'to' => 'false')),
+            Operations::diffNodeRevisionItemMetadata(
+                array('metadata' => array('locked' => true)),
+                array('metadata' => array())
+            )
+        );
+    }
+
+    // =========================================================================
+    // restoreNodeRevision note (haxtheweb/issues#3191)
+    // =========================================================================
+
+    public function testNormalizeRestoreNoteCleansAndCaps(): void
+    {
+        $this->assertSame('put back the intro', Operations::normalizeNodeRevisionRestoreNote("  put\tback\nthe   intro "));
+        $this->assertSame('ab', Operations::normalizeNodeRevisionRestoreNote("a\x07b"));
+        $this->assertSame('', Operations::normalizeNodeRevisionRestoreNote(42));
+        $this->assertSame(120, strlen(Operations::normalizeNodeRevisionRestoreNote(str_repeat('x', 300))));
+    }
+
+    public function testRestoreNodeRevisionAppendsNoteToCommit(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+            'hash' => $this->commitHashes[0],
+            'note' => "  back to the\nfirst draft ",
+        );
+        $result = $this->ops->restoreNodeRevision();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('back to the first draft', $result['data']['note']);
+        $commits = $this->haxcms->loadedSite->gitCommits;
+        $this->assertMatchesRegularExpression(
+            '/^Page revision restored: .+ \(item-a\) from [0-9a-f]{12}: back to the first draft$/',
+            $commits[0]
+        );
+    }
+
+    public function testRestoreNodeRevisionWithoutNoteKeepsCommit(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+            'hash' => $this->commitHashes[0],
+        );
+        $result = $this->ops->restoreNodeRevision();
+        $this->assertSame('', $result['data']['note']);
+        $this->assertMatchesRegularExpression('/from [0-9a-f]{12}$/', $this->haxcms->loadedSite->gitCommits[0]);
+    }
 }
 
 /**

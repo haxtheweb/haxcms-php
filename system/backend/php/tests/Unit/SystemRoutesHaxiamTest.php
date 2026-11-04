@@ -128,7 +128,9 @@ class SystemRoutesHaxiamTest extends TestCase
             'userName' => 'targetuser',
             'siteName' => 'mysite',
         ));
-        $this->assertSame(403, $result['code']);
+        // 400 from the user lookup, never the token gate's 403
+        $this->assertSame(400, $result['code']);
+        $this->assertNotSame('invalid request token', $result['data']['message']);
         $this->assertSame(
             'User not found or has not set up HAXIAM yet',
             $result['data']['message']
@@ -172,15 +174,18 @@ class SystemRoutesHaxiamTest extends TestCase
         );
     }
 
-    public function testUnprovisionedTargetUserReturns403(): void
+    public function testUnprovisionedTargetUserReturns400(): void
     {
-        // /var/www/sites does not exist in this environment, so the HAXIAM
-        // user lookup fails naturally.
+        // The sites root resolves to /var/www/sites here (no IAM_ROOT, no
+        // config->iamSitesRoot) and it does not exist, so the HAXIAM user
+        // lookup fails naturally. 400, not 403: app-hax treats an
+        // unrecognized 403 as an expired session and logs the user out.
         $result = $this->runHandler(array(
             'userName' => 'targetuser',
             'siteName' => 'mysite',
         ));
-        $this->assertSame(403, $result['code']);
+        $this->assertSame(400, $result['code']);
+        $this->assertSame('USER_NOT_SET_UP', $result['data']['code']);
         $this->assertSame(
             'User not found or has not set up HAXIAM yet',
             $result['data']['message']

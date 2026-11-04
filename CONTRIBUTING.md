@@ -70,4 +70,4 @@ Unit tests are ideal but not required to be written for proposed changes and enh
 
 ## Security
 
-If you discover what you deem to be a critical security issue  please reach out on our Discord channel privately to discuss whether this should be resolved in the open prior or if disclosure should happen after a solution has been crafted.
+Please don't report security vulnerabilities in public issues. Follow [SECURITY.md](SECURITY.md) and submit a private advisory at https://github.com/haxtheweb/issues/security/advisories/new. If you'd like to talk it through first, reach the core team privately on [Discord](https://discord.gg/aCGxmRHEJP) or at hax@psu.edu.

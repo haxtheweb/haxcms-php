@@ -36,6 +36,10 @@ paths:
         - discovery
       operationId: systemApiDiscovery
       summary: Discover top-level system API links and capabilities
+      description: >-
+        Open discovery document. `data.mcp` publishes this instance's MCP policy so MCP
+        clients can decide, before authenticating, whether they may operate the instance
+        at all and whether they must stay read-only.
       security: []
       responses:
         "200":
@@ -43,7 +47,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiEnvelope"
+                $ref: "#/components/schemas/SystemDiscoveryEnvelope"
         "400":
           $ref: "#/components/responses/BadRequest"
   /system/api/v1/openapi:
@@ -656,13 +660,16 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - siteName
+                - userName
               properties:
-                site:
+                siteName:
                   type: string
-                  description: Site machine name to grant access to
-                user:
+                  description: Machine name of a site the caller owns or has been given access to
+                userName:
                   type: string
-                  description: User name to grant access for
+                  description: HAXiam user name to grant access to
               additionalProperties: true
       responses:
         "200":
@@ -672,9 +679,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiEnvelope"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: >
+            Invalid request, HAXiam disabled, self grant, or the target user
+            has not signed in to HAXiam yet (code USER_NOT_SET_UP). Business
+            rule failures use 400/409 rather than 403/404, because clients
+            treat an unrecognized 403 or any 404 as an expired session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: >
+            Invalid request token (USER_TOKEN_INVALID), or the site is neither
+            owned by nor shared with the caller (SITE_ACCESS_DENIED). A site
+            shared with the caller can be shared onward; the new access
+            points at the real owner's site.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Target user already has access to this site (USER_ALREADY_HAS_ACCESS)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: The access link could not be created (ACCESS_GRANT_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /system/api/v1/status:
     get:
       tags:
@@ -3031,6 +3066,32 @@ components:
           type: integer
         data: {}
       additionalProperties: true
+    McpPolicy:
+      type: object
+      description: >-
+        This instance's MCP policy (config.mcp). `enabled: false` means MCP clients must
+        not operate this instance; `readOnly: true` means MCP clients must not write.
+        Defaults: disabled on every deployment profile unless config.mcp.enabled is
+        set to true; read-only unless config.mcp.readOnly is set to false.
+      properties:
+        enabled:
+          type: boolean
+        readOnly:
+          type: boolean
+      required:
+        - enabled
+        - readOnly
+    SystemDiscoveryEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                mcp:
+                  $ref: "#/components/schemas/McpPolicy"
+              additionalProperties: true
     EntityCollection:
       type: object
       description: >

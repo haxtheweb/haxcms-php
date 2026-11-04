@@ -1,0 +1,46 @@
+name: codeql
+# Static analysis (OpenSSF Scorecard "SAST" check). CodeQL has no PHP support,
+# so this covers the GitHub Actions workflows (script injection, untrusted
+# input, over-broad permissions) and the repo's own JavaScript. The vendored
+# web component build (build/, node_modules/) is excluded: it is published
+# from haxtheweb/webcomponents and scanned there.
+on:
+  push:
+    branches: [main, master]
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analyze:
+    name: "CodeQL (${{ matrix.language }})"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload results to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["actions", "javascript-typescript"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          config: |
+            paths-ignore:
+              - build
+              - "**/node_modules"
+              - _sites
+              - archived
+              - published
+      - name: Analyze
+        uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          category: "/language:${{ matrix.language }}"

@@ -61,7 +61,7 @@ class SiteRoutesOpenApiProfileTest extends TestCase
         foreach ($spec['paths'] as $pathItem) {
             foreach ($pathItem as $operation) {
                 if (is_array($operation) && isset($operation['operationId'])) {
-                    $this->assertTrue(!isset($operation['security']) || $operation['security'] === array(), $operation['operationId'] . ' should be public');
+                    $this->assertTrue(!isset($operation['security']) || SiteRouteUtils::isSecurityUsableAnonymously($operation['security']), $operation['operationId'] . ' should be public');
                 }
             }
         }
@@ -87,6 +87,31 @@ class SiteRoutesOpenApiProfileTest extends TestCase
     {
         $spec = $this->fetchSpec(false, array(), 'https://example.org/sites/biology/x/api');
         $this->assertSame('https://example.org/sites/biology/', $spec['servers'][0]['url']);
+    }
+
+    /**
+     * haxtheweb/issues#3211: login is optional for search. The editor's
+     * registry tries the bearer requirement first and falls back to {}, and
+     * the served JSON keeps {} (not []) so it matches Node.
+     */
+    public function testSearchDeclaresOptionalBearerAuthAndStaysPublic(): void
+    {
+        $_GET = array();
+        $context = makeSiteRouteContext(new SiteRoutesFakeSite(), array(), 'openapi.json', '/x/api', false);
+        $handler = include dirname(__DIR__, 2) . '/lib/siteRoutes/discovery/openapi.php';
+        ob_start();
+        $handler($context);
+        $raw = ob_get_clean();
+        $spec = json_decode($raw);
+        $security = $spec->paths->{'/x/api/v1/search'}->get->security;
+        $this->assertCount(2, $security);
+        $this->assertSame(array(), $security[0]->bearerAuth);
+        $this->assertInstanceOf(\stdClass::class, $security[1]);
+        $this->assertSame(array(), get_object_vars($security[1]));
+        $publicSpec = $this->fetchSpec(false, array('profile' => 'public'));
+        $this->assertArrayHasKey('/x/api/v1/search', $publicSpec['paths']);
+        $this->assertArrayNotHasKey('/x/api/v1/files', $publicSpec['paths']);
+        $this->assertSame('public', SiteRouteUtils::getSiteApiRouteAuthPolicy('v1/search', 'GET'));
     }
 
     public function testSpecCarriesExamplesForAgents(): void

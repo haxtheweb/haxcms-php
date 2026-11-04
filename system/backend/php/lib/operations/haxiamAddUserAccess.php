@@ -78,17 +78,21 @@ trait OperationsRouteHaxiamAddUserAccess {
       );
     }
 
-    // Validate that the target user exists in HAXIAM and has a sites directory
+    // Validate that the target user exists in HAXIAM and has a sites directory.
+    // 400, not 403: this is about the request, not the caller's rights, and
+    // the front end treats an unrecognized 403 as an expired session
+    // (refresh -> retry -> logout). Not 404 either: that also logs out.
     if (!$this->_validateHAXIAMUser($targetUserName)) {
       return array(
         '__failed' => array(
-          'status' => 403,
+          'status' => 400,
           'message' => 'User not found or has not set up HAXIAM yet',
         )
       );
     }
 
-    // Validate that the current user owns the specified site
+    // Validate that the current user owns the specified site, or that it was
+    // shared with them (anyone with access can share it onward)
     if (!$this->_validateUserOwnsSite($currentUser, $siteName)) {
       return array(
         '__failed' => array(
@@ -103,7 +107,8 @@ trait OperationsRouteHaxiamAddUserAccess {
       $result = $this->_createUserSiteSymlink($currentUser, $targetUserName, $siteName);
       if ($result['success']) {
         // Log the access grant
-        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' to user '{$targetUserName}'");
+        $owner = isset($result['owner']) ? $result['owner'] : $currentUser;
+        error_log("HAXIAM: User '{$currentUser}' granted access to site '{$siteName}' (owner '{$owner}') to user '{$targetUserName}'");
         
         return array(
           'status' => 'success',
@@ -112,9 +117,11 @@ trait OperationsRouteHaxiamAddUserAccess {
           'timestamp' => date('c')
         );
       } else {
+        // the helper says why: 409 already has access, 400 target not set
+        // up; anything else (e.g. symlink permissions) is a server error
         return array(
           '__failed' => array(
-            'status' => 500,
+            'status' => isset($result['status']) ? $result['status'] : 500,
             'message' => $result['error'],
           )
         );
