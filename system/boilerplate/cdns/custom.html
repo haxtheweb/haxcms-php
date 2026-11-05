@@ -79,6 +79,24 @@
 </head>
 <body {{ bodyAttrs|raw }}>
   <haxcms-site-builder id="site" file="site.json"><div class="loading"><div>{{ title }}</div><div>loading</div></div></haxcms-site-builder>
+  <script data-haxcms-site-json-preload>
+    // haxcms-site-builder fetches this file first; start the download now so
+    // it is not queued behind the JavaScript that boots the builder
+    (function () {
+      var builder = document.getElementById('site');
+      var file = builder ? builder.getAttribute('file') : '';
+      // a JSON blob instead of a path needs no download
+      if (file && file.charAt(0) !== '{' && document.head) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'fetch';
+        link.href = file;
+        link.crossOrigin = 'anonymous';
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
+      }
+    })();
+  </script>
   <script>
     window.HAXCMSContext="published";
     window.__appCDN="./";

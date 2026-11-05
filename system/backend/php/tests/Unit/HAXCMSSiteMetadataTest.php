@@ -170,6 +170,44 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertStringContainsString('.well-known/agent-skills/index.json', $metadata);
     }
 
+    public function testGetSiteMetadataPreloadsActivePageSiteRelative(): void
+    {
+        $expected = '<link rel="preload" href="./pages/item-page-1/index.html" as="fetch" crossorigin="anonymous" fetchpriority="high" />';
+        $metadata = $this->site->getSiteMetadata($this->homePage());
+        $this->assertStringContainsString($expected, $metadata);
+        // the CDN base is for build assets only; page data stays on the site
+        $viaCdn = $this->site->getSiteMetadata($this->homePage(), NULL, 'https://cdn.example/');
+        $this->assertStringContainsString($expected, $viaCdn);
+        $none = $this->site->getSiteMetadata(NULL);
+        $this->assertStringNotContainsString('href="./pages/', $none);
+    }
+
+    public function testGetPreloadablePageLocationOnlyAllowsPlainRelativePaths(): void
+    {
+        $ok = new \stdClass();
+        $ok->location = 'pages/a/index.html';
+        $this->assertSame('pages/a/index.html', \HAXCMSSite::getPreloadablePageLocation($ok));
+        foreach ([
+            '',
+            'hax-internal-route.html',
+            '/pages/a/index.html',
+            'https://evil.example/x.html',
+            'pages/../../x.html',
+            'pages\\a\\index.html',
+            'pages/a/index.html?x=1',
+            'pages/a/index.html#x',
+            'pages/a/data.json',
+        ] as $bad) {
+            $item = new \stdClass();
+            $item->location = $bad;
+            $this->assertSame('', \HAXCMSSite::getPreloadablePageLocation($item), $bad);
+        }
+        $this->assertSame('', \HAXCMSSite::getPreloadablePageLocation(NULL));
+        $num = new \stdClass();
+        $num->location = 5;
+        $this->assertSame('', \HAXCMSSite::getPreloadablePageLocation($num));
+    }
+
     public function testGetSiteMetadataTitleCombinesSiteAndPageTitle(): void
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
