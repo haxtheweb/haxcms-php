@@ -52,7 +52,14 @@
       width: 100%;
     }
     haxcms-site-builder {
-      display: block;
+      display: flow-root;
+    }
+    /* Images in the content the server rendered into the page fit the screen
+       and keep their shape from width/height, so they don't push the text
+       below them down when they finish loading. */
+    haxcms-site-builder:not(:defined) img {
+      max-width: 100%;
+      height: auto;
     }
     haxcms-site-builder:not(:defined) div.loading {
       width: 100vw;
