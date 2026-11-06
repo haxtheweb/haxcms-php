@@ -1,0 +1,103 @@
+{
+    "meta": {
+      "name": "club-website",
+      "description": "Club website starter using the Polaris Flex theme",
+      "version": "1.0.0",
+      "created": "2026-01-23T17:20:18.662Z",
+      "type": "skeleton",
+      "useCaseTitle": "Club Website",
+      "useCaseDescription": "A starter skeleton for student organizations or clubs with events, blog, and contact sections.",
+      "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg",
+      "category": ["Website"],
+      "tags": ["club", "organization", "community"],
+      "attributes": []
+    },
+    "site": {
+      "name": "club-website",
+      "description": "Club website starter",
+      "theme": "polaris-flex-theme"
+    },
+    "build": {
+      "type": "skeleton",
+      "structure": "from-skeleton",
+      "items": [
+        {
+          "id": "club-home",
+          "title": "Welcome to Roaring Readers",
+          "slug": "index",
+          "order": 0,
+          "parent": null,
+          "indent": 0,
+          "content": "<h2 data-text-align=\"center\">Book Club</h2><grid-plate disable-responsive layout=\"1-2-1\"><p slot=\"col-1\" data-text-align=\"center\">Where Every Page Turns Into a Conversation</p><p slot=\"col-3\" data-text-align=\"center\">Join a community of readers dedicated to exploring new worlds, one chapter at a time.</p><media-image source=\"https://www.mvviewer.org/wp-content/uploads/2023/01/book_club.jpg\" card slot=\"col-2\" accent-color=\"grey\" size=\"wide\" offset=\"none\"></media-image><p slot=\"col-2\" data-text-align=\"center\"><b>Our Mission</b></p></grid-plate><grid-plate disable-responsive layout=\"1-2-1\"><p slot=\"col-2\" data-text-align=\"center\">To foster a diverse and inclusive community of lifelong learners who find joy in the written word. We believe that sharing stories builds empathy, sparks curiosity, and connects us across different walks of life.</p></grid-plate>",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": ["home"]
+          }
+        },
+        {
+          "id": "club-about",
+          "title": "About the Club",
+          "slug": "about-club",
+          "order": 1,
+          "parent": null,
+          "indent": 0,
+          "content": "<h2 data-text-align=\"center\">Roaring Readers</h2><p>Founded in <b>2005</b>, <strong>Roaring Readers</strong> began as a small gathering of friends in a local coffee shop. Today, we are a thriving digital and physical hub for book worms. We don’t just read books; we dissect themes, challenge perspectives, and celebrate the impact of literature on our daily lives.</p><media-image card accent-color=\"grey\" size=\"wide\" offset=\"none\" source=\"https://miro.medium.com/v2/resize:fit:6252/0*rUwmBWLzOd7Qf-vf\"></media-image><p>Whether you read one book a year or one a week, there is a seat at our table for you.</p>",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": ["about", "mission"]
+          }
+        },
+        {
+          "id": "club-events",
+          "title": "Events & Meetings",
+          "slug": "events-meetings",
+          "order": 2,
+          "parent": null,
+          "indent": 0,
+          "content": "<h2>Events &amp; Meetings</h2><ul><li><strong>Monthly Meetup</strong><ul><li><i>Where:</i> Paterno Library and Zoom</li><li><i>When:</i> Every third Thursday at 7:00 PM</li></ul></li></ul><media-image source=\"https://upload.wikimedia.org/wikipedia/commons/2/29/Pattee_Mall_PSU.jpg\" card accent-color=\"grey\" size=\"wide\" offset=\"none\"></media-image><p><b>Events:</b></p><ul><li><strong>Guest Author Q&amp;A:</strong> Live session with featured authors</li><li><strong>Annual Book Swap:</strong> Summer picnic exchange</li><li><strong>Literary Trivia Night:</strong> Team-based competition</li></ul>",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": ["schedule", "calendar"]
+          }
+        },
+        {
+          "id": "club-blog",
+          "title": "Blogs",
+          "slug": "projects-resources",
+          "order": 3,
+          "parent": null,
+          "indent": 0,
+          "content": "<h2>✍️ Blog: The Bookworm’s Ledger</h2><ul><li><strong>DNF Corner:</strong> Honest reviews of unfinished books</li><li><strong>Member Spotlight:</strong> Monthly interviews</li><li><strong>Local Bookstore Tours:</strong> Hidden gems in the city</li><li><strong>Top 5 Lists:</strong> Curated reading lists</li></ul>",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": ["projects", "resources"]
+          }
+        },
+        {
+          "id": "club-contact",
+          "title": "Join & Contact",
+          "slug": "join-contact",
+          "order": 4,
+          "parent": null,
+          "indent": 0,
+          "content": "<h2>Join &amp; Contact</h2><p>Have a book recommendation or a question? We’d love to hear from you.</p><ul><li><strong>Location:</strong> HUB-Robeson Center, Suite 204</li><li><strong>Phone:</strong> (814) 555-2732</li><li><strong>Email:</strong> hello@bluewhitereadpsu.org</li><li><strong>Office Hours:</strong> Tue &amp; Thu, 2–4 PM</li></ul><p><strong>Ready to start your next chapter?</strong></p>",
+          "metadata": {
+            "published": true,
+            "hideInMenu": false,
+            "tags": ["join", "contact"]
+          }
+        }
+      ],
+      "files": []
+    },
+    "theme": {
+      "path": "@haxtheweb/polaris-theme/lib/polaris-flex-theme.js",
+      "name": "Polaris Flex Theme",
+      "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-polaris-flex-theme-thumb.jpg"
+    }
+  }
+  

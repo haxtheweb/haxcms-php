@@ -3,16 +3,16 @@
     "name": "portfolio",
     "machineName": "portfolio",
     "priority": 0,
-    "description": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, and education and certifications.",
+    "description": "Template based on skeleton from-skeleton",
     "version": "1.0.0",
     "created": "2026-03-05T20:54:02.636Z",
     "type": "skeleton",
     "sourceUrl": "http://localhost:3000/_sites/portfolio/",
-    "useCaseTitle": "Portfolio",
-    "useCaseDescription": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, and education and certifications.",
+    "useCaseTitle": "portfolio",
+    "useCaseDescription": "Template based on skeleton from-skeleton",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
-    "category": ["Website"],
-    "tags": ["portfolio", "career", "professional"],
+    "category": [],
+    "tags": [],
     "attributes": []
   },
   "site": {
@@ -124,7 +124,9 @@
     "name": "Glossy Portfolio",
     "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
     "description": "Start with a blank site using the Glossy Portfolio",
-    "category": ["Website"],
+    "category": [
+      "Website"
+    ],
     "hidden": false,
     "priority": 0,
     "terrible": false
