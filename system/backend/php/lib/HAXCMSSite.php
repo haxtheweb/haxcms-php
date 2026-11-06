@@ -2659,6 +2659,34 @@ class HAXCMSSite
      * @return string an html chunk of tags for the head section
      * @todo move this to a render function / section / engine
      */
+    /**
+     * The site-relative location of a page's HTML when it is safe to emit as
+     * a preload hint, else ''. Only plain relative paths are allowed: no
+     * scheme, no leading slash or backslash, no parent-directory segments,
+     * no query or fragment. Mirrors getPreloadablePageLocation in
+     * haxcms-nodejs src/lib/HAXCMS.js.
+     */
+    public static function getPreloadablePageLocation($page) {
+      if (!is_object($page) || !isset($page->location) || !is_string($page->location)) {
+        return '';
+      }
+      $location = trim($page->location);
+      if (
+        $location === '' ||
+        $location === 'hax-internal-route.html' ||
+        strpos($location, '://') !== FALSE ||
+        $location[0] === '/' ||
+        strpos($location, '\\') !== FALSE ||
+        strpos($location, '?') !== FALSE ||
+        strpos($location, '#') !== FALSE ||
+        strpos($location, "\0") !== FALSE ||
+        in_array('..', explode('/', $location), TRUE) ||
+        strtolower(substr($location, -5)) !== '.html'
+      ) {
+        return '';
+      }
+      return $location;
+    }
     public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
       $preloadTags = array();
       if (is_null($page)) {
@@ -2826,6 +2854,14 @@ class HAXCMSSite
       if ($socialImageUrl != '' && !preg_match('/^https?:\/\//i', $socialImageUrl) && $canonicalBase != '' && preg_match('/^https?:\/\//i', $canonicalBase)) {
         $socialImageUrl = rtrim($canonicalBase, '/') . '/' . ltrim($socialImageUrl, '/');
       }
+      // haxcms-site-builder fetches the active page's HTML right after
+      // site.json; preload it so that request is not queued behind the boot
+      // JavaScript. Site-relative (never the CDN base) to match the builder.
+      $pageDataPreload = '';
+      $pageLocation = self::getPreloadablePageLocation($page);
+      if ($pageLocation !== '') {
+        $pageDataPreload = "\n" . '  <link rel="preload" href="./' . SanitizeContent::escapeHTMLAttribute($pageLocation) . '" as="fetch" crossorigin="anonymous" fetchpriority="high" />';
+      }
       $safeSocialImage = SanitizeContent::escapeHTMLAttribute($socialImageUrl);
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
@@ -2837,7 +2873,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
 ' . $shellModulepreload . '
-' . $themePreload . $contentPreload . '
+' . $themePreload . $contentPreload . $pageDataPreload . '
   <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <link rel="llms" href="llms.txt" title="LLM Content Map" />
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
