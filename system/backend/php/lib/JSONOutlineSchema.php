@@ -350,7 +350,13 @@ class JSONOutlineSchema
             }
             return ($a->order < $b->order) ? -1 : 1;
         });
-        $this->orderRecurse($items, $sorted);
+        $childIndex = $this->buildChildIndex($items);
+        if ($childIndex !== null) {
+            $placed = array();
+            $this->orderRecurseIndexed($items, $sorted, $placed, $childIndex);
+        } else {
+            $this->orderRecurse($items, $sorted);
+        }
         // sanity check, should always be equal
         if (count($sorted) == count($items)) {
             return $sorted;
@@ -391,6 +397,78 @@ class JSONOutlineSchema
                 // only walk deeper if there were children for this page
                 if (count($children) > 0) {
                     $this->orderRecurse($children, $sorted, $idList);
+                }
+            }
+        }
+    }
+    /**
+     * Parent id => children (in $this->items order) for orderRecurseIndexed,
+     * so each page's children are a lookup instead of a scan of every item
+     * (orderRecurse is O(n^2): 26ms at 1,000 pages, 226ms at 3,000, and it
+     * runs on every manifest save).
+     *
+     * Returns null unless every id (in $this->items and in the list being
+     * ordered) is a non-empty, non-numeric string and every parent is a
+     * string or null. Only then do orderRecurse's loose == and strict
+     * in_array match exact string comparison (PHP 8 compares two numeric
+     * strings as numbers), so the result is identical; anything else takes
+     * the original orderRecurse path unchanged. Mirrors
+     * JSONOutlineSchema.buildChildIndex in haxcms-nodejs.
+     */
+    private function buildChildIndex($items)
+    {
+        foreach ($items as $item) {
+            if (!is_object($item) || !$this->isIndexableId($item->id ?? null)) {
+                return null;
+            }
+        }
+        $childIndex = array();
+        foreach ($this->items as $item) {
+            if (!is_object($item) || !$this->isIndexableId($item->id ?? null)) {
+                return null;
+            }
+            $parent = $item->parent ?? null;
+            if ($parent === null) {
+                continue;
+            }
+            if (!is_string($parent)) {
+                return null;
+            }
+            $childIndex[$parent][] = $item;
+        }
+        return $childIndex;
+    }
+    /**
+     * An id that compares the same under ==, === and as an array key.
+     */
+    private function isIndexableId($id)
+    {
+        return is_string($id) && $id !== '' && !is_numeric($id);
+    }
+    /**
+     * orderRecurse with the child scan replaced by a $childIndex lookup and
+     * the placed-id list by an isset map. Same visiting order, same output.
+     */
+    private function orderRecurseIndexed(
+        $currentItems,
+        &$sorted,
+        &$placed,
+        &$childIndex
+    ) {
+        foreach ($currentItems as $item) {
+            if (!isset($placed[$item->id])) {
+                $placed[$item->id] = true;
+                array_push($sorted, $item);
+                if (!empty($childIndex[$item->id])) {
+                    // copy-on-assign: sorting $children leaves the index alone
+                    $children = $childIndex[$item->id];
+                    usort($children, function ($a, $b) {
+                        if ($a->order == $b->order) {
+                            return 0;
+                        }
+                        return ($a->order < $b->order) ? -1 : 1;
+                    });
+                    $this->orderRecurseIndexed($children, $sorted, $placed, $childIndex);
                 }
             }
         }
