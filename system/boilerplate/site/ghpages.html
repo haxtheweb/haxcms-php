@@ -150,8 +150,15 @@
       min-height: 98vh;
     }
     haxcms-site-builder {
-      display: block;
+      display: flow-root; /* children's margins stay inside, so swapping content can't move it */
       min-height: 100svh;
+    }
+    /* Images in the content the server rendered into the page fit the screen
+       and keep their shape from width/height, so they don't push the text
+       below them down when they finish loading. */
+    haxcms-site-builder:not(:defined) img {
+      max-width: 100%;
+      height: auto;
     }
     .haxcms-theme-element:not(:defined) {
       display: block;
@@ -165,7 +172,7 @@
   </style>
   <style id="loadingstyles">
     haxcms-site-builder {
-      display: block;
+      display: flow-root;
     }
     /* The loading screen: a page that builds itself (blocks drop onto a sheet,
        a caret blinks once), looping until the site is ready, then finishing
