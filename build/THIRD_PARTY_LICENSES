@@ -500,6 +500,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #8
 
+@haxtheweb/instructional-cadence
+  build path:  es6/node_modules/@haxtheweb/instructional-cadence
+  license:     Apache-2.0
+  attribution: see license text #6
+
 @haxtheweb/intersection-element
   build path:  es6/node_modules/@haxtheweb/intersection-element
   license:     Apache-2.0
@@ -819,6 +824,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/radio-behaviors
   license:     Apache-2.0
   attribution: see license text #2
+
+@haxtheweb/reading-analysis
+  build path:  es6/node_modules/@haxtheweb/reading-analysis
+  license:     Apache-2.0
+  attribution: see license text #6
 
 @haxtheweb/relative-heading
   build path:  es6/node_modules/@haxtheweb/relative-heading
@@ -2326,7 +2336,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#6 - Apache-2.0 (shared by 16 packages)
+#6 - Apache-2.0 (shared by 18 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
