@@ -13,7 +13,7 @@ class SystemApiRequestContext
     public $rawBody;
     public function __construct()
     {
-        $this->method = SiteRouteUtils::getRequestMethod();
+        $this->method = SiteRouteUtils::getRouteMethod();
         $this->requestPath = SiteRouteUtils::getRequestPath();
         $this->relativePath = SiteRouteUtils::getRelativePathFromScript($this->requestPath);
         $this->apiBasePath = self::getApiBasePathFromRequestPath($this->requestPath);
