@@ -550,7 +550,16 @@ class HAXCMS
      * If we are a cli
      */
     public function isCLI() {
-        return !isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0);
+        // Security (CLI-DETECT): decide from the SAPI only. The previous
+        // fallback trusted $_SERVER['argc'], which PHP fills from the query
+        // string on web SAPIs when register_argc_argv=On; a web request with
+        // no SERVER_SOFTWARE (some FastCGI / container setups) could then be
+        // treated as CLI and skip JWT, refresh and request-token checks.
+        // Web SAPIs (apache2handler, fpm-fcgi, cgi-fcgi, cli-server) are never
+        // 'cli'/'phpdbg', so request data can no longer flip this. The
+        // SERVER_SOFTWARE check stays so the PHPUnit suite (which runs under
+        // the cli SAPI) can force the web code path as before.
+        return in_array(PHP_SAPI, array('cli', 'phpdbg'), true) && !isset($_SERVER['SERVER_SOFTWARE']);
     }
     /**
      * Security best practice (I2): explicit allowlist of form ids that may be
@@ -1763,6 +1772,43 @@ class HAXCMS
         $defaults->blockMs,
         10 * 1000,
         24 * 60 * 60 * 1000
+      );
+      return $settings;
+    }
+    /**
+     * Budget of outside link checks (POST x/api/v1/site/check-links) per user
+     * and site: `max` network checks per `windowMs`; cached answers do not
+     * count. Defaults (1000 per 15 min) cover one full check of a large site
+     * while keeping the server from being used to hammer other sites.
+     * Config: config->security->linkCheckRateLimit { enabled, windowMs, max }.
+     * Parity: haxcms-nodejs HAXCMS.getLinkCheckRateLimitSettings.
+     */
+    public function getLinkCheckRateLimitSettings()
+    {
+      $cfg = new stdClass();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->linkCheckRateLimit)
+      ) {
+        $cfg = $this->config->security->linkCheckRateLimit;
+      }
+      $settings = new stdClass();
+      $settings->enabled = TRUE;
+      if (isset($cfg->enabled)) {
+        $settings->enabled = $cfg->enabled === TRUE;
+      }
+      $settings->windowMs = $this->getIntConfigValue(
+        isset($cfg->windowMs) ? $cfg->windowMs : null,
+        15 * 60 * 1000,
+        60 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      $settings->max = $this->getIntConfigValue(
+        isset($cfg->max) ? $cfg->max : null,
+        1000,
+        1,
+        100000
       );
       return $settings;
     }

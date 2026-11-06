@@ -27,6 +27,11 @@
 // file matches the POSTed install_token (timing-safe hash_equals). Without
 // the token file, POST-supplied credentials are ignored and the installer
 // uses an auto-generated admin password.
+//
+// When _installtoken.txt exists, the token is required for EVERY prepare /
+// advance request. People using the browser wizard open
+// install.php?install_token=<token> once; that sets an HttpOnly cookie the
+// wizard's fetches carry automatically.
 
 $failed = false;
 $failedMessages = array();
@@ -602,8 +607,96 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
   }
 }
 
+// --- install token gate ----------------------------------------------------
+// Security (INSTALL-TOKEN): when a hosting provider (or operator) pre-drops a
+// non-empty _installtoken.txt, the token is REQUIRED for every state-changing
+// installer op (prepare + advance), not only when a request happens to send
+// it. Previously a request that simply omitted install_token fell through to
+// the open wizard path and could claim the superUser account first.
+//
+// The token can arrive two ways:
+//   1. POSTed install_token field (hosting-provider direct install).
+//   2. An HttpOnly, SameSite=Strict cookie set when a person opens
+//      install.php?install_token=<token> in the browser. The wizard front end
+//      (<hax-app-installer>) posts JSON without the token, so the cookie lets
+//      the interactive wizard work with no front-end change.
+// When no token file exists the wizard behaves exactly as before.
+$installTokenFilePath = __DIR__ . '/_installtoken.txt';
+$installTokenCookieName = 'haxcms_install_token';
+if (!function_exists('haxcmsInstallerReadTokenFile')) {
+  function haxcmsInstallerReadTokenFile($path)
+  {
+    if (file_exists($path) && is_file($path)) {
+      return trim((string) @file_get_contents($path));
+    }
+    return '';
+  }
+}
+if (!function_exists('haxcmsInstallerTokenMatches')) {
+  function haxcmsInstallerTokenMatches($expected, $candidate)
+  {
+    return is_string($expected) && $expected !== '' &&
+      is_string($candidate) && $candidate !== '' &&
+      hash_equals($expected, $candidate);
+  }
+}
+if (!function_exists('haxcmsInstallerRequestIsHttps')) {
+  function haxcmsInstallerRequestIsHttps()
+  {
+    return (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') ||
+      (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+  }
+}
+if (!function_exists('haxcmsInstallerSetTokenCookie')) {
+  function haxcmsInstallerSetTokenCookie($name, $value, $expires)
+  {
+    if (headers_sent()) {
+      return;
+    }
+    setcookie($name, $value, array(
+      'expires' => $expires,
+      'path' => rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/') . '/',
+      'secure' => haxcmsInstallerRequestIsHttps(),
+      'httponly' => true,
+      'samesite' => 'Strict',
+    ));
+  }
+}
+$installTokenFromFile = haxcmsInstallerReadTokenFile($installTokenFilePath);
+$installTokenEnabled = ($installTokenFromFile !== '');
+$installTokenCookieValue = (isset($_COOKIE[$installTokenCookieName]) && is_string($_COOKIE[$installTokenCookieName]))
+  ? $_COOKIE[$installTokenCookieName]
+  : '';
+$installTokenCookieValid = $installTokenEnabled &&
+  haxcmsInstallerTokenMatches($installTokenFromFile, $installTokenCookieValue);
+
 // --- ?op handling ----------------------------------------------------------
 $op = isset($_GET['op']) ? $_GET['op'] : '';
+
+// Security (INSTALL-TOKEN): reject state-changing ops without a valid token
+// whenever the token file is present. A POSTed install_token is validated
+// again (and enables the direct-install credential override) inside advance.
+if ($installTokenEnabled && ($op === 'prepare' || $op === 'advance')) {
+  $installTokenGateBody = json_decode((string) file_get_contents('php://input'), true);
+  if (!is_array($installTokenGateBody)) {
+    $installTokenGateBody = $_POST;
+  }
+  $installTokenGatePosted = (isset($installTokenGateBody['install_token']) && is_string($installTokenGateBody['install_token']))
+    ? $installTokenGateBody['install_token']
+    : '';
+  if (
+    !$installTokenCookieValid &&
+    !haxcmsInstallerTokenMatches($installTokenFromFile, $installTokenGatePosted)
+  ) {
+    header('HTTP/1.1 403 Forbidden');
+    header('Content-Type: application/json');
+    print json_encode(array(
+      'error' => 'This server requires an install token. Open install.php?install_token=<token from _installtoken.txt> to continue.',
+      'installTokenRequired' => true,
+    ));
+    exit();
+  }
+}
 
 // ?op=state — GET: read state, re-evaluate environment, return JSON
 if ($op === 'state') {
@@ -676,13 +769,9 @@ if ($op === 'advance') {
   }
 
   // --- install token gating (hosting-provider direct install) ---
-  $installTokenFilePath = __DIR__ . '/_installtoken.txt';
-  $installTokenFromFile = '';
-  if (file_exists($installTokenFilePath) && is_file($installTokenFilePath)) {
-    $installTokenFromFile = trim(file_get_contents($installTokenFilePath));
-  }
-  $installTokenEnabled = ($installTokenFromFile !== '');
-
+  // $installTokenFromFile / $installTokenEnabled are resolved by the gate
+  // above, which has already rejected this request if a token is required
+  // and neither the cookie nor the POSTed field matched.
   $installTokenPosted = '';
   if (isset($postData['install_token']) && is_string($postData['install_token'])) {
     $installTokenPosted = (string) $postData['install_token'];
@@ -758,6 +847,9 @@ if ($op === 'advance') {
     if (!$failed && $installTokenEnabled && file_exists($installTokenFilePath)) {
       @unlink($installTokenFilePath);
     }
+    if (!$failed && $installTokenCookieValue !== '') {
+      haxcmsInstallerSetTokenCookie($installTokenCookieName, '', time() - 3600);
+    }
 
     // On successful step 4, delete the state file so it doesn't linger
     if (!$failed) {
@@ -804,6 +896,24 @@ if ($op === 'advance') {
 // --- default: thin bootstrap HTML ------------------------------------------
 $state = haxcmsInstallerReadState();
 $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
+// Security (INSTALL-TOKEN): a token file is present. Opening
+// install.php?install_token=<token> stores it in an HttpOnly cookie for the
+// wizard's same-origin fetches; without a valid token, show instructions
+// instead of a wizard whose every step would 403.
+$installTokenNeedsEntry = false;
+if ($installTokenEnabled && !$installTokenCookieValid) {
+  $installTokenQuery = (isset($_GET['install_token']) && is_string($_GET['install_token'])) ? $_GET['install_token'] : '';
+  if (haxcmsInstallerTokenMatches($installTokenFromFile, $installTokenQuery)) {
+    haxcmsInstallerSetTokenCookie($installTokenCookieName, $installTokenQuery, time() + 3600);
+    // Drop the token from the address bar / history. Built from SCRIPT_NAME
+    // (server-controlled) rather than REQUEST_URI so the Location can never
+    // become a protocol-relative //host redirect.
+    $installTokenBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+    header('Location: /' . ltrim($installTokenBase . '/' . basename($_SERVER['SCRIPT_NAME']), '/'));
+    exit();
+  }
+  $installTokenNeedsEntry = true;
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php print haxcmsInstallerStatusEscape($htmlLang); ?>">
@@ -872,12 +982,25 @@ $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
       hax-app-installer {
         display: block;
       }
+      .install-token-required {
+        max-width: 640px;
+        margin: var(--ddd-font-size-l) auto;
+        padding: var(--ddd-spacing-4);
+      }
     </style>
   </head>
   <body>
     <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms-php"></git-corner>
     <div class="wrapper">
+<?php if ($installTokenNeedsEntry) { ?>
+      <main class="install-token-required">
+        <h1>Install token required</h1>
+        <p>This server was provisioned with an install token, so the installer is locked until you provide it.</p>
+        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_installtoken.txt</code> next to <code>install.php</code> on the server (your hosting provider may also have shown it to you).</p>
+      </main>
+<?php } else { ?>
       <hax-app-installer api-endpoint="install.php"></hax-app-installer>
+<?php } ?>
     </div>
     <script type="module">
       import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js";
