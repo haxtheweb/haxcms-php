@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/OpenApiSpecCache.php';
 /**
  * Commit op codes (haxtheweb/issues#3191). Mirrors
  * haxcms-nodejs src/lib/commitContext.js; keep the two in step.
@@ -245,7 +246,8 @@ class CommitContext
         $index = array('site' => array(), 'system' => array());
         foreach ($specFiles as $scope => $source) {
             try {
-                $spec = \Symfony\Component\Yaml\Yaml::parseFile($source[0]);
+                // parsed once and shared across requests (missing file -> null)
+                $spec = OpenApiSpecCache::load($source[0]);
             } catch (\Throwable $e) {
                 $spec = null;
             }

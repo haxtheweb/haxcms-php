@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../OpenApiSpecCache.php';
 class SystemApiSecurity
 {
     public static function validateSystemApiAccess($context, $route, $method)
@@ -405,16 +406,8 @@ class SystemApiSecurity
         }
         $map = array();
         $specPath = dirname(__FILE__) . '/openapi/system-spec.yaml';
-        if (!file_exists($specPath)) {
-            self::$systemUserTokenPolicyMap = $map;
-            return $map;
-        }
-        $specContents = file_get_contents($specPath);
-        if (!is_string($specContents) || $specContents === '') {
-            self::$systemUserTokenPolicyMap = $map;
-            return $map;
-        }
-        $parsedSpec = SiteRouteUtils::parseYaml($specContents);
+        // parsed once and shared across requests (missing/empty file -> null)
+        $parsedSpec = OpenApiSpecCache::load($specPath);
         if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
             self::$systemUserTokenPolicyMap = $map;
             return $map;

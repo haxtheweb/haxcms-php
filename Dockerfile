@@ -7,7 +7,11 @@ RUN apt-get update && apt-get install -y \
         libcurl4-openssl-dev \
         git \
     && docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ \
-    && docker-php-ext-install -j$(nproc) gd curl
+    && docker-php-ext-install -j$(nproc) gd curl opcache
+# Performance: the official php image ships opcache disabled, so every request
+# recompiled the ~290 PHP files HAXcms includes (~48ms vs ~9ms warm). Timestamp
+# checks stay on (every 2s) so mounted or in-place-upgraded code is picked up.
+COPY ./scripts/docker/opcache.ini /usr/local/etc/php/conf.d/zz-haxcms-opcache.ini
 # Enable rewrite + headers (headers is required by the .htaccess security
 # headers: X-Content-Type-Options, forced download of HTML in files/)
 RUN a2enmod rewrite headers

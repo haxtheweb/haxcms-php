@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../HAXCMSApiMessageCodes.php';
+include_once dirname(__FILE__) . '/../OpenApiSpecCache.php';
 class SiteRouteUtils
 {
     public static function getRequestPath()
@@ -1148,16 +1149,8 @@ class SiteRouteUtils
         }
         $policies = array();
         $specPath = dirname(__FILE__) . '/openapi/site-spec.yaml';
-        if (!file_exists($specPath)) {
-            self::$siteApiAuthPolicies = $policies;
-            return $policies;
-        }
-        $specContents = file_get_contents($specPath);
-        if (!is_string($specContents) || $specContents === '') {
-            self::$siteApiAuthPolicies = $policies;
-            return $policies;
-        }
-        $parsedSpec = self::parseYaml($specContents);
+        // parsed once and shared across requests (missing/empty file -> null)
+        $parsedSpec = OpenApiSpecCache::load($specPath);
         if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
             self::$siteApiAuthPolicies = $policies;
             return $policies;
@@ -1208,16 +1201,8 @@ class SiteRouteUtils
         }
         $policies = array();
         $specPath = dirname(__FILE__) . '/../systemRoutes/openapi/system-spec.yaml';
-        if (!file_exists($specPath)) {
-            self::$systemApiAuthPolicies = $policies;
-            return $policies;
-        }
-        $specContents = file_get_contents($specPath);
-        if (!is_string($specContents) || $specContents === '') {
-            self::$systemApiAuthPolicies = $policies;
-            return $policies;
-        }
-        $parsedSpec = self::parseYaml($specContents);
+        // parsed once and shared across requests (missing/empty file -> null)
+        $parsedSpec = OpenApiSpecCache::load($specPath);
         if (!is_array($parsedSpec) || !isset($parsedSpec['paths']) || !is_array($parsedSpec['paths'])) {
             self::$systemApiAuthPolicies = $policies;
             return $policies;
