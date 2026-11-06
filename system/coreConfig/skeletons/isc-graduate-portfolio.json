@@ -1,7 +1,7 @@
 {
   "meta": {
-    "name": "iscgraduateportfolio-2",
-    "machineName": "iscgraduateportfolio-2",
+    "name": "isc-graduate-portfolio",
+    "machineName": "isc-graduate-portfolio",
     "priority": 0,
     "description": "A graduate competency portfolio on the Clean Portfolio theme: About Me, Competencies, three domains, Specialization and Publications.",
     "version": "1.0.0",
@@ -210,9 +210,7 @@
     "name": "Clean Portfolio",
     "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-portfolio-theme-thumb.jpg",
     "description": "Start with a blank site using the Clean Portfolio",
-    "category": [
-      "Website"
-    ],
+    "category": ["Website"],
     "hidden": false,
     "priority": -10,
     "terrible": false,

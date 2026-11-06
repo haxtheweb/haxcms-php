@@ -124,9 +124,7 @@
     "name": "Glossy Portfolio",
     "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
     "description": "Start with a blank site using the Glossy Portfolio",
-    "category": [
-      "Website"
-    ],
+    "category": ["Website"],
     "hidden": false,
     "priority": 0,
     "terrible": false
