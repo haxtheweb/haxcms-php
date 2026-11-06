@@ -1,16 +1,16 @@
 {
     "meta": {
       "name": "clean-one-blog-skeleton-usecase",
-      "description": "Template based on skeleton from-skeleton",
+      "description": "A blog starter on the Clean One theme: posts, a journal and topic pages, shown with a sample coffee blog.",
       "version": "1.0.0",
       "created": "2026-02-09T16:45:47.565Z",
       "type": "skeleton",
       "sourceUrl": "http://php.ddev.site/sites/clean-one-1/new-item-1",
       "useCaseTitle": "Blog",
-      "useCaseDescription": "Clean one blog use case skeleton",
+      "useCaseDescription": "A blog starter on the Clean One theme: posts, a journal and topic pages, shown with a sample coffee blog.",
       "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg",
-      "category": [],
-      "tags": [],
+      "category": ["Website"],
+      "tags": ["blog", "journal", "writing"],
       "attributes": []
     },
     "site": {

@@ -1,13 +1,13 @@
 {
     "meta": {
       "name": "resume-journey skeleton",
-      "description": "Reume journey skeleton",
+      "description": "A resume told as a journey on the Journey theme: education, experience, projects, skills and a way to reach out.",
       "version": "1.0.0",
       "created": "2026-02-09T16:38:47.844Z",
       "type": "skeleton",
       "sourceUrl": "http://localhost:3000/_sites/resume-journey/",
       "useCaseTitle": "Resume Journey",
-      "useCaseDescription": "Resume Journey use case skeleton",
+      "useCaseDescription": "A resume told as a journey on the Journey theme: education, experience, projects, skills and a way to reach out.",
       "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-journey-theme-thumb.jpg",
       "category": ["Website"],
       "tags": ["resume", "career", "skills"],
