@@ -1776,6 +1776,43 @@ class HAXCMS
       return $settings;
     }
     /**
+     * Budget of outside link checks (POST x/api/v1/site/check-links) per user
+     * and site: `max` network checks per `windowMs`; cached answers do not
+     * count. Defaults (1000 per 15 min) cover one full check of a large site
+     * while keeping the server from being used to hammer other sites.
+     * Config: config->security->linkCheckRateLimit { enabled, windowMs, max }.
+     * Parity: haxcms-nodejs HAXCMS.getLinkCheckRateLimitSettings.
+     */
+    public function getLinkCheckRateLimitSettings()
+    {
+      $cfg = new stdClass();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->linkCheckRateLimit)
+      ) {
+        $cfg = $this->config->security->linkCheckRateLimit;
+      }
+      $settings = new stdClass();
+      $settings->enabled = TRUE;
+      if (isset($cfg->enabled)) {
+        $settings->enabled = $cfg->enabled === TRUE;
+      }
+      $settings->windowMs = $this->getIntConfigValue(
+        isset($cfg->windowMs) ? $cfg->windowMs : null,
+        15 * 60 * 1000,
+        60 * 1000,
+        24 * 60 * 60 * 1000
+      );
+      $settings->max = $this->getIntConfigValue(
+        isset($cfg->max) ? $cfg->max : null,
+        1000,
+        1,
+        100000
+      );
+      return $settings;
+    }
+    /**
      * Security best practice: read the trusted-proxy allowlist from
      * config->security->trustedProxies (array of IPs). When empty, no proxy
      * headers are trusted. Shared by M2 (client IP for rate limiting) and

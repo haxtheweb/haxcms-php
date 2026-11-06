@@ -246,6 +246,53 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/site/check-links:
+    post:
+      tags:
+        - reports
+      operationId: checkSiteLinks
+      summary: Check whether outside links in the site's pages still resolve
+      description: >-
+        Checks up to 25 outside http(s) links per request. Only links that
+        appear in this site's own page HTML are fetched; any other link is
+        answered with state "skipped" and reason "not-in-site". Each link is
+        requested server side with HEAD (GET when HEAD is refused) through the
+        SSRF guard: private, loopback, link-local and metadata addresses are
+        never contacted, the body is never read and only the status and final
+        URL come back. Answers are cached for a while, and network checks are
+        limited per user and site (config.security.linkCheckRateLimit);
+        cached answers do not count against the limit.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkCheckRequest"
+      responses:
+        "200":
+          description: Link check results, in the order requested
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LinkCheckCollection"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /x/api/v1/site/appearance:
     patch:
       tags:
@@ -3529,6 +3576,112 @@ components:
         data:
           type: object
           additionalProperties: true
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    LinkCheckRequest:
+      type: object
+      required:
+        - links
+      properties:
+        site:
+          $ref: "#/components/schemas/SiteReference"
+        links:
+          type: array
+          minItems: 1
+          maxItems: 25
+          description: Outside link hrefs as written in the page HTML.
+          items:
+            type: string
+            maxLength: 2048
+      additionalProperties: true
+    LinkCheckResult:
+      type: object
+      properties:
+        href:
+          type: string
+          description: The href as requested.
+        state:
+          type: string
+          enum:
+            - ok
+            - redirected
+            - broken
+            - check
+            - skipped
+          description: >-
+            ok = answered 2xx/3xx; redirected = answered after redirecting to
+            finalUrl; broken = 4xx/5xx, no such host, refused connection, bad
+            certificate or a redirect loop; check = answered but refused an
+            automated check (401, 403, 407, 429, 451, 999) or timed out, so a
+            person should open it; skipped = not checked.
+        reason:
+          type: string
+          enum:
+            - ""
+            - http
+            - refused
+            - timeout
+            - dns
+            - connection
+            - tls
+            - redirects
+            - invalid
+            - private
+            - not-in-site
+            - deferred
+          description: >-
+            Why a link is broken, check or skipped (empty for ok and
+            redirected). private = the host resolves to a private or reserved
+            address and is never contacted; not-in-site = the link is not in
+            this site's pages; deferred = the request ran out of time before
+            this link, so send it again (not cached, not counted).
+        status:
+          type: integer
+          nullable: true
+          description: Final HTTP status, or null when no response came back.
+        finalUrl:
+          type: string
+          description: Where a redirected link ends up (empty otherwise).
+        cached:
+          type: boolean
+          description: True when the answer came from the result cache.
+        checkedAt:
+          type: string
+          format: date-time
+          nullable: true
+    LinkCheckCollection:
+      type: object
+      properties:
+        count:
+          type: integer
+        checked:
+          type: integer
+          description: Links fetched over the network for this request.
+        cached:
+          type: integer
+          description: Links answered from the result cache.
+        deferred:
+          type: integer
+          description: Links not reached in this request's time budget.
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LinkCheckResult"
+        limits:
+          type: object
+          properties:
+            maxLinks:
+              type: integer
+            windowSeconds:
+              type: integer
+            maxChecksPerWindow:
+              type: integer
+            remaining:
+              type: integer
+            cacheSeconds:
+              type: integer
         links:
           type: object
           additionalProperties:
