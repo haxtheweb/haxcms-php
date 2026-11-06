@@ -675,6 +675,25 @@ class HAXCMSConfigCoverageTest extends TestCase
         $_SERVER = $backup;
     }
 
+    public function testIsCliIgnoresRequestDerivedArgc()
+    {
+        // Security (CLI-DETECT): on web SAPIs with register_argc_argv=On, PHP
+        // fills argc/argv from the query string. Those values must never be
+        // what makes isCLI() true; only the SAPI decides.
+        $backup = $_SERVER;
+        $_SERVER['SERVER_SOFTWARE'] = 'Apache';
+        $_SERVER['argc'] = 1;
+        $_SERVER['argv'] = array('x');
+        $this->assertFalse($this->haxcms->isCLI());
+        $_SERVER = $backup;
+        // PHP_SAPI cannot be changed inside the suite, so guard the
+        // implementation directly: the return expression must not read argc.
+        $source = file_get_contents(__DIR__ . '/../../lib/HAXCMS.php');
+        $this->assertSame(1, preg_match('/function isCLI\(\)\s*\{.*?return([^;]*);/s', $source, $m));
+        $this->assertStringNotContainsString('argc', $m[1], 'isCLI() must not consult $_SERVER[\'argc\']');
+        $this->assertStringContainsString('PHP_SAPI', $m[1]);
+    }
+
     // ---- system openapi operation paths ----
 
     public function testGetSystemOpenApiOperationPathsParsesSpec()
