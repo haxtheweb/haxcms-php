@@ -5,8 +5,8 @@ Entry point for recurring security audits of this repo. One of five HAX repos au
 ## Read order (do this first)
 
 1. `AGENTS.md` — layout, test harness, PR gates
-2. `security_best_practices_report.md` — canonical current state (rolling: the original audit plus dated post-remediation re-audit sections; `[C#]/[H#]/[M#]/[L#]/[N#]` finding IDs carry verification status)
-3. `security_jwt_refresh_review.md` — refresh-token flow review
+2. The current audit state lives in the code and its tests, not in a checked-in report (the former `security_best_practices_report.md` / `security_jwt_refresh_review.md` are no longer in this repo): `system/backend/php/tests/Unit/SecurityAuditFixesTest.php` pins the fixes by finding ID, and inline `// Security (...)` comments at each fix site carry the ID and rationale. Start a new round by grepping `Security (` under `system/backend/php/lib` and reading the tests listed under "Regression guards".
+3. Refresh-token flow: `HAXCMS.php` (`getRefreshToken`, `validateRefreshToken`, `rotateRefreshTokenAndCookie`, `revokeRefreshSession`, `isSameOriginRequest` / `isSameOriginGetRequest`) with `tests/Unit/HAXCMSRefreshTokenTest.php` and `tests/Unit/HAXCMSSessionHardeningTest.php` as the executable review.
 4. `SECURITY.md` — disclosure policy (private advisory at `haxtheweb/issues`, never public issues)
 
 ## Scope
@@ -36,7 +36,7 @@ php -l <changed file>                            # quick lint
 
 ## Reporting convention
 
-- `security_best_practices_report.md` is rolling — append dated "Post-Remediation Re-Audit" sections; findings keep their `[C#]/[H#]/[M#]/[L#]/[N#]` IDs and verification status
+- Findings are reported in the audit PR (or private advisory) with `[C#]/[H#]/[M#]/[L#]/[N#]` IDs; a fix lands with an inline `// Security (<ID>)` comment at the site and a regression test in `tests/Unit` (extend `SecurityAuditFixesTest.php` or add a focused test file). No rolling report file is kept in this repo.
 - Cite `file:line` everywhere
 - **Parity:** data-model / system-spec / shared security behavior must be mirrored in `haxcms-nodejs` (AGENTS.md requires API changes to be mirrored; PHP-parity comments mark the pairs)
 - Report vulnerabilities via `SECURITY.md` (private advisory), never public issues
