@@ -22,11 +22,6 @@ haxecho(){
 haxwarn(){
   echo "${bldred}$1${txtreset}"
 }
-# Create a unik, uneek, unqiue id.
-getuuid(){
-  echo $(cat /proc/sys/kernel/random/uuid)
-}
-
 # Time to get down to brass tacks
 if [ ! -d "_sites" ]; then
   mkdir _sites
@@ -101,27 +96,27 @@ cd ..
 # jk
 # identifies this as a config directory for HAXcms since it is a generic name
 touch _config/.isHAXcmsConfig
-# echo a uuid to a salt file we can use later on
-touch _config/SALT.txt
-echo "$(getuuid)" > _config/SALT.txt
-# write private key
-pk="$(getuuid)"
-sed -i "s/HAXTHEWEBPRIVATEKEY/${pk}/g" _config/config.php
-# write refresh private key
-rpk="$(getuuid)"
-sed -i "s/HAXTHEWEBREFRESHPRIVATEKEY/${rpk}/g" _config/config.php
 user=$1
 pass=$2
 # enter a super user name, dun dun dun dunnnnnnn!
-if [ -z $user ]; then
+if [ -z "$user" ]; then
   read -rp "Super user name:" user
 fi
-sed -i "s/jeff/${user}/g" _config/config.php
 # a super, scary password prompt approaches. You roll a 31 and deal a critical security hit
-if [ -z $pass ]; then
-  read -rp "Super user password:" pass
+if [ -z "$pass" ]; then
+  read -rsp "Super user password:" pass
+  echo ""
 fi
-sed -i "s/jimmerson/${pass}/g" _config/config.php
+# Security: secrets, salt and credentials are written by the same PHP logic
+# install.php uses (password_hash, exact-assignment var_export replacement,
+# random_bytes keys/salt, 0600 on config.php / SALT.txt / .pk / .rpk). The
+# previous global, unescaped sed wrote the password in plaintext and a
+# username or password containing / & or quotes could rewrite unrelated
+# text in config.php or break it entirely.
+if ! php scripts/configure-install.php --user "$user" --pass "$pass"; then
+  haxwarn "configure-install.php failed; _config/config.php was not configured"
+  exit 1
+fi
 
 # place this in VC just so it COULD be tracked by the user
 cd _config
