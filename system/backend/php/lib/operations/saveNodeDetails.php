@@ -2,7 +2,7 @@
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 trait OperationsRouteSaveNodeDetails {
   public function saveNodeDetails() {
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
 
       // Check platform configuration

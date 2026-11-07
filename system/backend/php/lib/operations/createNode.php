@@ -4,7 +4,7 @@ include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteCreateNode {
   public function createNode() {
     $nodeParams = $this->params;
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $nodeParams['site']['name'])) {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $nodeParams['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite(strtolower($nodeParams['site']['name']));
       
       // Check platform configuration

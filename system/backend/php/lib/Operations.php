@@ -34,7 +34,26 @@ class Operations {
   // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
   // asp/aspx/jsp/exe/etc. from being written into the web-served site tree
   // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
-  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
+  // .svg is not accepted: it is browser-renderable markup (script-capable)
+  // fetched from a remote URL into a web-served directory. Raster formats
+  // cover theme imagery.
+  /**
+   * Security: the identity a site_token is bound to. Prefers the
+   * authenticated principal (Bearer / refresh cookie) and only falls back to
+   * the active-user resolution, so a request token can never be validated
+   * against a fallback identity when a real one is present. Same resolver
+   * the system router uses for X-HAXCMS-*-Token checks.
+   */
+  protected function getSiteTokenUserName() {
+    if (method_exists($GLOBALS['HAXCMS'], 'getRequestTokenUserName')) {
+      $user = $GLOBALS['HAXCMS']->getRequestTokenUserName();
+      if (is_string($user) && $user !== '') {
+        return $user;
+      }
+    }
+    return $GLOBALS['HAXCMS']->getActiveUserName();
+  }
+  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
   private $imageScalePresets = array(
     'xs' => array('width' => 150, 'height' => 150),
     'sm' => array('width' => 480, 'height' => 480),
@@ -436,7 +455,7 @@ class Operations {
         }
       }
     }
-    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'svg', 'xml');
+    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'xml');
     if ($detected === 'text/plain' && in_array($ext, $textExts, true)) {
       return true;
     }

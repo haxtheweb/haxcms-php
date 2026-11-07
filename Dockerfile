@@ -12,6 +12,11 @@ RUN apt-get update && apt-get install -y \
 # recompiled the ~290 PHP files HAXcms includes (~48ms vs ~9ms warm). Timestamp
 # checks stay on (every 2s) so mounted or in-place-upgraded code is picked up.
 COPY ./scripts/docker/opcache.ini /usr/local/etc/php/conf.d/zz-haxcms-opcache.ini
+# Security: the official image ships no php.ini at all, which means the
+# development-leaning built-in defaults (expose_php=On, display_errors
+# follows the SAPI default, ...). Start from php.ini-production so version
+# banners and error details stay out of responses.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 # Enable rewrite + headers (headers is required by the .htaccess security
 # headers: X-Content-Type-Options, forced download of HTML in files/)
 RUN a2enmod rewrite headers
