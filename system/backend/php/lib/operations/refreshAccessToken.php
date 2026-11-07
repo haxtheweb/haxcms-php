@@ -6,8 +6,14 @@ trait OperationsRouteRefreshAccessToken {
     // cross-site top-level GET navigations, so require a same-origin request
     // (Origin, else Referer, must match the trusted host/protocol; any
     // Sec-Fetch-Site: cross-site is rejected). Parity with NodeJS
-    // refreshAccessToken.js isSameOriginRequest.
-    if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
+    // refreshAccessToken.js isSameOriginRequest. A GET (the editor's
+    // <jwt-login> path) uses the stricter isSameOriginGetRequest rule: see
+    // HAXCMS::isSameOriginGetRequest for the exact table.
+    $isGet = isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'GET';
+    $sameOrigin = ($isGet && method_exists($GLOBALS['HAXCMS'], 'isSameOriginGetRequest'))
+      ? $GLOBALS['HAXCMS']->isSameOriginGetRequest()
+      : $GLOBALS['HAXCMS']->isSameOriginRequest();
+    if (!$sameOrigin) {
       $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(
