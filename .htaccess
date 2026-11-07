@@ -135,11 +135,20 @@ DirectoryIndex index.php index.html
       Header always set Content-Disposition "attachment"
       Header always set X-Content-Type-Options nosniff
     </If>
+    # Security: siteFiles (theme/custom assets fetched from a URL at site
+    # creation) can also land markup under a site's custom/ and theme/
+    # directories. .html is NOT included there: theme/theme.html and
+    # theme/style-guide.html are rendered on purpose (sanitised on save).
+    <If "%{REQUEST_URI} =~ m#/(?:custom|theme)/.*\.(?:xhtml|xml|svg)$#i">
+      Header always set Content-Disposition "attachment"
+      Header always set X-Content-Type-Options nosniff
+    </If>
   </IfModule>
   <IfModule !mod_authz_core.c>
     # Apache 2.2 fallback. In .htaccess (per-directory) context SetEnvIf runs
     # after URL decoding, so Request_URI is the decoded path here too.
     SetEnvIfNoCase Request_URI "/files/.*\.(html?|xhtml|xml|svg)$" force_html_download=1
+    SetEnvIfNoCase Request_URI "/(custom|theme)/.*\.(xhtml|xml|svg)$" force_html_download=1
     Header always set Content-Disposition "attachment" env=force_html_download
   </IfModule>
 </IfModule>

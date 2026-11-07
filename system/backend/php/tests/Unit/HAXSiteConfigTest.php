@@ -131,4 +131,26 @@ class HAXSiteConfigTest extends TestCase
         $this->assertStringContainsString('role="alert"', $markup);
         $this->assertStringContainsString('The page miss, it burns!', $markup);
     }
+
+    /**
+     * Site pages answer with frame-ancestors 'self' (sites may embed their
+     * own pages; third parties may not frame them) and a referrer policy
+     * that keeps full URLs inside the origin. headers_list() is empty under
+     * the CLI SAPI, so the contract is pinned on the method body + the
+     * dashboard keeping its stricter 'none'.
+     */
+    public function testSitePageSecurityHeadersContract(): void
+    {
+        $root = dirname(__DIR__, 5);
+        $src = (string) file_get_contents($root . '/system/backend/php/lib/HAXSiteConfig.php');
+        $this->assertStringContainsString("Content-Security-Policy: frame-ancestors 'self'", $src);
+        $this->assertStringContainsString('Referrer-Policy: strict-origin-when-cross-origin', $src);
+        $this->assertStringContainsString('self::sendSitePageSecurityHeaders();', $src);
+        $dashboard = (string) file_get_contents($root . '/index.php');
+        $this->assertStringContainsString("frame-ancestors 'none'", $dashboard);
+        // callable without output side effects under CLI
+        HAXSiteConfig::sendSitePageSecurityHeaders();
+        $this->assertTrue(true);
+    }
+
 }
