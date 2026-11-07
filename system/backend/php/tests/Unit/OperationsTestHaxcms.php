@@ -55,8 +55,12 @@ class OperationsTestHaxcms
         return $this->validRequestToken;
     }
 
+    public $userCanAccessSiteHook = null;
     public function userCanAccessSite($siteName)
     {
+        if (is_callable($this->userCanAccessSiteHook)) {
+            return (bool) call_user_func($this->userCanAccessSiteHook, $siteName);
+        }
         return $this->canAccessSite;
     }
 

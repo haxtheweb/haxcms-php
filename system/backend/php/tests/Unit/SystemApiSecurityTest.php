@@ -617,6 +617,34 @@ class SystemApiSecurityTest extends TestCase
         $this->assertTrue($map['PATCH:v1/skeletons']);
     }
 
+    /**
+     * Site-lifecycle mutations stay bearer + X-HAXCMS-User-Token. The HAXiam
+     * dashboard (app-hax) only ever holds a jwt and a userToken: login /
+     * refresh hand back a siteToken only when a site context resolves, which
+     * never happens on the multi-site dashboard, and the spec-driven request
+     * builder drops a security requirement it cannot satisfy. Declaring
+     * siteTokenHeader on these routes would therefore break every dashboard
+     * clone / archive / download / save-as-template call, and because both
+     * backends' policy normalizers treat any requirement containing
+     * siteTokenHeader as 'authenticated-site' (user token no longer enforced)
+     * it would also loosen them. Pin the current contract until the UI
+     * obtains and sends a per-site token.
+     */
+    public function testSiteLifecycleRoutesStayBearerPlusUserToken(): void
+    {
+        $map = SystemApiSecurity::getSystemUserTokenPolicyMap();
+        foreach (array('clone', 'archive', 'download', 'download-skeleton', 'save-as-template') as $action) {
+            $routeKey = 'v1/sites/:siteName/' . $action;
+            $this->assertArrayHasKey('POST:' . $routeKey, $map, $action);
+            $this->assertTrue($map['POST:' . $routeKey], $action . ' must require X-HAXCMS-User-Token');
+            $this->assertSame(
+                'authenticated-user',
+                SiteRouteUtils::getSystemApiRouteAuthPolicy($routeKey, 'POST'),
+                $action . ' must resolve to the bearer + user-token tier'
+            );
+        }
+    }
+
     public function testGetSystemUserTokenPolicyMapIsCached(): void
     {
         $this->assertSame(

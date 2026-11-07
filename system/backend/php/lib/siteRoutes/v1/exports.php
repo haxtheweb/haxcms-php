@@ -281,6 +281,13 @@ return function ($context) {
         return;
     }
     if ($format == 'epub') {
+        // rendered per request like pdf/docx (zips a full chapter package
+        // with its images); logged-in users only. Mirrors the site-level
+        // epub gate above.
+        if (SiteRouteUtils::isAnonymousSiteApiRequest($context)) {
+            $sendTopLevelError(401, 'Authentication required for ' . $format . ' exports');
+            return;
+        }
         try {
             $output = ExportConverters::buildItemEpubString($site, $item, $siteBasePath);
         }

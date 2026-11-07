@@ -600,6 +600,33 @@ class SystemRoutesLifecycleTest extends TestCase
         $this->assertRouteGateDenies('clone');
     }
 
+    /**
+     * Security: the route gate authorizes the {siteName} path segment. A body
+     * `name` for a different site must not reach the delegate (it would be
+     * the site actually cloned / archived / downloaded). Mirrors Node
+     * lifecycle.js applySiteNameFromParams. The delegate's userCanAccessSite
+     * call records which name it was asked about.
+     */
+    public function testBodySiteNameCannotOverrideAuthorizedPathSite(): void
+    {
+        $fake = $this->haxcms();
+        $fake->canAccessSite = true;
+        // the delegate 403s at its own token check, before any clone work
+        $fake->validRequestToken = false;
+        $seen = array();
+        $fake->userCanAccessSiteHook = function ($name) use (&$seen) {
+            $seen[] = $name;
+            return $name === $this->siteName;
+        };
+        $result = $this->runHandler('v1/sites/:siteName/clone', 'POST', array(
+            'name' => 'someone-elses-site',
+            'site' => array('name' => 'someone-elses-site'),
+        ), array('siteName' => $this->siteName));
+        $this->assertSame(array($this->siteName), $seen);
+        // the gate passed on the path site and the delegate was reached
+        $this->assertSame('invalid request token', $result['data']['data']['message']);
+    }
+
     public function testCloneRouteInvokesCloneSiteDelegate(): void
     {
         $this->assertDelegateInvoked('clone');
