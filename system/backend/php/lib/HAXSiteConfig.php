@@ -26,6 +26,7 @@ class HAXSiteConfig {
     ) {
       exit;
     }
+    self::sendSitePageSecurityHeaders();
     $this->page = $this->site->loadNodeByLocation();
     if (
       isset($this->site) &&
@@ -47,6 +48,30 @@ class HAXSiteConfig {
     $cssVariable = isset($this->site->manifest->metadata->theme->variables->cssVariable) ? (string) $this->site->manifest->metadata->theme->variables->cssVariable : '';
     $this->color = self::safeCssColor($cssVariable);
     $this->name = htmlspecialchars((string) $this->site->name, ENT_QUOTES, 'UTF-8');
+  }
+  /**
+   * Security: response headers for a rendered site page (index.php shell).
+   * frame-ancestors 'self' lets a site embed its own pages (HAX's own
+   * previews / iframe-loader) but stops third-party sites framing them for
+   * clickjacking; the dashboard (root index.php) stays at 'none'.
+   * Referrer-Policy keeps full URLs (which can carry page slugs and query
+   * state) inside the origin. Both only emit when nothing has been sent
+   * yet, and never clobber a header the hosting config already set.
+   */
+  public static function sendSitePageSecurityHeaders() {
+    if (headers_sent()) {
+      return;
+    }
+    $sent = array();
+    foreach (headers_list() as $existing) {
+      $sent[] = strtolower(trim((string) strstr($existing, ':', true)));
+    }
+    if (!in_array('content-security-policy', $sent, true)) {
+      header("Content-Security-Policy: frame-ancestors 'self'");
+    }
+    if (!in_array('referrer-policy', $sent, true)) {
+      header('Referrer-Policy: strict-origin-when-cross-origin');
+    }
   }
   /**
    * Security (L-5): only a bare CSS custom-property name may be wrapped in
