@@ -24,6 +24,9 @@
     "puppeteer-core": "^25.7.0",
     "sharp": "^0.35.5"
   },
+  "resolutions": {
+    "image-size": "^2.0.4"
+  },
   "scripts": {
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
