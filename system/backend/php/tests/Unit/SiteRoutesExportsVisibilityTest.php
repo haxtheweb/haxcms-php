@@ -8,7 +8,7 @@ require_once __DIR__ . '/SiteRoutesTestHelpers.php';
  * callers (lib/siteRoutes/v1/exports.php):
  *  - anonymous html site export excludes unpublished and hidden pages
  *  - anonymous pdf / docx / epub site exports are refused with 401
- *  - anonymous pdf / docx item exports are refused with 401
+ *  - anonymous pdf / docx / epub item exports are refused with 401
  *  - logged-in html site export still includes every page
  */
 class SiteRoutesExportsVisibilityTest extends TestCase
@@ -79,7 +79,7 @@ class SiteRoutesExportsVisibilityTest extends TestCase
 
     public static function binaryItemFormats(): array
     {
-        return array(array('pdf'), array('docx'));
+        return array(array('pdf'), array('docx'), array('epub'));
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('binaryItemFormats')]

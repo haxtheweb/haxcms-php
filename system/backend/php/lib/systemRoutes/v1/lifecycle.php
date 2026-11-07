@@ -53,6 +53,11 @@ return function ($context) {
         if ($context->method === 'POST' && is_array($context->body)) {
             $operations->params['site'] = array_merge($operations->params['site'], $context->body);
             $operations->rawParams['site'] = array_merge($operations->rawParams['site'], $context->body);
+            // Security: the route gate below authorizes the {siteName} path
+            // segment; a body `name` must not be able to swap in a different
+            // site once that check has passed.
+            $operations->params['site']['name'] = $context->params['siteName'];
+            $operations->rawParams['site']['name'] = $context->params['siteName'];
         }
     }
     $response = null;
