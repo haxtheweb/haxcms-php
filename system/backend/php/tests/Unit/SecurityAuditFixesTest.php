@@ -148,6 +148,30 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringContainsString('Require all denied', $htaccess);
     }
 
+    public function testPublishedHtaccessBoilerplateBlocksListingButServesZips(): void
+    {
+        $htaccess = (string) @file_get_contents($this->repoRoot . '/system/boilerplate/systemsetup/.published-htaccess');
+        $this->assertStringContainsString('Options -Indexes', $htaccess);
+        $this->assertStringContainsString('<FilesMatch "\\.zip$">', $htaccess);
+        $this->assertStringContainsString('Require all granted', $htaccess);
+        $this->assertStringContainsString('Require all denied', $htaccess);
+        $installer = (string) file_get_contents($this->repoRoot . '/install.php');
+        $this->assertStringContainsString("systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess'", $installer);
+        $nginx = (string) file_get_contents($this->repoRoot . '/scripts/nginx/haxcms-nginx.conf');
+        $this->assertStringContainsString('location ^~ /_published/', $nginx);
+        $this->assertStringContainsString('autoindex off', $nginx);
+    }
+
+    public function testInstallTokenLivesUnderConfigWithLegacyFallback(): void
+    {
+        $installer = (string) file_get_contents($this->repoRoot . '/install.php');
+        $this->assertStringContainsString("__DIR__ . '/_config/_installtoken.txt'", $installer);
+        $this->assertStringContainsString("\$installTokenLegacyFilePath = __DIR__ . '/_installtoken.txt'", $installer);
+        // _config is deny-all over HTTP, so the token cannot be fetched
+        $configHtaccess = (string) file_get_contents($this->repoRoot . '/system/boilerplate/systemsetup/.htaccess');
+        $this->assertStringContainsString('Require all denied', $configHtaccess);
+    }
+
     // ---- L-2 -------------------------------------------------------------
 
     public function testRefreshCookieSecureOnHttps(): void

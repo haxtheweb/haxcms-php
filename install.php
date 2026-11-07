@@ -23,8 +23,9 @@
 //
 // Hosting-provider automation (e.g. Reclaim Cloud / haxcms-jps) may POST
 // toStep=4 with user + pass + install_token to skip the interactive wizard.
-// The credential override is honored ONLY when a pre-dropped _installtoken.txt
-// file matches the POSTed install_token (timing-safe hash_equals). Without
+// The credential override is honored ONLY when a pre-dropped
+// _config/_installtoken.txt (legacy: _installtoken.txt at the root) file
+// matches the POSTed install_token (timing-safe hash_equals). Without
 // the token file, POST-supplied credentials are ignored and the installer
 // uses an auto-generated admin password.
 //
@@ -274,6 +275,11 @@ if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
     // Security (M-2): archived sites must not stay publicly served.
     if (is_dir(__DIR__ . '/_archived')) {
       haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
+    }
+    // Security: export zips in _published carry random names; the directory
+    // must not be listable or those names leak.
+    if (is_dir(__DIR__ . '/_published')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess', $failed, $failedMessages);
     }
   }
 }
@@ -604,6 +610,11 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
     if (is_dir(__DIR__ . '/_archived')) {
       haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
     }
+    // Security: export zips in _published carry random names; the directory
+    // must not be listable or those names leak.
+    if (is_dir(__DIR__ . '/_published')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess', $failed, $failedMessages);
+    }
   }
 }
 
@@ -621,7 +632,15 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
 //      (<hax-app-installer>) posts JSON without the token, so the cookie lets
 //      the interactive wizard work with no front-end change.
 // When no token file exists the wizard behaves exactly as before.
-$installTokenFilePath = __DIR__ . '/_installtoken.txt';
+// The token file lives in _config/, which is denied over HTTP by
+// _config/.htaccess and the nginx snippet, so a web request can never read
+// it. The pre-existing root location (next to install.php, inside the
+// document root) is still honoured when a provider drops the file there.
+$installTokenFilePath = __DIR__ . '/_config/_installtoken.txt';
+$installTokenLegacyFilePath = __DIR__ . '/_installtoken.txt';
+if (!file_exists($installTokenFilePath) && file_exists($installTokenLegacyFilePath)) {
+  $installTokenFilePath = $installTokenLegacyFilePath;
+}
 $installTokenCookieName = 'haxcms_install_token';
 if (!function_exists('haxcmsInstallerReadTokenFile')) {
   function haxcmsInstallerReadTokenFile($path)
@@ -691,7 +710,7 @@ if ($installTokenEnabled && ($op === 'prepare' || $op === 'advance')) {
     header('HTTP/1.1 403 Forbidden');
     header('Content-Type: application/json');
     print json_encode(array(
-      'error' => 'This server requires an install token. Open install.php?install_token=<token from _installtoken.txt> to continue.',
+      'error' => 'This server requires an install token. Open install.php?install_token=<token from _config/_installtoken.txt> to continue.',
       'installTokenRequired' => true,
     ));
     exit();
@@ -843,9 +862,13 @@ if ($op === 'advance') {
       );
     }
 
-    // Delete install token file (one-time use)
-    if (!$failed && $installTokenEnabled && file_exists($installTokenFilePath)) {
-      @unlink($installTokenFilePath);
+    // Delete install token file (one-time use), wherever it was found
+    if (!$failed && $installTokenEnabled) {
+      foreach (array($installTokenFilePath, $installTokenLegacyFilePath) as $tokenPath) {
+        if (file_exists($tokenPath)) {
+          @unlink($tokenPath);
+        }
+      }
     }
     if (!$failed && $installTokenCookieValue !== '') {
       haxcmsInstallerSetTokenCookie($installTokenCookieName, '', time() - 3600);
@@ -996,7 +1019,7 @@ if ($installTokenEnabled && !$installTokenCookieValid) {
       <main class="install-token-required">
         <h1>Install token required</h1>
         <p>This server was provisioned with an install token, so the installer is locked until you provide it.</p>
-        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_installtoken.txt</code> next to <code>install.php</code> on the server (your hosting provider may also have shown it to you).</p>
+        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_config/_installtoken.txt</code> on the server (your hosting provider may also have shown it to you).</p>
       </main>
 <?php } else { ?>
       <hax-app-installer api-endpoint="install.php"></hax-app-installer>

@@ -1,0 +1,24 @@
+# Security: _published holds site export zips written by downloadSite. Each
+# zip has a random, single-use name that only the requesting author is told,
+# so the directory must never be listable (that would hand the names to
+# anyone) and nothing but zips should be served from it. The zip itself stays
+# downloadable by its link.
+Options -Indexes
+<FilesMatch "\.zip$">
+  <IfModule mod_authz_core.c>
+    Require all granted
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+  </IfModule>
+</FilesMatch>
+<FilesMatch "^(?!.*\.zip$).*$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
