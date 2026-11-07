@@ -264,13 +264,18 @@ return function ($context) {
         }
     }
     else if ($route === 'v1/session/connection-test') {
-        // Auth-state probes must never be cached: a cached authenticated body
-        // could be served to a different user (token leak), and a cached
-        // anonymous body could mask a now-logged-in session. Applies to every
-        // response branch below. sendFormattedResponse sets Vary / Content-
-        // Location / Link / Content-Type but never Cache-Control, so this
-        // header is preserved through the formatter.
-        header('Cache-Control: no-store');
+        // Auth-state probes must never be served from cache: a cached
+        // authenticated body could be served to a different user (token
+        // leak), and a cached anonymous body could mask a now-logged-in
+        // session. A probe sent with credentials is never stored; one sent
+        // without any is answered `private, no-cache` (always revalidated,
+        // still bfcache-friendly) because its answer cannot carry anything
+        // about a user (haxtheweb/issues#3244, NodeJS parity). The
+        // authenticated answer below is no-store whatever the request carried.
+        // sendFormattedResponse sets Vary / Content-Location / Link /
+        // Content-Type but never Cache-Control, so these headers are preserved
+        // through the formatter.
+        HAXCMS::sendUncachedResponseHeaders();
         // Security (Phase 3 Bearer-only): JWT must arrive via the Authorization
         // Bearer header, never request params/body. The body jwt/token fallback
         // is removed so HAXiam and other clients use appSettings.jwt as a Bearer
@@ -400,6 +405,7 @@ return function ($context) {
         // Security (SEC-SESSION): include fresh request tokens (userToken, and
         // siteToken when a site context is resolvable) for an editor that
         // booted anonymously from connection-settings (NodeJS parity).
+        HAXCMS::sendUncachedResponseHeaders(true);
         SiteRouteUtils::sendFormattedResponse(
             array_merge(
                 array(

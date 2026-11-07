@@ -13,10 +13,15 @@ trait OperationsRouteConnectionSettings {
       }
     }
     // need to return this as if it was a javascript file, weird looking for sure
-    // Phase 3 (M1): this response may embed a per-user access JWT via
-    // appSettings.jwt (HAXiam / server-injected bootstrap). Prevent caching.
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
+    $settings = $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath);
+    // Phase 3 (M1): never cached. Token-bearing answers (siteToken /
+    // userToken, or appSettings.jwt from a HAXiam bootstrap) and answers to
+    // credentialed requests are no-store; an anonymous answer with no token
+    // is `private, no-cache` so the page keeps its back/forward cache entry
+    // (haxtheweb/issues#3244, NodeJS parity).
+    HAXCMS::sendUncachedResponseHeaders(
+      isset($settings->siteToken) || isset($settings->userToken) || isset($settings->jwt)
+    );
     // D55: match Node's connectionSettings.js output format exactly — prepend
     // the MicroFrontendRegistryConfig initialization line.
     // Security (SEC-03): the HAXCMS_DISABLE_JWT_CHECKS env-var append that
@@ -24,10 +29,7 @@ trait OperationsRouteConnectionSettings {
     // allowlist (Request.php) so it runs unauthenticated; the env var would hand
     // a super-user JWT to any caller. Dev sessions should log in via the normal
     // login route instead.
-    $returnData = json_encode(
-      $GLOBALS['HAXCMS']->appJWTConnectionSettings($GLOBALS['HAXCMS']->basePath),
-      JSON_UNESCAPED_SLASHES
-    );
+    $returnData = json_encode($settings, JSON_UNESCAPED_SLASHES);
     return array(
       '__noencode' => array(
         'status' => 200,
