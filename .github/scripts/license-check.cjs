@@ -231,8 +231,15 @@ function npmRegistryLicense(name, version) {
 
 function mdEscape(s) {
   return String(s === undefined || s === null || s === '' ? '-' : s)
+    .replace(/\\/g, '\\\\')
     .replace(/\|/g, '\\|')
-    .replace(/\n/g, ' ')
+    .replace(/[\r\n]+/g, ' ')
+}
+
+// workflow-command data escaping (% CR LF), so package metadata cannot
+// inject extra workflow commands into the log
+function cmdEscape(s) {
+  return String(s).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
 }
 
 function report(title, results, extraProblems) {
@@ -291,11 +298,13 @@ function report(title, results, extraProblems) {
   problems.forEach((r) => {
     console.log(
       '::error title=Dependency license::' +
-        r.ecosystem + ' ' + r.name + '@' + r.version + ' (' + (r.license || 'no license') + '): ' + STATUS_TEXT[r.status]
+        cmdEscape(
+          r.ecosystem + ' ' + r.name + '@' + r.version + ' (' + (r.license || 'no license') + '): ' + STATUS_TEXT[r.status]
+        )
     )
   })
   extraProblems.forEach((p) => {
-    console.log('::error title=Project license::' + p)
+    console.log('::error title=Project license::' + cmdEscape(p))
   })
   return problems.length + extraProblems.length
 }
