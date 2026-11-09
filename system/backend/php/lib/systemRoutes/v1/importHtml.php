@@ -59,7 +59,7 @@ return function ($context) {
 
     try {
         // D36: sanitize untrusted HTML before parsing (parity with Node importHtml.js sanitizeUntrustedHtml).
-        $html = SanitizeContent::sanitizeHTMLForStorage($html);
+        $html = SanitizeContent::sanitizeUntrustedHTML($html);
         $titleValue = preg_replace('/\.(html|htm)$/i', '', $filename);
         $items = haxcmsImportHtmlToItems($html, array(
             'titleValue' => $titleValue,

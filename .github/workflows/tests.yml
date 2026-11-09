@@ -18,7 +18,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["8.3"]
+        # 8.4 parses HTML with Dom\HTMLDocument (HTML5); 8.3 with libxml.
+        # The sanitizer must store the same HTML on both (haxtheweb/issues#3273).
+        php-version: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     # The PHP backend (composer.json, composer.lock, phpunit.xml, lib/, tests/)
     # lives under system/backend/php, so run composer/phpunit from there.
