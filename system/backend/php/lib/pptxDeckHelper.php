@@ -135,7 +135,9 @@ function haxcmsSystemBuildPptxDeckManifest($filePath)
         '.png'  => 'image/png',
         '.gif'  => 'image/gif',
         '.webp' => 'image/webp',
-        '.svg'  => 'image/svg+xml',
+        // .svg deliberately absent: an SVG from a deck is markup that can
+        // carry script and would be written into the web-served site files
+        // directory (matches haxcms-nodejs pptxDeckHelper).
     );
 
     // Collect and sort slide files numerically (ksort on int keys avoids the

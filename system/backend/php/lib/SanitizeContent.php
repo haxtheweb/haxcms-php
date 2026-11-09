@@ -160,7 +160,12 @@ class SanitizeContent
         'allow-scripts',
     ];
 
-    private const IFRAME_DEFAULT_SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-forms';
+    // Security: no allow-same-origin by default. Together with allow-scripts
+    // it lets a same-origin framed document reach the parent and remove its
+    // own sandbox, and it hands cross-origin embeds their cookies/storage.
+    // An author who needs it sets sandbox explicitly (that value is kept as
+    // written, filtered to the allowed tokens). Mirrors haxcms-nodejs.
+    private const IFRAME_DEFAULT_SANDBOX = 'allow-scripts allow-popups allow-forms';
 
     private const REFERRER_POLICY_ALLOWED = [
         'no-referrer',

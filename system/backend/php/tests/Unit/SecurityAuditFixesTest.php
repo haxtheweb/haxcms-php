@@ -172,6 +172,47 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringContainsString('Require all denied', $configHtaccess);
     }
 
+    // ---- hardening sweep -------------------------------------------------
+
+    public function testSiteFilesRejectSvgAndPptxMapHasNoSvg(): void
+    {
+        $src = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/pptxDeckHelper.php');
+        $this->assertStringNotContainsString("'.svg'  => 'image/svg+xml'", $src);
+        $ops = new Operations();
+        $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
+        $m->setAccessible(true);
+        $this->assertFalse($m->invoke($ops, 'theme/logo.svg'));
+        $this->assertSame('theme/logo.png', $m->invoke($ops, 'theme/logo.png'));
+    }
+
+    public function testForceDownloadRulesCoverCustomAndThemeMarkup(): void
+    {
+        $htaccess = (string) file_get_contents($this->repoRoot . '/.htaccess');
+        $this->assertStringContainsString('m#/(?:custom|theme)/.*\\.(?:xhtml|xml|svg)$#i', $htaccess);
+        $nginx = (string) file_get_contents($this->repoRoot . '/scripts/nginx/haxcms-nginx.conf');
+        $this->assertStringContainsString('location ~* /(?:custom|theme)/.*\\.(?:xhtml|xml|svg)$', $nginx);
+    }
+
+    public function testDockerfileStartsFromProductionIni(): void
+    {
+        $dockerfile = (string) file_get_contents($this->repoRoot . '/Dockerfile');
+        $this->assertStringContainsString('php.ini-production" "$PHP_INI_DIR/php.ini"', $dockerfile);
+    }
+
+    public function testLegacyOpsBindSiteTokenToRequestTokenUser(): void
+    {
+        $ops = array('saveNode', 'deleteNode', 'createNode', 'saveManifest', 'saveNodeDetails', 'fileOperation',
+            'saveEditorSettings', 'savePlatformSettings', 'saveAppearanceSettings', 'saveAllowedBlocks', 'saveSeoSettings');
+        foreach ($ops as $op) {
+            $src = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/operations/' . $op . '.php');
+            $this->assertStringNotContainsString("getActiveUserName() . ':' .", $src, $op);
+            $this->assertStringContainsString("\$this->getSiteTokenUserName() . ':' .", $src, $op);
+        }
+        // saveOutline is mission critical and intentionally untouched here
+        $outline = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/operations/saveOutline.php');
+        $this->assertStringContainsString("getActiveUserName() . ':' .", $outline);
+    }
+
     // ---- L-2 -------------------------------------------------------------
 
     public function testRefreshCookieSecureOnHttps(): void

@@ -171,7 +171,16 @@ class SanitizeContentTest extends TestCase
         $this->assertStringContainsString('src="https://example.com"', $out);
         $this->assertStringContainsString('loading="lazy"', $out);
         $this->assertStringContainsString('referrerpolicy="no-referrer"', $out);
-        $this->assertStringContainsString('sandbox="allow-scripts allow-same-origin allow-popups allow-forms"', $out);
+        $this->assertStringContainsString('sandbox="allow-scripts allow-popups allow-forms"', $out);
+    }
+
+    public function testSanitizeHtmlForStorageKeepsAuthorSetAllowSameOrigin(): void
+    {
+        // the default no longer grants allow-same-origin, but an author who
+        // sets it explicitly keeps it (filtered to allowed tokens)
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" sandbox="allow-scripts allow-same-origin allow-bogus"></iframe>');
+        $this->assertStringContainsString('sandbox="allow-scripts allow-same-origin"', $out);
+        $this->assertStringNotContainsString('allow-bogus', $out);
     }
 
     public function testSanitizeHtmlForStorageHardensIframeWithDangerousAttrs(): void
@@ -182,7 +191,7 @@ class SanitizeContentTest extends TestCase
         $this->assertStringNotContainsString('alert', $out);
         // unsafe src removed and onload removed, but safe defaults still applied
         $this->assertStringContainsString('loading="lazy"', $out);
-        $this->assertStringContainsString('sandbox="allow-scripts allow-same-origin allow-popups allow-forms"', $out);
+        $this->assertStringContainsString('sandbox="allow-scripts allow-popups allow-forms"', $out);
         // allowlisted iframe attribute survives
         $this->assertStringContainsString('allow="autoplay"', $out);
     }
@@ -197,7 +206,7 @@ class SanitizeContentTest extends TestCase
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" credentialless="" referrerpolicy="strict-origin-when-cross-origin"></iframe>');
         $this->assertSame(
-            '<iframe src="https://www.youtube.com/embed/x" credentialless="" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://www.youtube.com/embed/x" credentialless="" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-popups allow-forms"></iframe>',
             $out
         );
     }
@@ -206,7 +215,7 @@ class SanitizeContentTest extends TestCase
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" credentialless></iframe>');
         $this->assertSame(
-            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-forms"></iframe>',
             $out
         );
     }
@@ -215,7 +224,7 @@ class SanitizeContentTest extends TestCase
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" credentialless=""></iframe>');
         $this->assertSame(
-            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-popups allow-forms"></iframe>',
             $out
         );
     }
@@ -224,7 +233,7 @@ class SanitizeContentTest extends TestCase
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" referrerpolicy="strict-origin-when-cross-origin"></iframe>');
         $this->assertSame(
-            '<iframe src="https://www.youtube.com/embed/x" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://www.youtube.com/embed/x" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-popups allow-forms"></iframe>',
             $out
         );
     }
