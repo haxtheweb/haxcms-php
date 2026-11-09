@@ -279,7 +279,7 @@
     {
       "name": "tag iframe",
       "html": "<p>a</p><iframe>x</iframe><p>b</p>",
-      "expect": "<p>a</p><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><p>b</p>"
+      "expect": "<p>a</p><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><p>b</p>"
     },
     {
       "name": "tag image",
@@ -2532,447 +2532,447 @@
     {
       "name": "attribute iframe[href]",
       "html": "<iframe href=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[src]",
       "html": "<iframe src=\"v1\">x</iframe>",
-      "expect": "<iframe src=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[alt]",
       "html": "<iframe alt=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[title]",
       "html": "<iframe title=\"v1\">x</iframe>",
-      "expect": "<iframe title=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe title=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[target]",
       "html": "<iframe target=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[rel]",
       "html": "<iframe rel=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[id]",
       "html": "<iframe id=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[class]",
       "html": "<iframe class=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[name]",
       "html": "<iframe name=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[value]",
       "html": "<iframe value=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[type]",
       "html": "<iframe type=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[width]",
       "html": "<iframe width=\"v1\">x</iframe>",
-      "expect": "<iframe width=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe width=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[height]",
       "html": "<iframe height=\"v1\">x</iframe>",
-      "expect": "<iframe height=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe height=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[data-x]",
       "html": "<iframe data-x=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[aria-label]",
       "html": "<iframe aria-label=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[role]",
       "html": "<iframe role=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[tabindex]",
       "html": "<iframe tabindex=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[lang]",
       "html": "<iframe lang=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[dir]",
       "html": "<iframe dir=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[hidden]",
       "html": "<iframe hidden=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[onclick]",
       "html": "<iframe onclick=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[onerror]",
       "html": "<iframe onerror=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[OnLoad]",
       "html": "<iframe OnLoad=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[style]",
       "html": "<iframe style=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[srcdoc]",
       "html": "<iframe srcdoc=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[formaction]",
       "html": "<iframe formaction=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[action]",
       "html": "<iframe action=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[poster]",
       "html": "<iframe poster=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[srcset]",
       "html": "<iframe srcset=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[xlink:href]",
       "html": "<iframe xlink:href=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[xmlns]",
       "html": "<iframe xmlns=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[xmlns:xlink]",
       "html": "<iframe xmlns:xlink=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[link]",
       "html": "<iframe link=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[source]",
       "html": "<iframe source=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[file]",
       "html": "<iframe file=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[sources]",
       "html": "<iframe sources=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[tracks]",
       "html": "<iframe tracks=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[image-url]",
       "html": "<iframe image-url=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[thumbnail-src]",
       "html": "<iframe thumbnail-src=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[my-href]",
       "html": "<iframe my-href=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[download]",
       "html": "<iframe download=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[ping]",
       "html": "<iframe ping=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[background]",
       "html": "<iframe background=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[cite]",
       "html": "<iframe cite=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[longdesc]",
       "html": "<iframe longdesc=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[usemap]",
       "html": "<iframe usemap=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[contenteditable]",
       "html": "<iframe contenteditable=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[slot]",
       "html": "<iframe slot=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[is]",
       "html": "<iframe is=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[part]",
       "html": "<iframe part=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[nonce]",
       "html": "<iframe nonce=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[loading]",
       "html": "<iframe loading=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[allow]",
       "html": "<iframe allow=\"v1\">x</iframe>",
-      "expect": "<iframe allow=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe allow=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[sandbox]",
       "html": "<iframe sandbox=\"v1\">x</iframe>",
-      "expect": "<iframe sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\" loading=\"lazy\" referrerpolicy=\"no-referrer\"></iframe>"
+      "expect": "<iframe sandbox=\"allow-scripts allow-popups allow-forms\" loading=\"lazy\" referrerpolicy=\"no-referrer\"></iframe>"
     },
     {
       "name": "attribute iframe[allowfullscreen]",
       "html": "<iframe allowfullscreen=\"v1\">x</iframe>",
-      "expect": "<iframe allowfullscreen=\"allowfullscreen\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe allowfullscreen=\"allowfullscreen\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[referrerpolicy]",
       "html": "<iframe referrerpolicy=\"v1\">x</iframe>",
-      "expect": "<iframe referrerpolicy=\"no-referrer\" loading=\"lazy\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe referrerpolicy=\"no-referrer\" loading=\"lazy\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[credentialless]",
       "html": "<iframe credentialless=\"v1\">x</iframe>",
-      "expect": "<iframe credentialless=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe credentialless=\"v1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[controls]",
       "html": "<iframe controls=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[colspan]",
       "html": "<iframe colspan=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[open]",
       "html": "<iframe open=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[checked]",
       "html": "<iframe checked=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[disabled]",
       "html": "<iframe disabled=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[readonly]",
       "html": "<iframe readonly=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[multiple]",
       "html": "<iframe multiple=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[selected]",
       "html": "<iframe selected=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[placeholder]",
       "html": "<iframe placeholder=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[for]",
       "html": "<iframe for=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[label]",
       "html": "<iframe label=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[caption]",
       "html": "<iframe caption=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[summary]",
       "html": "<iframe summary=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[accent-color]",
       "html": "<iframe accent-color=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[icon]",
       "html": "<iframe icon=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[card]",
       "html": "<iframe card=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[message]",
       "html": "<iframe message=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[correct]",
       "html": "<iframe correct=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[data-correct]",
       "html": "<iframe data-correct=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[text-align]",
       "html": "<iframe text-align=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[background-color]",
       "html": "<iframe background-color=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[preserve-content]",
       "html": "<iframe preserve-content=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[popover]",
       "html": "<iframe popover=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[accesskey]",
       "html": "<iframe accesskey=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[datetime]",
       "html": "<iframe datetime=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[kind]",
       "html": "<iframe kind=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[data]",
       "html": "<iframe data=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[codebase]",
       "html": "<iframe codebase=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[attributename]",
       "html": "<iframe attributename=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[patchsrc]",
       "html": "<iframe patchsrc=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[xml:lang]",
       "html": "<iframe xml:lang=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute iframe[CLASS]",
       "html": "<iframe CLASS=\"v1\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "attribute input[href]",
@@ -5937,232 +5937,232 @@
     {
       "name": "value iframe[src]=\"\"",
       "html": "<iframe src=\"\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"x\"",
       "html": "<iframe src=\"x\">x</iframe>",
-      "expect": "<iframe src=\"x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"hello world\"",
       "html": "<iframe src=\"hello world\">x</iframe>",
-      "expect": "<iframe src=\"hello world\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"hello world\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"_blank\"",
       "html": "<iframe src=\"_blank\">x</iframe>",
-      "expect": "<iframe src=\"_blank\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"_blank\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"https://example.com/a?b=1&c=2\"",
       "html": "<iframe src=\"https://example.com/a?b=1&amp;c=2\">x</iframe>",
-      "expect": "<iframe src=\"https://example.com/a?b=1&amp;c=2\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://example.com/a?b=1&amp;c=2\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"/files/a b.png\"",
       "html": "<iframe src=\"/files/a b.png\">x</iframe>",
-      "expect": "<iframe src=\"/files/a b.png\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"/files/a b.png\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"files/b.pdf\"",
       "html": "<iframe src=\"files/b.pdf\">x</iframe>",
-      "expect": "<iframe src=\"files/b.pdf\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"files/b.pdf\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"#top\"",
       "html": "<iframe src=\"#top\">x</iframe>",
-      "expect": "<iframe src=\"#top\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"#top\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"mailto:a@b.c\"",
       "html": "<iframe src=\"mailto:a@b.c\">x</iframe>",
-      "expect": "<iframe src=\"mailto:a@b.c\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"mailto:a@b.c\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"tel:+1\"",
       "html": "<iframe src=\"tel:+1\">x</iframe>",
-      "expect": "<iframe src=\"tel:+1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"tel:+1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"javascript:alert(1)\"",
       "html": "<iframe src=\"javascript:alert(1)\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"JaVaScRiPt:alert(1)\"",
       "html": "<iframe src=\"JaVaScRiPt:alert(1)\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\" javascript:alert(1)\"",
       "html": "<iframe src=\" javascript:alert(1)\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"java\\tscript:alert(1)\"",
       "html": "<iframe src=\"java\tscript:alert(1)\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"&#106;avascript:alert(1)\"",
       "html": "<iframe src=\"&#106;avascript:alert(1)\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"data:text/html,<script>alert(1)</script>\"",
       "html": "<iframe src=\"data:text/html,<script>alert(1)</script>\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"data:image/png;base64,iVBORw0KGgo=\"",
       "html": "<iframe src=\"data:image/png;base64,iVBORw0KGgo=\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"data:image/svg+xml,<svg onload=alert(1)>\"",
       "html": "<iframe src=\"data:image/svg+xml,<svg onload=alert(1)>\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"vbscript:x\"",
       "html": "<iframe src=\"vbscript:x\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"ftp://x\"",
       "html": "<iframe src=\"ftp://x\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"//evil.example/x\"",
       "html": "<iframe src=\"//evil.example/x\">x</iframe>",
-      "expect": "<iframe src=\"//evil.example/x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"//evil.example/x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"  padded  \"",
       "html": "<iframe src=\"  padded  \">x</iframe>",
-      "expect": "<iframe src=\"padded\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"padded\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"\\ttab\\n\"",
       "html": "<iframe src=\"\ttab\n\">x</iframe>",
-      "expect": "<iframe src=\"tab\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"tab\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"a b\"",
       "html": "<iframe src=\"a b\">x</iframe>",
-      "expect": "<iframe src=\"a&nbsp;b\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"a&nbsp;b\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"café\"",
       "html": "<iframe src=\"café\">x</iframe>",
-      "expect": "<iframe src=\"café\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"café\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"https://e.x/café?q=1\"",
       "html": "<iframe src=\"https://e.x/café?q=1\">x</iframe>",
-      "expect": "<iframe src=\"https://e.x/café?q=1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://e.x/café?q=1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"x]>y\"",
       "html": "<iframe src=\"x]>y\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"a --> b\"",
       "html": "<iframe src=\"a --> b\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"a --!> b\"",
       "html": "<iframe src=\"a --!> b\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"</title><img src=x onerror=alert(1)>\"",
       "html": "<iframe src=\"</title><img src=x onerror=alert(1)>\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"</STYLE>\"",
       "html": "<iframe src=\"</STYLE>\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"\\\"><img src=x onerror=alert(1)>\"",
       "html": "<iframe src=\"&quot;><img src=x onerror=alert(1)>\">x</iframe>",
-      "expect": "<iframe src=\"&quot;><img src=x onerror=alert(1)>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"&quot;><img src=x onerror=alert(1)>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"&lt;b&gt;\"",
       "html": "<iframe src=\"&lt;b&gt;\">x</iframe>",
-      "expect": "<iframe src=\"<b>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"<b>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"&amp;\"",
       "html": "<iframe src=\"&amp;\">x</iframe>",
-      "expect": "<iframe src=\"&amp;\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"&amp;\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"icons:check\"",
       "html": "<iframe src=\"icons:check\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"Note: hi\"",
       "html": "<iframe src=\"Note: hi\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"JavaScript: the good parts\"",
       "html": "<iframe src=\"JavaScript: the good parts\">x</iframe>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"<span>html</span>\"",
       "html": "<iframe src=\"<span>html</span>\">x</iframe>",
-      "expect": "<iframe src=\"<span>html</span>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"<span>html</span>\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"url(javascript:alert(1))\"",
       "html": "<iframe src=\"url(javascript:alert(1))\">x</iframe>",
-      "expect": "<iframe src=\"url(javascript:alert(1))\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"url(javascript:alert(1))\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"https://e.x/$[]^`{|}\"",
       "html": "<iframe src=\"https://e.x/$[]^`{|}\">x</iframe>",
-      "expect": "<iframe src=\"https://e.x/$[]^`{|}\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://e.x/$[]^`{|}\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"allow-scripts allow-top-navigation\"",
       "html": "<iframe src=\"allow-scripts allow-top-navigation\">x</iframe>",
-      "expect": "<iframe src=\"allow-scripts allow-top-navigation\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"allow-scripts allow-top-navigation\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"eager\"",
       "html": "<iframe src=\"eager\">x</iframe>",
-      "expect": "<iframe src=\"eager\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"eager\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"unsafe-url\"",
       "html": "<iframe src=\"unsafe-url\">x</iframe>",
-      "expect": "<iframe src=\"unsafe-url\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"unsafe-url\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"images\"",
       "html": "<iframe src=\"images\">x</iframe>",
-      "expect": "<iframe src=\"images\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"images\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"cookie\"",
       "html": "<iframe src=\"cookie\">x</iframe>",
-      "expect": "<iframe src=\"cookie\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"cookie\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"action\"",
       "html": "<iframe src=\"action\">x</iframe>",
-      "expect": "<iframe src=\"action\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"action\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "value input[name]=\"\"",
@@ -7207,7 +7207,7 @@
     {
       "name": "generated 70",
       "html": "<a><isindex accent-color=\"x]>y\"><iframe ping=\"</title><img src=x onerror=alert(1)>\" icon=\"url(javascript:alert(1))\"><progress><main type=\"&quot;><img src=x onerror=alert(1)>\">&lt;script&gt;</iframe><li thumbnail-src=\"&lt;b&gt;\"><rp text-align=\"url(javascript:alert(1))\">a & b</li></isindex>\n</a>&lt;script&gt;<span hidden=\"vbscript:x\"></span>",
-      "expect": "<a><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><li thumbnail-src=\"<b>\"><rp text-align=\"url(javascript:alert(1))\">a &amp; b</rp></li>\n</a>&lt;script&gt;<span></span>"
+      "expect": "<a><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><li thumbnail-src=\"<b>\"><rp text-align=\"url(javascript:alert(1))\">a &amp; b</rp></li>\n</a>&lt;script&gt;<span></span>"
     },
     {
       "name": "generated 71",
@@ -7268,7 +7268,7 @@
     {
       "name": "generated 82",
       "html": "<base text-align=\"mailto:a@b.c\" tabindex=\"unsafe-url\"><isindex><fieldset link=\"data:image/svg+xml,<svg onload=alert(1)>\"><iframe text-align=\"#top\"><stop-note>&lt;script&gt;é</stop-note></fieldset></isindex><header allowfullscreen=\"allow-scripts allow-top-navigation\" credentialless=\"java\tscript:alert(1)\"><u tabindex=\"_blank\"><pre xlink:href=\"  padded  \" is=\"icons:check\"></pre><details ping=\"JavaScript: the good parts\"></details></u></header>",
-      "expect": "<fieldset><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe></fieldset>",
+      "expect": "<fieldset><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe></fieldset>",
       "libxmlDiffers": true
     },
     {
@@ -7362,7 +7362,7 @@
     {
       "name": "generated 100",
       "html": "<noembed>text</noembed><base>&nbsp;<iframe class=\"JaVaScRiPt:alert(1)\"><!-- c -->&lt;script&gt;</iframe></base><tfoot popover=\"<span>html</span>\" formaction=\"</title><img src=x onerror=alert(1)>\"><var><grid-plate>a & b<details credentialless=\"java\tscript:alert(1)\" preserve-content=\"https://example.com/a?b=1&amp;c=2\">&nbsp;<h2>é</details></tfoot>",
-      "expect": "&nbsp;<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><var><grid-plate>a &amp; b<details preserve-content=\"https://example.com/a?b=1&amp;c=2\">&nbsp;<h2>é</h2></details></grid-plate></var>"
+      "expect": "&nbsp;<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><var><grid-plate>a &amp; b<details preserve-content=\"https://example.com/a?b=1&amp;c=2\">&nbsp;<h2>é</h2></details></grid-plate></var>"
     },
     {
       "name": "generated 101",
@@ -7423,7 +7423,7 @@
     {
       "name": "generated 112",
       "html": "<datalist my-href=\"café\"><iframe></datalist><style xml:lang=\"&#106;avascript:alert(1)\" checked=\"/files/a b.png\">\n<var><output href=\"https://e.x/$[]^`{|}\" label=\"data:image/png;base64,iVBORw0KGgo=\"></var>",
-      "expect": "<datalist my-href=\"café\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe></datalist>"
+      "expect": "<datalist my-href=\"café\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe></datalist>"
     },
     {
       "name": "generated 113",
@@ -7433,7 +7433,7 @@
     {
       "name": "generated 114",
       "html": "<td><nav thumbnail-src=\"  padded  \" value=\"eager\"><caption xml:lang=\"https://example.com/a?b=1&amp;c=2\" tracks=\"\ttab\n\"><iframe></iframe><main></main></caption></nav></td><!-- c --><img cite=\"&#106;avascript:alert(1)\" accesskey=\"//evil.example/x\"><dfn hidden=\"Note: hi\">text</dfn></img>",
-      "expect": "<nav thumbnail-src=\"padded\" value=\"eager\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><main></main></nav><!-- c --><img accesskey=\"//evil.example/x\"><dfn hidden=\"Note: hi\">text</dfn>"
+      "expect": "<nav thumbnail-src=\"padded\" value=\"eager\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><main></main></nav><!-- c --><img accesskey=\"//evil.example/x\"><dfn hidden=\"Note: hi\">text</dfn>"
     },
     {
       "name": "generated 115",
@@ -7444,7 +7444,7 @@
     {
       "name": "generated 116",
       "html": "1 < 2<tr preserve-content=\"x]>y\"><iframe></tr><p label=\" javascript:alert(1)\" action=\"eager\"><b source=\"allow-scripts allow-top-navigation\"><base ping=\"\ttab\n\"></base></b><sub value=\"unsafe-url\"><a11y-gif-player></a11y-gif-player></sub></p>",
-      "expect": "1 &lt; 2<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>",
+      "expect": "1 &lt; 2<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>",
       "libxmlDiffers": true
     },
     {
@@ -7922,7 +7922,7 @@
     {
       "name": "generated 208",
       "html": "<x-y thumbnail-src=\"unsafe-url\" onerror=\"data:image/svg+xml,<svg onload=alert(1)>\">&nbsp;</x-y><video xmlns:xlink=\"#top\" target=\"data:text/html,<script>alert(1)</script>\"><image readonly=\"x\">\n</image></video><iframe hidden=\"/files/a b.png\">&nbsp;<small></small></iframe>",
-      "expect": "<x-y thumbnail-src=\"unsafe-url\">&nbsp;</x-y><video><img readonly=\"x\">\n</video><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>"
+      "expect": "<x-y thumbnail-src=\"unsafe-url\">&nbsp;</x-y><video><img readonly=\"x\">\n</video><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
     },
     {
       "name": "generated 209",
@@ -8214,12 +8214,12 @@
     {
       "name": "generated 264",
       "html": "é<legend colspan=\"JaVaScRiPt:alert(1)\"></legend><code-sample selected=\"cookie\" nonce=\"café\"><iframe>a & b</code-sample>",
-      "expect": "é<legend></legend><code-sample selected=\"cookie\" nonce=\"café\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe></code-sample>"
+      "expect": "é<legend></legend><code-sample selected=\"cookie\" nonce=\"café\"><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe></code-sample>"
     },
     {
       "name": "generated 265",
       "html": "<noembed id=\"<span>html</span>\"><frameset checked=\"vbscript:x\"><noembed multiple=\"allow-scripts allow-top-navigation\" accesskey=\"files/b.pdf\"></noembed>\n</noembed><!-- c --><iframe xml:lang=\"JavaScript: the good parts\"></iframe>",
-      "expect": "\n<!-- c --><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>",
+      "expect": "\n<!-- c --><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>",
       "libxmlDiffers": true
     },
     {
@@ -8261,7 +8261,7 @@
     {
       "name": "generated 273",
       "html": "<iframe preserve-content=\"data:text/html,<script>alert(1)</script>\"></iframe><listing dir=\"JaVaScRiPt:alert(1)\" hidden=\"//evil.example/x\"><stop-note><nobr card=\"  padded  \"><embed>text&nbsp;</embed>1 < 2</nobr></stop-note><simple-img><h2 sources=\"allow-scripts allow-top-navigation\"><portal>&lt;script&gt;</portal></h2><code-sample lang=\"https://e.x/café?q=1\"><x-y background-color=\"hello world\" OnLoad=\"unsafe-url\"></x-y></code-sample></simple-img></listing><var lang=\"JavaScript: the good parts\"><simple-img selected=\"</title><img src=x onerror=alert(1)>\"><font name=\"a --> b\"><style codebase=\"https://e.x/$[]^`{|}\">é</style></font></simple-img>&lt;script&gt;</var>",
-      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><stop-note><nobr card=\"  padded  \">text&nbsp;1 &lt; 2</nobr></stop-note><simple-img><h2 sources=\"allow-scripts allow-top-navigation\">&lt;script&gt;</h2><code-sample lang=\"https://e.x/café?q=1\"><x-y background-color=\"hello world\"></x-y></code-sample></simple-img><var><simple-img><font></font></simple-img>&lt;script&gt;</var>"
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><stop-note><nobr card=\"  padded  \">text&nbsp;1 &lt; 2</nobr></stop-note><simple-img><h2 sources=\"allow-scripts allow-top-navigation\">&lt;script&gt;</h2><code-sample lang=\"https://e.x/café?q=1\"><x-y background-color=\"hello world\"></x-y></code-sample></simple-img><var><simple-img><font></font></simple-img>&lt;script&gt;</var>"
     },
     {
       "name": "generated 274",
@@ -8679,7 +8679,7 @@
     {
       "name": "generated 354",
       "html": "<dir><label xlink:href=\"images\"></label></dir><iframe height=\"_blank\" background=\"https://e.x/café?q=1\"><header srcdoc=\"a b\" download=\"JaVaScRiPt:alert(1)\"><figcaption hidden=\"ftp://x\"><!-- c --></figcaption></header><!-- c --></iframe>text",
-      "expect": "<dir><label xlink:href=\"images\"></label></dir><iframe height=\"_blank\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe>text"
+      "expect": "<dir><label xlink:href=\"images\"></label></dir><iframe height=\"_blank\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>text"
     },
     {
       "name": "generated 355",
@@ -8838,7 +8838,7 @@
     {
       "name": "generated 384",
       "html": "<nobr slot=\"java\tscript:alert(1)\" sources=\"/files/a b.png\">é<object ping=\"images\" OnLoad=\"&lt;b&gt;\"><track thumbnail-src=\"data:text/html,<script>alert(1)</script>\"></track></object></nobr><iframe><tfoot image-url=\"x\"></tfoot></iframe><span ping=\"#top\"></span>",
-      "expect": "<nobr sources=\"/files/a b.png\">é<track></nobr><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-same-origin allow-popups allow-forms\"></iframe><span ping=\"#top\"></span>"
+      "expect": "<nobr sources=\"/files/a b.png\">é<track></nobr><iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe><span ping=\"#top\"></span>"
     },
     {
       "name": "generated 385",
@@ -8931,7 +8931,7 @@
       "name": "page pages/bohr.html",
       "page": "pages/bohr.html",
       "expect": {
-        "sha256": "814ad00c3f2507c79cd4c2eecdd6a904380c2033c40b6fab9b318679aeec805e"
+        "sha256": "ef12d93dd9a3801ff36fa2494ee16e9e0375ded99b6713d33c621e3fca793f99"
       }
     },
     {
@@ -8973,7 +8973,7 @@
       "name": "page pages/mole.html",
       "page": "pages/mole.html",
       "expect": {
-        "sha256": "fb995ce0a1eaeaeb21b122fb7ff256949fe70873b20c0b2665c885058e93fc98"
+        "sha256": "31ef8711d51ff565f2c73823539de47c7757742ad0ec5cbf3e138868c29d8996"
       }
     },
     {

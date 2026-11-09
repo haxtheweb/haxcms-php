@@ -51,12 +51,16 @@ class HAXSiteConfig {
   }
   /**
    * Security: response headers for a rendered site page (index.php shell).
-   * frame-ancestors 'self' lets a site embed its own pages (HAX's own
-   * previews / iframe-loader) but stops third-party sites framing them for
-   * clickjacking; the dashboard (root index.php) stays at 'none'.
+   * HAX sites are built to be embedded: Canvas and other LMS / portal
+   * tools iframe published material routinely. So site pages send NO
+   * frame-ancestors restriction by default; an operator who needs one sets
+   * config->security->frameAncestors (array of CSP sources, e.g.
+   * ["'self'", "https://*.instructure.com"]) and exactly that list is sent.
+   * The dashboard (root index.php) is the only thing that stays at 'none'.
    * Referrer-Policy keeps full URLs (which can carry page slugs and query
    * state) inside the origin. Both only emit when nothing has been sent
    * yet, and never clobber a header the hosting config already set.
+   * Mirrors haxcms-nodejs (same config key, same default).
    */
   public static function sendSitePageSecurityHeaders() {
     if (headers_sent()) {
@@ -66,12 +70,40 @@ class HAXSiteConfig {
     foreach (headers_list() as $existing) {
       $sent[] = strtolower(trim((string) strstr($existing, ':', true)));
     }
-    if (!in_array('content-security-policy', $sent, true)) {
-      header("Content-Security-Policy: frame-ancestors 'self'");
+    $frameAncestors = self::configuredFrameAncestors();
+    if (!in_array('content-security-policy', $sent, true) && count($frameAncestors) > 0) {
+      header("Content-Security-Policy: frame-ancestors " . implode(' ', $frameAncestors));
     }
     if (!in_array('referrer-policy', $sent, true)) {
       header('Referrer-Policy: strict-origin-when-cross-origin');
     }
+  }
+  /**
+   * config->security->frameAncestors as a clean list of CSP source
+   * expressions, or an empty array (the default: embeddable anywhere).
+   * Only [A-Za-z0-9.:*'/_-] survive so a config value can never inject a
+   * second directive or break the header.
+   */
+  public static function configuredFrameAncestors() {
+    $out = array();
+    if (
+      isset($GLOBALS['HAXCMS']) &&
+      isset($GLOBALS['HAXCMS']->config->security->frameAncestors)
+    ) {
+      $raw = $GLOBALS['HAXCMS']->config->security->frameAncestors;
+      if (is_string($raw)) {
+        $raw = preg_split('/\s+/', trim($raw));
+      }
+      if (is_array($raw)) {
+        foreach ($raw as $entry) {
+          $entry = trim((string) $entry);
+          if ($entry !== '' && preg_match("/^[A-Za-z0-9.:*'\/_-]+$/", $entry)) {
+            $out[] = $entry;
+          }
+        }
+      }
+    }
+    return $out;
   }
   /**
    * Security (L-5): only a bare CSS custom-property name may be wrapped in
