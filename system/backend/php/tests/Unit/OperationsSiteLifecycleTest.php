@@ -394,12 +394,99 @@ class OperationsSiteLifecycleTest extends TestCase
         $result = $this->ops->downloadSite();
 
         $this->assertSame(200, $result['status']);
-        $this->assertSame($this->siteName . '.zip', $result['data']['name']);
+        // Security: the name is <site>-<32 hex>.zip, not the guessable
+        // <site>.zip, and the link points at that same random name.
+        $this->assertMatchesRegularExpression(
+            '/^' . preg_quote($this->siteName, '/') . '-[0-9a-f]{32}\\.zip$/',
+            $result['data']['name']
+        );
+        $this->assertStringEndsWith('_published/' . $result['data']['name'], $result['data']['link']);
+        $this->assertFileDoesNotExist(HAXCMS_ROOT . '/_published/' . $this->siteName . '.zip');
         // Observable mutation: a real zip archive was written to the
         // published directory and is non-empty.
-        $zipPath = HAXCMS_ROOT . '/_published/' . $this->siteName . '.zip';
+        $zipPath = HAXCMS_ROOT . '/_published/' . $result['data']['name'];
         $this->assertTrue(file_exists($zipPath));
         $this->assertGreaterThan(0, filesize($zipPath));
+    }
+
+    public function testDownloadSiteUsesFreshRandomNameEachCall(): void
+    {
+        if (!class_exists('ZipArchive')) {
+            $this->markTestSkipped('ZipArchive extension not available');
+        }
+        $this->buildMinimalSiteFixture($this->siteName);
+        @mkdir(HAXCMS_ROOT . '/_published', 0777, true);
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+
+        $first = $this->ops->downloadSite();
+        $second = $this->ops->downloadSite();
+        $this->assertNotSame($first['data']['name'], $second['data']['name']);
+        // a fresh (not yet stale) export is left in place by the sweep
+        $this->assertFileExists(HAXCMS_ROOT . '/_published/' . $first['data']['name']);
+    }
+
+    public function testDownloadSiteZipLeavesGitHistoryOut(): void
+    {
+        if (!class_exists('ZipArchive')) {
+            $this->markTestSkipped('ZipArchive extension not available');
+        }
+        $siteDir = $this->buildMinimalSiteFixture($this->siteName);
+        @mkdir($siteDir . '/.git/objects', 0777, true);
+        file_put_contents($siteDir . '/.git/HEAD', 'ref: refs/heads/master');
+        file_put_contents($siteDir . '/.git/objects/x', 'blob');
+        @mkdir(HAXCMS_ROOT . '/_published', 0777, true);
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+
+        $result = $this->ops->downloadSite();
+        $this->assertSame(200, $result['status']);
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open(HAXCMS_ROOT . '/_published/' . $result['data']['name']) === true);
+        $names = array();
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $names[] = $zip->getNameIndex($i);
+        }
+        $zip->close();
+        $this->assertSame(array('site.json'), $names);
+    }
+
+    public function testDownloadSiteSweepsStaleZipsOnly(): void
+    {
+        if (!class_exists('ZipArchive')) {
+            $this->markTestSkipped('ZipArchive extension not available');
+        }
+        $this->buildMinimalSiteFixture($this->siteName);
+        $published = HAXCMS_ROOT . '/_published';
+        @mkdir($published, 0777, true);
+        // legacy guessable export from before random names, long stale
+        $stale = $published . '/' . $this->siteName . '.zip';
+        file_put_contents($stale, 'old');
+        touch($stale, time() - 3600);
+        // another stale random-named export
+        $staleRandom = $published . '/other-' . str_repeat('a', 32) . '.zip';
+        file_put_contents($staleRandom, 'old');
+        touch($staleRandom, time() - 3600);
+        // fresh export, and a non-zip file the sweep must never touch
+        $fresh = $published . '/fresh-' . str_repeat('b', 32) . '.zip';
+        file_put_contents($fresh, 'new');
+        $other = $published . '/.htaccess';
+        file_put_contents($other, 'Options -Indexes');
+        touch($other, time() - 86400);
+
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+        $result = $this->ops->downloadSite();
+        $this->assertSame(200, $result['status']);
+
+        $this->assertFileDoesNotExist($stale);
+        $this->assertFileDoesNotExist($staleRandom);
+        $this->assertFileExists($fresh);
+        $this->assertFileExists($other);
+        $this->assertFileExists($published . '/' . $result['data']['name']);
     }
 
     public function testDownloadSiteZipLeavesSymlinksOut(): void
@@ -440,7 +527,7 @@ class OperationsSiteLifecycleTest extends TestCase
             $this->assertSame(200, $result['status']);
             $zip = new ZipArchive();
             $this->assertTrue(
-                $zip->open(HAXCMS_ROOT . '/_published/' . $this->siteName . '.zip') === true
+                $zip->open(HAXCMS_ROOT . '/_published/' . $result['data']['name']) === true
             );
             $names = array();
             for ($i = 0; $i < $zip->numFiles; $i++) {
