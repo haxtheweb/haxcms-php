@@ -200,7 +200,13 @@ class HAXCMS
               ));  
             }
             catch(Exception $e) {
+              // Security: the login / Basic-auth brute-force limiter and the
+              // file-ops limiter live in this cache. Losing it silently meant
+              // they all failed open with no trace in the logs. The login
+              // limiter now falls back to loginThrottle* (APCu or a fixed
+              // delay); say loudly why the shared store is gone.
               $this->cache = null;
+              error_log('HAXcms: cache initialisation failed (' . $e->getMessage() . '); login throttling is running on the in-process fallback and file-operation rate limiting is disabled until ' . $this->configDirectory . '/cache/ is writable');
             }
             // add in the auto-generated app store file
             $this->appStoreFile = $this->systemRequestBase . '/generateAppStore';
@@ -2016,6 +2022,33 @@ class HAXCMS
           return false;
         }
       }
+      return $this->isSameOriginByOriginOrReferer();
+    }
+    /**
+     * Security (SEC-SESSION): stricter gate for a GET to a cookie-
+     * authenticated, state-changing endpoint (session/refresh). The editor's
+     * <jwt-login> refreshes with GET, and SameSite=Lax still sends the cookie
+     * on a cross-site top-level GET navigation, which the POST rule above
+     * lets through when no Origin arrives. Rule (identical in haxcms-nodejs):
+     *   - Sec-Fetch-Site present  -> allow same-origin / none,
+     *                                reject same-site / cross-site
+     *   - absent, but Origin or Referer present -> isSameOriginRequest()
+     *   - all absent              -> allow (non-browser client, e.g.
+     *                                haxcms-mcp; every modern browser sends
+     *                                Sec-Fetch-Site)
+     */
+    public function isSameOriginGetRequest() {
+      if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_string($_SERVER['HTTP_SEC_FETCH_SITE']) && trim($_SERVER['HTTP_SEC_FETCH_SITE']) !== '') {
+        $site = strtolower(trim($_SERVER['HTTP_SEC_FETCH_SITE']));
+        return ($site === 'same-origin' || $site === 'none');
+      }
+      return $this->isSameOriginByOriginOrReferer();
+    }
+    /**
+     * Origin (else Referer) host[:port] must match the trusted host; absent
+     * both -> allow. Shared by the POST and GET gates above.
+     */
+    private function isSameOriginByOriginOrReferer() {
       $originHeader = '';
       if (isset($_SERVER['HTTP_ORIGIN']) && is_string($_SERVER['HTTP_ORIGIN'])) {
         $originHeader = trim($_SERVER['HTTP_ORIGIN']);
@@ -2520,6 +2553,195 @@ class HAXCMS
         return '';
     }
     /**
+     * Security: login brute-force throttle shared by the credential login
+     * route and Basic authorization. Two counters are kept per attempt: one
+     * keyed by client IP + username and one keyed by username alone, so a
+     * distributed guess against one account is slowed even when every
+     * request comes from a different address. The store is the shared file
+     * cache when it is available, else APCu, else a per-process fallback
+     * that fails CLOSED: each failed attempt sleeps loginThrottleFallbackSleepUs
+     * and a single request may not try more than loginThrottleFallbackMaxPerRequest
+     * times. Entries: firstAttempt / failedAttempts / blockedUntil (ms).
+     */
+    public static $loginThrottleFallbackSleepUs = 500000;
+    public static $loginThrottleFallbackMaxPerRequest = 3;
+    private static $loginThrottleRequestAttempts = 0;
+    private static $loginThrottleApcuChecked = null;
+    private static $loginThrottleBackendWarned = false;
+    public function loginThrottleKeys($username)
+    {
+        $user = strval($username);
+        return array(
+            'login-rate:' . sha1($this->resolveClientIP() . '::' . $user),
+            'login-rate-user:' . sha1('user::' . $user),
+        );
+    }
+    private function loginThrottleApcuAvailable()
+    {
+        if (self::$loginThrottleApcuChecked === null) {
+            self::$loginThrottleApcuChecked = function_exists('apcu_fetch') && function_exists('apcu_store') &&
+                (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'));
+        }
+        return self::$loginThrottleApcuChecked;
+    }
+    /**
+     * 'cache' | 'apcu' | 'none'
+     */
+    public function loginThrottleBackend()
+    {
+        if (isset($this->cache) && $this->cache) {
+            return 'cache';
+        }
+        if ($this->loginThrottleApcuAvailable()) {
+            return 'apcu';
+        }
+        return 'none';
+    }
+    private function loginThrottleRead($key)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                return $this->cache->retrieve($key);
+            }
+            if ($backend === 'apcu') {
+                $ok = false;
+                $value = apcu_fetch($key, $ok);
+                return $ok ? $value : null;
+            }
+        }
+        catch (Exception $e) {}
+        return null;
+    }
+    private function loginThrottleWrite($key, $entry, $ttlSeconds)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                $this->cache->store($key, $entry, $ttlSeconds);
+            }
+            else if ($backend === 'apcu') {
+                apcu_store($key, $entry, $ttlSeconds);
+            }
+        }
+        catch (Exception $e) {}
+    }
+    private function loginThrottleDelete($key)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                $this->cache->erase($key);
+            }
+            else if ($backend === 'apcu') {
+                apcu_delete($key);
+            }
+        }
+        catch (Exception $e) {}
+    }
+    /**
+     * Normalise a stored entry against the window; a fresh entry when none.
+     */
+    public function loginThrottleEntry($key, $nowMs, $settings)
+    {
+        $entry = $this->loginThrottleRead($key);
+        if (!is_array($entry) || !isset($entry['firstAttempt'])) {
+            $entry = array(
+                'firstAttempt' => $nowMs,
+                'failedAttempts' => 0,
+                'blockedUntil' => 0,
+            );
+        }
+        if (($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
+            $entry['firstAttempt'] = $nowMs;
+            $entry['failedAttempts'] = 0;
+            if (intval($entry['blockedUntil']) <= $nowMs) {
+                $entry['blockedUntil'] = 0;
+            }
+        }
+        return $entry;
+    }
+    /**
+     * Is this username (from this client) currently blocked? Returns 0 when
+     * allowed, else the number of seconds until the block lifts. With no
+     * store at all, a request that already made the per-request maximum of
+     * attempts is blocked for the rest of the request.
+     */
+    public function loginThrottleRetryAfter($username, $nowMs = null)
+    {
+        $settings = $this->getLoginRateLimitSettings();
+        if (!$settings->enabled) {
+            return 0;
+        }
+        if ($nowMs === null) {
+            $nowMs = intval(round(microtime(true) * 1000));
+        }
+        if ($this->loginThrottleBackend() === 'none') {
+            if (!self::$loginThrottleBackendWarned) {
+                self::$loginThrottleBackendWarned = true;
+                error_log('HAXcms: no shared store for the login throttle (cache unavailable, APCu missing); failing closed with a fixed delay per failed attempt');
+            }
+            if (self::$loginThrottleRequestAttempts >= intval(self::$loginThrottleFallbackMaxPerRequest)) {
+                return max(1, intval(ceil(intval($settings->blockMs) / 1000)));
+            }
+            return 0;
+        }
+        $retryAfter = 0;
+        foreach ($this->loginThrottleKeys($username) as $key) {
+            $entry = $this->loginThrottleEntry($key, $nowMs, $settings);
+            if (intval($entry['blockedUntil']) > $nowMs) {
+                $retryAfter = max($retryAfter, intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000)));
+            }
+        }
+        return $retryAfter;
+    }
+    /**
+     * Record a failed attempt on both counters. The per-username counter
+     * tolerates more failures than the per-IP one (several people can
+     * legitimately mistype the same account from different places) but
+     * still blocks after a fixed multiple of maxAttempts.
+     */
+    public function loginThrottleRecordFailure($username, $nowMs = null)
+    {
+        $settings = $this->getLoginRateLimitSettings();
+        if (!$settings->enabled) {
+            return;
+        }
+        if ($nowMs === null) {
+            $nowMs = intval(round(microtime(true) * 1000));
+        }
+        self::$loginThrottleRequestAttempts++;
+        if ($this->loginThrottleBackend() === 'none') {
+            if (intval(self::$loginThrottleFallbackSleepUs) > 0) {
+                usleep(intval(self::$loginThrottleFallbackSleepUs));
+            }
+            return;
+        }
+        $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
+        $keys = $this->loginThrottleKeys($username);
+        $limits = array(intval($settings->maxAttempts), intval($settings->maxAttempts) * 4);
+        foreach ($keys as $i => $key) {
+            $entry = $this->loginThrottleEntry($key, $nowMs, $settings);
+            $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
+            if (intval($entry['failedAttempts']) >= $limits[$i]) {
+                $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
+                $entry['failedAttempts'] = 0;
+                $entry['firstAttempt'] = $nowMs;
+            }
+            $this->loginThrottleWrite($key, $entry, $ttlSeconds);
+        }
+    }
+    /**
+     * Successful authentication: clear the per-IP counter. The per-username
+     * counter is left alone so a success from the real owner does not reset
+     * a distributed attack's budget; it expires with its window.
+     */
+    public function loginThrottleClear($username)
+    {
+        $keys = $this->loginThrottleKeys($username);
+        $this->loginThrottleDelete($keys[0]);
+    }
+    /**
      * Authenticate Basic Authorization header
      */
     public function authenticateBasicAuthorization()
@@ -2569,55 +2791,22 @@ class HAXCMS
         // (parity with Node loginRateLimiter). Reuses the same IP::username
         // cache key as OperationsRouteLogin so basic-auth and login attempts
         // share counters and an attacker cannot dodge the limiter by alternating.
-        $settings = $this->getLoginRateLimitSettings();
-        $nowMs = intval(round(microtime(true) * 1000));
-        $attemptKey = 'login-rate:' . sha1($this->resolveClientIP() . '::' . strval($name));
-        $entry = null;
-        if (isset($this->cache) && $this->cache) {
-            $entry = $this->cache->retrieve($attemptKey);
-        }
-        if (!is_array($entry)) {
-            $entry = array(
-                'firstAttempt' => $nowMs,
-                'failedAttempts' => 0,
-                'blockedUntil' => 0,
-            );
-        }
-        if (($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
-            $entry['firstAttempt'] = $nowMs;
-            $entry['failedAttempts'] = 0;
-            if (intval($entry['blockedUntil']) <= $nowMs) {
-                $entry['blockedUntil'] = 0;
-            }
-        }
-        if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
+        // (shared helpers: loginThrottleRetryAfter / RecordFailure / Clear;
+        // they also keep a per-username counter and fail closed when no
+        // shared store exists).
+        $retryAfter = $this->loginThrottleRetryAfter($name);
+        if ($retryAfter > 0) {
             $result['blocked'] = true;
-            $result['retryAfterSeconds'] = intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000));
+            $result['retryAfterSeconds'] = $retryAfter;
             return $result;
         }
         if ($this->testLogin($name, $pass, true) && $this->validateUser($name)) {
-            if ($settings->enabled && isset($this->cache) && $this->cache) {
-                try {
-                    $this->cache->erase($attemptKey);
-                }
-                catch (Exception $e) {}
-            }
+            $this->loginThrottleClear($name);
             $result['authenticated'] = true;
             $result['userName'] = $this->generateMachineName($name);
             return $result;
         }
-        if ($settings->enabled) {
-            $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
-            if (intval($entry['failedAttempts']) >= intval($settings->maxAttempts)) {
-                $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
-                $entry['failedAttempts'] = 0;
-                $entry['firstAttempt'] = $nowMs;
-            }
-            if (isset($this->cache) && $this->cache) {
-                $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
-                $this->cache->store($attemptKey, $entry, $ttlSeconds);
-            }
-        }
+        $this->loginThrottleRecordFailure($name);
         return $result;
     }
     /**

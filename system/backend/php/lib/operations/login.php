@@ -122,12 +122,23 @@ trait OperationsRouteLogin {
     $settings = $GLOBALS['HAXCMS']->getLoginRateLimitSettings();
     $nowMs = intval(round(microtime(true) * 1000));
     $attemptKey = $this->getLoginAttemptCacheKey($u);
-    $entry = $this->getLoginAttemptEntry($attemptKey, $nowMs, $settings);
-    if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
-      $retryAfterSeconds = intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000));
-      if ($retryAfterSeconds > 0) {
-        header('Retry-After: ' . $retryAfterSeconds);
+    // Security: the shared throttle (HAXCMS::loginThrottle*) owns the
+    // decision. It keeps the IP::username counter this trait always used
+    // plus a per-username counter, falls back to APCu when the file cache
+    // is unavailable, and fails CLOSED (fixed delay + per-request cap)
+    // when there is no store at all instead of silently never blocking.
+    $retryAfterSeconds = 0;
+    if ($settings->enabled && method_exists($GLOBALS['HAXCMS'], 'loginThrottleRetryAfter')) {
+      $retryAfterSeconds = intval($GLOBALS['HAXCMS']->loginThrottleRetryAfter($u, $nowMs));
+    }
+    else {
+      $entry = $this->getLoginAttemptEntry($attemptKey, $nowMs, $settings);
+      if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
+        $retryAfterSeconds = intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000));
       }
+    }
+    if ($settings->enabled && $retryAfterSeconds > 0) {
+      header('Retry-After: ' . $retryAfterSeconds);
       return array(
         '__failed' => array(
           'status' => 429,
@@ -137,8 +148,14 @@ trait OperationsRouteLogin {
     }
     if (!$GLOBALS['HAXCMS']->testLogin($u, $p, true)) {
       if ($settings->enabled) {
-        $entry = $this->registerFailedLoginAttempt($entry, $nowMs, $settings);
-        $this->saveLoginAttemptEntry($attemptKey, $entry, $settings);
+        if (method_exists($GLOBALS['HAXCMS'], 'loginThrottleRecordFailure')) {
+          $GLOBALS['HAXCMS']->loginThrottleRecordFailure($u, $nowMs);
+        }
+        else {
+          $entry = $this->getLoginAttemptEntry($attemptKey, $nowMs, $settings);
+          $entry = $this->registerFailedLoginAttempt($entry, $nowMs, $settings);
+          $this->saveLoginAttemptEntry($attemptKey, $entry, $settings);
+        }
       }
       // D2/Q8: login failure returns 401 (not 403) per spec; invalid-bearer
       // on protected routes stays 403, but credential login failure is 401.
@@ -149,7 +166,12 @@ trait OperationsRouteLogin {
         )
       );
     }
-    $this->clearLoginAttemptEntry($attemptKey);
+    if (method_exists($GLOBALS['HAXCMS'], 'loginThrottleClear')) {
+      $GLOBALS['HAXCMS']->loginThrottleClear($u);
+    }
+    else {
+      $this->clearLoginAttemptEntry($attemptKey);
+    }
     // set a refresh_token COOKIE that will ship w/ all calls automatically.
     // Security best practice (M3): Secure flag is protocol-driven and
     // SameSite=Lax is set via the centralized helper so flags are consistent

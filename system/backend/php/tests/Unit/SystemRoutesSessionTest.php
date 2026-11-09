@@ -135,6 +135,11 @@ class SessionRouteFakeHaxcms extends OperationsTestHaxcms
         return $this->sameOrigin;
     }
 
+    public function isSameOriginGetRequest()
+    {
+        return $this->sameOrigin;
+    }
+
     public function getSessionRequestTokens($user, $body = array())
     {
         return $this->sessionTokens;

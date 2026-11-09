@@ -28,7 +28,13 @@ trait OperationsRouteFileOpsRateLimit {
       return null;
     }
     if (!isset($GLOBALS['HAXCMS']->cache) || !$GLOBALS['HAXCMS']->cache) {
-      // No shared cache available -> do not block operations (fail open).
+      // No shared cache available -> do not block operations (fail open),
+      // but never silently: operators need to know the limiter is off.
+      static $warned = false;
+      if (!$warned) {
+        $warned = true;
+        error_log('HAXcms: file-operation rate limiting is disabled because the _config/cache store is unavailable');
+      }
       return null;
     }
     $nowMs = intval(round(microtime(true) * 1000));
