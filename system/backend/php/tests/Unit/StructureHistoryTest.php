@@ -236,6 +236,109 @@ class StructureHistoryTest extends TestCase
         $this->assertSame('{ not json', $blobs[0]);
         $this->assertNull($blobs[1]);
     }
+
+    /**
+     * A history of large site.json versions (each well over one pipe
+     * buffer) with title, parent, order and flag changes and a broken
+     * version, as hashes newest first.
+     */
+    private function buildLargeHistory(): array
+    {
+        $hashes = array();
+        for ($c = 0; $c < 30; $c++) {
+            if ($c === 13) {
+                $body = '{ broken json ' . str_repeat('x', 70000);
+            } else {
+                $items = array();
+                for ($i = 0; $i < 600; $i++) {
+                    $items[] = array(
+                        'id' => 'item-' . $i,
+                        'title' => 'Page ' . $i . ($i === 5 ? ' v' . intdiv($c, 3) : ''),
+                        'slug' => 'page-' . $i,
+                        'parent' => ($i === 5 && $c % 4 === 0) ? 'item-1' : null,
+                        'order' => $i === 5 ? $c % 5 : $i,
+                        'location' => 'pages/item-' . $i . '/index.html',
+                        'description' => 'Description for page ' . $i,
+                        'metadata' => array(
+                            'published' => !($i === 5 && $c % 7 === 0),
+                            'hideInMenu' => $i === 5 && $c % 6 === 0,
+                        ),
+                    );
+                }
+                $body = json_encode(array('title' => 'Site', 'items' => $items), JSON_PRETTY_PRINT);
+            }
+            file_put_contents($this->siteRoot . '/site.json', $body);
+            $this->git(array('add', '.'));
+            $this->git(array('commit', '--quiet', '-m', 'large ' . $c));
+            array_unshift($hashes, $this->git(array('rev-parse', 'HEAD')));
+        }
+        return $hashes;
+    }
+
+    /**
+     * The pre-change findStructureChanges: every blob read up front.
+     */
+    private static function referenceFindStructureChanges($dir, $itemId, $hashes): array
+    {
+        $result = array();
+        $specs = array();
+        foreach ($hashes as $hash) {
+            $specs[] = $hash . ':site.json';
+        }
+        $blobs = StructureHistory::readBlobs($dir, $specs);
+        $newer = StructureHistory::itemSnapshot(StructureHistory::parseManifest($blobs[0]), $itemId);
+        for ($i = 1; $i < count($hashes); $i++) {
+            $older = StructureHistory::itemSnapshot(StructureHistory::parseManifest($blobs[$i]), $itemId);
+            $changes = StructureHistory::diffSnapshots($older, $newer);
+            if (count($changes) > 0) {
+                $result[$hashes[$i - 1]] = $changes;
+            }
+            $newer = $older;
+        }
+        return $result;
+    }
+
+    public function testForEachBlobYieldsExactlyWhatReadBlobsReturnsInOrder(): void
+    {
+        $hashes = $this->buildLargeHistory();
+        $specs = array();
+        foreach ($hashes as $hash) {
+            $specs[] = $hash . ':site.json';
+        }
+        // a missing object in the middle and at the end
+        array_splice($specs, 10, 0, array(str_repeat('0', 40) . ':site.json'));
+        $specs[] = $hashes[0] . ':does-not-exist.json';
+        $expected = StructureHistory::readBlobs($this->siteRoot, $specs);
+        $seen = array();
+        StructureHistory::forEachBlob($this->siteRoot, $specs, function ($index, $blob) use (&$seen, $expected) {
+            $seen[] = $index;
+            $this->assertSame($expected[$index], $blob, 'spec ' . $index);
+        });
+        $this->assertSame(array_keys($specs), $seen);
+        $this->assertGreaterThan(65536, strlen($expected[0]));
+    }
+
+    public function testFindStructureChangesMatchesTheReadEverythingVersion(): void
+    {
+        $hashes = $this->buildLargeHistory();
+        foreach (array('item-5', 'item-1', 'item-599', 'missing') as $itemId) {
+            $this->assertSame(
+                self::referenceFindStructureChanges($this->siteRoot, $itemId, $hashes),
+                StructureHistory::findStructureChanges($this->siteRoot, $itemId, $hashes),
+                $itemId
+            );
+        }
+        $this->assertGreaterThan(5, count(StructureHistory::findStructureChanges($this->siteRoot, 'item-5', $hashes)));
+    }
+
+    public function testForEachBlobReadsEverySpecAsNullWhenGitCannotRunThere(): void
+    {
+        $seen = array();
+        StructureHistory::forEachBlob(sys_get_temp_dir() . '/no-such-dir-' . uniqid(), array('a:site.json', 'b:site.json'), function ($index, $blob) use (&$seen) {
+            $seen[] = array($index, $blob);
+        });
+        $this->assertSame(array(array(0, null), array(1, null)), $seen);
+    }
 }
 
 class StructureHistoryTestHaxcms extends OperationsTestHaxcms
