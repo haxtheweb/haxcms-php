@@ -371,7 +371,7 @@ if (!function_exists('haxcmsImportHtmlToItems')) {
         // MaterializeInlineImages::materialize() followed by sanitizeHTMLForStorage(),
         // so the content is sanitized before it is ever persisted.
         if (!$skipSanitize) {
-            $html = SanitizeContent::sanitizeHTMLForStorage($html);
+            $html = SanitizeContent::sanitizeUntrustedHTML($html);
         }
 
         $elements = haxcmsImportSimpleHtmlToElements($html);

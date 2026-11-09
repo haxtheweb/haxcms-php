@@ -195,9 +195,9 @@ class SanitizeContentTest extends TestCase
      */
     public function testSanitizeHtmlForStoragePreservesCredentiallessIframe(): void
     {
-        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" credentialless referrerpolicy="strict-origin-when-cross-origin"></iframe>');
+        $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://www.youtube.com/embed/x" credentialless="" referrerpolicy="strict-origin-when-cross-origin"></iframe>');
         $this->assertSame(
-            '<iframe src="https://www.youtube.com/embed/x" credentialless referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://www.youtube.com/embed/x" credentialless="" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
             $out
         );
     }
@@ -206,7 +206,7 @@ class SanitizeContentTest extends TestCase
     {
         $out = SanitizeContent::sanitizeHTMLForStorage('<iframe src="https://example.com" credentialless></iframe>');
         $this->assertSame(
-            '<iframe src="https://example.com" credentialless loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            '<iframe src="https://example.com" credentialless="" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
             $out
         );
     }
@@ -254,15 +254,15 @@ class SanitizeContentTest extends TestCase
      */
     public function testSanitizeHtmlForStoragePreservesQuestionElementCorrectAttributes(): void
     {
-        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct>');
-        $this->assertSame('<input type="checkbox" value="North" correct>', $out);
+        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct="">');
+        $this->assertSame('<input type="checkbox" value="North" correct="">', $out);
 
         $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" data-correct="true" data-selected="feedback">');
         $this->assertSame('<input type="checkbox" value="North" data-correct="true" data-selected="feedback">', $out);
 
         // event handlers are still stripped from the same fixture
-        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct data-correct="true" data-selected="feedback" onclick="steal()">');
-        $this->assertSame('<input type="checkbox" value="North" correct data-correct="true" data-selected="feedback">', $out);
+        $out = SanitizeContent::sanitizeHTMLForStorage('<input type="checkbox" value="North" correct="" data-correct="true" data-selected="feedback" onclick="steal()">');
+        $this->assertSame('<input type="checkbox" value="North" correct="" data-correct="true" data-selected="feedback">', $out);
     }
 
     public static function nonStringInputProvider(): array

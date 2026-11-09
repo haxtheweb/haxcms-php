@@ -18,6 +18,46 @@ class SanitizeContent
         'style',
     ];
 
+    private const LEADING_NEWLINE_ELEMENTS = ['pre', 'listing', 'textarea'];
+
+    // libxml (PHP 8.3) parses as HTML4: it does not know these HTML5 void
+    // elements and puts the content that follows inside them
+    private const LIBXML_UNKNOWN_VOID_ELEMENTS = ['bgsound', 'embed', 'keygen', 'source', 'track', 'wbr'];
+
+    // libxml fills these HTML4 boolean attributes with their own name when
+    // the source gives no value (disabled -> disabled="disabled"); HTML5
+    // leaves them empty, and HAX content writes them bare or empty
+    private const LIBXML_BOOLEAN_ATTRIBUTES = [
+        'checked', 'compact', 'declare', 'defer', 'disabled', 'ismap', 'multiple',
+        'nohref', 'noresize', 'noshade', 'nowrap', 'readonly', 'selected',
+    ];
+
+    private static $policy = null;
+
+    /**
+     * The storage policy shared with haxcms-nodejs
+     * (src/lib/haxcmsSanitizePolicy.json, haxtheweb/issues#3273): which tags
+     * stay, which go with their content, and the attribute rules.
+     */
+    private static function policy()
+    {
+        if (self::$policy === null) {
+            $raw = @file_get_contents(dirname(__FILE__) . '/haxcms-sanitize-policy.json');
+            $decoded = is_string($raw) ? json_decode($raw, true) : null;
+            if (!is_array($decoded)) {
+                throw new \RuntimeException('haxcms-sanitize-policy.json is missing or invalid');
+            }
+            $decoded['allowedTagSet'] = array_fill_keys($decoded['allowedTags'], true);
+            $decoded['removeWithContentSet'] = array_fill_keys($decoded['removeWithContent'], true);
+            $decoded['reservedSet'] = array_fill_keys($decoded['reservedCustomElementNames'], true);
+            $decoded['clobberTagSet'] = array_fill_keys($decoded['clobberTags'], true);
+            $decoded['clobberNameSet'] = array_fill_keys($decoded['clobberNames'], true);
+            $decoded['forbiddenAttributeSet'] = array_fill_keys($decoded['forbiddenAttributes'], true);
+            self::$policy = $decoded;
+        }
+        return self::$policy;
+    }
+
     private const URL_ATTRIBUTE_NAMES = [
         'href',
         'src',
@@ -706,25 +746,112 @@ class SanitizeContent
         return $children;
     }
 
-    private static function saveNodeHTML($ownerDocument, $node)
+    // ---- HTML5 serialization ----------------------------------------
+    // Written here rather than with saveHTML(): libxml percent-encodes URL
+    // attributes and follows HTML4 rules, while browsers and haxcms-nodejs
+    // (jsdom) serialize as HTML5. This matches jsdom byte for byte.
+
+    private const VOID_ELEMENTS = [
+        'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'embed', 'frame', 'hr',
+        'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr',
+    ];
+
+    private const RAW_TEXT_ELEMENTS = [
+        'style', 'script', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext',
+    ];
+
+    private static function nodeLocalName($node)
     {
-        if (is_object($ownerDocument)) {
-            if (method_exists($ownerDocument, 'saveHTML')) {
-                return (string)$ownerDocument->saveHTML($node);
-            }
-            if (method_exists($ownerDocument, 'saveHtml')) {
-                return (string)$ownerDocument->saveHtml($node);
-            }
-        }
-        return '';
+        $name = isset($node->localName) && $node->localName !== null ? $node->localName : $node->nodeName;
+        return strtolower((string)$name);
     }
 
-    private static function getInnerHTML($node)
+    // the nodes that hold an element's content (a template's content
+    // fragment when the parser made one, otherwise the element itself)
+    // PHP 8.4 (Dom\HTMLDocument) keeps a template's content in a fragment
+    // that is neither child nodes nor a property; it is read through
+    // innerHTML once per sanitize call, parsed, and kept here so the walk and
+    // the serializer use the same nodes
+    private static $templateContents = null;
+
+    private static function contentNode($node)
     {
+        if (!isset($node->nodeType) || $node->nodeType !== 1 || self::nodeLocalName($node) !== 'template') {
+            return $node;
+        }
+        if (isset($node->content) && is_object($node->content)) {
+            return $node->content;
+        }
+        if ($node instanceof \DOMNode || $node->firstChild !== null) {
+            // libxml (PHP 8.3) parses template content as children
+            return $node;
+        }
+        if (self::$templateContents === null) {
+            self::$templateContents = new \SplObjectStorage();
+        }
+        if (self::$templateContents->contains($node)) {
+            return self::$templateContents[$node];
+        }
+        $inner = isset($node->innerHTML) ? (string)$node->innerHTML : '';
+        if ($inner === '') {
+            return $node;
+        }
+        $doc = self::loadHTMLDocument($inner);
+        $body = $doc === null ? null : self::getBodyElement($doc);
+        if ($body === null) {
+            return $node;
+        }
+        self::$templateContents[$node] = $body;
+        return $body;
+    }
+
+    private static function escapeAttributeHTML($value)
+    {
+        return str_replace(array('&', "\u{00A0}", '"'), array('&amp;', '&nbsp;', '&quot;'), (string)$value);
+    }
+
+    private static function escapeTextHTML($value)
+    {
+        return str_replace(array('&', "\u{00A0}", '<', '>'), array('&amp;', '&nbsp;', '&lt;', '&gt;'), (string)$value);
+    }
+
+    private static function serializeNode($node, $parentName = '')
+    {
+        $type = isset($node->nodeType) ? $node->nodeType : 0;
+        if ($type === XML_TEXT_NODE || $type === XML_CDATA_SECTION_NODE) {
+            if (in_array($parentName, self::RAW_TEXT_ELEMENTS, true)) {
+                return (string)$node->nodeValue;
+            }
+            return self::escapeTextHTML($node->nodeValue);
+        }
+        if ($type === XML_COMMENT_NODE) {
+            return '<!--' . $node->nodeValue . '-->';
+        }
+        if ($type !== XML_ELEMENT_NODE) {
+            return '';
+        }
+        $name = self::nodeLocalName($node);
+        $out = '<' . $name;
+        if ($node->attributes) {
+            foreach ($node->attributes as $attribute) {
+                $out .= ' ' . strtolower((string)$attribute->nodeName) . '="' . self::escapeAttributeHTML($attribute->value) . '"';
+            }
+        }
+        $out .= '>';
+        if (in_array($name, self::VOID_ELEMENTS, true)) {
+            return $out;
+        }
+        return $out . self::getInnerHTML(self::contentNode($node), $name) . '</' . $name . '>';
+    }
+
+    private static function getInnerHTML($node, $name = null)
+    {
+        if ($name === null) {
+            $name = isset($node->nodeType) && $node->nodeType === XML_ELEMENT_NODE ? self::nodeLocalName($node) : '';
+        }
         $output = '';
-        foreach (self::getChildNodes($node) as $childNode) {
-            $ownerDocument = $node->ownerDocument ? $node->ownerDocument : $node;
-            $output .= self::saveNodeHTML($ownerDocument, $childNode);
+        foreach (self::getChildNodes(self::contentNode($node)) as $childNode) {
+            $output .= self::serializeNode($childNode, $name);
         }
         return $output;
     }
@@ -744,7 +871,9 @@ class SanitizeContent
         foreach (self::getChildNodes($node) as $childNode) {
             $node->removeChild($childNode);
         }
-        $node->appendChild($dom->createTextNode($textContent));
+        // a template's content may live in its own document (PHP 8.4)
+        $owner = $node->ownerDocument !== null ? $node->ownerDocument : $dom;
+        $node->appendChild($owner->createTextNode($textContent));
     }
 
     private static function preprocessTextTemplates($dom)
@@ -764,9 +893,9 @@ class SanitizeContent
                     }
                 }
                 foreach ($templateNodes as $templateNode) {
-                    if (self::hasElementDescendant($templateNode)) {
+                    if (self::hasElementDescendant(self::contentNode($templateNode))) {
                         $templateInnerHTML = self::getInnerHTML($templateNode);
-                        self::replaceNodeChildrenWithText($dom, $templateNode, $templateInnerHTML);
+                        self::replaceNodeChildrenWithText($dom, self::contentNode($templateNode), $templateInnerHTML);
                     }
                 }
             }
@@ -848,62 +977,75 @@ class SanitizeContent
         }
     }
 
+    private static function isCustomElementName($tagName)
+    {
+        $policy = self::policy();
+        return preg_match('/' . $policy['customElementName'] . '/', $tagName) === 1 &&
+            !isset($policy['reservedSet'][$tagName]);
+    }
+
+    // A comment stays only when it cannot hide markup: no < or >, and not a
+    // processing instruction an HTML parser turns into a comment (a PHP tag).
+    private static function isSafeComment($data)
+    {
+        $value = (string)$data;
+        return strpos($value, '<') === false && strpos($value, '>') === false &&
+            ($value === '' || $value[0] !== '?');
+    }
+
+    /**
+     * Shared attribute policy, in order: invalid name, forbidden name or
+     * event handler, iframe allowlist, mXSS value, DOM clobbering name, then
+     * the value rules. Returns null to remove. Mirrors Node
+     * policyAttributeValue.
+     */
+    private static function policyAttributeValue($tagName, $attributeName, $value)
+    {
+        $policy = self::policy();
+        if (preg_match('/' . $policy['attributeName'] . '/', $attributeName) !== 1) {
+            return null;
+        }
+        if (
+            preg_match('/^on[a-z0-9_-]+$/i', $attributeName) ||
+            isset($policy['forbiddenAttributeSet'][$attributeName]) ||
+            in_array($attributeName, self::FORBIDDEN_ATTRIBUTES, true) ||
+            str_starts_with($attributeName, 'xmlns:')
+        ) {
+            return null;
+        }
+        if ($tagName === 'iframe' && !in_array($attributeName, self::IFRAME_ALLOWED_ATTRIBUTES, true)) {
+            return null;
+        }
+        // ASCII case only, like the JavaScript /i regex
+        if (preg_match('/' . $policy['unsafeAttributeValue'] . '/i', (string)$value) === 1) {
+            return null;
+        }
+        if (
+            ($attributeName === 'id' || $attributeName === 'name') &&
+            isset($policy['clobberTagSet'][$tagName]) &&
+            isset($policy['clobberNameSet'][(string)$value])
+        ) {
+            return null;
+        }
+        return self::sanitizeAttributeValue($attributeName, $value);
+    }
+
     private static function sanitizeElementAttributes($element)
     {
-        $tagName = strtolower($element->tagName);
+        $tagName = self::nodeLocalName($element);
         $attributeNodes = [];
         foreach ($element->attributes as $attributeNode) {
-            $attributeName = '';
-            if (isset($attributeNode->name)) {
-                $attributeName = (string)$attributeNode->name;
-            }
-            else if (isset($attributeNode->nodeName)) {
-                $attributeName = (string)$attributeNode->nodeName;
-            }
-            if ($attributeName === '') {
-                continue;
-            }
-            $attributeValue = '';
-            if (isset($attributeNode->value)) {
-                $attributeValue = (string)$attributeNode->value;
-            }
-            else if (isset($attributeNode->nodeValue) && $attributeNode->nodeValue !== null) {
-                $attributeValue = (string)$attributeNode->nodeValue;
-            }
-            $attributeNodes[] = [
-                'name' => $attributeName,
-                'value' => $attributeValue,
-            ];
+            $attributeNodes[] = $attributeNode;
         }
-
         foreach ($attributeNodes as $attributeNode) {
-            $attributeOriginalName = $attributeNode['name'];
-            $attributeName = strtolower($attributeOriginalName);
-            $attributeValue = $attributeNode['value'];
-
-            if (
-                preg_match('/^on[a-z0-9_-]+$/i', $attributeName) ||
-                in_array($attributeName, self::FORBIDDEN_ATTRIBUTES, true)
-            ) {
-                $element->removeAttribute($attributeOriginalName);
-                continue;
-            }
-
-            if ($tagName === 'iframe' && !in_array($attributeName, self::IFRAME_ALLOWED_ATTRIBUTES, true)) {
-                $element->removeAttribute($attributeOriginalName);
-                continue;
-            }
-
-            // Security (SEC-SANITIZE): URL-named attributes use the allowlist,
-            // every attribute (custom elements consume URLs on arbitrary names)
-            // is removed when it starts with a script-capable scheme, exactly
-            // as a disallowed href is.
-            $safeValue = self::sanitizeAttributeValue($attributeName, $attributeValue);
+            $attributeName = strtolower((string)$attributeNode->nodeName);
+            $attributeValue = (string)$attributeNode->value;
+            $safeValue = self::policyAttributeValue($tagName, $attributeName, $attributeValue);
             if ($safeValue === null) {
-                $element->removeAttribute($attributeOriginalName);
+                $element->removeAttributeNode($attributeNode);
             }
             else if ($safeValue !== $attributeValue) {
-                $element->setAttribute($attributeOriginalName, $safeValue);
+                $attributeNode->value = $safeValue;
             }
         }
 
@@ -912,42 +1054,363 @@ class SanitizeContent
         }
     }
 
-    private static function sanitizeNodeTree($dom, $rootNode)
+    /**
+     * The shared policy walk (Node sanitizeElementTree). For each child, in
+     * order: comments that could hide markup and processing instructions
+     * go; elements in removeWithContent (or the extra forbidden tags) go with
+     * their content; elements that are neither allowed nor custom elements
+     * are unwrapped (their children, already sanitized, take their place);
+     * every other element has its attributes sanitized and its children
+     * walked. An iframe keeps no children.
+     */
+    private static function sanitizeNodeTree($dom, $rootNode, $extraRemove = array(), $dropComments = false)
     {
-        $childElements = self::getElementChildren($rootNode);
-        foreach ($childElements as $childElement) {
-            $tagName = strtolower($childElement->tagName);
-            if (in_array($tagName, self::FORBIDDEN_TAGS, true)) {
-                if ($childElement->parentNode !== null) {
-                    $childElement->parentNode->removeChild($childElement);
+        $policy = self::policy();
+        foreach (self::getChildNodes($rootNode) as $child) {
+            $type = isset($child->nodeType) ? $child->nodeType : 0;
+            if ($type === XML_COMMENT_NODE) {
+                if ($dropComments || !self::isSafeComment($child->nodeValue)) {
+                    $child->parentNode->removeChild($child);
                 }
                 continue;
             }
+            if ($type === XML_PI_NODE) {
+                $child->parentNode->removeChild($child);
+                continue;
+            }
+            if ($type !== XML_ELEMENT_NODE) {
+                continue;
+            }
+            $tagName = self::nodeLocalName($child);
+            $namespace = isset($child->namespaceURI) ? $child->namespaceURI : null;
+            if (
+                isset($policy['removeWithContentSet'][$tagName]) ||
+                in_array($tagName, self::FORBIDDEN_TAGS, true) ||
+                in_array($tagName, $extraRemove, true) ||
+                ($namespace !== null && $namespace !== '' && $namespace !== 'http://www.w3.org/1999/xhtml')
+            ) {
+                $child->parentNode->removeChild($child);
+                continue;
+            }
+            if (!isset($policy['allowedTagSet'][$tagName]) && !self::isCustomElementName($tagName)) {
+                $content = self::contentNode($child);
+                self::sanitizeNodeTree($dom, $content, $extraRemove, $dropComments);
+                foreach (self::getChildNodes($content) as $grandChild) {
+                    $child->parentNode->insertBefore($grandChild, $child);
+                }
+                $child->parentNode->removeChild($child);
+                continue;
+            }
 
-            self::sanitizeElementAttributes($childElement);
+            self::sanitizeElementAttributes($child);
 
+            if ($tagName === 'iframe') {
+                foreach (self::getChildNodes($child) as $grandChild) {
+                    $child->removeChild($grandChild);
+                }
+                continue;
+            }
             if ($tagName === 'template') {
                 $parentTagName = '';
                 if (
-                    $childElement->parentNode !== null &&
-                    isset($childElement->parentNode->nodeType) &&
-                    $childElement->parentNode->nodeType === 1
+                    $child->parentNode !== null &&
+                    isset($child->parentNode->nodeType) &&
+                    $child->parentNode->nodeType === XML_ELEMENT_NODE
                 ) {
-                    $parentTagName = strtolower($childElement->parentNode->tagName);
+                    $parentTagName = self::nodeLocalName($child->parentNode);
                 }
                 if (in_array($parentTagName, self::TEXT_TEMPLATE_HOSTS, true)) {
-                    if (self::hasElementDescendant($childElement)) {
-                        $templateInnerHTML = self::getInnerHTML($childElement);
-                        self::replaceNodeChildrenWithText($dom, $childElement, $templateInnerHTML);
+                    if (self::hasElementDescendant(self::contentNode($child))) {
+                        $templateInnerHTML = self::getInnerHTML($child);
+                        self::replaceNodeChildrenWithText($dom, self::contentNode($child), $templateInnerHTML);
                     }
                 }
                 else {
-                    self::sanitizeNodeTree($dom, $childElement);
+                    self::sanitizeNodeTree($dom, self::contentNode($child), $extraRemove, $dropComments);
                 }
                 continue;
             }
 
-            self::sanitizeNodeTree($dom, $childElement);
+            self::sanitizeNodeTree($dom, $child, $extraRemove, $dropComments);
+        }
+    }
+
+    /**
+     * DOMPurify's markup probe (Node removeMarkupProbeElements), checked
+     * parent before children: an element with child nodes but no element
+     * children, whose text and whose serialized content both look like
+     * markup, is removed with its content.
+     */
+    private static function removeMarkupProbeElements($rootNode)
+    {
+        foreach (self::getChildNodes($rootNode) as $child) {
+            if (!isset($child->nodeType) || $child->nodeType !== XML_ELEMENT_NODE) {
+                continue;
+            }
+            $content = self::contentNode($child);
+            $children = self::getChildNodes($content);
+            $text = '';
+            $hasElementChild = false;
+            foreach ($children as $grandChild) {
+                if ($grandChild->nodeType === XML_ELEMENT_NODE) {
+                    $hasElementChild = true;
+                }
+                else if ($grandChild->nodeType === XML_TEXT_NODE || $grandChild->nodeType === XML_CDATA_SECTION_NODE) {
+                    $text .= $grandChild->nodeValue;
+                }
+            }
+            if (
+                count($children) > 0 &&
+                !$hasElementChild &&
+                preg_match('/<[\/\w!]/', $text) === 1 &&
+                preg_match('/<[\/\w!]/', self::getInnerHTML($child)) === 1
+            ) {
+                $child->parentNode->removeChild($child);
+                continue;
+            }
+            self::removeMarkupProbeElements($content);
+        }
+    }
+
+    /**
+     * An HTML parser drops one newline right after <pre>, <listing> and
+     * <textarea>, so stored content starting with a newline there would lose
+     * it on the next save. Drop it now so saving is idempotent (Node
+     * dropLeadingNewlines).
+     */
+    private static function dropLeadingNewlines($rootNode)
+    {
+        foreach (self::getChildNodes($rootNode) as $child) {
+            if (!isset($child->nodeType) || $child->nodeType !== XML_ELEMENT_NODE) {
+                continue;
+            }
+            self::dropLeadingNewline($child);
+            self::dropLeadingNewlines(self::contentNode($child));
+        }
+    }
+
+    private static function dropLeadingNewline($element)
+    {
+        if (!in_array(self::nodeLocalName($element), self::LEADING_NEWLINE_ELEMENTS, true)) {
+            return;
+        }
+        $first = $element->firstChild;
+        if ($first !== null && $first->nodeType === XML_TEXT_NODE && substr((string)$first->nodeValue, 0, 1) === "\n") {
+            $first->nodeValue = substr((string)$first->nodeValue, 1);
+            if ($first->nodeValue === '') {
+                $element->removeChild($first);
+            }
+        }
+    }
+
+    /**
+     * libxml (PHP 8.3) builds an HTML4 tree. Reshape the parts that HAX
+     * content meets so the tree is the one an HTML5 parser (browsers,
+     * haxcms-nodejs, PHP 8.4) builds: the newline an HTML5 parser drops
+     * after <pre>/<listing>/<textarea>, HTML5 void elements libxml put
+     * content inside, and the <tbody> implied around a table's rows.
+     */
+    private static function reshapeLibxmlTree($rootNode)
+    {
+        // a live walk: content hoisted out of an element is visited next
+        $child = $rootNode->firstChild;
+        while ($child !== null) {
+            if (!isset($child->nodeType) || $child->nodeType !== XML_ELEMENT_NODE) {
+                $child = $child->nextSibling;
+                continue;
+            }
+            $name = self::nodeLocalName($child);
+            if ($name === 'image') {
+                // an HTML5 parser reads <image> as <img>
+                $img = $child->ownerDocument->createElement('img');
+                foreach ($child->attributes as $attribute) {
+                    $img->setAttribute($attribute->nodeName, $attribute->value);
+                }
+                $child->parentNode->insertBefore($img, $child);
+                foreach (self::getChildNodes($child) as $grandChild) {
+                    $child->parentNode->insertBefore($grandChild, $child);
+                }
+                $child->parentNode->removeChild($child);
+                $child = $img;
+                $name = 'img';
+            }
+            if ($child->attributes) {
+                foreach ($child->attributes as $attribute) {
+                    $attributeName = strtolower((string)$attribute->nodeName);
+                    if (in_array($attributeName, self::LIBXML_BOOLEAN_ATTRIBUTES, true) && strtolower((string)$attribute->value) === $attributeName) {
+                        $attribute->value = '';
+                    }
+                }
+            }
+            if (in_array($name, self::LIBXML_UNKNOWN_VOID_ELEMENTS, true) || $name === 'img') {
+                $next = $child->nextSibling;
+                foreach (self::getChildNodes($child) as $grandChild) {
+                    if ($next === null) {
+                        $child->parentNode->appendChild($grandChild);
+                    }
+                    else {
+                        $child->parentNode->insertBefore($grandChild, $next);
+                    }
+                }
+            }
+            self::dropLeadingNewline($child);
+            if (in_array($name, self::TABLE_PART_ELEMENTS, true) && !self::insideTableOrTemplate($child)) {
+                // an HTML5 parser ignores table tags outside a table
+                $next = $child->nextSibling;
+                $first = $child->firstChild;
+                foreach (self::getChildNodes($child) as $grandChild) {
+                    $child->parentNode->insertBefore($grandChild, $child);
+                }
+                $child->parentNode->removeChild($child);
+                $child = $first !== null ? $first : $next;
+                continue;
+            }
+            if ($name === 'table') {
+                // elements moved in front of the table are visited first
+                $moved = self::reshapeTable($child);
+                if ($moved !== null) {
+                    $child = $moved;
+                    continue;
+                }
+            }
+            self::reshapeLibxmlTree($child);
+            $child = $child->nextSibling;
+        }
+    }
+
+    private const TABLE_PART_ELEMENTS = ['caption', 'col', 'colgroup', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr'];
+
+    // what an HTML5 parser accepts directly inside each table element;
+    // anything else is moved in front of the table ("foster parenting")
+    private const TABLE_CONTENT = [
+        'table' => ['caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'template', 'script', 'style'],
+        'thead' => ['tr', 'td', 'th', 'template', 'script', 'style'],
+        'tbody' => ['tr', 'td', 'th', 'template', 'script', 'style'],
+        'tfoot' => ['tr', 'td', 'th', 'template', 'script', 'style'],
+        'tr' => ['td', 'th', 'template', 'script', 'style'],
+    ];
+
+    private static function insideTableOrTemplate($node)
+    {
+        for ($n = $node->parentNode; $n !== null && isset($n->nodeType) && $n->nodeType === XML_ELEMENT_NODE; $n = $n->parentNode) {
+            $name = self::nodeLocalName($n);
+            if ($name === 'table' || $name === 'template') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function isWhitespaceOrComment($node)
+    {
+        return $node->nodeType === XML_COMMENT_NODE ||
+            ($node->nodeType === XML_TEXT_NODE && trim((string)$node->nodeValue, " \t\n\f\r") === '');
+    }
+
+    /**
+     * The table shape haxcms-nodejs' HTML5 parser (parse5) builds: elements
+     * that cannot sit in a table section move in front of the table and text
+     * moves right after it ("foster parenting"); cells get an implied <tr>,
+     * rows an implied <tbody>, a bare <col> an implied <colgroup>.
+     */
+    private static function reshapeTable($table)
+    {
+        $textAnchor = null;
+        $before = $table->previousSibling;
+        self::fosterParent($table, $table, $textAnchor);
+        // the first node moved in front of the table, if any
+        $first = $before === null ? $table->parentNode->firstChild : $before->nextSibling;
+        self::wrapRuns($table, ['col'], 'colgroup');
+        self::wrapRuns($table, ['td', 'th'], 'tr');
+        self::wrapTableRows($table);
+        foreach (self::getChildNodes($table) as $section) {
+            if ($section->nodeType === XML_ELEMENT_NODE && in_array(self::nodeLocalName($section), ['thead', 'tbody', 'tfoot'], true)) {
+                self::wrapRuns($section, ['td', 'th'], 'tr');
+            }
+        }
+        return $first === $table ? null : $first;
+    }
+
+    // one walk in document order over the table, its sections and rows
+    private static function fosterParent($table, $container, &$textAnchor)
+    {
+        $allowed = self::TABLE_CONTENT[self::nodeLocalName($container)];
+        foreach (self::getChildNodes($container) as $child) {
+            if (self::isWhitespaceOrComment($child)) {
+                continue;
+            }
+            if ($child->nodeType === XML_ELEMENT_NODE) {
+                $name = self::nodeLocalName($child);
+                if (in_array($name, $allowed, true)) {
+                    if (isset(self::TABLE_CONTENT[$name])) {
+                        self::fosterParent($table, $child, $textAnchor);
+                    }
+                    continue;
+                }
+                if ($name === 'input' && strtolower((string)$child->getAttribute('type')) === 'hidden') {
+                    continue;
+                }
+                $table->parentNode->insertBefore($child, $table);
+                continue;
+            }
+            if ($child->nodeType === XML_TEXT_NODE || $child->nodeType === XML_CDATA_SECTION_NODE) {
+                // text goes right after the table (after text moved before it)
+                $after = $textAnchor !== null ? $textAnchor : $table;
+                if ($after->nextSibling === null) {
+                    $table->parentNode->appendChild($child);
+                }
+                else {
+                    $table->parentNode->insertBefore($child, $after->nextSibling);
+                }
+                $textAnchor = $child;
+            }
+        }
+    }
+
+    // consecutive $names children (with whitespace and comments between)
+    // go into one implied $wrapper element
+    private static function wrapRuns($parent, $names, $wrapper)
+    {
+        $current = null;
+        foreach (self::getChildNodes($parent) as $child) {
+            if ($child->nodeType === XML_ELEMENT_NODE && in_array(self::nodeLocalName($child), $names, true)) {
+                if ($current === null) {
+                    $current = $parent->ownerDocument->createElement($wrapper);
+                    $parent->insertBefore($current, $child);
+                }
+                $current->appendChild($child);
+            }
+            else if ($current !== null && self::isWhitespaceOrComment($child)) {
+                $current->appendChild($child);
+            }
+            else {
+                $current = null;
+            }
+        }
+    }
+
+    // rows directly in a <table> go into an implied <tbody>, with the
+    // whitespace and comments between them, as an HTML5 parser does
+    private static function wrapTableRows($table)
+    {
+        $tbody = null;
+        foreach (self::getChildNodes($table) as $child) {
+            $isRow = $child->nodeType === XML_ELEMENT_NODE && self::nodeLocalName($child) === 'tr';
+            $isFiller = $child->nodeType === XML_COMMENT_NODE ||
+                ($child->nodeType === XML_TEXT_NODE && trim((string)$child->nodeValue, " \t\n\f\r") === '');
+            if ($isRow) {
+                if ($tbody === null) {
+                    $tbody = $table->ownerDocument->createElement('tbody');
+                    $table->insertBefore($tbody, $child);
+                }
+                $tbody->appendChild($child);
+            }
+            else if ($isFiller && $tbody !== null) {
+                $tbody->appendChild($child);
+            }
+            else {
+                $tbody = null;
+            }
         }
     }
 
@@ -962,13 +1425,16 @@ class SanitizeContent
         // quotes/smart punctuation) get parsed as several separate Latin-1
         // characters, then re-encoded as UTF-8 on save, producing mojibake
         // (e.g. "ââ") that compounds on every subsequent save.
-        $wrappedHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>';
+        // no closing </body></html> for the HTML5 parser: an unclosed
+        // <textarea> would take them as text, as it takes the rest of the input
+        $wrappedHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html;
         if (class_exists('\Dom\HTMLDocument') && method_exists('\Dom\HTMLDocument', 'createFromString')) {
             try {
-                $dom = \Dom\HTMLDocument::createFromString(
-                    $wrappedHTML,
-                    LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING
-                );
+                // createFromString accepts only LIBXML_NOERROR,
+                // LIBXML_COMPACT, LIBXML_HTML_NOIMPLIED and
+                // Dom\HTML_NO_DEFAULT_NS; any other flag throws, which used
+                // to send PHP 8.4 to the libxml fallback below
+                $dom = \Dom\HTMLDocument::createFromString($wrappedHTML, LIBXML_NOERROR);
                 if ($dom !== null) {
                     return $dom;
                 }
@@ -981,6 +1447,10 @@ class SanitizeContent
         if (!class_exists('\DOMDocument')) {
             return null;
         }
+        $wrappedHTML .= '</body></html>';
+        // an HTML5 parser reads CR LF and a lone CR as LF before anything
+        // else; libxml keeps the CR
+        $wrappedHTML = str_replace(array("\r\n", "\r"), "\n", $wrappedHTML);
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $originalUseInternalErrors = libxml_use_internal_errors(true);
         $loaded = $dom->loadHTML(
@@ -995,24 +1465,56 @@ class SanitizeContent
         return $dom;
     }
 
-    public static function sanitizeHTMLForStorage($html)
+    /**
+     * Storage sanitizer. Same policy and same output as haxcms-nodejs
+     * sanitizeHTMLForStorage (haxtheweb/issues#3273). $options['forbidTags']
+     * removes extra tags with their content (e.g. iframe for imports);
+     * $options['dropComments'] removes every comment.
+     */
+    public static function sanitizeHTMLForStorage($html, $options = array())
     {
         if (!is_string($html)) {
             return '';
         }
+        $extraRemove = array();
+        $dropComments = is_array($options) && !empty($options['dropComments']);
+        if (is_array($options) && isset($options['forbidTags']) && is_array($options['forbidTags'])) {
+            foreach ($options['forbidTags'] as $tag) {
+                $extraRemove[] = strtolower((string)$tag);
+            }
+        }
 
+        self::$templateContents = new \SplObjectStorage();
         $dom = self::loadHTMLDocument($html);
         if ($dom === null) {
             return '';
         }
-
-        self::preprocessTextTemplates($dom);
         $body = self::getBodyElement($dom);
         if ($body === null) {
             return '';
         }
+        if ($dom instanceof \DOMDocument) {
+            self::reshapeLibxmlTree($body);
+        }
 
-        self::sanitizeNodeTree($dom, $body);
-        return self::getInnerHTML($body);
+        self::preprocessTextTemplates($dom);
+        self::sanitizeNodeTree($dom, $body, $extraRemove, $dropComments);
+        self::removeMarkupProbeElements($body);
+        self::dropLeadingNewlines($body);
+        return self::getInnerHTML($body, 'body');
+    }
+
+    /**
+     * Untrusted HTML (uploaded files, remote URLs) before it becomes page
+     * content: the storage policy plus no iframes and no comments, NUL bytes
+     * removed, outer whitespace trimmed. Mirrors Node convertUtils
+     * sanitizeUntrustedHtml.
+     */
+    public static function sanitizeUntrustedHTML($html)
+    {
+        if (!is_string($html)) {
+            return '';
+        }
+        return trim(self::sanitizeHTMLForStorage(str_replace("\0", '', $html), array('forbidTags' => array('iframe'), 'dropComments' => true)));
     }
 }

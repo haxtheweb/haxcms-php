@@ -55,6 +55,10 @@ jobs:
             "site boilerplate|system/boilerplate/site|src/boilerplate/site"
             "site OpenAPI spec|system/backend/php/lib/siteRoutes/openapi/site-spec.yaml|src/openapi/site-spec.yaml"
             "system OpenAPI spec|system/backend/php/lib/systemRoutes/openapi/system-spec.yaml|src/openapi/system-spec.yaml"
+            "sanitizer policy|system/backend/php/lib/haxcms-sanitize-policy.json|src/lib/haxcmsSanitizePolicy.json"
+            "sanitizer vectors|system/backend/php/tests/fixtures/sanitize-vectors.json|test/fixtures/sanitize-vectors.json"
+            "block operations allowlist|system/backend/php/lib/haxcms-block-attributes.json|src/lib/haxcmsBlockAttributes.json"
+            "block operations vectors|system/backend/php/tests/fixtures/block-operations-vectors.json|test/fixtures/block-operations-vectors.json"
           )
 
           drift=0
