@@ -1,0 +1,104 @@
+{
+  "$comment": "Dependency license policy for haxcms-php (Apache-2.0), used by .github/workflows/dependency-license.yml via .github/scripts/license-check.cjs (haxtheweb/issues#3262). allow: licenses that pass. review: license families that are not automatically compatible and need a maintainer decision (the check fails with a 'needs review' message). deny: incompatible license families. Anything else, or no license at all, fails. exceptions: packages a maintainer has looked at and accepted, matched on ecosystem + name + license, so a license change re-triggers review.",
+  "allow": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "0BSD",
+    "CC0-1.0",
+    "Unlicense",
+    "Python-2.0",
+    "BlueOak-1.0.0"
+  ],
+  "allowPatterns": ["^BSD-"],
+  "reviewPatterns": ["^LGPL", "^MPL"],
+  "denyPatterns": ["^AGPL", "^GPL", "^SSPL", "^BUSL", "Commons[- ]?Clause"],
+  "exceptions": [
+    {
+      "ecosystem": "composer",
+      "name": "dompdf/dompdf",
+      "license": "LGPL-2.1",
+      "reason": "Already a dependency before this policy (PDF export). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "composer",
+      "name": "dompdf/php-font-lib",
+      "license": "LGPL-2.1-or-later",
+      "reason": "Already a dependency before this policy (dompdf). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "composer",
+      "name": "dompdf/php-svg-lib",
+      "license": "LGPL-3.0-or-later",
+      "reason": "Already a dependency before this policy (dompdf). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "composer",
+      "name": "phpoffice/phpword",
+      "license": "LGPL-3.0-only",
+      "reason": "Already a dependency before this policy (docx export). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "composer",
+      "name": "smalot/pdfparser",
+      "license": "LGPL-3.0",
+      "reason": "Already a dependency before this policy (PDF import). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "axe-core",
+      "license": "MPL-2.0",
+      "reason": "Already a devDependency before this policy (E2E accessibility scans, not shipped). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@img/sharp-libvips-linux-x64",
+      "license": "LGPL-3.0-or-later",
+      "reason": "Prebuilt libvips pulled in by the sharp devDependency (E2E screenshot diffs, not shipped). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@img/sharp-wasm32",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+      "reason": "Optional sharp build pulled in by the sharp devDependency (not shipped). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@csstools/color-helpers",
+      "license": "MIT-0",
+      "reason": "Transitive npm dependency already in the tree before this policy; MIT-0 is permissive but not on the allowlist. Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "pako",
+      "license": "(MIT AND Zlib)",
+      "reason": "Transitive npm dependency already in the tree before this policy; Zlib is permissive but not on the allowlist. Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "duck",
+      "license": "BSD",
+      "reason": "Transitive npm dependency already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "gitconfiglocal",
+      "license": "BSD",
+      "reason": "Transitive npm dependency (release tooling) already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "foreachasync",
+      "license": "Apache2",
+      "reason": "Transitive npm dependency already in the tree before this policy; declares 'Apache2' (not an SPDX id). Pending maintainer confirmation."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "spdx-exceptions",
+      "license": "CC-BY-3.0",
+      "reason": "Transitive npm dependency (license metadata list used by tooling) already in the tree before this policy. Pending maintainer confirmation."
+    }
+  ]
+}

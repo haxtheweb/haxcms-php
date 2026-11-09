@@ -1,0 +1,97 @@
+name: dependency license
+# Dependency license policy (haxtheweb/issues#3262). haxcms-php is Apache-2.0;
+# the policy (allowlist, needs-review and deny families, reviewed exceptions)
+# is .github/license-policy.json and the checks are .github/scripts/license-check.cjs.
+#
+#  - pull_request: BLOCKING gate. dependency-review-action diffs the PR head
+#    against its base through the dependency graph (Composer composer.lock is
+#    the full transitive tree; package.json has no lockfile here, so npm is
+#    direct dependencies). Every ADDED Composer / npm dependency is checked.
+#    Composer licenses are read from composer.lock (the dependency graph has no
+#    license for several Composer packages); npm ones fall back to the registry.
+#    GPL / AGPL / SSPL / BUSL / Commons Clause and missing licenses fail;
+#    LGPL / MPL and anything off the allowlist fail as "needs review".
+#  - schedule (weekly, Sunday 23:47 UTC) / workflow_dispatch: full-tree sweep
+#    of composer.lock plus a fresh npm install, and a check that LICENSE.md,
+#    package.json and composer.json still say Apache-2.0. Findings go to the
+#    job summary; problems fail the run. Nothing else is created.
+on:
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+    paths:
+      - "package.json"
+      - "yarn.lock"
+      - "package-lock.json"
+      - "system/backend/php/composer.json"
+      - "system/backend/php/composer.lock"
+      - ".github/license-policy.json"
+      - ".github/scripts/license-check.cjs"
+      - ".github/workflows/dependency-license.yml"
+  schedule:
+    - cron: "47 23 * * 0"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pr-gate:
+    name: "New dependency licenses (PR gate)"
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Dependency review (base vs head)
+        id: review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          # Licenses are decided by the policy script below (one policy for the
+          # PR gate and the weekly sweep). This step supplies the dependency
+          # diff and lists known advisories in the summary without failing.
+          license-check: false
+          vulnerability-check: true
+          warn-only: true
+          fail-on-scopes: runtime, development, unknown
+          comment-summary-in-pr: never
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Check licenses of new dependencies
+        env:
+          # JSON output of the previous step, read only from the environment
+          CHANGES: ${{ steps.review.outputs.dependency-changes }}
+        run: >-
+          node .github/scripts/license-check.cjs review
+          --policy .github/license-policy.json
+          --composer-lock system/backend/php/composer.lock
+
+  weekly-sweep:
+    name: "Full dependency tree + project license (weekly)"
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install npm dependency tree (no install scripts)
+        # package-lock.json / yarn.lock are gitignored in this repo, so this
+        # resolves the tree a contributor would get today. Scripts are skipped:
+        # only package metadata is needed.
+        run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+      - name: Sweep licenses
+        # composer.lock is the full Composer tree, so no composer install.
+        run: >-
+          node .github/scripts/license-check.cjs sweep
+          --policy .github/license-policy.json
+          --composer-lock system/backend/php/composer.lock
+          --node-modules node_modules
+          --license-file LICENSE.md
+          --project-manifest package.json
+          --project-manifest system/backend/php/composer.json
