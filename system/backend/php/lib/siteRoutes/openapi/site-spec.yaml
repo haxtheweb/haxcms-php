@@ -1525,6 +1525,105 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/content/{idOrSlug}/blocks:
+    get:
+      tags:
+        - content
+      operationId: listContentBlocks
+      summary: List the elements on a page that block operations can change
+      description: >-
+        Elements in the page's stored HTML whose tag is in the block allowlist
+        and that have an exact end in the source, each with the tag, index and
+        before a block operation sends back, and its allowlisted attributes
+        decoded as a browser reads them. index counts elements of that tag in
+        the stored source, which can differ from a browser DOM.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+        - name: tag
+          in: query
+          required: false
+          description: Only list elements with this tag.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Blocks on the page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ContentBlockCollection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - content
+      operationId: updateContentBlocks
+      summary: Change single elements in a page without re-saving the page
+      description: >-
+        Applies block operations to one page, all or nothing, as one git
+        commit. Each op names its target by tag, index and before (the
+        element's exact stored HTML); if the stored bytes do not match, nothing
+        is written (409). setAttributes may only set attributes in the per-tag
+        allowlist, normalized by kind (text, url); replaceBlock replaces the
+        element with one complete element of the same tag. The change must
+        pass the storage sanitizer unchanged, and parsing the page before and
+        after must show no difference other than the targets. The rest of the
+        page is left exactly as stored. Locked pages are refused (423).
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/IdOrSlug"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentBlockOperationsRequest"
+      responses:
+        "200":
+          description: The ops were applied
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ContentBlockOperationsResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: An op's before no longer matches the stored page (reason stale), or matches more than one element (reason ambiguous)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentBlockOperationError"
+        "423":
+          description: The page is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentBlockOperationError"
   /x/api/v1/files:
     get:
       tags:
@@ -3105,6 +3204,154 @@ components:
           type: object
           additionalProperties:
             type: string
+    ContentBlockRef:
+      type: object
+      required:
+        - tag
+        - index
+        - before
+      properties:
+        tag:
+          type: string
+          description: Element name.
+        index:
+          type: integer
+          minimum: 0
+          description: Position among elements with this tag in the stored source.
+        before:
+          type: string
+          description: The element's exact stored HTML, start tag to end tag.
+    ContentBlock:
+      allOf:
+        - $ref: "#/components/schemas/ContentBlockRef"
+        - type: object
+          properties:
+            attributes:
+              type: object
+              description: Allowlisted attributes present on the element, decoded.
+              additionalProperties:
+                type: string
+    ContentBlockCollection:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        count:
+          type: integer
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentBlock"
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    ContentBlockOperation:
+      allOf:
+        - $ref: "#/components/schemas/ContentBlockRef"
+        - type: object
+          required:
+            - op
+          properties:
+            op:
+              type: string
+              enum:
+                - setAttributes
+                - replaceBlock
+            set:
+              type: object
+              description: >-
+                setAttributes only. Attribute name to new value; null removes
+                the attribute. Values are trimmed and CR LF is stored as LF. text
+                values are at most 4000 characters; url values are an http(s)
+                URL with a host name or a site path, stored with non-ASCII and
+                " $ [ ] ^ ` { | } percent-encoded, at most 2048 characters. A
+                value holding "-->", "]>" or a closing tag such as "</title" is
+                refused.
+              additionalProperties:
+                type: string
+                nullable: true
+            after:
+              type: string
+              description: replaceBlock only. One complete element with the same tag.
+    ContentBlockOperationsRequest:
+      type: object
+      required:
+        - ops
+      properties:
+        site:
+          $ref: "#/components/schemas/SiteReference"
+        ops:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/ContentBlockOperation"
+        note:
+          type: string
+          maxLength: 120
+          description: Added to the git commit message.
+    ContentBlockOperationsResult:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              op:
+                type: integer
+              tag:
+                type: string
+              index:
+                type: integer
+              relocated:
+                type: boolean
+                description: True when index pointed elsewhere and the element was found by before.
+              before:
+                type: string
+                description: The element's stored HTML now, for chaining further ops.
+        links:
+          type: object
+          additionalProperties:
+            type: string
+    ContentBlockOperationError:
+      type: object
+      properties:
+        status:
+          type: integer
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+            reason:
+              type: string
+              enum:
+                - stale
+                - ambiguous
+                - locked
+                - invalid
+                - not-allowed
+                - not-addressable
+                - overlap
+                - sanitizer-rejected
+                - structure-changed
+            detail:
+              type: string
+            op:
+              type: integer
+              description: Index of the op that failed.
     ContentRecord:
       type: object
       properties:

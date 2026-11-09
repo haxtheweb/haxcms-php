@@ -659,6 +659,20 @@ class SanitizeContent
         return false;
     }
 
+    /**
+     * Parse an HTML fragment with the same parser the storage sanitizer uses
+     * and return its body element (null if it cannot be parsed). Used by
+     * BlockOperations to compare a page before and after a block change.
+     */
+    public static function parseBodyForComparison($html)
+    {
+        $dom = self::loadHTMLDocument(is_string($html) ? $html : '');
+        if ($dom === null) {
+            return null;
+        }
+        return self::getBodyElement($dom);
+    }
+
     private static function getBodyElement($dom)
     {
         $bodyList = $dom->getElementsByTagName('body');
