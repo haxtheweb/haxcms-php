@@ -967,6 +967,11 @@ class HAXCMSSite
         // set a crappy default title
         // Security (SEC-SANITIZE): titles are plain text (matches saveNode)
         $page->title = SanitizeContent::plainText($title);
+        // a title that is nothing but markup falls back to a default
+        // (matches haxcms-nodejs HAXCMSSite.addPage)
+        if ($page->title === '') {
+          $page->title = 'New page';
+        }
         if ($parent == null) {
           $page->parent = null;
           $page->indent = 0;
@@ -2072,7 +2077,13 @@ class HAXCMSSite
         // get a new item prototype
         $item = $GLOBALS['HAXCMS']->outlineSchema->newItem();
         // set the title
-        $item->title = str_replace("\n", '', $params['node']['title']);
+        // Security (SEC-SANITIZE): titles are plain text, same as addPage /
+        // saveOutline / saveNode; a title that is nothing but markup gets the
+        // same default as addPage (mirrors haxcms-nodejs itemFromParams)
+        $title = str_replace("\n", '', SanitizeContent::plainText(
+            isset($params['node']['title']) ? $params['node']['title'] : ''
+        ));
+        $item->title = ($title === '') ? 'New page' : $title;
         if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
             // Security (SEC-PATH): sanitize a client-supplied id
             // before composing the on-disk location. generateMachineName

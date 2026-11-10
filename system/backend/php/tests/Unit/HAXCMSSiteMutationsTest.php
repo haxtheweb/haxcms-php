@@ -532,6 +532,52 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertNull($item->parent);
     }
 
+    // Security (SEC-SANITIZE): the single-page create path stores plain text
+    // titles, like addPage / saveOutline / saveNode (haxtheweb/issues#3251)
+
+    public static function markupTitleProvider(): array
+    {
+        return array(
+            'tags' => array('<img src=x onerror=alert(1)><b>Hello</b>', 'Hello'),
+            'encoded tags' => array('&lt;img src=x onerror=alert(1)&gt;Hi', 'Hi'),
+            'script' => array('<script>alert(1)</script>Safe', 'alert(1)Safe'),
+            'newlines' => array("Line\nOne\nTwo", 'LineOneTwo'),
+            'plain' => array('Plain & simple', 'Plain & simple'),
+        );
+    }
+
+    #[DataProvider('markupTitleProvider')]
+    public function testItemFromParamsStoresTitleAsPlainText(string $raw, string $expected): void
+    {
+        $item = $this->site->itemFromParams(array('node' => array('title' => $raw)));
+        $this->assertSame($expected, $item->title);
+        $this->assertStringNotContainsString('<', $item->title);
+    }
+
+    public function testItemFromParamsSlugComesFromThePlainTitle(): void
+    {
+        $item = $this->site->itemFromParams(
+            array('node' => array('title' => '<b>Bold</b> <i>Move</i>'))
+        );
+        $this->assertSame('Bold Move', $item->title);
+        $this->assertSame('bold-move', $item->slug);
+    }
+
+    public function testItemFromParamsMarkupOnlyTitleFallsBackToDefault(): void
+    {
+        foreach (array('<img src=x onerror=alert(1)>', '', null) as $raw) {
+            $item = $this->site->itemFromParams(array('node' => array('title' => $raw)));
+            $this->assertSame('New page', $item->title);
+        }
+    }
+
+    public function testAddPageMarkupOnlyTitleFallsBackToDefault(): void
+    {
+        // same default as itemFromParams and haxcms-nodejs addPage
+        $page = $this->site->addPage(null, '<img src=x onerror=alert(1)>', 'init', 'markup-only');
+        $this->assertSame('New page', $page->title);
+    }
+
     public function testItemFromParamsAcceptsArrayMetadataFromAJsonBody(): void
     {
         // createNode passes json_decode($body, true) params, so metadata is an
