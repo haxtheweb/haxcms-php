@@ -76,6 +76,17 @@ class SiteRouteUtils
         }
         return 'GET';
     }
+    /**
+     * Method used to resolve an API route and its access policy. HEAD is
+     * answered by the GET route (RFC 9110 9.3.2), the same as Express does for
+     * haxcms-nodejs (registryMethod in src/lib/asyncRoute.js); the web server
+     * drops the body for HEAD on the way out.
+     */
+    public static function getRouteMethod()
+    {
+        $method = self::getRequestMethod();
+        return $method === 'HEAD' ? 'GET' : $method;
+    }
     public static function getBearerTokenFromRequest()
     {
         $auth = null;

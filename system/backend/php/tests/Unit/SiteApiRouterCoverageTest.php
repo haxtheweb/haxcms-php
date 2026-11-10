@@ -273,6 +273,38 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
         $this->assertSame(0, $data['data']['counts']['files']);
     }
 
+    public function testDispatchHeadResolvesTheGetRoute()
+    {
+        // HEAD is answered by the GET route, matching haxcms-nodejs
+        list($getResult, $getOut, $getCode, $get) = $this->runRouter('GET', '/x/api/v1/site');
+        list($result, $out, $code, $data) = $this->runRouter('HEAD', '/x/api/v1/site');
+        $this->assertTrue($result);
+        $this->assertSame(200, $code);
+        $this->assertSame($getCode, $code);
+        $this->assertSame($get['data']['name'], $data['data']['name']);
+    }
+
+    public function testGetRouteMethodMapsHeadToGet()
+    {
+        $saved = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : null;
+        try {
+            $cases = array('HEAD' => 'GET', 'head' => 'GET', 'GET' => 'GET', 'post' => 'POST', 'PATCH' => 'PATCH', 'DELETE' => 'DELETE', 'OPTIONS' => 'OPTIONS');
+            foreach ($cases as $raw => $expected) {
+                $_SERVER['REQUEST_METHOD'] = $raw;
+                $this->assertSame($expected, SiteRouteUtils::getRouteMethod(), 'method ' . $raw);
+            }
+            // the raw method is still available to anything that needs it
+            $_SERVER['REQUEST_METHOD'] = 'HEAD';
+            $this->assertSame('HEAD', SiteRouteUtils::getRequestMethod());
+        } finally {
+            if ($saved === null) {
+                unset($_SERVER['REQUEST_METHOD']);
+            } else {
+                $_SERVER['REQUEST_METHOD'] = $saved;
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // dispatch(): method negotiation (OPTIONS / 405 / 404)
     // ------------------------------------------------------------------

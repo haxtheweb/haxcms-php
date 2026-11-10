@@ -175,15 +175,41 @@ final class SystemApiRouterDispatchTest extends TestCase
         $this->assertSame(array('GET', 'POST'), $decoded['data']['methods']);
     }
 
-    public function testDispatchHeadMethodReturns405WithAllowedMethods(): void
+    public function testDispatchHeadResolvesTheGetRoute(): void
     {
-        // HEAD has no route map entry, so getRoutesForMethod returns an empty
-        // map; the suffix still matches GET/POST routes so a 405 is emitted.
-        list($result, $output) = $this->runDispatch('/system/api/v1/sites', 'HEAD');
+        // HEAD is answered by the GET route, matching haxcms-nodejs (Express
+        // routes HEAD to GET). It is not a 405.
+        list($result, $output) = $this->runDispatch('/system/api/v1/system/version', 'HEAD', array(
+            'HTTP_X_HAXCMS_USER_TOKEN' => 'client-token',
+        ));
+        $this->assertTrue($result);
+        $decoded = json_decode($output, true);
+        $this->assertSame(200, $decoded['status']);
+        $this->assertSame('0.0.0-test', $decoded['data']['version']);
+    }
+
+    public function testDispatchHeadKeepsTheGetAccessPolicy(): void
+    {
+        // HEAD on an authenticated route is refused exactly like GET
+        $GLOBALS['HAXCMS']->basicAuthResult = array('authenticated' => false);
+        list($getResult, $getOutput) = $this->runDispatch('/system/api/v1/system/version', 'GET');
+        list($headResult, $headOutput) = $this->runDispatch('/system/api/v1/system/version', 'HEAD');
+        $this->assertTrue($headResult);
+        $get = json_decode($getOutput, true);
+        $head = json_decode($headOutput, true);
+        $this->assertSame(401, $head['status']);
+        $this->assertSame($get['status'], $head['status']);
+        $this->assertSame($get['data']['message'], $head['data']['message']);
+    }
+
+    public function testDispatchHeadOnRouteWithoutGetIsStill405(): void
+    {
+        // a route with no GET handler has nothing for HEAD to resolve to
+        list($result, $output) = $this->runDispatch('/system/api/v1/session/login', 'HEAD');
         $this->assertTrue($result);
         $decoded = json_decode($output, true);
         $this->assertSame(405, $decoded['status']);
-        $this->assertSame(array('GET', 'POST'), $decoded['data']['methods']);
+        $this->assertNotContains('GET', $decoded['data']['methods']);
     }
 
     public function testDispatchReturns404ForUnknownRoute(): void

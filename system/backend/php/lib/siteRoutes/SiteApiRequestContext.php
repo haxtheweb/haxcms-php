@@ -14,7 +14,7 @@ class SiteApiRequestContext
     public function __construct($site)
     {
         $this->site = $site;
-        $this->method = SiteRouteUtils::getRequestMethod();
+        $this->method = SiteRouteUtils::getRouteMethod();
         $this->requestPath = SiteRouteUtils::getRequestPath();
         $this->relativePath = SiteRouteUtils::getRelativePathFromScript($this->requestPath);
         $this->apiBasePath = SiteRouteUtils::getApiBasePathFromRequestPath($this->requestPath);
