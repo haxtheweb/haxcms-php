@@ -30,28 +30,46 @@ trait OperationsRouteCreateNode {
       }
       if ($hasItems) {
         $item = null;
-        // create pages
-        for ($i=0; $i < count($nodeParams['items']); $i++) {
-          // outline-designer allows delete + confirmation but we don't have anything
-          // so instead, just don't process the thing in question if asked to delete it
-          if (isset($nodeParams['items'][$i]['delete']) && $nodeParams['items'][$i]['delete'] == TRUE) {
-            // do nothing
+        // create pages; site.json is written and the generated files rebuilt
+        // once for the whole request, not once per page (haxtheweb/issues#3248)
+        $bulk = new stdClass();
+        $bulk->createdFolders = array();
+        $added = 0;
+        try {
+          for ($i=0; $i < count($nodeParams['items']); $i++) {
+            // outline-designer allows delete + confirmation but we don't have anything
+            // so instead, just don't process the thing in question if asked to delete it
+            if (isset($nodeParams['items'][$i]['delete']) && $nodeParams['items'][$i]['delete'] == TRUE) {
+              // do nothing
+            }
+            else {
+              // fields like parent/slug/id/indent are optional for bulk page
+              // creation; addPage() falls back to sane defaults for nulls
+              $item = $site->addPage(
+                (isset($nodeParams['items'][$i]['parent']) ? $nodeParams['items'][$i]['parent'] : null),
+                $nodeParams['items'][$i]['title'],
+                'html',
+                (isset($nodeParams['items'][$i]['slug']) ? $nodeParams['items'][$i]['slug'] : null),
+                (isset($nodeParams['items'][$i]['id']) ? $nodeParams['items'][$i]['id'] : null),
+                (isset($nodeParams['items'][$i]['indent']) ? $nodeParams['items'][$i]['indent'] : null),
+                ((isset($nodeParams['items'][$i]['content']) && $nodeParams['items'][$i]['content'] != '') ? $nodeParams['items'][$i]['content'] : (isset($nodeParams['items'][$i]['contents']) ? $nodeParams['items'][$i]['contents'] : '')),
+                (isset($nodeParams['items'][$i]['order']) ? $nodeParams['items'][$i]['order'] : null),
+                (isset($nodeParams['items'][$i]['metadata']) ? $nodeParams['items'][$i]['metadata'] : null),
+                $bulk
+              );
+              $added++;
+            }
           }
-          else {
-            // fields like parent/slug/id/indent are optional for bulk page
-            // creation; addPage() falls back to sane defaults for nulls
-            $item = $site->addPage(
-              (isset($nodeParams['items'][$i]['parent']) ? $nodeParams['items'][$i]['parent'] : null),
-              $nodeParams['items'][$i]['title'],
-              'html',
-              (isset($nodeParams['items'][$i]['slug']) ? $nodeParams['items'][$i]['slug'] : null),
-              (isset($nodeParams['items'][$i]['id']) ? $nodeParams['items'][$i]['id'] : null),
-              (isset($nodeParams['items'][$i]['indent']) ? $nodeParams['items'][$i]['indent'] : null),
-              ((isset($nodeParams['items'][$i]['content']) && $nodeParams['items'][$i]['content'] != '') ? $nodeParams['items'][$i]['content'] : (isset($nodeParams['items'][$i]['contents']) ? $nodeParams['items'][$i]['contents'] : '')),
-              (isset($nodeParams['items'][$i]['order']) ? $nodeParams['items'][$i]['order'] : null),
-              (isset($nodeParams['items'][$i]['metadata']) ? $nodeParams['items'][$i]['metadata'] : null)
-            );  
+        } catch (Throwable $e) {
+          // a page failed part way: keep the pages added before it, as the
+          // per-page writes did, then report the error
+          if ($added > 0 || count($bulk->createdFolders) > 0) {
+            $site->finishBulkAddPages($bulk);
           }
+          throw $e;
+        }
+        if ($added > 0) {
+          $site->finishBulkAddPages($bulk);
         }
         // every entry was marked delete: nothing was created or committed
         if (is_null($item)) {

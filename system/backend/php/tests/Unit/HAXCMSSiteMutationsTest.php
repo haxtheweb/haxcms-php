@@ -386,6 +386,61 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertFileExists($this->siteDir() . '/pages/x/index.html');
     }
 
+    // ---- bulk addPage (haxtheweb/issues#3248) ----
+
+    public function testBulkAddPageWritesSiteJsonOnceAtFinish(): void
+    {
+        $before = file_get_contents($this->siteJsonPath());
+        $rebuildsBefore = $this->site->alternateFormatRebuilds;
+        $bulk = new stdClass();
+        $bulk->createdFolders = array();
+        $a = $this->site->addPage(null, 'Bulk A', 'html', 'bulk-a', 'bulk-a', 0, '<p>A</p>', 10, null, $bulk);
+        $b = $this->site->addPage('bulk-a', 'Bulk B', 'html', 'bulk-b', 'bulk-b', 1, '<p>B</p>', 0, null, $bulk);
+        // nothing written or rebuilt per page
+        $this->assertSame($before, file_get_contents($this->siteJsonPath()));
+        $this->assertSame($rebuildsBefore, $this->site->alternateFormatRebuilds);
+        $this->assertCount(2, $bulk->createdFolders);
+        $this->assertFileExists($this->siteDir() . '/' . $b->location);
+        $this->site->finishBulkAddPages($bulk);
+        $stored = json_decode(file_get_contents($this->siteJsonPath()), true);
+        $ids = array_map(function ($i) { return $i['id']; }, $stored['items']);
+        $this->assertContains('bulk-a', $ids);
+        $this->assertContains('bulk-b', $ids);
+        $this->assertSame($rebuildsBefore + 1, $this->site->alternateFormatRebuilds);
+    }
+
+    public function testBulkFinishFailureRemovesCreatedFoldersAndKeepsSiteJson(): void
+    {
+        $before = file_get_contents($this->siteJsonPath());
+        $bulk = new stdClass();
+        $bulk->createdFolders = array();
+        $a = $this->site->addPage(null, 'Bulk A', 'html', 'bulk-a', 'bulk-a', 0, '<p>A</p>', 10, null, $bulk);
+        $this->assertDirectoryExists($this->siteDir() . '/pages/bulk-a');
+        // the one site.json write fails
+        $file = $this->site->manifest->file;
+        $this->site->manifest->file = $this->tmpRoot . '/missing-dir/site.json';
+        try {
+            $this->site->finishBulkAddPages($bulk);
+            $this->fail('finishBulkAddPages should throw when site.json cannot be written');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('unable to write', $e->getMessage());
+        } finally {
+            $this->site->manifest->file = $file;
+        }
+        $this->assertDirectoryDoesNotExist($this->siteDir() . '/pages/bulk-a');
+        $this->assertSame($before, file_get_contents($this->siteJsonPath()));
+    }
+
+    public function testSingleAddPageStillWritesSiteJsonAndRebuilds(): void
+    {
+        $rebuildsBefore = $this->site->alternateFormatRebuilds;
+        $page = $this->site->addPage(null, 'Single', 'init', 'single');
+        $stored = json_decode(file_get_contents($this->siteJsonPath()), true);
+        $ids = array_map(function ($i) { return $i['id']; }, $stored['items']);
+        $this->assertContains($page->id, $ids);
+        $this->assertSame($rebuildsBefore + 1, $this->site->alternateFormatRebuilds);
+    }
+
     // ---- updateNode ----
 
     public function testUpdateNodeReplacesItemAndPersists(): void
@@ -1055,8 +1110,11 @@ class HAXCMSSiteTestSite extends HAXCMSSite
         return null;
     }
 
+    public $alternateFormatRebuilds = 0;
+
     public function updateAlternateFormats($format = null)
     {
+        $this->alternateFormatRebuilds++;
         return null;
     }
 }
