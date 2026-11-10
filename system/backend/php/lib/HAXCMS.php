@@ -1604,46 +1604,61 @@ class HAXCMS
     }
     /**
      * Generate slug name (for URLs - allows forward slashes but prevents path traversal)
+     * Security (path traversal): null bytes, backslashes and dot segments
+     * never survive (raw or %-encoded); only Unicode letters, digits, "_",
+     * "-" and "/" remain, never at either end; empty becomes "blank".
+     * Same rule as generateSlugName in haxcms-nodejs (src/lib/slugRules.js).
      */
     public function generateSlugName($name) {
+      $name = is_scalar($name) ? (string) $name : '';
       // Remove null bytes
       $name = str_replace(chr(0), '', $name);
-      
       // URL decode to catch encoded traversal attempts
       $name = urldecode($name);
-      
-      // Remove path traversal sequences while preserving forward slashes for URLs
-      $name = preg_replace('/\.{2,}[\/]*/', '', $name);  // Remove ../ and .. sequences
-      $name = str_replace('\\', '', $name);  // Remove backslashes
-      
-      // Convert to lowercase first
-      $slug = strtolower($name);
-      
-      // Allow word chars, hyphens, and forward slashes
-      $slug = preg_replace('/[^\w\-\/]+/u', '-', $slug);
-      
-      // Clean up multiple consecutive hyphens
-      $slug = preg_replace('/-{2,}/', '-', $slug);
-      
-      // Clean up multiple consecutive slashes
-      $slug = preg_replace('/\/{2,}/', '/', $slug);
-      
-      // Remove leading/trailing hyphens and slashes
-      $slug = trim($slug, '-/');
-      
-      // Ensure no path traversal sequences remain after processing
-      if (strpos($slug, '..') !== false) {
-          $slug = str_replace('..', '', $slug);
-      }
-      
-      return $slug;
+      // decoded bytes may not be valid UTF-8; invalid sequences become "?"
+      // (outside the allowed characters) instead of failing the /u regex
+      $name = mb_scrub($name, 'UTF-8');
+      // Remove ".." runs and the slashes after them, backslashes and "./"
+      $name = preg_replace('/\.{2,}\/*/', '', $name);
+      $name = str_replace('\\', '', $name);
+      $name = str_replace('./', '', $name);
+      return $this->finishSlug($name, true);
+    }
+    /**
+     * Shared tail of cleanTitle / generateSlugName: anything but Unicode
+     * letters, Unicode digits, "_", "-" and "/" becomes "-", repeated hyphens
+     * collapse, Unicode-aware lowercase, "-./" trimmed from both ends and an
+     * empty result becomes "blank". The class is spelled out instead of \w
+     * because PCRE2's \w under /u differs between versions (10.43+ adds
+     * combining marks and connector punctuation) and JS \w is ASCII-only.
+     */
+    private function finishSlug($value, $collapseSlashes)
+    {
+        $slug = preg_replace('/[^\p{L}\p{N}_\-\/]+/u', '-', $value);
+        if (!is_string($slug)) {
+            $slug = '';
+        }
+        $slug = preg_replace('/-{2,}/', '-', $slug);
+        if ($collapseSlashes) {
+            $slug = preg_replace('/\/{2,}/', '/', $slug);
+        }
+        $slug = trim(mb_strtolower($slug, 'UTF-8'), '-./');
+        // ensure we don't return an empty slug or it could break downstream things
+        if ($slug === '') {
+            $slug = 'blank';
+        }
+        return $slug;
     }
     /**
      * Clean up a title / sanitize the input string for file system usage
+     * Security (path traversal): "./", "../" and "." never survive; only
+     * Unicode letters, digits, "_", "-" and "/" remain, never at either end;
+     * empty becomes "blank". Same rule as cleanTitle in haxcms-nodejs
+     * (src/lib/slugRules.js).
      */
     public function cleanTitle($value, $stripPage = true)
     {
-        $cleanTitle = trim($value);
+        $cleanTitle = trim(is_scalar($value) ? (string) $value : '');
         // strips off the identifies for a page on the file system
         if ($stripPage) {
             $cleanTitle = str_replace(
@@ -1652,25 +1667,12 @@ class HAXCMS
                 str_replace('/index.html', '', $cleanTitle)
             );
         }
+        $cleanTitle = mb_scrub($cleanTitle, 'UTF-8');
         // remove path slashes as title cleaning is commonly used for filename purposes
         $cleanTitle = str_replace('./', '', $cleanTitle);
         $cleanTitle = str_replace('../', '', $cleanTitle);
-        $cleanTitle = strtolower(str_replace(' ', '-', $cleanTitle));
-        $cleanTitle = preg_replace('/[^\w\-\/]+/u', '-', $cleanTitle);
-        $cleanTitle = mb_strtolower(
-            preg_replace('/--+/u', '-', $cleanTitle),
-            'UTF-8'
-        );
-        // strip leading/trailing dots, hyphens and slashes left behind by the
-        // single-pass traversal strip above so a title never starts or ends
-        // with separators (e.g. "../etc" -> "etc", not "-etc"). Consistent
-        // with the SiteRouteUtils::cleanSlug fallback fix.
-        $cleanTitle = trim($cleanTitle, '-./');
-        // ensure we don't return an empty title or it could break downstream things
-        if ($cleanTitle == '') {
-            $cleanTitle = 'blank';
-        }
-        return $cleanTitle;
+        $cleanTitle = str_replace(' ', '-', $cleanTitle);
+        return $this->finishSlug($cleanTitle, false);
     }
     /**
      * Convert configured integer values with fallback and bounds checking.

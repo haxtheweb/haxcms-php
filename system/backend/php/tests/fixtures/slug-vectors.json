@@ -1,0 +1,359 @@
+{
+  "description": "Shared slug vectors: haxcms-nodejs test/fixtures/slug-vectors.json and haxcms-php system/backend/php/tests/fixtures/slug-vectors.json must stay identical. Each case lists the input and the expected HAXCMS.cleanTitle(input), cleanTitle(input, false) and generateSlugName(input).",
+  "cases": [
+    {
+      "input": "C++ & C#",
+      "cleanTitle": "c-c",
+      "cleanTitleKeepPage": "c-c",
+      "generateSlugName": "c-c"
+    },
+    {
+      "input": "日本語のページ",
+      "cleanTitle": "日本語のページ",
+      "cleanTitleKeepPage": "日本語のページ",
+      "generateSlugName": "日本語のページ"
+    },
+    {
+      "input": "Über cool",
+      "cleanTitle": "über-cool",
+      "cleanTitleKeepPage": "über-cool",
+      "generateSlugName": "über-cool"
+    },
+    {
+      "input": "",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "   ",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "...",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "../etc",
+      "cleanTitle": "etc",
+      "cleanTitleKeepPage": "etc",
+      "generateSlugName": "etc"
+    },
+    {
+      "input": "../../etc/passwd",
+      "cleanTitle": "etc/passwd",
+      "cleanTitleKeepPage": "etc/passwd",
+      "generateSlugName": "etc/passwd"
+    },
+    {
+      "input": "..%2fetc",
+      "cleanTitle": "2fetc",
+      "cleanTitleKeepPage": "2fetc",
+      "generateSlugName": "etc"
+    },
+    {
+      "input": "%2e%2e/etc",
+      "cleanTitle": "2e-2e/etc",
+      "cleanTitleKeepPage": "2e-2e/etc",
+      "generateSlugName": "etc"
+    },
+    {
+      "input": "a/../b",
+      "cleanTitle": "a/-b",
+      "cleanTitleKeepPage": "a/-b",
+      "generateSlugName": "a/b"
+    },
+    {
+      "input": "a\\..\\b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "ab"
+    },
+    {
+      "input": "a..b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "ab"
+    },
+    {
+      "input": "./foo",
+      "cleanTitle": "foo",
+      "cleanTitleKeepPage": "foo",
+      "generateSlugName": "foo"
+    },
+    {
+      "input": "a/./b",
+      "cleanTitle": "a/b",
+      "cleanTitleKeepPage": "a/b",
+      "generateSlugName": "a/b"
+    },
+    {
+      "input": "foo/",
+      "cleanTitle": "foo",
+      "cleanTitleKeepPage": "foo",
+      "generateSlugName": "foo"
+    },
+    {
+      "input": "/foo",
+      "cleanTitle": "foo",
+      "cleanTitleKeepPage": "foo",
+      "generateSlugName": "foo"
+    },
+    {
+      "input": "//a//b//",
+      "cleanTitle": "a//b",
+      "cleanTitleKeepPage": "a//b",
+      "generateSlugName": "a/b"
+    },
+    {
+      "input": "a//b",
+      "cleanTitle": "a//b",
+      "cleanTitleKeepPage": "a//b",
+      "generateSlugName": "a/b"
+    },
+    {
+      "input": "UPPER/LOWER",
+      "cleanTitle": "upper/lower",
+      "cleanTitleKeepPage": "upper/lower",
+      "generateSlugName": "upper/lower"
+    },
+    {
+      "input": "a!b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "a-b"
+    },
+    {
+      "input": "Hello World",
+      "cleanTitle": "hello-world",
+      "cleanTitleKeepPage": "hello-world",
+      "generateSlugName": "hello-world"
+    },
+    {
+      "input": "pages/foo/index.html",
+      "cleanTitle": "foo",
+      "cleanTitleKeepPage": "pages/foo/index-html",
+      "generateSlugName": "pages/foo/index-html"
+    },
+    {
+      "input": "a ./ b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "a-b"
+    },
+    {
+      "input": "-foo-",
+      "cleanTitle": "foo",
+      "cleanTitleKeepPage": "foo",
+      "generateSlugName": "foo"
+    },
+    {
+      "input": "x",
+      "cleanTitle": "x",
+      "cleanTitleKeepPage": "x",
+      "generateSlugName": "x"
+    },
+    {
+      "input": "x/y",
+      "cleanTitle": "x/y",
+      "cleanTitleKeepPage": "x/y",
+      "generateSlugName": "x/y"
+    },
+    {
+      "input": "İstanbul",
+      "cleanTitle": "i̇stanbul",
+      "cleanTitleKeepPage": "i̇stanbul",
+      "generateSlugName": "i̇stanbul"
+    },
+    {
+      "input": "ΟΔΟΣ",
+      "cleanTitle": "οδος",
+      "cleanTitleKeepPage": "οδος",
+      "generateSlugName": "οδος"
+    },
+    {
+      "input": "हिन्दी",
+      "cleanTitle": "ह-न-द",
+      "cleanTitleKeepPage": "ह-न-द",
+      "generateSlugName": "ह-न-द"
+    },
+    {
+      "input": "Ünïcödé Ünder_score",
+      "cleanTitle": "ünïcödé-ünder_score",
+      "cleanTitleKeepPage": "ünïcödé-ünder_score",
+      "generateSlugName": "ünïcödé-ünder_score"
+    },
+    {
+      "input": "①² digits",
+      "cleanTitle": "①²-digits",
+      "cleanTitleKeepPage": "①²-digits",
+      "generateSlugName": "①²-digits"
+    },
+    {
+      "input": "a\u0000b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "ab"
+    },
+    {
+      "input": "100%",
+      "cleanTitle": "100",
+      "cleanTitleKeepPage": "100",
+      "generateSlugName": "100"
+    },
+    {
+      "input": "%41%zz",
+      "cleanTitle": "41-zz",
+      "cleanTitleKeepPage": "41-zz",
+      "generateSlugName": "a-zz"
+    },
+    {
+      "input": "%E6%97%A5%E6",
+      "cleanTitle": "e6-97-a5-e6",
+      "cleanTitleKeepPage": "e6-97-a5-e6",
+      "generateSlugName": "日"
+    },
+    {
+      "input": "a+b c",
+      "cleanTitle": "a-b-c",
+      "cleanTitleKeepPage": "a-b-c",
+      "generateSlugName": "a-b-c"
+    },
+    {
+      "input": "emoji 😀 test",
+      "cleanTitle": "emoji-test",
+      "cleanTitleKeepPage": "emoji-test",
+      "generateSlugName": "emoji-test"
+    },
+    {
+      "input": "tab\there",
+      "cleanTitle": "tab-here",
+      "cleanTitleKeepPage": "tab-here",
+      "generateSlugName": "tab-here"
+    },
+    {
+      "input": "  trimmed  ",
+      "cleanTitle": "trimmed",
+      "cleanTitleKeepPage": "trimmed",
+      "generateSlugName": "trimmed"
+    },
+    {
+      "input": "---",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "-./-",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "Ça va? Ça va!",
+      "cleanTitle": "ça-va-ça-va",
+      "cleanTitleKeepPage": "ça-va-ça-va",
+      "generateSlugName": "ça-va-ça-va"
+    },
+    {
+      "input": "Ñandú/Çedilla",
+      "cleanTitle": "ñandú/çedilla",
+      "cleanTitleKeepPage": "ñandú/çedilla",
+      "generateSlugName": "ñandú/çedilla"
+    },
+    {
+      "input": "a__b",
+      "cleanTitle": "a__b",
+      "cleanTitleKeepPage": "a__b",
+      "generateSlugName": "a__b"
+    },
+    {
+      "input": "مرحبا بالعالم",
+      "cleanTitle": "مرحبا-بالعالم",
+      "cleanTitleKeepPage": "مرحبا-بالعالم",
+      "generateSlugName": "مرحبا-بالعالم"
+    },
+    {
+      "input": "카페",
+      "cleanTitle": "카페",
+      "cleanTitleKeepPage": "카페",
+      "generateSlugName": "카페"
+    },
+    {
+      "input": "x y",
+      "cleanTitle": "x-y",
+      "cleanTitleKeepPage": "x-y",
+      "generateSlugName": "x-y"
+    },
+    {
+      "input": "%C0%AF..",
+      "cleanTitle": "c0-af",
+      "cleanTitleKeepPage": "c0-af",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "%ZZ%",
+      "cleanTitle": "zz",
+      "cleanTitleKeepPage": "zz",
+      "generateSlugName": "zz"
+    },
+    {
+      "input": "%",
+      "cleanTitle": "blank",
+      "cleanTitleKeepPage": "blank",
+      "generateSlugName": "blank"
+    },
+    {
+      "input": "a%2",
+      "cleanTitle": "a-2",
+      "cleanTitleKeepPage": "a-2",
+      "generateSlugName": "a-2"
+    },
+    {
+      "input": "foo%00bar",
+      "cleanTitle": "foo-00bar",
+      "cleanTitleKeepPage": "foo-00bar",
+      "generateSlugName": "foo-bar"
+    },
+    {
+      "input": ".hidden",
+      "cleanTitle": "hidden",
+      "cleanTitleKeepPage": "hidden",
+      "generateSlugName": "hidden"
+    },
+    {
+      "input": "name.",
+      "cleanTitle": "name",
+      "cleanTitleKeepPage": "name",
+      "generateSlugName": "name"
+    },
+    {
+      "input": "a.b.c",
+      "cleanTitle": "a-b-c",
+      "cleanTitleKeepPage": "a-b-c",
+      "generateSlugName": "a-b-c"
+    },
+    {
+      "input": "a‿b",
+      "cleanTitle": "a-b",
+      "cleanTitleKeepPage": "a-b",
+      "generateSlugName": "a-b"
+    },
+    {
+      "input": "café ok",
+      "cleanTitle": "cafe-ok",
+      "cleanTitleKeepPage": "cafe-ok",
+      "generateSlugName": "cafe-ok"
+    },
+    {
+      "input": "Café/Été",
+      "cleanTitle": "café/été",
+      "cleanTitleKeepPage": "café/été",
+      "generateSlugName": "café/été"
+    }
+  ]
+}

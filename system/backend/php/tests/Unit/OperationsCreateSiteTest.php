@@ -384,6 +384,65 @@ class OperationsCreateSiteTest extends TestCase
         $this->assertSame('by-nc-sa', $this->persistedSite()->license);
     }
 
+    public function testFromSkeletonEmptyThemeRegionsPersistAsJsonObject(): void
+    {
+        // a trimmed skeleton (no fullThemeConfig.settings) carries the theme
+        // registry entry with "regions": {}; json_decode(..., true) turns that
+        // into an empty PHP array, which used to be written as "regions": []
+        // while haxcms-nodejs writes {} (haxtheweb/issues#3292)
+        $skeletonDir = $this->haxcms->configDirectory . '/user/skeletons';
+        if (!is_dir($skeletonDir)) {
+            mkdir($skeletonDir, 0777, true);
+        }
+        file_put_contents($skeletonDir . '/regions-skel.json', json_encode((object) array(
+            'meta' => (object) array('machineName' => 'regions-skel', 'name' => 'Regions Skel'),
+            'site' => (object) array('theme' => 'my-theme'),
+            'theme' => (object) array(
+                'element' => 'my-theme',
+                'name' => 'My Theme',
+                'regions' => new stdClass(),
+            ),
+            '_skeleton' => (object) array(
+                'fullThemeConfig' => (object) array(
+                    'element' => 'my-theme',
+                    'variables' => (object) array('hexCode' => '#0055cc'),
+                ),
+            ),
+            'build' => (object) array(
+                'type' => 'skeleton',
+                'structure' => 'from-skeleton',
+                'items' => array(),
+                'files' => new stdClass(),
+            ),
+        )));
+
+        $result = $this->runCreateSite(
+            array('name' => 'Regions Site'),
+            array(
+                'structure' => 'from-skeleton',
+                'type' => 'skeleton',
+                'skeletonMachineName' => 'regions-skel',
+                'items' => array(),
+                'files' => array(),
+            )
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertInstanceOf(stdClass::class, $result['data']->metadata->theme->regions);
+
+        $raw = file_get_contents($this->siteDir() . '/site.json');
+        $this->assertMatchesRegularExpression('/"regions":\s*\{\s*\}/', $raw);
+        $this->assertStringNotContainsString('"regions": []', $raw);
+        $this->assertInstanceOf(stdClass::class, $this->persistedSite()->metadata->theme->regions);
+    }
+
+    public function testThemeWithoutRegionsGetsNoRegionsKey(): void
+    {
+        // the registry theme has no regions; nodejs writes none either
+        $result = $this->runCreateSite(array('name' => 'No Regions', 'theme' => 'my-theme'));
+        $this->assertSame(200, $result['status']);
+        $this->assertFalse(isset($this->persistedSite()->metadata->theme->regions));
+    }
+
     // =========================================================================
     // License normalization
     // =========================================================================

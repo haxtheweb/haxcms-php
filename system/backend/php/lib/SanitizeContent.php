@@ -423,6 +423,26 @@ class SanitizeContent
     }
 
     /**
+     * Security (SEC-SANITIZE): an auto page description is plain text
+     * derived from the page body only. The caller passes the body without
+     * its <page-break> element (pageBreakParser content), so page attributes
+     * can never reach the description. Tags are stripped, entities decoded,
+     * then tags stripped again so decoded markup cannot survive; every CR /
+     * LF is removed and the result is cut at 200 characters (code points,
+     * not bytes). Mirrors pageDescriptionFromBody in haxcms-nodejs
+     * (src/lib/sanitizePageMetadata.js).
+     */
+    public static function pageDescription($body)
+    {
+        if (!is_string($body)) {
+            return '';
+        }
+        $text = self::plainText(strip_tags($body));
+        $text = str_replace(array("\r", "\n"), '', $text);
+        return mb_substr($text, 0, 200, 'UTF-8');
+    }
+
+    /**
      * Security (SEC-SANITIZE): values interpolated into managed JSON / XML /
      * text files (manifest.json, package.json, imsmanifest.xml, llms.txt).
      * Twig's HTML autoescape handles quotes, but a raw newline or backslash

@@ -333,13 +333,10 @@ trait OperationsRouteSaveNode {
                   $page->description = SanitizeContent::plainText($data["attributes"]["description"]);
                 }
                 else {
-                  // Security (SEC-SANITIZE): decode BEFORE stripping
-                  $decodedClean = SanitizeContent::plainText($clean);
-                  $page->description = str_replace(
-                    "\n",
-                    '',
-                    substr($decodedClean, 0, 200)
-                );
+                  // Security (SEC-SANITIZE): description is plain text derived
+                  // from this page's body only ($data['content'] never holds
+                  // the <page-break> element or its attributes)
+                  $page->description = SanitizeContent::pageDescription($data['content']);
                 }
                 $readtime = round(str_word_count($clean) / 200);
                 // account for uber small body
@@ -406,6 +403,13 @@ trait OperationsRouteSaveNode {
                 FileContentScanner::rebuildPageFilesUuids($site, $page, $sanitizedContent);
                 $site->updateNode($page);
                 $site->writePageAlternateFormats($page, $sanitizedContent);
+                // stamp the site as updated and save site.json in tree order
+                // (orderTree), the same order every reordering save writes;
+                // mirrors saveNode in haxcms-nodejs
+                if (isset($site->manifest->metadata->site) && is_object($site->manifest->metadata->site)) {
+                  $site->manifest->metadata->site->updated = time();
+                }
+                $site->manifest->save();
                 $site->gitCommit(
                   'Page updated: ' . $page->title . ' (' . $page->id . ')'
                 );

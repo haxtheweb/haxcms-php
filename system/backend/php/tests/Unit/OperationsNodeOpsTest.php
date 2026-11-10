@@ -1111,6 +1111,99 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertStringStartsWith('renamed-parent/', $bySlug['item-b']);
         $this->assertSame('keep-me', $bySlug['item-c']);
     }
+
+    // =========================================================================
+    // saveNode — nodejs parity (haxtheweb/issues#3292): auto description from
+    // the page body only, and site.json written in tree order
+    // =========================================================================
+
+    public function testSaveNodeDescriptionNeverIncludesPageBreakAttributes(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="a &lt;b&gt;bold&lt;/b&gt;" slug="x" order="6" item-id="item-a"></page-break><p>Hi</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Hi', $result['data']->description);
+        $this->assertSame('a bold', $result['data']->title);
+    }
+
+    public function testSaveNodeDescriptionCutsAt200CharactersAndDropsNewlines(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a"></page-break><p>' . str_repeat("日本\n", 150) . '</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        // substr() used to cut at 200 bytes, splitting a character
+        $this->assertSame(str_repeat('日本', 100), $result['data']->description);
+    }
+
+    public function testSaveNodeExplicitDescriptionAttributeIsKept(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a" description="Mine &lt;b&gt;only&lt;/b&gt;"></page-break><p>Body</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Mine only', $result['data']->description);
+    }
+
+    public function testSaveNodeWritesItemsInTreeOrder(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->bodyFixtureDir . '/' . $this->siteName;
+        $item = function ($id, $parent, $order) {
+            return (object) array(
+                'id' => $id,
+                'indent' => $parent ? 1 : 0,
+                'location' => 'pages/' . $id . '/index.html',
+                'slug' => $id,
+                'order' => $order,
+                'parent' => $parent,
+                'title' => $id,
+                'description' => '',
+                'metadata' => (object) array('created' => 1000000, 'updated' => 1000000),
+            );
+        };
+        foreach (array('child-b1', 'top-b', 'top-a', 'child-a1', 'item-1') as $id) {
+            if (!is_dir($siteDir . '/pages/' . $id)) {
+                mkdir($siteDir . '/pages/' . $id, 0777, true);
+            }
+            file_put_contents($siteDir . '/pages/' . $id . '/index.html', '<p></p>');
+        }
+        // stored out of tree order: children before parents, siblings unsorted
+        // (same fixture as haxcms-nodejs test/unit/slug-description-parity)
+        $manifest = json_decode(file_get_contents($siteDir . '/site.json'));
+        $manifest->items = array(
+            $item('child-b1', 'top-b', 0),
+            $item('top-b', null, 2),
+            $item('top-a', null, 0),
+            $item('child-a1', 'top-a', 0),
+            $item('item-1', null, 1),
+        );
+        file_put_contents($siteDir . '/site.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        $site = new OperationsNodeTestSite();
+        $site->load($this->bodyFixtureDir, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+
+        $result = $this->saveNodeBody(
+            '<page-break title="item-1" item-id="item-1" order="1"></page-break><p>Saved</p>',
+            array('id' => 'item-1')
+        );
+        $this->assertSame(200, $result['status']);
+
+        $written = json_decode(file_get_contents($siteDir . '/site.json'));
+        $ids = array();
+        foreach ($written->items as $writtenItem) {
+            $ids[] = $writtenItem->id;
+        }
+        // orderTree: stable sort by order, then each page followed by its
+        // children; haxcms-nodejs asserts the same list for the same fixture
+        $this->assertSame(array('child-b1', 'top-a', 'child-a1', 'item-1', 'top-b'), $ids);
+        $this->assertSame('Saved', $written->items[3]->description);
+        $this->assertIsInt($written->metadata->site->updated);
+    }
 }
 
 /**

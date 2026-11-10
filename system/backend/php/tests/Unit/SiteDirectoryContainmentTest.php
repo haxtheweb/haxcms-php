@@ -7,9 +7,9 @@ use PHPUnit\Framework\TestCase;
  * load that directory as a site. Mirrors haxcms-nodejs
  * test/unit/site-directory-containment.test.cjs.
  *
- * The real HAXCMS::cleanTitle() keeps "/" (it only maps characters outside
- * [\w-/] to "-"), so a passthrough stand-in reproduces what load() receives.
- * The suite's shared OperationsTestHaxcms mock trims slashes and cannot.
+ * The real HAXCMS::cleanTitle() trims "/" from both ends ("/" becomes
+ * "blank", see SlugDescriptionParityTest), so a passthrough stand-in is used
+ * to prove the containment check itself still refuses such a name.
  */
 class SiteDirectoryContainmentTest extends TestCase
 {
