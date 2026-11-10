@@ -891,7 +891,7 @@ paths:
       summary: Return configured API keys and provider statuses
       description: >
         Returns all configured system API keys and provider connection
-        statuses. security (F3/authz): this endpoint exposes system-wide
+        statuses. Security (SEC-ROUTE): this endpoint exposes system-wide
         credentials and is restricted to the superUser (admin) principal on
         the PHP backend (see
         SystemRoutesMap::getSystemV1SuperUserReadRoutes and the handler
@@ -924,7 +924,7 @@ paths:
       description: >
         Read-only alias of GET /configuration/api-keys. POST is accepted for
         callers that prefer POST over GET but does not write; use PATCH to
-        update API key settings. security (F3/authz): like the GET, this
+        update API key settings. Security (SEC-ROUTE): like the GET, this
         endpoint exposes system-wide credentials and is restricted to the
         superUser (admin) principal on the PHP backend; a non-superUser
         authenticated caller receives 403. Single-user deployment assumption:

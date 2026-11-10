@@ -319,7 +319,7 @@ assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'
 // to 'admin' because it returns system-wide credentials — see
 // SystemRoutesMap::getSystemV1SuperUserReadRoutes. The handler adds a
 // defense-in-depth superUser check too (regression tests below).
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys GET is admin (F3: credential exposure gated to superUser)');
+assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'v1/configuration/api-keys GET is admin (credential exposure gated to superUser)');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/blocks', 'GET'), 'v1/blocks GET is authenticated');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/sites', 'GET'), 'v1/sites is authenticated');
 // Site-lifecycle mutations must NOT elevate to 'admin' — they fall through to
@@ -450,7 +450,7 @@ foreach ($pathMatrix as $case) {
 }
 
 // Test 14: Security (SEC-ROUTE) — site-lifecycle object-level authorization
-echo "\n[14] F2/IDOR-001 site-lifecycle IDOR guard...\n";
+echo "\n[14] site-lifecycle object-level authorization guard...\n";
 // Save state to restore after the IDOR assertions.
 $idorSavedIam = isset($HAXCMS->config->iam) ? $HAXCMS->config->iam : null;
 $idorSavedUserTokenHeader = isset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']) ? $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] : null;
@@ -572,25 +572,25 @@ if ($idorSavedUserTokenHeader !== null) {
 }
 
 // Test 15: Security (SEC-ROUTE) — API keys admin gating (router elevation + defense-in-depth)
-echo "\n[15] F3/authz API keys admin gating...\n";
+echo "\n[15] API keys admin gating...\n";
 // Save the active-user name so the simulated principals are restored.
 $f3SavedUserName = isset($HAXCMS->user->name) ? $HAXCMS->user->name : null;
 $f3RealSuperUserName = isset($HAXCMS->superUser->name) ? $HAXCMS->superUser->name : null;
-assertTrue(is_string($f3RealSuperUserName) && $f3RealSuperUserName !== '', 'F3 test: superUser name is set in test env');
+assertTrue(is_string($f3RealSuperUserName) && $f3RealSuperUserName !== '', 'API keys test: superUser name is set in test env');
 
 // Router elevation: GET + POST on api-keys now resolve to 'admin'. POST was
 // already admin via getSystemV1SuperUserRoutes (non-GET elevation); GET is now
 // admin via getSystemV1SuperUserReadRoutes.
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'F3 router: api-keys GET is admin');
-assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'POST'), 'F3 router: api-keys POST is admin');
+assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'API keys router: api-keys GET is admin');
+assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'POST'), 'API keys router: api-keys POST is admin');
 
 // Defense-in-depth: a non-superUser authenticated principal gets 403 on both
 // read (getApiKeys) and write (saveApiKeys). validateRequestToken returns true
 // in CLI mode, so the user_token gate passes and the superUser check is the
 // gate that fires — this keeps credentials superUser-only.
 $HAXCMS->user->name = 'non-super-f3-test-user';
-assertTrue($HAXCMS->getActiveUserName() === 'non-super-f3-test-user', 'F3 setup: active user is non-superUser');
-assertTrue($HAXCMS->getActiveUserName() !== $HAXCMS->superUser->name, 'F3 setup: active user differs from superUser');
+assertTrue($HAXCMS->getActiveUserName() === 'non-super-f3-test-user', 'API keys setup: active user is non-superUser');
+assertTrue($HAXCMS->getActiveUserName() !== $HAXCMS->superUser->name, 'API keys setup: active user differs from superUser');
 
 $f3Ops = new Operations();
 $f3Ops->params = array('user_token' => 'irrelevant-in-cli');
@@ -599,20 +599,20 @@ $f3Ops->rawParams = $f3Ops->params;
 $f3GetResult = $f3Ops->getApiKeys();
 assertTrue(
     is_array($f3GetResult) && isset($f3GetResult['__failed']) && isset($f3GetResult['__failed']['status']) && intval($f3GetResult['__failed']['status']) === 403,
-    'F3 defense-in-depth: getApiKeys returns 403 __failed for non-superUser'
+    'API keys defense-in-depth: getApiKeys returns 403 __failed for non-superUser'
 );
 
 $f3SaveResult = $f3Ops->saveApiKeys();
 assertTrue(
     is_array($f3SaveResult) && isset($f3SaveResult['__failed']) && isset($f3SaveResult['__failed']['status']) && intval($f3SaveResult['__failed']['status']) === 403,
-    'F3 defense-in-depth: saveApiKeys returns 403 __failed for non-superUser'
+    'API keys defense-in-depth: saveApiKeys returns 403 __failed for non-superUser'
 );
 
 // SuperUser principal: getApiKeys proceeds past the superUser check and
 // returns 200 (readAPIKeys returns normalized defaults when no apiKeys.json
 // exists and never throws, so the success path is deterministic).
 $HAXCMS->user->name = $f3RealSuperUserName;
-assertTrue($HAXCMS->getActiveUserName() === $HAXCMS->superUser->name, 'F3 setup: active user is superUser');
+assertTrue($HAXCMS->getActiveUserName() === $HAXCMS->superUser->name, 'API keys setup: active user is superUser');
 
 $f3SuperOps = new Operations();
 $f3SuperOps->params = array('user_token' => 'irrelevant-in-cli');
@@ -620,34 +620,34 @@ $f3SuperOps->rawParams = $f3SuperOps->params;
 $f3SuperGetResult = $f3SuperOps->getApiKeys();
 assertTrue(
     is_array($f3SuperGetResult) && isset($f3SuperGetResult['status']) && intval($f3SuperGetResult['status']) === 200 && !isset($f3SuperGetResult['__failed']),
-    'F3 defense-in-depth: getApiKeys returns 200 for superUser'
+    'API keys defense-in-depth: getApiKeys returns 200 for superUser'
 );
 
 // Restore the active-user name so the test environment is left as found.
 $HAXCMS->user->name = $f3SavedUserName;
 
 // Test 16: Security (SEC-UPLOAD, SEC-DEPLOY) — nginx + apache force-download for uploaded .html under /files/
-echo "\n[16] F6/XSS html upload force-download config...\n";
+echo "\n[16] html upload force-download config...\n";
 // .html stays in the upload allowlist (user decision: keep it); the fix is on
 // the SERVING side so uploaded .html is downloaded, not rendered inline.
 $f6FileLib = file_get_contents($repoRoot . '/system/backend/php/lib/HAXCMSFile.php');
-assertContains("'html'", $f6FileLib, 'F6: .html remains in HAXCMSFile allowedUploadPattern (allowlist unchanged per user decision)');
+assertContains("'html'", $f6FileLib, 'upload force-download: .html remains in HAXCMSFile allowedUploadPattern (allowlist unchanged per user decision)');
 
 // DDEV/dev nginx: a regex location forces Content-Disposition: attachment for
 // /files/*.html, placed before the catch-all location /.
 $f6NginxConf = file_get_contents($repoRoot . '/.ddev/nginx-site.conf');
-assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxConf, 'F6/SEC-UPLOAD: .ddev/nginx-site.conf has /files/ markup (html|htm|xhtml|xml|svg) location rule');
-assertContains('Content-Disposition attachment', $f6NginxConf, 'F6: .ddev/nginx-site.conf sets Content-Disposition attachment');
+assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxConf, 'SEC-UPLOAD: .ddev/nginx-site.conf has /files/ markup (html|htm|xhtml|xml|svg) location rule');
+assertContains('Content-Disposition attachment', $f6NginxConf, 'upload force-download: .ddev/nginx-site.conf sets Content-Disposition attachment');
 
 // Reference production nginx snippet ships the same rule for prod deployments.
 $f6NginxProd = file_get_contents($repoRoot . '/scripts/nginx/haxcms-nginx.conf');
-assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxProd, 'F6/SEC-UPLOAD: scripts/nginx/haxcms-nginx.conf reference snippet has /files/ markup location rule');
-assertContains('Content-Disposition attachment', $f6NginxProd, 'F6: scripts/nginx/haxcms-nginx.conf sets Content-Disposition attachment');
+assertContains('location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$', $f6NginxProd, 'SEC-UPLOAD: scripts/nginx/haxcms-nginx.conf reference snippet has /files/ markup location rule');
+assertContains('Content-Disposition attachment', $f6NginxProd, 'upload force-download: scripts/nginx/haxcms-nginx.conf sets Content-Disposition attachment');
 
 // Apache: the existing .htaccess force-download rule is retained.
 $f6Htaccess = file_get_contents($repoRoot . '/.htaccess');
-assertContains('Content-Disposition', $f6Htaccess, 'F6: .htaccess retains Apache Content-Disposition force-download rule');
-assertContains('<If "%{REQUEST_URI} =~ m#/files/.*\\.(?:html?|xhtml|xml|svg)$#i">', $f6Htaccess, 'F6/SEC-UPLOAD: .htaccess force-download rule matches decoded /files/ markup paths');
+assertContains('Content-Disposition', $f6Htaccess, 'upload force-download: .htaccess retains Apache Content-Disposition force-download rule');
+assertContains('<If "%{REQUEST_URI} =~ m#/files/.*\\.(?:html?|xhtml|xml|svg)$#i">', $f6Htaccess, 'SEC-UPLOAD: .htaccess force-download rule matches decoded /files/ markup paths');
 
 // Summary
 echo "\n=== Results ===\n";
