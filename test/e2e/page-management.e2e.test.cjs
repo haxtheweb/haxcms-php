@@ -98,7 +98,69 @@ async function waitForDeep(p, chain, timeoutMs) {
   return waitFor(async () => deepQuery(p, chain), timeoutMs)
 }
 
-// Ensure the outline editor dialog is open (re-click #outlinebutton if the
+// Open Structure (the outline editor) the way a person does now: hover the
+// house (#manifestbtn) to open the site settings menu, then click its
+// Structure quick link. The top bar's #outlinebutton was removed by
+// haxtheweb/webcomponents 9f7a70591b. If the hover does not reveal the link,
+// click the same link in the DOM; only if the link is not in the build, call
+// the editor's own Structure opener. Logs which path it took. Mirrors
+// haxcms-nodejs test/e2e/helpers/flows.cjs openStructure.
+async function openStructure(p, t) {
+  const sel = selectors.editor
+  const found = await p.evaluate((itemSel) => {
+    const ui = document.querySelector('haxcms-site-editor-ui')
+    if (!ui || !ui.shadowRoot) return { error: 'no ui' }
+    const item = ui.shadowRoot.querySelector(itemSel)
+    return {
+      item: !!item,
+      disabled: !!(item && item.hasAttribute('disabled')),
+      editMode: ui.hasAttribute('edit-mode'),
+    }
+  }, sel.structureMenuItem)
+  let result = null
+  if (found.item && !found.disabled) {
+    let realClick = false
+    let realClickError = null
+    try {
+      const house = await p.$(sel.editorUi + ' >>> ' + sel.manifestButton)
+      if (house) {
+        await house.hover()
+        const item = await p.waitForSelector(sel.editorUi + ' >>> ' + sel.structureMenuItem, {
+          visible: true,
+          timeout: 5000,
+        })
+        await item.click()
+        realClick = true
+      }
+    } catch (e) {
+      realClickError = e && e.message ? e.message : String(e)
+    }
+    if (realClick) {
+      result = { path: 'site-menu Structure link (hover house, click)' }
+    } else {
+      const domClick = await p.evaluate((itemSel) => {
+        const ui = document.querySelector('haxcms-site-editor-ui')
+        const item = ui.shadowRoot.querySelector(itemSel)
+        if (!item) return false
+        item.click()
+        return true
+      }, sel.structureMenuItem)
+      result = { path: 'site-menu Structure link (DOM click)', clicked: domClick, hoverError: realClickError }
+    }
+  } else {
+    const called = await p.evaluate(() => {
+      const ui = document.querySelector('haxcms-site-editor-ui')
+      if (!ui || typeof ui._outlineButtonTap !== 'function') return false
+      ui._outlineButtonTap(null, true, 'Structure')
+      return true
+    })
+    result = { path: 'fallback: _outlineButtonTap (Structure control not found)', called: called, found: found }
+  }
+  if (t) t.diagnostic('[outline] opened Structure via ' + JSON.stringify(result))
+  return result
+}
+
+// Ensure the outline editor dialog is open (reopen Structure if the
 // dialog is not currently present). The outline modal can auto-dismiss during
 // slow operations (e.g. axe-core injection), so call this before the a11y scan
 // and before the visual capture to guarantee the dialog is on screen. Returns
@@ -114,17 +176,8 @@ async function ensureOutlineOpen(p, t) {
     return !!(d2 && d2.shadowRoot)
   })
   if (present) return true
-  if (t) t.diagnostic('[outline] dialog not present; re-clicking #outlinebutton to reopen')
-  await p.evaluate(() => {
-    var ui = document.querySelector('haxcms-site-editor-ui')
-    if (!ui || !ui.shadowRoot) return false
-    var btn = ui.shadowRoot.querySelector('#outlinebutton')
-    if (!btn) return false
-    var inner = btn.shadowRoot && btn.shadowRoot.querySelector('button')
-    if (inner) inner.click()
-    else btn.click()
-    return true
-  })
+  if (t) t.diagnostic('[outline] dialog not present; reopening Structure')
+  await openStructure(p, t)
   const ready = await waitFor(
     async () =>
       p.evaluate(() => {
@@ -654,29 +707,15 @@ test('page management e2e (add + delete page on HAXSITEAUTOMATEDTESTING)', { tim
   }
   t.diagnostic('[delete-page] cross-check OK: item removed from manifest + items list')
 
-  // 9. A11y: open the outline editor dialog (#outlinebutton in editor-ui
-  //    shadowRoot) -> a simple-modal with haxcms-outline-editor-dialog as a
-  //    light-DOM child. The #outlinebutton is disabled in edit mode, but we never
-  //    entered edit mode (create/delete used global events), so it is enabled.
-  //
-  //    Click detail (VERIFIED by discovery): #outlinebutton is a
-  //    simple-toolbar-button whose click handler lives on its INNER <button> (in
-  //    its own shadowRoot), so click the inner button and fall back to the host
-  //    .click() — matches the discovery clickEditorButtonById pattern. Calling
-  //    only btn.click() on the host does NOT open the modal.
-  const outlineClicked = await page.evaluate(() => {
-    const ui = document.querySelector('haxcms-site-editor-ui')
-    if (!ui || !ui.shadowRoot) return { error: 'no editor-ui shadowRoot' }
-    const btn = ui.shadowRoot.querySelector('#outlinebutton')
-    if (!btn) return { error: 'no #outlinebutton' }
-    if (btn.hasAttribute('disabled')) return { error: 'outlinebutton disabled (in edit mode?)' }
-    var inner = btn.shadowRoot && btn.shadowRoot.querySelector('button')
-    if (inner) inner.click()
-    else btn.click()
-    return { clicked: true, usedInner: !!(inner) }
-  })
-  assert.ok(outlineClicked.clicked, '#outlinebutton clicked to open outline editor: ' + JSON.stringify(outlineClicked))
-  t.diagnostic('[outline] #outlinebutton clicked (usedInner=' + outlineClicked.usedInner + ')')
+  // 9. A11y: open Structure (the outline editor) from the house's site
+  //    settings menu -> a simple-modal with haxcms-outline-editor-dialog as a
+  //    light-DOM child. The menu is hidden in edit mode, but we never entered
+  //    edit mode (create/delete used global events).
+  const outlineOpened = await openStructure(page, t)
+  assert.ok(
+    outlineOpened.path.indexOf('fallback') === -1 || outlineOpened.called,
+    'Structure opened: ' + JSON.stringify(outlineOpened),
+  )
 
   // Wait for haxcms-outline-editor-dialog. It is a light-DOM child of
   // simple-modal, but there may be multiple simple-modal instances (e.g. a stale
@@ -707,12 +746,12 @@ test('page management e2e (add + delete page on HAXSITEAUTOMATEDTESTING)', { tim
         })
       }
       var ui = document.querySelector('haxcms-site-editor-ui')
-      var btn = ui && ui.shadowRoot ? ui.shadowRoot.querySelector('#outlinebutton') : null
+      var btn = ui && ui.shadowRoot ? ui.shadowRoot.querySelector('#site-menu app-hax-user-menu-button[data-route="structure"]') : null
       return {
         modalCount: modals.length,
         modalInfo: modalInfo,
         outlineDialogAnywhere: !!document.querySelector('haxcms-outline-editor-dialog'),
-        outlineBtnDisabled: btn ? btn.hasAttribute('disabled') : null,
+        structureLinkDisabled: btn ? btn.hasAttribute('disabled') : null,
         uiEditMode: ui ? ui.hasAttribute('edit-mode') : null,
       }
     })

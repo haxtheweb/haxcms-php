@@ -306,14 +306,21 @@ const selectors = {
     // The cancel button (exits edit mode without saving).
     // VERIFIED: simple-toolbar-button#cancelbutton, label="Cancel • Ctrl⇧/"
     cancelButton: '#cancelbutton',
-    // The outline-editor opener button (disabled while in edit mode).
-    // VERIFIED: simple-toolbar-button#outlinebutton, label="Outline • Ctrl⇧2", icon="hax:site-map"
-    outlineButton: '#outlinebutton',
+    // Structure (the outline editor) opener. The top bar's #outlinebutton was
+    // removed by haxtheweb/webcomponents 9f7a70591b; Structure is now a quick
+    // link in the house's site settings menu (#site-menu, opened by hovering
+    // #manifestbtn, ArrowDown on it, or Ctrl⇧2) and opens the admin dialog on
+    // its "structure" route. The menu is hidden in edit mode.
+    // VERIFIED (haxcms-nodejs e2e): app-hax-user-menu#site-menu > app-hax-user-menu-button[data-route="structure"]
+    siteMenu: '#site-menu',
+    structureMenuItem:
+      '#site-menu app-hax-user-menu-button[data-route="structure"]',
     // The add-page button (opens a super-daemon menu; disabled in edit mode).
     // VERIFIED: haxcms-button-add#addpagebutton, label="Add page • Ctrl⇧1", icon="hax:add-page"
     addPageButton: '#addpagebutton',
-    // The site-settings button (disabled in edit mode).
-    // VERIFIED: simple-toolbar-button#manifestbtn, label="Site Settings • Ctrl⇧3"
+    // The house: site settings menu button (disabled in edit mode). Clicking
+    // it goes to the Dashboard; hovering it opens #site-menu.
+    // VERIFIED: simple-toolbar-button#manifestbtn, label="Site Settings • Ctrl⇧2"
     manifestButton: '#manifestbtn',
     // The editor host element (renders inside the active theme).
     // VERIFIED: haxcms-site-editor found via recursive shadow-DOM walk; it has
@@ -403,8 +410,9 @@ const selectors = {
   },
 
   // --- OUTLINE EDITOR (VERIFIED at runtime by .discovery-editor.cjs) -------
-  // The outline editor (page management) is opened by clicking #outlinebutton
-  // in the editor chrome (haxcms-site-editor-ui shadowRoot). It opens a
+  // The outline editor (page management) is opened from the Structure quick
+  // link in the house's site settings menu (selectors.editor.structureMenuItem;
+  // see openStructure in page-management.e2e.test.cjs). It opens a
   // simple-modal containing haxcms-outline-editor-dialog as a light-DOM
   // (slotted) child. The dialog shadowRoot contains outline-designer#outline
   // and two .hax-modal-btn buttons ("Save Outline" and "Import From File").
