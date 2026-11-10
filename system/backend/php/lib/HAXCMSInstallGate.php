@@ -59,7 +59,7 @@ class HAXCMSInstallGate
     }
 
     /**
-     * Security (M-1): source-level twin of isNotInstalled() for callers that
+     * Security (SEC-INSTALL): source-level twin of isNotInstalled() for callers that
      * run before bootstrap (index.php, install.php). Matches only the exact
      * boilerplate ASSIGNMENTS (e.g. `->superUser->password = 'jimmerson';`),
      * never a bare substring, so a real config that merely contains "jeff"

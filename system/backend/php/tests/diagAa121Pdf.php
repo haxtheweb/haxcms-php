@@ -1,5 +1,5 @@
 <?php
-// Security (H-2): CLI only; never executable over HTTP against live config.
+// Security (SEC-DEPLOY): CLI only; never executable over HTTP against live config.
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * Diagnostic: trace the aa121 PDF export pipeline to find where content

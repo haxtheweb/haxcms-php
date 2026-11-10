@@ -42,7 +42,7 @@ class HAXSiteConfig {
     ) {
       $this->site->sendPageAlternateHeaders($this->page);
     }
-    // Security (L-5): these values come from site.json (possibly imported /
+    // Security (SEC-SANITIZE): these values come from site.json (possibly imported /
     // cloned without passing save-time filters) and are printed raw by
     // index.php inside <style>, an attribute and <h1>. Encode at output.
     $cssVariable = isset($this->site->manifest->metadata->theme->variables->cssVariable) ? (string) $this->site->manifest->metadata->theme->variables->cssVariable : '';
@@ -106,7 +106,7 @@ class HAXSiteConfig {
     return $out;
   }
   /**
-   * Security (L-5): only a bare CSS custom-property name may be wrapped in
+   * Security (SEC-SANITIZE): only a bare CSS custom-property name may be wrapped in
    * var(); anything else (e.g. a value that closes the style block) falls
    * back to the default accent color.
    */
@@ -117,7 +117,7 @@ class HAXSiteConfig {
     return '#FF2222';
   }
   public function getLanguage() {
-    // Security (L-5): printed into <html lang="...">.
+    // Security (SEC-SANITIZE): printed into <html lang="...">.
     return htmlspecialchars((string) $this->site->getLanguage(), ENT_QUOTES, 'UTF-8');
   }
   public function getBaseTag() {

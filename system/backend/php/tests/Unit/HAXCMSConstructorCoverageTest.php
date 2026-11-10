@@ -155,7 +155,7 @@ class HAXCMSConstructorCoverageTest extends TestCase
             array(array('HTTPS' => 'no'), 'http'),
             array(array('HTTP_USESSL' => '1'), 'https'),
             array(array('protossl' => '1'), 'https'),
-            // Security (SEC-SESSION, haxcms-php#655): a client-supplied
+            // Security (SEC-HEADERS): a client-supplied
             // X-Forwarded-Proto is ignored unless REMOTE_ADDR is a configured
             // trusted proxy (see HAXCMSSessionHardeningTest).
             array(array('HTTP_X_FORWARDED_PROTO' => 'https'), 'http'),

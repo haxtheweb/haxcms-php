@@ -64,7 +64,7 @@ class InstallerAdvanceTest extends TestCase
             return false;
         }
         // Placeholder assignments present => not finished installing. Same
-        // exact-match rule install.php uses (M-1), not a substring scan.
+        // exact-match rule install.php uses, not a substring scan.
         return !HAXCMSInstallGate::configSourceIsNotTemplated($raw);
     }
 

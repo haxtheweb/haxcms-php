@@ -117,7 +117,7 @@ class SystemApiRouter
             );
             return true;
         }
-        // F2/Q14+F3: enforce the provider-search site token in the router for a
+        // Security (SEC-ROUTE): enforce the provider-search site token in the router for a
         // consistent 403 envelope. The spec will be updated by node-backend to
         // declare bearer+siteToken; until the spec sync, this explicit check
         // enforces the Q14 decision. siteName validation stays in the handler.

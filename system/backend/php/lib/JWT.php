@@ -53,7 +53,7 @@ class JWT
             if (empty($header->alg)) {
                 throw new DomainException('Empty algorithm');
             }
-            // Security best practice (L1): pin the algorithm to an explicit
+            // Security (SEC-SESSION): pin the algorithm to an explicit
             // allowlist so a token cannot select an unexpected alg. Defaults to
             // the HMAC-SHA family that sign() supports (HS256/384/512). This is
             // defense in depth: even though sign() rejects unknown algs, an

@@ -214,7 +214,7 @@ class ServicesTest extends TestCase
             array('youtube', 'vimeo', 'giphy', 'unsplash', 'flickr', 'anthropic'),
             array_keys($persisted)
         );
-        // SEC-10: secrets file must be 0600
+        // Security (SEC-INSTALL): secrets file must be 0600
         $this->assertSame(0600, fileperms($filePath) & 0777);
     }
 

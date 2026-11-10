@@ -66,7 +66,7 @@ return function ($context) {
         return;
     }
 
-    // Security (SEC-SSRF / YAML alias amplification): cap the input size and
+    // Security (SEC-DOS): cap the input size and
     // refuse anchors/aliases before parsing, so a "billion laughs" document
     // cannot expand into gigabytes of JSON. Same limit + message as Node.
     if (strlen($yamlData) > SiteRouteUtils::YAML_MAX_INPUT_BYTES) {

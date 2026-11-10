@@ -89,7 +89,7 @@ class OperationsTestHaxcms
         return '0.0.0-test';
     }
 
-    // Security (F3): file-ops rate-limit settings stub. Default enabled=false
+    // Security (SEC-RATELIMIT): file-ops rate-limit settings stub. Default enabled=false
     // so the rate gate is a no-op for pre-existing Operations tests that do not
     // exercise limiting (their HAXCMS mocks have no cache either, which would
     // also fail-open). Tests that DO exercise the gate subclass this mock and

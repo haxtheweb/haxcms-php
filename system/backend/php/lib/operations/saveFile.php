@@ -174,7 +174,7 @@ trait OperationsRouteSaveFile {
           )
         );
       }
-      // Security (HAX-SEC-006 PHP parity): use the server-sanitized filename
+      // Security (SEC-UPLOAD, SEC-EXEC): use the server-sanitized filename
       // from the save result (data.file.name) instead of the raw attacker-
       // controlled $_FILES name, so user input never reaches the git commit
       // message. Mirrors the NodeJS backend (files.js:1218-1222).

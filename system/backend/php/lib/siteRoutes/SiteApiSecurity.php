@@ -124,7 +124,7 @@ class SiteApiSecurity
             return $result;
         }
         if ($policy === 'authenticated-user') {
-            // C1: spec-driven user-token enforcement for site API routes that
+            // Security (SEC-ROUTE): spec-driven user-token enforcement for site API routes that
             // declare userTokenHeader. Mirrors Node validateSiteApiRouteAccess
             // authenticated-user branch (app.js:2328-2354).
             $userToken = null;
@@ -166,10 +166,10 @@ class SiteApiSecurity
         if ($upperMethod === 'OPTIONS') {
             return 'public';
         }
-        // C1/Q6: spec-driven auth policy. Read the security declaration from
+        // Security (SEC-ROUTE): spec-driven auth policy. Read the security declaration from
         // site-spec.yaml at runtime and fail-closed to 'authenticated' for any
         // route not declared in the spec. Mirrors Node getSiteApiRouteAuthPolicy
-        // (app.js:1709). This resolves A1 structurally: files/reports GETs
+        // (app.js:1709). As a result files/reports GETs
         // inherit bearer+siteToken from the spec (authenticated-site) instead of
         // the old regex table which left them as bare 'authenticated'.
         return SiteRouteUtils::getSiteApiRouteAuthPolicy($routeSuffix, $upperMethod);
@@ -230,7 +230,7 @@ class SiteApiSecurity
                 isset($GLOBALS['HAXCMS']->salt)
             ) {
                 $payload = JWT::decode($token, $GLOBALS['HAXCMS']->privateKey . $GLOBALS['HAXCMS']->salt);
-                // Security best practice (N3): this fallback decode path must
+                // Security (SEC-SESSION): this fallback decode path must
                 // enforce access-token expiry just like the primary
                 // HAXCMS::getBearerTokenUserName path; otherwise a stolen token
                 // could be replayed indefinitely when this branch is reached.

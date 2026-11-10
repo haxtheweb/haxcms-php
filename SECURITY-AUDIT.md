@@ -35,6 +35,26 @@ The rules the code keeps. A fix that introduces a new class of rule adds a line 
 - **Deployment:** `_config/`, `_archived/`, `system/backend/php` and `.git` denied at `.htaccess` and vhost/nginx level with the dual-`IfModule` pattern; Docker runs as `www-data` with `php.ini-production`
 - **Parity:** every one of these holds identically in `haxcms-nodejs`, and both `system-spec.yaml` / `site-spec.yaml` stay byte-identical
 
+### Tag vocabulary
+
+Inline comments name the invariant they enforce as `// Security (<TAG>): <rule>` (several tags: `Security (SEC-SSRF, SEC-PATH)`, in the order below). These are the only tags; `haxcms-nodejs` uses the same list so mirrored code carries mirrored tags.
+
+| Tag | Covers | Invariant above |
+| --- | --- | --- |
+| `SEC-SESSION` | JWT, refresh tokens/families, request/user/site tokens, cookies, CSRF / same-origin checks, login, identity resolution | Auth |
+| `SEC-ROUTE` | spec-driven route policy, object-level authz (`userCanAccessSite`), anonymous gates, fail-closed defaults | Route policy |
+| `SEC-SANITIZE` | `SanitizeContent`, iframe sandbox normalisation, page metadata, output escaping in rendered HTML | Stored content |
+| `SEC-SSRF` | any outbound fetch of a user/remote URL (`SsrfGuard`, DNS pinning, redirect checks, byte caps) | Egress |
+| `SEC-PATH` | path containment, traversal, filename/slug/site-name validation, symlink checks | Path containment |
+| `SEC-UPLOAD` | upload validation, extension/MIME checks, force-download of markup files | Uploads |
+| `SEC-EXEC` | `proc_open`/Git argv, no shell strings, no `eval`/`unserialize`/`assert` on input | Process exec |
+| `SEC-HEADERS` | CSP / `frame-ancestors`, CORS, `Referrer-Policy`, trusted Host / `X-Forwarded-*` / proxy handling | Headers |
+| `SEC-RATELIMIT` | login / Basic-auth throttles, request and file-op limiters | Rate limiting |
+| `SEC-INSTALL` | installer, secret/key generation, default credentials, install token, file modes on secrets | Install |
+| `SEC-EXPORT` | download/export artifacts (random names, TTL sweep, `_published/`), CSPRNG identifiers | Randomness |
+| `SEC-DOS` | size caps, ReDoS-safe regexes, decompression / YAML alias amplification limits | Egress, Uploads (caps) |
+| `SEC-DEPLOY` | `.htaccess` / nginx denies, Docker image, deployment config, CLI-only scripts | Deployment |
+
 ## Commands
 
 ```bash
@@ -49,12 +69,12 @@ php -l <changed file>                            # quick lint
 - `php system/backend/php/tests/run.php` — every fix round has kept the full harness passing (251/251 baseline)
 - Security Layer suite (within PHPUnit) for auth/JWT/path changes
 - Inline verification: `../`, `....//`, and null-byte payloads must stay blocked at read AND write locations
-- `FallbackRendererSecurityTest` (N6/N7): the single-site fallback (`system/boilerplate/site/config.php` + `index.php`) must encode every manifest-derived value for its output context and keep `getPageContent` contained to the site directory
+- `FallbackRendererSecurityTest` (`SEC-SANITIZE`, `SEC-PATH`): the single-site fallback (`system/boilerplate/site/config.php` + `index.php`) must encode every manifest-derived value for its output context and keep `getPageContent` contained to the site directory
 
 ## Reporting convention
 
 - Findings and their severities live in the audit PR description or the private advisory, never in committed files; the committed record is the rule, not the finding
-- A fix lands with an inline `// Security (<invariant>)` comment naming the rule it enforces (e.g. `SEC-SSRF`, `SEC-SANITIZE`, `SEC-SESSION`), a regression test in `tests/Unit` (extend `SecurityAuditFixesTest.php` or add a focused file), and, if it is a new class of rule, a line under "Security invariants" in the same PR
+- A fix lands with an inline `// Security (<TAG>)` comment naming the rule it enforces, using only the tags in "Tag vocabulary" above (never a finding ID, severity, audit round or PR number; test names describe the behaviour, not the finding), a regression test in `tests/Unit` (extend `SecurityAuditFixesTest.php` or add a focused file), and, if it is a new class of rule, a line under "Security invariants" in the same PR
 - Cite `file:line` everywhere
 - **Parity:** data-model / system-spec / shared security behavior must be mirrored in `haxcms-nodejs` (AGENTS.md requires API changes to be mirrored; PHP-parity comments mark the pairs)
 - Report vulnerabilities via `SECURITY.md` (private advisory), never public issues

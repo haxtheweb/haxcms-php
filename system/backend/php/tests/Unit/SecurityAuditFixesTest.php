@@ -2,14 +2,14 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the fixes from security_best_practices_report_2026-10-19.md:
- *  - H-2  backend tree denied over HTTP + CLI guards on scripts
- *  - M-1  installer "installed" detection uses exact placeholder assignments
- *  - M-2  _archived/.htaccess boilerplate exists and denies
- *  - L-2  refresh cookie is Secure on HTTPS
- *  - L-4  git option-injection / remote-URL guards
- *  - L-5  site shell color/lang/name encoding
- *  - L-7  request-token compares are type-strict
+ * Regression tests for these security invariants:
+ *  - SEC-DEPLOY    backend tree denied over HTTP + CLI guards on scripts
+ *  - SEC-INSTALL   installer "installed" detection uses exact placeholder assignments
+ *  - SEC-DEPLOY    _archived/.htaccess boilerplate exists and denies
+ *  - SEC-SESSION   refresh cookie is Secure on HTTPS
+ *  - SEC-EXEC      git option-injection / remote-URL guards
+ *  - SEC-SANITIZE  site shell color/lang/name encoding
+ *  - SEC-SESSION   request-token compares are type-strict
  */
 class SecurityAuditFixesTest extends TestCase
 {
@@ -42,7 +42,7 @@ class SecurityAuditFixesTest extends TestCase
         return $h;
     }
 
-    // ---- H-2 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: backend tree + CLI-only scripts ----------------------
 
     public function testBackendTreeDeniesHttpAccess(): void
     {
@@ -68,7 +68,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- H-1 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: dot-directories never served ------------------------
 
     public function testDotDirectoryDenyRulePresentInRootAndSiteHtaccess(): void
     {
@@ -97,7 +97,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- M-1 -------------------------------------------------------------
+    // ---- SEC-INSTALL: exact install gate ----------------------------------
 
     public function testBoilerplateConfigSourceIsNotTemplated(): void
     {
@@ -140,7 +140,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- M-2 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: _archived and _published denies ---------------------
 
     public function testArchivedHtaccessBoilerplateDenies(): void
     {
@@ -213,7 +213,7 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringContainsString("getActiveUserName() . ':' .", $outline);
     }
 
-    // ---- L-2 -------------------------------------------------------------
+    // ---- SEC-SESSION: Secure refresh cookie ------------------------------
 
     public function testRefreshCookieSecureOnHttps(): void
     {
@@ -240,7 +240,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- L-3 / L-7 -------------------------------------------------------
+    // ---- SEC-SESSION: request-token key + strict compare -----------------
 
     public function testRequestTokenKeyIsSeparatedFromJwtKey(): void
     {
@@ -260,7 +260,7 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertFalse($h->validateRequestToken(array($token), 'alice'));
     }
 
-    // ---- L-4 -------------------------------------------------------------
+    // ---- SEC-EXEC: git argument guards -----------------------------------
 
     public function testGitSafeArg(): void
     {
@@ -305,7 +305,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- L-5 -------------------------------------------------------------
+    // ---- SEC-SANITIZE: site shell output encoding ------------------------
 
     public function testSafeCssColor(): void
     {

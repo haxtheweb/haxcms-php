@@ -58,7 +58,7 @@ function runSsrfGuardTests()
     $runner->assertEquals(true, SsrfGuard::isPrivateOrReservedIP('::1'), 'IPv6 ::1 is private');
     $runner->assertEquals(true, SsrfGuard::isPrivateOrReservedIP('::ffff:169.254.169.254'), 'IPv4-mapped metadata is private');
 
-    // --- SSRF hex-form bypass (HAX-SEC-007): IPv4-mapped/compatible IPv6
+    // --- SSRF hex-form bypass: IPv4-mapped/compatible IPv6
     // spelled with hex groups instead of dotted-quad must still be flagged.
     // The previous text-based match only recognized ::ffff:a.b.c.d, so
     // ::ffff:7f00:1 (127.0.0.1), ::ffff:a9fe:a9fe (169.254.169.254), and

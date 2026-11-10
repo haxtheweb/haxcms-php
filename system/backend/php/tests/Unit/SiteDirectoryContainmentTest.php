@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Security (code-scanning js/path-injection, haxcms-nodejs parity): a site
+ * Security (SEC-PATH): a site
  * name that collapses to the sites directory itself ("/", "//") must never
  * load that directory as a site. Mirrors haxcms-nodejs
  * test/unit/site-directory-containment.test.cjs.

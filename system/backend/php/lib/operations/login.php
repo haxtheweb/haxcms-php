@@ -2,10 +2,10 @@
 trait OperationsRouteLogin {
   /**
    * Determine the client IP for request-scoped login attempt keys.
-   * Security best practice (M2): never trust X-Forwarded-For unless a
+   * Security (SEC-HEADERS, SEC-RATELIMIT): never trust X-Forwarded-For unless a
    * trusted-proxy allowlist is configured (config->security->trustedProxies).
    * Delegates to HAXCMS::resolveClientIP() so the proxy trust decision is
-   * shared with Host-header validation (M4). Without the allowlist, REMOTE_ADDR
+   * shared with Host-header validation. Without the allowlist, REMOTE_ADDR
    * is used, preventing a spoofed XFF from rotating the rate-limit key.
    */
   private function getClientIP() {
@@ -173,7 +173,7 @@ trait OperationsRouteLogin {
       $this->clearLoginAttemptEntry($attemptKey);
     }
     // set a refresh_token COOKIE that will ship w/ all calls automatically.
-    // Security best practice (M3): Secure flag is protocol-driven and
+    // Security (SEC-SESSION): Secure flag is protocol-driven and
     // SameSite=Lax is set via the centralized helper so flags are consistent
     // across every call site and non-TLS dev/DDEV still works.
     $GLOBALS['HAXCMS']->setRefreshTokenCookie($GLOBALS['HAXCMS']->getRefreshToken($u));

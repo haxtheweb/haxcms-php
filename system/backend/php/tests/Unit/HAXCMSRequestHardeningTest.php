@@ -7,7 +7,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *
  * Covers the public methods on lib/HAXCMS.php that read config->security
  * and/or $_SERVER to harden trust decisions behind a configurable proxy
- * allowlist (M2 client-IP, M4 host/protocol validation, M3 refresh cookie).
+ * allowlist (client IP, host/protocol validation, refresh cookie).
  *
  * Expected values are derived from the SECURITY CONTRACT stated in each
  * method's docblock (what the function SHOULD do), not by copying the

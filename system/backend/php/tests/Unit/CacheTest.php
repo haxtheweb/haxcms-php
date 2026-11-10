@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
  * Characterization tests for the Cache seam.
  *
  * Expected values come from the cache contract: store/retrieve is a JSON
- * round-trip (SEC-04: cache values are JSON-encoded, never PHP-serialized,
+ * round-trip (cache values are JSON-encoded, never PHP-serialized,
  * so a tampered cache file cannot trigger unserialize() RCE). isCached,
  * erase, eraseExpired, eraseAll, retrieveAll behave per the Simple-PHP-Cache
  * API. getCacheDir sanitizes the cache name and hashes it (sha1). All FS
@@ -195,7 +195,7 @@ class CacheTest extends TestCase
 
     public function testCacheFileIsJsonNotPhpSerialized(): void
     {
-        // Security (SEC-04): the on-disk cache format must be JSON so a
+        // Security (SEC-EXEC): the on-disk cache format must be JSON so a
         // tampered cache file cannot trigger unserialize() object-gadget
         // RCE. Assert the raw file is valid JSON and carries no PHP serialize
         // object markers (O: , a: , s: ").

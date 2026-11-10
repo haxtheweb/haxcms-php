@@ -310,7 +310,7 @@ class HAXCMSSystemStatusService
                 ),
             ),
         );
-        // Security (F5, SEC-UPLOAD): nginx has no .htaccess equivalent, so the
+        // Security (SEC-UPLOAD, SEC-DEPLOY): nginx has no .htaccess equivalent, so the
         // uploaded-markup forced-download mitigation (Apache root .htaccess <If>
         // + site files/.htaccess FilesMatch / NodeJS
         // app.js middleware / DDEV .ddev/nginx-site.conf) must be hand-applied

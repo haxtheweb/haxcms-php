@@ -1,7 +1,7 @@
 <?php
 trait OperationsRouteLogout {
   public function logout() {
-    // Security (H1/L2 revocation): revoke the refresh-token family server-side
+    // Security (SEC-SESSION): revoke the refresh-token family server-side
     // so a refresh token exfiltrated before logout can't mint new access tokens
     // after this user logs out. Best-effort: legacy tokens without a stored
     // family simply have nothing to revoke.
@@ -21,7 +21,7 @@ trait OperationsRouteLogout {
       }
     }
     catch (Exception $e) {}
-    // Security best practice (M3): clear via the centralized helper so the
+    // Security (SEC-SESSION): clear via the centralized helper so the
     // Secure/SameSite flags match how the cookie was set (required for the
     // browser to actually delete it).
     $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);

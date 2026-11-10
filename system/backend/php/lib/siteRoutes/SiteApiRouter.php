@@ -9,7 +9,7 @@ class SiteApiRouter
 {
     public static function dispatch($site)
     {
-        // C1: startup mutation-security guard mirroring Node
+        // Security (SEC-ROUTE): startup mutation-security guard mirroring Node
         // assertSiteApiMutationRoutesAreSecured (app.js:1829). Runs once per
         // process so a misconfigured spec (a mutation route resolving to
         // public) is surfaced via error_log without blocking request handling.
@@ -107,7 +107,7 @@ class SiteApiRouter
             );
             return true;
         }
-        // C1: pass the matched route PATTERN (e.g. v1/items/:idOrSlug) so the
+        // Security (SEC-ROUTE): pass the matched route PATTERN (e.g. v1/items/:idOrSlug) so the
         // spec-driven auth policy reader can look up the security declaration
         // by route key. Mirrors Node validateSiteApiRouteAccess(req, siteRoute)
         // where siteRoute is the Express route pattern, not the concrete path.

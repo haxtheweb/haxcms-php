@@ -23,7 +23,7 @@ trait OperationsRouteSaveSiteAsTemplate {
         )
       );
     }
-    // security (F2/IDOR-001): object-level authorization before filesystem access
+    // Security (SEC-ROUTE): object-level authorization before filesystem access
     if (!$GLOBALS['HAXCMS']->userCanAccessSite($this->params['site']['name'])) {
       return array(
         '__failed' => array(

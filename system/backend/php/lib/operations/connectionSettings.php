@@ -13,13 +13,13 @@ trait OperationsRouteConnectionSettings {
       }
     }
     // need to return this as if it was a javascript file, weird looking for sure
-    // Phase 3 (M1): this response may embed a per-user access JWT via
+    // Security (SEC-SESSION): this response may embed a per-user access JWT via
     // appSettings.jwt (HAXiam / server-injected bootstrap). Prevent caching.
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
     // D55: match Node's connectionSettings.js output format exactly — prepend
     // the MicroFrontendRegistryConfig initialization line.
-    // Security (SEC-03): the HAXCMS_DISABLE_JWT_CHECKS env-var append that
+    // Security (SEC-SESSION): the HAXCMS_DISABLE_JWT_CHECKS env-var append that
     // injected a super-user JWT here was removed. This route is in the JWT-skip
     // allowlist (Request.php) so it runs unauthenticated; the env var would hand
     // a super-user JWT to any caller. Dev sessions should log in via the normal

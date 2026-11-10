@@ -1,6 +1,6 @@
 <?php
 /**
- * Security (F3): count-window rate limit for authenticated file-mutation
+ * Security (SEC-RATELIMIT): count-window rate limit for authenticated file-mutation
  * operations (saveFile / fileOperation). Throttles a single authenticated
  * principal keyed by userName:siteName so a compromised account or stolen
  * site token cannot drive unbounded upload (disk-fill) or image-op (CPU)

@@ -3,7 +3,7 @@
 // does not exist OR config.php still has boilerplate placeholder tokens (the
 // install wizard has not run step 4 yet), redirect to the installer instead
 // of fatalling in HAXCMS.php or running with known placeholder private keys.
-// Security (M-1): exact placeholder-assignment match, not a substring scan.
+// Security (SEC-INSTALL): exact placeholder-assignment match, not a substring scan.
 include_once __DIR__ . '/system/backend/php/lib/HAXCMSInstallGate.php';
 $indexConfigPhpPath = __DIR__ . '/_config/config.php';
 $indexConfigNotTemplated = false;
@@ -24,7 +24,7 @@ if (
 }
 // CSP to prevent click-jacking on login page
 header("Content-Security-Policy: frame-ancestors 'none'");
-// Phase 3 (M1): this page may embed a per-user access JWT via appSettings.jwt
+// Security (SEC-SESSION): this page may embed a per-user access JWT via appSettings.jwt
 // (HAXiam / server-injected bootstrap). Prevent browser/proxy caching so the
 // token is never served to a different user from cache.
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");

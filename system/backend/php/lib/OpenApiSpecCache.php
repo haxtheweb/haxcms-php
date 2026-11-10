@@ -15,7 +15,7 @@
  *      again, whatever its mtime), then
  *   3. a fresh parse, which refreshes the JSON copy.
  *
- * The copy is JSON (never PHP code or serialize(), per SEC-04), written
+ * The copy is JSON (never PHP code or serialize()), written
  * atomically, and any cache read or write problem falls back to parsing.
  * No cache file is written when there is no _config directory.
  */

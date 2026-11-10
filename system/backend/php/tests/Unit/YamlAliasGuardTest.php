@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 include_once dirname(__DIR__, 2) . '/lib/siteRoutes/SiteRouteUtils.php';
 
 /**
- * Security (SEC-SSRF / YAML alias amplification): untrusted YAML is capped at
+ * Security (SEC-DOS): untrusted YAML is capped at
  * 256 KiB and documents using anchors/aliases are refused with HTTP 400
  * "YAML anchors and aliases are not supported" (same limit + message as
  * haxcms-nodejs). Covers the detector and the convertYamlToJson route.
