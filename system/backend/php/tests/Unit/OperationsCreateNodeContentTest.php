@@ -268,8 +268,8 @@ class OperationsCreateNodeContentTest extends TestCase
 
     public function testSingleNodeTitleIsStoredAsPlainText(): void
     {
-        // BUG: HAXCMSSite::itemFromParams stores node.title verbatim, so the single-node createNode path keeps markup that saveOutline / saveNodeDetails / the bulk items path strip (SEC-SANITIZE); haxcms-nodejs HAXCMS.js itemFromParams has the same gap.
-        $this->markTestSkipped('createNode single-node title is not run through SanitizeContent::plainText (both backends)');
+        // Security (SEC-SANITIZE): single-node createNode stores plain text
+        // titles, like saveOutline / saveNodeDetails / the bulk items path
         $result = $this->create(array('title' => '<img src=x onerror=alert(1)><b>Hello</b>'));
         $this->assertSame(200, $result['status']);
         $this->assertSame('Hello', $this->persistedById()[$result['data']->id]->title);
