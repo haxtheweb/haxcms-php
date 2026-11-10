@@ -72,7 +72,9 @@ trait OperationsRouteDownloadSite {
             $GLOBALS['HAXCMS']->publishedDirectory .
             '/' .
             basename($zip_file),
-          'name' => basename($zip_file)
+          // the download filename the UI puts on the link stays <site>.zip
+          // (the stored archive has a random suffix); same as haxcms-nodejs
+          'name' => $site->manifest->metadata->site->name . '.zip'
         )
       );
     }

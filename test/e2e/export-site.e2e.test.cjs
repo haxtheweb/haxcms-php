@@ -505,6 +505,7 @@ test(
     const collector = createResponseCollector(page)
 
     let downloadRespRecord = null
+    let downloadedZipLink = null
     let usedFallback = false
 
     try {
@@ -683,9 +684,16 @@ test(
           link && link.indexOf('.zip') !== -1 && link.substring(link.length - 4) === '.zip',
           'download response data.link must end with .zip',
         )
+        // Security (SEC-EXPORT): the published file is <site>-<32 hex>.zip
+        // (unguessable), never the bare <site>.zip. Same as haxcms-nodejs.
+        assert.ok(
+          new RegExp('^' + EXPECTED_SITE_NAME + '-[0-9a-f]{32}\\.zip$').test(path.basename(link)),
+          'download response data.link must be an unguessable <site>-<32 hex>.zip (got ' + link + ')',
+        )
+        downloadedZipLink = link
         // D17 (locked): downloadSite response data.name includes the .zip
-        // extension (PHP canonical; Node aligned). The on-disk zip path below
-        // also uses EXPECTED_SITE_NAME + '.zip', so assert the same here.
+        // extension and stays the plain EXPECTED_SITE_NAME + '.zip' so the
+        // browser download name is unchanged (haxcms-nodejs returns the same).
         assert.ok(
           name && name.toLowerCase() === EXPECTED_SITE_NAME + '.zip',
           'download response data.name must match EXPECTED_SITE_NAME + .zip (D17)',
@@ -694,8 +702,14 @@ test(
 
       // 11. Disk cross-check: zip exists at _published + valid PK magic bytes.
       await t.test('zip file exists on disk with PK magic bytes', { timeout: 30000 }, async () => {
-        const zipPath = path.join(_runtime.runtimeRoot, PUBLISHED_DIR, EXPECTED_SITE_NAME + '.zip')
+        assert.ok(downloadedZipLink, 'download link was captured')
+        const zipPath = path.join(_runtime.runtimeRoot, PUBLISHED_DIR, path.basename(downloadedZipLink))
         t.diagnostic('checking zip path: ' + zipPath)
+        assert.equal(
+          fs.pathExistsSync(path.join(_runtime.runtimeRoot, PUBLISHED_DIR, EXPECTED_SITE_NAME + '.zip')),
+          false,
+          'the guessable <site>.zip must not be written',
+        )
         assert.ok(
           fs.pathExistsSync(zipPath),
           'zip file should exist at ' + zipPath,
