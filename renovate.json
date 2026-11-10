@@ -9,6 +9,9 @@
   ],
   "prConcurrentLimit": 3,
   "prHourlyLimit": 2,
+  "prBodyNotes": [
+    "Compiled front-end assets in `build` come from the webcomponents ubiquity build, not from this update. Stale compiled assets and any vulnerable bundled package are listed in the nightly [ubiquity assets](https://github.com/haxtheweb/haxcms-php/actions/workflows/ubiquity-assets.yml) job summary."
+  ],
   "schedule": [
     "* 0-7 * * 1"
   ],
