@@ -23,7 +23,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     /** writing site.json fails before any byte lands (fopen-time ENOSPC) */
     private function siteJsonEnospc(): array
     {
-        return array(array('op' => 'open', 'match' => $this->isPath($this->siteJsonPath()), 'errno' => 'ENOSPC'));
+        return array(array('op' => 'open', 'match' => $this->isSiteJsonWrite(), 'errno' => 'ENOSPC'));
     }
 
     private function item(string $id, string $title, ?string $parent, int $order, array $extra = array()): array
@@ -89,12 +89,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     {
         $res = $this->outline($this->renameBAddN(), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-01 saveOutline ignores JSONOutlineSchema::save() returning false (site.json not written) and answers 200',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
     }
 
     public function testFiOut01SiteJsonEnospcLeavesNoOrphanPageFolder(): void
@@ -131,35 +126,31 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     {
         $before = $this->siteJsonBytes();
         $res = $this->request('siteMutation.php', $this->context(array('items' => $this->renameBAddN()), 'PATCH', 'site/outline'), array(
-            array('op' => 'write', 'match' => $this->isPath($this->siteJsonPath()), 'errno' => 'ENOSPC'),
+            array('op' => 'write', 'match' => $this->isSiteJsonWrite(), 'errno' => 'ENOSPC'),
         ));
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-03 site.json is written in place (file_put_contents), so a write that stops part-way leaves it truncated and unparseable (same as haxcms-nodejs)',
-            function () use ($before) {
-                $after = $this->siteJsonBytes();
-                $this->assertIsObject(json_decode($after), 'site.json still parses');
-                $this->assertSame($before, $after);
-            }
-        );
+        $after = $this->siteJsonBytes();
+        $this->assertIsObject(json_decode($after), 'site.json still parses');
+        $this->assertSame($before, $after);
+        $this->assertSame(array(), $this->leftoverTempFiles(), 'the temp file is removed');
+        $this->assertErrorEnvelope($res, 500, 'Server error');
     }
 
     public function testFiOut05CorruptSiteJsonIsAnErrorAndIsNotRewritten(): void
     {
         $corrupt = substr($this->siteJsonBytes(), 0, 200);
         file_put_contents($this->siteJsonPath(), $corrupt);
-        $this->site = $this->loadSite();
+        // the request loads site.json itself, as HAXCMS::loadSite() does
+        $this->haxcms->loadSiteFromDisk = function () {
+            return $this->loadSite();
+        };
         $res = $this->outline(array(
             $this->item('a', 'A', null, 0),
             $this->item('b', 'B renamed', null, 1),
         ));
-        $this->knownBug(
-            'FI-OUT-05 a site.json that does not parse loads as an empty "New site" outline; saveOutline then replaces the corrupt file with that outline (original ids, titles, metadata and site name lost) and throws (plain 500)',
-            function () use ($res, $corrupt) {
-                $this->assertSame($corrupt, $this->siteJsonBytes(), 'corrupt site.json left as it was');
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertSame($corrupt, $this->siteJsonBytes(), 'corrupt site.json left as it was');
+        $this->assertErrorEnvelope($res, 500, 'Server error');
+        $this->assertSame(array('a', 'b', 'c'), array_values(array_diff(scandir($this->siteDir() . '/pages'), array('.', '..'))), 'no page folder created');
     }
 
     public function testFiOut06SlowPageFolderCopyStillCompletes(): void

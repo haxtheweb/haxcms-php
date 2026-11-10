@@ -29,6 +29,25 @@ final class FaultInjectionDeadlineExceeded extends RuntimeException
 {
 }
 
+/**
+ * The recording HAXCMS of the route tests, whose loadSite() can instead read
+ * the site from disk inside the request (as HAXCMS::loadSite() does), for
+ * scenarios where loading itself must fail.
+ */
+class FaultInjectionHaxcms extends SiteMutationRecordingHaxcms
+{
+    /** @var callable|null */
+    public $loadSiteFromDisk = null;
+
+    public function loadSite($name, $create = false, $domain = null, $build = null)
+    {
+        if ($this->loadSiteFromDisk !== null) {
+            return call_user_func($this->loadSiteFromDisk);
+        }
+        return parent::loadSite($name, $create, $domain, $build);
+    }
+}
+
 abstract class FaultInjectionTestCase extends TestCase
 {
     /** @var mixed */
@@ -39,7 +58,7 @@ abstract class FaultInjectionTestCase extends TestCase
     protected $tmpRoot;
     /** @var string */
     protected $siteName = 'fault-site';
-    /** @var SiteMutationRecordingHaxcms */
+    /** @var FaultInjectionHaxcms */
     protected $haxcms;
     /** @var OperationsNodeTestSite */
     protected $site;
@@ -60,7 +79,7 @@ abstract class FaultInjectionTestCase extends TestCase
         }
         $this->tmpRoot = HAXCMS_ROOT . '/fault_injection_' . uniqid();
         $this->buildSiteFixture();
-        $this->haxcms = new SiteMutationRecordingHaxcms();
+        $this->haxcms = new FaultInjectionHaxcms();
         $this->haxcms->configDirectory = $this->tmpRoot . '/_config';
         mkdir($this->haxcms->configDirectory, 0777, true);
         $this->haxcms->sitesDirectory = basename($this->tmpRoot);
@@ -187,6 +206,29 @@ abstract class FaultInjectionTestCase extends TestCase
         return function ($candidate) use ($path) {
             return $candidate === $path;
         };
+    }
+
+    /**
+     * match callable: a write of site.json, which lands in the temp file
+     * next to it first (JSONOutlineSchema::writeFileAtomic,
+     * .site.json.<hex>.tmp) and is then renamed over it
+     */
+    protected function isSiteJsonWrite(): callable
+    {
+        $file = $this->siteJsonPath();
+        $prefix = $this->siteDir() . '/.site.json.';
+        return function ($candidate) use ($file, $prefix) {
+            return $candidate === $file
+                || (strpos($candidate, $prefix) === 0 && preg_match('/\.[0-9a-f]+\.tmp$/', $candidate) === 1);
+        };
+    }
+
+    /** temp files left in the site directory */
+    protected function leftoverTempFiles(): array
+    {
+        return array_values(array_filter(scandir($this->siteDir()), function ($entry) {
+            return substr($entry, -4) === '.tmp';
+        }));
     }
 
     /** page folders on disk that site.json does not list */
