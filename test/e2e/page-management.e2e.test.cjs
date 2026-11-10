@@ -156,8 +156,35 @@ async function openStructure(p, t) {
     })
     result = { path: 'fallback: _outlineButtonTap (Structure control not found)', called: called, found: found }
   }
+  // The admin dialog loads Structure on its route; give it time to stamp.
+  result.dialog = !!(await waitFor(() => outlineDialogPresent(p), 15000))
+  // A click can land while the hover menu is closing and do nothing; open the
+  // route directly once rather than failing on a lost click.
+  if (!result.dialog && result.path.indexOf('fallback') === -1) {
+    result.retried = await p.evaluate(() => {
+      const ui = document.querySelector('haxcms-site-editor-ui')
+      if (!ui || typeof ui._outlineButtonTap !== 'function') return false
+      ui._outlineButtonTap(null, true, 'Structure')
+      return true
+    })
+    result.dialog = !!(await waitFor(() => outlineDialogPresent(p), 15000))
+  }
   if (t) t.diagnostic('[outline] opened Structure via ' + JSON.stringify(result))
   return result
+}
+
+// True when haxcms-outline-editor-dialog is in the page with a stamped
+// shadowRoot (inside any simple-modal, or anywhere in the document).
+async function outlineDialogPresent(p) {
+  return p.evaluate(() => {
+    var modals = document.querySelectorAll('simple-modal')
+    for (var i = 0; i < modals.length; i++) {
+      var d = modals[i].querySelector('haxcms-outline-editor-dialog')
+      if (d && d.shadowRoot) return true
+    }
+    var d2 = document.querySelector('haxcms-outline-editor-dialog')
+    return !!(d2 && d2.shadowRoot)
+  })
 }
 
 // Ensure the outline editor dialog is open (reopen Structure if the
