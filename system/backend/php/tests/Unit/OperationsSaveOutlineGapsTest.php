@@ -8,7 +8,7 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  * (gates, reorder, idMap basics):
  *
  *   - missing items array 400; item without id 400
- *   - non-object items skipped + per-item normalization defaults
+ *   - non-object items rejected (400) + per-item normalization defaults
  *     (title/indent/order/slug/metadata, non-string contents cleared,
  *     non-boolean delete coerced to false)
  *   - reserved 'x' route slug rewritten to x-x on creation
@@ -246,11 +246,23 @@ class OperationsSaveOutlineGapsTest extends TestCase
         $this->assertSame('Each outline item requires an id', $result['__failed']['message']);
     }
 
-    public function testNonObjectItemsSkippedAndDefaultsApplied(): void
+    public function testNonObjectItemIsRejectedBeforeAnyWrite(): void
+    {
+        $before = file_get_contents($this->siteDir() . '/site.json');
+        // a non-object entry rejects the whole payload (FI-PAY-03; it used to
+        // be skipped and the rest saved), same as haxcms-nodejs
+        $result = $this->runOutline(array(
+            'garbage-entry',
+            array('id' => 'item-a', 'title' => 'Renamed'),
+        ));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Each outline item must be an object', $result['__failed']['message']);
+        $this->assertSame($before, file_get_contents($this->siteDir() . '/site.json'));
+    }
+
+    public function testJunkFieldsGetDefaultsApplied(): void
     {
         $result = $this->runOutline(array(
-            // non-object entry: skipped entirely
-            'garbage-entry',
             // item-a with junk fields: defaults kick in per field
             array(
                 'id' => 'item-a',

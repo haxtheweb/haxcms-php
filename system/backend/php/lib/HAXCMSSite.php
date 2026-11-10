@@ -3425,7 +3425,14 @@ class HAXCMSSite
       if ($page != null && $page->parent != null && $page->parent != '' && $pathAuto) {
         $item = $page;
         $pieces = array($slug);
+        // a parent cycle already on disk must not loop forever: each
+        // ancestor is visited once (saveOutline rejects new cycles)
+        $visited = array((string) $page->id => true);
         while ($item = $this->manifest->getItemById($item->parent)) {
+            if (isset($visited[(string) $item->id])) {
+                break;
+            }
+            $visited[(string) $item->id] = true;
             $tmp = explode('/', $item->slug);
             array_unshift($pieces, array_pop($tmp));
         }

@@ -2,6 +2,58 @@
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteSaveOutline {
+  /**
+   * Checks a normalized saveOutline payload before anything is written.
+   * Returns the 400 message for the first problem found, or null when the
+   * outline can be saved. Mirrors validateOutlineItems() in haxcms-nodejs
+   * (src/siteRoutes/v1/routes/saveOutline.js), with the same messages:
+   *   - a new page (an id the site does not have) is sent once: idMap can
+   *     only map a client id to one server id. An existing id sent twice is
+   *     one page, the last entry wins.
+   *   - no page is its own ancestor in the outline the save would produce
+   *     (the site's parents with the sent ones applied): a parent cycle would
+   *     loop forever in every parent walk (slugs, breadcrumbs, menus)
+   * Items that are not objects are rejected while normalizing, with the same
+   * message as haxcms-nodejs. A parent that does not exist is allowed; the
+   * save rescues that page to the top level.
+   */
+  private function validateOutlineItems($site, $items) {
+    $parents = array();
+    foreach ($site->manifest->items as $existing) {
+      $parents[(string) $existing->id] = $existing->parent;
+    }
+    $newIds = array();
+    foreach ($items as $item) {
+      $id = (string) $item->id;
+      if (!$site->loadNode($item->id)) {
+        if (isset($newIds[$id])) {
+          return 'Each new outline item requires its own id';
+        }
+        $newIds[$id] = true;
+      }
+    }
+    foreach ($items as $item) {
+      $parents[(string) $item->id] = $item->parent;
+    }
+    foreach ($items as $item) {
+      $seen = array();
+      $current = (string) $item->id;
+      while (array_key_exists($current, $parents)) {
+        if (isset($seen[$current])) {
+          return 'Outline item parents cannot form a cycle';
+        }
+        $seen[$current] = true;
+        $parent = $parents[$current];
+        // top level, or not an id at all
+        if ((!is_string($parent) && !is_int($parent) && !is_float($parent)) || $parent === '') {
+          break;
+        }
+        $current = (string) $parent;
+      }
+    }
+    return null;
+  }
+
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -32,11 +84,20 @@ trait OperationsRouteSaveOutline {
       }
       $normalizedItems = array();
       foreach ($this->rawParams['items'] as $itemIndex => $rawItem) {
+        // JSON objects arrive as associative arrays; a list is not an item
+        if (is_array($rawItem) && $rawItem !== array() && array_is_list($rawItem)) {
+          $rawItem = null;
+        }
         if (is_array($rawItem)) {
           $rawItem = json_decode(json_encode($rawItem));
         }
         if (!is_object($rawItem)) {
-          continue;
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Each outline item must be an object',
+            )
+          );
         }
         if (!isset($rawItem->id) || !is_string($rawItem->id) || trim($rawItem->id) == '') {
           return array(
@@ -81,6 +142,17 @@ trait OperationsRouteSaveOutline {
           $rawItem->delete = ($rawItem->delete === true);
         }
         $normalizedItems[] = $rawItem;
+      }
+      // Invariant: an invalid outline is rejected with a 400 before anything
+      // is written (no page folder, no site.json change)
+      $invalid = $this->validateOutlineItems($site, $normalizedItems);
+      if ($invalid !== null) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => $invalid,
+          )
+        );
       }
       $this->rawParams['items'] = $normalizedItems;
       $items = $this->rawParams['items'];
