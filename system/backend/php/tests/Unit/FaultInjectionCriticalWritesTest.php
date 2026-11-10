@@ -128,16 +128,13 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         ));
         $this->assertNotEmpty($res['fired'], 'fault fired');
         $this->assertErrorEnvelope($res, 500);
+        $this->assertSame('FILE_OP_FAILED', $res['body']['data']['code']);
         $this->assertSame(array('.', '..'), scandir($filesDir), 'no new file under files/');
         // The upload temp file needs no check here: PHP deletes request
         // uploads itself when the request ends (the bulk-import staging file
         // used to stand in for one belongs to the caller).
-        $this->knownBug(
-            'FI-UP-01 parity: PHP answers "failed to write <name>", haxcms-nodejs "Unable to save file to target location"',
-            function () use ($res) {
-                $this->assertSame('Unable to save file to target location', $res['body']['data']['message']);
-            }
-        );
+        // same message as haxcms-nodejs
+        $this->assertSame('Unable to save file to target location', $res['body']['data']['message']);
         $this->assertStillServing();
     }
 

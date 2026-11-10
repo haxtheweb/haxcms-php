@@ -762,7 +762,9 @@ class HAXCMSFile
                 $return = $validationError;
             }
             else {
-                $return = 'failed to write ' . $name;
+                // same message as haxcms-nodejs (HAXCMSFile.js) for an upload
+                // that could not be written into files/
+                $return = 'Unable to save file to target location';
             }
         }
         return array(
