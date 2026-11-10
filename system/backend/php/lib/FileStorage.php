@@ -242,11 +242,16 @@ class FileStorage implements EntityStorage
             }
         }
         if ($modified) {
-            if (method_exists($site, 'save')) {
-                @$site->save();
-            }
-            else if (isset($site->manifest) && method_exists($site->manifest, 'save')) {
-                @$site->manifest->save();
+            // best effort, as before; a failed site.json write throws
+            try {
+                if (method_exists($site, 'save')) {
+                    @$site->save();
+                }
+                else if (isset($site->manifest) && method_exists($site->manifest, 'save')) {
+                    @$site->manifest->save();
+                }
+            } catch (Throwable $e) {
+                // intentionally ignored
             }
         }
     }

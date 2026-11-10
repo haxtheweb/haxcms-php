@@ -70,17 +70,27 @@ trait OperationsRouteCreateNode {
         $item->metadata->images = array();
         $item->metadata->videos = array();
         // generate the boilerplate to fill this page
+        $pageFolder = $site->directory .
+            '/' .
+            $site->manifest->metadata->site->name .
+            '/' .
+            str_replace('/index.html', '', $item->location);
+        $folderExisted = file_exists($pageFolder);
         $site->recurseCopy(
             HAXCMS_ROOT . '/system/boilerplate/page/default',
-            $site->directory .
-                '/' .
-                $site->manifest->metadata->site->name .
-                '/' .
-                str_replace('/index.html', '', $item->location)
+            $pageFolder
         );
         // add the item back into the outline schema
         $site->manifest->addItem($item);
-        $site->manifest->save();
+        try {
+          $site->manifest->save();
+        } catch (Throwable $e) {
+          // no page folder without its outline entry
+          if (!$folderExisted) {
+            $site->removeCreatedPageFolder($pageFolder);
+          }
+          throw $e;
+        }
         $alternateContent = '';
         // support for duplicating the content of another item
         if (isset($nodeParams['node']['duplicate'])) {

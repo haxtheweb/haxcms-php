@@ -23,7 +23,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     /** writing site.json fails before any byte lands (fopen-time ENOSPC) */
     private function siteJsonEnospc(): array
     {
-        return array(array('op' => 'open', 'match' => $this->isPath($this->siteJsonPath()), 'errno' => 'ENOSPC'));
+        return array(array('op' => 'open', 'match' => $this->isSiteJsonWrite(), 'errno' => 'ENOSPC'));
     }
 
     private function item(string $id, string $title, ?string $parent, int $order, array $extra = array()): array
@@ -89,24 +89,14 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     {
         $res = $this->outline($this->renameBAddN(), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-01 saveOutline ignores JSONOutlineSchema::save() returning false (site.json not written) and answers 200',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
     }
 
     public function testFiOut01SiteJsonEnospcLeavesNoOrphanPageFolder(): void
     {
         $res = $this->outline($this->renameBAddN(), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-01 the new page folder is copied before site.json is written and is not removed when that write fails (same as haxcms-nodejs)',
-            function () {
-                $this->assertSame(array(), $this->orphanPageFolders());
-            }
-        );
+        $this->assertSame(array(), $this->orphanPageFolders());
     }
 
     public function testFiOut02PageContentEaccesIs500AndKeepsThePageAndTheNewStructure(): void
@@ -131,35 +121,31 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     {
         $before = $this->siteJsonBytes();
         $res = $this->request('siteMutation.php', $this->context(array('items' => $this->renameBAddN()), 'PATCH', 'site/outline'), array(
-            array('op' => 'write', 'match' => $this->isPath($this->siteJsonPath()), 'errno' => 'ENOSPC'),
+            array('op' => 'write', 'match' => $this->isSiteJsonWrite(), 'errno' => 'ENOSPC'),
         ));
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-03 site.json is written in place (file_put_contents), so a write that stops part-way leaves it truncated and unparseable (same as haxcms-nodejs)',
-            function () use ($before) {
-                $after = $this->siteJsonBytes();
-                $this->assertIsObject(json_decode($after), 'site.json still parses');
-                $this->assertSame($before, $after);
-            }
-        );
+        $after = $this->siteJsonBytes();
+        $this->assertIsObject(json_decode($after), 'site.json still parses');
+        $this->assertSame($before, $after);
+        $this->assertSame(array(), $this->leftoverTempFiles(), 'the temp file is removed');
+        $this->assertErrorEnvelope($res, 500, 'Server error');
     }
 
     public function testFiOut05CorruptSiteJsonIsAnErrorAndIsNotRewritten(): void
     {
         $corrupt = substr($this->siteJsonBytes(), 0, 200);
         file_put_contents($this->siteJsonPath(), $corrupt);
-        $this->site = $this->loadSite();
+        // the request loads site.json itself, as HAXCMS::loadSite() does
+        $this->haxcms->loadSiteFromDisk = function () {
+            return $this->loadSite();
+        };
         $res = $this->outline(array(
             $this->item('a', 'A', null, 0),
             $this->item('b', 'B renamed', null, 1),
         ));
-        $this->knownBug(
-            'FI-OUT-05 a site.json that does not parse loads as an empty "New site" outline; saveOutline then replaces the corrupt file with that outline (original ids, titles, metadata and site name lost) and throws (plain 500)',
-            function () use ($res, $corrupt) {
-                $this->assertSame($corrupt, $this->siteJsonBytes(), 'corrupt site.json left as it was');
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertSame($corrupt, $this->siteJsonBytes(), 'corrupt site.json left as it was');
+        $this->assertErrorEnvelope($res, 500, 'Server error');
+        $this->assertSame(array('a', 'b', 'c'), array_values(array_diff(scandir($this->siteDir() . '/pages'), array('.', '..'))), 'no page folder created');
     }
 
     public function testFiOut06SlowPageFolderCopyStillCompletes(): void
@@ -211,16 +197,14 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     public function testFiPay03NullItemIs400(): void
     {
         $before = $this->siteJsonBytes();
-        $items = $this->renameBAddN();
-        array_splice($items, 1, 0, array(null));
-        $res = $this->outline($items);
-        $this->knownBug(
-            'FI-PAY-03 saveOutline skips null / non-object items and saves the rest with 200 instead of rejecting the payload (haxcms-nodejs throws a TypeError instead)',
-            function () use ($res, $before) {
-                $this->assertErrorEnvelope($res, 400);
-                $this->assertSame($before, $this->siteJsonBytes());
-            }
-        );
+        foreach (array(null, 42, 'page', array(1)) as $bad) {
+            $items = $this->renameBAddN();
+            array_splice($items, 1, 0, array($bad));
+            $res = $this->outline($items);
+            $this->assertErrorEnvelope($res, 400, 'Each outline item must be an object');
+            $this->assertSame($before, $this->siteJsonBytes());
+            $this->assertSame(array(), $this->orphanPageFolders());
+        }
     }
 
     public function testFiPay04SameExistingIdTwiceKeepsOnePage(): void
@@ -238,7 +222,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
         $this->assertSame(array(), $this->orphanPageFolders());
     }
 
-    public function testFiPay05SameNewIdTwiceCreatesOnePageOrIs400(): void
+    public function testFiPay05SameNewIdTwiceIs400(): void
     {
         $res = $this->outline(array(
             $this->item('a', 'A', null, 0),
@@ -247,18 +231,10 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
             $this->item('client-x', 'X one', null, 3),
             $this->item('client-x', 'X two', null, 4),
         ));
-        $this->knownBug(
-            'FI-PAY-05 a new client id sent twice creates two pages; idMap can only map one, so the other is unreachable for the client (same as haxcms-nodejs)',
-            function () use ($res) {
-                if ($res['status'] === 400) {
-                    $this->assertErrorEnvelope($res, 400);
-                    $this->assertCount(3, $this->savedItems());
-                } else {
-                    $this->assertSame(200, $res['status'], $res['raw']);
-                    $this->assertCount(4, $this->savedItems(), 'exactly one page created');
-                }
-            }
-        );
+        // both backends answer 400 (haxcms-nodejs fault-injection-save-outline)
+        $this->assertErrorEnvelope($res, 400, 'Each new outline item requires its own id');
+        $this->assertCount(3, $this->savedItems());
+        $this->assertSame(array(), $this->orphanPageFolders());
     }
 
     public function testFiPay06MissingParentIsRescuedToTheTopLevel(): void
@@ -282,13 +258,8 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
                 $this->item('c', 'C', null, 2),
             ));
         });
-        $this->knownBug(
-            'FI-PAY-07 a parent cycle never answers: HAXCMSSite::getUniqueSlugName() walks the parent chain without a visited set (lib/HAXCMSSite.php:3398), so the worker spins until max_execution_time (same as haxcms-nodejs)',
-            function () use ($res, $before) {
-                $this->assertErrorEnvelope($res, 400);
-                $this->assertSame($before, $this->siteJsonBytes());
-            }
-        );
+        $this->assertErrorEnvelope($res, 400, 'Outline item parents cannot form a cycle');
+        $this->assertSame($before, $this->siteJsonBytes());
     }
 
     public function testFiPay08SelfParentIs400(): void
@@ -301,12 +272,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
                 $this->item('c', 'C', null, 2),
             ));
         });
-        $this->knownBug(
-            'FI-PAY-08 a page that is its own parent never answers: same parent-chain walk as FI-PAY-07 (lib/HAXCMSSite.php:3398)',
-            function () use ($res, $before) {
-                $this->assertErrorEnvelope($res, 400);
-                $this->assertSame($before, $this->siteJsonBytes());
-            }
-        );
+        $this->assertErrorEnvelope($res, 400, 'Outline item parents cannot form a cycle');
+        $this->assertSame($before, $this->siteJsonBytes());
     }
 }

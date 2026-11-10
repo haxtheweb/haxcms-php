@@ -2,6 +2,76 @@
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteSaveOutline {
+  /**
+   * Checks a normalized saveOutline payload before anything is written.
+   * Returns the 400 message for the first problem found, or null when the
+   * outline can be saved. Mirrors validateOutlineItems() in haxcms-nodejs
+   * (src/siteRoutes/v1/routes/saveOutline.js), with the same messages:
+   *   - a new page (an id the site does not have) is sent once: idMap can
+   *     only map a client id to one server id. An existing id sent twice is
+   *     one page, the last entry wins.
+   *   - no page is its own ancestor in the outline the save would produce
+   *     (the site's parents with the sent ones applied): a parent cycle would
+   *     loop forever in every parent walk (slugs, breadcrumbs, menus)
+   * Items that are not objects are rejected while normalizing, with the same
+   * message as haxcms-nodejs. A parent that does not exist is allowed; the
+   * save rescues that page to the top level.
+   */
+  private function validateOutlineItems($site, $items) {
+    $parents = array();
+    foreach ($site->manifest->items as $existing) {
+      $parents[(string) $existing->id] = $existing->parent;
+    }
+    $newIds = array();
+    foreach ($items as $item) {
+      $id = (string) $item->id;
+      if (!$site->loadNode($item->id)) {
+        if (isset($newIds[$id])) {
+          return 'Each new outline item requires its own id';
+        }
+        $newIds[$id] = true;
+      }
+    }
+    foreach ($items as $item) {
+      $parents[(string) $item->id] = $item->parent;
+    }
+    foreach ($items as $item) {
+      $seen = array();
+      $current = (string) $item->id;
+      while (array_key_exists($current, $parents)) {
+        if (isset($seen[$current])) {
+          return 'Outline item parents cannot form a cycle';
+        }
+        $seen[$current] = true;
+        $parent = $parents[$current];
+        // top level, or not an id at all
+        if ((!is_string($parent) && !is_int($parent) && !is_float($parent)) || $parent === '') {
+          break;
+        }
+        $current = (string) $parent;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Remove the page folders this request created ($createdFolders, page id
+   * => folder) that site.json does not list ($listedItems), so a failed
+   * save leaves no page folder without its outline entry. Mirrors
+   * removeUnlistedPageFolders() in haxcms-nodejs saveOutline.js.
+   */
+  private function removeUnlistedPageFolders($site, $createdFolders, $listedItems) {
+    $listed = array();
+    foreach ($listedItems as $listedItem) {
+      $listed[(string) $listedItem->id] = true;
+    }
+    foreach ($createdFolders as $pageId => $folder) {
+      if (!isset($listed[(string) $pageId])) {
+        $site->removeCreatedPageFolder($folder);
+      }
+    }
+  }
+
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -32,11 +102,20 @@ trait OperationsRouteSaveOutline {
       }
       $normalizedItems = array();
       foreach ($this->rawParams['items'] as $itemIndex => $rawItem) {
+        // JSON objects arrive as associative arrays; a list is not an item
+        if (is_array($rawItem) && $rawItem !== array() && array_is_list($rawItem)) {
+          $rawItem = null;
+        }
         if (is_array($rawItem)) {
           $rawItem = json_decode(json_encode($rawItem));
         }
         if (!is_object($rawItem)) {
-          continue;
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Each outline item must be an object',
+            )
+          );
         }
         if (!isset($rawItem->id) || !is_string($rawItem->id) || trim($rawItem->id) == '') {
           return array(
@@ -82,6 +161,17 @@ trait OperationsRouteSaveOutline {
         }
         $normalizedItems[] = $rawItem;
       }
+      // Invariant: an invalid outline is rejected with a 400 before anything
+      // is written (no page folder, no site.json change)
+      $invalid = $this->validateOutlineItems($site, $normalizedItems);
+      if ($invalid !== null) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => $invalid,
+          )
+        );
+      }
       $this->rawParams['items'] = $normalizedItems;
       $items = $this->rawParams['items'];
       $itemMap = array();
@@ -115,7 +205,15 @@ trait OperationsRouteSaveOutline {
       $feedsPending = false;
       $savedItems = null;
       $feedItems = null;
-      $flushPending = function () use ($site, &$pendingPersist, &$feedsPending, &$savedItems, &$feedItems) {
+      // Invariant: a page folder exists only for a page site.json lists.
+      // $createdFolders holds the folders this request created (page id =>
+      // folder); $listedItems is what site.json lists (what it was loaded
+      // with, then what each successful write of it held). A failure
+      // removes every created folder site.json does not list
+      // (removeUnlistedPageFolders below).
+      $createdFolders = array();
+      $listedItems = $original;
+      $flushPending = function () use ($site, &$pendingPersist, &$feedsPending, &$savedItems, &$feedItems, &$listedItems) {
         // attempted once: the error handler does not retry a failed write,
         // nor rebuild the feeds over it
         if ($pendingPersist) {
@@ -124,6 +222,7 @@ trait OperationsRouteSaveOutline {
           $site->manifest->items = $savedItems;
           try {
             $site->manifest->save(false);
+            $listedItems = $savedItems;
           } catch (Throwable $e) {
             $feedsPending = false;
             throw $e;
@@ -216,10 +315,15 @@ trait OperationsRouteSaveOutline {
           // or it could have just been renamed
           // if it doesn't exist currently make sure the name is unique
           if (!$site->loadNode($page->id)) {
+            $pageFolder = $siteDirectory . '/' . str_replace('/index.html', '', $page->location);
+            $folderExisted = file_exists($pageFolder);
             $site->recurseCopy(
                 HAXCMS_ROOT . '/system/boilerplate/page/default',
-                $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                $pageFolder
             );
+            if (!$folderExisted && is_dir($pageFolder)) {
+              $createdFolders[$page->id] = $pageFolder;
+            }
             $pageAlternateContentMap[$page->id] = '';
           }
           // this would imply existing item, lets see if it moved or needs moved
@@ -259,10 +363,15 @@ trait OperationsRouteSaveOutline {
                   $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
                   $page->location = 'pages/' . $page->id . '/index.html';
                   $page->slug = $tmpTitle;
+                  $pageFolder = $siteDirectory . '/' . str_replace('/index.html', '', $page->location);
+                  $folderExisted = file_exists($pageFolder);
                   $site->recurseCopy(
                       HAXCMS_ROOT . '/system/boilerplate/page/default',
-                      $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                      $pageFolder
                   );
+                  if (!$folderExisted && is_dir($pageFolder)) {
+                    $createdFolders[$page->id] = $pageFolder;
+                  }
                   $pageAlternateContentMap[$page->id] = '';
               }
           }
@@ -516,6 +625,7 @@ trait OperationsRouteSaveOutline {
         } catch (Throwable $flushError) {
           // the original failure is the one to report
         }
+        $this->removeUnlistedPageFolders($site, $createdFolders, $listedItems);
         throw $e;
       }
       $site->manifest->save();

@@ -94,6 +94,7 @@ The PHP backend lives in `system/backend/php`. The web component build tooling d
   ```bash
   cd system/backend/php && ./vendor/bin/phpunit --display-skipped --filter FaultInjection
   ```
+  - The write invariants behind them, kept the same in haxcms-nodejs: every `site.json` write is atomic (a temp file in the same directory, flushed and renamed over it: `JSONOutlineSchema::writeFileAtomic`), so a failed write leaves the previous file and throws; a `site.json` that does not parse to an outline is refused on load, never treated as an empty outline; an invalid outline payload (items that are not objects, a new page id sent twice, a parent cycle) is rejected with a 400 before anything is written; a page folder exists only for a page `site.json` lists (a request removes the folders it created when the write that would list them fails); a Throwable inside any API route answers the 500 ApiError envelope (`SiteRouteUtils::invokeRouteHandler`). saveOutline is checkpointed, not atomic as a whole: the structure is written once, then a failure in the content or delete phase leaves it saved.
   - A check PHP does not pass yet runs inside `knownBug()` and shows as skipped with `KNOWN BUG: <scenario> ...`. When a fix makes it pass, remove the `knownBug()` wrapper so it stays fixed. A new scenario uses the same ID in both backends.
 - **E2E UI workflows** (headless browser):
   ```bash

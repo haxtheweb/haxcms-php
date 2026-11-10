@@ -14,7 +14,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
 {
     private function siteJsonEnospc(): array
     {
-        return array(array('op' => 'open', 'match' => $this->isPath($this->siteJsonPath()), 'errno' => 'ENOSPC'));
+        return array(array('op' => 'open', 'match' => $this->isSiteJsonWrite(), 'errno' => 'ENOSPC'));
     }
 
     // FI-NODE-01 PATCH /x/api/v1/content/{id}, EACCES on the page file
@@ -48,12 +48,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         ), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
         $this->assertSame($before, $this->siteJsonBytes());
-        $this->knownBug(
-            'FI-NODE-02 createNode ignores the failed site.json write and answers 200 for a page that is not in the outline',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
         $this->assertSame(array(), $this->orphanPageFolders(), 'no orphan page folder');
         $this->assertStillServing();
     }
@@ -71,12 +66,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         $this->assertNotEmpty($res['fired'], 'fault fired');
         $this->assertSame($before, $this->siteJsonBytes(), 'page still listed');
         $this->assertFileExists($this->pageFile('b'));
-        $this->knownBug(
-            'FI-NODE-03 deleteNode ignores the failed site.json write and answers 200 although the page is still listed',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
         $this->assertStillServing();
     }
 
@@ -91,12 +81,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         ), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
         $this->assertSame($before, $this->siteJsonBytes());
-        $this->knownBug(
-            'FI-SITE-01 saveManifest ignores the failed site.json write and answers 200 with the new title',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
         $this->assertStillServing();
     }
 

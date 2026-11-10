@@ -143,38 +143,43 @@ class JSONOutlineSchema
         if (file_exists($location)) {
             $this->file = $location;
             $fileData = json_decode(file_get_contents($location));
-            if (is_object($fileData)) {
-                $vars = get_object_vars($fileData);
-                // Security: only the schema's own top-level keys are read from
-                // disk; site.json can never set where the manifest is written
-                // (file). array_key_exists (not isset) so a declared property
-                // that is still null, such as location, is loaded too.
-                foreach (self::TOP_LEVEL_KEYS as $key) {
-                    if (array_key_exists($key, $vars)) {
-                        $this->{$key} = $vars[$key];
-                    }
-                }
-                // check for items and escalate to full JSONOutlineSchemaItem object
-                // also ensures data matches only what is supported
-                if (isset($vars['items'])) {
-                    foreach ($vars['items'] as $key => $item) {
-                        $newItem = new JSONOutlineSchemaItem();
-                        $newItem->id = $item->id;
-                        $newItem->indent = $item->indent;
-                        $newItem->location = $item->location;
-                        // support for legacy spec prior to slug existing
-                        $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
-                        $newItem->order = $item->order;
-                        $newItem->parent = $item->parent;
-                        $newItem->title = $item->title;
-                        $newItem->description = $item->description;
-                        // metadata can be anything so whatever
-                        $newItem->metadata = $item->metadata;
-                        $this->items[$key] = $newItem;
-                    }
-                }
-                return true;
+            // Invariant: a site.json that exists but does not parse is never
+            // treated as an empty outline. Loading it throws, so no request
+            // can go on to save the default "New site" outline over it
+            // (haxcms-nodejs: JSON.parse throws in JSONOutlineSchema.load).
+            if (!is_object($fileData)) {
+                throw new RuntimeException('JSONOutlineSchema: ' . basename($location) . ' is not a valid JSON outline');
             }
+            $vars = get_object_vars($fileData);
+            // Security: only the schema's own top-level keys are read from
+            // disk; site.json can never set where the manifest is written
+            // (file). array_key_exists (not isset) so a declared property
+            // that is still null, such as location, is loaded too.
+            foreach (self::TOP_LEVEL_KEYS as $key) {
+                if (array_key_exists($key, $vars)) {
+                    $this->{$key} = $vars[$key];
+                }
+            }
+            // check for items and escalate to full JSONOutlineSchemaItem object
+            // also ensures data matches only what is supported
+            if (isset($vars['items'])) {
+                foreach ($vars['items'] as $key => $item) {
+                    $newItem = new JSONOutlineSchemaItem();
+                    $newItem->id = $item->id;
+                    $newItem->indent = $item->indent;
+                    $newItem->location = $item->location;
+                    // support for legacy spec prior to slug existing
+                    $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
+                    $newItem->order = $item->order;
+                    $newItem->parent = $item->parent;
+                    $newItem->title = $item->title;
+                    $newItem->description = $item->description;
+                    // metadata can be anything so whatever
+                    $newItem->metadata = $item->metadata;
+                    $this->items[$key] = $newItem;
+                }
+            }
+            return true;
         }
         return false;
     }
@@ -225,8 +230,73 @@ class JSONOutlineSchema
         }
         // ensure we have valid json object
         if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
-          return @file_put_contents($file, $output, LOCK_EX);
+          return self::writeFileAtomic($file, $output);
         }
+        return false;
+    }
+    /**
+     * Invariant: a site.json write is atomic. Readers and the next request
+     * see either the previous file or the complete new one, never a truncated
+     * or half-written file: the data goes to a temp file next to the target
+     * (same directory, so the same filesystem), is flushed to disk, and is
+     * then renamed over the target. A write that fails at any step throws a
+     * RuntimeException, removes the temp file and leaves the previous file as
+     * it was. A symlinked target is written through to the file it points at.
+     * Mirrors JSONOutlineSchema.writeFileAtomic in haxcms-nodejs.
+     *
+     * @return int bytes written
+     */
+    public static function writeFileAtomic($file, $data)
+    {
+        $target = (string) $file;
+        if (is_link($target)) {
+            $resolved = realpath($target);
+            if ($resolved !== false) {
+                $target = $resolved;
+            }
+        }
+        // keep the permissions the file had
+        $mode = file_exists($target) ? (@fileperms($target) & 0777) : null;
+        $directory = dirname($target);
+        $temp = $directory . '/.' . basename($target) . '.' . bin2hex(random_bytes(8)) . '.tmp';
+        // 'x': never follow or reuse something already at the temp path
+        $handle = @fopen($temp, 'xb');
+        if ($handle === false) {
+            throw new RuntimeException('JSONOutlineSchema: unable to write ' . basename($target));
+        }
+        $length = strlen($data);
+        $written = 0;
+        $failed = false;
+        while ($written < $length) {
+            $bytes = @fwrite($handle, substr($data, $written));
+            if ($bytes === false || $bytes === 0) {
+                $failed = true;
+                break;
+            }
+            $written += $bytes;
+        }
+        if (!$failed && @fflush($handle) === false) {
+            $failed = true;
+        }
+        // flush to disk (a full disk can surface only here); a stream that
+        // cannot fsync (not a plain file) is skipped
+        if (!$failed && function_exists('fsync')) {
+            $meta = stream_get_meta_data($handle);
+            if (@fsync($handle) === false && $meta['wrapper_type'] === 'plainfile') {
+                $failed = true;
+            }
+        }
+        if (@fclose($handle) === false) {
+            $failed = true;
+        }
+        if (!$failed && $mode !== null) {
+            @chmod($temp, $mode);
+        }
+        if ($failed || !@rename($temp, $target)) {
+            @unlink($temp);
+            throw new RuntimeException('JSONOutlineSchema: unable to write ' . basename($target));
+        }
+        return $written;
     }
     /**
      * Canonical value types for site.json, per haxtheweb/json-outline-schema:
