@@ -1044,7 +1044,7 @@ class OperationsNodeOpsTest extends TestCase
         $this->haxcms->loadedSite->manifest->items[0]->metadata->theme = (object) array('key' => 'old');
         $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="x/sub" developer-theme="nope"></page-break><p>b</p>');
         $this->assertSame(200, $result['status']);
-        $this->assertStringStartsWith('x-x', $result['data']->slug);
+        $this->assertSame('x-x/sub', $result['data']->slug);
         $this->assertFalse(isset($result['data']->metadata->theme));
     }
 
@@ -1111,6 +1111,248 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertStringStartsWith('renamed-parent/', $bySlug['item-b']);
         $this->assertSame('keep-me', $bySlug['item-c']);
     }
+
+    // =========================================================================
+    // saveNode — nodejs parity (haxtheweb/issues#3292): auto description from
+    // the page body only, and site.json written in tree order
+    // =========================================================================
+
+    public function testSaveNodeDescriptionNeverIncludesPageBreakAttributes(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="a &lt;b&gt;bold&lt;/b&gt;" slug="x" order="6" item-id="item-a"></page-break><p>Hi</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Hi', $result['data']->description);
+        $this->assertSame('a bold', $result['data']->title);
+    }
+
+    public function testSaveNodeDescriptionCutsAt200CharactersAndDropsNewlines(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a"></page-break><p>' . str_repeat("日本\n", 150) . '</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        // substr() used to cut at 200 bytes, splitting a character
+        $this->assertSame(str_repeat('日本', 100), $result['data']->description);
+    }
+
+    public function testSaveNodeExplicitDescriptionAttributeIsKept(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a" description="Mine &lt;b&gt;only&lt;/b&gt;"></page-break><p>Body</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Mine only', $result['data']->description);
+    }
+
+    public function testSaveNodeWritesItemsInTreeOrder(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->bodyFixtureDir . '/' . $this->siteName;
+        $item = function ($id, $parent, $order) {
+            return (object) array(
+                'id' => $id,
+                'indent' => $parent ? 1 : 0,
+                'location' => 'pages/' . $id . '/index.html',
+                'slug' => $id,
+                'order' => $order,
+                'parent' => $parent,
+                'title' => $id,
+                'description' => '',
+                'metadata' => (object) array('created' => 1000000, 'updated' => 1000000),
+            );
+        };
+        foreach (array('child-b1', 'top-b', 'top-a', 'child-a1', 'item-1') as $id) {
+            if (!is_dir($siteDir . '/pages/' . $id)) {
+                mkdir($siteDir . '/pages/' . $id, 0777, true);
+            }
+            file_put_contents($siteDir . '/pages/' . $id . '/index.html', '<p></p>');
+        }
+        // stored out of tree order: children before parents, siblings unsorted
+        // (same fixture as haxcms-nodejs test/unit/slug-description-parity)
+        $manifest = json_decode(file_get_contents($siteDir . '/site.json'));
+        $manifest->items = array(
+            $item('child-b1', 'top-b', 0),
+            $item('top-b', null, 2),
+            $item('top-a', null, 0),
+            $item('child-a1', 'top-a', 0),
+            $item('item-1', null, 1),
+        );
+        file_put_contents($siteDir . '/site.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        $site = new OperationsNodeTestSite();
+        $site->load($this->bodyFixtureDir, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+
+        $result = $this->saveNodeBody(
+            '<page-break title="item-1" item-id="item-1" order="1"></page-break><p>Saved</p>',
+            array('id' => 'item-1')
+        );
+        $this->assertSame(200, $result['status']);
+
+        $written = json_decode(file_get_contents($siteDir . '/site.json'));
+        $ids = array();
+        foreach ($written->items as $writtenItem) {
+            $ids[] = $writtenItem->id;
+        }
+        // orderTree: stable sort by order, then each page followed by its
+        // children; haxcms-nodejs asserts the same list for the same fixture
+        $this->assertSame(array('child-b1', 'top-a', 'child-a1', 'item-1', 'top-b'), $ids);
+        $this->assertSame('Saved', $written->items[3]->description);
+        $this->assertIsInt($written->metadata->site->updated);
+    }
+
+    /**
+     * Replace the body fixture's items (page dirs created for each) and
+     * reload the site so saveNode sees them.
+     */
+    private function reloadBodyFixtureWith(array $items, bool $pathauto): string
+    {
+        $siteDir = $this->bodyFixtureDir . '/' . $this->siteName;
+        foreach ($items as $entry) {
+            if (!is_dir($siteDir . '/pages/' . $entry->id)) {
+                mkdir($siteDir . '/pages/' . $entry->id, 0777, true);
+            }
+            file_put_contents($siteDir . '/pages/' . $entry->id . '/index.html', '<p></p>');
+        }
+        $manifest = json_decode(file_get_contents($siteDir . '/site.json'));
+        $manifest->metadata->site->settings->pathauto = $pathauto;
+        $manifest->items = $items;
+        file_put_contents($siteDir . '/site.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        $site = new OperationsNodeTestSite();
+        $site->load($this->bodyFixtureDir, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+        return $siteDir;
+    }
+
+    private function outlineItem(string $id, $parent, string $slug, array $metadata = array())
+    {
+        return (object) array(
+            'id' => $id,
+            'indent' => $parent ? 1 : 0,
+            'location' => 'pages/' . $id . '/index.html',
+            'slug' => $slug,
+            'order' => 0,
+            'parent' => $parent,
+            'title' => $id,
+            'description' => '',
+            'metadata' => (object) array_merge(array('created' => 1000000, 'updated' => 1000000), $metadata),
+        );
+    }
+
+    private function writtenSlugs(string $siteDir): array
+    {
+        $slugs = array();
+        foreach (json_decode(file_get_contents($siteDir . '/site.json'))->items as $entry) {
+            $slugs[$entry->id] = $entry->slug;
+        }
+        return $slugs;
+    }
+
+    public function testSaveNodeCascadesNewSlugToDescendantsButNotOverriddenBranches(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('parent', null, 'title-with-b-bold-/b'),
+            $this->outlineItem('child', 'parent', 'b/child'),
+            $this->outlineItem('grandchild', 'child', 'b/child/grandchild'),
+            $this->outlineItem('locked', 'parent', 'keep-me', array('overridePathauto' => true)),
+            $this->outlineItem('under-locked', 'locked', 'keep-me/under-locked'),
+        ), true);
+        $result = $this->saveNodeBody(
+            '<page-break title="Title with bold" item-id="parent"></page-break><p>x</p>',
+            array('id' => 'parent')
+        );
+        $this->assertSame(200, $result['status']);
+        // same expectations as haxcms-nodejs test/unit/slug-description-parity
+        $this->assertSame(array(
+            'parent' => 'title-with-bold',
+            'child' => 'title-with-bold/child',
+            'grandchild' => 'title-with-bold/child/grandchild',
+            'locked' => 'keep-me',
+            'under-locked' => 'keep-me/under-locked',
+        ), $this->writtenSlugs($siteDir));
+    }
+
+    public function testCascadeAppliesTheReservedRouteRuleToEveryGeneratedSegment(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('resume', null, 'old'),
+            $this->outlineItem('padded', 'resume', 'old/padded-title'),
+            $this->outlineItem('leaf', 'padded', 'old/padded-title/x-x'),
+            $this->outlineItem('direct', 'resume', 'old/x-x'),
+        ), true);
+        $site = $this->haxcms->loadedSite;
+        foreach ($site->manifest->items as $entry) {
+            if ($entry->id === 'padded') {
+                $entry->title = 'Padded Title';
+            }
+            if ($entry->id === 'leaf' || $entry->id === 'direct') {
+                // titles that clean to the reserved "x" segment
+                $entry->title = 'X';
+            }
+        }
+        $result = $this->saveNodeBody(
+            '<page-break title="Résumé" item-id="resume"></page-break><p>x</p>',
+            array('id' => 'resume')
+        );
+        $this->assertSame(200, $result['status']);
+        // same expectations as haxcms-nodejs test/unit/slug-description-parity
+        $this->assertSame(array(
+            'resume' => 'résumé',
+            'padded' => 'résumé/padded-title',
+            'leaf' => 'résumé/padded-title/x-x',
+            'direct' => 'résumé/x-x',
+        ), $this->writtenSlugs($siteDir));
+    }
+
+    public function testSlugAttributeAndNewPagesNeverUseTheReservedSegment(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="X"></page-break><p>b</p>');
+        $this->assertSame('x-x', $result['data']->slug);
+        // str_replace used to rewrite every "x/" ("inbox/" -> "inbox-x/")
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="x/inbox/a"></page-break><p>b</p>');
+        $this->assertSame('x-x/inbox/a', $result['data']->slug);
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="a/x"></page-break><p>b</p>');
+        $this->assertSame('a/x-x', $result['data']->slug);
+        // createItem / addPage derive slugs through getUniqueSlugName
+        $site = $this->haxcms->loadedSite;
+        $this->assertSame('x-x', $site->getUniqueSlugName('x'));
+        $this->assertSame('item-a/x-x', $site->getUniqueSlugName('item-a/x'));
+    }
+
+    public function testSaveNodeDoesNotCascadeWhenPathautoIsOff(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('parent', null, 'old-parent'),
+            $this->outlineItem('child', 'parent', 'old-parent/child'),
+        ), false);
+        $result = $this->saveNodeBody(
+            '<page-break title="Renamed" item-id="parent"></page-break><p>x</p>',
+            array('id' => 'parent')
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(
+            array('parent' => 'old-parent', 'child' => 'old-parent/child'),
+            $this->writtenSlugs($siteDir)
+        );
+    }
+
+    public function testSaveNodeDescriptionNeverIncludesScriptText(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a"></page-break><script>alert("x")</script><p>After script</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('After script', $result['data']->description);
+    }
 }
 
 /**
@@ -1162,6 +1404,20 @@ class OperationsNodeTestHaxcms extends OperationsTestHaxcms
      * skips HAXCMS's stateful constructor (same technique as
      * HAXCMSHelpersTest).
      */
+    /**
+     * Use the REAL generateSlugName (same reflection seam as
+     * pageBreakParser below) so slug assertions reflect production rules,
+     * including the reserved "x" route segment applied after generation.
+     */
+    public function generateSlugName($name)
+    {
+        if (!isset($this->realPageBreakParser)) {
+            $this->realPageBreakParser = (new ReflectionClass(HAXCMS::class))
+                ->newInstanceWithoutConstructor();
+        }
+        return $this->realPageBreakParser->generateSlugName($name);
+    }
+
     public function pageBreakParser($body)
     {
         if (!isset($this->realPageBreakParser)) {

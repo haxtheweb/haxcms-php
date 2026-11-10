@@ -151,17 +151,12 @@ trait OperationsRouteSaveNode {
                   $page->metadata->overridePathauto = false;
                 }
                 if (isset($data["attributes"]["slug"])) {
-                  // account for x being the only front end reserved route
-                  if ($data["attributes"]["slug"] == "x") {
-                    $data["attributes"]["slug"] = "x-x";
-                  }
-                  // same but trying to force a sub-route; paths cannot conflict with front end
-                  if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
-                    $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
-                  }
-                  // machine name should more aggressively scrub the slug than clean title
+                  // machine name should more aggressively scrub the slug than
+                  // clean title; no segment may be the reserved "x" route
                   // @todo need to verify this doesn't already exist
-                  $page->slug = $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"]);
+                  $page->slug = HAXCMSSite::reserveSlugRoutes(
+                    $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"])
+                  );
                 }
                 if (isset($data["attributes"]["parent"])) {
                   $page->parent = $data["attributes"]["parent"];
@@ -333,13 +328,10 @@ trait OperationsRouteSaveNode {
                   $page->description = SanitizeContent::plainText($data["attributes"]["description"]);
                 }
                 else {
-                  // Security (SEC-SANITIZE): decode BEFORE stripping
-                  $decodedClean = SanitizeContent::plainText($clean);
-                  $page->description = str_replace(
-                    "\n",
-                    '',
-                    substr($decodedClean, 0, 200)
-                );
+                  // Security (SEC-SANITIZE): description is plain text derived
+                  // from this page's body as saved (sanitized content, never
+                  // the <page-break> element or its attributes)
+                  $page->description = SanitizeContent::pageDescription($sanitizedContent);
                 }
                 $readtime = round(str_word_count($clean) / 200);
                 // account for uber small body
@@ -406,6 +398,13 @@ trait OperationsRouteSaveNode {
                 FileContentScanner::rebuildPageFilesUuids($site, $page, $sanitizedContent);
                 $site->updateNode($page);
                 $site->writePageAlternateFormats($page, $sanitizedContent);
+                // stamp the site as updated and save site.json in tree order
+                // (orderTree), the same order every reordering save writes;
+                // mirrors saveNode in haxcms-nodejs
+                if (isset($site->manifest->metadata->site) && is_object($site->manifest->metadata->site)) {
+                  $site->manifest->metadata->site->updated = time();
+                }
+                $site->manifest->save();
                 $site->gitCommit(
                   'Page updated: ' . $page->title . ' (' . $page->id . ')'
                 );

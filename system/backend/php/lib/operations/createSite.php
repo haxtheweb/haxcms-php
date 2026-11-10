@@ -281,6 +281,17 @@ trait OperationsRouteCreateSite {
       if (!isset($schema->metadata->theme->variables) || !is_object($schema->metadata->theme->variables)) {
         $schema->metadata->theme->variables = new stdClass();
       }
+      // theme.regions maps region name => item ids, so it is written as a JSON
+      // object even when empty (a skeleton's "regions": {} decodes to an empty
+      // PHP array and would be written as []); mirrors createSite in
+      // haxcms-nodejs
+      if (
+        isset($schema->metadata->theme->regions) &&
+        is_array($schema->metadata->theme->regions) &&
+        count($schema->metadata->theme->regions) === 0
+      ) {
+        $schema->metadata->theme->regions = new stdClass();
+      }
       // description for an overview if desired
       if (isset($this->params['site']['description']) && $this->params['site']['description'] != '' && $this->params['site']['description'] != null) {
           $schema->description = strip_tags($this->params['site']['description']);

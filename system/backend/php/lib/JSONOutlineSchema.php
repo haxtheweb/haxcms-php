@@ -12,6 +12,9 @@ include_once dirname(__FILE__) . '/Licenses.php';
 
 class JSONOutlineSchema
 {
+    // top-level site.json keys load() reads; items are rebuilt separately.
+    // Mirrors JSONOutlineSchema.TOP_LEVEL_KEYS in haxcms-nodejs.
+    const TOP_LEVEL_KEYS = array('id', 'title', 'author', 'description', 'license', 'metadata', 'location');
     public $file;
     public $id;
     public $title;
@@ -142,9 +145,13 @@ class JSONOutlineSchema
             $fileData = json_decode(file_get_contents($location));
             if (is_object($fileData)) {
                 $vars = get_object_vars($fileData);
-                foreach ($vars as $key => $var) {
-                    if (isset($this->{$key}) && $key != 'items') {
-                        $this->{$key} = $var;
+                // Security: only the schema's own top-level keys are read from
+                // disk; site.json can never set where the manifest is written
+                // (file). array_key_exists (not isset) so a declared property
+                // that is still null, such as location, is loaded too.
+                foreach (self::TOP_LEVEL_KEYS as $key) {
+                    if (array_key_exists($key, $vars)) {
+                        $this->{$key} = $vars[$key];
                     }
                 }
                 // check for items and escalate to full JSONOutlineSchemaItem object

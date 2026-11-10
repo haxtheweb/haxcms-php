@@ -347,15 +347,10 @@ trait OperationsRouteSaveNodeDetails {
           // Limited case - allow modifying slug but validate it's unique
           if (array_key_exists('slug', $this->params['node']['details']) && $this->params['node']['details']['slug'] !== '') {
             $newSlug = $this->params['node']['details']['slug'];
-            // account for x being the only front end reserved route
-            if ($newSlug == "x") {
-              $newSlug = "x-x";
-            }
-            // same but trying to force a sub-route; paths cannot conflict with frontend
-            if (substr($newSlug, 0, 2) == "x/") {
-              $newSlug = str_replace('x/', 'x-x/', $newSlug);
-            }
-            $page->slug = $GLOBALS['HAXCMS']->generateSlugName($newSlug);
+            // no segment may be the reserved "x" route
+            $page->slug = HAXCMSSite::reserveSlugRoutes(
+              $GLOBALS['HAXCMS']->generateSlugName($newSlug)
+            );
             // When user manually sets a slug, mark it as overridden so pathauto won't overwrite it
             if (!isset($page->metadata)) {
               $page->metadata = new stdClass();

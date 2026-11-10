@@ -3400,6 +3400,24 @@ class HAXCMSSite
     /**
      * Test and ensure the name being returned is a slug currently unused
      */
+    /**
+     * Reserved front-end route: a page slug segment can never be "x" (the
+     * /x/... API and system routes), so every "x" segment becomes "x-x".
+     * Applied wherever a page slug is generated or set (getUniqueSlugName,
+     * the pathauto cascade, setSlug, the page-break slug attribute,
+     * saveOutline). Idempotent. Mirrors reserveSlugRoutes in haxcms-nodejs
+     * (src/lib/slugRules.js).
+     */
+    public static function reserveSlugRoutes($slug)
+    {
+        $segments = explode('/', (string) $slug);
+        foreach ($segments as $key => $segment) {
+            if ($segment === 'x') {
+                $segments[$key] = 'x-x';
+            }
+        }
+        return implode('/', $segments);
+    }
     public function getUniqueSlugName($slug, $page = null, $pathAuto = false)
     {
       $rSlug = $slug;
@@ -3418,6 +3436,9 @@ class HAXCMSSite
       while (substr($rSlug, 0, 1) == "/") {
         $rSlug = substr($rSlug, 1);
       }
+      // reserved front-end route segments ("x" -> "x-x")
+      $slug = self::reserveSlugRoutes($slug);
+      $rSlug = self::reserveSlugRoutes($rSlug);
       $loop = 0;
       $ready = false;
       // while not ready, keep checking
