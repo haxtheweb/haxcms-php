@@ -63,21 +63,22 @@ class BlockOperationsTest extends TestCase
         $this->assertSame('invalid', BlockOperations::normalizeValue('text', str_repeat('x', 4001), 'alt')['code']);
     }
 
-    public function testUrlValuesAreCheckedThenStoredCanonical(): void
+    public function testUrlValuesAreCheckedThenStoredAsSent(): void
     {
         $ok = function ($v) {
             return BlockOperations::normalizeValue('url', $v, 'src');
         };
         $this->assertSame('https://media.psu.edu/v.mp4', $ok(' https://media.psu.edu/v.mp4 ')['value']);
-        $this->assertSame('/files/caf%C3%A9%20x', $ok('/files/café%20x')['value']);
-        $this->assertSame('/q?a=%241&b=%5B%5D%22%5E%60%7B%7C%7D', $ok('/q?a=$1&b=[]"^`{|}')['value']);
+        $this->assertSame('/files/café%20x', $ok('/files/café%20x')['value']);
+        $this->assertSame('/q?a=$1&b=[]"^`{|}', $ok('/q?a=$1&b=[]"^`{|}')['value']);
+        $this->assertSame('https://[::1]:8080/x', $ok('https://[::1]:8080/x')['value']);
         $this->assertSame('', $ok('')['value']);
-        foreach (array('javascript:alert(1)', 'data:x', '//evil.example', 'https://a@b.example', 'https://[::1]/x', 'https://exa mple.org', '/a\\b', 'mailto:a@b.c') as $bad) {
+        foreach (array('javascript:alert(1)', 'data:x', '//evil.example', 'https://a@b.example', 'https://exa mple.org', '/a\\b', 'mailto:a@b.c') as $bad) {
             $this->assertSame('invalid', $ok($bad)['code'], $bad);
         }
-        // the limit applies to the stored (encoded) form
-        $this->assertSame('invalid', $ok('/' . str_repeat('é', 400))['code']);
-        $this->assertTrue($ok('/' . str_repeat('é', 300))['ok']);
+        // the limit counts characters, not bytes
+        $this->assertTrue($ok('/' . str_repeat('é', 2047))['ok']);
+        $this->assertSame('invalid', $ok('/' . str_repeat('é', 2048))['code']);
     }
 
     public function testScannerSpansAreExactAndSkipRawText(): void

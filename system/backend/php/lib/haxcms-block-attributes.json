@@ -3,7 +3,7 @@
   "version": 1,
   "kinds": {
     "text": "Plain text. Trimmed; at most 4000 characters; no control characters other than tab and newline.",
-    "url": "An http(s) URL (host name, not an IP literal in brackets) or a site-relative path. Trimmed; no whitespace or control characters; stored with non-ASCII and \" $ [ ] ^ ` { | } percent-encoded; at most 2048 characters once encoded."
+    "url": "An http(s) URL or a site-relative path, stored as sent. Trimmed; no whitespace or control characters; at most 2048 characters."
   },
   "tags": {
     "a": {
@@ -174,6 +174,7 @@
     },
     "img": {
       "alt": "text",
+      "longdesc": "url",
       "src": "url",
       "title": "text"
     },

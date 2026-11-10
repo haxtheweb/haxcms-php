@@ -1789,6 +1789,41 @@ class HAXCMS
      * Config: config->security->linkCheckRateLimit { enabled, windowMs, max }.
      * Parity: haxcms-nodejs HAXCMS.getLinkCheckRateLimitSettings.
      */
+    /**
+     * Block changes per site per window (x/api/v1/content/:idOrSlug/blocks),
+     * so a script or an AI agent driving the API cannot flood a site with
+     * commits. Parity: haxcms-nodejs HAXCMS.getBlockOperationsRateLimitSettings.
+     */
+    public function getBlockOperationsRateLimitSettings()
+    {
+      $cfg = new stdClass();
+      if (
+        isset($this->config) &&
+        isset($this->config->security) &&
+        isset($this->config->security->blockOperationsRateLimit)
+      ) {
+        $cfg = $this->config->security->blockOperationsRateLimit;
+      }
+      $settings = new stdClass();
+      $settings->enabled = TRUE;
+      if (isset($cfg->enabled)) {
+        $settings->enabled = $cfg->enabled === TRUE;
+      }
+      $settings->windowMs = $this->getIntConfigValue(
+        isset($cfg->windowMs) ? $cfg->windowMs : null,
+        60 * 1000,
+        1000,
+        24 * 60 * 60 * 1000
+      );
+      $settings->max = $this->getIntConfigValue(
+        isset($cfg->max) ? $cfg->max : null,
+        1000,
+        1,
+        100000
+      );
+      return $settings;
+    }
+
     public function getLinkCheckRateLimitSettings()
     {
       $cfg = new stdClass();

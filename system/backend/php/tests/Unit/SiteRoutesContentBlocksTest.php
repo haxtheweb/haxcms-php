@@ -179,6 +179,38 @@ class SiteRoutesContentBlocksTest extends TestCase
         $this->assertSame('', ContentBlocksRoute::normalizeNote(5));
     }
 
+    public function testBlockChangeBudgetRefusesOverItAndRefusedChangesCostNothing(): void
+    {
+        require_once dirname(__DIR__, 2) . '/lib/LinkChecker.php';
+        LinkChecker::resetForTesting();
+        $saved = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
+        $GLOBALS['HAXCMS'] = new SiteRoutesContentBlocksHaxcmsStub(2);
+        try {
+            $site = $this->makeSite();
+            $stale = $this->op($site, 'img', 0, array('alt' => 'x'));
+            $stale['before'] = '<img src="/zzz.png">';
+            $this->assertSame(409, $this->invoke($site, 'PATCH', array('ops' => array($stale)))['data']['status']);
+            $this->assertSame(200, $this->invoke($site, 'PATCH', array('ops' => array($this->op($site, 'img', 0, array('alt' => 'one')))))['data']['status']);
+            $this->assertSame(200, $this->invoke($site, 'PATCH', array('ops' => array($this->op($site, 'img', 0, array('alt' => 'two')))))['data']['status']);
+            $third = $this->invoke($site, 'PATCH', array('ops' => array($this->op($site, 'img', 0, array('alt' => 'three')))));
+            $this->assertSame(429, $third['data']['status']);
+            $this->assertSame('rate-limited', $third['data']['data']['reason']);
+            $this->assertMatchesRegularExpression('/^Block change limit reached: 2 changes per 60 seconds for this site\. You can retry in \d+ seconds\.$/', $third['data']['data']['message']);
+            $this->assertSame('BLOCK_RATE_LIMITED', $third['data']['data']['code']);
+            $this->assertSame(2, count($site->commits));
+            $this->assertStringContainsString('alt="two"', $site->pageContentMap['item-1']);
+        }
+        finally {
+            LinkChecker::resetForTesting();
+            if ($saved === null) {
+                unset($GLOBALS['HAXCMS']);
+            }
+            else {
+                $GLOBALS['HAXCMS'] = $saved;
+            }
+        }
+    }
+
     public function testSummarizeGroupsByAttributesAndTag(): void
     {
         include_once dirname(__DIR__, 2) . '/lib/siteRoutes/v1/contentBlocks.php';
@@ -287,5 +319,26 @@ class SiteRoutesContentBlocksFakeManifest extends SiteRoutesFakeManifest
     {
         $this->owner->manifestSaves++;
         return true;
+    }
+}
+
+/** Minimal $GLOBALS['HAXCMS'] for the block route: rate settings, no cache. */
+class SiteRoutesContentBlocksHaxcmsStub
+{
+    public $cache = null;
+    private $max;
+
+    public function __construct($max)
+    {
+        $this->max = $max;
+    }
+
+    public function getBlockOperationsRateLimitSettings()
+    {
+        $s = new stdClass();
+        $s->enabled = true;
+        $s->windowMs = 60 * 1000;
+        $s->max = $this->max;
+        return $s;
     }
 }

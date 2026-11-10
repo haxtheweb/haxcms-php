@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/../../BlockOperations.php';
 include_once dirname(__FILE__) . '/../../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../../LinkChecker.php';
 
 if (!class_exists('ContentBlocksRoute')) {
     /**
@@ -107,6 +108,19 @@ if (!class_exists('ContentBlocksRoute')) {
             }
         }
 
+        // the HAXCMS settings, or the defaults when HAXCMS is not loaded
+        public static function rateSettings()
+        {
+            if (isset($GLOBALS['HAXCMS']) && method_exists($GLOBALS['HAXCMS'], 'getBlockOperationsRateLimitSettings')) {
+                return $GLOBALS['HAXCMS']->getBlockOperationsRateLimitSettings();
+            }
+            $settings = new stdClass();
+            $settings->enabled = true;
+            $settings->windowMs = 60 * 1000;
+            $settings->max = 1000;
+            return $settings;
+        }
+
         public static function selfLink($apiBasePath, $slugOrId)
         {
             return $apiBasePath . '/v1/content/' . rawurlencode((string) $slugOrId) . '/blocks';
@@ -205,6 +219,24 @@ return function ($context) {
                 'reason' => $outcome['code'],
                 'detail' => $outcome['message'],
                 'op' => $opIndex,
+            ));
+            return;
+        }
+        // A budget of block changes per site per window, charged only for a
+        // change that passed every check and is about to be written, so a
+        // script or AI agent cannot flood the site with commits while refused
+        // and stale requests cost nothing (Node contentBlocks.js).
+        $rateSettings = ContentBlocksRoute::rateSettings();
+        $cache = (isset($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->cache) && $GLOBALS['HAXCMS']->cache) ? $GLOBALS['HAXCMS']->cache : null;
+        $budget = LinkChecker::changeBudget($cache, 'blocks::' . $siteDirectory, count($ops), intval(round(microtime(true) * 1000)), $rateSettings);
+        if (!$budget['allowed']) {
+            $retryAfter = intval($budget['retryAfterSeconds']);
+            @header('Retry-After: ' . $retryAfter);
+            $send(429, array(
+                'message' => 'Block change limit reached: ' . intval($rateSettings->max) . ' changes per ' . intval(round(intval($rateSettings->windowMs) / 1000)) . ' seconds for this site. You can retry in ' . $retryAfter . ' seconds.',
+                'reason' => 'rate-limited',
+                'retryAfter' => $retryAfter,
+                'remaining' => intval($budget['remaining']),
             ));
             return;
         }
