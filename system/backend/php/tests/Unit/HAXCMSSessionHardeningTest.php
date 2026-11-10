@@ -484,7 +484,7 @@ class HAXCMSSessionHardeningTest extends TestCase
         try {
             putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
             $h = $this->bareHaxcms();
-            $this->assertTrue($h->getRequireSessionForRequestTokens(), 'default on (L-3)');
+            $this->assertTrue($h->getRequireSessionForRequestTokens(), 'default on');
             $h->config->security = new stdClass();
             // only an explicit FALSE or a falsy string opts out; anything else
             // keeps the secure default
