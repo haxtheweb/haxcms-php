@@ -68,6 +68,17 @@ Note: if your pull request isn't getting enough attention, you can use our [Disc
 
 Unit tests are ideal but not required to be written for proposed changes and enhancements.
 
+### Static analysis (PHPStan)
+
+`npm run lint:php` runs [PHPStan](https://phpstan.org) at level 5 over the PHP backend (`system/backend/php/lib`, `bootstrapHAX.php`, `publishing/`, `scripts/` and the `system/api.php` / `system/api/v1` entry points). The rule it keeps: **no new PHPStan error lands in the backend**. Errors that already existed are recorded in `system/backend/php/phpstan-baseline.neon` and are not reported; anything else fails, and so does a baseline entry that no longer matches, so the baseline only shrinks. The `phpstan` workflow runs the same command on every pull request that touches PHP and is **blocking**.
+
+- PHPStan is not in the committed `vendor/` directory. `scripts/phpstan.sh` downloads the pinned `phpstan.phar` from the phpstan/phpstan GitHub release into `~/.cache/haxcms-phpstan` (override with `PHPSTAN_CACHE_DIR`, or point `PHPSTAN_PHAR` at a copy you already have) and refuses to run it unless its SHA-256 matches the pin in that script. Only `php` and `curl` are needed.
+- New error in your change: fix it. If PHPStan is wrong about it, prefer a precise native type or a `@phpstan-ignore <identifier>` comment on that line saying why, over adding to the baseline.
+- You fixed a baselined error (the run reports `ignore.unmatched` or `ignore.count`): run `npm run lint:php:baseline` and commit the updated `phpstan-baseline.neon` in the same PR. Review its diff: it should only remove entries.
+- Analyse on PHP 8.3 (what CI uses); other minors can report a few different errors.
+- Known PHPStan quirk: an error inside a trait in `lib/operations/` with the same message as one in `lib/Operations.php` is written to the baseline under the trait's path but matched against `lib/Operations.php`. If a regenerated baseline then fails with `ignore.count` on `lib/Operations.php` and `ignore.unmatched` on the trait, add the trait's count to the `lib/Operations.php` entry and delete the trait's entry.
+- Upgrading PHPStan: change `PHPSTAN_VERSION` and `PHPSTAN_SHA256` together in `scripts/phpstan.sh`, then regenerate the baseline.
+
 ## Security
 
 Please don't report security vulnerabilities in public issues. Follow [SECURITY.md](SECURITY.md) and submit a private advisory at https://github.com/haxtheweb/issues/security/advisories/new. If you'd like to talk it through first, reach the core team privately on [Discord](https://discord.gg/aCGxmRHEJP) or at hax@psu.edu.
