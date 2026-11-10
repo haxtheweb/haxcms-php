@@ -11,6 +11,8 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
  */
 $base = dirname(__DIR__);
 require_once $base . '/vendor/autoload.php';
+// per-test reset of request-scoped statics (registered in phpunit.xml)
+require_once __DIR__ . '/ResetRequestStateExtension.php';
 
 // Define HAXCMS_ROOT ONCE (process-global) at a TEMP root so no test ever
 // points it at the real repo root. Several HAXCMSSite/Operations methods read
