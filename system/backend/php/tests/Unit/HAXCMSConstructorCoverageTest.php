@@ -238,6 +238,23 @@ class HAXCMSConstructorCoverageTest extends TestCase
         $this->assertSame('x.png', $haxcms->userData->picture);
     }
 
+    public function testConstructorUnusableCacheDirectoryLeavesNoCache()
+    {
+        // _config/cache is a regular file, so the cache directory cannot be
+        // created; the cache is dropped at boot (the throttling fallbacks
+        // engage) instead of handing out a cache whose writes all fail
+        $this->clearProtocolSuperglobals();
+        $dir = $this->createConfigDirectory('{}');
+        file_put_contents($dir . '/cache', 'not a directory');
+        $haxcms = $this->newHaxcms();
+        $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
+        $cacheProp->setAccessible(true);
+        $this->assertNull($cacheProp->getValue($haxcms));
+        $this->assertNull($haxcms->getCache('anything'));
+        $this->assertNull($haxcms->setCache('anything', 'v'));
+        $this->assertNotSame('cache', $haxcms->loginThrottleBackend());
+    }
+
     public function testConstructorHaxiamProfileDisablesMcp()
     {
         $this->createConfigDirectory('{"iam": true}');

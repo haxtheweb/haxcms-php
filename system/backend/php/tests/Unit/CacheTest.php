@@ -210,6 +210,42 @@ class CacheTest extends TestCase
         $this->assertStringNotContainsString('a:', $raw);
     }
 
+    /**
+     * A cache path that cannot be created: its parent is a regular file, so
+     * mkdir fails even when the tests run as root.
+     */
+    private function makeUnusableCache(): Cache
+    {
+        mkdir($this->tmpDir, 0700, true);
+        file_put_contents($this->tmpDir . '/not-a-dir', 'x');
+        return new Cache(array(
+            'name' => 'test',
+            'path' => $this->tmpDir . '/not-a-dir/cache/',
+            'extension' => '.cache',
+        ));
+    }
+
+    public function testUnusableCacheDirectoryReturnsNullPath(): void
+    {
+        $cache = $this->makeUnusableCache();
+        $this->assertNull($cache->getCacheDir());
+    }
+
+    public function testUnusableCacheDirectorySkipsCachingInsteadOfThrowing(): void
+    {
+        // the cache is an optimization: a directory that cannot be created
+        // must not fail the request that tried to cache something
+        $cache = $this->makeUnusableCache();
+        $this->assertSame($cache, $cache->store('k', 'v'));
+        $this->assertNull($cache->retrieve('k'));
+        $this->assertEmpty($cache->isCached('k'));
+        $this->assertSame(array(), $cache->retrieveAll());
+        $this->assertSame($cache, $cache->erase('k'));
+        $this->assertNull($cache->eraseExpired());
+        $this->assertSame($cache, $cache->eraseAll());
+        $this->assertFileDoesNotExist($this->tmpDir . '/not-a-dir/cache');
+    }
+
     public function testExtensionSetterAndGetter(): void
     {
         $cache = $this->makeCache();

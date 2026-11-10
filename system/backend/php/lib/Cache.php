@@ -35,6 +35,13 @@ class Cache {
   private $_extension = '.cache';
 
   /**
+   * Whether the unusable-cache-directory warning was already logged
+   *
+   * @var boolean
+   */
+  private $_unavailableLogged = false;
+
+  /**
    * Default constructor
    *
    * @param string|array [optional] $config
@@ -88,7 +95,7 @@ class Cache {
       $dataArray = array($key => $storeData);
     }
     $cacheData = json_encode($dataArray);
-    file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
+    $this->_writeCache($cacheData);
     return $this;
   }
 
@@ -139,7 +146,7 @@ class Cache {
       if (true === isset($cacheData[$key])) {
         unset($cacheData[$key]);
         $cacheData = json_encode($cacheData);
-        file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
+        $this->_writeCache($cacheData);
       } else {
         throw new Exception("Error: erase() - Key '{$key}' not found.");
       }
@@ -169,7 +176,7 @@ class Cache {
       }
       if ($counter > 0) {
         $cacheData = json_encode($cacheData);
-        file_put_contents($this->getCacheDir(), $cacheData, LOCK_EX);
+        $this->_writeCache($cacheData);
       }
       return $counter;
     }
@@ -182,7 +189,7 @@ class Cache {
    */
   public function eraseAll() {
     $cacheDir = $this->getCacheDir();
-    if (true === file_exists($cacheDir)) {
+    if (is_string($cacheDir) && true === file_exists($cacheDir)) {
       $cacheFile = fopen($cacheDir, 'w');
       fclose($cacheFile);
     }
@@ -195,8 +202,12 @@ class Cache {
    * @return mixed
    */
   private function _loadCache() {
-    if (true === file_exists($this->getCacheDir())) {
-      $file = file_get_contents($this->getCacheDir());
+    $cacheFile = $this->getCacheDir();
+    if (is_string($cacheFile) && true === file_exists($cacheFile)) {
+      $file = file_get_contents($cacheFile);
+      if (false === $file) {
+        return false;
+      }
       return json_decode($file, true);
     } else {
       return false;
@@ -204,16 +215,49 @@ class Cache {
   }
 
   /**
-   * Get the cache directory path
-   * 
-   * @return string
+   * Write the encoded cache data to the cache file.
+   *
+   * The cache is an optimization, so a cache that cannot be written never
+   * fails the request: the write is skipped and the reason is logged.
+   *
+   * @param string $cacheData
+   * @return boolean whether the data was written
+   */
+  private function _writeCache($cacheData) {
+    $cacheFile = $this->getCacheDir();
+    if (!is_string($cacheFile)) {
+      return false;
+    }
+    if (false === @file_put_contents($cacheFile, $cacheData, LOCK_EX)) {
+      error_log('HAXcms: unable to write cache file ' . $cacheFile . '; the value was not cached');
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Get the cache file path
+   *
+   * Returns null when the cache directory cannot be created or is not
+   * readable and writable; callers then skip caching instead of failing.
+   * The reason is logged once per Cache instance.
+   *
+   * @return string|null
    */
   public function getCacheDir() {
-    if (true === $this->_checkCacheDir()) {
-      $filename = $this->getCache();
-      $filename = preg_replace('/[^0-9a-z\.\_\-]/i', '', strtolower($filename));
-      return $this->getCachePath() . $this->_getHash($filename) . $this->getExtension();
+    try {
+      $this->_checkCacheDir();
     }
+    catch (Exception $e) {
+      if (!$this->_unavailableLogged) {
+        $this->_unavailableLogged = true;
+        error_log('HAXcms: cache disabled: ' . $e->getMessage());
+      }
+      return null;
+    }
+    $filename = $this->getCache();
+    $filename = preg_replace('/[^0-9a-z\.\_\-]/i', '', strtolower($filename));
+    return $this->getCachePath() . $this->_getHash($filename) . $this->getExtension();
   }
 
   /**
@@ -247,10 +291,11 @@ class Cache {
    * @return boolean
    */
   private function _checkCacheDir() {
-    if (!is_dir($this->getCachePath()) && !mkdir($this->getCachePath(), 0700, true)) {
+    // a concurrent request may create the directory between the two checks
+    if (!is_dir($this->getCachePath()) && !@mkdir($this->getCachePath(), 0700, true) && !is_dir($this->getCachePath())) {
       throw new Exception('Unable to create cache directory ' . $this->getCachePath());
     } elseif (!is_readable($this->getCachePath()) || !is_writable($this->getCachePath())) {
-      if (!chmod($this->getCachePath(), 0700)) {
+      if (!@chmod($this->getCachePath(), 0700)) {
         throw new Exception($this->getCachePath() . ' must be readable and writeable');
       }
     }

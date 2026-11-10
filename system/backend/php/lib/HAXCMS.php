@@ -198,6 +198,12 @@ class HAXCMS
                 'path'      => $this->configDirectory . '/cache/',
                 'extension' => '.cache'
               ));  
+              // an unusable cache directory means no cache, so the throttling
+              // fallbacks described below engage instead of a cache whose
+              // every write is skipped
+              if (!is_string($this->cache->getCacheDir())) {
+                throw new Exception($this->configDirectory . '/cache/ could not be created or is not readable and writable');
+              }
             }
             catch(Exception $e) {
               // Security: the login / Basic-auth brute-force limiter and the
@@ -655,38 +661,6 @@ class HAXCMS
     private function siteSettingsForm($context) {
       $site = $this->loadSite($context['site']['name']);
       return $this->config->site->fields;
-    }
-    /**
-     * Build a selectorList for the front-end that has all values
-     * for selection keyed by item id => title, ordered based on
-     * hierarchy with -- for each level down
-     */
-    private function itemSelectorList() {
-      $items = $site->manifest->orderTree($site->manifest->items);
-      $itemValues = array(
-        array(
-          "text" => "-- No page --",
-          "value" => null,
-        )
-      );
-      foreach ($items as $key => $item) {
-        // calculate -- depth so it looks like a tree
-        $itemBuilder = $item;
-        // walk back through parent tree
-        $distance = "- ";
-        while ($itemBuilder && $itemBuilder->parent != null) {
-          $itemBuilder = $this->findParent($items, $itemBuilder);
-          // double check structure is sound
-          if ($itemBuilder) {
-            $distance = "--" . $distance;
-          }
-        }
-        array_push($itemValues, array(
-          "text" => $distance . $item->title,
-          "value" => $item->id,
-        ));
-      }
-      return $itemValues;
     }
     /**
      * Return the form for the siteSettings
