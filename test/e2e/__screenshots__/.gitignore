@@ -1,0 +1,4 @@
+# Runtime screenshot artifacts — do not commit. Only committed baselines (*.png
+# without .current/.diff suffix) should be checked in.
+*.current.png
+*.diff.png
