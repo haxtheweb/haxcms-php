@@ -2525,6 +2525,63 @@ class HAXCMS
       return false;
     }
     /**
+     * True when the request identifies (or tries to identify) a user: an
+     * Authorization header, a HAXcms request token header, or the refresh
+     * cookie. Mirrors NodeJS src/lib/responseCache.js requestCarriesCredentials.
+     */
+    public static function requestCarriesCredentials()
+    {
+        $headers = array(
+            'HTTP_AUTHORIZATION',
+            'REDIRECT_HTTP_AUTHORIZATION',
+            'HTTP_X_HAXCMS_USER_TOKEN',
+            'HTTP_X_HAXCMS_SITE_TOKEN',
+        );
+        foreach ($headers as $header) {
+            if (isset($_SERVER[$header]) && is_string($_SERVER[$header]) && trim($_SERVER[$header]) !== '') {
+                return true;
+            }
+        }
+        return isset($_COOKIE['haxcms_refresh_token']);
+    }
+    /**
+     * The Cache-Control value sendUncachedResponseHeaders() sends.
+     * @param bool $sensitive the body holds user-bound data
+     */
+    public static function uncachedCacheControl($sensitive = false)
+    {
+        if ($sensitive || self::requestCarriesCredentials()) {
+            return 'no-store, no-cache, must-revalidate, proxy-revalidate';
+        }
+        return 'private, no-cache, must-revalidate';
+    }
+    /**
+     * Cache headers for a response that must always come fresh from the
+     * server (haxtheweb/issues#3244). Static: it depends only on the request,
+     * not on site or user state. Mirrors NodeJS
+     * src/lib/responseCache.js setUncachedResponseHeaders, same header values.
+     *
+     * `no-store` keeps a response out of every cache, and it also makes
+     * Chrome refuse the page a back/forward cache entry: one no-store page or
+     * fetch and Back always reloads. That is only worth it when the answer
+     * can hold something about a user. A request with no credentials gets an
+     * answer that cannot be about anyone, so `private, no-cache` (always
+     * revalidated, never in shared caches) is enough.
+     *
+     * @param bool $sensitive the body holds user-bound data (tokens, a JWT)
+     *   whatever the request carried: always no-store
+     */
+    public static function sendUncachedResponseHeaders($sensitive = false)
+    {
+        if (headers_sent()) {
+            return;
+        }
+        header('Cache-Control: ' . self::uncachedCacheControl($sensitive));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        header('Surrogate-Control: no-store');
+    }
+    /**
      * Get a secure key based on session and two private values
      */
     public function getRequestToken($value = '')
