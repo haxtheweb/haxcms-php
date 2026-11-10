@@ -422,22 +422,90 @@ class SanitizeContent
         return strip_tags(html_entity_decode((string)$value));
     }
 
+    // elements whose text is never page prose (raw text / inert content)
+    const NON_TEXT_ELEMENTS = array('script', 'style', 'noscript', 'template');
+
+    private static function isTagNameEnd($html, $pos)
+    {
+        if ($pos >= strlen($html)) {
+            return true;
+        }
+        return strpos(">/ \t\n\r\f", $html[$pos]) !== false;
+    }
+
+    /**
+     * Drop script / style / noscript / template elements with everything
+     * inside them. A single linear scan (no regex) over an ASCII-lowercased
+     * copy, so offsets line up with the original. An element that is never
+     * closed is dropped to the end of the input. Mirrors
+     * removeNonTextElements in haxcms-nodejs (src/lib/sanitizePageMetadata.js).
+     */
+    public static function removeNonTextElements($html)
+    {
+        $html = (string) $html;
+        $lower = strtolower($html);
+        $length = strlen($html);
+        $out = '';
+        $i = 0;
+        while ($i < $length) {
+            $open = strpos($lower, '<', $i);
+            if ($open === false) {
+                $out .= substr($html, $i);
+                break;
+            }
+            $out .= substr($html, $i, $open - $i);
+            $name = null;
+            foreach (self::NON_TEXT_ELEMENTS as $candidate) {
+                if (
+                    substr($lower, $open + 1, strlen($candidate)) === $candidate &&
+                    self::isTagNameEnd($lower, $open + 1 + strlen($candidate))
+                ) {
+                    $name = $candidate;
+                    break;
+                }
+            }
+            if ($name === null) {
+                $out .= '<';
+                $i = $open + 1;
+                continue;
+            }
+            // find the matching end tag: "</name" followed by whitespace, "/" or ">"
+            $search = $open + 1 + strlen($name);
+            $end = $length;
+            while (true) {
+                $close = strpos($lower, '</' . $name, $search);
+                if ($close === false) {
+                    break;
+                }
+                $after = $close + 2 + strlen($name);
+                if (self::isTagNameEnd($lower, $after)) {
+                    $gt = strpos($lower, '>', $after);
+                    $end = ($gt === false) ? $length : $gt + 1;
+                    break;
+                }
+                $search = $after;
+            }
+            $i = $end;
+        }
+        return $out;
+    }
+
     /**
      * Security (SEC-SANITIZE): an auto page description is plain text
-     * derived from the page body only. The caller passes the body without
-     * its <page-break> element (pageBreakParser content), so page attributes
-     * can never reach the description. Tags are stripped, entities decoded,
-     * then tags stripped again so decoded markup cannot survive; every CR /
-     * LF is removed and the result is cut at 200 characters (code points,
-     * not bytes). Mirrors pageDescriptionFromBody in haxcms-nodejs
-     * (src/lib/sanitizePageMetadata.js).
+     * derived from the page body only, as saved. The caller passes the
+     * sanitized page content (never the <page-break> element or its
+     * attributes). The text of script / style / noscript / template elements
+     * is dropped, tags are stripped, entities decoded, then tags stripped
+     * again so decoded markup cannot survive; every CR / LF is removed and
+     * the result is cut at 200 characters (code points, not bytes). Mirrors
+     * pageDescriptionFromBody in haxcms-nodejs (src/lib/sanitizePageMetadata.js).
      */
     public static function pageDescription($body)
     {
         if (!is_string($body)) {
             return '';
         }
-        $text = self::plainText(strip_tags($body));
+        $text = self::plainText(strip_tags(self::removeNonTextElements($body)));
         $text = str_replace(array("\r", "\n"), '', $text);
         return mb_substr($text, 0, 200, 'UTF-8');
     }

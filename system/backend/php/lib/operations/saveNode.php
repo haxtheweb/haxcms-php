@@ -334,9 +334,9 @@ trait OperationsRouteSaveNode {
                 }
                 else {
                   // Security (SEC-SANITIZE): description is plain text derived
-                  // from this page's body only ($data['content'] never holds
+                  // from this page's body as saved (sanitized content, never
                   // the <page-break> element or its attributes)
-                  $page->description = SanitizeContent::pageDescription($data['content']);
+                  $page->description = SanitizeContent::pageDescription($sanitizedContent);
                 }
                 $readtime = round(str_word_count($clean) / 200);
                 // account for uber small body

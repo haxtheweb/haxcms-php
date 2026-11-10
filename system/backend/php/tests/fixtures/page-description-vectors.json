@@ -1,5 +1,5 @@
 {
-  "description": "Shared auto page description vectors: haxcms-nodejs test/fixtures/page-description-vectors.json and haxcms-php system/backend/php/tests/fixtures/page-description-vectors.json must stay identical. body is the page content after its <page-break>; expected is the description saveNode writes when no description attribute is sent.",
+  "description": "Shared auto page description vectors: haxcms-nodejs test/fixtures/page-description-vectors.json and haxcms-php system/backend/php/tests/fixtures/page-description-vectors.json must stay identical. body is the page content as saved (sanitized, after its <page-break>); expected is the description saveNode writes when no description attribute is sent.",
   "cases": [
     {
       "name": "plain paragraph",
@@ -55,6 +55,31 @@
       "name": "only tags",
       "body": "<div><span></span></div>",
       "expected": ""
+    },
+    {
+      "name": "script text is dropped",
+      "body": "<script>alert(\"x\")</script><p>After script</p>",
+      "expected": "After script"
+    },
+    {
+      "name": "style, noscript and template text is dropped",
+      "body": "<style>p { color: red; }</style><noscript>Enable JS</noscript><template><p>inert</p></template><p>Visible</p>",
+      "expected": "Visible"
+    },
+    {
+      "name": "mixed-case and attributed raw-text elements",
+      "body": "<SCRIPT type=\"module\">x()</SCRIPT ><p>Shown</p>",
+      "expected": "Shown"
+    },
+    {
+      "name": "an unclosed script drops the rest",
+      "body": "<p>Before</p><script>never closed",
+      "expected": "Before"
+    },
+    {
+      "name": "similar tag names are not raw text",
+      "body": "<scripts>kept</scripts> <p>too</p>",
+      "expected": "kept too"
     }
   ]
 }

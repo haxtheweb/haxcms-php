@@ -316,4 +316,93 @@ class JSONOutlineSchemaTest extends TestCase
         // and the manifest itself is left as it was
         $this->assertSame(array('p', 'c', 'd', 'r'), array_map(function ($i) { return $i->id; }, $jos->items));
     }
+    // =========================================================================
+    // top-level keys survive load + save (haxcms-nodejs parity,
+    // haxtheweb/issues#3292)
+    // =========================================================================
+
+    private function tempManifest(array $data): string
+    {
+        $tmp = sys_get_temp_dir() . '/jos_toplevel_' . uniqid() . '.json';
+        file_put_contents($tmp, json_encode($data));
+        return $tmp;
+    }
+
+    public function testLocationAndEveryTopLevelKeyRoundTripInKeyOrder(): void
+    {
+        $tmp = $this->tempManifest(array(
+            'location' => '/sites/demo/index.html',
+            'license' => 'by',
+            'id' => 'site-uuid',
+            'title' => 'Demo',
+            'author' => 'Ada',
+            'description' => 'About',
+            'metadata' => array('site' => array('name' => 'demo')),
+            'items' => array(),
+        ));
+        try {
+            $jos = new JSONOutlineSchema();
+            $this->assertTrue($jos->load($tmp));
+            $jos->save();
+            $raw = json_decode(file_get_contents($tmp), true);
+            // same key order haxcms-nodejs writes
+            $this->assertSame(
+                array('id', 'title', 'author', 'description', 'license', 'metadata', 'items', 'location'),
+                array_keys($raw)
+            );
+            $this->assertSame('/sites/demo/index.html', $raw['location']);
+            $this->assertSame('site-uuid', $raw['id']);
+            $this->assertSame('Demo', $raw['title']);
+            $this->assertSame('Ada', $raw['author']);
+            $this->assertSame('About', $raw['description']);
+            $this->assertSame('by', $raw['license']);
+            // a second load + save is byte-stable
+            $first = file_get_contents($tmp);
+            $again = new JSONOutlineSchema();
+            $again->load($tmp);
+            $again->save();
+            $this->assertSame($first, file_get_contents($tmp));
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    public function testSiteJsonWithoutLocationWritesNull(): void
+    {
+        $tmp = $this->tempManifest(array('id' => 'x', 'title' => 'T', 'items' => array()));
+        try {
+            $jos = new JSONOutlineSchema();
+            $jos->load($tmp);
+            $jos->save();
+            $raw = json_decode(file_get_contents($tmp), true);
+            $this->assertArrayHasKey('location', $raw);
+            $this->assertNull($raw['location']);
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    public function testSiteJsonCannotRedirectTheSaveTarget(): void
+    {
+        $elsewhere = sys_get_temp_dir() . '/jos_elsewhere_' . uniqid() . '.json';
+        $tmp = $this->tempManifest(array(
+            'id' => 'x',
+            'file' => $elsewhere,
+            'unknownKey' => 'dropped',
+            'items' => array(),
+        ));
+        try {
+            $jos = new JSONOutlineSchema();
+            $jos->load($tmp);
+            $this->assertSame($tmp, $jos->file);
+            $jos->save();
+            $this->assertFileDoesNotExist($elsewhere);
+            $raw = json_decode(file_get_contents($tmp), true);
+            $this->assertArrayNotHasKey('unknownKey', $raw);
+            $this->assertArrayNotHasKey('file', $raw);
+        } finally {
+            @unlink($tmp);
+            @unlink($elsewhere);
+        }
+    }
 }

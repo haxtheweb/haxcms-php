@@ -1204,6 +1204,106 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('Saved', $written->items[3]->description);
         $this->assertIsInt($written->metadata->site->updated);
     }
+
+    /**
+     * Replace the body fixture's items (page dirs created for each) and
+     * reload the site so saveNode sees them.
+     */
+    private function reloadBodyFixtureWith(array $items, bool $pathauto): string
+    {
+        $siteDir = $this->bodyFixtureDir . '/' . $this->siteName;
+        foreach ($items as $entry) {
+            if (!is_dir($siteDir . '/pages/' . $entry->id)) {
+                mkdir($siteDir . '/pages/' . $entry->id, 0777, true);
+            }
+            file_put_contents($siteDir . '/pages/' . $entry->id . '/index.html', '<p></p>');
+        }
+        $manifest = json_decode(file_get_contents($siteDir . '/site.json'));
+        $manifest->metadata->site->settings->pathauto = $pathauto;
+        $manifest->items = $items;
+        file_put_contents($siteDir . '/site.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        $site = new OperationsNodeTestSite();
+        $site->load($this->bodyFixtureDir, '/', $this->siteName);
+        $this->haxcms->loadedSite = $site;
+        return $siteDir;
+    }
+
+    private function outlineItem(string $id, $parent, string $slug, array $metadata = array())
+    {
+        return (object) array(
+            'id' => $id,
+            'indent' => $parent ? 1 : 0,
+            'location' => 'pages/' . $id . '/index.html',
+            'slug' => $slug,
+            'order' => 0,
+            'parent' => $parent,
+            'title' => $id,
+            'description' => '',
+            'metadata' => (object) array_merge(array('created' => 1000000, 'updated' => 1000000), $metadata),
+        );
+    }
+
+    private function writtenSlugs(string $siteDir): array
+    {
+        $slugs = array();
+        foreach (json_decode(file_get_contents($siteDir . '/site.json'))->items as $entry) {
+            $slugs[$entry->id] = $entry->slug;
+        }
+        return $slugs;
+    }
+
+    public function testSaveNodeCascadesNewSlugToDescendantsButNotOverriddenBranches(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('parent', null, 'title-with-b-bold-/b'),
+            $this->outlineItem('child', 'parent', 'b/child'),
+            $this->outlineItem('grandchild', 'child', 'b/child/grandchild'),
+            $this->outlineItem('locked', 'parent', 'keep-me', array('overridePathauto' => true)),
+            $this->outlineItem('under-locked', 'locked', 'keep-me/under-locked'),
+        ), true);
+        $result = $this->saveNodeBody(
+            '<page-break title="Title with bold" item-id="parent"></page-break><p>x</p>',
+            array('id' => 'parent')
+        );
+        $this->assertSame(200, $result['status']);
+        // same expectations as haxcms-nodejs test/unit/slug-description-parity
+        $this->assertSame(array(
+            'parent' => 'title-with-bold',
+            'child' => 'title-with-bold/child',
+            'grandchild' => 'title-with-bold/child/grandchild',
+            'locked' => 'keep-me',
+            'under-locked' => 'keep-me/under-locked',
+        ), $this->writtenSlugs($siteDir));
+    }
+
+    public function testSaveNodeDoesNotCascadeWhenPathautoIsOff(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('parent', null, 'old-parent'),
+            $this->outlineItem('child', 'parent', 'old-parent/child'),
+        ), false);
+        $result = $this->saveNodeBody(
+            '<page-break title="Renamed" item-id="parent"></page-break><p>x</p>',
+            array('id' => 'parent')
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(
+            array('parent' => 'old-parent', 'child' => 'old-parent/child'),
+            $this->writtenSlugs($siteDir)
+        );
+    }
+
+    public function testSaveNodeDescriptionNeverIncludesScriptText(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody(
+            '<page-break title="T" item-id="item-a"></page-break><script>alert("x")</script><p>After script</p>'
+        );
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('After script', $result['data']->description);
+    }
 }
 
 /**
