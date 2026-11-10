@@ -1,7 +1,7 @@
 ---
 name: hax-content-authoring
 description: "Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor."
-version: 1.0.0
+version: 1.0.1
 license: Apache-2.0
 metadata:
   author: haxtheweb
@@ -101,10 +101,12 @@ names that are not in the registry. When a page needs something the registry lac
 - Use the local/global `hax` command — not `npx hax` (resolves to a different package).
 - When scripting/automating, pass the automation flags to avoid prompts or new windows:
   `--y --no-i` (add `--auto` / `--quiet` / `--skip` as needed).
-- To add a page: `hax site node:add --title "<title>" --slug "<slug>" --content <file.html|file.md|inline-html> --y --no-i`.
+- To add a page: `hax site node:add --title "<title>" --slug "<slug>" --content <file, URL or HTML> --y --no-i`.
   Without `--order` the page is appended after its siblings; `--parent` takes an id or slug.
-  Use `--content-format md` for inline markdown.
-- To update an existing page: `hax site node:edit --item-id <id-or-slug> --title "<title>" --content <file-or-html> --y --no-i`
+  Use `--content-format md` for inline markdown. How `--content` tells a file, a URL and inline
+  HTML apart is documented in the `hax-site-building` skill
+  (https://github.com/haxtheweb/create/blob/main/src/skills/hax-site-building/SKILL.md).
+- To update an existing page: `hax site node:edit --item-id <id-or-slug> --title "<title>" --content <file, URL or HTML> --y --no-i`
   (any of `--title`, `--slug`, `--content`, `--description`, `--tags`, `--parent`, `--order`,
   `--published`, `--hide-in-menu`, `--theme`, applied together).
 - To bulk import: give each item a `content` field and run
