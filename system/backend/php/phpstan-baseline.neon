@@ -1,0 +1,1513 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Variable \$HAXCMS might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../../api.php
+
+		-
+			message: '#^Variable \$HAXCMS might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: ../../api/v1/index.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 2
+			path: bootstrapHAX.php
+
+		-
+			message: '#^Method Cache\:\:eraseExpired\(\) should return int but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Method Cache\:\:getCache\(\) with return type void returns string but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Method Cache\:\:getCacheDir\(\) should return string but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Method Cache\:\:isCached\(\) should return bool but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Method Cache\:\:retrieve\(\) should return string but returns null\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(boolean \[optional\] \$meta\)\: Unexpected token "\[", expected variable at offset 60 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(boolean \[optional\] \$timestamp\)\: Unexpected token "\[", expected variable at offset 91 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(integer \[optional\] \$expiration\)\: Unexpected token "\[", expected variable at offset 106 on line 6$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string\|array \[optional\] \$config\)\: Unexpected token "\[", expected variable at offset 59 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Parameter \#1 \$string of function strtolower expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Result of method Cache\:\:getCache\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: lib/Cache.php
+
+		-
+			message: '#^Offset 3 on array\{non\-falsy\-string, ''A''\|''H''\|''S'', non\-falsy\-string, string, string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/CommitContext.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$uuid$#'
+			identifier: parameter.notFound
+			count: 2
+			path: lib/FileStorage.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<mixed\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: lib/FileStorage.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''SiteRouteUtils'' and ''getSiteDirectory'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: lib/FilesDataStore.php
+
+		-
+			message: '#^Offset 0 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/FilesDataStore.php
+
+		-
+			message: '#^Offset 1 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/FilesDataStore.php
+
+		-
+			message: '#^Constructor of class Git has an unused parameter \$create_new\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^Constructor of class Git has an unused parameter \$repo_path\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^Method GitRepo\:\:revert\(\) should return string but returns true\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(Boolean  use the \-\-cached flag\?\)\: Unexpected token "use", expected variable at offset 176 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(array   command arguments to run\)\: Unexpected token "command", expected variable at offset 193 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    create if not exists\?\)\: Unexpected token "create", expected variable at offset 157 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 2
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    create if not exists\?\)\: Unexpected token "create", expected variable at offset 173 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    delete directories\?\)\: Unexpected token "delete", expected variable at offset 137 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    force clean\?\)\: Unexpected token "force", expected variable at offset 181 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    initialize new Git repo if not exists\?\)\: Unexpected token "initialize", expected variable at offset 219 on line 9$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    keep asterisk mark on active branch\)\: Unexpected token "keep", expected variable at offset 90 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool    keep asterisk mark on branch name\)\: Unexpected token "keep", expected variable at offset 95 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(bool  return string with \<br /\>\)\: Unexpected token "return", expected variable at offset 129 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(boolean  should all files be committed automatically \(\-a flag\)\)\: Unexpected token "should", expected variable at offset 176 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(mixed    files to remove\)\: Unexpected token "files", expected variable at offset 135 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(mixed   files to add\)\: Unexpected token "files", expected variable at offset 132 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(mixed   variable\)\: Unexpected token "variable", expected variable at offset 145 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  branch name\)\: Unexpected token "branch", expected variable at offset 134 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  branch name\)\: Unexpected token "branch", expected variable at offset 136 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  branch name\)\: Unexpected token "branch", expected variable at offset 141 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  command to run\)\: Unexpected token "command", expected variable at offset 148 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  commit message\)\: Unexpected token "commit", expected variable at offset 136 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  directory to source\)\: Unexpected token "directory", expected variable at offset 203 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 2
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  reference path\)\: Unexpected token "reference", expected variable at offset 223 on line 9$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  reference path\)\: Unexpected token "reference", expected variable at offset 247 on line 9$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  reference path\)\: Unexpected token "reference", expected variable at offset 320 on line 10$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  remote source\)\: Unexpected token "remote", expected variable at offset 282 on line 9$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  repository path\)\: Unexpected token "repository", expected variable at offset 117 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 2
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  repository path\)\: Unexpected token "repository", expected variable at offset 133 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  repository path\)\: Unexpected token "repository", expected variable at offset 137 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  repository path\)\: Unexpected token "repository", expected variable at offset 163 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 2
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  repository path\)\: Unexpected token "repository", expected variable at offset 242 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  source directory\)\: Unexpected token "source", expected variable at offset 197 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  source url\)\: Unexpected token "source", expected variable at offset 188 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string  target directory\)\: Unexpected token "target", expected variable at offset 196 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string key\)\: Unexpected token "key", expected variable at offset 87 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string value\)\: Unexpected token "value", expected variable at offset 112 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(string\|array  command to run\)\: Unexpected token "command", expected variable at offset 149 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/Git.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: lib/Git.php
+
+		-
+			message: '#^Call to an undefined method DirFilter\:\:getFilename\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to an undefined method DirFilter\:\:isDir\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to an undefined method HAXCMS\:\:findParent\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to an undefined method Iterator\<mixed, mixed\>\:\:getChildren\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to function is_array\(\) with list\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 6
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Loose comparison using \!\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notEqual.alwaysTrue
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Loose comparison using \=\= between 403 and 403 will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Method DirFilter\:\:getChildren\(\) should return static\(DirFilter\)\|null but returns DirFilter\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Method HAXCMS\:\:createSite\(\) should return bool but returns HAXCMSSite\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, non\-empty\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$domain optional domain name to utilize during setup\)\: Unexpected token "\$domain", expected type at offset 127 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$git git object details\)\: Unexpected token "\$git", expected type at offset 192 on line 6$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$name name of the new site to create\)\: Unexpected token "\$name", expected type at offset 78 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$type \[string\]\)\: Unexpected token "\$type", expected type at offset 75 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Result of && is always true\.$#'
+			identifier: booleanAnd.alwaysTrue
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-falsy\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 3
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-falsy\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Undefined variable\: \$site$#'
+			identifier: variable.undefined
+			count: 2
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 7
+			path: lib/HAXCMS.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/HAXCMSApiMessageCodes.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 1
+			path: lib/HAXCMSFile.php
+
+		-
+			message: '#^Offset 0 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/HAXCMSFile.php
+
+		-
+			message: '#^Offset 1 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/HAXCMSFile.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/HAXCMSFile.php
+
+		-
+			message: '#^Variable \$importDirnamePart might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: lib/HAXCMSFile.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Call to method DateTime\:\:format\(\) on a separate line has no effect\.$#'
+			identifier: method.resultUnused
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Loose comparison using \=\= between ''html'' and ''html'' will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:deleteNode\(\) should return JSONOutlineSchemaItem but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:deleteNode\(\) should return JSONOutlineSchemaItem but returns true\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:getGaID\(\) should return string but returns null\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:getServiceWorkerStatus\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:getServiceWorkerStatus\(\) should return string but returns true\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:loadNodeByLocation\(\) has invalid return type new\.$#'
+			identifier: class.notFound
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:loadNodeByLocation\(\) should return new but returns JSONOutlineSchemaItem\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:treeToNodes\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method HAXCMSSite\:\:updateNode\(\) should return JSONOutlineSchemaItem but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Offset ''@id'' on array\{''@type''\: ''Organization'', ''@id''\: non\-falsy\-string, url\: mixed, name\: string, logo\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}, founder\?\: array\{''@id''\: non\-falsy\-string\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 2
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Offset ''@id'' on array\{''@type''\: ''Person'', ''@id''\: non\-falsy\-string, name\?\: non\-empty\-string, sameAs\?\: array\{mixed\}, image\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 3
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, string, non\-falsy\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @return contains unresolvable type\.$#'
+			identifier: return.unresolvableType
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @return has invalid value \(\$page repesented as JSONOutlineSchemaItem\)\: Unexpected token "\$page", expected type at offset 333 on line 8$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var above a method has no effect\.$#'
+			identifier: varTag.misplaced
+			count: 5
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$directory string file system path\)\: Unexpected token "\$directory", expected type at offset 85 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$domain domain information\)\: Unexpected token "\$domain", expected type at offset 269 on line 7$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$git a stdClass containing repo details\)\: Unexpected token "\$git", expected type at offset 101 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$gitDetails git details\)\: Unexpected token "\$gitDetails", expected type at offset 233 on line 6$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$name string name of the site\)\: Unexpected token "\$name", expected type at offset 191 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$parent JSONOutlineSchemaItem representing a parent to add this page under\)\: Unexpected token "\$parent", expected type at offset 104 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$path the path to try loading based on or search for the active from address\)\: Unexpected token "\$path", expected type at offset 51 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$siteBasePath string web based url / base_path\)\: Unexpected token "\$siteBasePath", expected type at offset 132 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$template string which boilerplate page template / directory to load\)\: Unexpected token "\$template", expected type at offset 242 on line 6$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$title title of the new page to create\)\: Unexpected token "\$title", expected type at offset 191 on line 5$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Parameter \#2 \$image_type of method Gumlet\\ImageResize\:\:save\(\) expects string\|null, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Parameter \#4 \$priority of method Icamys\\SitemapGenerator\\SitemapGenerator\:\:addURL\(\) expects float\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 5
+			path: lib/HAXCMSSite.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:addItem\(\) has invalid return type count\.$#'
+			identifier: class.notFound
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:addItem\(\) should return count but returns int\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:newItem\(\) has invalid return type new\.$#'
+			identifier: class.notFound
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:newItem\(\) should return new but returns JSONOutlineSchemaItem\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:removeItem\(\) should return JSONOutlineSchemaItem but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:updateItem\(\) should return JSONOutlineSchemaItem but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Method JSONOutlineSchema\:\:updateItem\(\) should return JSONOutlineSchemaItem but returns true\.$#'
+			identifier: return.type
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$id an id that''s in the array of items\)\: Unexpected token "\$id", expected type at offset 53 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$id an id that''s in the array of items\)\: Unexpected token "\$id", expected type at offset 68 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$item JSONOutlineSchemaItem\)\: Unexpected token "\$item", expected type at offset 82 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^PHPDoc tag @var has invalid value \(\$item an array of values, keyed to match JSON Outline Schema\)\: Unexpected token "\$item", expected type at offset 50 on line 3$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: lib/JSONOutlineSchema.php
+
+		-
+			message: '#^Parameter \#2 \$image_type of method Gumlet\\ImageResize\:\:save\(\) expects string\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: lib/MaterializeInlineImages.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/MaterializeInlineImages.php
+
+		-
+			message: '#^Call to function is_object\(\) with stdClass will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: lib/Operations.php
+
+		-
+			message: '#^Comparison operation "\<\=" between int\<1, max\> and 0 is always false\.$#'
+			identifier: smallerOrEqual.alwaysFalse
+			count: 8
+			path: lib/Operations.php
+
+		-
+			message: '#^Loose comparison using \!\= between non\-falsy\-string and '''' will always evaluate to true\.$#'
+			identifier: notEqual.alwaysTrue
+			count: 2
+			path: lib/Operations.php
+
+		-
+			message: '#^Loose comparison using \=\= between ''sepia'' and ''sepia'' will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Loose comparison using \=\= between ''webp'' and ''webp'' will always evaluate to true\.$#'
+			identifier: equal.alwaysTrue
+			count: 3
+			path: lib/Operations.php
+
+		-
+			message: '#^Method Operations\:\:collectSiteFiles\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 4
+			path: lib/Operations.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: lib/Operations.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Variable \$item might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: lib/Operations.php
+
+		-
+			message: '#^Call to function is_null\(\) with mixed will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: lib/ReportHelpers.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/ReportHelpers.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''\\\\Dom\\\\HTMLDocument'' and ''createFromString'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: lib/SanitizeContent.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, '''', numeric\-string\}\|array\{non\-falsy\-string, non\-empty\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/SanitizeContent.php
+
+		-
+			message: '#^Static method SanitizeContent\:\:getElementChildren\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: lib/SanitizeContent.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''colon''\|''NewLine''\|''period''\|''plus''\|''Tab'' and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/SanitizeContent.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/SanitizeContent.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/SsrfGuard.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/SystemStatusService.php
+
+		-
+			message: '#^Call to function is_object\(\) with stdClass will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/ThemeSettingsService.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/ThemeSettingsService.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/operations/generateAppStore.php
+
+		-
+			message: '#^Variable \$siteName in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: lib/operations/haxiamAddUserAccess.php
+
+		-
+			message: '#^Variable \$targetUserName in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: lib/operations/haxiamAddUserAccess.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/operations/languages.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, non\-falsy\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/operations/nodeRevisions.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/operations/saveFile.php
+
+		-
+			message: '#^Variable \$_FILES in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: lib/operations/saveFile.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed~\(0\|0\.0\|''''\|''0''\|array\{\}\|false\|null\) and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/operations/saveManifest.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed~\(0\|0\.0\|''''\|''0''\|array\{\}\|false\|null\) and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/operations/saveNodeDetails.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 2
+			path: lib/operations/saveOutline.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(Operations\) and ''getDefaultSkeletonD…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/operations/skeletonsList.php
+
+		-
+			message: '#^Offset ''route'' on array\{pattern\: ''/\^v1\\\\/content\\\\/\(\[\^\\\\…'', route\: ''v1/content/\:idOrSlug'', paramMap\: array\{idOrSlug\: 1\}\}\|array\{pattern\: ''/\^v1\\\\/items\\\\/\(\[\^\\\\/\]…'', route\: ''v1/items/\:idOrSlug'', paramMap\: array\{idOrSlug\: 1\}\}\|array\{pattern\: ''/\^v1\\\\/items\\\\/\(\[\^\\\\/\]…'', route\: ''v1/items/\:idOrSlug…'', paramMap\: array\{idOrSlug\: 1, format\: 2\}\}\|array\{pattern\: ''/\^v1\\\\/items\\\\/\(\[\^\\\\/\]…'', route\: ''v1/items/\:idOrSlug…'', paramMap\: array\{idOrSlug\: 1, revisionId\: 2, compareRevisionId\: 3\}\}\|array\{pattern\: ''/\^v1\\\\/items\\\\/\(\[\^\\\\/\]…'', route\: ''v1/items/\:idOrSlug…'', paramMap\: array\{idOrSlug\: 1, revisionId\: 2\}\}\|array\{pattern\: ''/\^v1\\\\/items\\\\/\(\[\^\\\\/\]…'', route\: ''v1/items/\:idOrSlug…'', paramMap\: array\{idOrSlug\: 1\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/SiteApiRouter.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/siteRoutes/SiteRouteUtils.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: lib/siteRoutes/SiteRouteUtils.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-falsy\-string\>\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/SiteRouteUtils.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, non\-falsy\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/SiteRouteUtils.php
+
+		-
+			message: '#^Variable \$_GET in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: lib/siteRoutes/SiteRouteUtils.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:getAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:hasAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:removeAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:setAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Offset 2 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: lib/siteRoutes/v1/ExportConverters.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/siteRoutes/v1/blocks.php
+
+		-
+			message: '#^Instanceof between DOMAttr and DOMAttr will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: lib/siteRoutes/v1/blocks.php
+
+		-
+			message: '#^Instanceof between DOMDocument and DOMDocument will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: lib/siteRoutes/v1/blocks.php
+
+		-
+			message: '#^Offset ''usageCount'' on array\{id\: mixed, slug\: mixed, title\: mixed, location\: mixed, usageCount\: int\<1, max\>, instances\: non\-empty\-list\<array\{instance\: int\<1, max\>, haxElementSchema\: array\{tag\: mixed, properties\: stdClass, content\: string\}\}\>, links\: array\{self\: mixed, content\: mixed\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/v1/blocks.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed~'''' and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/siteRoutes/v1/contentMutation.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''PATCH'' and ''PATCH'' will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: lib/siteRoutes/v1/filesMutation.php
+
+		-
+			message: '#^Call to function in_array\(\) with arguments ''mediaData'', array\{''mediaData''\} and true will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/siteRoutes/v1/reports.php
+
+		-
+			message: '#^Offset ''kind'' on array\{id\: ''app\-store\-schema''\|''hax\-element\-schema''\|''hax\-properties''\|''hax\-schema''\|''json\-outline\-schema''\|''json\-outline\-schema…''\|''oer\-schema''\|''view\-display\-schema''\|''xapi\-statement…'', title\: ''HAX App Store Schema''\|''HAX Element Schema''\|''HAX Properties''\|''HAX Schema''\|''JSON Outline Schema''\|''JSON Outline Schema…''\|''OER Schema''\|''View/Display Schema''\|''xAPI Statement'', version\: ''0\.3\.4''\|''1\.0\.0''\|''1\.0\.3'', kind\: ''appStoreSchema''\|''haxElementSchema''\|''haxProperties''\|''haxSchema''\|''jsonOutlineSchema''\|''jsonOutlineSchemaIt…''\|''oerSchema''\|''viewSchema''\|''xapi'', mediaType\: ''application/json''\|''application/xapi…'', appliesTo\: array\{''analytics''\}\|array\{''block'', ''customElement''\}\|array\{''customElement'', ''block''\}\|array\{''item'', ''content''\}\|array\{''site'', ''item'', ''content''\}\|array\{''view''\}, links\: array\{spec\: ''https\://github\.com…''\}\|array\{views\: non\-falsy\-string\}, schema\: non\-empty\-array\}\|array\{id\: ''query\-contract…'', title\: ''Site API Query…'', version\: ''1\.0\.0'', kind\: ''queryContract'', mediaType\: ''application/json'', appliesTo\: array\{''items'', ''content'', ''files'', ''search'', ''reports'', ''views''\}, schema\: array\{type\: ''object'', properties\: array\{''filter\.\*''\: array\{type\: ''object''\}, ''page\.limit''\: array\{type\: ''number''\}, ''page\.offset''\: array\{type\: ''number''\}, sort\: array\{type\: ''string''\}, fields\: array\{type\: ''string''\}, include\: array\{type\: ''string''\}, format\: array\{type\: ''string'', enum\: array\{''json'', ''md'', ''yaml'', ''xml'', ''html'', ''xapi''\}\}, mode\: array\{type\: ''string'', enum\: array\{''bundle'', ''concat''\}\}\}\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/v1/schemas.php
+
+		-
+			message: '#^Anonymous function has an unused use \$apiBasePath\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: lib/siteRoutes/v1/themes.php
+
+		-
+			message: '#^Offset ''enabled'' on array\{machineName\: string, name\: string, description\: string, enabled\: bool, active\: bool, hidden\: bool, screenshot\: string, path\: string, \.\.\.\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/v1/themes.php
+
+		-
+			message: '#^Loose comparison using \=\= between non\-empty\-string and '''' will always evaluate to false\.$#'
+			identifier: equal.alwaysFalse
+			count: 1
+			path: lib/siteRoutes/v1/views.php
+
+		-
+			message: '#^Offset ''id'' on array\{id\: non\-empty\-string, title\: non\-empty\-string, description\: string, query\: array, display\: array, links\: array\{self\: non\-falsy\-string, results\: non\-falsy\-string, displayResults\: non\-falsy\-string\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/siteRoutes/v1/views.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, non\-falsy\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/SystemApiRequestContext.php
+
+		-
+			message: '#^Access to an undefined property DOMNode\:\:\$tagName\.$#'
+			identifier: property.notFound
+			count: 1
+			path: lib/systemRoutes/v1/convertHtmlToDocx.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/convertHtmlToMd.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/convertJsonToYaml.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/convertMdToHtml.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/convertPrettyHtml.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/convertYamlToJson.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/convertYamlToJson.php
+
+		-
+			message: '#^Access to an undefined property DOMNode\:\:\$tagName\.$#'
+			identifier: property.notFound
+			count: 1
+			path: lib/systemRoutes/v1/importDocx.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/importDocx.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and null will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/importDocx.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/importHtml.php
+
+		-
+			message: '#^Comparison operation "\<" between int\<1, max\> and 1 is always false\.$#'
+			identifier: smaller.alwaysFalse
+			count: 2
+			path: lib/systemRoutes/v1/importPdf.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/importPdf.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/importPdf.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/importPptx.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Constant HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Offset 1 on array\{0\: non\-falsy\-string, 1\: string, 2\: string, 3\?\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Offset 1 on array\{0\: non\-falsy\-string, 1\: string, 2\?\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Offset 1 on array\{non\-falsy\-string, non\-empty\-string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertElmslnToSite.php
+
+		-
+			message: '#^Access to an undefined property DOMNode\:\:\$tagName\.$#'
+			identifier: property.notFound
+			count: 2
+			path: lib/systemRoutes/v1/imports/convertGitbookToSite.php
+
+		-
+			message: '#^Call to an undefined method DOMNode\:\:getElementsByTagName\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: lib/systemRoutes/v1/imports/convertGitbookToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertGitbookToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertGitbookToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertHtmlToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertNotionToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertNotionToSite.php
+
+		-
+			message: '#^Constant HAXCMS_OPENSTAX_DROP_ELEMENTS not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
+
+		-
+			message: '#^Constant HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
+
+		-
+			message: '#^Constant HAXCMS_OPENSTAX_KEEP_ATTRIBUTES not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
+
+		-
+			message: '#^Constant HAXCMS_OPENSTAX_SITE_LICENSES not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertPloneToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertPressbooksToSite.php
+
+		-
+			message: '#^Offset 2 on array\{non\-falsy\-string, non\-empty\-string, string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertQuartoToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 3
+			path: lib/systemRoutes/v1/imports/convertQuartoToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertQuartoToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertQuartoToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: lib/systemRoutes/v1/imports/convertQuartoToSite.php
+
+		-
+			message: '#^Binary operation "\+" between non\-empty\-string and 0 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertVitepressToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 3
+			path: lib/systemRoutes/v1/imports/convertVitepressToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertVitepressToSite.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-falsy\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertVitepressToSite.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/convertWordpressToSite.php
+
+		-
+			message: '#^Access to an undefined property DOMNode\:\:\$tagName\.$#'
+			identifier: property.notFound
+			count: 1
+			path: lib/systemRoutes/v1/imports/importUtils.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''application/octet…''\|''image/bmp''\|''image/gif''\|''image/jpeg''\|''image/png''\|''image/tiff''\|''image/webp'' and ''image/svg\+xml'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: lib/systemRoutes/v1/imports/importUtils.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and null will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: lib/systemRoutes/v1/imports/importUtils.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: lib/systemRoutes/v1/integrations.php
+
+		-
+			message: '#^Variable \$_GET in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: lib/systemRoutes/v1/integrations.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: lib/systemRoutes/v1/settings.php
+
+		-
+			message: '#^Offset ''kind'' on array\{id\: ''app\-store\-schema'', title\: ''HAX App Store Schema'', version\: ''1\.0\.0'', kind\: ''appStoreSchema'', mediaType\: ''application/json'', appliesTo\: array\{''integration''\}, links\: array\{endpoint\: non\-falsy\-string, spec\: ''https\://github\.com…''\}, schema\: array\{type\: ''object'', properties\: array\{apps\: array\{type\: ''array'', items\: array\{type\: ''object''\}\}, stax\: array\{type\: ''array'', items\: array\{type\: ''object''\}\}, autoloader\: array\{type\: array\{''array'', ''object''\}\}\}\}\}\|array\{id\: ''block\-configuration'', title\: ''Block Configuration…'', version\: ''1\.0\.0'', kind\: ''blockConfiguration'', mediaType\: ''application/json'', appliesTo\: array\{''configuration''\}, links\: array\{endpoint\: non\-falsy\-string\}, schema\: array\{type\: ''object'', properties\: array\{enabledBlocks\: array\{type\: ''array'', items\: array\{type\: ''string''\}\}\}\}\}\|array\{id\: ''json\-outline\-schema'', title\: ''JSON Outline Schema'', version\: ''1\.0\.0'', kind\: ''jsonOutlineSchema'', mediaType\: ''application/json'', appliesTo\: array\{''site'', ''site\-template'', ''skeleton''\}, links\: array\{spec\: ''https\://github\.com…''\}, schema\: array\{type\: ''object'', required\: array\{''id'', ''title'', ''items''\}, properties\: array\{id\: array\{type\: ''string''\}, title\: array\{type\: ''string''\}, description\: array\{type\: ''string''\}, metadata\: array\{type\: ''object''\}, items\: array\{type\: ''array'', items\: array\{type\: ''object''\}\}\}\}\}\|array\{id\: ''json\-outline\-schema…'', title\: ''JSON Outline Schema…'', version\: ''1\.0\.0'', kind\: ''jsonOutlineSchemaIt…'', mediaType\: ''application/json'', appliesTo\: array\{''site'', ''skeleton''\}, links\: array\{spec\: ''https\://github\.com…''\}, schema\: array\{type\: ''object'', required\: array\{''id'', ''title'', ''slug'', ''location''\}, properties\: array\{id\: array\{type\: ''string''\}, title\: array\{type\: ''string''\}, slug\: array\{type\: ''string''\}, location\: array\{type\: ''string''\}, parent\: array\{type\: array\{''string'', ''null''\}\}, indent\: array\{type\: ''number''\}, order\: array\{type\: ''number''\}, description\: array\{type\: ''string''\}, \.\.\.\}\}\}\|array\{id\: ''skeleton…'', title\: ''Skeleton…'', version\: ''1\.0\.0'', kind\: ''skeletonConfigurati…'', mediaType\: ''application/json'', appliesTo\: array\{''configuration''\}, links\: array\{endpoint\: non\-falsy\-string\}, schema\: array\{type\: ''object'', additionalProperties\: array\{type\: ''boolean''\}\}\}\|array\{id\: ''theme\-configuration'', title\: ''Theme Configuration…'', version\: ''1\.0\.0'', kind\: ''themeConfiguration'', mediaType\: ''application/json'', appliesTo\: array\{''configuration''\}, links\: array\{endpoint\: non\-falsy\-string\}, schema\: array\{type\: ''object'', additionalProperties\: array\{type\: ''boolean''\}\}\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: lib/systemRoutes/v1/settings.php
+
+		-
+			message: '#^Variable \$HAXCMS might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: publishing/github/publishGithub.php
