@@ -155,13 +155,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
             'POST',
             'items'
         ));
-        $this->knownBug(
-            'FI-HTTP-01 a Throwable inside a site route is not caught: PHP answers with the generic plain-text 500 from bootstrapHAX.php, not an ApiError envelope (haxcms-nodejs never answers)',
-            function () use ($res) {
-                $this->assertErrorEnvelope($res);
-                $this->assertGreaterThanOrEqual(500, $res['status']);
-            }
-        );
+        $this->assertErrorEnvelope($res, 500, 'Server error');
         // each PHP request is its own process, so the next one is served
         $this->assertStillServing();
     }

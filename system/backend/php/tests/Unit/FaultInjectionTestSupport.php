@@ -221,9 +221,11 @@ abstract class FaultInjectionTestCase extends TestCase
     }
 
     /**
-     * Run a site-route handler as one request. A Throwable that escapes the
-     * handler is what PHP turns into its generic fatal-error page (500, plain
-     * text, bootstrapHAX.php haxGlobalDebug): it is returned, not rethrown.
+     * Run a site-route handler as one request, the way SiteApiRouter does
+     * (SiteRouteUtils::invokeRouteHandler, which answers a Throwable from the
+     * handler with the 500 ApiError envelope). A Throwable that still escapes
+     * is what PHP turns into its generic fatal-error page (500, plain text,
+     * bootstrapHAX.php haxGlobalDebug): it is returned, not rethrown.
      */
     protected function request(string $handlerFile, SiteMutationRouteTestContext $context, array $rules = array()): array
     {
@@ -240,7 +242,7 @@ abstract class FaultInjectionTestCase extends TestCase
             if (count($rules) > 0) {
                 FaultInjectionFileWrapper::install($rules);
             }
-            $handler($context);
+            SiteRouteUtils::invokeRouteHandler($handler, $context);
         } catch (Throwable $e) {
             $thrown = $e;
         } finally {

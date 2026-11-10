@@ -3,6 +3,55 @@ include_once dirname(__FILE__) . '/../HAXCMSApiMessageCodes.php';
 include_once dirname(__FILE__) . '/../OpenApiSpecCache.php';
 class SiteRouteUtils
 {
+    /**
+     * Message for a Throwable raised inside an API route handler. haxcms-nodejs
+     * (src/lib/requestErrorHandler.js sendRouteHandlerError) answers the same
+     * envelope.
+     */
+    const ROUTE_HANDLER_ERROR_MESSAGE = 'Server error';
+
+    /**
+     * Invariant: a Throwable raised inside a system or site API route handler
+     * ends the request with the OpenAPI ApiError envelope
+     * ({status: 500, data: {message: 'Server error'}}), never with PHP's
+     * plain-text fatal-error page. The error is logged, never sent: it can
+     * carry server paths. SiteApiRouter and SystemApiRouter call handlers
+     * through this.
+     */
+    public static function invokeRouteHandler($handler, $context)
+    {
+        try {
+            return call_user_func($handler, $context);
+        } catch (Throwable $e) {
+            self::sendRouteHandlerError($e, $context);
+            return null;
+        }
+    }
+
+    public static function sendRouteHandlerError($error, $context = null)
+    {
+        $label = '';
+        if (is_object($context)) {
+            $label = (isset($context->method) ? strtoupper((string) $context->method) : '')
+                . ' ' . (isset($context->routeSuffix) && is_string($context->routeSuffix) ? $context->routeSuffix : '');
+        }
+        @error_log('haxcms: error in API route ' . substr(trim($label), 0, 120) . ': ' . get_class($error) . ': ' . $error->getMessage());
+        // a response the handler already started cannot be replaced
+        if (PHP_SAPI !== 'cli' && headers_sent()) {
+            return;
+        }
+        self::sendFormattedResponse(
+            array('message' => self::ROUTE_HANDLER_ERROR_MESSAGE),
+            array(
+                'statusCode' => 500,
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+            ),
+            is_object($context) && isset($context->routeSuffix) && is_string($context->routeSuffix) ? $context->routeSuffix : '',
+            is_object($context) && isset($context->apiBasePath) ? $context->apiBasePath : '/x/api'
+        );
+    }
+
     public static function getRequestPath()
     {
         if (isset($_SERVER['REQUEST_URI'])) {
