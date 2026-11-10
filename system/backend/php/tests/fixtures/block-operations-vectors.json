@@ -851,9 +851,12 @@
         }
       ],
       "expect": {
-        "ok": false,
-        "code": "invalid",
-        "op": 0
+        "ok": true,
+        "sha256": "0666da21cbf6d24beb456fcc967e9c139d7c0b8a692166b0cd4312820bc6db01",
+        "blocks": ["<a href=\"https://[::1]:80/x\">v</a>"],
+        "indexes": [0],
+        "relocated": [false],
+        "content": "<a href=\"https://[::1]:80/x\">v</a><video-player source=\"https://media.aanda.psu.edu/x.mp4\"></video-player>"
       }
     },
     {
@@ -1143,7 +1146,7 @@
       }
     },
     {
-      "name": "url canonical on a: \"/files/café.png\"",
+      "name": "url stored as sent on a: \"/files/café.png\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1158,15 +1161,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "efcc20fea91a72067dbd58483ee0aa088213e274a53b5e711c0291321abc3539",
-        "blocks": ["<a href=\"/files/caf%C3%A9.png\">a</a>"],
+        "sha256": "2f229a0625877d61b76c747150a1fff0472712bd52d8ea6a33cd665f223f5d2d",
+        "blocks": ["<a href=\"/files/café.png\">a</a>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/files/caf%C3%A9.png\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/files/café.png\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"/files/café.png\"",
+      "name": "url stored as sent on img: \"/files/café.png\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1181,15 +1184,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "14bb53618014511f899b610ec3c12b965f32352df70d24333900eb632abc4221",
-        "blocks": ["<img src=\"/files/caf%C3%A9.png\">"],
+        "sha256": "91cdb77c52547e5a6bf07baea5802970db31850657a691faaaf0dd973c5c5f55",
+        "blocks": ["<img src=\"/files/café.png\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/files/caf%C3%A9.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/files/café.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"/files/café.png\"",
+      "name": "url stored as sent on custom element: \"/files/café.png\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1204,17 +1207,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "b56029c36c18c4eeed50a102f888669ea8153c3ab5c95e9d5384796f45aca508",
-        "blocks": [
-          "<video-player source=\"/files/caf%C3%A9.png\"></video-player>"
-        ],
+        "sha256": "6b8829c3c5fbc67b757dc1ffa04ed846db0c2e8d7c57cbafdc7f5e7bad91391d",
+        "blocks": ["<video-player source=\"/files/café.png\"></video-player>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/files/caf%C3%A9.png\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/files/café.png\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on a: \"/q?a=$1&b[]=2\"",
+      "name": "url stored as sent on a: \"/q?a=$1&b[]=2\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1229,15 +1230,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "178936e08524f6766aaa5c486feffedee7811487b249a6a81a41b89c67263356",
-        "blocks": ["<a href=\"/q?a=%241&amp;b%5B%5D=2\">a</a>"],
+        "sha256": "0e65f050d78d48825148b8182aa12f83bd4dc679d74c5e42f224c5790fb10a3a",
+        "blocks": ["<a href=\"/q?a=$1&amp;b[]=2\">a</a>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/q?a=%241&amp;b%5B%5D=2\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/q?a=$1&amp;b[]=2\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"/q?a=$1&b[]=2\"",
+      "name": "url stored as sent on img: \"/q?a=$1&b[]=2\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1252,15 +1253,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "116b074d2d206fe2ab76fdcfb9d11cf2e1e1b32656f3f23c432d84a6aa4ac1ca",
-        "blocks": ["<img src=\"/q?a=%241&amp;b%5B%5D=2\">"],
+        "sha256": "8abbb1a74cbe8ace29c80c6efe18de72eb188fb1162aee07a57092197dc00570",
+        "blocks": ["<img src=\"/q?a=$1&amp;b[]=2\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/q?a=%241&amp;b%5B%5D=2\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/q?a=$1&amp;b[]=2\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"/q?a=$1&b[]=2\"",
+      "name": "url stored as sent on custom element: \"/q?a=$1&b[]=2\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1275,17 +1276,17 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "a0f0159827a65abb53cc4b8821794a5d85501ba40d0effdbdafd349a2dfd4182",
+        "sha256": "389e72810c4ccb6ac02828e1a5a11888024d827d52f262c5d4a4de0369ba67ff",
         "blocks": [
-          "<video-player source=\"/q?a=%241&amp;b%5B%5D=2\"></video-player>"
+          "<video-player source=\"/q?a=$1&amp;b[]=2\"></video-player>"
         ],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/q?a=%241&amp;b%5B%5D=2\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/q?a=$1&amp;b[]=2\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on a: \"/x^`{|}y\"",
+      "name": "url stored as sent on a: \"/x^`{|}y\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1300,15 +1301,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "8897a7c7c67b41070ebdbe1a13a2b8054c26cf94b1b44277e899ca621a5f4936",
-        "blocks": ["<a href=\"/x%5E%60%7B%7C%7Dy\">a</a>"],
+        "sha256": "b3365d33460a06d2dfd776f0150cc243577efd7fb8856597fb5d95f360590839",
+        "blocks": ["<a href=\"/x^`{|}y\">a</a>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/x%5E%60%7B%7C%7Dy\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/x^`{|}y\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"/x^`{|}y\"",
+      "name": "url stored as sent on img: \"/x^`{|}y\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1323,15 +1324,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "a2b29c5db0bd8be50cb01eaf77a7336cef6992a0652f16668a9e727b4aa9c839",
-        "blocks": ["<img src=\"/x%5E%60%7B%7C%7Dy\">"],
+        "sha256": "6872dd3d911dbd15c659adcc19ea5892289eab655b8cf48cecac1962afeb81f7",
+        "blocks": ["<img src=\"/x^`{|}y\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/x%5E%60%7B%7C%7Dy\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/x^`{|}y\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"/x^`{|}y\"",
+      "name": "url stored as sent on custom element: \"/x^`{|}y\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1346,17 +1347,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "f2f43ade028d5df3ff564f5adc2cf78d38a810c40fdaf143294a5aaf5881c073",
-        "blocks": [
-          "<video-player source=\"/x%5E%60%7B%7C%7Dy\"></video-player>"
-        ],
+        "sha256": "4f4fbca8729af25249743eabe4b1ad33ba61232b76575cef16c4b8d682e24725",
+        "blocks": ["<video-player source=\"/x^`{|}y\"></video-player>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/x%5E%60%7B%7C%7Dy\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/x^`{|}y\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on a: \"https://e.x/媒体/視頻.mp4#t=1\"",
+      "name": "url stored as sent on a: \"https://e.x/媒体/視頻.mp4#t=1\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1371,17 +1370,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "ffd5ddc026d3876e14ace6204ec0dd00f7cb3ace1debddb124e1174402201b0f",
-        "blocks": [
-          "<a href=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\">a</a>"
-        ],
+        "sha256": "01b4a52c6950f430ad90d58943903f96486601d560d48bc0b8303130c579abf1",
+        "blocks": ["<a href=\"https://e.x/媒体/視頻.mp4#t=1\">a</a>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"https://e.x/媒体/視頻.mp4#t=1\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"https://e.x/媒体/視頻.mp4#t=1\"",
+      "name": "url stored as sent on img: \"https://e.x/媒体/視頻.mp4#t=1\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1396,17 +1393,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "26a636e29eb134c5d52916112876a0782807407834c5d9162e5a5845deaad94f",
-        "blocks": [
-          "<img src=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\">"
-        ],
+        "sha256": "0f341b9bfbc330c0575f0c373e4d0235880cf0297bf6b4b049f7e2ba70a6c4da",
+        "blocks": ["<img src=\"https://e.x/媒体/視頻.mp4#t=1\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"https://e.x/媒体/視頻.mp4#t=1\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"https://e.x/媒体/視頻.mp4#t=1\"",
+      "name": "url stored as sent on custom element: \"https://e.x/媒体/視頻.mp4#t=1\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1421,17 +1416,17 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "a107b9d405d63d5839eeac877242b86ad47b1ae6627bc7f8364943c27cbb4e33",
+        "sha256": "7f625c8762fe6755ac9e0862689082f6e2c1ab9c60d34e9bbf036a02a9818a57",
         "blocks": [
-          "<video-player source=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\"></video-player>"
+          "<video-player source=\"https://e.x/媒体/視頻.mp4#t=1\"></video-player>"
         ],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"https://e.x/%E5%AA%92%E4%BD%93/%E8%A6%96%E9%A0%BB.mp4#t=1\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"https://e.x/媒体/視頻.mp4#t=1\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on a: \"/already%C3%A9\"",
+      "name": "url stored as sent on a: \"/already%C3%A9\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1454,7 +1449,7 @@
       }
     },
     {
-      "name": "url canonical on img: \"/already%C3%A9\"",
+      "name": "url stored as sent on img: \"/already%C3%A9\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1477,7 +1472,7 @@
       }
     },
     {
-      "name": "url canonical on custom element: \"/already%C3%A9\"",
+      "name": "url stored as sent on custom element: \"/already%C3%A9\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1500,7 +1495,7 @@
       }
     },
     {
-      "name": "url canonical on a: \"https://e.x/😀\"",
+      "name": "url stored as sent on a: \"https://e.x/😀\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1515,15 +1510,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "11e58dbd5fc9fed9cf1ab97dae2ebf8a4c121eecd7a46abc71f6030b7f3137c6",
-        "blocks": ["<a href=\"https://e.x/%F0%9F%98%80\">a</a>"],
+        "sha256": "be83055c5b2572097b87c7d4d2aef6cf00d03482a3c32f64a43c81181260fe4c",
+        "blocks": ["<a href=\"https://e.x/😀\">a</a>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"https://e.x/%F0%9F%98%80\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"https://e.x/😀\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"https://e.x/😀\"",
+      "name": "url stored as sent on img: \"https://e.x/😀\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1538,15 +1533,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "6cd2e8947a7fc13989a15947de61db05b584b72f65ca88c6c0764434501becd4",
-        "blocks": ["<img src=\"https://e.x/%F0%9F%98%80\">"],
+        "sha256": "02e95ca395ec33a0660e395fb732acf8dc522e7dbfd165f3e057c53adfd09af7",
+        "blocks": ["<img src=\"https://e.x/😀\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"https://e.x/%F0%9F%98%80\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"https://e.x/😀\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"https://e.x/😀\"",
+      "name": "url stored as sent on custom element: \"https://e.x/😀\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1561,17 +1556,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "93d91de995344ddd0dff2fb22fcaae96ca2169c6bc177ff3d0589503d8589290",
-        "blocks": [
-          "<video-player source=\"https://e.x/%F0%9F%98%80\"></video-player>"
-        ],
+        "sha256": "e8b9fb3d6594a4d221f4abf5365a6398895f892fc9467ee27f9f9385cb68c01a",
+        "blocks": ["<video-player source=\"https://e.x/😀\"></video-player>"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"https://e.x/%F0%9F%98%80\"></video-player><track src=\"/t.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"https://e.x/😀\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on a: \"https://[::1]/x\"",
+      "name": "url stored as sent on a: \"https://[::1]/x\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1585,13 +1578,16 @@
         }
       ],
       "expect": {
-        "ok": false,
-        "code": "invalid",
-        "op": 0
+        "ok": true,
+        "sha256": "ad7c55e5b25c23c60d391f48fd55d96a0640da2e39ca124d1888c2717088e3ce",
+        "blocks": ["<a href=\"https://[::1]/x\">a</a>"],
+        "indexes": [0],
+        "relocated": [false],
+        "content": "<a href=\"https://[::1]/x\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on img: \"https://[::1]/x\"",
+      "name": "url stored as sent on img: \"https://[::1]/x\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1605,13 +1601,16 @@
         }
       ],
       "expect": {
-        "ok": false,
-        "code": "invalid",
-        "op": 0
+        "ok": true,
+        "sha256": "6a93540e8e3ed58079789611b84bd590b4987b53409d20c8d8b9f4c1518e24a4",
+        "blocks": ["<img src=\"https://[::1]/x\">"],
+        "indexes": [0],
+        "relocated": [false],
+        "content": "<a href=\"/a\">a</a><img src=\"https://[::1]/x\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on custom element: \"https://[::1]/x\"",
+      "name": "url stored as sent on custom element: \"https://[::1]/x\"",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1625,13 +1624,16 @@
         }
       ],
       "expect": {
-        "ok": false,
-        "code": "invalid",
-        "op": 0
+        "ok": true,
+        "sha256": "e582870ec2ca01345d00b1cfe757524b0c0faf4e6f9b5e8ba0cea3476e765003",
+        "blocks": ["<video-player source=\"https://[::1]/x\"></video-player>"],
+        "indexes": [0],
+        "relocated": [false],
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"https://[::1]/x\"></video-player><track src=\"/t.vtt\">"
       }
     },
     {
-      "name": "url canonical on track",
+      "name": "url stored as sent on track",
       "html": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/t.vtt\">",
       "ops": [
         {
@@ -1646,15 +1648,15 @@
       ],
       "expect": {
         "ok": true,
-        "sha256": "45dce5874d06de2a8cf1da3b767a27d36a6c0e15d469dd755acbf2a1d5761908",
-        "blocks": ["<track src=\"/captions/%C3%A9.vtt\">"],
+        "sha256": "e2d77fd163d3ab578d2b252bbe7d9b50a8e84f60b386d4211ae6437534191396",
+        "blocks": ["<track src=\"/captions/é.vtt\">"],
         "indexes": [0],
         "relocated": [false],
-        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/captions/%C3%A9.vtt\">"
+        "content": "<a href=\"/a\">a</a><img src=\"/i.png\"><video-player source=\"/v.mp4\"></video-player><track src=\"/captions/é.vtt\">"
       }
     },
     {
-      "name": "url length counts the encoded form",
+      "name": "url length counts characters",
       "html": "<a href=\"https://media.aanda.psu.edu/v.mp4\">v</a><video-player source=\"https://media.aanda.psu.edu/x.mp4\"></video-player>",
       "ops": [
         {
@@ -1668,9 +1670,14 @@
         }
       ],
       "expect": {
-        "ok": false,
-        "code": "invalid",
-        "op": 0
+        "ok": true,
+        "sha256": "556939d111cfdd43a4eea74036f8a0113751e5f49d70b6f5676d6b76ff6c7e6f",
+        "blocks": [
+          "<a href=\"/éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\">v</a>"
+        ],
+        "indexes": [0],
+        "relocated": [false],
+        "content": "<a href=\"/éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\">v</a><video-player source=\"https://media.aanda.psu.edu/x.mp4\"></video-player>"
       }
     },
     {

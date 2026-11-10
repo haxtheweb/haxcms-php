@@ -318,21 +318,10 @@ class BlockOperations
             return $value === '';
         }
         if (preg_match('/^https?:/i', $value)) {
-            // no bracketed IPv6: libxml percent-encodes the brackets on save
-            return preg_match('/^https?:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*(?::[0-9]{1,5})?(?:[\/?#].*)?$/is', $value) === 1;
+            // ASCII host name or bracketed IPv6, optional port, no user info
+            return preg_match('/^https?:\/\/(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*|\[[0-9a-f:.]+\])(?::[0-9]{1,5})?(?:[\/?#].*)?$/is', $value) === 1;
         }
         return preg_match('/^[a-z][a-z0-9+.-]*:/i', $value) !== 1;
-    }
-
-    /**
-     * Percent-encode what libxml would encode in a URL attribute on save
-     * (non-ASCII and " $ [ ] ^ ` { | }), so both backends store the same bytes.
-     */
-    private static function canonicalUrl($value)
-    {
-        return preg_replace_callback('/[^\x{0000}-\x{007f}]|["$\[\]^`{|}]/u', function ($m) {
-            return rawurlencode($m[0]);
-        }, $value);
     }
 
     /**
@@ -366,11 +355,11 @@ class BlockOperations
             if (!self::isAllowedUrl($value)) {
                 return self::fail('invalid', $name . ' must be an http(s) URL or a site path');
             }
-            $encoded = self::canonicalUrl($value);
-            if (strlen($encoded) > self::MAX_URL_LENGTH) {
+            // stored as sent (haxtheweb/issues#3273)
+            if (mb_strlen($value, 'UTF-8') > self::MAX_URL_LENGTH) {
                 return self::fail('invalid', $name . ' is longer than ' . self::MAX_URL_LENGTH . ' characters');
             }
-            return array('ok' => true, 'value' => $encoded);
+            return array('ok' => true, 'value' => $value);
         }
         if (mb_strlen($value, 'UTF-8') > self::MAX_TEXT_LENGTH) {
             return self::fail('invalid', $name . ' is longer than ' . self::MAX_TEXT_LENGTH . ' characters');

@@ -1664,7 +1664,10 @@ paths:
         element with one complete element of the same tag. The change must
         pass the storage sanitizer unchanged, and parsing the page before and
         after must show no difference other than the targets. The rest of the
-        page is left exactly as stored. Locked pages are refused (423).
+        page is left exactly as stored. Locked pages are refused (423). Each
+        site has a budget of block changes per window (default 1000 per
+        minute, security.blockOperationsRateLimit), charged only for changes
+        about to be written; over it nothing is written (429, Retry-After).
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -1704,6 +1707,16 @@ paths:
                 $ref: "#/components/schemas/ContentBlockOperationError"
         "423":
           description: The page is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentBlockOperationError"
+        "429":
+          description: The site's block change budget for this window is spent (reason rate-limited); retry after the Retry-After header's seconds
+          headers:
+            Retry-After:
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -3394,8 +3407,7 @@ components:
                 setAttributes only. Attribute name to new value; null removes
                 the attribute. Values are trimmed and CR LF is stored as LF. text
                 values are at most 4000 characters; url values are an http(s)
-                URL with a host name or a site path, stored with non-ASCII and
-                " $ [ ] ^ ` { | } percent-encoded, at most 2048 characters. A
+                URL or a site path, stored as sent, at most 2048 characters. A
                 value holding "-->", "]>" or a closing tag such as "</title" is
                 refused.
               additionalProperties:
@@ -3475,11 +3487,18 @@ components:
                 - overlap
                 - sanitizer-rejected
                 - structure-changed
+                - rate-limited
             detail:
               type: string
             op:
               type: integer
               description: Index of the op that failed.
+            retryAfter:
+              type: integer
+              description: Seconds until the block change budget resets (429).
+            remaining:
+              type: integer
+              description: Block changes left in this window (429).
     ContentRecord:
       type: object
       properties:
