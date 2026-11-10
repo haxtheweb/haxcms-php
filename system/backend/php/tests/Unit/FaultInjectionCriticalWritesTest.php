@@ -49,12 +49,7 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         $this->assertNotEmpty($res['fired'], 'fault fired');
         $this->assertSame($before, $this->siteJsonBytes());
         $this->assertErrorEnvelope($res, 500, 'Server error');
-        $this->knownBug(
-            'FI-NODE-02 the new page folder is copied before site.json is written and is not removed when that write fails (same as haxcms-nodejs)',
-            function () {
-                $this->assertSame(array(), $this->orphanPageFolders(), 'no orphan page folder');
-            }
-        );
+        $this->assertSame(array(), $this->orphanPageFolders(), 'no orphan page folder');
         $this->assertStillServing();
     }
 

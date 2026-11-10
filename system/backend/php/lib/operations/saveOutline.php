@@ -54,6 +54,24 @@ trait OperationsRouteSaveOutline {
     return null;
   }
 
+  /**
+   * Remove the page folders this request created ($createdFolders, page id
+   * => folder) that site.json does not list ($listedItems), so a failed
+   * save leaves no page folder without its outline entry. Mirrors
+   * removeUnlistedPageFolders() in haxcms-nodejs saveOutline.js.
+   */
+  private function removeUnlistedPageFolders($site, $createdFolders, $listedItems) {
+    $listed = array();
+    foreach ($listedItems as $listedItem) {
+      $listed[(string) $listedItem->id] = true;
+    }
+    foreach ($createdFolders as $pageId => $folder) {
+      if (!isset($listed[(string) $pageId])) {
+        $site->removeCreatedPageFolder($folder);
+      }
+    }
+  }
+
   public function saveOutline() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
@@ -187,7 +205,15 @@ trait OperationsRouteSaveOutline {
       $feedsPending = false;
       $savedItems = null;
       $feedItems = null;
-      $flushPending = function () use ($site, &$pendingPersist, &$feedsPending, &$savedItems, &$feedItems) {
+      // Invariant: a page folder exists only for a page site.json lists.
+      // $createdFolders holds the folders this request created (page id =>
+      // folder); $listedItems is what site.json lists (what it was loaded
+      // with, then what each successful write of it held). A failure
+      // removes every created folder site.json does not list
+      // (removeUnlistedPageFolders below).
+      $createdFolders = array();
+      $listedItems = $original;
+      $flushPending = function () use ($site, &$pendingPersist, &$feedsPending, &$savedItems, &$feedItems, &$listedItems) {
         // attempted once: the error handler does not retry a failed write,
         // nor rebuild the feeds over it
         if ($pendingPersist) {
@@ -196,6 +222,7 @@ trait OperationsRouteSaveOutline {
           $site->manifest->items = $savedItems;
           try {
             $site->manifest->save(false);
+            $listedItems = $savedItems;
           } catch (Throwable $e) {
             $feedsPending = false;
             throw $e;
@@ -288,10 +315,15 @@ trait OperationsRouteSaveOutline {
           // or it could have just been renamed
           // if it doesn't exist currently make sure the name is unique
           if (!$site->loadNode($page->id)) {
+            $pageFolder = $siteDirectory . '/' . str_replace('/index.html', '', $page->location);
+            $folderExisted = file_exists($pageFolder);
             $site->recurseCopy(
                 HAXCMS_ROOT . '/system/boilerplate/page/default',
-                $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                $pageFolder
             );
+            if (!$folderExisted && is_dir($pageFolder)) {
+              $createdFolders[$page->id] = $pageFolder;
+            }
             $pageAlternateContentMap[$page->id] = '';
           }
           // this would imply existing item, lets see if it moved or needs moved
@@ -331,10 +363,15 @@ trait OperationsRouteSaveOutline {
                   $tmpTitle = $normalizeOutlineSlug($cleanTitle, $page, $pAuto);
                   $page->location = 'pages/' . $page->id . '/index.html';
                   $page->slug = $tmpTitle;
+                  $pageFolder = $siteDirectory . '/' . str_replace('/index.html', '', $page->location);
+                  $folderExisted = file_exists($pageFolder);
                   $site->recurseCopy(
                       HAXCMS_ROOT . '/system/boilerplate/page/default',
-                      $siteDirectory . '/' . str_replace('/index.html', '', $page->location)
+                      $pageFolder
                   );
+                  if (!$folderExisted && is_dir($pageFolder)) {
+                    $createdFolders[$page->id] = $pageFolder;
+                  }
                   $pageAlternateContentMap[$page->id] = '';
               }
           }
@@ -588,6 +625,7 @@ trait OperationsRouteSaveOutline {
         } catch (Throwable $flushError) {
           // the original failure is the one to report
         }
+        $this->removeUnlistedPageFolders($site, $createdFolders, $listedItems);
         throw $e;
       }
       $site->manifest->save();

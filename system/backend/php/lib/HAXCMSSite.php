@@ -1016,6 +1016,7 @@ class HAXCMSSite
         $location = $this->directory . '/' .
             $this->manifest->metadata->site->name .
             '/pages' . '/' . $page->id;
+        $folderExisted = file_exists($location);
         // copy the page we use for simplicity (or later complexity if we want)
         switch ($template) {
             case 'course':
@@ -1032,7 +1033,15 @@ class HAXCMSSite
             break;
         }
         $this->manifest->addItem($page);
-        $this->manifest->save();
+        try {
+            $this->manifest->save();
+        } catch (Throwable $e) {
+            // no page folder without its outline entry
+            if (!$folderExisted) {
+                $this->removeCreatedPageFolder($location);
+            }
+            throw $e;
+        }
         // support direct HTML setting
         $alternateContent = '';
         if ($template == 'html') {
@@ -3612,7 +3621,34 @@ class HAXCMSSite
       }
     }
     /**
-     * Recursive directory delete scoped to agent-skills cleanup. Refuses to
+     * Invariant: a page folder exists only for a page site.json lists. A
+     * request that creates a page folder and then fails to write the
+     * site.json that would list it removes the folder again with this.
+     * Only a folder under this site's pages/ directory is removed, and
+     * callers pass only folders the same request created (never one that
+     * existed before it). Mirrors HAXCMSSite.removeCreatedPageFolder in
+     * haxcms-nodejs.
+     * @return bool whether a folder was removed
+     */
+    public function removeCreatedPageFolder($folder)
+    {
+        if (!is_string($folder) || $folder === '' || strpos($folder, "\0") !== false) {
+            return false;
+        }
+        // Security (SEC-PATH): only a folder strictly inside this site's pages/
+        // directory (real path, not a symlink) is ever removed
+        $pagesDirectory = realpath($this->directory . '/' . $this->manifest->metadata->site->name . '/pages');
+        $resolved = realpath($folder);
+        if ($pagesDirectory === false || $resolved === false || is_link($folder)
+            || strpos(str_replace('\\', '/', $resolved), str_replace('\\', '/', $pagesDirectory) . '/') !== 0) {
+            return false;
+        }
+        $this->recurseDelete($resolved);
+        return !file_exists($resolved);
+    }
+    /**
+     * Recursive directory delete (agent-skills cleanup and
+     * removeCreatedPageFolder). Refuses to
      * delete paths containing null bytes or `..` segments (defense in depth).
      * @access private
      */

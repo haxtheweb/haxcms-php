@@ -96,12 +96,7 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
     {
         $res = $this->outline($this->renameBAddN(), $this->siteJsonEnospc());
         $this->assertNotEmpty($res['fired'], 'fault fired');
-        $this->knownBug(
-            'FI-OUT-01 the new page folder is copied before site.json is written and is not removed when that write fails (same as haxcms-nodejs)',
-            function () {
-                $this->assertSame(array(), $this->orphanPageFolders());
-            }
-        );
+        $this->assertSame(array(), $this->orphanPageFolders());
     }
 
     public function testFiOut02PageContentEaccesIs500AndKeepsThePageAndTheNewStructure(): void
