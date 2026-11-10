@@ -170,7 +170,7 @@ class SystemApiRouter
                 CommitContext::getOperationId('system', $context->method, $routeName)
             );
         }
-        call_user_func($handler, $context);
+        SiteRouteUtils::invokeRouteHandler($handler, $context);
         return true;
     }
     public static function matchRoute($routeSuffix, $routes = array())

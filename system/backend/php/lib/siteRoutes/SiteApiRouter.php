@@ -167,7 +167,7 @@ class SiteApiRouter
                 CommitContext::getOperationId('site', $context->method, isset($match['route']) ? $match['route'] : '')
             );
         }
-        call_user_func($handler, $context);
+        SiteRouteUtils::invokeRouteHandler($handler, $context);
         return true;
     }
     public static function matchRoute($routeSuffix, $routes = array())
