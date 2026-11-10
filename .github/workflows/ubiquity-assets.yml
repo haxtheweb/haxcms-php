@@ -1,0 +1,85 @@
+name: ubiquity assets
+# The compiled front-end assets in the build folder come from the
+# webcomponents ubiquity build, not from npm, so this repo's dependency audit
+# cannot see them. Ubiquity writes build/ubiquity-manifest.json next to them
+# (webcomponents commit, every bundled package version, a fingerprint per
+# file). Nightly, this compares that manifest with webcomponents master and
+# audits the bundled third-party versions (haxtheweb/issues#3262).
+#
+# The comparison is a dry run from source: no install, no build, nothing
+# published (webcomponents scripts/ubiquity-manifest.mjs check). The job
+# summary lists stale assets, bundled packages behind master's yarn.lock,
+# build files that no longer match the manifest, and advisories. Only an
+# advisory against a bundled package fails the job; staleness never does,
+# because ubiquity runs several times a day. No manifest yet: it says so and
+# passes.
+#
+# Mirrored in haxcms-nodejs and haxcms-php; only BUILD_DIR differs.
+on:
+  schedule:
+    - cron: "29 5 * * *" # nightly, 05:29 UTC
+  workflow_dispatch:
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+    paths:
+      - .github/workflows/ubiquity-assets.yml
+permissions:
+  contents: read
+jobs:
+  ubiquity-assets:
+    name: Compiled assets vs webcomponents master
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUILD_DIR: build
+    steps:
+      - name: Checkout compiled assets
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: self
+          persist-credentials: false
+          sparse-checkout: build
+      - name: Look for the manifest
+        id: manifest
+        run: |
+          if [ -f "self/$BUILD_DIR/ubiquity-manifest.json" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Ubiquity compiled assets"
+              echo
+              echo "No manifest yet: the next ubiquity run writes $BUILD_DIR/ubiquity-manifest.json. Nothing to compare."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Checkout webcomponents master
+        if: steps.manifest.outputs.found == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: haxtheweb/webcomponents
+          ref: master
+          path: webcomponents
+          persist-credentials: false
+          # sources, lockfile, patches and build config only; cone mode also
+          # brings the root files (package.json, yarn.lock, polymer.json, ...)
+          sparse-checkout: |
+            elements
+            dist
+            patches
+            scripts
+      - name: Set up Node.js
+        if: steps.manifest.outputs.found == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Compare and audit
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          checker=webcomponents/scripts/ubiquity-manifest.mjs
+          if [ ! -f "$checker" ]; then
+            echo "::warning::webcomponents master has no $checker yet; skipped"
+            exit 0
+          fi
+          node "$checker" check \
+            --manifest "self/$BUILD_DIR/ubiquity-manifest.json" \
+            --build "self/$BUILD_DIR"
