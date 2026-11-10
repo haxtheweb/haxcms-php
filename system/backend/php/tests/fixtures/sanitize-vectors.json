@@ -5957,7 +5957,7 @@
     {
       "name": "value iframe[src]=\"https://example.com/a?b=1&c=2\"",
       "html": "<iframe src=\"https://example.com/a?b=1&amp;c=2\">x</iframe>",
-      "expect": "<iframe src=\"https://example.com/a?b=1&amp;c=2\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://example.com/a?b=1&amp;c=2\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"/files/a b.png\"",
@@ -6037,7 +6037,7 @@
     {
       "name": "value iframe[src]=\"//evil.example/x\"",
       "html": "<iframe src=\"//evil.example/x\">x</iframe>",
-      "expect": "<iframe src=\"//evil.example/x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"//evil.example/x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"  padded  \"",
@@ -6062,7 +6062,7 @@
     {
       "name": "value iframe[src]=\"https://e.x/café?q=1\"",
       "html": "<iframe src=\"https://e.x/café?q=1\">x</iframe>",
-      "expect": "<iframe src=\"https://e.x/café?q=1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://e.x/café?q=1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"x]>y\"",
@@ -6132,7 +6132,7 @@
     {
       "name": "value iframe[src]=\"https://e.x/$[]^`{|}\"",
       "html": "<iframe src=\"https://e.x/$[]^`{|}\">x</iframe>",
-      "expect": "<iframe src=\"https://e.x/$[]^`{|}\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+      "expect": "<iframe src=\"https://e.x/$[]^`{|}\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
     },
     {
       "name": "value iframe[src]=\"allow-scripts allow-top-navigation\"",
@@ -8931,7 +8931,7 @@
       "name": "page pages/bohr.html",
       "page": "pages/bohr.html",
       "expect": {
-        "sha256": "ef12d93dd9a3801ff36fa2494ee16e9e0375ded99b6713d33c621e3fca793f99"
+        "sha256": "301570832d7814e81492efefdddcc37b863f5b9c7784962d3e62f8618da9d223"
       }
     },
     {
@@ -8973,7 +8973,7 @@
       "name": "page pages/mole.html",
       "page": "pages/mole.html",
       "expect": {
-        "sha256": "31ef8711d51ff565f2c73823539de47c7757742ad0ec5cbf3e138868c29d8996"
+        "sha256": "337cf34a2f687d5a1d71530bf7a42796f708fae30ce45b35a92106f33991ae3d"
       }
     },
     {
@@ -9102,6 +9102,61 @@
       "expect": {
         "sha256": "89427fe3ada42853e41c52743410ec8c9a5e5bcd2fc30cd24ac6d0cf979608c3"
       }
+    },
+    {
+      "name": "iframe default sandbox: youtube https",
+      "html": "<iframe src=\"https://www.youtube.com/embed/abc\"></iframe>",
+      "expect": "<iframe src=\"https://www.youtube.com/embed/abc\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: vimeo uppercase scheme",
+      "html": "<iframe src=\"HTTP://player.vimeo.com/video/1\"></iframe>",
+      "expect": "<iframe src=\"HTTP://player.vimeo.com/video/1\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: protocol-relative",
+      "html": "<iframe src=\"//example.org/embed\"></iframe>",
+      "expect": "<iframe src=\"//example.org/embed\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: leading space https",
+      "html": "<iframe src=\" https://ok.example/x\"></iframe>",
+      "expect": "<iframe src=\"https://ok.example/x\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms allow-same-origin\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: root-relative",
+      "html": "<iframe src=\"/files/x.html\"></iframe>",
+      "expect": "<iframe src=\"/files/x.html\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: relative",
+      "html": "<iframe src=\"files/x.html\"></iframe>",
+      "expect": "<iframe src=\"files/x.html\" loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: about blank",
+      "html": "<iframe src=\"about:blank\"></iframe>",
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: data url",
+      "html": "<iframe src=\"data:text/html,hi\"></iframe>",
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: javascript url",
+      "html": "<iframe src=\"javascript:alert(1)\"></iframe>",
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: blob url",
+      "html": "<iframe src=\"blob:https://a.example/b\"></iframe>",
+      "expect": "<iframe loading=\"lazy\" referrerpolicy=\"no-referrer\" sandbox=\"allow-scripts allow-popups allow-forms\"></iframe>"
+    },
+    {
+      "name": "iframe default sandbox: explicit author sandbox kept",
+      "html": "<iframe src=\"https://a.example/x\" sandbox=\"allow-scripts\"></iframe>",
+      "expect": "<iframe src=\"https://a.example/x\" sandbox=\"allow-scripts\" loading=\"lazy\" referrerpolicy=\"no-referrer\"></iframe>"
     }
   ]
 }

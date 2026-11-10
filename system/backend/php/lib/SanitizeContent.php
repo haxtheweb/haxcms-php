@@ -160,12 +160,18 @@ class SanitizeContent
         'allow-scripts',
     ];
 
-    // Security: no allow-same-origin by default. Together with allow-scripts
-    // it lets a same-origin framed document reach the parent and remove its
-    // own sandbox, and it hands cross-origin embeds their cookies/storage.
-    // An author who needs it sets sandbox explicitly (that value is kept as
-    // written, filtered to the allowed tokens). Mirrors haxcms-nodejs.
+    // Security (SEC-SANITIZE): the default sandbox for iframes that carry no
+    // sandbox of their own. allow-scripts + allow-same-origin together let a
+    // SAME-origin frame remove its own sandbox, so allow-same-origin is only
+    // added for real cross-origin embeds: an absolute http(s) (or
+    // protocol-relative) src. Those frames keep their own origin (YouTube, Vimeo
+    // and most players need it for storage and cookies) and still cannot reach
+    // the page. Relative, about:, data:, blob:, javascript: or missing sources
+    // get the strict default. Same rule as the editor's iframeSandboxForSource
+    // (haxtheweb/webcomponents#1177). An explicit author sandbox is kept as is.
+    // Node parity: src/lib/sanitizeContent.js.
     private const IFRAME_DEFAULT_SANDBOX = 'allow-scripts allow-popups allow-forms';
+    private const IFRAME_CROSS_ORIGIN_SANDBOX = 'allow-scripts allow-popups allow-forms allow-same-origin';
 
     private const REFERRER_POLICY_ALLOWED = [
         'no-referrer',
@@ -931,6 +937,18 @@ class SanitizeContent
         return implode(' ', $normalizedTokens);
     }
 
+    /**
+     * True for an absolute http(s) or protocol-relative src, the only sources
+     * whose framed document has its own (cross-origin) origin.
+     */
+    private static function isCrossOriginEmbedSource($src)
+    {
+        if (!is_string($src)) {
+            return false;
+        }
+        return preg_match('#^(?:https?:)?//[^/\\\\\s]#i', trim($src)) === 1;
+    }
+
     private static function normalizeIframeAttributes($iframe)
     {
         if ($iframe->hasAttribute('src')) {
@@ -971,7 +989,12 @@ class SanitizeContent
 
         $sandboxValue = self::normalizeSandboxValue($iframe->getAttribute('sandbox'));
         if ($sandboxValue === '') {
-            $iframe->setAttribute('sandbox', self::IFRAME_DEFAULT_SANDBOX);
+            $iframe->setAttribute(
+                'sandbox',
+                self::isCrossOriginEmbedSource($iframe->hasAttribute('src') ? $iframe->getAttribute('src') : null)
+                    ? self::IFRAME_CROSS_ORIGIN_SANDBOX
+                    : self::IFRAME_DEFAULT_SANDBOX
+            );
         }
         else {
             $iframe->setAttribute('sandbox', $sandboxValue);
