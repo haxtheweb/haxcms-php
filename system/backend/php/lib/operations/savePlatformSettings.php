@@ -1,7 +1,7 @@
 <?php
 trait OperationsRouteSavePlatformSettings {
   public function savePlatformSettings() {
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
       // load the site from name
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       if (!$site || !isset($site->manifest)) {

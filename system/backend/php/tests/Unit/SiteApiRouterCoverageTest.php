@@ -195,16 +195,48 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
         $this->assertSame('http://localhost/x/api', $data['data']['absoluteLinks']['self']);
     }
 
-    public function testDispatchPrefersForwardedProtoForAbsoluteApiLinks()
+    /**
+     * Security (SEC-HEADERS): mirrors the system API. X-Forwarded-Proto / -Host are
+     * only honoured when the immediate peer is a configured trusted proxy.
+     * Without that config a client-supplied header must not change the
+     * absolute URLs the API emits.
+     */
+    public function testDispatchIgnoresForwardedProtoWithoutTrustedProxy()
     {
         $haxcms = $this->makeHaxcms();
         $haxcms->domain = 'localhost';
+        $haxcms->protocol = '';
         list($result, $out, $code, $data) = $this->runRouter(
             'GET',
             '/x/api/',
             array(
                 'HTTP_AUTHORIZATION' => 'Bearer ' . $haxcms->getJWT('admin'),
                 'HTTP_X_FORWARDED_PROTO' => 'https',
+                'HTTP_X_FORWARDED_HOST' => 'evil.example',
+                'HTTP_HOST' => 'localhost',
+                'REMOTE_ADDR' => '203.0.113.9',
+            )
+        );
+        $this->assertTrue($result);
+        $this->assertSame('http://localhost/x/api', $data['data']['absoluteLinks']['self']);
+    }
+
+    public function testDispatchHonoursForwardedProtoBehindTrustedProxy()
+    {
+        $haxcms = $this->makeHaxcms();
+        $haxcms->domain = 'localhost';
+        $haxcms->protocol = '';
+        $haxcms->config = new stdClass();
+        $haxcms->config->security = new stdClass();
+        $haxcms->config->security->trustedProxies = array('203.0.113.9');
+        list($result, $out, $code, $data) = $this->runRouter(
+            'GET',
+            '/x/api/',
+            array(
+                'HTTP_AUTHORIZATION' => 'Bearer ' . $haxcms->getJWT('admin'),
+                'HTTP_X_FORWARDED_PROTO' => 'https',
+                'HTTP_HOST' => 'localhost',
+                'REMOTE_ADDR' => '203.0.113.9',
             )
         );
         $this->assertTrue($result);
@@ -239,6 +271,38 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
         $this->assertSame('testsite', $data['data']['name']);
         $this->assertSame(0, $data['data']['counts']['items']);
         $this->assertSame(0, $data['data']['counts']['files']);
+    }
+
+    public function testDispatchHeadResolvesTheGetRoute()
+    {
+        // HEAD is answered by the GET route, matching haxcms-nodejs
+        list($getResult, $getOut, $getCode, $get) = $this->runRouter('GET', '/x/api/v1/site');
+        list($result, $out, $code, $data) = $this->runRouter('HEAD', '/x/api/v1/site');
+        $this->assertTrue($result);
+        $this->assertSame(200, $code);
+        $this->assertSame($getCode, $code);
+        $this->assertSame($get['data']['name'], $data['data']['name']);
+    }
+
+    public function testGetRouteMethodMapsHeadToGet()
+    {
+        $saved = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : null;
+        try {
+            $cases = array('HEAD' => 'GET', 'head' => 'GET', 'GET' => 'GET', 'post' => 'POST', 'PATCH' => 'PATCH', 'DELETE' => 'DELETE', 'OPTIONS' => 'OPTIONS');
+            foreach ($cases as $raw => $expected) {
+                $_SERVER['REQUEST_METHOD'] = $raw;
+                $this->assertSame($expected, SiteRouteUtils::getRouteMethod(), 'method ' . $raw);
+            }
+            // the raw method is still available to anything that needs it
+            $_SERVER['REQUEST_METHOD'] = 'HEAD';
+            $this->assertSame('HEAD', SiteRouteUtils::getRequestMethod());
+        } finally {
+            if ($saved === null) {
+                unset($_SERVER['REQUEST_METHOD']);
+            } else {
+                $_SERVER['REQUEST_METHOD'] = $saved;
+            }
+        }
     }
 
     // ------------------------------------------------------------------

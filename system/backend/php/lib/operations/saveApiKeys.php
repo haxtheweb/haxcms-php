@@ -30,7 +30,7 @@ trait OperationsRouteSaveApiKeys {
         ),
       );
     }
-    // security (F3/authz): defense-in-depth — writing API key settings is a
+    // Security (SEC-ROUTE): defense-in-depth — writing API key settings is a
     // system-admin operation that must only be performed by the superUser,
     // regardless of how the route was classified. The router elevates non-GET
     // methods of this route to 'admin' (see

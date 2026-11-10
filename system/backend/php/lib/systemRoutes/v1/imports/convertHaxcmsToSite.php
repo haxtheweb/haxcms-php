@@ -82,7 +82,7 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
 
             foreach ($siteJson['items'] as &$item) {
                 if (isset($item['slug'])) {
-                    // Security (SEC-16): sanitize remote-sourced slug.
+                    // Security (SEC-PATH): sanitize remote-sourced slug.
                     $item['slug'] = SiteRouteUtils::cleanSlug((string) $item['slug']);
                 }
                 if (isset($item['location']) && $item['location'] !== '') {

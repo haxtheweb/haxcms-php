@@ -53,6 +53,11 @@ return function ($context) {
         if ($context->method === 'POST' && is_array($context->body)) {
             $operations->params['site'] = array_merge($operations->params['site'], $context->body);
             $operations->rawParams['site'] = array_merge($operations->rawParams['site'], $context->body);
+            // Security: the route gate below authorizes the {siteName} path
+            // segment; a body `name` must not be able to swap in a different
+            // site once that check has passed.
+            $operations->params['site']['name'] = $context->params['siteName'];
+            $operations->rawParams['site']['name'] = $context->params['siteName'];
         }
     }
     $response = null;
@@ -209,7 +214,7 @@ return function ($context) {
         $route === 'v1/sites/:siteName/clone' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/clone$/', $route) === 1
     ) {
-        // security (F2/IDOR-001): object-level authorization before clone
+        // Security (SEC-ROUTE): object-level authorization before clone
         if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
             $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
         }
@@ -221,7 +226,7 @@ return function ($context) {
         $route === 'v1/sites/:siteName/archive' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/archive$/', $route) === 1
     ) {
-        // security (F2/IDOR-001): object-level authorization before archive
+        // Security (SEC-ROUTE): object-level authorization before archive
         if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
             $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
         }
@@ -233,7 +238,7 @@ return function ($context) {
         $route === 'v1/sites/:siteName/download' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/download$/', $route) === 1
     ) {
-        // security (F2/IDOR-001): object-level authorization before download
+        // Security (SEC-ROUTE): object-level authorization before download
         if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
             $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
         }
@@ -245,7 +250,7 @@ return function ($context) {
         $route === 'v1/sites/:siteName/download-skeleton' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/download-skeleton$/', $route) === 1
     ) {
-        // security (F2/IDOR-001): object-level authorization before download-skeleton
+        // Security (SEC-ROUTE): object-level authorization before download-skeleton
         if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
             $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
         }
@@ -257,7 +262,7 @@ return function ($context) {
         $route === 'v1/sites/:siteName/save-as-template' ||
         preg_match('/^v1\\/sites\\/[^\\/]+\\/save-as-template$/', $route) === 1
     ) {
-        // security (F2/IDOR-001): object-level authorization before save-as-template
+        // Security (SEC-ROUTE): object-level authorization before save-as-template
         if (!isset($context->params['siteName']) || !$GLOBALS['HAXCMS']->userCanAccessSite($context->params['siteName'])) {
             $response = array('__failed' => array('status' => 403, 'message' => 'Access denied to site'));
         }

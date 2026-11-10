@@ -21,7 +21,7 @@ return function ($context) {
     if (!isset($body['site']) || !is_array($body['site'])) {
         $body['site'] = array();
     }
-    // Security (SEC-26): force the site name to the resolved site so a client
+    // Security (SEC-ROUTE): force the site name to the resolved site so a client
     // cannot target a foreign site (IDOR defense-in-depth).
     $body['site']['name'] = $siteName;
     $siteToken = $context->getHeader('X-HAXCMS-Site-Token');

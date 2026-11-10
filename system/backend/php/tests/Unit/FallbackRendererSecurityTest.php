@@ -4,8 +4,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Regression tests for the single-site fallback renderer
  * (system/boilerplate/site/config.php + index.php):
- *  - N6  manifest-derived values are encoded for their output context
- *  - N7  getPageContent only reads files contained in the site directory
+ *  - SEC-SANITIZE  manifest-derived values are encoded for their output context
+ *  - SEC-PATH      getPageContent only reads files contained in the site directory
  *
  * The fallback only activates when no global HAXCMS exists, and it defines
  * classes at include time, so each scenario renders in a fresh PHP process

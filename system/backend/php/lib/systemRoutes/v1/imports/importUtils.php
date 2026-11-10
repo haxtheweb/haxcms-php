@@ -290,7 +290,7 @@ if (!function_exists('haxcmsImportConvertDocxXmlToHtml')) {
                 $tEls = $r->getElementsByTagNameNS($ns, 't');
                 $runText = '';
                 foreach ($tEls as $t) {
-                    // Security (SEC-05): escape XML-decoded text before concatenating
+                    // Security (SEC-SANITIZE): escape XML-decoded text before concatenating
                     // into HTML so a crafted DOCX cannot inject markup/XSS.
                     $runText .= htmlspecialchars($t->nodeValue, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                 }
@@ -371,7 +371,7 @@ if (!function_exists('haxcmsImportHtmlToItems')) {
         // MaterializeInlineImages::materialize() followed by sanitizeHTMLForStorage(),
         // so the content is sanitized before it is ever persisted.
         if (!$skipSanitize) {
-            $html = SanitizeContent::sanitizeHTMLForStorage($html);
+            $html = SanitizeContent::sanitizeUntrustedHTML($html);
         }
 
         $elements = haxcmsImportSimpleHtmlToElements($html);

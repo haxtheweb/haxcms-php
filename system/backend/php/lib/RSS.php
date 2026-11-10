@@ -140,7 +140,7 @@ class FeedMe
                     }
                 }
                 // Read and clean content for description
-                // Security (SEC-17): containment-checked resolution replaces the
+                // Security (SEC-PATH): containment-checked resolution replaces the
                 // bypassable str_replace scrub.
                 $contentPath = $this->resolveSiteLocationPath($siteDirectory, $item->location);
                 $content = '';
@@ -242,7 +242,7 @@ class FeedMe
             }
             if ($count < $limit) {
                 $itemLink = $domain . ltrim((string) $item->slug, '/');
-                // Security (SEC-17): containment-checked resolution replaces the
+                // Security (SEC-PATH): containment-checked resolution replaces the
                 // bypassable str_replace scrub.
                 $resolvedLocation = $this->resolveSiteLocationPath($siteDirectory, $item->location);
                 $itemContent = '';
@@ -284,7 +284,7 @@ class FeedMe
         return $output;
     }
     /**
-     * Security (SEC-17): resolve an item location to a containment-proven
+     * Security (SEC-PATH): resolve an item location to a containment-proven
      * filesystem path inside the site directory, replacing the bypassable
      * str_replace('../','') scrub. Returns the realpath or false.
      */

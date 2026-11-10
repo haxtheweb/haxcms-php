@@ -9,7 +9,7 @@ trait OperationsRouteSaveEditorSettings {
         )
       );
     }
-    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $this->params['site']['name'])) {
+    if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       if (!$this->platformAllows($site, 'siteManifest')) {
         return array(

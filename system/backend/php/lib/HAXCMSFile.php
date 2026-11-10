@@ -442,7 +442,7 @@ class HAXCMSFile
         if (!is_string($tmpPath)) {
             return false;
         }
-        // Security (null-byte injection): check the RAW input for null bytes
+        // Security (SEC-PATH): check the RAW input for null bytes
         // BEFORE trim(), because trim() strips leading/trailing \0 by default
         // and would otherwise eat an edge-placed null before this guard runs,
         // letting the path resolve and be accepted.
@@ -503,7 +503,7 @@ class HAXCMSFile
                 $isUploadSourceValid = is_uploaded_file($upload['tmp_name']);
             }
         }
-        // Security (HAX-SEC-004 PHP parity): enforce the site-configured
+        // Security (SEC-UPLOAD, SEC-DOS): enforce the site-configured
         // maxUploadSizeMb as an app-layer cap, mirroring the NodeJS backend
         // (HAXCMSFile.js:771-787). upload_max_filesize/post_max_size remain
         // the transport hard cap; this enforces the per-site policy (which
@@ -619,7 +619,7 @@ class HAXCMSFile
                 // make path relative to the file
                 $namePathTest = pathinfo(str_replace('files/', '', $upload['name']));
                 $importDirname = isset($namePathTest['dirname']) ? (string) $namePathTest['dirname'] : '.';
-                // Security (SEC-18): reject traversal/null-byte/absolute dirnames so
+                // Security (SEC-UPLOAD, SEC-PATH): reject traversal/null-byte/absolute dirnames so
                 // a crafted upload name cannot write outside the site files dir.
                 $importDirnameNorm = str_replace('\\', '/', $importDirname);
                 if (

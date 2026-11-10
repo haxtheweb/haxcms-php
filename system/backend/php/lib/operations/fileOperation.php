@@ -87,7 +87,7 @@ trait OperationsRouteFileOperation {
         )
       );
     }
-    if (!$GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $GLOBALS['HAXCMS']->getActiveUserName() . ':' . $siteName)) {
+    if (!$GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $siteName)) {
       return array(
         '__failed' => array(
           'status' => 403,

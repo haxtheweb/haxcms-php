@@ -4,6 +4,12 @@ on:
     branches: [main, master]
   # No branch filter: stacked PRs (base is another feature branch) must run too.
   pull_request:
+  # Nightly regression run on the default branch (haxtheweb/issues#3262):
+  # PHPUnit, a blocking composer audit, and the DDEV E2E suite (report-only).
+  # A failure shows up as a failed scheduled run; nothing else is created.
+  schedule:
+    - cron: "41 7 * * *"
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -12,7 +18,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["8.3"]
+        # 8.4 parses HTML with Dom\HTMLDocument (HTML5); 8.3 with libxml.
+        # The sanitizer must store the same HTML on both (haxtheweb/issues#3273).
+        php-version: ["8.3", "8.4"]
     runs-on: ubuntu-latest
     # The PHP backend (composer.json, composer.lock, phpunit.xml, lib/, tests/)
     # lives under system/backend/php, so run composer/phpunit from there.
@@ -48,12 +56,14 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
   # Dependency vulnerability audit (haxtheweb/issues#3092).
-  # REPORTING ONLY for now: the audit step uses continue-on-error, so a finding
-  # shows up as a warning annotation + log output but does not turn the "tests"
-  # check red. Remove `continue-on-error` below once the baseline is clean to
-  # make it a blocking gate. Kept as its own job so PHPUnit is unaffected.
+  # On push / pull_request this is REPORTING ONLY: the audit step uses
+  # continue-on-error, so a finding shows up as a warning annotation + log
+  # output but does not turn the "tests" check red. On the nightly schedule
+  # and manual runs it is BLOCKING (haxtheweb/issues#3262), so a new advisory
+  # against composer.lock fails that run. Kept as its own job so PHPUnit is
+  # unaffected.
   composer-audit:
-    name: "Composer audit (reporting only)"
+    name: "Composer audit (blocking nightly, reporting on PRs)"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -66,12 +76,56 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
-      - name: Composer audit (reporting only, does not fail the build)
+      - name: Composer audit
         id: audit
         # --locked audits composer.lock directly; no install needed.
         # Exit code is non-zero when advisories (or abandoned packages) exist.
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         run: composer audit --locked --no-interaction
       - name: Flag audit findings
         if: steps.audit.outcome == 'failure'
-        run: echo "::warning title=composer audit::Advisories or abandoned packages found in composer.lock. See the previous step's log. This job is reporting-only."
+        run: echo "::warning title=composer audit::Advisories or abandoned packages found in composer.lock. See the previous step's log. Reporting only on push / pull_request; blocking on the nightly run."
+  # End-to-end UI suite (test/e2e, haxtheweb/issues#2939) against the DDEV
+  # project, nightly and on manual runs only. REPORT-ONLY for now: the job uses
+  # continue-on-error, so a failure is visible in the run but does not fail the
+  # workflow. Everything runs inside the runner (http://haxcms.ddev.site
+  # resolves to 127.0.0.1); no live deployment is touched.
+  e2e:
+    name: "E2E UI (DDEV, nightly, report-only)"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install E2E tooling
+        # package-lock.json / yarn.lock are gitignored in this repo. Install
+        # scripts are skipped: sharp ships prebuilt binaries and puppeteer-core
+        # downloads nothing (the runner's Google Chrome is used).
+        run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+      - name: Set up DDEV and start the project
+        # ddev start runs the .ddev post-start hooks, which seed admin / admin.
+        uses: ddev/github-action-setup-ddev@fdf2f5c97943bae638f31df6df86f1defa6210c0 # v1.12.1
+      - name: E2E UI tests
+        # ubuntu-latest ships Google Chrome at /usr/bin/google-chrome, which
+        # the harness auto-detects. Override with PUPPETEER_EXECUTABLE_PATH.
+        run: npm run test:e2e
+      - name: Upload e2e screenshots
+        # The .current.png/.diff.png files this run rendered, so a visual
+        # regression can be inspected.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-screenshots
+          path: |
+            test/e2e/__screenshots__/*.current.png
+            test/e2e/__screenshots__/*.diff.png
+          if-no-files-found: ignore
+          retention-days: 14

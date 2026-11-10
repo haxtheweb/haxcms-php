@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
  * Characterization tests for the HAXCMS request-token + site-token seam.
  *
  * getRequestToken($value) = urlsafe-base64(HMAC-SHA256(value, K)) where
- * K = hex HMAC-SHA256('haxcms-request-token', privateKey.salt) (L-3 domain
+ * K = hex HMAC-SHA256('haxcms-request-token', privateKey.salt) (domain
  * separation from the JWT signing key).
  * The deterministic-HMAC assertions use KNOWN-GOOD LITERALS computed
  * independently (a standalone hash_hmac computation that never imports the
@@ -112,7 +112,7 @@ class HAXCMSRequestTokenTest extends TestCase
     {
         // requestTokenUser resolves to user->name 'alice'; site token =
         // getRequestToken('alice:mysite') = known-good literal below.
-        // (L-3 derived key; computed independently with hash_hmac.)
+        // (Domain-separated derived key; computed independently with hash_hmac.)
         $this->assertSame(
             'yfT3CEQxEvVqMfc7L8J6agoLpm4rIXGSTM5gJMg4SDw',
             $this->haxcms->getSiteTokenForSiteName('mysite')

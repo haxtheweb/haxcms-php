@@ -1,5 +1,5 @@
 <?php
-// Security (H-2): CLI only; never executable over HTTP against live config.
+// Security (SEC-DEPLOY): CLI only; never executable over HTTP against live config.
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * HAXcms PHP v1 API Integration Test Runner
@@ -315,7 +315,7 @@ assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'
 // GET on admin routes stays at the spec-driven base policy (authenticated)
 // since system-spec.yaml declares bearerAuth for dashboard reads. Non-GET
 // methods of admin routes elevate to 'admin' (see v1/themes + v1/skeletons
-// POST assertions below). EXCEPTION (F3/authz): api-keys GET is also elevated
+// POST assertions below). EXCEPTION: api-keys GET is also elevated
 // to 'admin' because it returns system-wide credentials — see
 // SystemRoutesMap::getSystemV1SuperUserReadRoutes. The handler adds a
 // defense-in-depth superUser check too (regression tests below).
@@ -449,7 +449,7 @@ foreach ($pathMatrix as $case) {
     assertEquals($case['expectedApiBase'], $ctx->apiBasePath, $case['name'] . ' apiBasePath resolves');
 }
 
-// Test 14: F2/IDOR-001 — site-lifecycle object-level authorization (IDOR fix)
+// Test 14: Security (SEC-ROUTE) — site-lifecycle object-level authorization
 echo "\n[14] F2/IDOR-001 site-lifecycle IDOR guard...\n";
 // Save state to restore after the IDOR assertions.
 $idorSavedIam = isset($HAXCMS->config->iam) ? $HAXCMS->config->iam : null;
@@ -571,7 +571,7 @@ if ($idorSavedUserTokenHeader !== null) {
     unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']);
 }
 
-// Test 15: F3/authz — API keys admin gating (router elevation + defense-in-depth)
+// Test 15: Security (SEC-ROUTE) — API keys admin gating (router elevation + defense-in-depth)
 echo "\n[15] F3/authz API keys admin gating...\n";
 // Save the active-user name so the simulated principals are restored.
 $f3SavedUserName = isset($HAXCMS->user->name) ? $HAXCMS->user->name : null;
@@ -580,14 +580,14 @@ assertTrue(is_string($f3RealSuperUserName) && $f3RealSuperUserName !== '', 'F3 t
 
 // Router elevation: GET + POST on api-keys now resolve to 'admin'. POST was
 // already admin via getSystemV1SuperUserRoutes (non-GET elevation); GET is now
-// admin via getSystemV1SuperUserReadRoutes (the F3 fix).
+// admin via getSystemV1SuperUserReadRoutes.
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'GET'), 'F3 router: api-keys GET is admin');
 assertEquals('admin', $getRouteSecurity->invoke(null, 'v1/configuration/api-keys', 'POST'), 'F3 router: api-keys POST is admin');
 
 // Defense-in-depth: a non-superUser authenticated principal gets 403 on both
 // read (getApiKeys) and write (saveApiKeys). validateRequestToken returns true
 // in CLI mode, so the user_token gate passes and the superUser check is the
-// gate that fires — this is exactly the F3 credential-exposure fix.
+// gate that fires — this keeps credentials superUser-only.
 $HAXCMS->user->name = 'non-super-f3-test-user';
 assertTrue($HAXCMS->getActiveUserName() === 'non-super-f3-test-user', 'F3 setup: active user is non-superUser');
 assertTrue($HAXCMS->getActiveUserName() !== $HAXCMS->superUser->name, 'F3 setup: active user differs from superUser');
@@ -626,7 +626,7 @@ assertTrue(
 // Restore the active-user name so the test environment is left as found.
 $HAXCMS->user->name = $f3SavedUserName;
 
-// Test 16: F6/XSS — nginx + apache force-download for uploaded .html under /files/
+// Test 16: Security (SEC-UPLOAD, SEC-DEPLOY) — nginx + apache force-download for uploaded .html under /files/
 echo "\n[16] F6/XSS html upload force-download config...\n";
 // .html stays in the upload allowlist (user decision: keep it); the fix is on
 // the SERVING side so uploaded .html is downloaded, not rendered inline.

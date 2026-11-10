@@ -76,6 +76,17 @@ class SiteRouteUtils
         }
         return 'GET';
     }
+    /**
+     * Method used to resolve an API route and its access policy. HEAD is
+     * answered by the GET route (RFC 9110 9.3.2), the same as Express does for
+     * haxcms-nodejs (registryMethod in src/lib/asyncRoute.js); the web server
+     * drops the body for HEAD on the way out.
+     */
+    public static function getRouteMethod()
+    {
+        $method = self::getRequestMethod();
+        return $method === 'HEAD' ? 'GET' : $method;
+    }
     public static function getBearerTokenFromRequest()
     {
         $auth = null;
@@ -284,7 +295,7 @@ class SiteRouteUtils
     /**
      * Generate a UUID (RFC 4122 v4).
      *
-     * Security best practice (N2): uses random_bytes (CSPRNG) instead of
+     * Security (SEC-EXPORT): uses random_bytes (CSPRNG) instead of
      * mt_rand so generated IDs are not predictable. Consistent with
      * HAXCMS::generateUUID and JSONOutlineSchemaItem::generateUUID. These
      * IDs are non-secret (exposed in URLs/metadata).
@@ -884,18 +895,18 @@ class SiteRouteUtils
         return null;
     }
     /**
-     * Security (SEC-SSRF / YAML alias amplification): maximum size, in bytes,
+     * Security (SEC-DOS): maximum size, in bytes,
      * of untrusted YAML accepted for parsing (256 KiB). Parity with the
      * haxcms-nodejs convertYamlToJson limit.
      */
     const YAML_MAX_INPUT_BYTES = 262144;
     /**
-     * Security (SEC-SSRF): error message returned (HTTP 400) when untrusted
+     * Security (SEC-DOS): error message returned (HTTP 400) when untrusted
      * YAML uses anchors or aliases. Byte-identical in both backends.
      */
     const YAML_ANCHOR_ALIAS_ERROR = 'YAML anchors and aliases are not supported';
     /**
-     * Security (SEC-SSRF / YAML alias amplification): true when untrusted
+     * Security (SEC-DOS): true when untrusted
      * YAML text uses an anchor (`&name`) or alias (`*name`) node property.
      *
      * Symfony Yaml has no flag to disable aliases and no parse-time hook, and

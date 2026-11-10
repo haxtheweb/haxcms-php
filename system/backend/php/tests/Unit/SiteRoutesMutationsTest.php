@@ -413,7 +413,7 @@ class SiteRoutesMutationsTest extends TestCase
 
     public function testItemsMutationPostForcesSiteNameDespiteClientOverride(): void
     {
-        // SEC-26: a client-supplied site.name must not redirect the write.
+        // Security (SEC-ROUTE): a client-supplied site.name must not redirect the write.
         $body = array(
             'node' => array('title' => 'Sneaky Page'),
             'site' => array('name' => 'evil-site'),

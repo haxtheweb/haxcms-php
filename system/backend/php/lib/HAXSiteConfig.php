@@ -26,6 +26,7 @@ class HAXSiteConfig {
     ) {
       exit;
     }
+    self::sendSitePageSecurityHeaders();
     $this->page = $this->site->loadNodeByLocation();
     if (
       isset($this->site) &&
@@ -41,7 +42,7 @@ class HAXSiteConfig {
     ) {
       $this->site->sendPageAlternateHeaders($this->page);
     }
-    // Security (L-5): these values come from site.json (possibly imported /
+    // Security (SEC-SANITIZE): these values come from site.json (possibly imported /
     // cloned without passing save-time filters) and are printed raw by
     // index.php inside <style>, an attribute and <h1>. Encode at output.
     $cssVariable = isset($this->site->manifest->metadata->theme->variables->cssVariable) ? (string) $this->site->manifest->metadata->theme->variables->cssVariable : '';
@@ -49,7 +50,63 @@ class HAXSiteConfig {
     $this->name = htmlspecialchars((string) $this->site->name, ENT_QUOTES, 'UTF-8');
   }
   /**
-   * Security (L-5): only a bare CSS custom-property name may be wrapped in
+   * Security: response headers for a rendered site page (index.php shell).
+   * HAX sites are built to be embedded: Canvas and other LMS / portal
+   * tools iframe published material routinely. So site pages send NO
+   * frame-ancestors restriction by default; an operator who needs one sets
+   * config->security->frameAncestors (array of CSP sources, e.g.
+   * ["'self'", "https://*.instructure.com"]) and exactly that list is sent.
+   * The dashboard (root index.php) is the only thing that stays at 'none'.
+   * Referrer-Policy keeps full URLs (which can carry page slugs and query
+   * state) inside the origin. Both only emit when nothing has been sent
+   * yet, and never clobber a header the hosting config already set.
+   * Mirrors haxcms-nodejs (same config key, same default).
+   */
+  public static function sendSitePageSecurityHeaders() {
+    if (headers_sent()) {
+      return;
+    }
+    $sent = array();
+    foreach (headers_list() as $existing) {
+      $sent[] = strtolower(trim((string) strstr($existing, ':', true)));
+    }
+    $frameAncestors = self::configuredFrameAncestors();
+    if (!in_array('content-security-policy', $sent, true) && count($frameAncestors) > 0) {
+      header("Content-Security-Policy: frame-ancestors " . implode(' ', $frameAncestors));
+    }
+    if (!in_array('referrer-policy', $sent, true)) {
+      header('Referrer-Policy: strict-origin-when-cross-origin');
+    }
+  }
+  /**
+   * config->security->frameAncestors as a clean list of CSP source
+   * expressions, or an empty array (the default: embeddable anywhere).
+   * Only [A-Za-z0-9.:*'/_-] survive so a config value can never inject a
+   * second directive or break the header.
+   */
+  public static function configuredFrameAncestors() {
+    $out = array();
+    if (
+      isset($GLOBALS['HAXCMS']) &&
+      isset($GLOBALS['HAXCMS']->config->security->frameAncestors)
+    ) {
+      $raw = $GLOBALS['HAXCMS']->config->security->frameAncestors;
+      if (is_string($raw)) {
+        $raw = preg_split('/\s+/', trim($raw));
+      }
+      if (is_array($raw)) {
+        foreach ($raw as $entry) {
+          $entry = trim((string) $entry);
+          if ($entry !== '' && preg_match("/^[A-Za-z0-9.:*'\/_-]+$/", $entry)) {
+            $out[] = $entry;
+          }
+        }
+      }
+    }
+    return $out;
+  }
+  /**
+   * Security (SEC-SANITIZE): only a bare CSS custom-property name may be wrapped in
    * var(); anything else (e.g. a value that closes the style block) falls
    * back to the default accent color.
    */
@@ -60,7 +117,7 @@ class HAXSiteConfig {
     return '#FF2222';
   }
   public function getLanguage() {
-    // Security (L-5): printed into <html lang="...">.
+    // Security (SEC-SANITIZE): printed into <html lang="...">.
     return htmlspecialchars((string) $this->site->getLanguage(), ENT_QUOTES, 'UTF-8');
   }
   public function getBaseTag() {

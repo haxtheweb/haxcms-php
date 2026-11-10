@@ -298,7 +298,7 @@ class OperationsSaveFileTest extends TestCase
     }
 
     // =========================================================================
-    // F2 (HAX-SEC-006 parity): commit message uses the server-sanitized name,
+    // Security (SEC-UPLOAD, SEC-EXEC): commit message uses the server-sanitized name,
     // not the raw attacker-controlled $_FILES name. Exercised via the
     // bulk-import path, which works under CLI (isValidBulkImportTmpPath
     // replaces is_uploaded_file), so the save() success path + gitCommit are
@@ -310,8 +310,8 @@ class OperationsSaveFileTest extends TestCase
         // Stage a real .txt file in the bulk-import staging root.
         $stagedPath = $this->stageBulkImportFile('hello world', 'staged.txt');
         // Crafted raw name with a char ($) that HAXCMSFile::save() strips during
-        // filename sanitization. Before F2 the commit message held the raw
-        // $_FILES name; after F2 it holds the server-sanitized name.
+        // filename sanitization. The commit message must hold the
+        // server-sanitized name, never the raw $_FILES name.
         $_FILES['file'] = array(
             'name' => 'bad$evil.txt',
             'type' => 'text/plain',

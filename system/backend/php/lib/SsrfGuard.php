@@ -50,7 +50,7 @@ class SsrfGuard
     /**
      * Total timeout (seconds) for the safe-fetch wrappers, matching the
      * SAFE_FETCH_TIMEOUT_MS constant in haxcms-nodejs src/lib/safeFetch.js
-     * (SEC-02). Prevents a slow/hanging upstream from holding a request open.
+     * Prevents a slow/hanging upstream from holding a request open.
      */
     private static $SAFE_TIMEOUT = 15;
     /**
@@ -170,8 +170,8 @@ class SsrfGuard
      * an IP address (fail closed). Matches the Node.js isPrivateOrReservedIP
      * list (see the CIDR tables above).
      *
-     * Security (HAX-SEC-007 / SSRF hex-form bypass) is preserved: every
-     * spelling is canonicalised by inet_pton first, so ::ffff:7f00:1,
+     * Security (SEC-SSRF): IPv4-mapped / -compatible IPv6 cannot bypass the
+     * check in hex form. Every spelling is canonicalised by inet_pton first, so ::ffff:7f00:1,
      * ::ffff:127.0.0.1 and 0:0:0:0:0:ffff:7f00:0001 all decode to the same
      * 16 bytes and the embedded IPv4 (127.0.0.1) is re-checked. Legitimate
      * public v6 like 2001:db8::1.2.3.4 is not touched because its prefix is

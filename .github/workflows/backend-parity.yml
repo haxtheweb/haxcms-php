@@ -1,0 +1,108 @@
+name: backend parity
+# haxcms-nodejs and haxcms-php are kept in parity. These must stay
+# byte-identical between the two backends (haxcms-nodejs is the source of
+# truth for all of them):
+#   site boilerplate   system/boilerplate/site
+#                      src/boilerplate/site (haxcms-nodejs)
+#   site API spec      system/backend/php/lib/siteRoutes/openapi/site-spec.yaml
+#                      src/openapi/site-spec.yaml (haxcms-nodejs)
+#   system API spec    system/backend/php/lib/systemRoutes/openapi/system-spec.yaml
+#                      src/openapi/system-spec.yaml (haxcms-nodejs)
+#
+# This runs nightly (and on demand), comparing the latest default branch of
+# haxcms-php with the latest default branch of haxcms-nodejs. The same check
+# runs in haxcms-nodejs (.github/workflows/backend-parity.yml) and gives the
+# same result, since both compare the two default branches. It does not run
+# on pull requests: a change needs a PR in each repo, and comparing one PR
+# with the other repo's default branch fails until both PRs have merged
+# (haxtheweb/issues#3262). Drift shows up as a failed scheduled run with the
+# differences in the job summary.
+on:
+  schedule:
+    - cron: "17 6 * * *" # nightly, 06:17 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: "haxcms-php matches haxcms-nodejs (default branches)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout haxcms-php default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: self
+          persist-credentials: false
+      - name: Compare with haxcms-nodejs default branch
+        env:
+          OTHER_REPO: "haxcms-nodejs"
+        run: |
+          set -euo pipefail
+          other_url="https://github.com/haxtheweb/${OTHER_REPO}.git"
+          ref="$(git ls-remote --symref "${other_url}" HEAD | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')"
+          if [ -z "${ref}" ]; then
+            echo "::error::Could not resolve the default branch of ${OTHER_REPO}"
+            exit 1
+          fi
+          git clone --quiet --depth 1 --branch "${ref}" "${other_url}" other
+          self_sha="$(git -C self rev-parse --short HEAD)"
+          other_sha="$(git -C other rev-parse --short HEAD)"
+          echo "Comparing haxcms-php@${self_sha} with ${OTHER_REPO}@${ref} (${other_sha})"
+
+          # label | haxcms-php path | haxcms-nodejs path
+          pairs=(
+            "site boilerplate|system/boilerplate/site|src/boilerplate/site"
+            "site OpenAPI spec|system/backend/php/lib/siteRoutes/openapi/site-spec.yaml|src/openapi/site-spec.yaml"
+            "system OpenAPI spec|system/backend/php/lib/systemRoutes/openapi/system-spec.yaml|src/openapi/system-spec.yaml"
+            "sanitizer policy|system/backend/php/lib/haxcms-sanitize-policy.json|src/lib/haxcmsSanitizePolicy.json"
+            "sanitizer vectors|system/backend/php/tests/fixtures/sanitize-vectors.json|test/fixtures/sanitize-vectors.json"
+            "block operations allowlist|system/backend/php/lib/haxcms-block-attributes.json|src/lib/haxcmsBlockAttributes.json"
+            "block operations vectors|system/backend/php/tests/fixtures/block-operations-vectors.json|test/fixtures/block-operations-vectors.json"
+          )
+
+          drift=0
+          details=""
+          {
+            echo "### Backend parity"
+            echo
+            echo "haxcms-php \`${self_sha}\` compared with ${OTHER_REPO} \`${ref}\` \`${other_sha}\`."
+            echo
+            echo "| Area | haxcms-php | haxcms-nodejs | Result |"
+            echo "| --- | --- | --- | --- |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          for pair in "${pairs[@]}"; do
+            IFS='|' read -r label self_path other_path <<< "${pair}"
+            result="in sync"
+            if [ ! -e "self/${self_path}" ] || [ ! -e "other/${other_path}" ]; then
+              result="missing"
+              drift=1
+              echo "::error title=${label} missing::self/${self_path} or other/${other_path} does not exist"
+            elif ! diff -rq --no-dereference "self/${self_path}" "other/${other_path}" > /dev/null; then
+              result="**differs**"
+              drift=1
+              echo "::group::${label}: differences"
+              diff -rq --no-dereference "self/${self_path}" "other/${other_path}" || true
+              diff -ru --no-dereference "self/${self_path}" "other/${other_path}" | head -n 400 || true
+              echo "::endgroup::"
+              echo "::error title=${label} out of sync::${self_path} differs from ${OTHER_REPO}@${ref}:${other_path}. haxcms-nodejs is the source of truth; make the same change in both repos."
+              details+="<details><summary>${label}: diff (haxcms-php → ${OTHER_REPO}, first 200 lines)</summary>"$'\n\n'
+              details+='````diff'$'\n'
+              details+="$(diff -ru --no-dereference "self/${self_path}" "other/${other_path}" | head -n 200 || true)"$'\n'
+              details+='````'$'\n\n'"</details>"$'\n\n'
+            fi
+            echo "| ${label} | \`${self_path}\` | \`${other_path}\` | ${result} |" >> "${GITHUB_STEP_SUMMARY}"
+          done
+
+          if [ "${drift}" -eq 0 ]; then
+            echo "All compared areas are in sync."
+            printf '\nAll compared areas are in sync.\n' >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          {
+            echo
+            echo "${OTHER_REPO} is the source of truth. Bring haxcms-php in line (for the OpenAPI specs, \`node scripts/sync-openapi-specs.js\` copies them), or land the matching change in both repos."
+            echo
+            printf '%s' "${details}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          exit 1

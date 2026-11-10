@@ -83,6 +83,81 @@ class StructureHistory
         return $results;
     }
 
+    /**
+     * Stream many blobs out of one `git cat-file --batch` process, calling
+     * $onBlob($index, string|null) for each spec in order as soon as it has
+     * been read, so only one blob is held at a time (readBlobs keeps the
+     * whole output plus a copy of every blob: up to 301 site.json versions).
+     * Missing objects and anything after a truncated stream read as null, as
+     * with readBlobs; if git cannot be started every spec reads as null.
+     * Mirrors forEachBlob in haxcms-nodejs lib/structureHistory.js.
+     */
+    public static function forEachBlob($siteDirectory, $specs, $onBlob)
+    {
+        $count = count($specs);
+        $next = 0;
+        if ($count === 0) {
+            return;
+        }
+        $gitBin = Git::get_bin();
+        if (!is_string($gitBin) || $gitBin === '') {
+            $gitBin = 'git';
+        }
+        $command = escapeshellarg($gitBin) . ' --no-pager cat-file --batch';
+        $pipes = array();
+        // a site directory git cannot start in reads as all-null below
+        $process = @proc_open(
+            $command,
+            array(0 => array('pipe', 'r'), 1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes,
+            $siteDirectory
+        );
+        if (!is_resource($process)) {
+            for (; $next < $count; $next++) {
+                $onBlob($next, null);
+            }
+            return;
+        }
+        fwrite($pipes[0], implode("\n", $specs) . "\n");
+        fclose($pipes[0]);
+        while ($next < $count) {
+            $header = fgets($pipes[1]);
+            if ($header === false) {
+                break;
+            }
+            $parts = explode(' ', rtrim($header, "\n"));
+            if (count($parts) < 3 || $parts[1] !== 'blob') {
+                // "<spec> missing" or a non-blob object
+                $onBlob($next++, null);
+                continue;
+            }
+            $size = intval($parts[2]);
+            $body = '';
+            while (strlen($body) < $size) {
+                $chunk = fread($pipes[1], min(1048576, $size - strlen($body)));
+                if ($chunk === false || $chunk === '') {
+                    break;
+                }
+                $body .= $chunk;
+            }
+            if (strlen($body) < $size) {
+                // truncated output: this and every later spec read as null
+                break;
+            }
+            // content is followed by a newline
+            fread($pipes[1], 1);
+            $onBlob($next++, $body);
+            $body = null;
+        }
+        for (; $next < $count; $next++) {
+            $onBlob($next, null);
+        }
+        fclose($pipes[1]);
+        stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+        proc_close($process);
+    }
+
     public static function parseManifest($blob)
     {
         if (!is_string($blob) || $blob === '') {
@@ -196,16 +271,18 @@ class StructureHistory
         foreach ($hashes as $hash) {
             $specs[] = $hash . ':' . self::SITE_FILE;
         }
-        $blobs = self::readBlobs($siteDirectory, $specs);
-        $newer = self::itemSnapshot(self::parseManifest($blobs[0]), $itemId);
-        for ($i = 1; $i < count($hashes); $i++) {
-            $older = self::itemSnapshot(self::parseManifest($blobs[$i]), $itemId);
-            $changes = self::diffSnapshots($older, $newer);
-            if (count($changes) > 0) {
-                $result[$hashes[$i - 1]] = $changes;
+        // one site.json version in memory at a time, compared as it streams in
+        $newer = null;
+        self::forEachBlob($siteDirectory, $specs, function ($index, $blob) use (&$newer, &$result, $hashes, $itemId) {
+            $snapshot = self::itemSnapshot(self::parseManifest($blob), $itemId);
+            if ($index > 0) {
+                $changes = self::diffSnapshots($snapshot, $newer);
+                if (count($changes) > 0) {
+                    $result[$hashes[$index - 1]] = $changes;
+                }
             }
-            $newer = $older;
-        }
+            $newer = $snapshot;
+        });
         return $result;
     }
 }

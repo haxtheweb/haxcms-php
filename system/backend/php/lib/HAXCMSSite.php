@@ -31,8 +31,8 @@ class HAXCMSSite
         $tmpname = $GLOBALS['HAXCMS']->cleanTitle($tmpname, false);
         $this->basePath = $siteBasePath;
         $this->directory = $directory;
-        // Security (code-scanning js/path-injection, nodejs parity): never
-        // load the sites directory itself as a site (see HAXCMS::loadSite)
+        // Security (SEC-PATH): never load the sites directory itself as a
+        // site (see HAXCMS::loadSite); mirrors haxcms-nodejs
         if (trim($tmpname, '/') === '') {
             throw new \Exception('Site name resolves outside the sites directory');
         }
@@ -353,7 +353,7 @@ class HAXCMSSite
      */
     public function getGaCode() {
       $gaID = $this->getGaID();
-      // Security (SEC-06): validate gaID format and escape for both the HTML
+      // Security (SEC-SANITIZE): validate gaID format and escape for both the HTML
       // attribute and the JS string so a crafted analytics ID cannot cause XSS.
       if (!is_null($gaID) && $gaID !== '' && preg_match('/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/', $gaID)) {
         $attrID = htmlspecialchars($gaID, ENT_QUOTES, 'UTF-8');
@@ -714,7 +714,7 @@ class HAXCMSSite
     {
         $siteDirectory =
             $this->directory . '/' . $this->manifest->metadata->site->name;
-        // Security (SEC-17): reject null bytes and lexical `..` traversal segments
+        // Security (SEC-PATH): reject null bytes and lexical `..` traversal segments
         // instead of the bypassable single-pass str_replace('../','') scrub.
         $old = (string) $old;
         $new = (string) $new;
@@ -893,13 +893,13 @@ class HAXCMSSite
         return true;
     }
     /**
-     * Security best practice (N5): resolve a page location to a real,
+     * Security (SEC-PATH): resolve a page location to a real,
      * containment-proven filesystem path inside this site's directory, or
      * return false. Replaces the bypassable single-pass
      * str_replace('../','') (defeated by e.g. `....//`) used previously by
      * validatePageLocation / getPageContent / jsonFeedFormat / lunrSearchIndex
      * with a null-byte + lexical `..`-segment reject + realpath containment
-     * check, matching the write-side hardening (N1). This closes the read-side
+     * check, matching the write-side hardening. This closes the read-side
      * gap where a crafted `site.json` location (e.g. from an admin import)
      * could otherwise read a file outside the site directory.
      */
@@ -959,7 +959,7 @@ class HAXCMSSite
         $page = new JSONOutlineSchemaItem();
         // support direct ID setting, useful for parent associations calculated ahead of time
         if (!is_null($id)) {
-          // Security best practice (N1): sanitize caller-supplied id before it
+          // Security (SEC-PATH): sanitize caller-supplied id before it
           // is used to build the on-disk page location (same defense as
           // itemFromParams), preventing traversal via crafted ids.
           $page->id = $GLOBALS['HAXCMS']->generateMachineName($id);
@@ -1689,7 +1689,7 @@ class HAXCMSSite
             "date_published" => date('c', $created),
           );
           // test location is valid prior to adding it
-          // Security best practice (N5): read via containment-checked resolver.
+          // Security (SEC-PATH): read via containment-checked resolver.
           $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
           if ($resolvedLocation !== false) {
             $jsonFeed['content_html'] = @file_get_contents($resolvedLocation);
@@ -1726,7 +1726,7 @@ class HAXCMSSite
           "text" => '',
         );
         // test location is valid prior to adding it
-        // Security best practice (N5): read via containment-checked resolver.
+        // Security (SEC-PATH): read via containment-checked resolver.
         $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
         if ($resolvedLocation !== false) {
           $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($resolvedLocation));
@@ -2074,7 +2074,7 @@ class HAXCMSSite
         // set the title
         $item->title = str_replace("\n", '', $params['node']['title']);
         if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
-            // Security best practice (N1): sanitize a client-supplied id
+            // Security (SEC-PATH): sanitize a client-supplied id
             // before composing the on-disk location. generateMachineName
             // strips '..', slashes, and null bytes, so a crafted id such as
             // `../../../../x` cannot escape the site pages directory when
@@ -2130,7 +2130,7 @@ class HAXCMSSite
       $content = &$GLOBALS['HAXCMS']->staticCache(__FUNCTION__ . $page->location);
       if (!isset($content)) {
         $content = '';
-        // Security best practice (N5): read via the containment-checked
+        // Security (SEC-PATH): read via the containment-checked
         // resolver instead of re-applying the bypassable str_replace filter.
         $resolved = $this->resolvePageLocationRealPath($page->location);
         if ($resolved !== false) {
@@ -3447,7 +3447,7 @@ class HAXCMSSite
      */
     public function recurseCopy($src, $dst, $skip = array())
     {
-        // Security best practice (N1): reject traversal in the destination
+        // Security (SEC-PATH): reject traversal in the destination
         // before creating any directories. The previous code had no filter on
         // $dst, so a caller-controlled id could escape the site tree. We block
         // null bytes and any `..` segment, then (best-effort) prove the

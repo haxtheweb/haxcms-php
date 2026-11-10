@@ -102,7 +102,7 @@ if (!function_exists('haxcmsImportConvertPloneToSite')) {
             $slug = '';
             if ($itemUrl !== '') {
                 $relative = str_replace($baseUrl, '', $itemUrl);
-                // Security (SEC-16): sanitize the remote-sourced slug so it
+                // Security (SEC-PATH): sanitize the remote-sourced slug so it
                 // cannot carry path-traversal characters into the response.
                 $slug     = SiteRouteUtils::cleanSlug(trim($relative, '/'));
             }

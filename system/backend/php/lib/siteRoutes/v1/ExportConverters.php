@@ -1,9 +1,9 @@
 <?php
 require_once dirname(__FILE__) . '/../../../vendor/autoload.php';
-// Security (SEC-01): SsrfGuard used by fetchCoverData to validate the cover
+// Security (SEC-SSRF): SsrfGuard used by fetchCoverData to validate the cover
 // image URL before fetching, blocking SSRF to internal/metadata addresses.
 include_once dirname(__FILE__) . '/../../SsrfGuard.php';
-// Security (SEC-14): SanitizeContent used by sanitizeExportHtml for DOM-based
+// Security (SEC-SANITIZE): SanitizeContent used by sanitizeExportHtml for DOM-based
 // HTML sanitization in the export path.
 include_once dirname(__FILE__) . '/../../SanitizeContent.php';
 
@@ -95,7 +95,7 @@ class ExportConverters
 
     public static function sanitizeExportHtml($html = '')
     {
-        // Security (SEC-14): use the DOM-based SanitizeContent sanitizer instead
+        // Security (SEC-SANITIZE): use the DOM-based SanitizeContent sanitizer instead
         // of bypassable regex stripping (the content is already sanitized on
         // write; this is defense-in-depth for the export path).
         $sanitized = SanitizeContent::sanitizeHTMLForStorage((string) $html);
@@ -1437,7 +1437,7 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
 
     public static function generateUUID()
     {
-        // Security (SEC-12): use a CSPRNG (random_bytes) instead of mt_rand so
+        // Security (SEC-EXPORT): use a CSPRNG (random_bytes) instead of mt_rand so
         // identifiers are not predictable, matching SiteRouteUtils::generateUUID.
         $bytes = random_bytes(16);
         $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
@@ -1454,7 +1454,7 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
         $data = '';
         $name = basename($resolvedPath);
         if (preg_match('/^(https?:)?\/\//i', $resolvedPath)) {
-            // Security (SEC-01): validate the cover URL via SsrfGuard before
+            // Security (SEC-SSRF): validate the cover URL via SsrfGuard before
             // fetching so a crafted logo cannot SSRF internal services or cloud
             // metadata endpoints. safeFileGetContents disables redirects and
             // rejects private/loopback/link-local/metadata IPs.
@@ -1465,7 +1465,7 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
             }
         }
         else {
-            // Security (SEC-01): local file reads are constrained to the site
+            // Security (SEC-PATH): local file reads are constrained to the site
             // directory. Reject null bytes, '..', and absolute filesystem paths;
             // realpath-contain every candidate against the site directory so a
             // crafted logo cannot read arbitrary files (e.g. _config/config.php).

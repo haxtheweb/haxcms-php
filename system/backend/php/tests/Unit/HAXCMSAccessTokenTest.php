@@ -19,7 +19,7 @@ class HAXCMSAccessTokenTest extends TestCase
 {
     private $haxcms;
     private $savedServerSoftware;
-    // getRequestToken('user') with privateKey 'pk', salt 's' (L-3 derived key).
+    // getRequestToken('user') with privateKey 'pk', salt 's' (domain-separated derived key).
     private const KNOWN_USER_TOKEN = 'qMulgGEW5_tZQ1jX6yE-c51mq5fN9v_D2e9DBzYCj3g';
 
     protected function setUp(): void

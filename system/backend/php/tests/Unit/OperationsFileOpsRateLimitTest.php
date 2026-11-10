@@ -3,7 +3,7 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/OperationsTestHaxcms.php';
 
 /**
- * Security (F3) tests for the file-operations count-window rate limit wired
+ * Security (SEC-RATELIMIT) tests for the file-operations count-window rate limit wired
  * into OperationsRouteSaveFile::saveFile() (and shared by fileOperation()).
  *
  * The limiter runs AFTER token validation and BEFORE loadSite/upload-resolution,

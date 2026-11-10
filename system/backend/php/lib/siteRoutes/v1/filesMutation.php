@@ -126,7 +126,7 @@ return function ($context) {
         if (!isset($body['site']) || !is_array($body['site'])) {
             $body['site'] = array();
         }
-        // Security (SEC-26): force the site name to the resolved site so a
+        // Security (SEC-ROUTE): force the site name to the resolved site so a
         // client cannot target a foreign site (IDOR defense-in-depth).
         $body['site']['name'] = $siteName;
         $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
@@ -144,7 +144,7 @@ return function ($context) {
         $operations->rawParams = array_merge($body, $_FILES);
         $result = $operations->saveFile();
     } else if ($method === 'PATCH' || $method === 'DELETE') {
-        // Security (SEC-26): force the site name to the resolved site.
+        // Security (SEC-ROUTE): force the site name to the resolved site.
         $body['siteName'] = $siteName;
         $siteToken = $context->getHeader('X-HAXCMS-Site-Token');
         if (!is_string($siteToken)) {

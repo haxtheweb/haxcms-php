@@ -129,7 +129,7 @@ class HAXCMSAuthCoverageTest extends TestCase
     }
 
     /**
-     * Security (SEC-SESSION, haxcms-php#655): getAuthenticatedUserName checks
+     * Security (SEC-SESSION): getAuthenticatedUserName checks
      * the refresh cookie against the refresh-session store, so the cookie has
      * to be one the store issued (getRefreshToken(..., TRUE)).
      */
@@ -157,7 +157,7 @@ class HAXCMSAuthCoverageTest extends TestCase
 
     public function testGetAuthenticatedUserNameIgnoresRefreshCookieForUnknownUser()
     {
-        // Security (SEC-SESSION, haxcms-php#655): the refresh-cookie identity
+        // Security (SEC-SESSION): the refresh-cookie identity
         // must pass validateUser too, so a store-valid cookie for a user that
         // is not the configured one is dropped and the session JWT decides.
         $this->useRefreshSessionStore();

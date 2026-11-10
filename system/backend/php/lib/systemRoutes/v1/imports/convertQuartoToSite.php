@@ -1394,7 +1394,7 @@ if (!function_exists('haxcmsImportConvertQuartoToSite')) {
         }
         $data = new \stdClass();
         try {
-            // Security (SEC-SSRF / YAML alias amplification): size cap and
+            // Security (SEC-DOS): size cap and
             // anchor/alias rejection; a rejected front matter falls back to {}
             // like any other unparseable front matter.
             $parsed = haxcmsImportQuartoLoadYaml($matches[1]);

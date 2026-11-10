@@ -24,11 +24,16 @@
     "puppeteer-core": "^25.7.0",
     "sharp": "^0.35.5"
   },
+  "resolutions": {
+    "image-size": "^2.0.4"
+  },
   "scripts": {
     "start": "yarn run dev",
     "dev": "polymer serve --open --entrypoint dev.html --allow-origin --open-path=/",
     "release": "commit-and-tag-version && git push --follow-tags origin master",
     "test": "cd system/backend/php && ./vendor/bin/phpunit",
+    "lint:php": "bash scripts/phpstan.sh",
+    "lint:php:baseline": "bash scripts/phpstan.sh --generate-baseline phpstan-baseline.neon",
     "test:e2e": "node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs",
     "test:e2e:update": "HAXCMS_E2E_UPDATE_SCREENSHOTS=1 node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs"
   },

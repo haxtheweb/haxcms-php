@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *      callers (valid Bearer JWT or store-checked refresh session) get
  *      tokens; anonymous callers get them only when
  *      security.requireSessionForRequestTokens is explicitly turned off
- *      (it defaults on since L-3).
+ *      (it defaults on).
  *   2. refresh revocation writes tombstones; family-bearing tokens without a
  *      store entry are rejected; only no-family legacy tokens seed the store;
  *      reuse of a stale jti tombstones the family; getAuthenticatedUserName
@@ -29,7 +29,7 @@ class HAXCMSSessionHardeningTest extends TestCase
         'SERVER_SOFTWARE', 'HTTP_HOST', 'REQUEST_URI', 'REMOTE_ADDR', 'HTTPS',
         'REQUEST_SCHEME', 'protossl', 'HTTP_X_FORWARDED_PROTO', 'HTTP_ORIGIN',
         'HTTP_REFERER', 'HTTP_SEC_FETCH_SITE', 'HTTP_AUTHORIZATION', 'HTTP_USESSL',
-        'HTTP_HTTPS_ENABLED',
+        'HTTP_HTTPS_ENABLED', 'REQUEST_METHOD',
     );
 
     protected function setUp(): void
@@ -401,7 +401,7 @@ class HAXCMSSessionHardeningTest extends TestCase
 
     public function testConnectionSettingsOmitsTokensForAnonymousCallerByDefault(): void
     {
-        // Security (L-3): session required by default; the front-end picks
+        // Security (SEC-SESSION): session required by default; the front-end picks
         // tokens up from login / refresh / connection-test responses.
         $saved = getenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
         putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
@@ -459,7 +459,7 @@ class HAXCMSSessionHardeningTest extends TestCase
     {
         $h = $this->fullHaxcms();
         $GLOBALS['HAXCMS'] = $h;
-        // flag off = explicit opt-out (the default is now on, L-3)
+        // flag off = explicit opt-out (the default is now on)
         $this->requireSession($h, $flag);
         if ($auth) {
             $h->sessionJwt = $h->getJWT('alice');
@@ -605,6 +605,67 @@ class HAXCMSSessionHardeningTest extends TestCase
         $res = $ops->refreshAccessToken();
         $this->assertSame(200, $res['status']);
         $this->assertNotEmpty($res['jwt']);
+    }
+
+    public static function sameOriginGetProvider(): array
+    {
+        return array(
+            // Sec-Fetch-Site present: only same-origin / none pass
+            'sfs same-origin'                        => array(array('HTTP_SEC_FETCH_SITE' => 'same-origin'), true),
+            'sfs none (typed URL / bookmark)'        => array(array('HTTP_SEC_FETCH_SITE' => 'none'), true),
+            'sfs same-site'                          => array(array('HTTP_SEC_FETCH_SITE' => 'same-site', 'HTTP_ORIGIN' => 'http://example.test'), false),
+            'sfs cross-site'                         => array(array('HTTP_SEC_FETCH_SITE' => 'cross-site'), false),
+            'sfs cross-site with good referer'       => array(array('HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_REFERER' => 'http://example.test/'), false),
+            // Sec-Fetch-Site absent: Origin / Referer decide
+            'no sfs, matching origin'                => array(array('HTTP_ORIGIN' => 'http://example.test'), true),
+            'no sfs, matching referer'               => array(array('HTTP_REFERER' => 'http://example.test/_sites/a/'), true),
+            'no sfs, foreign origin'                 => array(array('HTTP_ORIGIN' => 'https://evil.test'), false),
+            'no sfs, foreign referer'                => array(array('HTTP_REFERER' => 'https://evil.test/x'), false),
+            // nothing at all: non-browser client (haxcms-mcp) stays allowed
+            'no headers'                             => array(array(), true),
+        );
+    }
+
+    #[DataProvider('sameOriginGetProvider')]
+    public function testIsSameOriginGetRequest(array $server, bool $expected): void
+    {
+        foreach ($server as $k => $v) {
+            $_SERVER[$k] = $v;
+        }
+        $this->assertSame($expected, $this->bareHaxcms()->isSameOriginGetRequest());
+    }
+
+    /**
+     * A GET refresh is what <jwt-login> sends; SameSite=Lax still attaches
+     * the cookie to a cross-site top-level GET navigation, which carries no
+     * Origin. The browser's Sec-Fetch-Site: cross-site / same-site now
+     * decides; a POST keeps the Origin-based rule.
+     */
+    public function testGetRefreshRejectsSameSiteNavigationButPostStillUsesOriginRule(): void
+    {
+        $h = $this->bareHaxcms();
+        $GLOBALS['HAXCMS'] = $h;
+        $_COOKIE['haxcms_refresh_token'] = $h->getRefreshToken('alice', true);
+        $ops = new Operations();
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-site';
+        $res = $ops->refreshAccessToken();
+        $this->assertSame(403, $res['__failed']['status']);
+        $this->assertSame('Cross-origin request denied', $res['__failed']['message']);
+        // same-origin GET rotates
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-origin';
+        $res = $ops->refreshAccessToken();
+        $this->assertSame(200, $res['status']);
+        // header-less GET (non-browser client) still works
+        unset($_SERVER['HTTP_SEC_FETCH_SITE']);
+        $res = $ops->refreshAccessToken();
+        $this->assertSame(200, $res['status']);
+        // POST with same-site + matching Origin keeps today's behaviour (allowed)
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-site';
+        $_SERVER['HTTP_ORIGIN'] = 'http://example.test';
+        $res = $ops->refreshAccessToken();
+        $this->assertSame(200, $res['status']);
     }
 
     public function testRefreshResponseCarriesUserAndSiteTokens(): void

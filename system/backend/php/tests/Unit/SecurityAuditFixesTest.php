@@ -2,14 +2,14 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the fixes from security_best_practices_report_2026-10-19.md:
- *  - H-2  backend tree denied over HTTP + CLI guards on scripts
- *  - M-1  installer "installed" detection uses exact placeholder assignments
- *  - M-2  _archived/.htaccess boilerplate exists and denies
- *  - L-2  refresh cookie is Secure on HTTPS
- *  - L-4  git option-injection / remote-URL guards
- *  - L-5  site shell color/lang/name encoding
- *  - L-7  request-token compares are type-strict
+ * Regression tests for these security invariants:
+ *  - SEC-DEPLOY    backend tree denied over HTTP + CLI guards on scripts
+ *  - SEC-INSTALL   installer "installed" detection uses exact placeholder assignments
+ *  - SEC-DEPLOY    _archived/.htaccess boilerplate exists and denies
+ *  - SEC-SESSION   refresh cookie is Secure on HTTPS
+ *  - SEC-EXEC      git option-injection / remote-URL guards
+ *  - SEC-SANITIZE  site shell color/lang/name encoding
+ *  - SEC-SESSION   request-token compares are type-strict
  */
 class SecurityAuditFixesTest extends TestCase
 {
@@ -42,7 +42,7 @@ class SecurityAuditFixesTest extends TestCase
         return $h;
     }
 
-    // ---- H-2 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: backend tree + CLI-only scripts ----------------------
 
     public function testBackendTreeDeniesHttpAccess(): void
     {
@@ -68,7 +68,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- H-1 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: dot-directories never served ------------------------
 
     public function testDotDirectoryDenyRulePresentInRootAndSiteHtaccess(): void
     {
@@ -97,7 +97,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- M-1 -------------------------------------------------------------
+    // ---- SEC-INSTALL: exact install gate ----------------------------------
 
     public function testBoilerplateConfigSourceIsNotTemplated(): void
     {
@@ -140,7 +140,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- M-2 -------------------------------------------------------------
+    // ---- SEC-DEPLOY: _archived and _published denies ---------------------
 
     public function testArchivedHtaccessBoilerplateDenies(): void
     {
@@ -148,7 +148,72 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringContainsString('Require all denied', $htaccess);
     }
 
-    // ---- L-2 -------------------------------------------------------------
+    public function testPublishedHtaccessBoilerplateBlocksListingButServesZips(): void
+    {
+        $htaccess = (string) @file_get_contents($this->repoRoot . '/system/boilerplate/systemsetup/.published-htaccess');
+        $this->assertStringContainsString('Options -Indexes', $htaccess);
+        $this->assertStringContainsString('<FilesMatch "\\.zip$">', $htaccess);
+        $this->assertStringContainsString('Require all granted', $htaccess);
+        $this->assertStringContainsString('Require all denied', $htaccess);
+        $installer = (string) file_get_contents($this->repoRoot . '/install.php');
+        $this->assertStringContainsString("systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess'", $installer);
+        $nginx = (string) file_get_contents($this->repoRoot . '/scripts/nginx/haxcms-nginx.conf');
+        $this->assertStringContainsString('location ^~ /_published/', $nginx);
+        $this->assertStringContainsString('autoindex off', $nginx);
+    }
+
+    public function testInstallTokenLivesUnderConfigWithLegacyFallback(): void
+    {
+        $installer = (string) file_get_contents($this->repoRoot . '/install.php');
+        $this->assertStringContainsString("__DIR__ . '/_config/_installtoken.txt'", $installer);
+        $this->assertStringContainsString("\$installTokenLegacyFilePath = __DIR__ . '/_installtoken.txt'", $installer);
+        // _config is deny-all over HTTP, so the token cannot be fetched
+        $configHtaccess = (string) file_get_contents($this->repoRoot . '/system/boilerplate/systemsetup/.htaccess');
+        $this->assertStringContainsString('Require all denied', $configHtaccess);
+    }
+
+    // ---- hardening sweep -------------------------------------------------
+
+    public function testSiteFilesRejectSvgAndPptxMapHasNoSvg(): void
+    {
+        $src = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/pptxDeckHelper.php');
+        $this->assertStringNotContainsString("'.svg'  => 'image/svg+xml'", $src);
+        $ops = new Operations();
+        $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
+        $m->setAccessible(true);
+        $this->assertFalse($m->invoke($ops, 'theme/logo.svg'));
+        $this->assertSame('theme/logo.png', $m->invoke($ops, 'theme/logo.png'));
+    }
+
+    public function testForceDownloadRulesCoverCustomAndThemeMarkup(): void
+    {
+        $htaccess = (string) file_get_contents($this->repoRoot . '/.htaccess');
+        $this->assertStringContainsString('m#/(?:custom|theme)/.*\\.(?:xhtml|xml|svg)$#i', $htaccess);
+        $nginx = (string) file_get_contents($this->repoRoot . '/scripts/nginx/haxcms-nginx.conf');
+        $this->assertStringContainsString('location ~* /(?:custom|theme)/.*\\.(?:xhtml|xml|svg)$', $nginx);
+    }
+
+    public function testDockerfileStartsFromProductionIni(): void
+    {
+        $dockerfile = (string) file_get_contents($this->repoRoot . '/Dockerfile');
+        $this->assertStringContainsString('php.ini-production" "$PHP_INI_DIR/php.ini"', $dockerfile);
+    }
+
+    public function testLegacyOpsBindSiteTokenToRequestTokenUser(): void
+    {
+        $ops = array('saveNode', 'deleteNode', 'createNode', 'saveManifest', 'saveNodeDetails', 'fileOperation',
+            'saveEditorSettings', 'savePlatformSettings', 'saveAppearanceSettings', 'saveAllowedBlocks', 'saveSeoSettings');
+        foreach ($ops as $op) {
+            $src = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/operations/' . $op . '.php');
+            $this->assertStringNotContainsString("getActiveUserName() . ':' .", $src, $op);
+            $this->assertStringContainsString("\$this->getSiteTokenUserName() . ':' .", $src, $op);
+        }
+        // saveOutline is mission critical and intentionally untouched here
+        $outline = (string) file_get_contents($this->repoRoot . '/system/backend/php/lib/operations/saveOutline.php');
+        $this->assertStringContainsString("getActiveUserName() . ':' .", $outline);
+    }
+
+    // ---- SEC-SESSION: Secure refresh cookie ------------------------------
 
     public function testRefreshCookieSecureOnHttps(): void
     {
@@ -175,7 +240,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- L-3 / L-7 -------------------------------------------------------
+    // ---- SEC-SESSION: request-token key + strict compare -----------------
 
     public function testRequestTokenKeyIsSeparatedFromJwtKey(): void
     {
@@ -195,7 +260,7 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertFalse($h->validateRequestToken(array($token), 'alice'));
     }
 
-    // ---- L-4 -------------------------------------------------------------
+    // ---- SEC-EXEC: git argument guards -----------------------------------
 
     public function testGitSafeArg(): void
     {
@@ -240,7 +305,7 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
-    // ---- L-5 -------------------------------------------------------------
+    // ---- SEC-SANITIZE: site shell output encoding ------------------------
 
     public function testSafeCssColor(): void
     {

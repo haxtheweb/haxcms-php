@@ -1,0 +1,41 @@
+# PHPStan static analysis of the HAXcms PHP backend.
+# Run from the repo root: `npm run lint:php` (scripts/phpstan.sh).
+#
+# Invariant: no NEW PHPStan level-5 error lands in the backend source. Errors
+# that already existed are recorded in phpstan-baseline.neon and do not fail
+# the check; fixing one makes its baseline entry unmatched, which does fail,
+# so the baseline only ever shrinks (regenerate it with
+# `npm run lint:php:baseline` in the same PR as the fix).
+#
+# Level 5 covers undefined variables / methods / properties / constants,
+# wrong argument counts and argument types, return types, always-true /
+# always-false comparisons and unreachable code. Level 6 adds "missing
+# iterable value type / missing typehint" reporting across untyped legacy
+# methods (several thousand entries), which would turn the baseline into
+# noise without catching bugs, so level 5 is the highest practical level.
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    # composer.json requires ^8.3; CI tests 8.3 and 8.4.
+    phpVersion:
+        min: 80300
+        max: 80499
+    tmpDir: .phpstan.cache
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    # Backend source and its HTTP / CLI entry points. vendor/ is read for
+    # symbols only; tests/, system/boilerplate (site templates) and archived/
+    # are not analysed.
+    paths:
+        - lib
+        - bootstrapHAX.php
+        - publishing
+        - scripts
+        - ../../api.php
+        - ../../api/v1
+    # Docblocks in lib/ are loose; a defensive check against a wrong @param
+    # type must not fail CI. Native types are still trusted.
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true

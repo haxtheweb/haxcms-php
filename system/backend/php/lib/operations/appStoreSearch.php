@@ -243,7 +243,7 @@ trait OperationsRouteAppStoreSearch
     if ($providerMethod !== 'POST' && $queryString !== '') {
       $requestUrl .= '?' . $queryString;
     }
-    // Security best practice (L2): validate the upstream URL against the SSRF
+    // Security (SEC-SSRF): validate the upstream URL against the SSRF
     // guard so that even if a provider host is ever made configurable it
     // cannot target a private/reserved/metadata address. The provider list is
     // currently a static allowlist of public APIs, so this is defense in depth.
@@ -257,7 +257,7 @@ trait OperationsRouteAppStoreSearch
     curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $providerMethod);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-    // Security best practice (L2): never follow redirects from upstream and
+    // Security (SEC-SSRF): never follow redirects from upstream and
     // pin protocols to http/https so a 302 cannot pivot to file:// / gopher://
     // or to an internal address via redirect-rebinding.
     curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);

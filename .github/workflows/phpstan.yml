@@ -1,0 +1,54 @@
+name: phpstan
+# PHPStan static analysis of the PHP backend (system/backend/php).
+# BLOCKING: a NEW level-5 error, or a baseline entry that no longer matches
+# (an error was fixed but phpstan-baseline.neon was not regenerated), fails
+# the check. Errors recorded in phpstan-baseline.neon do not.
+# scripts/phpstan.sh downloads the pinned phpstan.phar from the phpstan/phpstan
+# GitHub release and verifies its SHA-256 before running it; the committed
+# vendor/ directory supplies third-party symbols, so no composer install runs.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "**.php"
+      - "system/backend/php/phpstan.neon"
+      - "system/backend/php/phpstan-baseline.neon"
+      - "system/backend/php/composer.json"
+      - "system/backend/php/composer.lock"
+      - "scripts/phpstan.sh"
+      - ".github/workflows/phpstan.yml"
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+    paths:
+      - "**.php"
+      - "system/backend/php/phpstan.neon"
+      - "system/backend/php/phpstan-baseline.neon"
+      - "system/backend/php/composer.json"
+      - "system/backend/php/composer.lock"
+      - "scripts/phpstan.sh"
+      - ".github/workflows/phpstan.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phpstan:
+    name: "PHPStan (level 5, new errors block)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          # The baseline is generated on 8.3, the lowest version composer.json
+          # allows; analysing on another minor can report different errors.
+          php-version: "8.3"
+          coverage: none
+          tools: none
+      - name: PHPStan
+        env:
+          PHPSTAN_CACHE_DIR: ${{ runner.temp }}/phpstan
+        run: bash scripts/phpstan.sh --error-format=github

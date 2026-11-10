@@ -478,7 +478,7 @@ class JSONOutlineSchema
      */
     private function generateUUID()
     {
-        // Security (SEC-12): use a CSPRNG (random_bytes) instead of mt_rand so
+        // Security (SEC-EXPORT): use a CSPRNG (random_bytes) instead of mt_rand so
         // identifiers are not predictable, matching SiteRouteUtils::generateUUID.
         $bytes = random_bytes(16);
         $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);

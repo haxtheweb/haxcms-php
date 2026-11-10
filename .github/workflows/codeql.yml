@@ -9,8 +9,9 @@ on:
     branches: [main, master]
   # No branch filter: stacked PRs (base is another feature branch) must run too.
   pull_request:
+  # Nightly (haxtheweb/issues#3262); was weekly on Mondays.
   schedule:
-    - cron: "23 5 * * 1"
+    - cron: "23 6 * * *"
   workflow_dispatch:
 permissions:
   contents: read

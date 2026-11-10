@@ -23,8 +23,9 @@
 //
 // Hosting-provider automation (e.g. Reclaim Cloud / haxcms-jps) may POST
 // toStep=4 with user + pass + install_token to skip the interactive wizard.
-// The credential override is honored ONLY when a pre-dropped _installtoken.txt
-// file matches the POSTed install_token (timing-safe hash_equals). Without
+// The credential override is honored ONLY when a pre-dropped
+// _config/_installtoken.txt (legacy: _installtoken.txt at the root) file
+// matches the POSTed install_token (timing-safe hash_equals). Without
 // the token file, POST-supplied credentials are ignored and the installer
 // uses an auto-generated admin password.
 //
@@ -49,7 +50,7 @@ include_once __DIR__ . '/system/backend/php/lib/HAXCMSInstallGate.php';
 // the index.php half-configured guard still redirects to the installer.
 @mkdir(__DIR__ . '/_config/tmp', 0755, true);
 
-// Security best practice (I5): once HAXcms is already installed (the four
+// Security (SEC-INSTALL): once HAXcms is already installed (the four
 // core directories exist AND _config/config.php exists AND config.php has
 // been templated with real secrets), the installer must never run setup
 // logic again — it is an unauthenticated endpoint that creates credentials.
@@ -61,7 +62,7 @@ include_once __DIR__ . '/system/backend/php/lib/HAXCMSInstallGate.php';
 // so the user can enter credentials and complete the install. Redirecting
 // away in this state returns HTML to the wizard's ?op=state JSON fetch and
 // breaks the front-end (issue #2974).
-// Security (M-1): exact assignment match via HAXCMSInstallGate, never a
+// Security (SEC-INSTALL): exact assignment match via HAXCMSInstallGate, never a
 // substring scan -- a username like "jeffrey" used to reopen this
 // unauthenticated installer on a live site.
 $installerConfigPhpPath = __DIR__ . '/_config/config.php';
@@ -271,9 +272,14 @@ if (!function_exists('haxcmsInstallerEnsureRuntimeDirectories')) {
         }
       }
     }
-    // Security (M-2): archived sites must not stay publicly served.
+    // Security (SEC-DEPLOY): archived sites must not stay publicly served.
     if (is_dir(__DIR__ . '/_archived')) {
       haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
+    }
+    // Security: export zips in _published carry random names; the directory
+    // must not be listable or those names leak.
+    if (is_dir(__DIR__ . '/_published')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess', $failed, $failedMessages);
     }
   }
 }
@@ -347,7 +353,7 @@ if (!function_exists('haxcmsInstallerSanitizeUsername')) {
     if (!is_string($value) || trim($value) === '') {
       return 'admin';
     }
-    // Security (L-1): strict allowlist. The username is written into
+    // Security (SEC-INSTALL): strict allowlist. The username is written into
     // config.php; characters such as a trailing backslash previously broke
     // the PHP string literal and took the site down.
     $clean = substr(preg_replace('/[^A-Za-z0-9_.-]/', '', trim($value)), 0, 64);
@@ -356,7 +362,7 @@ if (!function_exists('haxcmsInstallerSanitizeUsername')) {
 }
 
 if (!function_exists('haxcmsInstallerSetConfigValue')) {
-  // Security (L-1/M-1): replace ONE exact boilerplate assignment
+  // Security (SEC-INSTALL): replace ONE exact boilerplate assignment
   // (`$HAXCMS-><property> = '<placeholder>';`) with a var_export()-escaped
   // PHP literal. Never a global str_replace, so other text in config.php is
   // untouched and user input can never break out of the string literal.
@@ -541,7 +547,7 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
         file_put_contents(__DIR__ . '/_config/.isHAXcmsConfig', '');
       }
 
-      // SALT — generated only if missing; restrict to 0600 (SEC-10)
+      // SALT — generated only if missing; restrict to 0600
       if (!file_exists(__DIR__ . '/_config/SALT.txt')) {
         file_put_contents(__DIR__ . '/_config/SALT.txt', haxcmsInstallerGenerateSecureSecret(), LOCK_EX);
         @chmod(__DIR__ . '/_config/SALT.txt', 0600);
@@ -600,15 +606,20 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
         @chgrp(__DIR__ . '/_archived', get_current_user());
       }
     }
-    // Security (M-2): archived sites must not stay publicly served.
+    // Security (SEC-DEPLOY): archived sites must not stay publicly served.
     if (is_dir(__DIR__ . '/_archived')) {
       haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.archived-htaccess', __DIR__ . '/_archived/.htaccess', $failed, $failedMessages);
+    }
+    // Security: export zips in _published carry random names; the directory
+    // must not be listable or those names leak.
+    if (is_dir(__DIR__ . '/_published')) {
+      haxcmsInstallerGuardedCopy(__DIR__ . '/system/boilerplate/systemsetup/.published-htaccess', __DIR__ . '/_published/.htaccess', $failed, $failedMessages);
     }
   }
 }
 
 // --- install token gate ----------------------------------------------------
-// Security (INSTALL-TOKEN): when a hosting provider (or operator) pre-drops a
+// Security (SEC-INSTALL): when a hosting provider (or operator) pre-drops a
 // non-empty _installtoken.txt, the token is REQUIRED for every state-changing
 // installer op (prepare + advance), not only when a request happens to send
 // it. Previously a request that simply omitted install_token fell through to
@@ -621,7 +632,15 @@ if (!function_exists('haxcmsInstallerRunInstallBlock')) {
 //      (<hax-app-installer>) posts JSON without the token, so the cookie lets
 //      the interactive wizard work with no front-end change.
 // When no token file exists the wizard behaves exactly as before.
-$installTokenFilePath = __DIR__ . '/_installtoken.txt';
+// The token file lives in _config/, which is denied over HTTP by
+// _config/.htaccess and the nginx snippet, so a web request can never read
+// it. The pre-existing root location (next to install.php, inside the
+// document root) is still honoured when a provider drops the file there.
+$installTokenFilePath = __DIR__ . '/_config/_installtoken.txt';
+$installTokenLegacyFilePath = __DIR__ . '/_installtoken.txt';
+if (!file_exists($installTokenFilePath) && file_exists($installTokenLegacyFilePath)) {
+  $installTokenFilePath = $installTokenLegacyFilePath;
+}
 $installTokenCookieName = 'haxcms_install_token';
 if (!function_exists('haxcmsInstallerReadTokenFile')) {
   function haxcmsInstallerReadTokenFile($path)
@@ -673,7 +692,7 @@ $installTokenCookieValid = $installTokenEnabled &&
 // --- ?op handling ----------------------------------------------------------
 $op = isset($_GET['op']) ? $_GET['op'] : '';
 
-// Security (INSTALL-TOKEN): reject state-changing ops without a valid token
+// Security (SEC-INSTALL): reject state-changing ops without a valid token
 // whenever the token file is present. A POSTed install_token is validated
 // again (and enables the direct-install credential override) inside advance.
 if ($installTokenEnabled && ($op === 'prepare' || $op === 'advance')) {
@@ -691,7 +710,7 @@ if ($installTokenEnabled && ($op === 'prepare' || $op === 'advance')) {
     header('HTTP/1.1 403 Forbidden');
     header('Content-Type: application/json');
     print json_encode(array(
-      'error' => 'This server requires an install token. Open install.php?install_token=<token from _installtoken.txt> to continue.',
+      'error' => 'This server requires an install token. Open install.php?install_token=<token from _config/_installtoken.txt> to continue.',
       'installTokenRequired' => true,
     ));
     exit();
@@ -843,9 +862,13 @@ if ($op === 'advance') {
       );
     }
 
-    // Delete install token file (one-time use)
-    if (!$failed && $installTokenEnabled && file_exists($installTokenFilePath)) {
-      @unlink($installTokenFilePath);
+    // Delete install token file (one-time use), wherever it was found
+    if (!$failed && $installTokenEnabled) {
+      foreach (array($installTokenFilePath, $installTokenLegacyFilePath) as $tokenPath) {
+        if (file_exists($tokenPath)) {
+          @unlink($tokenPath);
+        }
+      }
     }
     if (!$failed && $installTokenCookieValue !== '') {
       haxcmsInstallerSetTokenCookie($installTokenCookieName, '', time() - 3600);
@@ -896,7 +919,7 @@ if ($op === 'advance') {
 // --- default: thin bootstrap HTML ------------------------------------------
 $state = haxcmsInstallerReadState();
 $htmlLang = haxcmsInstallerSanitizeLanguage($state['language']);
-// Security (INSTALL-TOKEN): a token file is present. Opening
+// Security (SEC-INSTALL): a token file is present. Opening
 // install.php?install_token=<token> stores it in an HttpOnly cookie for the
 // wizard's same-origin fetches; without a valid token, show instructions
 // instead of a wizard whose every step would 403.
@@ -996,7 +1019,7 @@ if ($installTokenEnabled && !$installTokenCookieValid) {
       <main class="install-token-required">
         <h1>Install token required</h1>
         <p>This server was provisioned with an install token, so the installer is locked until you provide it.</p>
-        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_installtoken.txt</code> next to <code>install.php</code> on the server (your hosting provider may also have shown it to you).</p>
+        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_config/_installtoken.txt</code> on the server (your hosting provider may also have shown it to you).</p>
       </main>
 <?php } else { ?>
       <hax-app-installer api-endpoint="install.php"></hax-app-installer>

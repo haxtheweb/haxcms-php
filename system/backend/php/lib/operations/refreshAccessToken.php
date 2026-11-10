@@ -6,8 +6,14 @@ trait OperationsRouteRefreshAccessToken {
     // cross-site top-level GET navigations, so require a same-origin request
     // (Origin, else Referer, must match the trusted host/protocol; any
     // Sec-Fetch-Site: cross-site is rejected). Parity with NodeJS
-    // refreshAccessToken.js isSameOriginRequest.
-    if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
+    // refreshAccessToken.js isSameOriginRequest. A GET (the editor's
+    // <jwt-login> path) uses the stricter isSameOriginGetRequest rule: see
+    // HAXCMS::isSameOriginGetRequest for the exact table.
+    $isGet = isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'GET';
+    $sameOrigin = ($isGet && method_exists($GLOBALS['HAXCMS'], 'isSameOriginGetRequest'))
+      ? $GLOBALS['HAXCMS']->isSameOriginGetRequest()
+      : $GLOBALS['HAXCMS']->isSameOriginRequest();
+    if (!$sameOrigin) {
       $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(
@@ -20,7 +26,7 @@ trait OperationsRouteRefreshAccessToken {
     $validRefresh = $GLOBALS['HAXCMS']->validateRefreshToken(FALSE);
     // if we have a valid refresh token then rotate it and issue a new access token
     if ($validRefresh) {
-      // Security (H1 rotation): rotate the refresh token (family/jti) and set a
+      // Security (SEC-SESSION): rotate the refresh token (family/jti) and set a
       // new cookie so a stolen old refresh token dies on the legitimate user's
       // next refresh. Legacy tokens without family/jti are upgraded in place.
       $rotatedAccessJwt = $GLOBALS['HAXCMS']->rotateRefreshTokenAndCookie($validRefresh);
@@ -40,7 +46,7 @@ trait OperationsRouteRefreshAccessToken {
           )
         );
       }
-      // Security (SEC-SESSION, PHP-only): the session store could not be read
+      // Security (SEC-SESSION): PHP-only. The session store could not be read
       // or written (e.g. corrupt file / disk error). Do NOT tombstone or
       // clear the cookie -- that would log the user out for a server fault.
       if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
@@ -70,7 +76,7 @@ trait OperationsRouteRefreshAccessToken {
       );
     }
     else {
-      // this failed so unset the cookie via the centralized helper (M3)
+      // this failed so unset the cookie via the centralized helper
       $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
       return array(
         '__failed' => array(

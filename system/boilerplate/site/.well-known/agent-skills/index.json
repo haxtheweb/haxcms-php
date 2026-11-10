@@ -20,14 +20,14 @@
       "type": "skill-md",
       "description": "Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx.",
       "url": "hax-managed-files/SKILL.md",
-      "digest": "sha256:4e07c26558c510899c5a42eff94f6af901fb647092e4292bca3da5faba19e136"
+      "digest": "sha256:84f254eb99b6b159a1b67e656439ed7501b5d931a91eb08b91014d7cd1a00b7a"
     },
     {
       "name": "hax-design-system",
       "type": "skill-md",
       "description": "Apply the DDD (Design, Develop, Destroy) design system and manage SimpleColors legacy usage. Use when styling components, auditing CSS for DDD compliance, migrating from SimpleColors, creating new themes, or building admin surfaces (site admin, outline-designer, system admin) with HAX UI, DDD's admin layer.",
       "url": "hax-design-system/SKILL.md",
-      "digest": "sha256:e373f40aee0d8f30e415cbec1b0d28a0d7e6c92eb89b7f670d77a714ac4b2ea8",
+      "digest": "sha256:47594589bb8322e09ea8c2042e22ed4a1d009bdf22a6acd4cf4c58918fa0a222",
       "files": [
         {
           "path": "references/ddd-tokens.md",
@@ -44,7 +44,7 @@
       "type": "skill-md",
       "description": "READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \"is this accessible\" or \"audit for WCAG\". Diagnoses only; hands off to hax-site-building.",
       "url": "hax-a11y-audit/SKILL.md",
-      "digest": "sha256:9163ab87d5a8a127e3c008e4783266f9d06249fdd695c61b35c4039788859542",
+      "digest": "sha256:3d69010a17b1a4c16088f48dbcfbe9639d5ce50948da41cc64198e30f62792f6",
       "files": [
         {
           "path": "evals/evals.json",

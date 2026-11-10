@@ -677,7 +677,7 @@ class HAXCMSConfigCoverageTest extends TestCase
 
     public function testIsCliIgnoresRequestDerivedArgc()
     {
-        // Security (CLI-DETECT): on web SAPIs with register_argc_argv=On, PHP
+        // Security (SEC-SESSION): on web SAPIs with register_argc_argv=On, PHP
         // fills argc/argv from the query string. Those values must never be
         // what makes isCLI() true; only the SAPI decides.
         $backup = $_SERVER;

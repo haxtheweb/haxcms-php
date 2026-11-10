@@ -200,7 +200,13 @@ class HAXCMS
               ));  
             }
             catch(Exception $e) {
+              // Security: the login / Basic-auth brute-force limiter and the
+              // file-ops limiter live in this cache. Losing it silently meant
+              // they all failed open with no trace in the logs. The login
+              // limiter now falls back to loginThrottle* (APCu or a fixed
+              // delay); say loudly why the shared store is gone.
               $this->cache = null;
+              error_log('HAXcms: cache initialisation failed (' . $e->getMessage() . '); login throttling is running on the in-process fallback and file-operation rate limiting is disabled until ' . $this->configDirectory . '/cache/ is writable');
             }
             // add in the auto-generated app store file
             $this->appStoreFile = $this->systemRequestBase . '/generateAppStore';
@@ -346,7 +352,7 @@ class HAXCMS
                 } else {
                     error_log('HAXCMS: userData.json missing; falling back to an empty object (no disk writes performed).');
                 }
-            // Security best practice (M4): now that config (trustedProxies /
+            // Security (SEC-HEADERS): now that config (trustedProxies /
             // allowedHosts) is loaded, re-finalize protocol and domain so that
             // X-Forwarded-* and Host are only trusted behind a configured proxy
             // and the host is validated against the allowlist. This only runs
@@ -462,7 +468,7 @@ class HAXCMS
     /**
      * Generate a UUID (RFC 4122 v4).
      *
-     * Security best practice (L4): uses random_bytes (CSPRNG) instead of
+     * Security (SEC-EXPORT): uses random_bytes (CSPRNG) instead of
      * mt_rand so identifiers are not predictable. These UUIDs are used for
      * site/node IDs and are NOT treated as secrets — they may be exposed in
      * URLs/metadata. CSPRNG output is a strict improvement over mt_rand at
@@ -501,7 +507,7 @@ class HAXCMS
     /**
      * Recursively walk request input and normalize it to a plain array tree.
      *
-     * Security note (M5): despite the legacy name, this does NOT sanitize for
+     * Security (SEC-SANITIZE): despite the legacy name, this does NOT sanitize for
      * output. The previous scalar branch called filter_var($value) with no
      * filter, which is FILTER_UNSAFE_RAW — a no-op that left the value
      * unchanged and gave a false impression that safePost/safeGet were safe
@@ -531,7 +537,7 @@ class HAXCMS
                 }
             }
             else {
-                // M5: explicit pass-through. Do NOT add blanket escaping here —
+                // Explicit pass-through. Do NOT add blanket escaping here —
                 // it would double-encode values that consumers already escape
                 // at output. Booleans are preserved; everything else passes
                 // through as-is (decoded, not sanitized).
@@ -550,7 +556,7 @@ class HAXCMS
      * If we are a cli
      */
     public function isCLI() {
-        // Security (CLI-DETECT): decide from the SAPI only. The previous
+        // Security (SEC-SESSION): decide from the SAPI only. The previous
         // fallback trusted $_SERVER['argc'], which PHP fills from the query
         // string on web SAPIs when register_argc_argv=On; a web request with
         // no SERVER_SOFTWARE (some FastCGI / container setups) could then be
@@ -562,7 +568,7 @@ class HAXCMS
         return in_array(PHP_SAPI, array('cli', 'phpdbg'), true) && !isset($_SERVER['SERVER_SOFTWARE']);
     }
     /**
-     * Security best practice (I2): explicit allowlist of form ids that may be
+     * Security (SEC-ROUTE): explicit allowlist of form ids that may be
      * dynamically dispatched. Even though the call is bounded by method_exists,
      * an allowlist makes the intent explicit and prevents any future *Form /
      * *Value method from being accidentally reachable via a user-supplied
@@ -578,7 +584,7 @@ class HAXCMS
     public function loadForm($form_id, $context = array()) {
       $fields = array();
       $value = new stdClass();
-      // Security best practice (I2): only dispatch known form ids.
+      // Security (SEC-ROUTE): only dispatch known form ids.
       if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
         return array(
           '__failed' => array(
@@ -613,7 +619,7 @@ class HAXCMS
      * Process the form submission data
      */
     public function processForm($form_id, $params, $context = array()) {
-      // Security best practice (I2): only dispatch known form ids.
+      // Security (SEC-ROUTE): only dispatch known form ids.
       if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
         return array(
           '__failed' => array(
@@ -1400,7 +1406,7 @@ class HAXCMS
     {
         $tmpname = urldecode($name);
         $tmpname = $this->cleanTitle($tmpname, false);
-        // Security (code-scanning js/path-injection, nodejs parity): a name
+        // Security (SEC-PATH): mirrors haxcms-nodejs. A name
         // that collapses to the sites directory itself ("/", "//") is not a
         // site; cleanTitle already strips "..", so this is the only way a
         // cleaned name can fail to name a child folder
@@ -1528,7 +1534,7 @@ class HAXCMS
         }
         if ($token != null) {
           $normalizedValue = $this->normalizeIAMTokenValue($value);
-          // Security (L-7): constant-time, type-strict compare.
+          // Security (SEC-SESSION): constant-time, type-strict compare.
           if ($this->safeStringCompare($this->getRequestToken($normalizedValue), is_string($token) ? $token : '')) {
             return TRUE;
           }
@@ -1727,7 +1733,7 @@ class HAXCMS
       return $settings;
     }
     /**
-     * Security (F3): rate-limit settings for authenticated file-mutation
+     * Security (SEC-RATELIMIT): rate-limit settings for authenticated file-mutation
      * operations (saveFile / fileOperation). Mirrors getLoginRateLimitSettings
      * shape but uses `max` (count window) instead of `maxAttempts` (failed-
      * credit block). Defaults (500 ops / 5 min, 5-min block) accommodate a
@@ -1815,8 +1821,8 @@ class HAXCMS
     /**
      * Security best practice: read the trusted-proxy allowlist from
      * config->security->trustedProxies (array of IPs). When empty, no proxy
-     * headers are trusted. Shared by M2 (client IP for rate limiting) and
-     * M4 (Host / X-Forwarded-Proto / X-Forwarded-Host validation).
+     * headers are trusted. Shared by client-IP resolution (rate limiting) and
+     * Host / X-Forwarded-Proto / X-Forwarded-Host validation.
      */
     public function getTrustedProxies()
     {
@@ -1859,7 +1865,7 @@ class HAXCMS
      * Security best practice: resolve the client IP without trusting
      * X-Forwarded-For unless the immediate peer (REMOTE_ADDR) is a configured
      * trusted proxy. Prevents header spoofing from bypassing the login
-     * rate limiter (M2). Walks XFF right-to-left past any chained trusted
+     * rate limiter. Walks XFF right-to-left past any chained trusted
      * proxies to find the first untrusted hop.
      */
     public function resolveClientIP()
@@ -1889,10 +1895,10 @@ class HAXCMS
       return $remote !== '' ? $remote : 'unknown';
     }
     /**
-     * Security best practice (M4): read the allowed-host allowlist from
+     * Security (SEC-HEADERS): read the allowed-host allowlist from
      * config->security->allowedHosts (array of host strings, may include
      * port). When empty, host-header validation is not applied (existing
-     * behavior preserved). Shared with the trusted-proxy logic (M2).
+     * behavior preserved). Shared with the trusted-proxy logic.
      */
     public function getAllowedHosts()
     {
@@ -1917,11 +1923,11 @@ class HAXCMS
       return $hosts;
     }
     /**
-     * Security best practice (M4): resolve the request protocol trusting only
+     * Security (SEC-HEADERS): resolve the request protocol trusting only
      * server-set signals (HTTPS env, REQUEST_SCHEME, the mod_rewrite `protossl`
      * env var) directly, and the client-controllable X-Forwarded-Proto header
      * ONLY when the immediate peer (REMOTE_ADDR) is a configured trusted proxy
-     * (M2 allowlist). Prevents an attacker who can set X-Forwarded-Proto from
+     * (trustedProxies allowlist). Prevents an attacker who can set X-Forwarded-Proto from
      * forcing 'https' in generated URLs when not behind a proxy.
      */
     public function resolveTrustedProtocol()
@@ -1958,8 +1964,8 @@ class HAXCMS
       return $protocol;
     }
     /**
-     * Security best practice (M4): resolve the request Host, trusting
-     * X-Forwarded-Host only behind a configured trusted proxy (M2 allowlist)
+     * Security (SEC-HEADERS): resolve the request Host, trusting
+     * X-Forwarded-Host only behind a configured trusted proxy (trustedProxies allowlist)
      * and validating the resolved host against config->security->allowedHosts
      * when present (falling back to the first allowed host on mismatch).
      * When no allowlist is configured, existing behavior (use HTTP_HOST) is
@@ -2016,6 +2022,33 @@ class HAXCMS
           return false;
         }
       }
+      return $this->isSameOriginByOriginOrReferer();
+    }
+    /**
+     * Security (SEC-SESSION): stricter gate for a GET to a cookie-
+     * authenticated, state-changing endpoint (session/refresh). The editor's
+     * <jwt-login> refreshes with GET, and SameSite=Lax still sends the cookie
+     * on a cross-site top-level GET navigation, which the POST rule above
+     * lets through when no Origin arrives. Rule (identical in haxcms-nodejs):
+     *   - Sec-Fetch-Site present  -> allow same-origin / none,
+     *                                reject same-site / cross-site
+     *   - absent, but Origin or Referer present -> isSameOriginRequest()
+     *   - all absent              -> allow (non-browser client, e.g.
+     *                                haxcms-mcp; every modern browser sends
+     *                                Sec-Fetch-Site)
+     */
+    public function isSameOriginGetRequest() {
+      if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_string($_SERVER['HTTP_SEC_FETCH_SITE']) && trim($_SERVER['HTTP_SEC_FETCH_SITE']) !== '') {
+        $site = strtolower(trim($_SERVER['HTTP_SEC_FETCH_SITE']));
+        return ($site === 'same-origin' || $site === 'none');
+      }
+      return $this->isSameOriginByOriginOrReferer();
+    }
+    /**
+     * Origin (else Referer) host[:port] must match the trusted host; absent
+     * both -> allow. Shared by the POST and GET gates above.
+     */
+    private function isSameOriginByOriginOrReferer() {
       $originHeader = '';
       if (isset($_SERVER['HTTP_ORIGIN']) && is_string($_SERVER['HTTP_ORIGIN'])) {
         $originHeader = trim($_SERVER['HTTP_ORIGIN']);
@@ -2394,7 +2427,7 @@ class HAXCMS
       return $allow;
     }
     /**
-     * Security best practice (F2/IDOR-001): object-level authorization on a
+     * Security (SEC-ROUTE): object-level authorization on a
      * named site. Authentication (user_token / bearer) is verified upstream;
      * this method ensures the authenticated user actually owns or has been
      * granted access to the named site, preventing an authenticated user from
@@ -2518,7 +2551,7 @@ class HAXCMS
      */
     public function getRequestToken($value = '')
     {
-        // Security (L-3): domain-separated key. JWTs are signed with
+        // Security (SEC-SESSION): domain-separated key. JWTs are signed with
         // privateKey . salt directly; request tokens use a key derived from it
         // so the same secret never MACs two different kinds of message.
         $requestTokenKey = hash_hmac('sha256', 'haxcms-request-token', $this->privateKey . $this->salt);
@@ -2577,6 +2610,195 @@ class HAXCMS
         return '';
     }
     /**
+     * Security: login brute-force throttle shared by the credential login
+     * route and Basic authorization. Two counters are kept per attempt: one
+     * keyed by client IP + username and one keyed by username alone, so a
+     * distributed guess against one account is slowed even when every
+     * request comes from a different address. The store is the shared file
+     * cache when it is available, else APCu, else a per-process fallback
+     * that fails CLOSED: each failed attempt sleeps loginThrottleFallbackSleepUs
+     * and a single request may not try more than loginThrottleFallbackMaxPerRequest
+     * times. Entries: firstAttempt / failedAttempts / blockedUntil (ms).
+     */
+    public static $loginThrottleFallbackSleepUs = 500000;
+    public static $loginThrottleFallbackMaxPerRequest = 3;
+    private static $loginThrottleRequestAttempts = 0;
+    private static $loginThrottleApcuChecked = null;
+    private static $loginThrottleBackendWarned = false;
+    public function loginThrottleKeys($username)
+    {
+        $user = strval($username);
+        return array(
+            'login-rate:' . sha1($this->resolveClientIP() . '::' . $user),
+            'login-rate-user:' . sha1('user::' . $user),
+        );
+    }
+    private function loginThrottleApcuAvailable()
+    {
+        if (self::$loginThrottleApcuChecked === null) {
+            self::$loginThrottleApcuChecked = function_exists('apcu_fetch') && function_exists('apcu_store') &&
+                (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'));
+        }
+        return self::$loginThrottleApcuChecked;
+    }
+    /**
+     * 'cache' | 'apcu' | 'none'
+     */
+    public function loginThrottleBackend()
+    {
+        if (isset($this->cache) && $this->cache) {
+            return 'cache';
+        }
+        if ($this->loginThrottleApcuAvailable()) {
+            return 'apcu';
+        }
+        return 'none';
+    }
+    private function loginThrottleRead($key)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                return $this->cache->retrieve($key);
+            }
+            if ($backend === 'apcu') {
+                $ok = false;
+                $value = apcu_fetch($key, $ok);
+                return $ok ? $value : null;
+            }
+        }
+        catch (Exception $e) {}
+        return null;
+    }
+    private function loginThrottleWrite($key, $entry, $ttlSeconds)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                $this->cache->store($key, $entry, $ttlSeconds);
+            }
+            else if ($backend === 'apcu') {
+                apcu_store($key, $entry, $ttlSeconds);
+            }
+        }
+        catch (Exception $e) {}
+    }
+    private function loginThrottleDelete($key)
+    {
+        $backend = $this->loginThrottleBackend();
+        try {
+            if ($backend === 'cache') {
+                $this->cache->erase($key);
+            }
+            else if ($backend === 'apcu') {
+                apcu_delete($key);
+            }
+        }
+        catch (Exception $e) {}
+    }
+    /**
+     * Normalise a stored entry against the window; a fresh entry when none.
+     */
+    public function loginThrottleEntry($key, $nowMs, $settings)
+    {
+        $entry = $this->loginThrottleRead($key);
+        if (!is_array($entry) || !isset($entry['firstAttempt'])) {
+            $entry = array(
+                'firstAttempt' => $nowMs,
+                'failedAttempts' => 0,
+                'blockedUntil' => 0,
+            );
+        }
+        if (($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
+            $entry['firstAttempt'] = $nowMs;
+            $entry['failedAttempts'] = 0;
+            if (intval($entry['blockedUntil']) <= $nowMs) {
+                $entry['blockedUntil'] = 0;
+            }
+        }
+        return $entry;
+    }
+    /**
+     * Is this username (from this client) currently blocked? Returns 0 when
+     * allowed, else the number of seconds until the block lifts. With no
+     * store at all, a request that already made the per-request maximum of
+     * attempts is blocked for the rest of the request.
+     */
+    public function loginThrottleRetryAfter($username, $nowMs = null)
+    {
+        $settings = $this->getLoginRateLimitSettings();
+        if (!$settings->enabled) {
+            return 0;
+        }
+        if ($nowMs === null) {
+            $nowMs = intval(round(microtime(true) * 1000));
+        }
+        if ($this->loginThrottleBackend() === 'none') {
+            if (!self::$loginThrottleBackendWarned) {
+                self::$loginThrottleBackendWarned = true;
+                error_log('HAXcms: no shared store for the login throttle (cache unavailable, APCu missing); failing closed with a fixed delay per failed attempt');
+            }
+            if (self::$loginThrottleRequestAttempts >= intval(self::$loginThrottleFallbackMaxPerRequest)) {
+                return max(1, intval(ceil(intval($settings->blockMs) / 1000)));
+            }
+            return 0;
+        }
+        $retryAfter = 0;
+        foreach ($this->loginThrottleKeys($username) as $key) {
+            $entry = $this->loginThrottleEntry($key, $nowMs, $settings);
+            if (intval($entry['blockedUntil']) > $nowMs) {
+                $retryAfter = max($retryAfter, intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000)));
+            }
+        }
+        return $retryAfter;
+    }
+    /**
+     * Record a failed attempt on both counters. The per-username counter
+     * tolerates more failures than the per-IP one (several people can
+     * legitimately mistype the same account from different places) but
+     * still blocks after a fixed multiple of maxAttempts.
+     */
+    public function loginThrottleRecordFailure($username, $nowMs = null)
+    {
+        $settings = $this->getLoginRateLimitSettings();
+        if (!$settings->enabled) {
+            return;
+        }
+        if ($nowMs === null) {
+            $nowMs = intval(round(microtime(true) * 1000));
+        }
+        self::$loginThrottleRequestAttempts++;
+        if ($this->loginThrottleBackend() === 'none') {
+            if (intval(self::$loginThrottleFallbackSleepUs) > 0) {
+                usleep(intval(self::$loginThrottleFallbackSleepUs));
+            }
+            return;
+        }
+        $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
+        $keys = $this->loginThrottleKeys($username);
+        $limits = array(intval($settings->maxAttempts), intval($settings->maxAttempts) * 4);
+        foreach ($keys as $i => $key) {
+            $entry = $this->loginThrottleEntry($key, $nowMs, $settings);
+            $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
+            if (intval($entry['failedAttempts']) >= $limits[$i]) {
+                $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
+                $entry['failedAttempts'] = 0;
+                $entry['firstAttempt'] = $nowMs;
+            }
+            $this->loginThrottleWrite($key, $entry, $ttlSeconds);
+        }
+    }
+    /**
+     * Successful authentication: clear the per-IP counter. The per-username
+     * counter is left alone so a success from the real owner does not reset
+     * a distributed attack's budget; it expires with its window.
+     */
+    public function loginThrottleClear($username)
+    {
+        $keys = $this->loginThrottleKeys($username);
+        $this->loginThrottleDelete($keys[0]);
+    }
+    /**
      * Authenticate Basic Authorization header
      */
     public function authenticateBasicAuthorization()
@@ -2626,55 +2848,22 @@ class HAXCMS
         // (parity with Node loginRateLimiter). Reuses the same IP::username
         // cache key as OperationsRouteLogin so basic-auth and login attempts
         // share counters and an attacker cannot dodge the limiter by alternating.
-        $settings = $this->getLoginRateLimitSettings();
-        $nowMs = intval(round(microtime(true) * 1000));
-        $attemptKey = 'login-rate:' . sha1($this->resolveClientIP() . '::' . strval($name));
-        $entry = null;
-        if (isset($this->cache) && $this->cache) {
-            $entry = $this->cache->retrieve($attemptKey);
-        }
-        if (!is_array($entry)) {
-            $entry = array(
-                'firstAttempt' => $nowMs,
-                'failedAttempts' => 0,
-                'blockedUntil' => 0,
-            );
-        }
-        if (($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
-            $entry['firstAttempt'] = $nowMs;
-            $entry['failedAttempts'] = 0;
-            if (intval($entry['blockedUntil']) <= $nowMs) {
-                $entry['blockedUntil'] = 0;
-            }
-        }
-        if ($settings->enabled && intval($entry['blockedUntil']) > $nowMs) {
+        // (shared helpers: loginThrottleRetryAfter / RecordFailure / Clear;
+        // they also keep a per-username counter and fail closed when no
+        // shared store exists).
+        $retryAfter = $this->loginThrottleRetryAfter($name);
+        if ($retryAfter > 0) {
             $result['blocked'] = true;
-            $result['retryAfterSeconds'] = intval(ceil((intval($entry['blockedUntil']) - $nowMs) / 1000));
+            $result['retryAfterSeconds'] = $retryAfter;
             return $result;
         }
         if ($this->testLogin($name, $pass, true) && $this->validateUser($name)) {
-            if ($settings->enabled && isset($this->cache) && $this->cache) {
-                try {
-                    $this->cache->erase($attemptKey);
-                }
-                catch (Exception $e) {}
-            }
+            $this->loginThrottleClear($name);
             $result['authenticated'] = true;
             $result['userName'] = $this->generateMachineName($name);
             return $result;
         }
-        if ($settings->enabled) {
-            $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
-            if (intval($entry['failedAttempts']) >= intval($settings->maxAttempts)) {
-                $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
-                $entry['failedAttempts'] = 0;
-                $entry['firstAttempt'] = $nowMs;
-            }
-            if (isset($this->cache) && $this->cache) {
-                $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
-                $this->cache->store($attemptKey, $entry, $ttlSeconds);
-            }
-        }
+        $this->loginThrottleRecordFailure($name);
         return $result;
     }
     /**
@@ -2764,7 +2953,7 @@ class HAXCMS
     }
     /**
      * Get user's Refresh Token.
-     * Security (H1 rotation): when $storeRefreshSession is true the token is
+     * Security (SEC-SESSION): when $storeRefreshSession is true the token is
      * given a `family` (per login session) and `jti` (per issuance) and the jti
      * hash is recorded server-side so a stolen old refresh token can be
      * invalidated by the next rotation / logout. Mirrors NodeJS getRefreshToken.
@@ -2797,7 +2986,7 @@ class HAXCMS
       return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }
     /**
-     * Security best practice (M3): centralize the haxcms_refresh_token cookie
+     * Security (SEC-SESSION): centralize the haxcms_refresh_token cookie
      * so the Secure and SameSite flags are applied consistently at every call
      * site (login, logout, refresh, connection-test, invalid-session clear).
      *
@@ -2805,7 +2994,7 @@ class HAXCMS
      * regardless of whether PHP sees the request as HTTP behind a
      * TLS-terminating proxy. The config.security.forceSecureCookie override
      * remains for environments that need Secure cookies unconditionally.
-     * Security (L-2): requests PHP sees as HTTPS are ALSO marked Secure,
+     * Security (SEC-SESSION): requests PHP sees as HTTPS are ALSO marked Secure,
      * since PHP hosts rarely set NODE_ENV (see refreshCookieShouldBeSecure).
      *
      * D56: the default cookie lifetime is now 24 hours (matching Node's
@@ -2821,7 +3010,7 @@ class HAXCMS
         return is_string($nodeEnv) && strtolower(trim($nodeEnv)) === 'production';
     }
     /**
-     * Security (L-2): Secure flag decision for the refresh cookie. TRUE when
+     * Security (SEC-SESSION): Secure flag decision for the refresh cookie. TRUE when
      * NODE_ENV=production, when the request is HTTPS ($this->protocol only
      * honours X-Forwarded-Proto from trusted proxies), or when
      * config.security.forceSecureCookie is TRUE. Plain-HTTP dev installs
@@ -2865,7 +3054,7 @@ class HAXCMS
         );
     }
     /**
-     * Security (H1 rotation + SEC-SESSION): refresh-session store, v2 shape
+     * Security (SEC-SESSION): refresh-session store, v2 shape
      * (parity with NodeJS):
      *   {"version":2,"users":{"<user>":{"families":{"<family>":
      *     {currentJtiHash, previousJtiHash, previousValidUntil, exp}
@@ -3602,7 +3791,7 @@ class HAXCMS
      * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
      * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
      * 1/true/yes; any other non-empty value means false).
-     * Security (L-3): default TRUE now that the front-end (jwt-login /
+     * Security (SEC-SESSION): default TRUE now that the front-end (jwt-login /
      * session-request-tokens.js) picks up the tokens returned by login,
      * refresh and connection-test, so anonymous connection-settings callers
      * no longer receive request tokens. Opt out with config FALSE or a
@@ -3641,7 +3830,7 @@ class HAXCMS
      *      JS payload).
      *   2. caller authenticated (CLI, a valid bearer, or a refresh cookie that
      *      passes the session store check) -> include.
-     *   3. requireSessionForRequestTokens is true (the default, L-3) -> omit;
+     *   3. requireSessionForRequestTokens is true (the default) -> omit;
      *      the front-end picks tokens up from login/refresh/connection-test.
      *   4. otherwise (explicit opt-out) -> include (legacy behaviour).
      * Returns array('include' => bool, 'reason' => string).
@@ -4123,7 +4312,7 @@ class HAXCMS
       if (  
           $request != FALSE &&
           isset($request->id) &&
-          // Security (L-7): constant-time, type-strict compare.
+          // Security (SEC-SESSION): constant-time, type-strict compare.
           $this->safeStringCompare($this->getRequestToken('user'), is_string($request->id) ? $request->id : '') &&
           isset($request->user) &&
           $this->validateUser($request->user)) {

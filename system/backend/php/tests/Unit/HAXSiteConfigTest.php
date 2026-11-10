@@ -131,4 +131,34 @@ class HAXSiteConfigTest extends TestCase
         $this->assertStringContainsString('role="alert"', $markup);
         $this->assertStringContainsString('The page miss, it burns!', $markup);
     }
+
+    /**
+     * Site pages are embeddable by default (LMS tools like Canvas iframe
+     * HAX material), so no frame-ancestors is sent unless
+     * config->security->frameAncestors is set; the dashboard stays at 'none'.
+     */
+    public function testSitePageSecurityHeadersContract(): void
+    {
+        $src = (string) file_get_contents(__DIR__ . '/../../lib/HAXSiteConfig.php');
+        $this->assertStringContainsString('count($frameAncestors) > 0', $src);
+        $this->assertStringNotContainsString("frame-ancestors 'self'\"", $src);
+        $this->assertStringContainsString('Referrer-Policy: strict-origin-when-cross-origin', $src);
+        $dashboard = (string) file_get_contents(__DIR__ . '/../../../../../index.php');
+        $this->assertStringContainsString("frame-ancestors 'none'", $dashboard);
+    }
+
+    public function testFrameAncestorsDefaultsToEmbeddableAndHonoursConfig(): void
+    {
+        $saved = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
+        $GLOBALS['HAXCMS'] = new stdClass();
+        $GLOBALS['HAXCMS']->config = new stdClass();
+        $GLOBALS['HAXCMS']->config->security = new stdClass();
+        $this->assertSame(array(), HAXSiteConfig::configuredFrameAncestors());
+        $GLOBALS['HAXCMS']->config->security->frameAncestors = array("'self'", 'https://*.instructure.com', "bad;value", '');
+        $this->assertSame(array("'self'", 'https://*.instructure.com'), HAXSiteConfig::configuredFrameAncestors());
+        $GLOBALS['HAXCMS']->config->security->frameAncestors = "'self' https://lms.example.edu";
+        $this->assertSame(array("'self'", 'https://lms.example.edu'), HAXSiteConfig::configuredFrameAncestors());
+        if ($saved === null) { unset($GLOBALS['HAXCMS']); } else { $GLOBALS['HAXCMS'] = $saved; }
+    }
+
 }
