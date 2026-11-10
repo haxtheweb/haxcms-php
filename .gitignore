@@ -19,11 +19,14 @@ security_best_practices_report*
 # E2E test runtime artifacts (committed *.png baselines are kept)
 test/e2e/__screenshots__/*.current.png
 test/e2e/__screenshots__/*.diff.png
-# boilerplate private files that get set in testing at times. keep but blank
+# Runtime secrets a local haxcms-nodejs run can write into its boilerplate
+# (copied here by ubiquity). PHP generates its own under _config/ and never
+# reads these; they must never be committed (BoilerplateNoSecretsTest).
 system/boilerplate/systemsetup/.pk
 system/boilerplate/systemsetup/.rpk
 system/boilerplate/systemsetup/.user
 system/boilerplate/systemsetup/SALT.txt
+system/boilerplate/systemsetup/.initial-admin-password
 package-lock.json
 system/backend/php/.phpunit.cache
 system/backend/php/.phpunit.cache/test-results
