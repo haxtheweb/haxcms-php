@@ -77,7 +77,7 @@ class Cache {
     $storeData = array(
       'time'   => time(),
       'expire' => $expiration,
-      // Security (SEC-04): cache values are JSON-encoded (not PHP-serialized)
+      // Security (SEC-EXEC): cache values are JSON-encoded (not PHP-serialized)
       // so a tampered cache file cannot trigger unserialize() RCE gadgets.
       'data'   => json_encode($data)
     );

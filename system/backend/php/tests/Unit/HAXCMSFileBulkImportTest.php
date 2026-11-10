@@ -126,7 +126,7 @@ class HAXCMSFileBulkImportTest extends TestCase
 
     public function testIsValidBulkImportTmpPathRejectsTrailingNullByte(): void
     {
-        // Security (null-byte injection): a trailing null must be rejected.
+        // Security (SEC-PATH): a trailing null must be rejected.
         // Previously trim() stripped it before the null-byte guard ran, so
         // the path resolved and was accepted.
         $this->assertFalse(HAXCMSFile::isValidBulkImportTmpPath($this->insideFile . "\0"));

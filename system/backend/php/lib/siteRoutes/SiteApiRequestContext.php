@@ -82,7 +82,7 @@ class SiteApiRequestContext
     }
     private function getAbsoluteApiBasePath($apiBasePath = '/x/api')
     {
-        // Security (M4 parity with SystemApiRequestContext): protocol and
+        // Security (SEC-HEADERS): mirrors SystemApiRequestContext; protocol and
         // host come from the trusted-proxy / allowedHosts aware resolvers,
         // never from a raw X-Forwarded-Proto / X-Forwarded-Host. A forged
         // forwarded host would otherwise land in every absolute URL this

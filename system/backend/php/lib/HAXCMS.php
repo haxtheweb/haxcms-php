@@ -352,7 +352,7 @@ class HAXCMS
                 } else {
                     error_log('HAXCMS: userData.json missing; falling back to an empty object (no disk writes performed).');
                 }
-            // Security best practice (M4): now that config (trustedProxies /
+            // Security (SEC-HEADERS): now that config (trustedProxies /
             // allowedHosts) is loaded, re-finalize protocol and domain so that
             // X-Forwarded-* and Host are only trusted behind a configured proxy
             // and the host is validated against the allowlist. This only runs
@@ -468,7 +468,7 @@ class HAXCMS
     /**
      * Generate a UUID (RFC 4122 v4).
      *
-     * Security best practice (L4): uses random_bytes (CSPRNG) instead of
+     * Security (SEC-EXPORT): uses random_bytes (CSPRNG) instead of
      * mt_rand so identifiers are not predictable. These UUIDs are used for
      * site/node IDs and are NOT treated as secrets — they may be exposed in
      * URLs/metadata. CSPRNG output is a strict improvement over mt_rand at
@@ -507,7 +507,7 @@ class HAXCMS
     /**
      * Recursively walk request input and normalize it to a plain array tree.
      *
-     * Security note (M5): despite the legacy name, this does NOT sanitize for
+     * Security (SEC-SANITIZE): despite the legacy name, this does NOT sanitize for
      * output. The previous scalar branch called filter_var($value) with no
      * filter, which is FILTER_UNSAFE_RAW — a no-op that left the value
      * unchanged and gave a false impression that safePost/safeGet were safe
@@ -537,7 +537,7 @@ class HAXCMS
                 }
             }
             else {
-                // M5: explicit pass-through. Do NOT add blanket escaping here —
+                // Explicit pass-through. Do NOT add blanket escaping here —
                 // it would double-encode values that consumers already escape
                 // at output. Booleans are preserved; everything else passes
                 // through as-is (decoded, not sanitized).
@@ -556,7 +556,7 @@ class HAXCMS
      * If we are a cli
      */
     public function isCLI() {
-        // Security (CLI-DETECT): decide from the SAPI only. The previous
+        // Security (SEC-SESSION): decide from the SAPI only. The previous
         // fallback trusted $_SERVER['argc'], which PHP fills from the query
         // string on web SAPIs when register_argc_argv=On; a web request with
         // no SERVER_SOFTWARE (some FastCGI / container setups) could then be
@@ -568,7 +568,7 @@ class HAXCMS
         return in_array(PHP_SAPI, array('cli', 'phpdbg'), true) && !isset($_SERVER['SERVER_SOFTWARE']);
     }
     /**
-     * Security best practice (I2): explicit allowlist of form ids that may be
+     * Security (SEC-ROUTE): explicit allowlist of form ids that may be
      * dynamically dispatched. Even though the call is bounded by method_exists,
      * an allowlist makes the intent explicit and prevents any future *Form /
      * *Value method from being accidentally reachable via a user-supplied
@@ -584,7 +584,7 @@ class HAXCMS
     public function loadForm($form_id, $context = array()) {
       $fields = array();
       $value = new stdClass();
-      // Security best practice (I2): only dispatch known form ids.
+      // Security (SEC-ROUTE): only dispatch known form ids.
       if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
         return array(
           '__failed' => array(
@@ -619,7 +619,7 @@ class HAXCMS
      * Process the form submission data
      */
     public function processForm($form_id, $params, $context = array()) {
-      // Security best practice (I2): only dispatch known form ids.
+      // Security (SEC-ROUTE): only dispatch known form ids.
       if (!in_array($form_id, $this->getAllowedFormIds(), true)) {
         return array(
           '__failed' => array(
@@ -1406,7 +1406,7 @@ class HAXCMS
     {
         $tmpname = urldecode($name);
         $tmpname = $this->cleanTitle($tmpname, false);
-        // Security (code-scanning js/path-injection, nodejs parity): a name
+        // Security (SEC-PATH): mirrors haxcms-nodejs. A name
         // that collapses to the sites directory itself ("/", "//") is not a
         // site; cleanTitle already strips "..", so this is the only way a
         // cleaned name can fail to name a child folder
@@ -1534,7 +1534,7 @@ class HAXCMS
         }
         if ($token != null) {
           $normalizedValue = $this->normalizeIAMTokenValue($value);
-          // Security (L-7): constant-time, type-strict compare.
+          // Security (SEC-SESSION): constant-time, type-strict compare.
           if ($this->safeStringCompare($this->getRequestToken($normalizedValue), is_string($token) ? $token : '')) {
             return TRUE;
           }
@@ -1733,7 +1733,7 @@ class HAXCMS
       return $settings;
     }
     /**
-     * Security (F3): rate-limit settings for authenticated file-mutation
+     * Security (SEC-RATELIMIT): rate-limit settings for authenticated file-mutation
      * operations (saveFile / fileOperation). Mirrors getLoginRateLimitSettings
      * shape but uses `max` (count window) instead of `maxAttempts` (failed-
      * credit block). Defaults (500 ops / 5 min, 5-min block) accommodate a
@@ -1821,8 +1821,8 @@ class HAXCMS
     /**
      * Security best practice: read the trusted-proxy allowlist from
      * config->security->trustedProxies (array of IPs). When empty, no proxy
-     * headers are trusted. Shared by M2 (client IP for rate limiting) and
-     * M4 (Host / X-Forwarded-Proto / X-Forwarded-Host validation).
+     * headers are trusted. Shared by client-IP resolution (rate limiting) and
+     * Host / X-Forwarded-Proto / X-Forwarded-Host validation.
      */
     public function getTrustedProxies()
     {
@@ -1865,7 +1865,7 @@ class HAXCMS
      * Security best practice: resolve the client IP without trusting
      * X-Forwarded-For unless the immediate peer (REMOTE_ADDR) is a configured
      * trusted proxy. Prevents header spoofing from bypassing the login
-     * rate limiter (M2). Walks XFF right-to-left past any chained trusted
+     * rate limiter. Walks XFF right-to-left past any chained trusted
      * proxies to find the first untrusted hop.
      */
     public function resolveClientIP()
@@ -1895,10 +1895,10 @@ class HAXCMS
       return $remote !== '' ? $remote : 'unknown';
     }
     /**
-     * Security best practice (M4): read the allowed-host allowlist from
+     * Security (SEC-HEADERS): read the allowed-host allowlist from
      * config->security->allowedHosts (array of host strings, may include
      * port). When empty, host-header validation is not applied (existing
-     * behavior preserved). Shared with the trusted-proxy logic (M2).
+     * behavior preserved). Shared with the trusted-proxy logic.
      */
     public function getAllowedHosts()
     {
@@ -1923,11 +1923,11 @@ class HAXCMS
       return $hosts;
     }
     /**
-     * Security best practice (M4): resolve the request protocol trusting only
+     * Security (SEC-HEADERS): resolve the request protocol trusting only
      * server-set signals (HTTPS env, REQUEST_SCHEME, the mod_rewrite `protossl`
      * env var) directly, and the client-controllable X-Forwarded-Proto header
      * ONLY when the immediate peer (REMOTE_ADDR) is a configured trusted proxy
-     * (M2 allowlist). Prevents an attacker who can set X-Forwarded-Proto from
+     * (trustedProxies allowlist). Prevents an attacker who can set X-Forwarded-Proto from
      * forcing 'https' in generated URLs when not behind a proxy.
      */
     public function resolveTrustedProtocol()
@@ -1964,8 +1964,8 @@ class HAXCMS
       return $protocol;
     }
     /**
-     * Security best practice (M4): resolve the request Host, trusting
-     * X-Forwarded-Host only behind a configured trusted proxy (M2 allowlist)
+     * Security (SEC-HEADERS): resolve the request Host, trusting
+     * X-Forwarded-Host only behind a configured trusted proxy (trustedProxies allowlist)
      * and validating the resolved host against config->security->allowedHosts
      * when present (falling back to the first allowed host on mismatch).
      * When no allowlist is configured, existing behavior (use HTTP_HOST) is
@@ -2427,7 +2427,7 @@ class HAXCMS
       return $allow;
     }
     /**
-     * Security best practice (F2/IDOR-001): object-level authorization on a
+     * Security (SEC-ROUTE): object-level authorization on a
      * named site. Authentication (user_token / bearer) is verified upstream;
      * this method ensures the authenticated user actually owns or has been
      * granted access to the named site, preventing an authenticated user from
@@ -2494,7 +2494,7 @@ class HAXCMS
      */
     public function getRequestToken($value = '')
     {
-        // Security (L-3): domain-separated key. JWTs are signed with
+        // Security (SEC-SESSION): domain-separated key. JWTs are signed with
         // privateKey . salt directly; request tokens use a key derived from it
         // so the same secret never MACs two different kinds of message.
         $requestTokenKey = hash_hmac('sha256', 'haxcms-request-token', $this->privateKey . $this->salt);
@@ -2896,7 +2896,7 @@ class HAXCMS
     }
     /**
      * Get user's Refresh Token.
-     * Security (H1 rotation): when $storeRefreshSession is true the token is
+     * Security (SEC-SESSION): when $storeRefreshSession is true the token is
      * given a `family` (per login session) and `jti` (per issuance) and the jti
      * hash is recorded server-side so a stolen old refresh token can be
      * invalidated by the next rotation / logout. Mirrors NodeJS getRefreshToken.
@@ -2929,7 +2929,7 @@ class HAXCMS
       return JWT::encode($token, $this->refreshPrivateKey . $this->salt);
     }
     /**
-     * Security best practice (M3): centralize the haxcms_refresh_token cookie
+     * Security (SEC-SESSION): centralize the haxcms_refresh_token cookie
      * so the Secure and SameSite flags are applied consistently at every call
      * site (login, logout, refresh, connection-test, invalid-session clear).
      *
@@ -2937,7 +2937,7 @@ class HAXCMS
      * regardless of whether PHP sees the request as HTTP behind a
      * TLS-terminating proxy. The config.security.forceSecureCookie override
      * remains for environments that need Secure cookies unconditionally.
-     * Security (L-2): requests PHP sees as HTTPS are ALSO marked Secure,
+     * Security (SEC-SESSION): requests PHP sees as HTTPS are ALSO marked Secure,
      * since PHP hosts rarely set NODE_ENV (see refreshCookieShouldBeSecure).
      *
      * D56: the default cookie lifetime is now 24 hours (matching Node's
@@ -2953,7 +2953,7 @@ class HAXCMS
         return is_string($nodeEnv) && strtolower(trim($nodeEnv)) === 'production';
     }
     /**
-     * Security (L-2): Secure flag decision for the refresh cookie. TRUE when
+     * Security (SEC-SESSION): Secure flag decision for the refresh cookie. TRUE when
      * NODE_ENV=production, when the request is HTTPS ($this->protocol only
      * honours X-Forwarded-Proto from trusted proxies), or when
      * config.security.forceSecureCookie is TRUE. Plain-HTTP dev installs
@@ -2997,7 +2997,7 @@ class HAXCMS
         );
     }
     /**
-     * Security (H1 rotation + SEC-SESSION): refresh-session store, v2 shape
+     * Security (SEC-SESSION): refresh-session store, v2 shape
      * (parity with NodeJS):
      *   {"version":2,"users":{"<user>":{"families":{"<family>":
      *     {currentJtiHash, previousJtiHash, previousValidUntil, exp}
@@ -3734,7 +3734,7 @@ class HAXCMS
      * Security (SEC-SESSION): config->security->requireSessionForRequestTokens,
      * overridable by env HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS (truthy:
      * 1/true/yes; any other non-empty value means false).
-     * Security (L-3): default TRUE now that the front-end (jwt-login /
+     * Security (SEC-SESSION): default TRUE now that the front-end (jwt-login /
      * session-request-tokens.js) picks up the tokens returned by login,
      * refresh and connection-test, so anonymous connection-settings callers
      * no longer receive request tokens. Opt out with config FALSE or a
@@ -3773,7 +3773,7 @@ class HAXCMS
      *      JS payload).
      *   2. caller authenticated (CLI, a valid bearer, or a refresh cookie that
      *      passes the session store check) -> include.
-     *   3. requireSessionForRequestTokens is true (the default, L-3) -> omit;
+     *   3. requireSessionForRequestTokens is true (the default) -> omit;
      *      the front-end picks tokens up from login/refresh/connection-test.
      *   4. otherwise (explicit opt-out) -> include (legacy behaviour).
      * Returns array('include' => bool, 'reason' => string).
@@ -4255,7 +4255,7 @@ class HAXCMS
       if (  
           $request != FALSE &&
           isset($request->id) &&
-          // Security (L-7): constant-time, type-strict compare.
+          // Security (SEC-SESSION): constant-time, type-strict compare.
           $this->safeStringCompare($this->getRequestToken('user'), is_string($request->id) ? $request->id : '') &&
           isset($request->user) &&
           $this->validateUser($request->user)) {

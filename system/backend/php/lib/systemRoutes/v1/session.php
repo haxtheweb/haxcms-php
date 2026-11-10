@@ -31,7 +31,7 @@ if (!function_exists('haxcmsResolveBearerSessionContext')) {
             !isset($decoded->id) ||
             !isset($decoded->user) ||
             $decoded->user === '' ||
-            // Security (L-7): constant-time, type-strict compare.
+            // Security (SEC-SESSION): constant-time, type-strict compare.
             !hash_equals((string) $GLOBALS['HAXCMS']->getRequestToken('user'), is_string($decoded->id) ? $decoded->id : '') ||
             !$GLOBALS['HAXCMS']->validateUser($decoded->user)
         ) {
@@ -62,7 +62,7 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
         ) {
             return null;
         }
-        // Security (H1 rotation / SEC-SESSION): reject a revoked/stolen/unknown
+        // Security (SEC-SESSION): reject a revoked/stolen/unknown
         // refresh family before minting an access token. Only legacy tokens
         // that carry NO family claim are accepted without a store entry. On
         // reject, tombstone ONLY the presented family (legacy -> legacy
@@ -76,7 +76,7 @@ if (!function_exists('haxcmsResolveRefreshSessionContext')) {
             isset($refreshTokenDecoded->iat) ? $refreshTokenDecoded->iat : 0
         );
         if (!$sessionOk) {
-            // Security (SEC-SESSION, PHP-only): store unreadable -> no
+            // Security (SEC-SESSION): PHP-only. Store unreadable -> no
             // tombstone, no cookie clear; the caller answers 503.
             if (!empty($GLOBALS['HAXCMS']->refreshStoreError)) {
                 return array('storeError' => true);
@@ -246,7 +246,7 @@ return function ($context) {
         // If refresh returns a flat {status, jwt} envelope, emit it directly
         // (same bypass as login — sendFormattedResponse would otherwise
         // double-wrap to {status, data:{status, jwt}} breaking the frontend's
-        // response.jwt extraction). Fixes finding 4.7 / NEW-10.
+        // response.jwt extraction).
         if (is_array($response) && isset($response['status']) && isset($response['jwt']) && !isset($response['__failed'])) {
             header('Content-Type: application/json');
             print json_encode($response);
@@ -271,7 +271,7 @@ return function ($context) {
         // Location / Link / Content-Type but never Cache-Control, so this
         // header is preserved through the formatter.
         header('Cache-Control: no-store');
-        // Security (Phase 3 Bearer-only): JWT must arrive via the Authorization
+        // Security (SEC-SESSION): JWT must arrive via the Authorization
         // Bearer header, never request params/body. The body jwt/token fallback
         // is removed so HAXiam and other clients use appSettings.jwt as a Bearer
         // source instead of posting credentials in the body.

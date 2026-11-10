@@ -85,7 +85,7 @@ class SystemApiSecurity
             // provider-search route). The bearer/basic resolution above has
             // already authenticated the principal; the X-HAXCMS-Site-Token is
             // enforced by the router via enforceProviderSearchSiteToken
-            // (F2/Q14) so the 403 envelope matches the other router gates.
+            // so the 403 envelope matches the other router gates.
             // Mirrors the authenticated-site tier in SiteApiSecurity, minus
             // the inline token check which lives in the system router.
             return array(
@@ -211,7 +211,7 @@ class SystemApiSecurity
         if ($normalizedMethod === 'OPTIONS') {
             return 'public';
         }
-        // C1/Q6: spec-driven base policy. Read the security declaration from
+        // Security (SEC-ROUTE): spec-driven base policy. Read the security declaration from
         // system-spec.yaml at runtime and fail-closed to 'authenticated' for
         // any route not declared in the spec. Mirrors Node
         // getSystemApiRouteAuthPolicy (app.js:1785). This retires the
@@ -237,7 +237,7 @@ class SystemApiSecurity
         ) {
             return 'admin';
         }
-        // security (F3/authz): superUser-only READ routes. Most dashboard reads
+        // Security (SEC-ROUTE): superUser-only READ routes. Most dashboard reads
         // stay at the spec-driven authenticated base policy, but routes that
         // return system-wide credentials (e.g. API keys) must elevate GET/HEAD
         // to 'admin' so the superUser check fires for reads too — mirroring the
@@ -258,7 +258,7 @@ class SystemApiSecurity
         return $basePolicy;
     }
     /**
-     * F2/Q14+F3: enforce the X-HAXCMS-Site-Token header on the app-store
+     * Security (SEC-ROUTE): enforce the X-HAXCMS-Site-Token header on the app-store
      * provider-search GET route in the router (not the handler) for a
      * consistent 403 envelope. The current spec declares security: [] for
      * this route; Q14 requires a site token. The spec will be updated by the
@@ -291,7 +291,7 @@ class SystemApiSecurity
             );
         }
         // Resolve siteName from the query param for token validation. If
-        // siteName is missing, defer to the handler's siteName validation (F3).
+        // siteName is missing, defer to the handler's siteName validation.
         $siteName = isset($_GET['siteName']) ? (string) $_GET['siteName'] : '';
         if ($siteName === '') {
             return null;

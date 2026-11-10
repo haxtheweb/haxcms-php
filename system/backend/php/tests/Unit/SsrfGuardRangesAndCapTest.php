@@ -76,7 +76,7 @@ class SsrfGuardRangesAndCapTest extends TestCase
             '6to4 loopback' => array('2002:7f00:1::'),
             '6to4 metadata' => array('2002:a9fe:a9fe::1'),
             '6to4 rfc1918' => array('2002:c0a8:0101::'),
-            // mapped / compat (HAX-SEC-007 regression guard)
+            // mapped / compat (hex-form bypass regression guard)
             'mapped hex loopback' => array('::ffff:7f00:1'),
             'mapped dotted metadata' => array('::ffff:169.254.169.254'),
             'compat hex loopback' => array('::7f00:1'),

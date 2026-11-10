@@ -294,7 +294,7 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testRecurseCopyRejectsTraversalInDestination(): void
     {
-        // Security (N1): a '..' segment in $dst must be rejected before any
+        // Security (SEC-PATH): a '..' segment in $dst must be rejected before any
         // directory is created, preventing escape from the site tree.
         $src = $this->tmpRoot . '/src2';
         mkdir($src, 0777, true);
@@ -458,7 +458,7 @@ class HAXCMSSiteMutationsTest extends TestCase
 
     public function testRenamePageLocationRejectsTraversalInNewPath(): void
     {
-        // Security (SEC-17): '..' in new path is a no-op (returns void).
+        // Security (SEC-PATH): '..' in new path is a no-op (returns void).
         $oldDir = $this->siteDir() . '/pages/trav-dir';
         mkdir($oldDir, 0777, true);
         file_put_contents($oldDir . '/index.html', '<p>safe</p>');

@@ -53,7 +53,7 @@ class JSONOutlineSchemaItem
      */
     public function readLocation($basePath = '')
     {
-        // Security best practice (N1): reject any location that resolves
+        // Security (SEC-PATH): reject any location that resolves
         // outside the supplied base directory. The previous single-pass
         // str_replace('../','') is bypassable (e.g. `....//` collapses to
         // `../` after one replacement) and only worked by luck on existing
@@ -96,7 +96,7 @@ class JSONOutlineSchemaItem
         if ($body == '') {
             $body = '<p></p>';
         }
-        // Security best practice (N1): the destination must stay inside the
+        // Security (SEC-PATH): the destination must stay inside the
         // supplied base directory. The previous single-pass
         // str_replace('../','') is bypassable. Use realpath after the parent
         // exists, plus a lexical traversal-segment reject as a pre-check.
@@ -130,7 +130,7 @@ class JSONOutlineSchemaItem
     /**
      * Generate a UUID (RFC 4122 v4).
      *
-     * Security best practice (N2): uses random_bytes (CSPRNG) instead of
+     * Security (SEC-EXPORT): uses random_bytes (CSPRNG) instead of
      * mt_rand so item/node IDs are not predictable. These IDs are non-secret
      * (exposed in URLs/metadata) but CSPRNG is a strict improvement at no
      * cost, consistent with HAXCMS::generateUUID and

@@ -93,8 +93,8 @@ class SystemRoutesMap
      * exposed to a non-superUser authenticated principal, so their reads are
      * elevated to the 'admin' security level too.
      *
-     * security (F3/authz): API key read exposure — getApiKeys returned ALL
-     * system API keys to any authenticated user. Elevating GET here makes the
+     * Security (SEC-ROUTE): API keys are system-wide credentials, readable by
+     * the superUser only. Elevating GET here makes the
      * router block non-superUser reads; the handlers add a defense-in-depth
      * superUser check so they are safe regardless of route classification.
      */

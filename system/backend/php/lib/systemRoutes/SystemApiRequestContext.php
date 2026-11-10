@@ -106,7 +106,7 @@ class SystemApiRequestContext
     }
     private function getAbsoluteApiBasePath($apiBasePath = '/system/api')
     {
-        // Security best practice (M4): derive protocol and host from the
+        // Security (SEC-HEADERS): derive protocol and host from the
         // HAXCMS bootstrap values, which are trusted-proxy/allowedHosts aware
         // (see HAXCMS::resolveTrustedProtocol / resolveTrustedHost). This
         // removes the previous unchecked trust of X-Forwarded-Proto / -Host

@@ -469,7 +469,7 @@ class GitRepo
         return $this->run_command($args);
     }
     /**
-     * Security (L-4): a ref / remote-name / path argument must be a
+     * Security (SEC-EXEC): a ref / remote-name / path argument must be a
      * non-empty string that cannot be parsed as a git OPTION (leading '-',
      * e.g. --upload-pack=... / --receive-pack=...) and carries no control
      * characters. Values can originate from site.json (git branch), so they
@@ -481,7 +481,7 @@ class GitRepo
             preg_match('/[\x00-\x1F\x7F]/', $value) !== 1;
     }
     /**
-     * Security (L-4): remote URLs are limited to network transports
+     * Security (SEC-EXEC): remote URLs are limited to network transports
      * (https/http/ssh/git schemes, or scp-like user@host:path). This blocks
      * ext:: (runs a command), file:// / fd:: and option-like values.
      */
@@ -494,7 +494,7 @@ class GitRepo
             preg_match('#^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:[^:]#', $url) === 1;
     }
     /**
-     * Security (L-4): returns TRUE when every argument is safe; otherwise logs
+     * Security (SEC-EXEC): returns TRUE when every argument is safe; otherwise logs
      * and returns FALSE so the caller can skip the command. Failures return
      * '' to match this class's swallowed-failure convention (see run_command).
      */

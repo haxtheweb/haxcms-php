@@ -969,7 +969,7 @@ if (!function_exists('haxcmsImportConvertVitepressToSite')) {
             return array('data' => array(), 'body' => $markdown);
         }
         $data = array();
-        // Security (SEC-SSRF / YAML alias amplification): remote frontmatter
+        // Security (SEC-DOS): remote frontmatter
         // that is oversized or uses anchors/aliases is ignored (treated as no
         // frontmatter) rather than parsed. Parity with Node's front-matter guard.
         if (

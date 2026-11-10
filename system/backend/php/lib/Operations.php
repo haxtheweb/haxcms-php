@@ -2661,7 +2661,7 @@ class Operations {
     }
     
     // write the content to the style guide file
-    // Security (SEC-08): sanitize the style-guide HTML before writing, matching
+    // Security (SEC-SANITIZE): sanitize the style-guide HTML before writing, matching
     // the standard saveNode path (saveNode.php:109), so an editor cannot inject
     // arbitrary <script> into theme/style-guide.html (served to all site visitors).
     $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($cleanContent);

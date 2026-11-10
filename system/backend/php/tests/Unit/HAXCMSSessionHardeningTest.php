@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  *      callers (valid Bearer JWT or store-checked refresh session) get
  *      tokens; anonymous callers get them only when
  *      security.requireSessionForRequestTokens is explicitly turned off
- *      (it defaults on since L-3).
+ *      (it defaults on).
  *   2. refresh revocation writes tombstones; family-bearing tokens without a
  *      store entry are rejected; only no-family legacy tokens seed the store;
  *      reuse of a stale jti tombstones the family; getAuthenticatedUserName
@@ -401,7 +401,7 @@ class HAXCMSSessionHardeningTest extends TestCase
 
     public function testConnectionSettingsOmitsTokensForAnonymousCallerByDefault(): void
     {
-        // Security (L-3): session required by default; the front-end picks
+        // Security (SEC-SESSION): session required by default; the front-end picks
         // tokens up from login / refresh / connection-test responses.
         $saved = getenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
         putenv('HAXCMS_REQUIRE_SESSION_FOR_REQUEST_TOKENS');
@@ -459,7 +459,7 @@ class HAXCMSSessionHardeningTest extends TestCase
     {
         $h = $this->fullHaxcms();
         $GLOBALS['HAXCMS'] = $h;
-        // flag off = explicit opt-out (the default is now on, L-3)
+        // flag off = explicit opt-out (the default is now on)
         $this->requireSession($h, $flag);
         if ($auth) {
             $h->sessionJwt = $h->getJWT('alice');

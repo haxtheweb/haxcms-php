@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Security (HAX-SEC-004 PHP parity) tests for the maxUploadSizeMb app-layer
+ * Security (SEC-UPLOAD, SEC-DOS) tests for the maxUploadSizeMb app-layer
  * cap in HAXCMSFile::save(), mirroring the NodeJS backend
  * (HAXCMSFile.js:771-787).
  *

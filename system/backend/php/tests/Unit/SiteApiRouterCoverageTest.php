@@ -196,7 +196,7 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * Security (M4 parity with the system API): X-Forwarded-Proto / -Host are
+     * Security (SEC-HEADERS): mirrors the system API. X-Forwarded-Proto / -Host are
      * only honoured when the immediate peer is a configured trusted proxy.
      * Without that config a client-supplied header must not change the
      * absolute URLs the API emits.

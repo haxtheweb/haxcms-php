@@ -10,7 +10,7 @@ trait OperationsRouteGetApiKeys {
         ),
       );
     }
-    // security (F3/authz): defense-in-depth — API keys are system-wide
+    // Security (SEC-ROUTE): defense-in-depth — API keys are system-wide
     // credentials and must only be readable by the superUser, regardless of
     // how the route was classified. The router elevates this route to 'admin'
     // (see SystemRoutesMap::getSystemV1SuperUserReadRoutes), but this explicit

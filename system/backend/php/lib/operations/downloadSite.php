@@ -10,7 +10,7 @@ trait OperationsRouteDownloadSite {
 
   public function downloadSite() {
     if (isset($this->params['user_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['user_token'], $GLOBALS['HAXCMS']->getActiveUserName())) {
-      // security (F2/IDOR-001): object-level authorization before filesystem access
+      // Security (SEC-ROUTE): object-level authorization before filesystem access
       if (!isset($this->params['site']['name']) || !$GLOBALS['HAXCMS']->userCanAccessSite($this->params['site']['name'])) {
         return array(
           '__failed' => array(
