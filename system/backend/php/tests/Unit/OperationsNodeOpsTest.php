@@ -1044,7 +1044,7 @@ class OperationsNodeOpsTest extends TestCase
         $this->haxcms->loadedSite->manifest->items[0]->metadata->theme = (object) array('key' => 'old');
         $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="x/sub" developer-theme="nope"></page-break><p>b</p>');
         $this->assertSame(200, $result['status']);
-        $this->assertStringStartsWith('x-x', $result['data']->slug);
+        $this->assertSame('x-x/sub', $result['data']->slug);
         $this->assertFalse(isset($result['data']->metadata->theme));
     }
 
@@ -1277,6 +1277,55 @@ class OperationsNodeOpsTest extends TestCase
         ), $this->writtenSlugs($siteDir));
     }
 
+    public function testCascadeAppliesTheReservedRouteRuleToEveryGeneratedSegment(): void
+    {
+        $this->setUpBodyFixture();
+        $siteDir = $this->reloadBodyFixtureWith(array(
+            $this->outlineItem('resume', null, 'old'),
+            $this->outlineItem('padded', 'resume', 'old/padded-title'),
+            $this->outlineItem('leaf', 'padded', 'old/padded-title/x-x'),
+            $this->outlineItem('direct', 'resume', 'old/x-x'),
+        ), true);
+        $site = $this->haxcms->loadedSite;
+        foreach ($site->manifest->items as $entry) {
+            if ($entry->id === 'padded') {
+                $entry->title = 'Padded Title';
+            }
+            if ($entry->id === 'leaf' || $entry->id === 'direct') {
+                // titles that clean to the reserved "x" segment
+                $entry->title = 'X';
+            }
+        }
+        $result = $this->saveNodeBody(
+            '<page-break title="Résumé" item-id="resume"></page-break><p>x</p>',
+            array('id' => 'resume')
+        );
+        $this->assertSame(200, $result['status']);
+        // same expectations as haxcms-nodejs test/unit/slug-description-parity
+        $this->assertSame(array(
+            'resume' => 'résumé',
+            'padded' => 'résumé/padded-title',
+            'leaf' => 'résumé/padded-title/x-x',
+            'direct' => 'résumé/x-x',
+        ), $this->writtenSlugs($siteDir));
+    }
+
+    public function testSlugAttributeAndNewPagesNeverUseTheReservedSegment(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="X"></page-break><p>b</p>');
+        $this->assertSame('x-x', $result['data']->slug);
+        // str_replace used to rewrite every "x/" ("inbox/" -> "inbox-x/")
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="x/inbox/a"></page-break><p>b</p>');
+        $this->assertSame('x-x/inbox/a', $result['data']->slug);
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" slug="a/x"></page-break><p>b</p>');
+        $this->assertSame('a/x-x', $result['data']->slug);
+        // createItem / addPage derive slugs through getUniqueSlugName
+        $site = $this->haxcms->loadedSite;
+        $this->assertSame('x-x', $site->getUniqueSlugName('x'));
+        $this->assertSame('item-a/x-x', $site->getUniqueSlugName('item-a/x'));
+    }
+
     public function testSaveNodeDoesNotCascadeWhenPathautoIsOff(): void
     {
         $this->setUpBodyFixture();
@@ -1355,6 +1404,20 @@ class OperationsNodeTestHaxcms extends OperationsTestHaxcms
      * skips HAXCMS's stateful constructor (same technique as
      * HAXCMSHelpersTest).
      */
+    /**
+     * Use the REAL generateSlugName (same reflection seam as
+     * pageBreakParser below) so slug assertions reflect production rules,
+     * including the reserved "x" route segment applied after generation.
+     */
+    public function generateSlugName($name)
+    {
+        if (!isset($this->realPageBreakParser)) {
+            $this->realPageBreakParser = (new ReflectionClass(HAXCMS::class))
+                ->newInstanceWithoutConstructor();
+        }
+        return $this->realPageBreakParser->generateSlugName($name);
+    }
+
     public function pageBreakParser($body)
     {
         if (!isset($this->realPageBreakParser)) {

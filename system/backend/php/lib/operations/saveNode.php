@@ -151,17 +151,12 @@ trait OperationsRouteSaveNode {
                   $page->metadata->overridePathauto = false;
                 }
                 if (isset($data["attributes"]["slug"])) {
-                  // account for x being the only front end reserved route
-                  if ($data["attributes"]["slug"] == "x") {
-                    $data["attributes"]["slug"] = "x-x";
-                  }
-                  // same but trying to force a sub-route; paths cannot conflict with front end
-                  if (substr( $data["attributes"]["slug"], 0, 2 ) == "x/") {
-                    $data["attributes"]["slug"] = str_replace('x/', 'x-x/', $data["attributes"]["slug"]);
-                  }
-                  // machine name should more aggressively scrub the slug than clean title
+                  // machine name should more aggressively scrub the slug than
+                  // clean title; no segment may be the reserved "x" route
                   // @todo need to verify this doesn't already exist
-                  $page->slug = $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"]);
+                  $page->slug = HAXCMSSite::reserveSlugRoutes(
+                    $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"])
+                  );
                 }
                 if (isset($data["attributes"]["parent"])) {
                   $page->parent = $data["attributes"]["parent"];

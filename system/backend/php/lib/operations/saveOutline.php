@@ -87,13 +87,11 @@ trait OperationsRouteSaveOutline {
       $itemMap = array();
       $pageAlternateContentMap = array();
       $normalizeOutlineSlug = function ($slug, $page = null, $pathAuto = false) use ($site) {
-        $normalizedSlug = $GLOBALS['HAXCMS']->generateSlugName($slug);
-        if ($normalizedSlug == 'x') {
-          $normalizedSlug = 'x-x';
-        }
-        if (substr($normalizedSlug, 0, 2) == 'x/') {
-          $normalizedSlug = str_replace('x/', 'x-x/', $normalizedSlug);
-        }
+        // no segment may be the reserved "x" route (getUniqueSlugName
+        // applies the same rule); an empty slug becomes "blank"
+        $normalizedSlug = HAXCMSSite::reserveSlugRoutes(
+          $GLOBALS['HAXCMS']->generateSlugName($slug)
+        );
         if ($normalizedSlug == '') {
           $normalizedSlug = 'blank';
         }

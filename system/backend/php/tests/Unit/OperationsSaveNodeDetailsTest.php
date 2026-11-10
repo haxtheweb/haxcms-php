@@ -489,13 +489,15 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertTrue($result['data']->metadata->overridePathauto);
     }
 
-    public function testSetSlugRewritesReservedXSubRoutePrefixes(): void
+    public function testSetSlugAppliesTheReservedRouteRuleAfterGeneration(): void
     {
-        $result = $this->runOperation('item-a', array('operation' => 'setSlug', 'slug' => 'x/search'));
+        // the rule runs on the generated slug, so "X" (lowercased to "x")
+        // cannot slip past it; segment cases ("x/search" -> "x-x/search",
+        // "a/x" -> "a/x-x") are covered by SlugDescriptionParityTest against
+        // the real generateSlugName (this suite's stub flattens "/")
+        $result = $this->runOperation('item-a', array('operation' => 'setSlug', 'slug' => 'X'));
         $this->assertSame(200, $result['status']);
-        // 'x/' sub-route prefix rewritten to 'x-x/'; generateSlugName then
-        // flattens the remaining slash to a dash
-        $this->assertSame('x-x-search', $result['data']->slug);
+        $this->assertSame('x-x', $result['data']->slug);
         $this->assertTrue($result['data']->metadata->overridePathauto);
     }
 

@@ -113,6 +113,28 @@ class SlugDescriptionParityTest extends TestCase
         }
     }
 
+    public function testReservedRouteSegmentRule(): void
+    {
+        // same cases as haxcms-nodejs test/unit/slug-description-parity
+        $cases = array(
+            'x' => 'x-x',
+            'x/a' => 'x-x/a',
+            'a/x' => 'a/x-x',
+            'a/x/b' => 'a/x-x/b',
+            'x/inbox/a' => 'x-x/inbox/a',
+            'x-x' => 'x-x',
+            'xx' => 'xx',
+            'box/x' => 'box/x-x',
+            'inbox/a' => 'inbox/a',
+        );
+        foreach ($cases as $input => $expected) {
+            $this->assertSame($expected, HAXCMSSite::reserveSlugRoutes($input), $input);
+            // idempotent
+            $this->assertSame($expected, HAXCMSSite::reserveSlugRoutes($expected), $input);
+        }
+        $this->assertSame('x-x/search', HAXCMSSite::reserveSlugRoutes($this->haxcms->generateSlugName('X/Search')));
+    }
+
     public function testInvalidUtf8AfterDecodingIsASeparatorNotAFailure(): void
     {
         // %E6 alone is a truncated UTF-8 sequence; it must not null the slug
