@@ -17,6 +17,8 @@ require_once __DIR__ . '/OperationsTestHaxcms.php';
  *   - contents with no inline images leave page.metadata.files empty
  *   - a client-supplied node id with traversal cannot escape pages/
  *   - the commit message names the new page
+ *   - items (bulk): deleted entries are skipped; an all-delete or empty
+ *     payload answers 400 instead of 200 with no page
  *   - (skipped, bug) the single-node title should be stored as plain text
  *
  * The route builds write paths from HAXCMS_ROOT/<sitesDirectory>/<site>/, so
@@ -273,6 +275,69 @@ class OperationsCreateNodeContentTest extends TestCase
         $result = $this->create(array('title' => '<img src=x onerror=alert(1)><b>Hello</b>'));
         $this->assertSame(200, $result['status']);
         $this->assertSame('Hello', $this->persistedById()[$result['data']->id]->title);
+    }
+
+    // =========================================================================
+    // items (bulk create)
+    // =========================================================================
+
+    private function createWith(array $extra): array
+    {
+        $this->ops->params = array_merge(array(
+            'site_token' => 'accepted-by-double',
+            'site' => array('name' => $this->siteName),
+        ), $extra);
+        return $this->ops->createNode();
+    }
+
+    public function testItemsAllMarkedDeleteAnswer400AndChangeNothing(): void
+    {
+        $before = file_get_contents($this->siteDir() . '/site.json');
+        $result = $this->createWith(array('items' => array(
+            array('title' => 'Gone 1', 'delete' => true),
+            array('title' => 'Gone 2', 'delete' => true),
+        )));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Invalid items payload (every item is marked delete)', $result['__failed']['message']);
+        $this->assertSame($before, file_get_contents($this->siteDir() . '/site.json'));
+        $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits);
+    }
+
+    public function testEmptyItemsWithoutNodeAnswer400(): void
+    {
+        $result = $this->createWith(array('items' => array()));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Node payload is required', $result['__failed']['message']);
+        $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits);
+    }
+
+    public function testEmptyItemsWithNodeCreatesTheNode(): void
+    {
+        // the items route treats an empty items array as no bulk payload and
+        // lets a node through; the node is what gets created
+        $result = $this->createWith(array(
+            'items' => array(),
+            'node' => array('title' => 'Single from node'),
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Single from node', $result['data']->title);
+        $this->assertArrayHasKey($result['data']->id, $this->persistedById());
+    }
+
+    public function testItemsSkipDeletedEntriesAndReturnTheLastCreated(): void
+    {
+        $result = $this->createWith(array('items' => array(
+            array('title' => 'Kept 1'),
+            array('title' => 'Dropped', 'delete' => true),
+            array('title' => 'Kept 2'),
+        )));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Kept 2', $result['data']->title);
+        $titles = array_map(function ($item) { return $item->title; }, array_values($this->persistedById()));
+        $this->assertContains('Kept 1', $titles);
+        $this->assertContains('Kept 2', $titles);
+        $this->assertNotContains('Dropped', $titles);
+        $this->assertCount(1, $this->haxcms->loadedSite->gitCommits);
     }
 
     public function testCommitMessageNamesTheNewPage(): void

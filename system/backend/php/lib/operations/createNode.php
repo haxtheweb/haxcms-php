@@ -18,7 +18,18 @@ trait OperationsRouteCreateNode {
       }
       // implies we've been TOLD to create nodes
       // this is typically from a docx import
-      if (isset($nodeParams['items'])) {
+      // (same test as the items route: an empty items array is no bulk payload)
+      $hasItems = isset($nodeParams['items']) && is_array($nodeParams['items']) && count($nodeParams['items']) > 0;
+      if (!$hasItems && (!isset($nodeParams['node']) || !is_array($nodeParams['node']))) {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Node payload is required',
+          )
+        );
+      }
+      if ($hasItems) {
+        $item = null;
         // create pages
         for ($i=0; $i < count($nodeParams['items']); $i++) {
           // outline-designer allows delete + confirmation but we don't have anything
@@ -41,6 +52,15 @@ trait OperationsRouteCreateNode {
               (isset($nodeParams['items'][$i]['metadata']) ? $nodeParams['items'][$i]['metadata'] : null)
             );  
           }
+        }
+        // every entry was marked delete: nothing was created or committed
+        if (is_null($item)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'Invalid items payload (every item is marked delete)',
+            )
+          );
         }
         $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
       }

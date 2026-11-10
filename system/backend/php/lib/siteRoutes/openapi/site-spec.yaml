@@ -773,7 +773,10 @@ paths:
                 The back-end requires either a non-empty items array (bulk
                 create, e.g. docx import) or a node object (single page
                 create); site.name is injected by the v1 wrapper from the
-                request path when omitted.
+                request path when omitted. An empty items array is not a bulk
+                payload (the node is created instead), and an items array
+                whose entries are all marked delete creates nothing and
+                answers 400.
               properties:
                 site:
                   $ref: "#/components/schemas/SiteReference"
