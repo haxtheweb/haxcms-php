@@ -156,8 +156,35 @@ async function openStructure(p, t) {
     })
     result = { path: 'fallback: _outlineButtonTap (Structure control not found)', called: called, found: found }
   }
+  // The admin dialog loads Structure on its route; give it time to stamp.
+  result.dialog = !!(await waitFor(() => outlineDialogPresent(p), 15000))
+  // A click can land while the hover menu is closing and do nothing; open the
+  // route directly once rather than failing on a lost click.
+  if (!result.dialog && result.path.indexOf('fallback') === -1) {
+    result.retried = await p.evaluate(() => {
+      const ui = document.querySelector('haxcms-site-editor-ui')
+      if (!ui || typeof ui._outlineButtonTap !== 'function') return false
+      ui._outlineButtonTap(null, true, 'Structure')
+      return true
+    })
+    result.dialog = !!(await waitFor(() => outlineDialogPresent(p), 15000))
+  }
   if (t) t.diagnostic('[outline] opened Structure via ' + JSON.stringify(result))
   return result
+}
+
+// True when haxcms-outline-editor-dialog is in the page with a stamped
+// shadowRoot (inside any simple-modal, or anywhere in the document).
+async function outlineDialogPresent(p) {
+  return p.evaluate(() => {
+    var modals = document.querySelectorAll('simple-modal')
+    for (var i = 0; i < modals.length; i++) {
+      var d = modals[i].querySelector('haxcms-outline-editor-dialog')
+      if (d && d.shadowRoot) return true
+    }
+    var d2 = document.querySelector('haxcms-outline-editor-dialog')
+    return !!(d2 && d2.shadowRoot)
+  })
 }
 
 // Ensure the outline editor dialog is open (reopen Structure if the
@@ -711,6 +738,22 @@ test('page management e2e (add + delete page on HAXSITEAUTOMATEDTESTING)', { tim
   //    settings menu -> a simple-modal with haxcms-outline-editor-dialog as a
   //    light-DOM child. The menu is hidden in edit mode, but we never entered
   //    edit mode (create/delete used global events).
+  // Diagnostics for the Structure open: page errors, failed requests and
+  // 4xx/5xx responses while the admin dialog loads (it lazy-imports
+  // admin/haxcms-site-admin.js and fetches site data).
+  const structureEvents = []
+  const onPageError = (e) => structureEvents.push('pageerror: ' + (e && e.message ? e.message : String(e)))
+  const onConsole = (m) => {
+    if (m.type() === 'error' || m.type() === 'warning') structureEvents.push('console.' + m.type() + ': ' + m.text())
+  }
+  const onReqFailed = (r) => structureEvents.push('requestfailed: ' + r.url() + ' ' + (r.failure() ? r.failure().errorText : ''))
+  const onResponse = (r) => {
+    if (r.status() >= 400) structureEvents.push('response ' + r.status() + ': ' + r.url())
+  }
+  page.on('pageerror', onPageError)
+  page.on('console', onConsole)
+  page.on('requestfailed', onReqFailed)
+  page.on('response', onResponse)
   const outlineOpened = await openStructure(page, t)
   assert.ok(
     outlineOpened.path.indexOf('fallback') === -1 || outlineOpened.called,
@@ -755,7 +798,29 @@ test('page management e2e (add + delete page on HAXSITEAUTOMATEDTESTING)', { tim
         uiEditMode: ui ? ui.hasAttribute('edit-mode') : null,
       }
     })
+    const deep = await page.evaluate(() => {
+      const found = []
+      const walk = (root, depth) => {
+        if (!root || depth > 12) return
+        const all = root.querySelectorAll('*')
+        for (let i = 0; i < all.length; i++) {
+          const tag = all[i].tagName.toLowerCase()
+          if (tag === 'haxcms-site-admin' || tag === 'haxcms-outline-editor-dialog' || tag.indexOf('site-admin') !== -1) {
+            found.push(tag + (all[i].getAttribute('route') ? '[route=' + all[i].getAttribute('route') + ']' : ''))
+          }
+          if (all[i].shadowRoot) walk(all[i].shadowRoot, depth + 1)
+        }
+      }
+      walk(document, 0)
+      return {
+        href: location.href,
+        adminDefined: !!customElements.get('haxcms-site-admin'),
+        found: found.slice(0, 10),
+      }
+    })
     t.diagnostic('[outline] dialog NOT found; diag: ' + JSON.stringify(diag))
+    t.diagnostic('[outline] deep: ' + JSON.stringify(deep))
+    t.diagnostic('[outline] events during open: ' + JSON.stringify(structureEvents.slice(0, 25)))
   }
   assert.ok(outlineReady, 'haxcms-outline-editor-dialog rendered (in simple-modal or document)')
 

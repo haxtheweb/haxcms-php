@@ -394,17 +394,19 @@ class OperationsSiteLifecycleTest extends TestCase
         $result = $this->ops->downloadSite();
 
         $this->assertSame(200, $result['status']);
-        // Security: the name is <site>-<32 hex>.zip, not the guessable
-        // <site>.zip, and the link points at that same random name.
+        // Security (SEC-EXPORT): the stored archive is <site>-<32 hex>.zip,
+        // not the guessable <site>.zip, and the link points at it. The
+        // download filename (name) stays <site>.zip, same as haxcms-nodejs.
         $this->assertMatchesRegularExpression(
             '/^' . preg_quote($this->siteName, '/') . '-[0-9a-f]{32}\\.zip$/',
-            $result['data']['name']
+            basename($result['data']['link'])
         );
-        $this->assertStringEndsWith('_published/' . $result['data']['name'], $result['data']['link']);
+        $this->assertStringContainsString('_published/', $result['data']['link']);
+        $this->assertSame($this->siteName . '.zip', $result['data']['name']);
         $this->assertFileDoesNotExist(HAXCMS_ROOT . '/_published/' . $this->siteName . '.zip');
         // Observable mutation: a real zip archive was written to the
         // published directory and is non-empty.
-        $zipPath = HAXCMS_ROOT . '/_published/' . $result['data']['name'];
+        $zipPath = HAXCMS_ROOT . '/_published/' . basename($result['data']['link']);
         $this->assertTrue(file_exists($zipPath));
         $this->assertGreaterThan(0, filesize($zipPath));
     }
@@ -422,9 +424,9 @@ class OperationsSiteLifecycleTest extends TestCase
 
         $first = $this->ops->downloadSite();
         $second = $this->ops->downloadSite();
-        $this->assertNotSame($first['data']['name'], $second['data']['name']);
+        $this->assertNotSame(basename($first['data']['link']), basename($second['data']['link']));
         // a fresh (not yet stale) export is left in place by the sweep
-        $this->assertFileExists(HAXCMS_ROOT . '/_published/' . $first['data']['name']);
+        $this->assertFileExists(HAXCMS_ROOT . '/_published/' . basename($first['data']['link']));
     }
 
     public function testDownloadSiteZipLeavesGitHistoryOut(): void
@@ -444,7 +446,7 @@ class OperationsSiteLifecycleTest extends TestCase
         $result = $this->ops->downloadSite();
         $this->assertSame(200, $result['status']);
         $zip = new ZipArchive();
-        $this->assertTrue($zip->open(HAXCMS_ROOT . '/_published/' . $result['data']['name']) === true);
+        $this->assertTrue($zip->open(HAXCMS_ROOT . '/_published/' . basename($result['data']['link'])) === true);
         $names = array();
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $names[] = $zip->getNameIndex($i);
@@ -486,7 +488,7 @@ class OperationsSiteLifecycleTest extends TestCase
         $this->assertFileDoesNotExist($staleRandom);
         $this->assertFileExists($fresh);
         $this->assertFileExists($other);
-        $this->assertFileExists($published . '/' . $result['data']['name']);
+        $this->assertFileExists($published . '/' . basename($result['data']['link']));
     }
 
     public function testDownloadSiteZipLeavesSymlinksOut(): void
@@ -527,7 +529,7 @@ class OperationsSiteLifecycleTest extends TestCase
             $this->assertSame(200, $result['status']);
             $zip = new ZipArchive();
             $this->assertTrue(
-                $zip->open(HAXCMS_ROOT . '/_published/' . $result['data']['name']) === true
+                $zip->open(HAXCMS_ROOT . '/_published/' . basename($result['data']['link'])) === true
             );
             $names = array();
             for ($i = 0; $i < $zip->numFiles; $i++) {

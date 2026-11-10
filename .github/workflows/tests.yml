@@ -10,6 +10,11 @@ on:
   schedule:
     - cron: "41 7 * * *"
   workflow_dispatch:
+    inputs:
+      update_screenshots:
+        description: "Re-render the e2e visual baselines on CI and commit them (comparisons stay warn-only)"
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -92,7 +97,7 @@ jobs:
   # resolves to 127.0.0.1); no live deployment is touched.
   e2e:
     name: "E2E UI (DDEV, nightly, report-only)"
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.update_screenshots)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     continue-on-error: true
@@ -129,3 +134,55 @@ jobs:
             test/e2e/__screenshots__/*.diff.png
           if-no-files-found: ignore
           retention-days: 14
+
+  e2e-baselines:
+    # Manual only (Run workflow > update_screenshots). Renders every e2e
+    # screenshot on the same runner image the nightly compares on and commits
+    # the PNGs: back to the dispatched branch, or to a new
+    # chore/e2e-baselines-<run id> branch when dispatched on the default
+    # branch (never a direct push to it). The visual comparison itself stays
+    # warn-only (test/e2e/helpers/visual.cjs).
+    name: "E2E baselines (manual refresh)"
+    if: github.event_name == 'workflow_dispatch' && inputs.update_screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install E2E tooling
+        run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund
+      - name: Set up DDEV and start the project
+        uses: ddev/github-action-setup-ddev@fdf2f5c97943bae638f31df6df86f1defa6210c0 # v1.12.1
+      - name: Render baselines
+        # A failing test still writes the screenshots it reached; the commit
+        # step below reports what changed either way.
+        continue-on-error: true
+        run: npm run test:e2e:update
+      - name: Commit refreshed baselines
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- 'test/e2e/__screenshots__/*.png' ':(exclude)test/e2e/__screenshots__/*.current.png' ':(exclude)test/e2e/__screenshots__/*.diff.png'
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git diff --cached --stat | tee -a "$GITHUB_STEP_SUMMARY"
+          target="$GITHUB_REF_NAME"
+          if [ "$target" = "$DEFAULT_BRANCH" ]; then
+            target="chore/e2e-baselines-${RUN_ID}"
+            git switch -c "$target"
+          fi
+          git commit -m "Refresh e2e visual baselines (rendered on CI, run ${RUN_ID})"
+          git push origin "HEAD:refs/heads/${target}"
+          echo "Pushed baselines to ${target}" | tee -a "$GITHUB_STEP_SUMMARY"
