@@ -57,7 +57,7 @@ if (!function_exists('haxcmsMagicLinkAppRoot')) {
         if (!is_string($root) || $root === $apiBase) {
             $root = isset($GLOBALS['HAXCMS']->basePath) ? rtrim((string) $GLOBALS['HAXCMS']->basePath, '/') : '';
         }
-        // only ever redirect to a same-host path: a single leading slash, no
+        // Security (SEC-HEADERS, SEC-MAGICLINK): only ever redirect to a same-host path: a single leading slash, no
         // backslashes or control characters (`/\evil.com` and `//evil.com`
         // would be read by browsers as another host)
         if ($root !== '' && !preg_match('/^\/[^\/\\\\\x00-\x1f][^\\\\\x00-\x1f]*$/', $root)) {
@@ -92,7 +92,7 @@ if (!function_exists('haxcmsMagicLinkRespond')) {
     function haxcmsMagicLinkRespond($status, $headers, $body)
     {
         $headers['Cache-Control'] = 'no-store';
-        // keep the token out of Referer headers sent to other sites. Must not
+        // Security (SEC-HEADERS, SEC-MAGICLINK): keep the token out of Referer headers sent to other sites. Must not
         // be no-referrer: that makes browsers post the confirm form with
         // Origin: null, which the same-origin check (correctly) rejects.
         $headers['Referrer-Policy'] = 'same-origin';
@@ -124,7 +124,7 @@ if (!function_exists('haxcmsMagicLinkFailure')) {
      */
     function haxcmsMagicLinkFailure($context, $status, $failure)
     {
-        // leave any existing session alone: clearing the refresh cookie here
+        // Security (SEC-SESSION, SEC-MAGICLINK): leave any existing session alone; clearing the refresh cookie here
         // would let a cross-site link to this URL sign people out
         if (haxcmsMagicLinkWantsJson()) {
             return haxcmsMagicLinkJson($status, array(
@@ -140,7 +140,7 @@ if (!function_exists('haxcmsMagicLinkFailure')) {
     }
 }
 if (!function_exists('haxcmsMagicLinkRateKey')) {
-    // buckets are client IP + the link's (non-secret) selector, apart from
+    // Security (SEC-RATELIMIT, SEC-MAGICLINK): buckets are client IP + the link's (non-secret) selector, apart from
     // password-login buckets: junk requests (or many users behind one proxy
     // IP) can't lock out everyone else's links, and guessing a link is
     // infeasible anyway (256-bit verifier)
@@ -188,7 +188,7 @@ return function ($context) {
         ));
     }
     // POST
-    // shared with session/refresh and connection-test: Sec-Fetch-Site plus
+    // Security (SEC-SESSION, SEC-MAGICLINK): shared with session/refresh and connection-test: Sec-Fetch-Site plus
     // Origin/Referer host (scheme deliberately not compared, see HAXCMS.php)
     if (!$GLOBALS['HAXCMS']->isSameOriginRequest()) {
         return haxcmsMagicLinkFailure($context, 403, array(

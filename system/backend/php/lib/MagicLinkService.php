@@ -17,6 +17,8 @@
  * system/backend/php/scripts/magic-link.php). Anyone who can write _config can
  * already rewrite config.php, so this adds no new trust boundary.
  *
+ * Security (SEC-MAGICLINK): see SECURITY-AUDIT.md for the full rule this file keeps.
+ *
  * Concurrency: PHP requests are multi-process, so every read-modify-write runs
  * under an exclusive flock on a sidecar lock file, and the store itself is
  * replaced by temp-file + rename so a reader (including the Node CLI, which
@@ -108,8 +110,10 @@ class MagicLinkService
     }
 
     /**
-     * config->iam is set by bootstrapHAX.php when _iamConfig exists (after the
-     * constructor derives deploymentProfile, so check both).
+     * HAXiam is recognised by any of: config->iam (set by bootstrapHAX.php
+     * when _iamConfig/HAXcmsConfig.php exists, after the constructor derives
+     * deploymentProfile, so check both), deploymentProfile haxiam-managed, or
+     * the installers' `_config/IAM` marker.
      */
     public static function isHaxiamDeployment($haxcms)
     {
@@ -119,8 +123,18 @@ class MagicLinkService
         if (isset($haxcms->config->iam) && $haxcms->config->iam) {
             return true;
         }
-        return isset($haxcms->config->deploymentProfile) &&
-            strtolower((string) $haxcms->config->deploymentProfile) === 'haxiam-managed';
+        if (isset($haxcms->config->deploymentProfile) &&
+            strtolower((string) $haxcms->config->deploymentProfile) === 'haxiam-managed') {
+            return true;
+        }
+        // Security (SEC-MAGICLINK): the HAXiam installers also drop an `IAM`
+        // marker in the core's _config; honour it too, so a process that
+        // bootstraps the core without the tenant config (e.g. the CLI script
+        // run in cores/HAXcms-*) still treats this as HAXiam.
+        $configDirectory = (isset($haxcms->configDirectory) && is_string($haxcms->configDirectory) && $haxcms->configDirectory !== '')
+            ? $haxcms->configDirectory
+            : (defined('HAXCMS_ROOT') ? HAXCMS_ROOT . '/_config' : '');
+        return $configDirectory !== '' && file_exists(rtrim($configDirectory, '/') . '/IAM');
     }
 
     /**
@@ -146,7 +160,7 @@ class MagicLinkService
             $source = $haxcms->config->security->magicLink;
         }
         if (self::isHaxiamDeployment($haxcms)) {
-            // HAXiam: off by default. Most HAXiam deploys sign in through
+            // Security (SEC-MAGICLINK): HAXiam is off by default. Most HAXiam deploys sign in through
             // third-party OAuth/SSO, so there's no local account to recover.
             // Only the operator can turn it on (env), never a tenant's config.
             $enabled = self::envFlag('HAXCMS_MAGIC_LINK_ENABLED');
@@ -155,12 +169,12 @@ class MagicLinkService
             // single-site / self-hosted multisite: on unless config turns it off
             $enabled = !(isset($source->enabled) && $source->enabled === false);
         }
-        // System-level kill switch. Wins over everything, including
+        // Security (SEC-MAGICLINK): system-level kill switch. Wins over everything, including
         // HAXCMS_MAGIC_LINK_ENABLED, so "off" is always the safe answer.
         if (self::envFlag('HAXCMS_MAGIC_LINK_DISABLED')) {
             $enabled = false;
         }
-        // on HAXiam a tenant's config doesn't shape the policy at all (lifetime
+        // Security (SEC-MAGICLINK): on HAXiam a tenant's config doesn't shape the policy at all (lifetime
         // included); only the operator's environment does
         if (self::isHaxiamDeployment($haxcms)) {
             $source = new stdClass();
@@ -210,7 +224,7 @@ class MagicLinkService
         if (!is_dir($dir)) {
             @mkdir($dir, 0700, true);
         }
-        // fail closed: never touch the store without the lock
+        // Security (SEC-MAGICLINK): fail closed, never touch the store without the lock
         $lock = @fopen($path . '.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX)) {
             if ($lock) {
@@ -269,7 +283,7 @@ class MagicLinkService
     }
 
     /**
-     * Running the script as root would leave 0600 root-owned files the web
+     * Security (SEC-MAGICLINK): running the script as root would leave 0600 root-owned files the web
      * server can't read, so every link would fail as "not found". Hand files
      * we create back to whoever owns the settings directory.
      */

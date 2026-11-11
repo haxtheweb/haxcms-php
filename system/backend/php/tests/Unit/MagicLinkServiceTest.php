@@ -216,6 +216,16 @@ class MagicLinkServiceTest extends TestCase
         MagicLinkService::issue($this->haxcms);
     }
 
+    public function testHaxiamInstallerIamMarkerAloneTurnsItOff(): void
+    {
+        $this->assertTrue(MagicLinkService::isEnabled($this->haxcms));
+        touch($this->tmpConfigDir . '/IAM');
+        $this->assertTrue(MagicLinkService::isHaxiamDeployment($this->haxcms));
+        $this->assertFalse(MagicLinkService::isEnabled($this->haxcms));
+        $this->expectException(RuntimeException::class);
+        MagicLinkService::issue($this->haxcms);
+    }
+
     public function testOperatorEnvEnablesHaxiamAndDisabledStillWins(): void
     {
         $this->haxcms->config->iam = true;
