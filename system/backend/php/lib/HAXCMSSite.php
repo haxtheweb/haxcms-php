@@ -953,8 +953,14 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null)
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null, $bulk = null)
     {
+        // $bulk: an object with createdFolders (array) when the caller adds
+        // many pages in one request. site.json is then written, and the
+        // generated files rebuilt, once by the caller (finishBulkAddPages)
+        // instead of once per page, which made building an N-page site cost
+        // O(N^2). The caller removes the folders in createdFolders if that
+        // one write fails. Mirrors NodeJS HAXCMSSite.addPage.
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
         // support direct ID setting, useful for parent associations calculated ahead of time
@@ -1033,14 +1039,20 @@ class HAXCMSSite
             break;
         }
         $this->manifest->addItem($page);
-        try {
-            $this->manifest->save();
-        } catch (Throwable $e) {
-            // no page folder without its outline entry
+        if ($bulk) {
             if (!$folderExisted) {
-                $this->removeCreatedPageFolder($location);
+                $bulk->createdFolders[] = $location;
             }
-            throw $e;
+        } else {
+            try {
+                $this->manifest->save();
+            } catch (Throwable $e) {
+                // no page folder without its outline entry
+                if (!$folderExisted) {
+                    $this->removeCreatedPageFolder($location);
+                }
+                throw $e;
+            }
         }
         // support direct HTML setting
         $alternateContent = '';
@@ -1069,13 +1081,32 @@ class HAXCMSSite
           $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
             ? $materialized['uuids']
             : array();
-          if (count($page->metadata->files) > 0) {
+          if (count($page->metadata->files) > 0 && !$bulk) {
             $this->manifest->save();
           }
         }
         $this->writePageAlternateFormats($page, $alternateContent);
-        $this->updateAlternateFormats();
+        if (!$bulk) {
+            $this->updateAlternateFormats();
+        }
         return $page;
+    }
+    /**
+     * End a bulk add (see addPage's $bulk argument): write site.json once and
+     * rebuild the generated files once. If the write fails, the page folders
+     * this bulk created are removed (no page folder without its outline
+     * entry) and the error is thrown. Mirrors NodeJS finishBulkAddPages.
+     */
+    public function finishBulkAddPages($bulk) {
+        try {
+            $this->manifest->save();
+        } catch (Throwable $e) {
+            foreach ($bulk->createdFolders as $folder) {
+                $this->removeCreatedPageFolder($folder);
+            }
+            throw $e;
+        }
+        $this->updateAlternateFormats();
     }
     /**
      * Save the site, though this basically is just a mapping to the manifest site.json saving
