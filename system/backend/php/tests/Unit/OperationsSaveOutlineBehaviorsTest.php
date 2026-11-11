@@ -463,14 +463,21 @@ class OperationsSaveOutlineBehaviorsTest extends TestCase
     public function testDeleteNodeRemovesThePage(): void
     {
         $this->buildTwoPageSite();
+        $this->assertArrayHasKey('items', $this->save(array(
+            $this->sent($this->byTitle('A')),
+            $this->sent($this->byTitle('B')),
+            $this->newPage('c', 'C', array('order' => 2)),
+        )));
         $site = $this->reloadSite();
+        // the manifest lists C (order 2), B, A (order 0)
+        $site->manifest->items = array_reverse($site->manifest->items);
         foreach ($site->manifest->items as $item) {
-            if ($item->title === 'A') {
-                $a = $item;
+            if ($item->title === 'B') {
+                $b = $item;
             }
         }
-        $this->assertTrue($site->deleteNode($a));
-        $this->assertSame(array('B'), $this->titles());
+        $this->assertTrue($site->deleteNode($b));
+        $this->assertSame(array('C', 'A'), $this->titles(), 'persisted without re-sorting the outline');
     }
 
     // =========================================================================
