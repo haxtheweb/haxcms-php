@@ -155,13 +155,29 @@ if (!function_exists('haxcmsMagicLinkRateKey')) {
 }
 
 return function ($context) {
-    // Turned off (e.g. HAXiam behind OAuth/SSO): behave as if the endpoint
-    // doesn't exist. No confirmation page, no hint a recovery path exists.
+    // Security (SEC-MAGICLINK): when the feature is off (e.g. HAXiam behind
+    // OAuth/SSO) the endpoint must be indistinguishable from a route that
+    // doesn't exist, so answer exactly as SystemApiRouter does for an unknown
+    // route, before setting any header of our own.
     if (!MagicLinkService::isEnabled($GLOBALS['HAXCMS'])) {
-        return haxcmsMagicLinkJson(404, array(
-            'status' => 404,
-            'data' => array('message' => 'Not found'),
-        ));
+        $unknown = array(
+            'message' => 'Unknown system API route',
+            'route' => $context->routeSuffix,
+        );
+        if (!empty($GLOBALS['HAXCMS_MAGIC_LINK_TEST_CAPTURE'])) {
+            return array('status' => 404, 'headers' => array(), 'body' => $unknown, 'unknownRoute' => true);
+        }
+        SiteRouteUtils::sendFormattedResponse(
+            $unknown,
+            array(
+                'statusCode' => 404,
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+            ),
+            is_string($context->routeSuffix) ? $context->routeSuffix : '',
+            $context->apiBasePath
+        );
+        return true;
     }
     $generic = array(
         'page' => 'This sign-in link is invalid or has expired. Generate a new one and try again.',

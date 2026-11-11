@@ -208,12 +208,14 @@ paths:
         security.magicLink.enabled=false on single-site / self-hosted multisite.
       security: []
       parameters:
+        # no required/pattern here on purpose: the handler validates the
+        # token itself, after checking the feature is on, so a switched-off
+        # endpoint answers exactly like a route that doesn't exist
         - name: token
           in: query
-          required: true
+          required: false
           schema:
             type: string
-            pattern: "^[A-Za-z0-9_-]{12,64}\\.[A-Za-z0-9_-]{32,128}$"
       responses:
         "200":
           description: Confirmation page

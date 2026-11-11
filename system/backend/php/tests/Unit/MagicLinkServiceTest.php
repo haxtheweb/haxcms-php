@@ -417,9 +417,14 @@ class MagicLinkServiceTest extends TestCase
         $_GET['token'] = $issued['token'];
         $get = $this->route('GET');
         $this->assertSame(404, $get['status']);
-        $this->assertStringNotContainsString('<form', $get['body']);
+        // exactly what SystemApiRouter answers for an unknown route, and no
+        // headers of the route's own
+        $this->assertTrue($get['unknownRoute']);
+        $this->assertSame(array('message' => 'Unknown system API route', 'route' => 'v1/session/magic-link'), $get['body']);
+        $this->assertSame(array(), $get['headers']);
         $post = $this->route('POST', array('token' => $issued['token']));
         $this->assertSame(404, $post['status']);
+        $this->assertTrue($post['unknownRoute']);
         $this->assertSame(array(), $this->haxcms->cookies);
         unset($_SERVER['REDIRECT_HAXCMS_MAGIC_LINK_DISABLED']);
         // a HAXiam tenant without the operator opt-in is the same 404
