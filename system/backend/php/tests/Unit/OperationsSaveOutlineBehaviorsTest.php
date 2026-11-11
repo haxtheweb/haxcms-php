@@ -525,6 +525,70 @@ class OperationsSaveOutlineBehaviorsTest extends TestCase
             'the sidecar files are written'
         );
     }
+
+    #[TestDox("alternate formats: a save that sends no contents leaves an existing page's sidecar files alone")]
+    public function testASaveWithoutContentsLeavesExistingSidecarsAlone(): void
+    {
+        $this->buildTwoPageSite();
+        $a = $this->byTitle('A');
+        $result = $this->save(array(
+            $this->sent($a, array('title' => 'A renamed')),
+            $this->sent($this->byTitle('B')),
+        ));
+        $this->assertArrayHasKey('items', $result);
+        $this->assertSame(array(), $this->haxcms->loadedSite->alternateFormatsWritten);
+    }
+
+    // =========================================================================
+    // contents
+    // =========================================================================
+
+    #[TestDox('contents: null or empty contents leave the page as it is')]
+    public function testNullOrEmptyContentsLeaveThePageAlone(): void
+    {
+        $this->buildTwoPageSite();
+        $a = $this->byTitle('A');
+        $b = $this->byTitle('B');
+        $result = $this->save(array(
+            $this->sent($a, array('contents' => null)),
+            $this->sent($b, array('contents' => '')),
+        ));
+        $this->assertArrayHasKey('items', $result);
+        $this->assertSame('<p>Content of A</p>', file_get_contents($this->siteDir() . '/' . $a->location));
+        $this->assertSame('<p>Content of B</p>', file_get_contents($this->siteDir() . '/' . $b->location));
+    }
+
+    // =========================================================================
+    // failure
+    // =========================================================================
+
+    #[TestDox('failure: a crash on the first page writes nothing')]
+    public function testACrashOnTheFirstPageWritesNothing(): void
+    {
+        $this->buildTwoPageSite();
+        $a = $this->byTitle('A');
+        // A's page file is gone, so the save re-creates it from the
+        // boilerplate, and that copy fails
+        unlink($this->siteDir() . '/' . $a->location);
+        rmdir(dirname($this->siteDir() . '/' . $a->location));
+        $siteJson = file_get_contents($this->siteDir() . '/site.json');
+        SaveOutlineBehaviorsTestSite::$failCopy = true;
+        $thrown = null;
+        try {
+            $this->save(array(
+                $this->sent($a, array('title' => 'A renamed')),
+                $this->sent($this->byTitle('B')),
+            ));
+        } catch (Throwable $e) {
+            $thrown = $e;
+        } finally {
+            SaveOutlineBehaviorsTestSite::$failCopy = false;
+        }
+        $this->assertNotNull($thrown, 'the failure propagates');
+        $this->assertSame('copy failed', $thrown->getMessage());
+        $this->assertSame($siteJson, file_get_contents($this->siteDir() . '/site.json'), 'site.json untouched');
+        $this->assertSame(0, $this->haxcms->loadedSite->feedRebuilds, 'the feeds are not rebuilt');
+    }
 }
 
 /**
@@ -563,8 +627,12 @@ class SaveOutlineBehaviorsTestSite extends HAXCMSSite
         return null;
     }
 
+    public $feedRebuilds = 0;
+    public static $failCopy = false;
+
     public function updateAlternateFormats($format = null)
     {
+        $this->feedRebuilds++;
         return null;
     }
 
@@ -572,5 +640,13 @@ class SaveOutlineBehaviorsTestSite extends HAXCMSSite
     {
         $this->alternateFormatsWritten[] = is_object($page) ? $page->id : strval($page);
         return true;
+    }
+
+    public function recurseCopy($src, $dst, $skip = array())
+    {
+        if (self::$failCopy) {
+            throw new RuntimeException('copy failed');
+        }
+        return parent::recurseCopy($src, $dst, $skip);
     }
 }
