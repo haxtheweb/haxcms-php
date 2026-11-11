@@ -44,7 +44,7 @@ DirectoryIndex index.php index.html
 # Various rewrite rules.
 <IfModule mod_rewrite.c>
   RewriteEngine on
-  # Security (H-1): never serve anything inside a dot-directory or dotfile
+  # Security (SEC-DEPLOY): never serve anything inside a dot-directory or dotfile
   # over HTTP (this site's .git history, .github, ...). Repeated here because
   # "RewriteEngine on" in this file stops the HAXcms root .htaccess rewrite
   # rules from applying inside the site directory, and the site may also be

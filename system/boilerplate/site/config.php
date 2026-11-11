@@ -235,7 +235,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
         if ($this->pageNotFound && !headers_sent()) {
           http_response_code(404);
         }
-        // Security (N6): site.json may come from an untrusted import, so every
+        // Security (SEC-SANITIZE): site.json may come from an untrusted import, so every
         // manifest-derived value printed by index.php is encoded for its
         // context, matching lib/HAXSiteConfig.php in multi-site mode.
         if (isset($this->manifest->metadata->theme->variables->cssVariable)) {
@@ -245,7 +245,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
     }
     /**
-     * Security (N6): only a bare CSS custom-property name may be wrapped in
+     * Security (SEC-SANITIZE): only a bare CSS custom-property name may be wrapped in
      * var(); anything else (e.g. a value that closes the <style> block) falls
      * back to the default accent color.
      */
@@ -256,13 +256,13 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return '#FF2222';
     }
     /**
-     * Security (N6): HTML-attribute encode a value for output.
+     * Security (SEC-SANITIZE): HTML-attribute encode a value for output.
      */
     protected function esc($value) {
       return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     }
     /**
-     * Security (N6): sanitize a URL that is printed into an attribute. Only
+     * Security (SEC-SANITIZE): sanitize a URL that is printed into an attribute. Only
      * http(s) and scheme-less (relative) URLs survive; FILTER_SANITIZE_URL
      * alone permits javascript: and data: schemes. Returns '' when unsafe.
      */
@@ -277,9 +277,9 @@ if (!isset($GLOBALS['HAXCMS'])) {
       return $url;
     }
     /**
-     * Security (N7): resolve a page location to a real, containment-proven
+     * Security (SEC-PATH): resolve a page location to a real, containment-proven
      * path inside this site directory, or false. Mirrors
-     * HAXCMSSite::resolvePageLocationRealPath (N5): null-byte and ..-segment
+     * HAXCMSSite::resolvePageLocationRealPath: null-byte and ..-segment
      * reject plus realpath containment.
      */
     protected function resolvePageLocationRealPath($location) {
@@ -329,7 +329,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * @return string HTML blob for hte <base> tag
      */
     public function getBaseTag() {
-      // Security (SEC-09): escape basePath (derived from REQUEST_URI) so a
+      // Security (SEC-SANITIZE): escape basePath (derived from REQUEST_URI) so a
       // crafted URL cannot break out of the href attribute (reflected XSS).
       return '<base href="' . htmlspecialchars($this->basePath, ENT_QUOTES, 'UTF-8') . '" />';
     }
@@ -348,7 +348,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * Language of the site
      */
     public function getLanguage() {
-      // Security (N6): printed into <html lang="...">, so encode at output.
+      // Security (SEC-SANITIZE): printed into <html lang="...">, so encode at output.
       if (isset($this->manifest->metadata->site->settings->lang) && $this->manifest->metadata->site->settings->lang != "" && $this->manifest->metadata->site->settings->lang != null) {
         return $this->esc($this->manifest->metadata->site->settings->lang);
       }
@@ -405,7 +405,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       $contentPreload = '';
       $wcMap = $this->getWCRegistryJson($base);
-      // Security (N6): $base is only used to build HTML attributes from here on
+      // Security (SEC-SANITIZE): $base is only used to build HTML attributes from here on
       $base = $this->esc($base);
       foreach ($preloadTags as $tag) {
         // means the tag is known in our registry
@@ -456,7 +456,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       else {
         $canonical = '';
       }
-      // Security (N6): an unsafe canonical URL is dropped rather than emitted empty
+      // Security (SEC-SANITIZE): an unsafe canonical URL is dropped rather than emitted empty
       if (strpos($canonical, 'href=""') !== FALSE) {
         $canonical = '';
       }
@@ -1064,7 +1064,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
       if (isset($page->location) && $page->location != '') {
         $content = &$this->staticCache(__FUNCTION__ . $page->location);
         if (!isset($content)) {
-          // Security (N7): page.location comes from site.json, which may be
+          // Security (SEC-PATH): page.location comes from site.json, which may be
           // untrusted; only read files proven to live inside the site directory
           $resolved = $this->resolvePageLocationRealPath($page->location);
           $content = ($resolved !== false) ? (string) file_get_contents($resolved) : '';
@@ -1144,7 +1144,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * any global setting. Useful for locally developed custom builds.
      */
     public function getCDNForDynamic() {
-      // Security (N6): dynamicCDN is printed into a <script src> and a JS
+      // Security (SEC-SANITIZE): dynamicCDN is printed into a <script src> and a JS
       // string by index.php; accept only http(s) or relative path prefixes.
       if (isset($this->manifest->metadata->site->dynamicCDN)) {
         $cdn = $this->manifest->metadata->site->dynamicCDN;
@@ -1171,7 +1171,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
      */
     public function getGaCode() {
       $gaID = $this->getGaID();
-      // Security (SEC-06): validate gaID format and escape for both the HTML
+      // Security (SEC-SANITIZE): validate gaID format and escape for both the HTML
       // attribute and the JS string so a crafted analytics ID cannot cause XSS.
       if (!is_null($gaID) && $gaID !== '' && preg_match('/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/', $gaID)) {
         $attrID = htmlspecialchars($gaID, ENT_QUOTES, 'UTF-8');

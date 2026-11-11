@@ -25,11 +25,6 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #1
 
-@haxtheweb/a11y-behaviors
-  build path:  es6/node_modules/@haxtheweb/a11y-behaviors
-  license:     Apache-2.0
-  attribution: see license text #2
-
 @haxtheweb/a11y-carousel
   build path:  es6/node_modules/@haxtheweb/a11y-carousel
   license:     Apache-2.0
@@ -75,11 +70,6 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #4
 
-@haxtheweb/a11y-utils
-  build path:  es6/node_modules/@haxtheweb/a11y-utils
-  license:     Apache-2.0
-  attribution: see license text #5
-
 @haxtheweb/absolute-position-behavior
   build path:  es6/node_modules/@haxtheweb/absolute-position-behavior
   license:     Apache-2.0
@@ -98,7 +88,7 @@ PACKAGE INDEX
 @haxtheweb/ai-usage-license
   build path:  es6/node_modules/@haxtheweb/ai-usage-license
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/air-horn
   build path:  es6/node_modules/@haxtheweb/air-horn
@@ -113,17 +103,17 @@ PACKAGE INDEX
 @haxtheweb/app-hax
   build path:  es6/node_modules/@haxtheweb/app-hax
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/audio-player
   build path:  es6/node_modules/@haxtheweb/audio-player
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/author-card
   build path:  es6/node_modules/@haxtheweb/author-card
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/awesome-explosion
   build path:  es6/node_modules/@haxtheweb/awesome-explosion
@@ -133,7 +123,7 @@ PACKAGE INDEX
 @haxtheweb/b-r
   build path:  es6/node_modules/@haxtheweb/b-r
   license:     Apache-2.0
-  attribution: see license text #10
+  attribution: see license text #9
 
 @haxtheweb/baseline-build-hax
   build path:  es6/node_modules/@haxtheweb/baseline-build-hax
@@ -148,7 +138,7 @@ PACKAGE INDEX
 @haxtheweb/bibliography-builder
   build path:  es6/node_modules/@haxtheweb/bibliography-builder
   license:     Apache-2.0
-  attribution: see license text #11
+  attribution: see license text #10
 
 @haxtheweb/bootstrap-theme
   build path:  es6/node_modules/@haxtheweb/bootstrap-theme
@@ -163,22 +153,17 @@ PACKAGE INDEX
 @haxtheweb/career-timeline
   build path:  es6/node_modules/@haxtheweb/career-timeline
   license:     Apache-2.0
-  attribution: see license text #11
+  attribution: see license text #10
 
 @haxtheweb/chamfer-theme
   build path:  es6/node_modules/@haxtheweb/chamfer-theme
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/chartist-render
   build path:  es6/node_modules/@haxtheweb/chartist-render
   license:     Apache-2.0
   attribution: see license text #2
-
-@haxtheweb/chat-agent
-  build path:  es6/node_modules/@haxtheweb/chat-agent
-  license:     Apache-2.0
-  attribution: see license text #12
 
 @haxtheweb/citation-element
   build path:  es6/node_modules/@haxtheweb/citation-element
@@ -193,7 +178,7 @@ PACKAGE INDEX
 @haxtheweb/clean-portfolio-theme
   build path:  es6/node_modules/@haxtheweb/clean-portfolio-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/clean-two
   build path:  es6/node_modules/@haxtheweb/clean-two
@@ -218,7 +203,7 @@ PACKAGE INDEX
 @haxtheweb/collection-list
   build path:  es6/node_modules/@haxtheweb/collection-list
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/count-up
   build path:  es6/node_modules/@haxtheweb/count-up
@@ -228,12 +213,12 @@ PACKAGE INDEX
 @haxtheweb/course-design
   build path:  es6/node_modules/@haxtheweb/course-design
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/course-model
   build path:  es6/node_modules/@haxtheweb/course-model
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/csv-render
   build path:  es6/node_modules/@haxtheweb/csv-render
@@ -243,12 +228,12 @@ PACKAGE INDEX
 @haxtheweb/d-d-d
   build path:  es6/node_modules/@haxtheweb/d-d-d
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/d-d-docs
   build path:  es6/node_modules/@haxtheweb/d-d-docs
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/date-card
   build path:  es6/node_modules/@haxtheweb/date-card
@@ -263,27 +248,22 @@ PACKAGE INDEX
 @haxtheweb/demo-snippet
   build path:  es6/node_modules/@haxtheweb/demo-snippet
   license:     Apache-2.0
-  attribution: see license text #16
+  attribution: see license text #15
 
 @haxtheweb/discord-embed
   build path:  es6/node_modules/@haxtheweb/discord-embed
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/disqus-embed
   build path:  es6/node_modules/@haxtheweb/disqus-embed
   license:     Apache-2.0
-  attribution: see license text #14
-
-@haxtheweb/dl-behavior
-  build path:  es6/node_modules/@haxtheweb/dl-behavior
-  license:     Apache-2.0
-  attribution: see license text #2
+  attribution: see license text #13
 
 @haxtheweb/documentation-player
   build path:  es6/node_modules/@haxtheweb/documentation-player
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/dynamic-import-registry
   build path:  es6/node_modules/@haxtheweb/dynamic-import-registry
@@ -303,7 +283,7 @@ PACKAGE INDEX
 @haxtheweb/enhanced-text
   build path:  es6/node_modules/@haxtheweb/enhanced-text
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/es-global-bridge
   build path:  es6/node_modules/@haxtheweb/es-global-bridge
@@ -313,37 +293,37 @@ PACKAGE INDEX
 @haxtheweb/event-badge
   build path:  es6/node_modules/@haxtheweb/event-badge
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/example-hax-element
   build path:  es6/node_modules/@haxtheweb/example-hax-element
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/example-haxcms-theme
   build path:  es6/node_modules/@haxtheweb/example-haxcms-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/figure-label
   build path:  es6/node_modules/@haxtheweb/figure-label
   license:     Apache-2.0
-  attribution: see license text #17
+  attribution: see license text #16
 
 @haxtheweb/file-system-broker
   build path:  es6/node_modules/@haxtheweb/file-system-broker
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/fill-in-the-blanks
   build path:  es6/node_modules/@haxtheweb/fill-in-the-blanks
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/flash-card
   build path:  es6/node_modules/@haxtheweb/flash-card
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/full-width-image
   build path:  es6/node_modules/@haxtheweb/full-width-image
@@ -358,7 +338,7 @@ PACKAGE INDEX
 @haxtheweb/future-terminal-text
   build path:  es6/node_modules/@haxtheweb/future-terminal-text
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/git-corner
   build path:  es6/node_modules/@haxtheweb/git-corner
@@ -373,12 +353,12 @@ PACKAGE INDEX
 @haxtheweb/glossy-portfolio-theme
   build path:  es6/node_modules/@haxtheweb/glossy-portfolio-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/grade-book
   build path:  es6/node_modules/@haxtheweb/grade-book
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/grid-plate
   build path:  es6/node_modules/@haxtheweb/grid-plate
@@ -403,7 +383,7 @@ PACKAGE INDEX
 @haxtheweb/hax-app-installer
   build path:  es6/node_modules/@haxtheweb/hax-app-installer
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/hax-body
   build path:  es6/node_modules/@haxtheweb/hax-body
@@ -433,7 +413,7 @@ PACKAGE INDEX
 @haxtheweb/haxma-theme
   build path:  es6/node_modules/@haxtheweb/haxma-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/haxor-slevin
   build path:  es6/node_modules/@haxtheweb/haxor-slevin
@@ -458,17 +438,17 @@ PACKAGE INDEX
 @haxtheweb/i18n-manager
   build path:  es6/node_modules/@haxtheweb/i18n-manager
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/ics-render
   build path:  es6/node_modules/@haxtheweb/ics-render
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/iframe-loader
   build path:  es6/node_modules/@haxtheweb/iframe-loader
   license:     Apache-2.0
-  attribution: see license text #18
+  attribution: see license text #17
 
 @haxtheweb/image-compare-slider
   build path:  es6/node_modules/@haxtheweb/image-compare-slider
@@ -498,12 +478,12 @@ PACKAGE INDEX
 @haxtheweb/inline-audio
   build path:  es6/node_modules/@haxtheweb/inline-audio
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/instructional-cadence
   build path:  es6/node_modules/@haxtheweb/instructional-cadence
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/intersection-element
   build path:  es6/node_modules/@haxtheweb/intersection-element
@@ -513,7 +493,7 @@ PACKAGE INDEX
 @haxtheweb/journey-theme
   build path:  es6/node_modules/@haxtheweb/journey-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/json-outline-schema
   build path:  es6/node_modules/@haxtheweb/json-outline-schema
@@ -528,7 +508,7 @@ PACKAGE INDEX
 @haxtheweb/la-tex
   build path:  es6/node_modules/@haxtheweb/la-tex
   license:     Apache-2.0
-  attribution: see license text #12
+  attribution: see license text #18
 
 @haxtheweb/lazy-image-helpers
   build path:  es6/node_modules/@haxtheweb/lazy-image-helpers
@@ -553,7 +533,7 @@ PACKAGE INDEX
 @haxtheweb/link-card-theme
   build path:  es6/node_modules/@haxtheweb/link-card-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/linkedin-embed
   build path:  es6/node_modules/@haxtheweb/linkedin-embed
@@ -598,7 +578,7 @@ PACKAGE INDEX
 @haxtheweb/lrndesign-sidenote
   build path:  es6/node_modules/@haxtheweb/lrndesign-sidenote
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/lrndesign-timeline
   build path:  es6/node_modules/@haxtheweb/lrndesign-timeline
@@ -623,12 +603,12 @@ PACKAGE INDEX
 @haxtheweb/mark-the-words
   build path:  es6/node_modules/@haxtheweb/mark-the-words
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/matching-question
   build path:  es6/node_modules/@haxtheweb/matching-question
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/md-block
   build path:  es6/node_modules/@haxtheweb/md-block
@@ -653,12 +633,12 @@ PACKAGE INDEX
 @haxtheweb/media-playlist
   build path:  es6/node_modules/@haxtheweb/media-playlist
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/media-quote
   build path:  es6/node_modules/@haxtheweb/media-quote
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/meme-maker
   build path:  es6/node_modules/@haxtheweb/meme-maker
@@ -668,17 +648,17 @@ PACKAGE INDEX
 @haxtheweb/merit-badge
   build path:  es6/node_modules/@haxtheweb/merit-badge
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/micro-frontend-registry
   build path:  es6/node_modules/@haxtheweb/micro-frontend-registry
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/micro-game-base
   build path:  es6/node_modules/@haxtheweb/micro-game-base
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/moar-sarcasm
   build path:  es6/node_modules/@haxtheweb/moar-sarcasm
@@ -723,7 +703,7 @@ PACKAGE INDEX
 @haxtheweb/page-break
   build path:  es6/node_modules/@haxtheweb/page-break
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/page-contents-menu
   build path:  es6/node_modules/@haxtheweb/page-contents-menu
@@ -733,12 +713,12 @@ PACKAGE INDEX
 @haxtheweb/page-flag
   build path:  es6/node_modules/@haxtheweb/page-flag
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/page-section
   build path:  es6/node_modules/@haxtheweb/page-section
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/paper-input-flagged
   build path:  es6/node_modules/@haxtheweb/paper-input-flagged
@@ -768,12 +748,12 @@ PACKAGE INDEX
 @haxtheweb/play-list
   build path:  es6/node_modules/@haxtheweb/play-list
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/polaris-theme
   build path:  es6/node_modules/@haxtheweb/polaris-theme
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/portal-launcher
   build path:  es6/node_modules/@haxtheweb/portal-launcher
@@ -783,7 +763,7 @@ PACKAGE INDEX
 @haxtheweb/post-card
   build path:  es6/node_modules/@haxtheweb/post-card
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/pouch-db
   build path:  es6/node_modules/@haxtheweb/pouch-db
@@ -793,12 +773,12 @@ PACKAGE INDEX
 @haxtheweb/product-glance
   build path:  es6/node_modules/@haxtheweb/product-glance
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/product-offering
   build path:  es6/node_modules/@haxtheweb/product-offering
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/progress-donut
   build path:  es6/node_modules/@haxtheweb/progress-donut
@@ -808,7 +788,7 @@ PACKAGE INDEX
 @haxtheweb/promise-progress
   build path:  es6/node_modules/@haxtheweb/promise-progress
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/q-r
   build path:  es6/node_modules/@haxtheweb/q-r
@@ -818,7 +798,7 @@ PACKAGE INDEX
 @haxtheweb/radar-chart
   build path:  es6/node_modules/@haxtheweb/radar-chart
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/radio-behaviors
   build path:  es6/node_modules/@haxtheweb/radio-behaviors
@@ -828,7 +808,7 @@ PACKAGE INDEX
 @haxtheweb/reading-analysis
   build path:  es6/node_modules/@haxtheweb/reading-analysis
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/relative-heading
   build path:  es6/node_modules/@haxtheweb/relative-heading
@@ -838,7 +818,7 @@ PACKAGE INDEX
 @haxtheweb/replace-tag
   build path:  es6/node_modules/@haxtheweb/replace-tag
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/responsive-grid
   build path:  es6/node_modules/@haxtheweb/responsive-grid
@@ -853,7 +833,7 @@ PACKAGE INDEX
 @haxtheweb/resume-theme
   build path:  es6/node_modules/@haxtheweb/resume-theme
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/retro-card
   build path:  es6/node_modules/@haxtheweb/retro-card
@@ -868,7 +848,7 @@ PACKAGE INDEX
 @haxtheweb/rpg-character
   build path:  es6/node_modules/@haxtheweb/rpg-character
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/schema-behaviors
   build path:  es6/node_modules/@haxtheweb/schema-behaviors
@@ -878,7 +858,7 @@ PACKAGE INDEX
 @haxtheweb/screen-recorder
   build path:  es6/node_modules/@haxtheweb/screen-recorder
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/scroll-button
   build path:  es6/node_modules/@haxtheweb/scroll-button
@@ -893,17 +873,17 @@ PACKAGE INDEX
 @haxtheweb/self-reflective-nudge
   build path:  es6/node_modules/@haxtheweb/self-reflective-nudge
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/shadow-style
   build path:  es6/node_modules/@haxtheweb/shadow-style
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/sheet-music
   build path:  es6/node_modules/@haxtheweb/sheet-music
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/simple-autocomplete
   build path:  es6/node_modules/@haxtheweb/simple-autocomplete
@@ -938,7 +918,7 @@ PACKAGE INDEX
 @haxtheweb/simple-emoji
   build path:  es6/node_modules/@haxtheweb/simple-emoji
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/simple-fields
   build path:  es6/node_modules/@haxtheweb/simple-fields
@@ -963,7 +943,7 @@ PACKAGE INDEX
 @haxtheweb/simple-img
   build path:  es6/node_modules/@haxtheweb/simple-img
   license:     Apache-2.0
-  attribution: see license text #7
+  attribution: see license text #6
 
 @haxtheweb/simple-login
   build path:  es6/node_modules/@haxtheweb/simple-login
@@ -978,7 +958,7 @@ PACKAGE INDEX
 @haxtheweb/simple-pager
   build path:  es6/node_modules/@haxtheweb/simple-pager
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/simple-picker
   build path:  es6/node_modules/@haxtheweb/simple-picker
@@ -1013,22 +993,17 @@ PACKAGE INDEX
 @haxtheweb/simple-toolbar
   build path:  es6/node_modules/@haxtheweb/simple-toolbar
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/simple-tooltip
   build path:  es6/node_modules/@haxtheweb/simple-tooltip
   license:     Apache-2.0
   attribution: see license text #3
 
-@haxtheweb/simple-wc
-  build path:  es6/node_modules/@haxtheweb/simple-wc
-  license:     Apache-2.0
-  attribution: see license text #4
-
 @haxtheweb/slide-deck
   build path:  es6/node_modules/@haxtheweb/slide-deck
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/social-share-link
   build path:  es6/node_modules/@haxtheweb/social-share-link
@@ -1038,22 +1013,22 @@ PACKAGE INDEX
 @haxtheweb/sorting-question
   build path:  es6/node_modules/@haxtheweb/sorting-question
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/spacebook-theme
   build path:  es6/node_modules/@haxtheweb/spacebook-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/spotify-embed
   build path:  es6/node_modules/@haxtheweb/spotify-embed
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/star-rating
   build path:  es6/node_modules/@haxtheweb/star-rating
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/stop-note
   build path:  es6/node_modules/@haxtheweb/stop-note
@@ -1063,32 +1038,32 @@ PACKAGE INDEX
 @haxtheweb/super-daemon
   build path:  es6/node_modules/@haxtheweb/super-daemon
   license:     Apache-2.0
-  attribution: see license text #8
+  attribution: see license text #7
 
 @haxtheweb/tableau-embed
   build path:  es6/node_modules/@haxtheweb/tableau-embed
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/tagging-question
   build path:  es6/node_modules/@haxtheweb/tagging-question
   license:     Apache-2.0
-  attribution: see license text #14
+  attribution: see license text #13
 
 @haxtheweb/terrible-themes
   build path:  es6/node_modules/@haxtheweb/terrible-themes
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/training-theme
   build path:  es6/node_modules/@haxtheweb/training-theme
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/twenty-six-theme
   build path:  es6/node_modules/@haxtheweb/twenty-six-theme
   license:     Apache-2.0
-  attribution: see license text #9
+  attribution: see license text #8
 
 @haxtheweb/twitter-embed
   build path:  es6/node_modules/@haxtheweb/twitter-embed
@@ -1103,7 +1078,7 @@ PACKAGE INDEX
 @haxtheweb/un-sdg
   build path:  es6/node_modules/@haxtheweb/un-sdg
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/undo-manager
   build path:  es6/node_modules/@haxtheweb/undo-manager
@@ -1113,7 +1088,7 @@ PACKAGE INDEX
 @haxtheweb/unity-webgl
   build path:  es6/node_modules/@haxtheweb/unity-webgl
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/user-action
   build path:  es6/node_modules/@haxtheweb/user-action
@@ -1123,7 +1098,7 @@ PACKAGE INDEX
 @haxtheweb/user-scaffold
   build path:  es6/node_modules/@haxtheweb/user-scaffold
   license:     Apache-2.0
-  attribution: see license text #13
+  attribution: see license text #11
 
 @haxtheweb/utils
   build path:  es6/node_modules/@haxtheweb/utils
@@ -1133,7 +1108,7 @@ PACKAGE INDEX
 @haxtheweb/vcf-render
   build path:  es6/node_modules/@haxtheweb/vcf-render
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/video-player
   build path:  es6/node_modules/@haxtheweb/video-player
@@ -1143,7 +1118,7 @@ PACKAGE INDEX
 @haxtheweb/vocab-term
   build path:  es6/node_modules/@haxtheweb/vocab-term
   license:     Apache-2.0
-  attribution: see license text #5
+  attribution: see license text #12
 
 @haxtheweb/voice-recorder
   build path:  es6/node_modules/@haxtheweb/voice-recorder
@@ -1158,12 +1133,12 @@ PACKAGE INDEX
 @haxtheweb/web-baseline-status
   build path:  es6/node_modules/@haxtheweb/web-baseline-status
   license:     Apache-2.0
-  attribution: see license text #6
+  attribution: see license text #5
 
 @haxtheweb/web-container
   build path:  es6/node_modules/@haxtheweb/web-container
   license:     Apache-2.0
-  attribution: see license text #15
+  attribution: see license text #14
 
 @haxtheweb/wikipedia-query
   build path:  es6/node_modules/@haxtheweb/wikipedia-query
@@ -1508,7 +1483,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#2 - Apache-2.0 (shared by 81 packages)
+#2 - Apache-2.0 (shared by 79 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -1922,7 +1897,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#4 - Apache-2.0 (shared by 32 packages)
+#4 - Apache-2.0 (shared by 31 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2129,214 +2104,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#5 - Apache-2.0 (shared by 19 packages)
-source files: LICENSE
---------------------------------------------------------------------------------
----- LICENSE ----
-                     Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright 2021 The Pennsylvania State University
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
---------------------------------------------------------------------------------
-#6 - Apache-2.0 (shared by 18 packages)
+#5 - Apache-2.0 (shared by 18 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2543,7 +2311,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#7 - Apache-2.0 (shared by 6 packages)
+#6 - Apache-2.0 (shared by 6 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2750,7 +2518,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#8 - Apache-2.0 (shared by 8 packages)
+#7 - Apache-2.0 (shared by 8 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -2957,7 +2725,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#9 - Apache-2.0 (shared by 11 packages)
+#8 - Apache-2.0 (shared by 11 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3164,7 +2932,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#10 - Apache-2.0 - @haxtheweb/b-r
+#9 - Apache-2.0 - @haxtheweb/b-r
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3371,7 +3139,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#11 - Apache-2.0 (shared by 2 packages)
+#10 - Apache-2.0 (shared by 2 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3578,214 +3346,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#12 - Apache-2.0 (shared by 2 packages)
-source files: LICENSE
---------------------------------------------------------------------------------
----- LICENSE ----
-                     Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright 2024 The Pennsylvania State University
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
---------------------------------------------------------------------------------
-#13 - Apache-2.0 (shared by 10 packages)
+#11 - Apache-2.0 (shared by 10 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -3992,7 +3553,214 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#14 - Apache-2.0 (shared by 6 packages)
+#12 - Apache-2.0 (shared by 18 packages)
+source files: LICENSE
+--------------------------------------------------------------------------------
+---- LICENSE ----
+                     Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright 2021 The Pennsylvania State University
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+--------------------------------------------------------------------------------
+#13 - Apache-2.0 (shared by 6 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4199,7 +3967,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#15 - Apache-2.0 (shared by 3 packages)
+#14 - Apache-2.0 (shared by 3 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4406,7 +4174,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#16 - Apache-2.0 - @haxtheweb/demo-snippet
+#15 - Apache-2.0 - @haxtheweb/demo-snippet
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4613,7 +4381,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#17 - Apache-2.0 - @haxtheweb/figure-label
+#16 - Apache-2.0 - @haxtheweb/figure-label
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -4820,7 +4588,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#18 - Apache-2.0 - @haxtheweb/iframe-loader
+#17 - Apache-2.0 - @haxtheweb/iframe-loader
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
@@ -5013,6 +4781,213 @@ source files: LICENSE
       identification within third-party archives.
 
    Copyright 2020 PSU
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+--------------------------------------------------------------------------------
+#18 - Apache-2.0 - @haxtheweb/la-tex
+source files: LICENSE
+--------------------------------------------------------------------------------
+---- LICENSE ----
+                     Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright 2024 The Pennsylvania State University
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
