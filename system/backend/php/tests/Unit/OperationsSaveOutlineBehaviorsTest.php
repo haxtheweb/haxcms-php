@@ -589,6 +589,69 @@ class OperationsSaveOutlineBehaviorsTest extends TestCase
         $this->assertSame($siteJson, file_get_contents($this->siteDir() . '/site.json'), 'site.json untouched');
         $this->assertSame(0, $this->haxcms->loadedSite->feedRebuilds, 'the feeds are not rebuilt');
     }
+
+    #[TestDox("failure: a crash after the structure is saved keeps the new pages' folders")]
+    public function testACrashAfterTheStructureIsSavedKeepsNewFolders(): void
+    {
+        $this->buildTwoPageSite();
+        // the delete pass fails after the outline (with the new page) was written
+        SaveOutlineBehaviorsTestSite::$failCommitPrefix = 'Page deleted';
+        $thrown = null;
+        try {
+            $this->save(array(
+                $this->sent($this->byTitle('A')),
+                $this->sent($this->byTitle('B'), array('delete' => true)),
+                $this->newPage('n', 'New', array('order' => 2)),
+            ));
+        } catch (Throwable $e) {
+            $thrown = $e;
+        } finally {
+            SaveOutlineBehaviorsTestSite::$failCommitPrefix = null;
+        }
+        $this->assertNotNull($thrown, 'the failure propagates');
+        $this->assertSame('commit failed', $thrown->getMessage());
+        $created = $this->byTitle('New');
+        $this->assertNotNull($created, 'site.json lists the new page');
+        $this->assertFileExists($this->siteDir() . '/' . $created->location, 'and its page folder is still there');
+    }
+
+    // =========================================================================
+    // contents and delete, as the client sees them
+    // =========================================================================
+
+    #[TestDox('contents: new contents on an existing page rewrite its sidecar files')]
+    public function testNewContentsOnAnExistingPageRewriteItsSidecars(): void
+    {
+        $this->buildTwoPageSite();
+        $a = $this->byTitle('A');
+        $result = $this->save(array($this->sent($a, array('contents' => '<p>Rewritten body</p>'))));
+        $this->assertArrayHasKey('items', $result);
+        // (this suite's site double records the alternate format writes
+        // instead of rendering them)
+        $this->assertSame(array($a->id), $this->haxcms->loadedSite->alternateFormatsWritten);
+        $this->assertSame('<p>Rewritten body</p>', file_get_contents($this->siteDir() . '/' . $a->location));
+    }
+
+    #[TestDox('contents: contents that are not HTML are refused with a 400')]
+    public function testContentsThatAreNotHtmlAreRefused(): void
+    {
+        $this->buildTwoPageSite();
+        $a = $this->byTitle('A');
+        $result = $this->save(array($this->sent($a, array('contents' => 'just text'))));
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('invalid page contents', $result['__failed']['message']);
+        $this->assertSame('<p>Content of A</p>', file_get_contents($this->siteDir() . '/' . $a->location));
+    }
+
+    #[TestDox("delete: a deleted page is committed as 'Page deleted: <title> (<id>)'")]
+    public function testADeletedPageIsCommitted(): void
+    {
+        $this->buildTwoPageSite();
+        $b = $this->byTitle('B');
+        $result = $this->save(array($this->sent($this->byTitle('A')), $this->sent($b, array('delete' => true))));
+        $this->assertArrayHasKey('items', $result);
+        $this->assertContains('Page deleted: B (' . $b->id . ')', $this->haxcms->loadedSite->gitCommits);
+    }
 }
 
 /**
@@ -616,8 +679,13 @@ class SaveOutlineBehaviorsTestSite extends HAXCMSSite
     public $gitCommits = array();
     public $alternateFormatsWritten = array();
 
+    public static $failCommitPrefix = null;
+
     public function gitCommit($msg = 'Committed changes')
     {
+        if (self::$failCommitPrefix !== null && strpos($msg, self::$failCommitPrefix) === 0) {
+            throw new RuntimeException('commit failed');
+        }
         $this->gitCommits[] = $msg;
         return true;
     }
