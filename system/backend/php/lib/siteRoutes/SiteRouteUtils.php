@@ -536,6 +536,12 @@ class SiteRouteUtils
                 return $item;
             }
         }
+        // a slug saved with a leading "/" answers to the value without it
+        foreach (self::normalizeManifestItems($site) as $item) {
+            if (isset($item->slug) && HAXCMSSite::legacySlugMatches($item->slug, $value)) {
+                return $item;
+            }
+        }
         return null;
     }
     public static function getItemContent($site, $item)
