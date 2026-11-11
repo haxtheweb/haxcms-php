@@ -148,6 +148,24 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
         $this->assertSame(array('a', 'b', 'c'), array_values(array_diff(scandir($this->siteDir() . '/pages'), array('.', '..'))), 'no page folder created');
     }
 
+    public function testFiOut07SiteJsonThatCannotBeEncodedIsAnErrorAndLeavesSiteJsonUnchanged(): void
+    {
+        $before = $this->siteJsonBytes();
+        // something in the loaded outline that JSON cannot represent: invalid
+        // UTF-8 (haxcms-nodejs uses a circular structure). json_encode used
+        // to fail silently: nothing was written and the save answered 200.
+        $this->haxcms->loadSiteFromDisk = function () {
+            $site = $this->loadSite();
+            $site->manifest->metadata->site->bad = "bad \xB1\x31 bytes";
+            return $site;
+        };
+        $res = $this->outline($this->renameBAddN());
+        $this->assertErrorEnvelope($res, 500, 'Server error');
+        $this->assertSame($before, $this->siteJsonBytes());
+        $this->assertSame(array(), $this->orphanPageFolders());
+        $this->assertSame(array(), $this->leftoverTempFiles());
+    }
+
     public function testFiOut06SlowPageFolderCopyStillCompletes(): void
     {
         // PHP serves each request in its own process, so a slow save cannot
@@ -235,6 +253,36 @@ class FaultInjectionSaveOutlineTest extends FaultInjectionTestCase
         $this->assertErrorEnvelope($res, 400, 'Each new outline item requires its own id');
         $this->assertCount(3, $this->savedItems());
         $this->assertSame(array(), $this->orphanPageFolders());
+    }
+
+    public function testFiPay09ItemWithoutAnIdIs400(): void
+    {
+        $before = $this->siteJsonBytes();
+        $missing = array(
+            array('title' => 'No id', 'parent' => null, 'indent' => 0, 'order' => 5),
+            array('id' => null, 'title' => 'Null id', 'parent' => null, 'indent' => 0, 'order' => 5),
+            array('id' => '', 'title' => 'Empty id', 'parent' => null, 'indent' => 0, 'order' => 5),
+            array('id' => '   ', 'title' => 'Blank id', 'parent' => null, 'indent' => 0, 'order' => 5),
+            array('id' => true, 'title' => 'Boolean id', 'parent' => null, 'indent' => 0, 'order' => 5),
+            array('id' => array('x' => 1), 'title' => 'Object id', 'parent' => null, 'indent' => 0, 'order' => 5),
+        );
+        foreach ($missing as $bad) {
+            // an existing page renamed alongside it: the whole payload is refused
+            $res = $this->outline(array($this->item('b', 'B renamed', null, 1), $bad));
+            // both backends answer 400 (haxcms-nodejs fault-injection-save-outline)
+            $this->assertErrorEnvelope($res, 400, 'Each outline item requires an id');
+            $this->assertSame($before, $this->siteJsonBytes(), $bad['title']);
+            $this->assertSame(array(), $this->orphanPageFolders(), $bad['title']);
+        }
+        // the per-item checks cover the whole payload before the duplicate
+        // check, so the first problem reported is the same one Node reports
+        $res = $this->outline(array(
+            $this->item('client-x', 'X one', null, 3),
+            $this->item('client-x', 'X two', null, 4),
+            array('title' => 'No id', 'parent' => null, 'indent' => 0, 'order' => 5),
+        ));
+        $this->assertErrorEnvelope($res, 400, 'Each outline item requires an id');
+        $this->assertSame($before, $this->siteJsonBytes());
     }
 
     public function testFiPay06MissingParentIsRescuedToTheTopLevel(): void
