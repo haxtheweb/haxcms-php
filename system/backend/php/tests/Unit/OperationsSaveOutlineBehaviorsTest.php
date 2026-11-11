@@ -401,15 +401,30 @@ class OperationsSaveOutlineBehaviorsTest extends TestCase
             $this->newPage('c', 'Child', array('parent' => $parent->id, 'indent' => 1)),
         ));
         $this->assertArrayHasKey('items', $child);
-        $slug = $this->byId($child['idMap']->c)->slug;
-        if ($slug !== 'child-1') {
-            $this->markTestIncomplete(
-                "getUniqueSlugName trims the leading '/' from the slug it checks but " .
-                "numbers a clash from the untrimmed one, so the page gets '" . $slug . "'. " .
-                'Same in haxcms-nodejs HAXCMSSite.getUniqueSlugName (todo test there).'
-            );
+        $this->assertSame('child-1', $this->byId($child['idMap']->c)->slug);
+    }
+
+    #[TestDox("slugs: an empty-slug ancestor between two others adds no '//'")]
+    public function testAnEmptyMiddleAncestorSlugAddsNoDoubleSlash(): void
+    {
+        $this->buildSite(true);
+        $this->assertArrayHasKey('items', $this->save(array(
+            $this->newPage('g', 'Grand'),
+            $this->newPage('p', 'Parent', array('parent' => 'g', 'indent' => 1)),
+        )));
+        $site = $this->reloadSite();
+        foreach ($site->manifest->items as $item) {
+            if ($item->title === 'Parent') {
+                $parent = $item;
+            }
         }
-        $this->assertSame('child-1', $slug);
+        $parent->slug = '';
+        $site->manifest->save(false);
+        $child = $this->save(array(
+            $this->newPage('c', 'Child', array('parent' => $parent->id, 'indent' => 2)),
+        ));
+        $this->assertArrayHasKey('items', $child);
+        $this->assertSame('grand/child', $this->byId($child['idMap']->c)->slug);
     }
 
     // =========================================================================

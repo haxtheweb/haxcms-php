@@ -2465,6 +2465,12 @@ class HAXCMSSite
           return $item;
         }
       }
+      // a slug saved with a leading "/" answers to the path without it
+      foreach ($this->manifest->items as $item) {
+        if (isset($item->slug) && self::legacySlugMatches($item->slug, $slug)) {
+          return $item;
+        }
+      }
       return null;
     }
     /**
@@ -3326,6 +3332,15 @@ class HAXCMSSite
                 return $item;
             }
         }
+        // a slug saved with a leading "/" answers to the path without it
+        if ($opPath !== '') {
+            foreach ($this->manifest->items as $item) {
+                if (isset($item->slug) && self::legacySlugMatches($item->slug, $opPath)) {
+                    $this->lastPathLookupMiss = false;
+                    return $item;
+                }
+            }
+        }
         // fallback for home page when path is empty (root request)
         if ($opPath === '') {
             if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId)) {
@@ -3462,6 +3477,37 @@ class HAXCMSSite
         }
         return implode('/', $segments);
     }
+    /**
+     * A page slug is its non-empty "/" segments joined by "/": it never
+     * starts or ends with "/" and never holds "//". Used by
+     * getUniqueSlugName, where an ancestor with an empty slug would
+     * otherwise leave an empty segment. Mirrors joinSlugSegments in
+     * haxcms-nodejs (src/lib/slugRules.js).
+     */
+    public static function joinSlugSegments($slug)
+    {
+        $segments = array();
+        foreach (explode('/', (string) $slug) as $segment) {
+            if ($segment !== '') {
+                $segments[] = $segment;
+            }
+        }
+        return implode('/', $segments);
+    }
+    /**
+     * Lookup tolerance for slugs saved with a leading "/" (getUniqueSlugName
+     * could produce one, e.g. "/child-1"): such a stored slug answers to the
+     * same path without the leading "/". Callers try the exact slug first.
+     * Mirrors legacySlugMatches in haxcms-nodejs (src/lib/slugRules.js).
+     */
+    public static function legacySlugMatches($storedSlug, $value)
+    {
+        if (!is_string($storedSlug) || substr($storedSlug, 0, 1) !== '/') {
+            return false;
+        }
+        $trimmed = trim($storedSlug, '/');
+        return $trimmed !== '' && $trimmed === trim((string) $value, '/');
+    }
     public function getUniqueSlugName($slug, $page = null, $pathAuto = false)
     {
       $rSlug = $slug;
@@ -3481,12 +3527,11 @@ class HAXCMSSite
             array_unshift($pieces, array_pop($tmp));
         }
         $slug = implode('/', $pieces);
-        $rSlug = $slug;
       }
-      // trap for a / as 1st character if we had empty pieces
-      while (substr($rSlug, 0, 1) == "/") {
-        $rSlug = substr($rSlug, 1);
-      }
+      // an ancestor with an empty slug adds no segment: the slug, and every
+      // numbered variant of it, never starts with "/" or holds "//"
+      $slug = self::joinSlugSegments($slug);
+      $rSlug = $slug;
       // reserved front-end route segments ("x" -> "x-x")
       $slug = self::reserveSlugRoutes($slug);
       $rSlug = self::reserveSlugRoutes($rSlug);
