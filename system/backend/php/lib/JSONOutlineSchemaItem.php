@@ -97,9 +97,10 @@ class JSONOutlineSchemaItem
             $body = '<p></p>';
         }
         // Security (SEC-PATH): the destination must stay inside the
-        // supplied base directory. The previous single-pass
-        // str_replace('../','') is bypassable. Use realpath after the parent
-        // exists, plus a lexical traversal-segment reject as a pre-check.
+        // supplied base directory: no NUL byte or `..` segment, and the real
+        // path of the file (or, for a file not created yet, of its folder)
+        // is inside the real base path. A symlink is only written through
+        // when its real target is inside the base.
         if (!is_string($this->location) || $this->location === '') {
             return false;
         }
@@ -111,21 +112,33 @@ class JSONOutlineSchemaItem
         if (strpos($normalized, '../') !== false || strpos($normalized, '/..') !== false) {
             return false;
         }
+        // a page location names a file, never a folder
+        if (substr($normalized, -1) === '/') {
+            return false;
+        }
         $resolvedBase = realpath($basePath);
-        // The page file should already exist (boilerplate copied first). If it
-        // does, realpath it and prove containment before writing.
+        if ($resolvedBase === false) {
+            return false;
+        }
+        // a page is a regular file: an existing one is overwritten, a missing
+        // one is created when its folder exists (no folders are made here).
+        // Anything else at the location (a directory, a dangling symlink) is
+        // not written and answers false.
         if (file_exists($candidate)) {
             $resolved = realpath($candidate);
-            if ($resolved !== false && $resolvedBase !== false) {
-                if (!haxcmsPathWithinBase($resolved, $resolvedBase)) {
-                    return false;
-                }
-                return @file_put_contents($resolved, $body, LOCK_EX);
+            if ($resolved === false || !haxcmsPathWithinBase($resolved, $resolvedBase) || !is_file($resolved)) {
+                return false;
             }
+            return @file_put_contents($resolved, $body, LOCK_EX);
         }
-        // Fallback: file does not exist yet. The lexical traversal check above
-        // already rejected `..` segments, so writing the candidate path is safe.
-        return @file_put_contents($candidate, $body, LOCK_EX);
+        if (is_link($candidate)) {
+            return false;
+        }
+        $resolvedFolder = realpath(dirname($candidate));
+        if ($resolvedFolder === false || !is_dir($resolvedFolder) || !haxcmsPathWithinBase($resolvedFolder, $resolvedBase)) {
+            return false;
+        }
+        return @file_put_contents($resolvedFolder . '/' . basename($candidate), $body, LOCK_EX);
     }
     /**
      * Generate a UUID (RFC 4122 v4).

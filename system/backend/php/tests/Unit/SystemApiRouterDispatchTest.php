@@ -416,6 +416,27 @@ final class SystemApiRouterDispatchTest extends TestCase
         $this->assertSame('0.0.0-test', $decoded['data']['version']);
     }
 
+    /**
+     * Every system API answer is no-store except a GET/HEAD of the API
+     * description docs (NodeJS isPublicSystemApiDocRequest). The headers
+     * themselves can't be read under the CLI SAPI; this is the decision
+     * dispatch() passes to HAXCMS::sendUncachedResponseHeaders().
+     */
+    public function testOnlyApiDocReadsAreExemptFromNoStore(): void
+    {
+        foreach (array('v1', 'v1/openapi', 'v1/openapi.json', 'v1/openapi.yaml', '/v1/openapi.json/') as $suffix) {
+            $this->assertTrue(SystemApiRouter::isPublicApiDocRequest('GET', $suffix), $suffix);
+            $this->assertTrue(SystemApiRouter::isPublicApiDocRequest('head', $suffix), 'HEAD ' . $suffix);
+        }
+        foreach (array('POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS') as $method) {
+            $this->assertFalse(SystemApiRouter::isPublicApiDocRequest($method, 'v1/openapi.json'), $method);
+        }
+        foreach (array('v1/session/login', 'v1/session', 'v1/session/refresh', 'v1/session/connection-settings', 'v1/sites', 'v1/openapi.json.bak', 'v1/openapix', '') as $suffix) {
+            $this->assertFalse(SystemApiRouter::isPublicApiDocRequest('GET', $suffix), $suffix);
+        }
+        $this->assertFalse(SystemApiRouter::isPublicApiDocRequest('GET', null));
+    }
+
     public function testMatchRouteMatchesLiteralPattern(): void
     {
         $match = SystemApiRouter::matchRoute('v1/system/version', array(

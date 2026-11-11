@@ -102,7 +102,7 @@ class JSONOutlineSchema
     public function removeItem($id)
     {
         foreach ($this->items as $key => $item) {
-            if ($item->id == $id) {
+            if (self::sameOutlineId($item->id, $id)) {
                 $tmp = $this->items[$key];
                 unset($this->items[$key]);
                 return $tmp;
@@ -121,7 +121,7 @@ class JSONOutlineSchema
         $safeItem = $this->validateItem($item);
         foreach ($this->items as $key => $tmpItem) {
             // match the current item's ID to our safeItem passed in
-            if ($tmpItem->id == $safeItem->id) {
+            if (self::sameOutlineId($tmpItem->id, $safeItem->id)) {
                 // overwrite the item
                 $this->items[$key] = $safeItem;
                 // if we save, then we let that return the whole file
@@ -165,13 +165,14 @@ class JSONOutlineSchema
             if (isset($vars['items'])) {
                 foreach ($vars['items'] as $key => $item) {
                     $newItem = new JSONOutlineSchemaItem();
-                    $newItem->id = $item->id;
+                    // ids are strings (see normalizeOutlineId)
+                    $newItem->id = self::normalizeOutlineId($item->id);
                     $newItem->indent = $item->indent;
                     $newItem->location = $item->location;
                     // support for legacy spec prior to slug existing
                     $newItem->slug = (isset($item->slug) ? $item->slug : str_replace('pages/', '', str_replace('/index.html','', $item->location)));
                     $newItem->order = $item->order;
-                    $newItem->parent = $item->parent;
+                    $newItem->parent = self::normalizeOutlineId($item->parent);
                     $newItem->title = $item->title;
                     $newItem->description = $item->description;
                     // metadata can be anything so whatever
@@ -208,6 +209,9 @@ class JSONOutlineSchema
     }
     /**
      * Save data back to the file system location
+     * (returns the bytes written)
+     *
+     * @throws RuntimeException when the outline cannot be encoded or written
      */
     public function save($reorder = true)
     {
@@ -228,11 +232,15 @@ class JSONOutlineSchema
             $newItem = get_object_vars($item);
             array_push($schema['items'], $newItem);
         }
-        // ensure we have valid json object
-        if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
-          return self::writeFileAtomic($file, $output);
+        // Invariant: an outline that cannot be encoded (invalid UTF-8, INF /
+        // NAN, nesting too deep) is an error, never a silent no-op: save()
+        // throws and site.json is left as it was. Mirrors
+        // JSONOutlineSchema.save in haxcms-nodejs.
+        $output = json_encode($schema, JSON_PRETTY_PRINT);
+        if (!is_string($output)) {
+            throw new RuntimeException('JSONOutlineSchema: unable to encode ' . basename((string) $file) . ': ' . json_last_error_msg());
         }
-        return false;
+        return self::writeFileAtomic($file, $output);
     }
     /**
      * Invariant: a site.json write is atomic. Readers and the next request
@@ -299,8 +307,50 @@ class JSONOutlineSchema
         return $written;
     }
     /**
+     * Whether two outline ids are the same id. Ids are opaque: two strings
+     * match only when they are identical (PHP's == would also match " 4 "
+     * with "4" and "01" with "1"; JavaScript's == used by haxcms-nodejs
+     * does not). Anything else compares loosely, as before.
+     *
+     * @param mixed $a
+     * @param mixed $b
+     */
+    public static function sameOutlineId($a, $b): bool
+    {
+        if (is_string($a) && is_string($b)) {
+            return $a === $b;
+        }
+        return $a == $b;
+    }
+    /**
+     * Invariant: an outline item id, and a parent that refers to one, is a
+     * string (haxtheweb/json-outline-schema: id is a string, parent an id or
+     * null). A hand-made site.json may hold integers (7); load() and every
+     * save turn an integer into its decimal string ("7") so ids always
+     * compare as strings. Only integers both backends read exactly (up to
+     * 2^53 - 1) are converted; anything else (null, "", a string, a
+     * fraction) is returned unchanged. Mirrors
+     * JSONOutlineSchema.normalizeOutlineId in haxcms-nodejs.
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    public static function normalizeOutlineId($value)
+    {
+        $max = 9007199254740991;
+        if (is_int($value) && $value >= -$max && $value <= $max) {
+            return (string) $value;
+        }
+        // json_decode reads 7.0 as a float; JavaScript reads it as 7
+        if (is_float($value) && is_finite($value) && floor($value) === $value && abs($value) <= $max) {
+            return (string) (int) $value;
+        }
+        return $value;
+    }
+    /**
      * Canonical value types for site.json, per haxtheweb/json-outline-schema:
-     * top-level parent is null, indent / order / timestamps are integers,
+     * item ids and parents are strings (normalizeOutlineId), top-level parent
+     * is null, indent / order / timestamps are integers,
      * published / hideInMenu / locked are booleans, tags and relatedItems are
      * arrays. Older sites stored "1" / "" flags, numeric strings and
      * comma-separated tags; readers keep accepting those, every save writes
@@ -314,6 +364,12 @@ class JSONOutlineSchema
     {
         if (!is_object($item)) {
             return $item;
+        }
+        if (property_exists($item, 'id')) {
+            $item->id = self::normalizeOutlineId($item->id);
+        }
+        if (property_exists($item, 'parent')) {
+            $item->parent = self::normalizeOutlineId($item->parent);
         }
         if (property_exists($item, 'parent') && ($item->parent === '' || $item->parent === false)) {
             $item->parent = null;

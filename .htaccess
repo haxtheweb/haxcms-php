@@ -48,16 +48,6 @@ DirectoryIndex index.php index.html
   AddType application/javascript .js.br
   AddType application/octet-stream .symbols.json.br
 </IfModule>
-# Requires mod_expires to be enabled.
-<IfModule mod_expires.c>
-  # Enable expirations.
-  ExpiresActive On
-  # Cache all files for 2 weeks after access (A).
-  ExpiresDefault A1209600
-  <FilesMatch \.php$>
-    ExpiresActive Off
-  </FilesMatch>
-</IfModule>
 # Various rewrite rules.
 <IfModule mod_rewrite.c>
   RewriteEngine on
@@ -151,4 +141,20 @@ DirectoryIndex index.php index.html
     SetEnvIfNoCase Request_URI "/(custom|theme)/.*\.(xhtml|xml|svg)$" force_html_download=1
     Header always set Content-Disposition "attachment" env=force_html_download
   </IfModule>
+</IfModule>
+# Browser cache policy, the same as haxcms-nodejs. Build modules
+# (build/es6/...) are only replaced by a HAXcms upgrade, but their paths
+# carry no version, so they are reused for at most an hour: anything longer
+# lets a page mix old and new modules after an upgrade. Everything else
+# (site.json, page content, the component registry, theme and custom build
+# files, uploads) is revalidated on every use, so an edit or upgrade shows at
+# once; ETag/Last-Modified make that a 304. setifempty: responses that PHP
+# answers keep their own Cache-Control (no-store on the system API).
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#(^|/)build/# && %{REQUEST_URI} !~ m#(^|/)(files|custom/build)/# && %{REQUEST_URI} !~ m#wc-registry(-graph)?\.json$#">
+    Header setifempty Cache-Control "public, max-age=3600"
+  </If>
+  <Else>
+    Header setifempty Cache-Control "public, max-age=0"
+  </Else>
 </IfModule>

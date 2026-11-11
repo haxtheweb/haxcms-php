@@ -12,6 +12,15 @@ class SystemApiRouter
         if (!$context->isSystemApiRequest()) {
             return false;
         }
+        // System API answers (login JWTs, request tokens, settings) are never
+        // stored. The API description docs hold nothing user-bound, so they
+        // are only revalidated unless the request carried credentials.
+        // Handlers may narrow this afterwards (connection-test does, for an
+        // anonymous probe). Same rule as NodeJS app.js (setNoStoreResponseHeaders
+        // for system API requests, setUncachedResponseHeaders for the docs).
+        HAXCMS::sendUncachedResponseHeaders(
+            !self::isPublicApiDocRequest($context->method, $context->routeSuffix)
+        );
         if ($context->method == 'OPTIONS') {
             self::sendOptionsResponse();
             return true;
@@ -172,6 +181,23 @@ class SystemApiRouter
         }
         SiteRouteUtils::invokeRouteHandler($handler, $context);
         return true;
+    }
+    /**
+     * The API description docs (GET /system/api/v1, /openapi, .json, .yaml):
+     * static and the same for every caller. Mirrors NodeJS
+     * isPublicSystemApiDocRequest: GET or HEAD on one of those paths.
+     */
+    public static function isPublicApiDocRequest($method, $routeSuffix)
+    {
+        $method = strtoupper((string) $method);
+        if (($method !== 'GET' && $method !== 'HEAD') || !is_string($routeSuffix)) {
+            return false;
+        }
+        return in_array(
+            trim($routeSuffix, '/'),
+            array('v1', 'v1/openapi', 'v1/openapi.json', 'v1/openapi.yaml'),
+            true
+        );
     }
     public static function matchRoute($routeSuffix, $routes = array())
     {

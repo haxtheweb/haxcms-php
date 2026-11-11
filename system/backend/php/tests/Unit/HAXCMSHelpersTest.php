@@ -45,6 +45,8 @@ class HAXCMSHelpersTest extends TestCase
             'urlencoded traversal decoded then stripped' => ['%2e%2e/etc', 'etc'],
             'empty becomes default' => ['', 'default'],
             'only dots becomes default' => ['...', 'default'],
+            // a page id 0 from an import stays "0" (haxcms-nodejs agrees)
+            'zero is a name, not empty' => ['0', '0'],
             'special chars become hyphens' => ['a!@#b', 'a-b'],
         ];
     }

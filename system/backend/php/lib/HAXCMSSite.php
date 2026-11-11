@@ -953,10 +953,20 @@ class HAXCMSSite
      *
      * @return $page repesented as JSONOutlineSchemaItem
      */
-    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null)
+    public function addPage($parent = null, $title = 'New page', $template = "default", $slug = 'welcome', $id = null, $indent = null, $html = '<p></p>', $order = null, $metadata = null, $bulk = null)
     {
+        // $bulk: an object with createdFolders (array) when the caller adds
+        // many pages in one request. site.json is then written, and the
+        // generated files rebuilt, once by the caller (finishBulkAddPages)
+        // instead of once per page, which made building an N-page site cost
+        // O(N^2). The caller removes the folders in createdFolders if that
+        // one write fails. Mirrors NodeJS HAXCMSSite.addPage.
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
+        // ids are strings: an import / skeleton item with integer ids (id 7,
+        // parent 7) keeps its parent link, the same as a site.json load
+        $id = JSONOutlineSchema::normalizeOutlineId($id);
+        $parent = JSONOutlineSchema::normalizeOutlineId($parent);
         // support direct ID setting, useful for parent associations calculated ahead of time
         if (!is_null($id)) {
           // Security (SEC-PATH): sanitize caller-supplied id before it
@@ -1033,14 +1043,20 @@ class HAXCMSSite
             break;
         }
         $this->manifest->addItem($page);
-        try {
-            $this->manifest->save();
-        } catch (Throwable $e) {
-            // no page folder without its outline entry
+        if ($bulk) {
             if (!$folderExisted) {
-                $this->removeCreatedPageFolder($location);
+                $bulk->createdFolders[] = $location;
             }
-            throw $e;
+        } else {
+            try {
+                $this->manifest->save();
+            } catch (Throwable $e) {
+                // no page folder without its outline entry
+                if (!$folderExisted) {
+                    $this->removeCreatedPageFolder($location);
+                }
+                throw $e;
+            }
         }
         // support direct HTML setting
         $alternateContent = '';
@@ -1069,13 +1085,32 @@ class HAXCMSSite
           $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
             ? $materialized['uuids']
             : array();
-          if (count($page->metadata->files) > 0) {
+          if (count($page->metadata->files) > 0 && !$bulk) {
             $this->manifest->save();
           }
         }
         $this->writePageAlternateFormats($page, $alternateContent);
-        $this->updateAlternateFormats();
+        if (!$bulk) {
+            $this->updateAlternateFormats();
+        }
         return $page;
+    }
+    /**
+     * End a bulk add (see addPage's $bulk argument): write site.json once and
+     * rebuild the generated files once. If the write fails, the page folders
+     * this bulk created are removed (no page folder without its outline
+     * entry) and the error is thrown. Mirrors NodeJS finishBulkAddPages.
+     */
+    public function finishBulkAddPages($bulk) {
+        try {
+            $this->manifest->save();
+        } catch (Throwable $e) {
+            foreach ($bulk->createdFolders as $folder) {
+                $this->removeCreatedPageFolder($folder);
+            }
+            throw $e;
+        }
+        $this->updateAlternateFormats();
     }
     /**
      * Save the site, though this basically is just a mapping to the manifest site.json saving
@@ -1870,7 +1905,7 @@ class HAXCMSSite
     public function loadNode($uuid)
     {
         foreach ($this->manifest->items as $item) {
-            if ($item->id == $uuid && $uuid != '') {
+            if (JSONOutlineSchema::sameOutlineId($item->id, $uuid) && $uuid != '') {
                 return $item;
             }
         }
@@ -2427,6 +2462,12 @@ class HAXCMSSite
       }
       foreach ($this->manifest->items as $item) {
         if (isset($item->slug) && $item->slug === $slug) {
+          return $item;
+        }
+      }
+      // a slug saved with a leading "/" answers to the path without it
+      foreach ($this->manifest->items as $item) {
+        if (isset($item->slug) && self::legacySlugMatches($item->slug, $slug)) {
           return $item;
         }
       }
@@ -3291,6 +3332,15 @@ class HAXCMSSite
                 return $item;
             }
         }
+        // a slug saved with a leading "/" answers to the path without it
+        if ($opPath !== '') {
+            foreach ($this->manifest->items as $item) {
+                if (isset($item->slug) && self::legacySlugMatches($item->slug, $opPath)) {
+                    $this->lastPathLookupMiss = false;
+                    return $item;
+                }
+            }
+        }
         // fallback for home page when path is empty (root request)
         if ($opPath === '') {
             if (isset($this->manifest->metadata->site->homePageId) && is_string($this->manifest->metadata->site->homePageId)) {
@@ -3427,6 +3477,37 @@ class HAXCMSSite
         }
         return implode('/', $segments);
     }
+    /**
+     * A page slug is its non-empty "/" segments joined by "/": it never
+     * starts or ends with "/" and never holds "//". Used by
+     * getUniqueSlugName, where an ancestor with an empty slug would
+     * otherwise leave an empty segment. Mirrors joinSlugSegments in
+     * haxcms-nodejs (src/lib/slugRules.js).
+     */
+    public static function joinSlugSegments($slug)
+    {
+        $segments = array();
+        foreach (explode('/', (string) $slug) as $segment) {
+            if ($segment !== '') {
+                $segments[] = $segment;
+            }
+        }
+        return implode('/', $segments);
+    }
+    /**
+     * Lookup tolerance for slugs saved with a leading "/" (getUniqueSlugName
+     * could produce one, e.g. "/child-1"): such a stored slug answers to the
+     * same path without the leading "/". Callers try the exact slug first.
+     * Mirrors legacySlugMatches in haxcms-nodejs (src/lib/slugRules.js).
+     */
+    public static function legacySlugMatches($storedSlug, $value)
+    {
+        if (!is_string($storedSlug) || substr($storedSlug, 0, 1) !== '/') {
+            return false;
+        }
+        $trimmed = trim($storedSlug, '/');
+        return $trimmed !== '' && $trimmed === trim((string) $value, '/');
+    }
     public function getUniqueSlugName($slug, $page = null, $pathAuto = false)
     {
       $rSlug = $slug;
@@ -3446,12 +3527,11 @@ class HAXCMSSite
             array_unshift($pieces, array_pop($tmp));
         }
         $slug = implode('/', $pieces);
-        $rSlug = $slug;
       }
-      // trap for a / as 1st character if we had empty pieces
-      while (substr($rSlug, 0, 1) == "/") {
-        $rSlug = substr($rSlug, 1);
-      }
+      // an ancestor with an empty slug adds no segment: the slug, and every
+      // numbered variant of it, never starts with "/" or holds "//"
+      $slug = self::joinSlugSegments($slug);
+      $rSlug = $slug;
       // reserved front-end route segments ("x" -> "x-x")
       $slug = self::reserveSlugRoutes($slug);
       $rSlug = self::reserveSlugRoutes($rSlug);
