@@ -1,0 +1,89 @@
+name: haxiam nightly
+
+# HAXiam multi-tenant (haxiam-managed) isolation, nightly (haxtheweb/issues#3262).
+# Plain scripting, no AI.
+#
+# HAXiam runs haxcms-php as its core, so this boots a THROWAWAY HAXiam on the
+# runner with THIS checkout of haxcms-php as the core, using the harness in
+# haxtheweb/haxiam (testing/nightly/: real installer, mock identity provider,
+# no Azure, no real credentials, nothing touches a live deployment). It runs
+# the SSO login, per-user site creation and tenant isolation checks: one user
+# cannot list, create, read, archive, download, clone or edit another user's
+# sites. haxcms-nodejs runs the same checks against its haxiam-managed mode
+# (.github/workflows/haxiam-nightly.yml there).
+#
+# Like backend-parity, it does not run on pull requests: it runs the default
+# branch nightly and on demand (choose a branch to test it before merging).
+# Failures turn the run red; with the optional HAX_ISSUES_TOKEN secret it also
+# opens or comments on a `[nightly] haxiam: haxcms-php <check>` issue in
+# haxtheweb/issues.
+on:
+  schedule:
+    - cron: "29 8 * * *" # 3:29 AM America/New_York (EST); 4:29 AM during EDT
+  workflow_dispatch:
+    inputs:
+      haxiam_ref:
+        description: "haxtheweb/haxiam branch or tag that provides the harness"
+        required: false
+        default: "master"
+permissions:
+  contents: read
+concurrency:
+  group: haxiam-nightly-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  isolation:
+    name: HAXiam tenant isolation (haxcms-php core)
+    # The HAXiam installer only supports the Ubuntu LTS releases it lists.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout haxcms-php
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: core
+          persist-credentials: false
+      - name: Checkout the HAXiam harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: haxtheweb/haxiam
+          ref: ${{ inputs.haxiam_ref || 'master' }}
+          path: haxiam
+          persist-credentials: false
+      - name: Boot throwaway HAXiam with this core
+        id: boot
+        run: |
+          set -o pipefail
+          if [ ! -f haxiam/testing/nightly/boot.sh ]; then
+            echo "::error::haxtheweb/haxiam has no testing/nightly/boot.sh on this ref"
+            exit 1
+          fi
+          sudo -E env CI=true HAXCMS_CORE_SRC="$GITHUB_WORKSPACE/core" \
+            bash haxiam/testing/nightly/boot.sh 2>&1 | tee "$RUNNER_TEMP/boot.log"
+      - name: Isolation checks
+        id: flows
+        if: steps.boot.outcome == 'success'
+        # root only so it can read _iamConfig/identities (0750 www-data);
+        # --groups "" runs just sso login, site creation and tenant isolation
+        run: sudo php haxiam/testing/nightly/flows.php --groups "" --report "$RUNNER_TEMP/report.json" --root /var/www/iam
+      - name: Summary and issues
+        if: always()
+        env:
+          HAX_ISSUES_TOKEN: ${{ secrets.HAX_ISSUES_TOKEN }}
+          BOOT_FAILED: ${{ steps.boot.outcome == 'failure' && 'boot' || '' }}
+        run: |
+          php haxiam/testing/nightly/file-issues.php --scope haxcms-php \
+            --report "$RUNNER_TEMP/report.json" --failed-step "$BOOT_FAILED"
+          if [ -n "$BOOT_FAILED" ] && [ -f "$RUNNER_TEMP/boot.log" ]; then
+            {
+              echo
+              echo "Last lines of the boot output:"
+              echo
+              echo '~~~text'
+              tail -n 60 "$RUNNER_TEMP/boot.log"
+              echo '~~~'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Apache and PHP error logs
+        if: failure()
+        run: sudo tail -n 80 /var/log/apache2/error.log || true
