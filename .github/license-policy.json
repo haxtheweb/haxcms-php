@@ -20,85 +20,85 @@
       "ecosystem": "composer",
       "name": "dompdf/dompdf",
       "license": "LGPL-2.1",
-      "reason": "Already a dependency before this policy (PDF export). Pending maintainer confirmation."
+      "reason": "Accepted 2026-11-11 by the maintainer. PDF export. Unmodified upstream release kept as its own replaceable Composer package under system/backend/php/vendor with its LGPL license file; LGPL permits use from Apache-2.0 code this way."
     },
     {
       "ecosystem": "composer",
       "name": "dompdf/php-font-lib",
       "license": "LGPL-2.1-or-later",
-      "reason": "Already a dependency before this policy (dompdf). Pending maintainer confirmation."
+      "reason": "Accepted 2026-11-11 by the maintainer. Font support for dompdf. Unmodified upstream release kept as its own replaceable Composer package with its license file."
     },
     {
       "ecosystem": "composer",
       "name": "dompdf/php-svg-lib",
       "license": "LGPL-3.0-or-later",
-      "reason": "Already a dependency before this policy (dompdf). Pending maintainer confirmation."
+      "reason": "Accepted 2026-11-11 by the maintainer. SVG support for dompdf. Unmodified upstream release kept as its own replaceable Composer package with its license file."
     },
     {
       "ecosystem": "composer",
       "name": "phpoffice/phpword",
       "license": "LGPL-3.0-only",
-      "reason": "Already a dependency before this policy (docx export). Pending maintainer confirmation."
+      "reason": "Accepted 2026-11-11 by the maintainer. Word (.docx) export. Unmodified upstream release kept as its own replaceable Composer package with its license file."
     },
     {
       "ecosystem": "composer",
       "name": "smalot/pdfparser",
       "license": "LGPL-3.0",
-      "reason": "Already a dependency before this policy (PDF import). Pending maintainer confirmation."
+      "reason": "Accepted 2026-11-11 by the maintainer. PDF import. Unmodified upstream release kept as its own replaceable Composer package with its license file."
     },
     {
       "ecosystem": "npm",
       "name": "axe-core",
       "license": "MPL-2.0",
-      "reason": "Already a devDependency before this policy (E2E accessibility scans, not shipped). Pending maintainer confirmation."
+      "reason": "Already a devDependency before this policy (E2E accessibility scans, not shipped). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-x64",
       "license": "LGPL-3.0-or-later",
-      "reason": "Prebuilt libvips pulled in by the sharp devDependency (E2E screenshot diffs, not shipped). Pending maintainer confirmation."
+      "reason": "Prebuilt libvips pulled in by the sharp devDependency (E2E screenshot diffs, not shipped). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-wasm32",
       "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
-      "reason": "Optional sharp build pulled in by the sharp devDependency (not shipped). Pending maintainer confirmation."
+      "reason": "Optional sharp build pulled in by the sharp devDependency (not shipped). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "@csstools/color-helpers",
       "license": "MIT-0",
-      "reason": "Transitive npm dependency already in the tree before this policy; MIT-0 is permissive but not on the allowlist. Pending maintainer confirmation."
+      "reason": "Transitive npm dependency already in the tree before this policy; MIT-0 is permissive but not on the allowlist. Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "pako",
       "license": "(MIT AND Zlib)",
-      "reason": "Transitive npm dependency already in the tree before this policy; Zlib is permissive but not on the allowlist. Pending maintainer confirmation."
+      "reason": "Transitive npm dependency already in the tree before this policy; Zlib is permissive but not on the allowlist. Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "duck",
       "license": "BSD",
-      "reason": "Transitive npm dependency already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Pending maintainer confirmation."
+      "reason": "Transitive npm dependency already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "gitconfiglocal",
       "license": "BSD",
-      "reason": "Transitive npm dependency (release tooling) already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Pending maintainer confirmation."
+      "reason": "Transitive npm dependency (release tooling) already in the tree before this policy; declares a bare 'BSD' (not an SPDX id). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "foreachasync",
       "license": "Apache2",
-      "reason": "Transitive npm dependency already in the tree before this policy; declares 'Apache2' (not an SPDX id). Pending maintainer confirmation."
+      "reason": "Transitive npm dependency already in the tree before this policy; declares 'Apache2' (not an SPDX id). Accepted 2026-11-11 by the maintainer."
     },
     {
       "ecosystem": "npm",
       "name": "spdx-exceptions",
       "license": "CC-BY-3.0",
-      "reason": "Transitive npm dependency (license metadata list used by tooling) already in the tree before this policy. Pending maintainer confirmation."
+      "reason": "Transitive npm dependency (license metadata list used by tooling) already in the tree before this policy. Accepted 2026-11-11 by the maintainer."
     }
   ]
 }
