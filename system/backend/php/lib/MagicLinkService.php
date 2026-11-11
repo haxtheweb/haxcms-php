@@ -242,10 +242,9 @@ class MagicLinkService
             return isset($outcome['result']) ? $outcome['result'] : null;
         }
         finally {
-            if ($lock) {
-                flock($lock, LOCK_UN);
-                fclose($lock);
-            }
+            // the lock is always held here: a failed lock threw above
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
     }
 
@@ -393,10 +392,10 @@ class MagicLinkService
 
     private static function defaultUser($haxcms)
     {
-        if (isset($haxcms->user) && isset($haxcms->user->name) && $haxcms->user->name !== null && $haxcms->user->name !== '') {
+        if (isset($haxcms->user) && isset($haxcms->user->name) && $haxcms->user->name !== '') {
             return (string) $haxcms->user->name;
         }
-        if (isset($haxcms->superUser) && isset($haxcms->superUser->name) && $haxcms->superUser->name !== null) {
+        if (isset($haxcms->superUser) && isset($haxcms->superUser->name)) {
             return (string) $haxcms->superUser->name;
         }
         return '';

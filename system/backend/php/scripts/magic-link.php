@@ -32,7 +32,7 @@ if (isset($opts['help'])) {
 }
 $asJson = isset($opts['json']);
 
-function magicLinkFail($message, $asJson)
+function magicLinkFail($message, $asJson): never
 {
     if ($asJson) {
         fwrite(STDOUT, json_encode(array('error' => $message)) . "\n");
@@ -79,10 +79,11 @@ if (isset($opts['base-url']) && trim($opts['base-url']) !== '') {
 
 include_once dirname(__DIR__) . '/bootstrapHAX.php';
 // accounts live in config.php, loaded after bootstrap like every entry point
-if (!file_exists($HAXCMS->configDirectory . '/config.php')) {
-    magicLinkFail('HAXcms is not installed here yet (no ' . $HAXCMS->configDirectory . '/config.php).', $asJson);
+$configDirectory = $GLOBALS['HAXCMS']->configDirectory;
+if (!file_exists($configDirectory . '/config.php')) {
+    magicLinkFail('HAXcms is not installed here yet (no ' . $configDirectory . '/config.php).', $asJson);
 }
-include_once $HAXCMS->configDirectory . '/config.php';
+include_once $configDirectory . '/config.php';
 include_once dirname(__DIR__) . '/lib/MagicLinkService.php';
 $haxcms = $GLOBALS['HAXCMS'];
 
