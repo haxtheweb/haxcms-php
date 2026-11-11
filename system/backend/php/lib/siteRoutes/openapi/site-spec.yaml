@@ -471,7 +471,9 @@ paths:
       summary: Update site outline structure, page contents and deletions in one request
       description: |
         The whole payload is validated before anything is written. `items`
-        must be an array of objects, a new page's id may appear only once,
+        must be an array of objects, each with a non-empty `id` (a new page
+        sends a client id; idMap maps it to the id the server gives the page),
+        a new page's id may appear only once,
         and no page may become its own ancestor (the site's parents with the
         sent ones applied); an invalid payload answers 400 and changes
         nothing. An existing id sent twice is one page (the last entry wins);

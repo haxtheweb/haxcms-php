@@ -208,6 +208,9 @@ class JSONOutlineSchema
     }
     /**
      * Save data back to the file system location
+     * (returns the bytes written)
+     *
+     * @throws RuntimeException when the outline cannot be encoded or written
      */
     public function save($reorder = true)
     {
@@ -228,11 +231,15 @@ class JSONOutlineSchema
             $newItem = get_object_vars($item);
             array_push($schema['items'], $newItem);
         }
-        // ensure we have valid json object
-        if ($output = json_encode($schema, JSON_PRETTY_PRINT)) {
-          return self::writeFileAtomic($file, $output);
+        // Invariant: an outline that cannot be encoded (invalid UTF-8, INF /
+        // NAN, nesting too deep) is an error, never a silent no-op: save()
+        // throws and site.json is left as it was. Mirrors
+        // JSONOutlineSchema.save in haxcms-nodejs.
+        $output = json_encode($schema, JSON_PRETTY_PRINT);
+        if (!is_string($output)) {
+            throw new RuntimeException('JSONOutlineSchema: unable to encode ' . basename((string) $file) . ': ' . json_last_error_msg());
         }
-        return false;
+        return self::writeFileAtomic($file, $output);
     }
     /**
      * Invariant: a site.json write is atomic. Readers and the next request

@@ -133,6 +133,31 @@ class JSONOutlineSchemaAtomicWriteTest extends TestCase
         $this->assertSame(array(), $this->tempFiles());
     }
 
+    public function testAnOutlineThatCannotBeEncodedThrowsAndKeepsThePreviousFile(): void
+    {
+        $file = $this->dir . '/site.json';
+        // invalid UTF-8 and INF: json_encode fails on both (haxcms-nodejs'
+        // JSON.stringify fails on a circular structure or a BigInt)
+        foreach (array("bad \xB1\x31 bytes", INF) as $bad) {
+            $this->schemaFor($file, 'Before')->save();
+            $before = file_get_contents($file);
+            $jos = $this->schemaFor($file, 'After');
+            $jos->metadata = (object) array('site' => (object) array('bad' => $bad));
+            try {
+                $jos->save();
+                $this->fail('an outline that cannot be encoded throws');
+            } catch (RuntimeException $e) {
+                $this->assertStringContainsString('unable to encode site.json', $e->getMessage());
+            }
+            $this->assertSame($before, file_get_contents($file), 'site.json is left as it was');
+            $this->assertSame(array(), $this->tempFiles());
+            // once the value is gone the same object saves normally
+            $jos->metadata = (object) array('site' => (object) array());
+            $this->assertGreaterThan(0, $jos->save());
+            $this->assertSame('After', $this->titleOf($file));
+        }
+    }
+
     public function testASiteJsonThatDoesNotParseIsNotLoadedAsAnEmptyOutline(): void
     {
         foreach (array('{"title": "cut sh', '', 'null', '[1, 2]') as $bytes) {

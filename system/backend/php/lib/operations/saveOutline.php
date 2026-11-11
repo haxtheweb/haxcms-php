@@ -117,6 +117,9 @@ trait OperationsRouteSaveOutline {
             )
           );
         }
+        // every item has an id: missing, null, blank or not a string is a
+        // 400 (haxcms-nodejs gives the same answer, and also accepts a
+        // numeric id). Checked for every item before validateOutlineItems.
         if (!isset($rawItem->id) || !is_string($rawItem->id) || trim($rawItem->id) == '') {
           return array(
             '__failed' => array(
