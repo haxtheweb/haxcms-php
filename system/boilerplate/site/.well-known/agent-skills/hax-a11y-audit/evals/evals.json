@@ -18,6 +18,13 @@
       "prompt": "My custom web component's shadow DOM has a broken roving tabindex — when I tab through the listbox items inside my element, focus jumps to the wrong item and sometimes gets trapped. Can you audit it for accessibility?",
       "expected_output": "This prompt should REDIRECT to hax-webcomponent-dev, not produce a WCAG audit. The expected behavior is to recognize that the failure is component-INTERNAL (inside a custom element's own shadow DOM — the element's own tabindex/keyboard navigation), which is hax-webcomponent-dev's scope per the 'When NOT to use' defer rules. The skill should briefly explain the redirect (component-internal a11y vs authored-content a11y) and point the user to hax-webcomponent-dev rather than emitting a 📊/🔍/🛠 WCAG report.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My quiz page has a <multiple-choice> block and above it I wrote <p id=\"q1-help\">Pick the best answer.</p>. I added aria-describedby=\"q1-help\" on the multiple-choice tag and aria-labelledby=\"choice-label\" pointing at the label I can see inside the component in DevTools. Is that accessible?",
+      "expected_output": "Flags both references under WCAG 4.1.2 / 1.3.1. aria-labelledby=\"choice-label\" targets an id that exists only inside the component's shadow root, so the browser ignores it and the reference resolves to nothing; aria-describedby written on the custom element host does not reach the radio controls inside the shadow tree either. Remediation uses the element's own labelling attributes from its HAXSchema or a visible label in the authored markup, and defers the lack of an outside labelling hook to hax-webcomponent-dev, citing rule 410c4334-a186-4356-9584-0796e5d2bc2d. Does not tell the author to edit the component's shadow DOM.",
+      "baseline_behavior": "Without the skill, agents typically see that both ids exist in DevTools and call the markup valid, or suggest adding more ARIA to the host, missing that id references do not cross shadow boundaries.",
+      "files": []
     }
   ]
 }

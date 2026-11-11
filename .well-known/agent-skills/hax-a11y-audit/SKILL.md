@@ -1,7 +1,7 @@
 ---
 name: hax-a11y-audit
 description: "READ-ONLY WCAG 2.0 AA audit of authored HAX pages (alt text, headings, landmarks, contrast, captions, keyboard, ARIA) with HAX remediation. Use for \"is this accessible\" or \"audit for WCAG\". Diagnoses only; hands off to hax-site-building."
-version: 1.0.0
+version: 1.1.0
 license: MIT
 metadata:
   author: PRAW
@@ -118,6 +118,18 @@ Recommendations" below). Never edit `pages/*.html` or `site.json` from within th
      the element's function, `aria-label`/`aria-labelledby` on interactive elements,
      `aria-hidden="true"` on presentational icons, no redundant roles on native semantics
      (e.g. `<button role="button">` is redundant). Flag each violation with the exact markup.
+   - **4.1 ARIA references across shadow boundaries (4.1.2, 1.3.1):** every `id` named by an
+     authored `aria-labelledby`, `aria-describedby`, `aria-controls`, `aria-owns` or
+     `<label for>` must exist in the page's own authored markup. Authored content is light
+     DOM; an `id` that only exists inside a HAX element's shadow root (or a reference written
+     on a custom element hoping to reach the control inside it) is silently ignored by the
+     browser, so the control ends up with no name. Flag the attribute and the missing target.
+     Remediation: use the element's own labelling property from its HAXSchema `settings`
+     (for example `aria-label` on `simple-icon-button-lite`, per
+     `references/a11y-element-map.md`) or put a visible label in the same authored markup.
+     If the element offers no way to label its control from outside, that is a
+     component-internal gap — defer to
+     `hax-webcomponent-dev` (rule `410c4334-a186-4356-9584-0796e5d2bc2d`).
    - **1.3 Data tables (1.3.1):** data tables use `<caption>`, `scope` on `<th>` (or
      `headers`/`id` for complex tables), and are not used for layout. Flag tables missing
      these.
@@ -326,6 +338,9 @@ This audit is the diagnosis step. Apply fixes with the related skills and the `h
 - **Native semantics usually do not need ARIA.** `<button>` already has the button role;
   adding `role="button"` is redundant (flag it). `<nav>` already implies a navigation
   landmark. Only add ARIA when the native semantics are insufficient.
+- **A reference that resolves to nothing is not "valid ARIA."** `aria-labelledby="x"` looks
+  fine in markup review; check that `id="x"` is in the authored page, not only in a
+  component's rendered shadow DOM (DevTools shows both, the accessibility tree uses one).
 - **Never recommend legacy/third-party tags.** `instruction-card`,
   `link-preview`, and `model-viewer` appear in older courses but are not in the current
   monorepo — use the alternatives in the element map.

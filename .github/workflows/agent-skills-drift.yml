@@ -1,0 +1,36 @@
+name: agent skills drift
+# Weekly comparison of this repo's .well-known/agent-skills copies with PRAW,
+# where the skills are written (https://github.com/haxtheweb/praw). PRAW
+# changes often, so the copies fall behind between ubiquity builds.
+#
+# REPORT-ONLY: the script exits 0 when it can read PRAW, so this never fails a
+# build or a pull request. It writes the skills that differ to the job summary.
+# Nothing is opened, commented or pushed. The blocking part, that each copy
+# matches its own index digests, is system/backend/php/tests/Unit/AgentSkillsIntegrityTest.php.
+#
+# Run locally: node scripts/agent-skills-drift.js [--praw <praw checkout>]
+on:
+  schedule:
+    - cron: "41 5 * * 1" # weekly, Monday 05:41 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: agent-skills-drift
+  cancel-in-progress: true
+jobs:
+  drift:
+    name: "agent skills vs PRAW"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Compare with PRAW
+        run: node scripts/agent-skills-drift.js
