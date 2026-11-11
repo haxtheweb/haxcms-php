@@ -963,6 +963,10 @@ class HAXCMSSite
         // one write fails. Mirrors NodeJS HAXCMSSite.addPage.
         // draft an outline schema item
         $page = new JSONOutlineSchemaItem();
+        // ids are strings: an import / skeleton item with integer ids (id 7,
+        // parent 7) keeps its parent link, the same as a site.json load
+        $id = JSONOutlineSchema::normalizeOutlineId($id);
+        $parent = JSONOutlineSchema::normalizeOutlineId($parent);
         // support direct ID setting, useful for parent associations calculated ahead of time
         if (!is_null($id)) {
           // Security (SEC-PATH): sanitize caller-supplied id before it
@@ -1901,7 +1905,7 @@ class HAXCMSSite
     public function loadNode($uuid)
     {
         foreach ($this->manifest->items as $item) {
-            if ($item->id == $uuid && $uuid != '') {
+            if (JSONOutlineSchema::sameOutlineId($item->id, $uuid) && $uuid != '') {
                 return $item;
             }
         }

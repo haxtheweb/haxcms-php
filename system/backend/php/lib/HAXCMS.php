@@ -1569,8 +1569,9 @@ class HAXCMS
         // Convert to lowercase
         $name = strtolower($name);
         
-        // Fallback for empty result
-        if (empty($name)) {
+        // Fallback for empty result ("0" is a name, as in haxcms-nodejs;
+        // empty() would treat it as empty)
+        if ($name === '') {
             $name = 'default';
         }
         

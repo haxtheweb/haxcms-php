@@ -471,9 +471,12 @@ paths:
       summary: Update site outline structure, page contents and deletions in one request
       description: |
         The whole payload is validated before anything is written. `items`
-        must be an array of objects, each with a non-empty `id` (a new page
-        sends a client id; idMap maps it to the id the server gives the page),
-        a new page's id may appear only once,
+        must be an array of objects, each with an `id` that is a non-blank
+        string (a new page sends a client id; idMap maps it to the id the
+        server gives the page). Ids are opaque and kept exactly as sent (never
+        trimmed); a number is not an id. Page ids in the site's own site.json
+        are strings too: a site.json written with integer ids is read as
+        their strings (7 becomes "7"). A new page's id may appear only once,
         and no page may become its own ancestor (the site's parents with the
         sent ones applied); an invalid payload answers 400 and changes
         nothing. An existing id sent twice is one page (the last entry wins);
