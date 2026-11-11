@@ -55,6 +55,16 @@ trait OperationsRouteSaveOutline {
   }
 
   /**
+   * True when an outline id is empty or only whitespace. Blank is the
+   * whitespace JavaScript's String.prototype.trim removes, so this answers
+   * the same as hasOutlineItemId() in haxcms-nodejs (PHP's trim() has a
+   * different set: it strips NUL but not a no-break space).
+   */
+  private static function isBlankOutlineId($id) {
+    return preg_match('/^[\x{0009}-\x{000D}\x{0020}\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]*$/u', $id) === 1;
+  }
+
+  /**
    * Remove the page folders this request created ($createdFolders, page id
    * => folder) that site.json does not list ($listedItems), so a failed
    * save leaves no page folder without its outline entry. Mirrors
@@ -117,10 +127,12 @@ trait OperationsRouteSaveOutline {
             )
           );
         }
-        // every item has an id: missing, null, blank or not a string is a
-        // 400 (haxcms-nodejs gives the same answer, and also accepts a
-        // numeric id). Checked for every item before validateOutlineItems.
-        if (!isset($rawItem->id) || !is_string($rawItem->id) || trim($rawItem->id) == '') {
+        // every item has an id: missing, null, blank or not a string (a
+        // number included) is a 400, the same as haxcms-nodejs. Checked for
+        // every item before validateOutlineItems. Ids are opaque: one with
+        // surrounding whitespace is kept exactly as sent (trimming it could
+        // turn an existing page's id into a new page).
+        if (!isset($rawItem->id) || !is_string($rawItem->id) || self::isBlankOutlineId($rawItem->id)) {
           return array(
             '__failed' => array(
               'status' => 400,
@@ -128,7 +140,6 @@ trait OperationsRouteSaveOutline {
             )
           );
         }
-        $rawItem->id = trim((string) $rawItem->id);
         if (!isset($rawItem->title) || !is_string($rawItem->title)) {
           $rawItem->title = '';
         }
@@ -335,7 +346,7 @@ trait OperationsRouteSaveOutline {
               foreach ($original as $key => $tmpItem) {
                   // see if this is something moving as opposed to brand new
                   if (
-                      $tmpItem->id == $page->id &&
+                      JSONOutlineSchema::sameOutlineId($tmpItem->id, $page->id) &&
                       $tmpItem->slug != ''
                   ) {
                       // core support for automatically managing paths to make them nice

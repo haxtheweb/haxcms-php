@@ -268,6 +268,32 @@ class HAXCMSSiteNewSiteTest extends TestCase
         $this->assertSame(array(null, null, null, 'llms', null), $this->site->updateAlternateFormatsCalls);
     }
 
+    public function testNewSiteFromSkeletonWithNumericIdsKeepsParentsAsStrings(): void
+    {
+        // a skeleton / import whose items use integer ids: every id and
+        // parent becomes its string, so children stay under their parents
+        // (haxcms-nodejs outline-numeric-ids.test.cjs mirrors this)
+        $build = new stdClass();
+        $build->structure = 'from-skeleton';
+        $build->items = array(
+            array('id' => 0, 'title' => 'Zero', 'parent' => null, 'order' => 0, 'indent' => 0),
+            array('id' => 1, 'title' => 'One', 'parent' => null, 'order' => 1, 'indent' => 0),
+            array('id' => 2, 'title' => 'Two', 'parent' => 1, 'order' => 0, 'indent' => 1),
+            array('id' => 3, 'title' => 'Three', 'parent' => 0, 'order' => 0, 'indent' => 1),
+        );
+        $this->createSite('My Site', new stdClass(), null, $build);
+        $byTitle = array();
+        foreach ($this->manifestJson()->items as $item) {
+            $byTitle[$item->title] = $item;
+            $this->assertIsString($item->id, $item->title);
+        }
+        $this->assertSame('0', $byTitle['Zero']->id);
+        $this->assertSame('1', $byTitle['One']->id);
+        $this->assertSame('2', $byTitle['Two']->id);
+        $this->assertSame('1', $byTitle['Two']->parent);
+        $this->assertSame('0', $byTitle['Three']->parent);
+    }
+
     public function testNewSiteBlogBuildCreatesThreeArticles(): void
     {
         $build = new stdClass();
@@ -403,7 +429,7 @@ class HAXCMSNewSiteTestHaxcms extends OperationsTestHaxcms
         $name = preg_replace('/[-_]{2,}/', '-', $name);
         $name = trim($name, '-_');
         $name = strtolower($name);
-        if (empty($name)) {
+        if ($name === '') {
             $name = 'default';
         }
         return $name;
