@@ -278,6 +278,53 @@ class HAXCMSSessionHardeningTest extends TestCase
         $this->assertTrue($h->validateRefreshSession('alice', 'other-device', 'jo'));
     }
 
+    public function testRevokeAllRefreshSessionsRevokesEveryFamilyAndLegacyToken(): void
+    {
+        $h = $this->bareHaxcms();
+        $a = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $b = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $legacy = $h->decodeRefreshToken($this->signRefresh($h, array('user' => 'alice', 'iat' => time() - 30)));
+        $bob = $h->decodeRefreshToken($h->getRefreshToken('bob', true));
+        $this->assertTrue($h->validateRefreshSession('alice', $a->family, $a->jti));
+        $this->assertTrue($h->validateRefreshSession('alice', null, null, $legacy->iat));
+
+        $h->revokeAllRefreshSessions('alice');
+
+        foreach (array($a, $b) as $t) {
+            $entry = $this->fam('alice', $t->family);
+            $this->assertTrue($entry['revoked']);
+            $this->assertGreaterThanOrEqual(time() + 86400 + 60 - 2, $entry['exp']);
+            $this->assertFalse($h->validateRefreshSession('alice', $t->family, $t->jti));
+            $this->assertNull($h->rotateRefreshTokenAndCookie($t));
+        }
+        $this->assertIsInt($this->sessions()['users']['alice']['legacyRevokedAt']);
+        $this->assertFalse($h->validateRefreshSession('alice', null, null, $legacy->iat));
+        $this->assertNull($h->rotateRefreshTokenAndCookie($legacy));
+        // other users keep their sessions
+        $this->assertTrue($h->validateRefreshSession('bob', $bob->family, $bob->jti));
+        // signing in again afterwards works normally
+        $fresh = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $this->assertTrue($h->validateRefreshSession('alice', $fresh->family, $fresh->jti));
+        $this->assertNotNull($h->rotateRefreshTokenAndCookie($fresh));
+    }
+
+    public function testRevokeAllRefreshSessionsKeepsExistingTombstonesAndIgnoresEmptyUsers(): void
+    {
+        $h = $this->bareHaxcms();
+        $old = $h->decodeRefreshToken($h->getRefreshToken('alice', true));
+        $h->revokeRefreshSession('alice', $old->family);
+        $revokedAt = $this->fam('alice', $old->family)['revokedAt'];
+        $h->revokeAllRefreshSessions('alice');
+        $this->assertSame($revokedAt, $this->fam('alice', $old->family)['revokedAt']);
+        // never-seen user: legacy tombstone so legacy tokens already out there die
+        $h->revokeAllRefreshSessions('carol');
+        $this->assertIsInt($this->sessions()['users']['carol']['legacyRevokedAt']);
+        $before = $this->sessions();
+        $h->revokeAllRefreshSessions('');
+        $h->revokeAllRefreshSessions(null);
+        $this->assertSame($before, $this->sessions());
+    }
+
     public function testStaleJtiCheckIsPureButRotationTombstones(): void
     {
         $h = $this->bareHaxcms();
