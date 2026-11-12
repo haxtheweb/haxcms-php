@@ -19,12 +19,14 @@ return function ($context) {
     // object are one shape. Optional ?scope=site|system filters the merged set.
     // Security (entity listing scope): the system-scope part of the entity
     // registry (and the endpoints it names) is only listed to a caller that
-    // is signed in and sends its X-HAXCMS-User-Token. Everyone else gets the
-    // site scope only, whatever ?scope= asks for, so an unauthenticated
-    // request can not fingerprint the build from the system entities. A
-    // signed-in caller without a valid user token gets the same 403 messages
-    // as the authenticated-user routes. CLI mode is trusted. Kept identical
-    // in haxcms-nodejs (src/siteRoutes/v1/entities.js).
+    // is signed in and sends the X-HAXCMS-Site-Token for this site, the same
+    // credential every other signed-in site API route uses (bearer JWT +
+    // site token, bound to user and site). Everyone else gets the site scope
+    // only, whatever ?scope= asks for, so an unauthenticated request can not
+    // fingerprint the build from the system entities. A signed-in caller
+    // without a valid site token for this site gets the same 403 messages as
+    // the authenticated-site routes. CLI mode is trusted. Kept identical in
+    // haxcms-nodejs (src/siteRoutes/v1/entities.js).
     $authenticated = isset($context->auth) &&
         is_array($context->auth) &&
         !empty($context->auth['authenticated']);
@@ -37,17 +39,29 @@ return function ($context) {
         if ($isCli) {
             $fullListing = true;
         } else {
-            $userToken = method_exists($context, 'getHeader') ? $context->getHeader('X-HAXCMS-User-Token') : null;
+            $siteToken = method_exists($context, 'getHeader') ? $context->getHeader('X-HAXCMS-Site-Token') : null;
             $userName = isset($context->auth['userName']) ? (string) $context->auth['userName'] : '';
+            $siteName = '';
+            if (
+                isset($site->manifest->metadata) &&
+                isset($site->manifest->metadata->site) &&
+                isset($site->manifest->metadata->site->name)
+            ) {
+                $siteName = (string) $site->manifest->metadata->site->name;
+            } elseif (isset($site->name)) {
+                $siteName = (string) $site->name;
+            }
             $message = '';
-            if (is_null($userToken) || $userToken === '') {
-                $message = 'X-HAXCMS-User-Token header is required for this endpoint';
+            if (is_null($siteToken) || $siteToken === '') {
+                $message = 'X-HAXCMS-Site-Token header is required for this endpoint';
+            } elseif ($userName === '' || $siteName === '') {
+                $message = 'Unable to resolve site token context';
             } elseif (
                 !$haxcms ||
                 !method_exists($haxcms, 'validateRequestToken') ||
-                !$haxcms->validateRequestToken($userToken, $userName)
+                !$haxcms->validateRequestToken($siteToken, $userName . ':' . $siteName)
             ) {
-                $message = 'Invalid X-HAXCMS-User-Token header';
+                $message = 'Invalid X-HAXCMS-Site-Token header';
             }
             if ($message !== '') {
                 SiteRouteUtils::sendFormattedResponse(

@@ -1118,7 +1118,7 @@ class SiteRouteUtils
     /**
      * Normalize an OpenAPI security config array into a policy string.
      * Mirrors Node normalizeSiteApiSecurityPolicy (app.js:1622):
-     * - empty array or requirement with no keys => 'public'
+     * - empty array, or a requirement with no keys anywhere in the list => 'public'
      * - requirement with siteTokenHeader + bearerAuth => 'authenticated-site'
      * - requirement with siteTokenHeader alone => 'site-token-only'
      * - requirement with userTokenHeader => 'authenticated-user' (precedence over bearer)
@@ -1129,6 +1129,16 @@ class SiteRouteUtils
     {
         if (!is_array($securityConfig) || count($securityConfig) === 0) {
             return 'public';
+        }
+        // An empty requirement ({}) anywhere in the list makes auth optional,
+        // as in OpenAPI: the route is public at the gate, whatever order the
+        // requirements are listed in, and the handler decides what a
+        // signed-in caller gets (e.g. listEntityDescriptors with bearer +
+        // site token). Mirrors haxcms-nodejs normalizeSiteApiSecurityPolicy.
+        foreach ($securityConfig as $requirement) {
+            if (is_array($requirement) && count($requirement) === 0) {
+                return 'public';
+            }
         }
         $requiresBearer = false;
         $requiresUserToken = false;

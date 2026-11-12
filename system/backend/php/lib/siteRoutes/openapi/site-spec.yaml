@@ -677,12 +677,12 @@ paths:
         descriptor mirrors the extended EntityDescriptor schema, including the
         storage block that declares how the entity is (or will be) persisted.
         The merged set and ?scope= filtering are for a signed-in caller that
-        also sends X-HAXCMS-User-Token. Any other caller gets the site-scope
-        descriptors only, whatever ?scope= asks for. A bearer token without a
-        valid X-HAXCMS-User-Token is refused with 403.
+        also sends this site's X-HAXCMS-Site-Token. Any other caller gets the
+        site-scope descriptors only, whatever ?scope= asks for. A bearer token
+        without a valid X-HAXCMS-Site-Token for this site is refused with 403.
       security:
         - bearerAuth: []
-          userTokenHeader: []
+          siteTokenHeader: []
         - {}
       parameters:
         - name: scope
@@ -693,7 +693,8 @@ paths:
             enum: [site, system]
           description: >
             Filter the merged descriptor set by scope (signed-in callers with
-            X-HAXCMS-User-Token only; other callers always get site scope).
+            this site's X-HAXCMS-Site-Token only; other callers always get
+            site scope).
       responses:
         "200":
           description: Entity descriptor collection
@@ -2656,10 +2657,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    userTokenHeader:
-      type: apiKey
-      in: header
-      name: X-HAXCMS-User-Token
     siteTokenHeader:
       type: apiKey
       in: header

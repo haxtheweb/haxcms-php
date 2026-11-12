@@ -6,14 +6,16 @@ require_once __DIR__ . '/SiteRoutesTestHelpers.php';
 
 /**
  * haxtheweb/issues#3220: /x/api/v1/entities lists system-scope descriptors
- * only to a signed-in caller that sends a valid X-HAXCMS-User-Token. Everyone
+ * only to a signed-in caller that sends this site's X-HAXCMS-Site-Token
+ * (bound to user:siteName), like every other signed-in site API route. Everyone
  * else gets the site scope, whatever ?scope= asks for. Mirrors the haxcms-nodejs
  * tests in test/unit/entitiesEndpoint.test.cjs.
  */
 class EntitiesListingScopeStubHaxcms
 {
-    public $validToken = 'valid-user-token';
-    public $validUser = 'test-user';
+    // the site token for test-user on the fake site "testsite"
+    public $validToken = 'valid-site-token';
+    public $validValue = 'test-user:testsite';
     public $checked = array();
     public function isCLI()
     {
@@ -23,7 +25,7 @@ class EntitiesListingScopeStubHaxcms
     public function validateRequestToken($token, $value)
     {
         $this->checked[] = array($token, $value);
-        return $token === $this->validToken && $value === $this->validUser;
+        return $token === $this->validToken && $value === $this->validValue;
     }
 }
 
@@ -39,7 +41,7 @@ class EntitiesListingScopeTest extends TestCase
         $this->savedServer = $_SERVER;
         $this->savedGet = isset($_GET) && is_array($_GET) ? $_GET : array();
         $_GET = array();
-        unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN']);
+        unset($_SERVER['HTTP_X_HAXCMS_USER_TOKEN'], $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']);
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['SERVER_SOFTWARE'] = 'phpunit-test';
         $this->hadHaxcms = array_key_exists('HAXCMS', $GLOBALS);
@@ -93,34 +95,43 @@ class EntitiesListingScopeTest extends TestCase
         $this->assertSame(array(), $GLOBALS['HAXCMS']->checked, 'no token check for anonymous callers');
     }
 
-    public function testBearerWithoutUserTokenIs403Required(): void
+    public function testBearerWithoutSiteTokenIs403Required(): void
     {
         $body = $this->listEntities(true);
         $this->assertSame(403, $body['status']);
-        $this->assertSame('X-HAXCMS-User-Token header is required for this endpoint', $body['data']['message']);
+        $this->assertSame('X-HAXCMS-Site-Token header is required for this endpoint', $body['data']['message']);
         $this->assertArrayNotHasKey('entities', $body['data']);
     }
 
-    public function testEmptyUserTokenIsTreatedAsMissing(): void
+    public function testEmptySiteTokenIsTreatedAsMissing(): void
     {
-        $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = '';
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = '';
         $body = $this->listEntities(true);
         $this->assertSame(403, $body['status']);
-        $this->assertSame('X-HAXCMS-User-Token header is required for this endpoint', $body['data']['message']);
+        $this->assertSame('X-HAXCMS-Site-Token header is required for this endpoint', $body['data']['message']);
     }
 
-    public function testWrongUserTokenIs403Invalid(): void
+    public function testUserTokenAloneNoLongerOpensTheFullListing(): void
     {
-        $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = 'not-the-token';
+        $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = 'valid-site-token';
+        $body = $this->listEntities(true);
+        $this->assertSame(403, $body['status']);
+        $this->assertSame('X-HAXCMS-Site-Token header is required for this endpoint', $body['data']['message']);
+    }
+
+    public function testWrongSiteTokenIs403Invalid(): void
+    {
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = 'not-the-token';
         $body = $this->listEntities(true, 'system');
         $this->assertSame(403, $body['status']);
-        $this->assertSame('Invalid X-HAXCMS-User-Token header', $body['data']['message']);
-        $this->assertSame(array(array('not-the-token', 'test-user')), $GLOBALS['HAXCMS']->checked);
+        $this->assertSame('Invalid X-HAXCMS-Site-Token header', $body['data']['message']);
+        // checked against user:siteName, not the user alone
+        $this->assertSame(array(array('not-the-token', 'test-user:testsite')), $GLOBALS['HAXCMS']->checked);
     }
 
-    public function testValidUserTokenKeepsTheMergedListingAndScope(): void
+    public function testValidSiteTokenKeepsTheMergedListingAndScope(): void
     {
-        $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = 'valid-user-token';
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = 'valid-site-token';
         $merged = $this->listEntities(true);
         $this->assertSame(200, $merged['status']);
         $this->assertSame(6, $merged['data']['count']);
@@ -128,6 +139,22 @@ class EntitiesListingScopeTest extends TestCase
         $types = array_column($system['data']['entities'], 'type');
         sort($types);
         $this->assertSame(array('site', 'skeleton', 'system', 'theme'), $types);
+    }
+
+    public function testEmptyRequirementMakesAuthOptionalInAnyOrder(): void
+    {
+        $this->assertSame('public', SiteRouteUtils::normalizeSecurityPolicy(array(
+            array('bearerAuth' => array(), 'siteTokenHeader' => array()),
+            array(),
+        )));
+        $this->assertSame('public', SiteRouteUtils::normalizeSecurityPolicy(array(
+            array(),
+            array('bearerAuth' => array(), 'siteTokenHeader' => array()),
+        )));
+        // without {} the site-token requirement still applies
+        $this->assertSame('authenticated-site', SiteRouteUtils::normalizeSecurityPolicy(array(
+            array('bearerAuth' => array(), 'siteTokenHeader' => array()),
+        )));
     }
 
     public function testRouteStaysPublicAtTheGate(): void
