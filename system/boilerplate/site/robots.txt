@@ -2,50 +2,19 @@
 # HAXcms rewrites everything between the BEGIN and END markers on rebuild.
 # Put site-specific rules after the END marker, each group starting with its
 # own User-agent line; they are kept.
-User-agent: *
 {% if privateSite %}
+User-agent: *
 Disallow: /
 {% else %}
-Crawl-delay: 10
-Allow: /
-# Agent-readable copies of each page (linked from llms.txt)
-Allow: /pages/*/index.md$
-# API discovery documents (the data endpoints under /x/api/v1/ stay disallowed for crawlers)
-Allow: /x/api$
-Allow: /x/api/openapi
-Allow: /.well-known/
-# CSS, JS, Images
-Allow: /assets/*.css$
-Allow: /assets/*.css?
-Allow: /assets/*.js$
-Allow: /assets/*.js?
-Allow: /assets/*.gif
-Allow: /assets/*.jpg
-Allow: /assets/*.jpeg
-Allow: /assets/*.png
-
-Allow: /theme/*.css$
-Allow: /theme/*.css?
-Allow: /theme/*.js$
-Allow: /theme/*.js?
-Allow: /theme/*.gif
-Allow: /theme/*.jpg
-Allow: /theme/*.jpeg
-Allow: /theme/*.png
-
-Disallow: /assets/
-Disallow: /build/
-Disallow: /dist/
-Disallow: /node_modules/
-Disallow: /pages/
-Disallow: /theme/
-Disallow: /x/
-Disallow: /system/
-
-# AI search and answer crawlers are welcomed explicitly, unless the owner
-# reserves all rights (reservedSite), and then they are asked to stay out. A
-# crawler that matches a named group ignores the * group, so the same rules
-# are repeated here without the crawl delay.
+# Crawlers render pages the way a browser does, so the scripts, styles and
+# page files a page loads (build/, theme/, custom/, assets/, pages/) stay
+# fetchable; blocking them leaves a crawler with an empty page. There is no
+# Crawl-delay: Bing honors it, and a delay per request keeps large sites out
+# of the search indexes that AI answer engines draw on. AI search and answer
+# crawlers are named so they are welcomed explicitly and share these rules;
+# when the owner reserves all rights they get their own group below instead.
+User-agent: *
+{% if not reservedSite %}
 User-agent: GPTBot
 User-agent: OAI-SearchBot
 User-agent: ChatGPT-User
@@ -56,23 +25,37 @@ User-agent: PerplexityBot
 User-agent: Perplexity-User
 User-agent: Google-Extended
 User-agent: Applebot-Extended
-{% if reservedSite %}
-Disallow: /
-{% else %}
+{% endif %}
 Allow: /
+# Agent-readable copies of each page (linked from llms.txt)
 Allow: /pages/*/index.md$
+# API discovery documents (the data endpoints under /x/api/v1/ stay disallowed for crawlers)
 Allow: /x/api$
 Allow: /x/api/openapi
 Allow: /.well-known/
-Disallow: /build/
 Disallow: /dist/
 Disallow: /node_modules/
-Disallow: /pages/
 Disallow: /x/
 Disallow: /system/
+{% if reservedSite %}
+
+# The owner reserves all rights, so AI crawlers are asked to stay out.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+Disallow: /
 {% endif %}
 
 Sitemap: {{ domain }}sitemap.xml
-LLMS: {{ domain }}llms.txt
+# llms.txt is not a robots.txt directive (parsers reject unknown ones), so it
+# is named in a comment; agents also find it at the site root and via <link rel="llms">.
+# LLMS: {{ domain }}llms.txt
 {% endif %}
 # END HAXcms managed

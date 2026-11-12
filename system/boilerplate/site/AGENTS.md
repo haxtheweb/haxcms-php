@@ -93,7 +93,7 @@ hax site --title "Page Title" --content "<p>Initial content</p>" --slug "page-sl
 
 ### Theme Architecture
 - **Base Class**: Custom themes should extend `HAXCMSLitElement`
-- **Design System**: Use DDD (Design, Develop, Destroy) tokens for consistency
+- **Design System**: Use DDD (Design, Develop, Deliver) tokens for consistency
 - **Template**: `theme/theme.html` defines the layout structure
 - **Styling**: `theme/theme.css` contains theme-specific styles
 

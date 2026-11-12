@@ -538,99 +538,57 @@ class HAXCMSSite
           'logo48x48' => $this->getLogoSize('48','48'),
           'favicon' => $this->getLogoSize('32','32'),
       );
-      $swItems = $this->manifest->items;
-      // the core files you need in every SW manifest
-      $coreFiles = array(
+      // the service worker precaches only this small shell; pages, uploads and
+      // build modules are cached as visitors use them (service-worker.js). Each
+      // entry is versioned by a hash of its content, so any edit (not just one
+      // that changes the file size) gives visitors a fresh shell.
+      $shellFiles = array(
           'index.html',
-          $this->getLogoSize('512','512'),
-          $this->getLogoSize('256','256'),
-          $this->getLogoSize('192','192'),
-          $this->getLogoSize('144','144'),
-          $this->getLogoSize('96','96'),
-          $this->getLogoSize('72','72'),
-          $this->getLogoSize('48','48'),
-          'manifest.json',
           'site.json',
-          '404.html',
+          'manifest.json',
+          'offline.html',
+          $this->getLogoSize('192','192'),
       );
-      // loop through files directory so we can cache those things too
-      if ($handle = opendir($siteDirectoryPath . '/files')) {
-          while (false !== ($file = readdir($handle))) {
+      $siteRealPath = realpath($siteDirectoryPath);
+      foreach ($shellFiles as $location) {
+          // managed files are hashed from the boilerplate source, matching the
+          // old copy-then-render flow (the site copy may be one rebuild behind)
+          $filePath = isset($managedSourcePaths[$location]) ? $managedSourcePaths[$location] : null;
+          if ($filePath === null && is_string($location) && $location !== '') {
+              // Security (SEC-PATH): only read locations contained in the site
+              $candidate = realpath($siteDirectoryPath . '/' . $location);
               if (
-                  $file != "." &&
-                  $file != ".." &&
-                  $file != '.gitkeep' &&
-                  $file != '._.DS_Store' &&
-                  $file != '.DS_Store' &&
-                  $file != '.htaccess'
+                  $candidate !== false &&
+                  $siteRealPath !== false &&
+                  strpos($candidate, $siteRealPath . DIRECTORY_SEPARATOR) === 0 &&
+                  is_file($candidate)
               ) {
-                  // ensure this is a file
-                  if (
-                      is_file($siteDirectoryPath . '/files/' . $file)
-                  ) {
-                      $coreFiles[] = 'files/' . $file;
-                  } else {
-                      // @todo maybe step into directories?
-                  }
+                  $filePath = $candidate;
               }
           }
-          closedir($handle);
-      }
-      foreach ($coreFiles as $itemLocation) {
-          $coreItem = new stdClass();
-          $coreItem->location = $itemLocation;
-          $swItems[] = $coreItem;
-      }
-      // generate a legit hash value that's the same for each file name + file size
-      foreach ($swItems as $item) {
-          // managed files are sized from the boilerplate source, matching the
-          // old copy-then-render flow (the site copy may be one rebuild behind)
-          $managedSource = null;
-          if ($item->location === '' || $item->location === $templateVars['basePath']) {
-              $managedSource = isset($managedSourcePaths['index.html']) ? $managedSourcePaths['index.html'] : null;
-          } elseif (is_string($item->location) && isset($managedSourcePaths[$item->location])) {
-              $managedSource = $managedSourcePaths[$item->location];
+          if ($filePath === null) {
+              continue;
           }
-          if ($managedSource !== null) {
-              $filesize = filesize($managedSource);
-          } elseif (
-              $item->location === '' ||
-              $item->location === $templateVars['basePath']
-          ) {
-              $filesize = filesize(
-                  $siteDirectoryPath . '/index.html'
-              );
-          } elseif (
-              file_exists($siteDirectoryPath . '/' . $item->location)
-          ) {
-              $filesize = filesize(
-                  $siteDirectoryPath . '/' . $item->location
-              );
-          } else {
-              // ?? file referenced but doesn't exist
-              $filesize = 0;
-          }
-          if ($filesize !== 0) {
-              $templateVars['swhash'][] = array(
-                  $item->location,
-                  strtr(
-                      base64_encode(
-                          hash_hmac(
-                              'md5',
-                              (string) $item->location . $filesize,
-                              (string) 'haxcmsswhash',
-                              true
-                          )
-                      ),
-                      array(
-                          '+' => '',
-                          '/' => '',
-                          '=' => '',
-                          '-' => ''
+          $contentHash = hash_file('sha256', $filePath);
+          $templateVars['swhash'][] = array(
+              $location,
+              strtr(
+                  base64_encode(
+                      hash_hmac(
+                          'md5',
+                          (string) $location . $contentHash,
+                          (string) 'haxcmsswhash',
+                          true
                       )
+                  ),
+                  array(
+                      '+' => '',
+                      '/' => '',
+                      '=' => '',
+                      '-' => ''
                   )
-              );
-          }
+              )
+          );
       }
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
           $templateVars['hexCode'] =
@@ -2092,10 +2050,10 @@ class HAXCMSSite
         if (navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.onstatechange = function(event) {
             if (event.target.state === 'redundant') {
-              var b = document.createElement('paper-button');
+              var b = document.createElement('button');
+              b.type = 'button';
               b.appendChild(document.createTextNode('Reload'));
-              b.raised = true;
-              b.addEventListener('click', function(e){ window.location.reload(true); });
+              b.addEventListener('click', function(e){ window.location.reload(); });
               window.dispatchEvent(new CustomEvent('haxcms-toast-show', {
                 bubbles: true,
                 cancelable: false,
@@ -2810,8 +2768,9 @@ class HAXCMSSite
           continue;
         }
         $contentSeen[$tagPath] = true;
-        $contentPreload .= "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $tagPath . '" as="script" crossorigin="anonymous" />' .
-          "\n" . '  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $tagPath . '" />';
+        // modulepreload only: a preload as=script for the same URL is a
+        // separate classic-script request the module loader never reuses
+        $contentPreload .= "\n" . '  <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/' . $tagPath . '" crossorigin="anonymous" />';
       }
       $rawTitle = '';
       if (isset($page->title)) {
@@ -2828,18 +2787,16 @@ class HAXCMSSite
       $themePreload = '';
       if ($themePath) {
         if (strpos($themePath, '@') === 0) {
-          // registry theme: modulepreload is already in the shell set above;
-          // keep only the preload-as-script hint so the theme fetch is
-          // prioritized early.
-          $themePreload = '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . $themePath . '" as="script" crossorigin="anonymous" />';
+          // registry theme: its modulepreload is already in the shell set
+          // above; a preload as=script would be a second, unused request
+          $themePreload = '';
         }
         else {
           // custom theme: site-relative path (e.g. ./custom/build/custom.es6.js)
           // loaded directly by build-haxcms.js. Emit the hrefs verbatim so they
           // match the real module request instead of 404ing behind the registry
           // prefix. $themePath is already escaped above (htmlspecialchars).
-          $themePreload = '  <link rel="modulepreload" href="' . $themePath . '" crossorigin="anonymous" />' . "\n" .
-            '  <link rel="preload" href="' . $themePath . '" as="script" crossorigin="anonymous" />';
+          $themePreload = '  <link rel="modulepreload" href="' . $themePath . '" crossorigin="anonymous" />';
         }
       }
       if ($rawDescription == '' && isset($this->manifest->description)) {
@@ -2874,7 +2831,11 @@ class HAXCMSSite
       }
       $siteUrlForStructuredData = $canonicalBase;
       $pageUrlForStructuredData = SanitizeContent::sanitizeURLValue($domain, '');
-      if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
+      // on unless the site turned it off: sites made before createSite stored
+      // the flag have none, and a page without a canonical splits its ranking
+      // across every URL that reaches it (?query, trailing slash, aliases)
+      $canonicalSetting = isset($this->manifest->metadata->site->settings->canonical) ? $this->manifest->metadata->site->settings->canonical : null;
+      if ($canonicalSetting === null || $canonicalSetting) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
           $pageSlug = '';
           if (isset($page->slug)) {
@@ -2897,6 +2858,8 @@ class HAXCMSSite
       if ($pageUrlForStructuredData == '') {
         $pageUrlForStructuredData = $siteUrlForStructuredData;
       }
+      // the front page describes the site; every other page is an article
+      $ogType = (!isset($page->id) || !$page->id || $this->manifest->getItemKeyById($page->id) === 0) ? 'website' : 'article';
       $prevResource = '';
       $nextResource = '';
       if ($page->id && $this->manifest->getItemKeyById($page->id) !== FALSE) {
@@ -2928,8 +2891,8 @@ class HAXCMSSite
       $canonical .= $alternateLinks;
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://fonts.gstatic.com">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
@@ -2963,12 +2926,11 @@ class HAXCMSSite
   <meta name="description" content="' . $description . '" />
   <meta name="og:site_name" property="og:site_name" content="' . SanitizeContent::escapeHTMLAttribute($this->manifest->title) . '" />
   <meta name="og:title" property="og:title" content="' . $title . '" />
-  <meta name="og:type" property="og:type" content="article" />
+  <meta name="og:type" property="og:type" content="' . $ogType . '" />
   <meta name="og:url" property="og:url" content="' . $safeDomain . '" />
   <meta name="og:description" property="og:description" content="' . $description . '" />
 ' . ($safeSocialImage != '' ? '  <meta name="og:image" property="og:image" content="' . $safeSocialImage . '" />
 ' : '') . '  <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" property="twitter:site" content="' . $safeDomain . '" />
   <meta name="twitter:title" property="twitter:title" content="' . $title . '" />
   <meta name="twitter:description" property="twitter:description" content="' . $description . '" />
 ' . ($safeSocialImage != '' ? '  <meta name="twitter:image" property="twitter:image" content="' . $safeSocialImage . '" />' : '');
@@ -3371,7 +3333,14 @@ class HAXCMSSite
       if (!isset($fileName)) {
         // if no logo, just bail with an easy standard one
         if (!isset($this->manifest->metadata->site->logo) || (isset($this->manifest->metadata->site) && ($this->manifest->metadata->site->logo == '' || $this->manifest->metadata->site->logo == null || $this->manifest->metadata->site->logo == "null"))) {
-            $fileName = 'assets/icon-' . $height . 'x' . $width . '.png';
+            // the boilerplate ships assets/icon-<n>x<n>.png at 48 to 512; the
+            // 16 and 32 pixel sizes (favicon) are the 32x32 assets/favicon.png
+            if ((string) $height === '16' || (string) $height === '32') {
+                $fileName = 'assets/favicon.png';
+            }
+            else {
+                $fileName = 'assets/icon-' . $height . 'x' . $width . '.png';
+            }
         }
         else {
           // ensure this path exists otherwise let's create it on the fly
