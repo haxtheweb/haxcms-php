@@ -218,10 +218,12 @@ npm run build
 ### Custom Component Structure
 ```javascript
 // custom/src/my-component.js
-import { LitElement, html, css } from 'lit';
-import { DDDSuper } from '@haxtheweb/d-d-d/d-d-d.js';
+// Use the Lit that HAX already serves: the site's import map resolves
+// @haxtheweb/* for custom code, but not a bare `lit` import.
+import { html, css } from '@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js';
+import { DDD } from '@haxtheweb/d-d-d/d-d-d.js';
 
-class MyComponent extends DDDSuper(LitElement) {
+class MyComponent extends DDD {
   static get styles() {
     return [
       super.styles,
