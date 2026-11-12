@@ -3568,6 +3568,56 @@ class HAXCMS
       }
     }
     /**
+     * Security (SEC-SESSION): revoke EVERY refresh session of a user (sign out
+     * everywhere). Every family currently in the store is tombstoned and a
+     * legacy tombstone is written, so no refresh token issued up to now (with
+     * or without a family claim) can mint another access token. Tokens issued
+     * afterwards start new families and are unaffected. Used where the caller
+     * knows the user but not which family to revoke, e.g. a HAXiam logout
+     * that runs on a different host than the one holding the refresh cookie.
+     * Same store shape as revokeRefreshSession (parity with NodeJS
+     * revokeAllRefreshSessions). Best-effort; sets $refreshStoreError on
+     * failure.
+     */
+    public function revokeAllRefreshSessions($user) {
+      if ($user === null || !is_scalar($user) || (string) $user === '') {
+        return;
+      }
+      try {
+        $this->withRefreshStoreLock(true, function () use ($user) {
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $user, true);
+          if ($key === null) {
+            return;
+          }
+          $now = time();
+          if (!isset($store['users'][$key]['families']) || !is_array($store['users'][$key]['families'])) {
+            $store['users'][$key]['families'] = array();
+          }
+          foreach ($store['users'][$key]['families'] as $familyKey => $existing) {
+            if (is_array($existing) && isset($existing['revoked']) && $existing['revoked'] === true) {
+              continue;
+            }
+            $store['users'][$key]['families'][$familyKey] = array(
+              'revoked' => true,
+              'revokedAt' => $now,
+              'exp' => $this->refreshTombstoneExp((is_array($existing) && isset($existing['exp'])) ? $existing['exp'] : 0),
+            );
+          }
+          $store['users'][$key]['legacyRevokedAt'] = $now;
+          $store['users'][$key]['legacyRevokedExp'] = $this->refreshTombstoneExp(
+            isset($store['users'][$key]['legacyRevokedExp']) ? $store['users'][$key]['legacyRevokedExp'] : 0
+          );
+          if (!$this->saveRefreshSessions($store)) {
+            $this->refreshStoreError = true;
+          }
+        });
+      }
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
+      }
+    }
+    /**
      * Validate a refresh token's family/jti against the store WITHOUT
      * rotating (pure; never writes). Used by connection-test recovery and
      * getAuthenticatedUserName. Only legacy tokens with NO family claim are
