@@ -16,7 +16,7 @@ Other useful commands, all run from this folder:
 
 - `hax site` shows the site's status and every action you can run.
 - `hax site node:add --title "My page" --y --no-i` adds a page.
-- `hax site site:surge`, `site:netlify` or `site:vercel` publishes the site. `setup:github-actions` sets up publishing to GitHub Pages.
+- `hax site site:surge`, `site:netlify` or `site:vercel` publishes the site. For GitHub Pages, `.github/workflows/deploy.yml` publishes every push to `main`: in the repository's Settings > Pages, set the source to GitHub Actions.
 
 ## What's in here
 
