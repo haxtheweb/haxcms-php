@@ -31,7 +31,8 @@ The rules the code keeps. A fix that introduces a new class of rule adds a line 
 - **Process exec:** argv-array `proc_open` with `isSafeArg` (no shell strings, no leading-dash values); zero `unserialize`/`eval`/`assert` under `system/backend/php/lib`
 - **Uploads:** extension allowlist cross-checked against libmagic, executable-extension stripping, no SVG on any write path, `files/` and `custom/`/`theme/` markup served as attachments
 - **Headers:** `X-Content-Type-Options: nosniff` everywhere; `frame-ancestors` on dashboard and site pages; `Referrer-Policy` on site pages; `X-Forwarded-*` only trusted via `resolveTrustedHost()`/`resolveTrustedProtocol()`
-- **Rate limiting:** login and Basic auth throttle per IP::username and per username, fail closed when the cache is unavailable, and log when they cannot
+- **Rate limiting:** login and Basic auth throttle per IP::username and per username; one-time sign-in link redemption throttles per IP::link selector; fail closed when the cache is unavailable, and log when they cannot
+- **Magic links:** one-time sign-in links (`session/magic-link`) are minted only by something with filesystem access to `_config` (the CLI or a server-side script), never over HTTP; a token is `selector.verifier` and only the verifier's SHA-256 is stored (`_config/settings/magicLinks.json`, 0600, every read-modify-write under an exclusive lock, files created as root handed to the settings directory's owner), compared constant-time, single use, short-lived (default 10 minutes, at most 24 hours), and a new link revokes the account's older ones; GET only renders a confirmation page and never consumes; POST passes `isSameOriginRequest`, is throttled per IP::link selector, and on success sets the refresh cookie through `setRefreshTokenCookie` exactly like password login; every failure is the same generic answer and never clears an existing session; on HAXiam deployments the feature is off unless the operator sets `HAXCMS_MAGIC_LINK_ENABLED` (tenant config can't turn it on or change its lifetime), `HAXCMS_MAGIC_LINK_DISABLED` turns it off everywhere, and when it's off the route answers 404 and minting refuses (`MagicLinkService.php`, `systemRoutes/v1/magicLink.php`, `scripts/magic-link.php`)
 - **Deployment:** `_config/`, `_archived/`, `system/backend/php` and `.git` denied at `.htaccess` and vhost/nginx level with the dual-`IfModule` pattern; Docker runs as `www-data` with `php.ini-production`
 - **Parity:** every one of these holds identically in `haxcms-nodejs`, and both `system-spec.yaml` / `site-spec.yaml` stay byte-identical
 
@@ -53,6 +54,7 @@ Inline comments name the invariant they enforce as `// Security (<TAG>): <rule>`
 | `SEC-INSTALL` | installer, secret/key generation, default credentials, install token, file modes on secrets | Install |
 | `SEC-EXPORT` | download/export artifacts (random names, TTL sweep, `_published/`), CSPRNG identifiers | Randomness |
 | `SEC-DOS` | size caps, ReDoS-safe regexes, decompression / YAML alias amplification limits | Egress, Uploads (caps) |
+| `SEC-MAGICLINK` | one-time sign-in links: minting, storage, redemption, HAXiam gating | Magic links |
 | `SEC-DEPLOY` | `.htaccess` / nginx denies, Docker image, deployment config, CLI-only scripts | Deployment |
 
 ## Commands
