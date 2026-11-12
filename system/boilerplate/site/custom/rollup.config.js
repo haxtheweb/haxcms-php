@@ -22,11 +22,11 @@ export default {
     } else {
       srcDir = '/src/';
     }
-    // matches input file, or starts with ./ or /src/ then we know it's a local file for processing
+    // matches input file, or starts with ./, ../ or /src/ then we know it's a local file for processing
     // the goal is to be able to correctly reference @haxtheweb / other project bare assets
     // and correctly assess that they are to be treated as 'external'
     // @todo read off of wc-registry.json to make this assessment if local or otherwise need to hit a CDN based copy
-    if (asset.endsWith(inputFile) || asset.startsWith('./') || asset.startsWith(srcDir)) {
+    if (asset.endsWith(inputFile) || asset.startsWith('./') || asset.startsWith('../') || asset.startsWith(srcDir)) {
       return false;
     }
     return true;
