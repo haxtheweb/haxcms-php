@@ -51,7 +51,25 @@ class RobotsTemplateTest extends TestCase
         $this->assertContains('Allow: /x/api/openapi', $rules);
         $this->assertContains('Allow: /.well-known/', $rules);
         $this->assertContains('Disallow: /x/', $rules);
-        $this->assertContains('Disallow: /pages/', $rules);
+    }
+
+    public function testPublicSitesKeepRenderFilesFetchable(): void
+    {
+        $output = $this->publicOutput();
+        foreach (array('*', 'ClaudeBot') as $agent) {
+            $rules = $this->groupFor($output, $agent);
+            // crawlers that render need the scripts, styles and page HTML
+            foreach (array('/build/', '/pages/', '/theme/', '/assets/', '/custom/') as $blocked) {
+                $this->assertNotContains('Disallow: ' . $blocked, $rules, $agent . ' ' . $blocked);
+            }
+        }
+    }
+
+    public function testNoCrawlDelay(): void
+    {
+        // Bing honors Crawl-delay; a per-request delay keeps big sites out of
+        // the index AI answer engines draw on
+        $this->assertDoesNotMatchRegularExpression('/^Crawl-delay:/mi', $this->publicOutput());
     }
 
     public function testAiCrawlersGetOwnGroupWithoutCrawlDelay(): void
@@ -81,7 +99,9 @@ class RobotsTemplateTest extends TestCase
     {
         $output = $this->publicOutput();
         $this->assertStringContainsString('Sitemap: https://example.org/sites/demo/sitemap.xml', $output);
-        $this->assertStringContainsString('LLMS: https://example.org/sites/demo/llms.txt', $output);
+        $this->assertStringContainsString('# LLMS: https://example.org/sites/demo/llms.txt', $output);
+        // robots.txt parsers (and Lighthouse) reject unknown directives
+        $this->assertDoesNotMatchRegularExpression('/^LLMS:/m', $output);
     }
 
     public function testPrivateSitesDisallowEverything(): void

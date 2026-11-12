@@ -240,7 +240,9 @@ class HAXCMSSiteMetadataTest extends TestCase
     public function testGetSiteMetadataDefaultIconPaths(): void
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
-        $this->assertStringContainsString('<link rel="icon" href="assets/icon-16x16.png" />', $metadata);
+        // the boilerplate has no 16/32 icon; those sizes are the 32x32 favicon
+        $this->assertStringContainsString('<link rel="icon" href="assets/favicon.png" />', $metadata);
+        $this->assertStringNotContainsString('icon-16x16', $metadata);
         $this->assertStringContainsString('href="assets/icon-192x192.png"', $metadata);
     }
 
@@ -313,12 +315,14 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->haxcms->contentTagPaths['video-player'] = '@haxtheweb/video-player/video-player.js';
         $metadata = $this->site->getSiteMetadata($this->homePage());
         $this->assertSame(array('<video-player', 'video-player'), $this->haxcms->contentTagRequests);
-        $this->assertStringContainsString(
-            '<link rel="preload" href="./build/es6/node_modules/@haxtheweb/video-player/video-player.js" as="script" crossorigin="anonymous" />',
+        // modulepreload only: a preload as=script for the same URL is a
+        // second request the module loader never reuses
+        $this->assertStringNotContainsString(
+            'video-player/video-player.js" as="script"',
             $metadata
         );
         $this->assertStringContainsString(
-            '<link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/video-player/video-player.js" />',
+            '<link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/video-player/video-player.js" crossorigin="anonymous" />',
             $metadata
         );
     }
@@ -345,7 +349,7 @@ class HAXCMSSiteMetadataTest extends TestCase
         );
         $this->haxcms->contentTagPaths['<video-player'] = '@haxtheweb/video-player/video-player.js';
         $metadata = $this->site->getSiteMetadata($this->homePage());
-        $this->assertSame(1, substr_count($metadata, 'video-player/video-player.js" as="script"'));
+        $this->assertSame(1, substr_count($metadata, 'video-player/video-player.js"'));
     }
 
     // =========================================================================
@@ -357,6 +361,26 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->site->manifest->metadata->site->settings->private = true;
         $metadata = $this->site->getSiteMetadata($this->homePage());
         $this->assertStringContainsString('<meta name="robots" content="none" />', $metadata);
+    }
+
+    public function testGetSiteMetadataCanonicalOnWhenSettingMissing(): void
+    {
+        // sites made before createSite stored the flag still get a canonical
+        unset($this->site->manifest->metadata->site->settings->canonical);
+        $metadata = $this->site->getSiteMetadata($this->homePage());
+        $this->assertStringContainsString('rel="canonical"', $metadata);
+    }
+
+    public function testGetSiteMetadataSocialAndPreconnectHints(): void
+    {
+        $metadata = $this->site->getSiteMetadata($this->homePage());
+        // twitter:site is an @handle, never a URL; HAXcms has none to give
+        $this->assertStringNotContainsString('twitter:site', $metadata);
+        $this->assertStringContainsString('<meta name="og:type" property="og:type" content="website" />', $metadata);
+        // the font CSS host (no CORS) and the font file host (CORS) only
+        $this->assertStringContainsString('<link rel="preconnect" href="https://fonts.googleapis.com">', $metadata);
+        $this->assertStringContainsString('<link rel="preconnect" crossorigin href="https://fonts.gstatic.com">', $metadata);
+        $this->assertStringNotContainsString('cdnjs.cloudflare.com', $metadata);
     }
 
     public function testGetSiteMetadataCanonicalDisabledOmitsCanonical(): void
@@ -374,8 +398,8 @@ class HAXCMSSiteMetadataTest extends TestCase
             '<link rel="modulepreload" href="./custom/build/custom.es6.js" crossorigin="anonymous" />',
             $metadata
         );
-        $this->assertStringContainsString(
-            '<link rel="preload" href="./custom/build/custom.es6.js" as="script" crossorigin="anonymous" />',
+        $this->assertStringNotContainsString(
+            '<link rel="preload" href="./custom/build/custom.es6.js"',
             $metadata
         );
         // Registry-prefixed preload for the old theme must not be emitted.

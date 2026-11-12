@@ -124,7 +124,7 @@ class FallbackRendererSecurityTest extends TestCase
         $this->assertStringContainsString('<script src="./build.js"></script>', $html);
         $this->assertStringContainsString('__appCDN="./";', $html);
         // unsafe canonical is dropped, not emitted empty or as javascript:
-        $this->assertStringNotContainsString('name="canonical"', $html);
+        $this->assertStringNotContainsString('rel="canonical"', $html);
     }
 
     public function testLegitimateManifestValuesStillWork(): void
@@ -143,8 +143,8 @@ class FallbackRendererSecurityTest extends TestCase
         $this->assertStringContainsString('--ld-accent: var(--simple-colors-default-theme-blue-7, #FF2222);', $html);
         $this->assertStringContainsString('<script src="https://cdn.example.com/hax/build-haxcms.js"></script>', $html);
         $this->assertStringContainsString('__appCDN="https://cdn.example.com/hax/";', $html);
-        $this->assertStringContainsString('<link name="canonical" href="https://example.com/home" />', $html);
-        $this->assertStringContainsString('<h1>Loading fallback-test...</h1>', $html);
+        $this->assertStringContainsString('<link rel="canonical" href="https://example.com/home" />', $html);
+        $this->assertStringContainsString('<p class="ld-label">Loading fallback-test...</p>', $html);
         $this->assertStringContainsString('<p>home page</p>', $html);
     }
 
