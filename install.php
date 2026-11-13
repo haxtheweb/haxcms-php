@@ -942,95 +942,397 @@ if ($installTokenEnabled && !$installTokenCookieValid) {
 <html lang="<?php print haxcmsInstallerStatusEscape($htmlLang); ?>">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+    <meta name="generator" content="HAXcms">
+    <meta name="robots" content="noindex, nofollow">
     <title>HAXcms Installation</title>
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-lite.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-button-lite.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/git-corner/git-corner.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/hax-app-installer/hax-app-installer.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-language-picker.js" crossorigin="anonymous">
-    <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/i18n-manager/lib/LanguageRegistry.js" crossorigin="anonymous">
+    <link rel="icon" href="assets/favicon.ico">
+<?php if (!$installTokenNeedsEntry) { ?>
+    <!--
+      Load path, as index.php does for the dashboard: the installer's
+      critical modules are preloaded in parallel so the first paint is the
+      form, not a waterfall of imports. HAX TV (retro-tv and its programs)
+      is imported by the installer after its first render, so it never
+      holds up the page.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<?php
+  $installerPreloads = array(
+    'lit/index.js',
+    '@lit/reactive-element/reactive-element.js',
+    'lit-html/lit-html.js',
+    'lit-element/lit-element.js',
+    '@haxtheweb/hax-app-installer/hax-app-installer.js',
+    '@haxtheweb/d-d-d/lib/HaxUiAdminStyles.js',
+    '@haxtheweb/d-d-d/lib/HaxUiAdminTokens.js',
+    '@haxtheweb/d-d-d/lib/HaxUiDialogFrame.js',
+    '@haxtheweb/i18n-manager/lib/I18NMixin.js',
+    '@haxtheweb/simple-icon/lib/simple-icons.js',
+    '@haxtheweb/simple-icon/lib/simple-icon-lite.js',
+    '@haxtheweb/haxcms-elements/lib/core/haxcms-language-picker.js',
+    '@haxtheweb/i18n-manager/lib/LanguageRegistry.js',
+  );
+  foreach ($installerPreloads as $installerPreload) {
+    // only files this build has, so a pre-ubiquity build never 404s
+    if (file_exists(__DIR__ . '/build/es6/node_modules/' . $installerPreload)) {
+      print '    <link rel="modulepreload" href="./build/es6/node_modules/' . haxcmsInstallerStatusEscape($installerPreload) . '" crossorigin="anonymous">' . "\n";
+    }
+  }
+?>
+<?php } ?>
     <style>
       /*
-        Installer bootstrap styling. The hax-app-installer element provides
-        its own full DDD styling; this page only needs enough to avoid a
-        broken layout if the element has not been built yet (pre-ubiquity).
-        DDD :root token subset inlined from elements/d-d-d/lib/DDDStyles.js
-        so the page is self-contained and dark-mode-aware.
+        The installer draws itself (HAX UI, from hax-app-installer). This page
+        only sets the colors behind it and fades it in once it has rendered,
+        with the same loading screen as the dashboard (index.php) until then.
       */
       :root {
         color-scheme: light dark;
-        --ddd-theme-default-beaverBlue: #1e407c;
-        --ddd-theme-default-nittanyNavy: #001e44;
-        --ddd-theme-default-potentialMidnight: #000321;
-        --ddd-theme-default-coalyGray: #262626;
-        --ddd-theme-default-limestoneLight: #e4e5e7;
-        --ddd-theme-default-limestoneMaxLight: #f2f2f4;
-        --ddd-theme-default-white: #ffffff;
-        --ddd-theme-default-black: #000000;
-        --ddd-theme-default-navy40: rgba(0, 30, 68, 0.4);
-        --ddd-theme-default-background: #eff2f5;
-        --ddd-primary-1: var(--ddd-theme-default-beaverBlue);
-        --ddd-primary-2: var(--ddd-theme-default-nittanyNavy);
-        --ddd-primary-3: var(--ddd-theme-default-potentialMidnight);
-        --ddd-primary-4: var(--ddd-theme-default-coalyGray);
-        --ddd-accent-2: var(--ddd-theme-default-limestoneMaxLight);
-        --ddd-accent-6: var(--ddd-theme-default-white);
-        --ddd-font-primary: "Roboto", "Franklin Gothic Medium", Tahoma, sans-serif;
-        --ddd-spacing-2: 8px;
-        --ddd-spacing-4: 16px;
-        --ddd-font-size-s: 24px;
-        --ddd-font-size-l: 40px;
-        --ddd-font-size-m: 32px;
-        --ddd-radius-xs: 4px;
-        --ddd-radius-lg: 16px;
-        --ddd-boxShadow-md: light-dark(rgba(0, 3, 33, 0.15), rgba(150, 190, 230, 0.1)) 0px 8px 16px 0px;
       }
       body {
         margin: 0;
         padding: 0;
         overflow-x: hidden;
-        color-scheme: light dark;
-        background-color: light-dark(var(--ddd-theme-default-background), var(--ddd-theme-default-potentialMidnight));
-        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
-        font-family: var(--ddd-font-primary);
-        --github-corner-background: var(--ddd-primary-1);
-        --github-corner-color: var(--ddd-theme-default-white);
-      }
-      git-corner {
-        right: 0;
-        top: 0;
-        position: fixed;
+        background-color: light-dark(#f2f2f4, #000321); /* limestoneMaxLight, potentialMidnight */
+        color: light-dark(#262626, #ffffff); /* coalyGray, white */
+        font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif;
       }
       hax-app-installer {
         display: block;
+        min-height: 100vh;
+        opacity: 0;
+      }
+      hax-app-installer.ready {
+        opacity: 1;
+        transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1); /* duration-normal, timing-enter */
+      }
+      @media (prefers-reduced-motion: reduce) {
+        hax-app-installer.ready {
+          transition-duration: 150ms;
+        }
       }
       .install-token-required {
         max-width: 640px;
-        margin: var(--ddd-font-size-l) auto;
-        padding: var(--ddd-spacing-4);
+        margin: 40px auto;
+        padding: 16px;
+        line-height: 1.5;
+      }
+      .install-token-required img {
+        display: block;
+        width: 96px;
+        height: auto;
+        margin-bottom: 16px;
       }
     </style>
+<?php if (!$installTokenNeedsEntry) { ?>
+  <style id="loadingstyles">
+    /* The loading screen: a page that builds itself (blocks drop onto a sheet,
+       a caret blinks once), looping until the site is ready, then finishing
+       and dissolving into the site. Plain CSS + the loadingscript below; no
+       images, fonts or other requests. Colors follow the system light/dark
+       setting. */
+    #loading {
+      color-scheme: inherit; /* the dashboard sets light or dark on body */
+      --ld-accent: #3ea39e; /* creekTeal */
+      --ld-bg: light-dark(#f2f2f4, #000321); /* limestoneMaxLight, potentialMidnight */
+      --ld-ink: light-dark(#314d64, #ccdae6); /* slateGray, slateLight */
+      --ld-strong: light-dark(#001e44, #ffffff); /* nittanyNavy, white */
+      --ld-sheet: light-dark(#ffffff, #001e44); /* white, nittanyNavy */
+      --ld-line: light-dark(#a2aaad, #314d64); /* limestoneGray, slateGray */
+      --ld-faint: light-dark(#e4e5e7, #1e407c); /* limestoneLight, beaverBlue */
+      --ld-bar: light-dark(#ccdae6, #314d64); /* slateLight, slateGray */
+      --ld-head: light-dark(#a2aaad, #96bee6); /* limestoneGray, pughBlue */
+      --ld-size: 320px;
+      background-color: var(--ld-bg);
+      color: var(--ld-ink);
+      inset: 0;
+      opacity: 1;
+      position: fixed;
+      z-index: 99999999;
+    }
+    #loading div.messaging {
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      left: 0px;
+      position: absolute;
+      right: 0px;
+      text-align: center;
+      top: 50%;
+      transform: translateY(-54%);
+    }
+    #loading div.messaging h1 {
+      color: var(--ld-ink);
+      font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif !important;
+      font-size: 14px !important;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+    }
+    /* the figure: positions and sizes are in a 300 x 210 grid (--x --y --w --h),
+       scaled by --u so it fits narrow screens; only opacity and transform move */
+    #loading .ld-fig {
+      --u: calc(min(var(--ld-size), 68vw) / 300);
+      flex: none;
+      height: calc(210 * var(--u));
+      position: relative;
+      width: calc(300 * var(--u));
+    }
+    :where(#loading .ld-fig) > span {
+      border-radius: calc(3 * var(--u));
+      box-sizing: border-box;
+      display: block;
+      height: calc(var(--h) * var(--u));
+      left: calc(var(--x) * var(--u));
+      position: absolute;
+      top: calc(var(--y) * var(--u));
+      width: calc(var(--w) * var(--u));
+    }
+    #loading .ld-back {
+      border: 1px solid var(--ld-faint);
+    }
+    #loading .ld-page {
+      background: var(--ld-sheet);
+      border: 1px solid var(--ld-line);
+      border-radius: calc(8 * var(--u)); /* ddd-radius-sm */
+      box-shadow: 0 calc(8 * var(--u)) calc(16 * var(--u)) light-dark(rgba(0, 3, 33, 0.15), rgba(150, 190, 230, 0.1)); /* ddd-boxShadow-md */
+    }
+    #loading .ld-l {
+      animation: 3600ms linear infinite;
+      background: var(--ld-bar);
+      will-change: transform, opacity;
+    }
+    #loading .ld-h {
+      background: var(--ld-head);
+    }
+    #loading .ld-img,
+    #loading .ld-thumb {
+      background: var(--ld-faint);
+      border: 1px solid var(--ld-line);
+      overflow: hidden;
+    }
+    #loading .ld-img::before {
+      background: var(--ld-accent);
+      border-radius: 50%;
+      content: '';
+      height: calc(14 * var(--u));
+      position: absolute;
+      right: calc(16 * var(--u));
+      top: calc(9 * var(--u));
+      width: calc(14 * var(--u));
+    }
+    #loading .ld-img::after,
+    #loading .ld-thumb::after {
+      background: var(--ld-line);
+      clip-path: polygon(0 100%, 0 80%, 24% 44%, 44% 70%, 64% 40%, 100% 78%, 100% 100%);
+      content: '';
+      inset: 0;
+      position: absolute;
+    }
+    #loading .ld-caret {
+      animation: ldc 3600ms step-end infinite;
+      background: var(--ld-strong);
+      border-radius: 1px;
+    }
+    #loading .ld1 { animation-name: ld1; }
+    #loading .ld2 { animation-name: ld2; }
+    #loading .ld3 { animation-name: ld3; }
+    #loading .ld4 { animation-name: ld4; }
+    #loading .ld5 { animation-name: ld5; }
+    #loading .ld6 { animation-name: ld6; }
+    #loading .ld7 { animation-name: ld7; }
+    #loading .ld8 { animation-name: ld8; }
+    #loading .ld9 { animation-name: ld9; }
+    /* one 3600ms loop: each block drops in (staggered), the caret blinks once
+       and stays (built at 2850ms), everything rests, fades, and starts again.
+       Keep LOOP_MS / BUILT_MS in the loadingscript in step with this. */
+    @keyframes ld1 { 0%, 2.8% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 13.3%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld2 { 0%, 15.6% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 26.1%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld3 { 0%, 19.4% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 29.9%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld4 { 0%, 23.3% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 33.8%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld5 { 0%, 33.3% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 43.8%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld6 { 0%, 45% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 55.5%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld7 { 0%, 48.3% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 58.8%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld8 { 0%, 51.7% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 62.2%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ld9 { 0%, 55% { opacity: 0; transform: translateY(calc(-16 * var(--u))); animation-timing-function: cubic-bezier(0.2, 0, 0, 1); } 65.5%, 91.7% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+    @keyframes ldc { 0% { opacity: 0; } 68% { opacity: 1; } 73.6% { opacity: 0; } 79.2% { opacity: 1; } 91.7% { opacity: 1; animation-timing-function: linear; } 100% { opacity: 0; } }
+    /* ready: the figure finishes (loadingscript), then the screen dissolves */
+    #loading.loaded {
+      animation: fade-out .1s ease-in-out;
+      animation-fill-mode: forwards;
+    }
+    #loading.ld-out {
+      animation: none;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 300ms cubic-bezier(0.4, 0, 1, 1) 50ms; /* duration-normal, timing-exit */
+    }
+    #loading.ld-out div.messaging {
+      opacity: 0;
+      transform: translateY(-54%) scale(0.985);
+      transition: opacity 150ms cubic-bezier(0.4, 0, 1, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1); /* duration-fast/normal, timing-exit/ease */
+    }
+    #loading.ld-out.ld-quick {
+      transition: opacity 150ms linear;
+    }
+    #loading.ld-out.ld-quick div.messaging {
+      transform: translateY(-54%);
+      transition: opacity 150ms linear;
+    }
+    @keyframes fade-out {
+      0% {
+        opacity: 1;
+      }
+      99% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    /* reduced motion: a still, built page and a quick fade */
+    @media (prefers-reduced-motion: reduce) {
+      #loading .ld-l,
+      #loading .ld-caret {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
+<?php } ?>
   </head>
   <body>
-    <git-corner alt="Join HAX on Github!" source="https://github.com/haxtheweb/haxcms-php"></git-corner>
-    <div class="wrapper">
 <?php if ($installTokenNeedsEntry) { ?>
-      <main class="install-token-required">
-        <h1>Install token required</h1>
-        <p>This server was provisioned with an install token, so the installer is locked until you provide it.</p>
-        <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_config/_installtoken.txt</code> on the server (your hosting provider may also have shown it to you).</p>
-      </main>
+    <main class="install-token-required">
+      <img src="./build/es6/node_modules/@haxtheweb/hax-app-installer/lib/hax.png" alt="Future Traveler, the HAX mascot" width="96" height="96">
+      <h1>Install token required</h1>
+      <p>This server was provisioned with an install token, so the installer is locked until you provide it.</p>
+      <p>Open <code>install.php?install_token=&lt;token&gt;</code>, using the value in <code>_config/_installtoken.txt</code> on the server (your hosting provider may also have shown it to you).</p>
+    </main>
 <?php } else { ?>
-      <hax-app-installer api-endpoint="install.php"></hax-app-installer>
-<?php } ?>
+    <section role="alert" id="loading" aria-busy="true">
+    <div class="messaging">
+      <div class="ld-fig" aria-hidden="true">
+        <span class="ld-back" style="--x:78;--y:0;--w:168;--h:192"></span>
+        <span class="ld-page" style="--x:66;--y:6;--w:168;--h:198"></span>
+        <span class="ld-l ld-h ld1" style="--x:80;--y:22;--w:140;--h:16"></span>
+        <span class="ld-l ld2" style="--x:80;--y:50;--w:132;--h:5"></span>
+        <span class="ld-l ld3" style="--x:80;--y:61;--w:140;--h:5"></span>
+        <span class="ld-l ld4" style="--x:80;--y:72;--w:96;--h:5"></span>
+        <span class="ld-l ld-img ld5" style="--x:80;--y:90;--w:140;--h:56"></span>
+        <span class="ld-l ld-thumb ld6" style="--x:80;--y:158;--w:42;--h:34"></span>
+        <span class="ld-l ld7" style="--x:132;--y:160;--w:88;--h:5"></span>
+        <span class="ld-l ld8" style="--x:132;--y:171;--w:88;--h:5"></span>
+        <span class="ld-l ld9" style="--x:132;--y:182;--w:60;--h:5"></span>
+        <span class="ld-caret" style="--x:196;--y:179;--w:2;--h:11"></span>
+      </div>
+      <h1>Loading...</h1>
     </div>
+  </section>
+    <hax-app-installer api-endpoint="install.php"></hax-app-installer>
+    <script>
+    // The same loading screen as the dashboard: the figure finishes, then the
+    // screen dissolves as the installer fades in. Kept in step with index.php.
+    var LOOP_MS = 3600; // one loop of the figure
+    var BUILT_MS = 2850; // when, in a loop, the page is fully built
+    var FINISH_MS = 400; // ready: the build wraps up in at most this long...
+    var MAX_RATE = 8; // ...by playing faster, but never more than this
+    var HOLD_MS = 100; // then rests on the built page this long
+    var FAST_MS = 1200; // ready this soon after navigation: skip the show, fade quickly
+    function finishFigure(figure, done) {
+      var anims = figure.getAnimations({ subtree: true });
+      if (!anims.length) {
+        done();
+        return;
+      }
+      var now = Number(anims[0].currentTime) || 0;
+      var phase = now % LOOP_MS;
+      // already built (resting or fading): go straight to the built page
+      var left = phase >= BUILT_MS ? 0 : BUILT_MS - phase;
+      var rate = Math.min(Math.max(left / FINISH_MS, 1), MAX_RATE);
+      if (rate > 1) {
+        anims.forEach(function (a) {
+          if (a.updatePlaybackRate) {
+            a.updatePlaybackRate(rate);
+          } else {
+            a.playbackRate = rate;
+          }
+        });
+      }
+      setTimeout(function () {
+        anims.forEach(function (a) {
+          a.currentTime = now - phase + BUILT_MS;
+          a.pause();
+        });
+        setTimeout(done, HOLD_MS);
+      }, left / rate);
+    }
+    function dissolveLoading(loadingEl, quick) {
+      // .loaded is still how HAX says "ready" to themes; .ld-out is the fade
+      loadingEl.classList.add('loaded', 'ld-out');
+      if (quick) {
+        loadingEl.classList.add('ld-quick');
+      }
+      loadingEl.setAttribute('aria-busy', 'false');
+      setTimeout(function () {
+        loadingEl.setAttribute('hidden', 'hidden');
+          loadingEl.remove();
+      }, quick ? 200 : 350);
+    }
+    function revealSite(loadingEl) {
+      var figure = loadingEl.querySelector('.ld-fig');
+      var quick =
+        !figure ||
+        !figure.getAnimations ||
+        document.visibilityState === 'hidden' ||
+        (globalThis.performance && globalThis.performance.now() < FAST_MS) ||
+        !!(globalThis.matchMedia && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      if (quick) {
+        dissolveLoading(loadingEl, true);
+      } else {
+        finishFigure(figure, function () {
+          dissolveLoading(loadingEl, false);
+        });
+      }
+    }
+    var installerRevealed = false;
+    function revealInstaller() {
+      if (installerRevealed) {
+        return;
+      }
+      installerRevealed = true;
+      var installer = document.querySelector('hax-app-installer');
+      var loadingEl = document.querySelector('#loading');
+      globalThis.requestAnimationFrame(function () {
+        globalThis.requestAnimationFrame(function () {
+          if (installer) {
+            installer.classList.add('ready');
+          }
+          if (loadingEl) {
+            revealSite(loadingEl);
+          }
+        });
+      });
+    }
+    if (window.customElements && window.customElements.whenDefined) {
+      window.customElements.whenDefined('hax-app-installer').then(function () {
+        var installer = document.querySelector('hax-app-installer');
+        var rendered = installer && installer.updateComplete ? installer.updateComplete : Promise.resolve();
+        rendered.then(revealInstaller, revealInstaller);
+      });
+    }
+    // never leave someone on the loading screen: a missing or broken build
+    // still shows the page after a few seconds
+    setTimeout(revealInstaller, 6000);
+    </script>
     <script type="module">
-      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icons.js";
-      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-lite.js";
-      import "./build/es6/node_modules/@haxtheweb/simple-icon/lib/simple-icon-button-lite.js";
-      import "./build/es6/node_modules/@haxtheweb/git-corner/git-corner.js";
       import "./build/es6/node_modules/@haxtheweb/hax-app-installer/hax-app-installer.js";
     </script>
+<?php } ?>
   </body>
 </html>
