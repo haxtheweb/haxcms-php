@@ -2032,6 +2032,55 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /x/api/v1/files/{fileUuid}/content:
+    post:
+      tags:
+        - files
+      operationId: replaceFileContent
+      summary: Replace an image's contents, keeping its uuid, path and name
+      description: >-
+        Replaces a JPG, PNG or WebP image with an uploaded raster image (for
+        example a crop made in the browser). The server re-encodes the upload
+        into the existing file's own format, so every page that uses the file
+        shows the new image. Animated and vector images are not accepted.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/FileUuid"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Replaced file result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /x/api/v1/tags:
     get:
       tags:
