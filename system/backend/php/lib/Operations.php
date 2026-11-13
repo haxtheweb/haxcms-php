@@ -1799,6 +1799,86 @@ class Operations {
     }
     return false;
   }
+  /**
+   * Replace a JPG, PNG or WebP image's pixels with an uploaded JPG, PNG or
+   * WebP image, re-encoded into the existing file's format (replaceFileContent,
+   * haxtheweb/issues#1149). Mirrors replaceImageContentInPlace in haxcms-nodejs.
+   */
+  private function replaceImageContentInPlaceFile($sourcePath, $uploadPath, $jpgQuality = null) {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image processing support is unavailable on this server',
+      );
+    }
+    $replaceable = array(
+      IMAGETYPE_JPEG => 'jpg',
+      IMAGETYPE_PNG => 'png',
+      IMAGETYPE_WEBP => 'webp',
+    );
+    $sourceInfo = @getimagesize($sourcePath);
+    $sourceType = is_array($sourceInfo) ? $sourceInfo[2] : 0;
+    if (!isset($replaceable[$sourceType])) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only JPG, PNG and WebP images can be replaced',
+      );
+    }
+    $uploadInfo = @getimagesize($uploadPath);
+    $uploadType = is_array($uploadInfo) ? $uploadInfo[2] : 0;
+    $uploadImage = isset($replaceable[$uploadType]) ? $this->createImageResourceFromPath($uploadPath) : false;
+    if (!$uploadImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'The uploaded file must be a JPG, PNG or WebP image',
+      );
+    }
+    $extension = $replaceable[$sourceType];
+    if ($extension !== 'jpg') {
+      @imagealphablending($uploadImage, false);
+      @imagesavealpha($uploadImage, true);
+    }
+    $temporaryPath = $sourcePath . '.replace-' . uniqid('', true);
+    $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
+    if ($extension === 'jpg') {
+      $saved = @imagejpeg($uploadImage, $temporaryPath, $resolvedQuality);
+    }
+    else if ($extension === 'png') {
+      $saved = function_exists('imagepng') ? @imagepng($uploadImage, $temporaryPath, 6) : false;
+    }
+    else {
+      $saved = function_exists('imagewebp') ? @imagewebp($uploadImage, $temporaryPath, $resolvedQuality) : false;
+    }
+    imagedestroy($uploadImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to replace image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace image',
+        );
+      }
+    }
+    @touch($sourcePath);
+    return array('success' => true);
+  }
   private function rotateImageInPlaceFile($sourcePath, $degrees = 90) {
     if (
       !$this->isImageProcessingAvailable() ||

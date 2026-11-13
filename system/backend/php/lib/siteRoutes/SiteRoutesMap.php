@@ -58,6 +58,7 @@ class SiteRoutesMap
                 'v1/items' => dirname(__FILE__) . '/v1/itemsMutation.php',
                 'v1/items/:idOrSlug/revisions/:revisionId/restore' => dirname(__FILE__) . '/v1/revisionsMutation.php',
                 'v1/files' => dirname(__FILE__) . '/v1/filesMutation.php',
+                'v1/files/:fileUuid/content' => dirname(__FILE__) . '/v1/filesContentMutation.php',
                 'v1/site/export/:format' => dirname(__FILE__) . '/v1/exportsMutation.php',
                 'v1/site/normalize-slugs' => dirname(__FILE__) . '/v1/siteNormalizeSlugs.php',
                 'v1/site/updateAlternativeFormats' => dirname(__FILE__) . '/v1/siteAlternativeFormatsMutation.php',
