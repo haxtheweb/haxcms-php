@@ -925,12 +925,6 @@ parameters:
 			path: lib/SsrfGuard.php
 
 		-
-			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: lib/SystemStatusService.php
-
-		-
 			message: '#^Call to function is_object\(\) with stdClass will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1

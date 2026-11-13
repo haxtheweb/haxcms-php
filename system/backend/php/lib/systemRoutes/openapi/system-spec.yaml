@@ -3693,11 +3693,87 @@ components:
               type: string
             haxcmsVersionLatest:
               type: string
+        update:
+          $ref: "#/components/schemas/PlatformUpdateStatus"
         rows:
           type: array
           items:
             type: object
             additionalProperties: true
+      additionalProperties: true
+    PlatformUpdateStatus:
+      type: object
+      description: >
+        Update awareness for this install (haxtheweb/issues#1768). Read-only:
+        the backend never downloads or writes release files; upgrades run from
+        a shell. Outbound checks never run on a haxiam-managed deployment or
+        when config.json sets updates.check to false (checkEnabled false).
+        security is true when a published advisory on haxtheweb/issues lists
+        a patched version for this backend above the installed version.
+      required:
+        - checkEnabled
+        - managed
+        - current
+        - latest
+        - updateAvailable
+        - security
+        - advisories
+        - installMethod
+      properties:
+        checkEnabled:
+          type: boolean
+        managed:
+          type: boolean
+        current:
+          type: string
+        latest:
+          type: string
+          description: Latest release version, or "unknown" when not checked or unreachable.
+        releasedAt:
+          type: string
+        releaseUrl:
+          type: string
+        updateAvailable:
+          type: boolean
+        security:
+          type: boolean
+        advisories:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              cve:
+                type: string
+              severity:
+                type: string
+              summary:
+                type: string
+              url:
+                type: string
+              patched:
+                type: string
+        installMethod:
+          type: string
+          enum:
+            - node-npm
+            - node-docker
+            - node-source
+            - desktop
+            - php-archive
+            - php-git
+            - php-docker
+            - unknown
+        assets:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                type: string
       additionalProperties: true
     SystemVersionData:
       type: object

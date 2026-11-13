@@ -1,4 +1,6 @@
 <?php
+include_once dirname(__FILE__) . '/PlatformUpdateService.php';
+
 class HAXCMSSystemStatusService
 {
     const GITHUB_RELEASES_LATEST_URL = 'https://api.github.com/repos/haxtheweb/haxcms-php/releases/latest';
@@ -183,60 +185,80 @@ class HAXCMSSystemStatusService
 
     private static function fetchLatestReleaseVersionFromGitHub()
     {
-        static $cache = array(
-            'version' => '',
-            'expiresAt' => 0,
-        );
-        $now = time();
-        if ($cache['version'] !== '' && $cache['expiresAt'] > $now) {
-            return $cache['version'];
+        $release = HAXCMSPlatformUpdateService::fetchLatestRelease();
+        if (is_array($release) && isset($release['tag_name']) && is_string($release['tag_name'])) {
+            return self::normalizeVersion($release['tag_name']);
         }
-        $responseBody = '';
-        if (function_exists('curl_init')) {
-            $ch = curl_init(self::GITHUB_RELEASES_LATEST_URL);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Accept: application/vnd.github+json',
-                'User-Agent: haxcms-php-system-status',
-            ));
-            $responseBody = curl_exec($ch);
-            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($httpCode < 200 || $httpCode >= 300 || !is_string($responseBody)) {
-                $responseBody = '';
-            }
-        }
-        else {
-            $context = stream_context_create(array(
-                'http' => array(
-                    'method' => 'GET',
-                    'timeout' => 4,
-                    'header' =>
-                        "Accept: application/vnd.github+json\r\n" .
-                        "User-Agent: haxcms-php-system-status\r\n",
-                ),
-            ));
-            $result = @file_get_contents(self::GITHUB_RELEASES_LATEST_URL, false, $context);
-            if (is_string($result)) {
-                $responseBody = $result;
-            }
-        }
-        $latestVersion = '';
-        if (is_string($responseBody) && $responseBody !== '') {
-            $payload = json_decode($responseBody, true);
-            if (is_array($payload) && isset($payload['tag_name']) && is_string($payload['tag_name'])) {
-                $latestVersion = self::normalizeVersion($payload['tag_name']);
-            }
-        }
-        if ($latestVersion !== '') {
-            $cache = array(
-                'version' => $latestVersion,
-                'expiresAt' => $now + self::RELEASE_CACHE_TTL_SECONDS,
+        return '';
+    }
+
+    /**
+     * The haxcms-version status row. $update (HAXCMSPlatformUpdateService)
+     * adds the host-managed and checks-off states and flags a missing
+     * security fix. Mirrors buildVersionRow in haxcms-nodejs systemStatus.js.
+     *
+     * @param string $currentVersion
+     * @param string $latestVersion
+     * @param string $releasePageUrl
+     * @param array<string, mixed>|null $update
+     * @return array<string, mixed>
+     */
+    public static function buildVersionRow($currentVersion, $latestVersion, $releasePageUrl, $update = null)
+    {
+        $managed = is_array($update) && !empty($update['managed']);
+        $checksOff = is_array($update) && empty($update['checkEnabled']);
+        $advisories = (is_array($update) && !empty($update['security']) && isset($update['advisories']) && is_array($update['advisories']))
+            ? $update['advisories']
+            : array();
+        if ($managed) {
+            return array(
+                'key' => 'haxcms-version',
+                'tone' => 'info',
+                'title' => 'HAXcms version',
+                'value' => $currentVersion,
+                'description' => 'Updates for this install are managed by your host.',
             );
         }
-        return $latestVersion;
+        if ($checksOff) {
+            return array(
+                'key' => 'haxcms-version',
+                'tone' => 'info',
+                'title' => 'HAXcms version',
+                'value' => $currentVersion,
+                'description' => 'Current: ' . $currentVersion . ' · Update checks are turned off (updates.check in config.json).',
+                'valueLink' => self::RELEASES_LATEST_URL,
+            );
+        }
+        $versionDescription = 'Current: ' . $currentVersion . ' · Latest: ' . $latestVersion;
+        if ($currentVersion !== 'unknown' && $latestVersion !== 'unknown' && $currentVersion !== $latestVersion) {
+            $versionDescription .= ' · Update: ' . $releasePageUrl;
+        }
+        $row = array(
+            'key' => 'haxcms-version',
+            'tone' => ($currentVersion !== 'unknown' && $latestVersion !== 'unknown' && $currentVersion === $latestVersion) ? 'ok' : 'warning',
+            'title' => 'HAXcms version',
+            'value' => $currentVersion,
+            'description' => $versionDescription,
+            'valueLink' => self::RELEASES_LATEST_URL,
+        );
+        if (count($advisories) > 0) {
+            $ids = array();
+            $links = array();
+            foreach ($advisories as $advisory) {
+                $label = $advisory['cve'] !== '' ? $advisory['cve'] : $advisory['id'];
+                $ids[] = $label;
+                if ($advisory['url'] !== '') {
+                    $links[] = array(
+                        'url' => $advisory['url'],
+                        'label' => $advisory['severity'] !== '' ? $label . ' (' . $advisory['severity'] . ')' : $label,
+                    );
+                }
+            }
+            $row['tone'] = 'error';
+            $row['description'] .= ' · Security update available: ' . implode(', ', $ids);
+            $row['links'] = $links;
+        }
+        return $row;
     }
 
     public static function buildStatusReport($options = array())
@@ -361,16 +383,6 @@ class HAXCMSSystemStatusService
         $releasePageUrl = isset($options['releasePageUrl']) && is_string($options['releasePageUrl']) && $options['releasePageUrl'] !== ''
             ? $options['releasePageUrl']
             : self::RELEASES_PAGE_URL;
-        $versionDescription =
-            'Current: ' . $summary['haxcmsVersionCurrent'] .
-            ' · Latest: ' . $summary['haxcmsVersionLatest'];
-        if (
-            $summary['haxcmsVersionCurrent'] !== 'unknown' &&
-            $summary['haxcmsVersionLatest'] !== 'unknown' &&
-            $summary['haxcmsVersionCurrent'] !== $summary['haxcmsVersionLatest']
-        ) {
-            $versionDescription .= ' · Update: ' . $releasePageUrl;
-        }
         $rows[] = array(
             'key' => 'installation-state',
             'tone' => $requiredDirectoryErrors === 0 ? 'ok' : 'error',
@@ -406,17 +418,12 @@ class HAXCMSSystemStatusService
                     : 'Indicates whether JWT validation is enforced.',
             );
         }
-        $rows[] = array(
-            'key' => 'haxcms-version',
-            'tone' => (
-                $summary['haxcmsVersionCurrent'] !== 'unknown' &&
-                $summary['haxcmsVersionLatest'] !== 'unknown' &&
-                $summary['haxcmsVersionCurrent'] === $summary['haxcmsVersionLatest']
-            ) ? 'ok' : 'warning',
-            'title' => 'HAXcms version',
-            'value' => $summary['haxcmsVersionCurrent'],
-            'description' => $versionDescription,
-            'valueLink' => self::RELEASES_LATEST_URL,
+        $update = (isset($options['update']) && is_array($options['update'])) ? $options['update'] : null;
+        $rows[] = self::buildVersionRow(
+            $summary['haxcmsVersionCurrent'],
+            $summary['haxcmsVersionLatest'],
+            $releasePageUrl,
+            $update
         );
         $supportUrl = isset($options['supportUrl']) && is_string($options['supportUrl']) && $options['supportUrl'] !== ''
             ? $options['supportUrl']
@@ -438,10 +445,14 @@ class HAXCMSSystemStatusService
                 ),
             ),
         );
-        return array(
+        $report = array(
             'summary' => $summary,
             'rows' => $rows,
         );
+        if ($update !== null) {
+            $report['update'] = $update;
+        }
+        return $report;
     }
 
     public static function buildHAXCMSStatusReport($haxcms)
@@ -456,10 +467,8 @@ class HAXCMSSystemStatusService
         $currentVersion = (is_object($haxcms) && method_exists($haxcms, 'getHAXCMSVersion'))
             ? self::normalizeVersion($haxcms->getHAXCMSVersion())
             : '';
-        $latestVersion = self::normalizeVersion(self::fetchLatestReleaseVersionFromGitHub());
-        if ($latestVersion === '') {
-            $latestVersion = $currentVersion;
-        }
+        $update = HAXCMSPlatformUpdateService::buildPlatformUpdateInfo($haxcms, $currentVersion);
+        $latestVersion = $update['latest'] !== 'unknown' ? $update['latest'] : $currentVersion;
         $secretsLoaded = (
             isset($haxcms->salt) &&
             isset($haxcms->privateKey) &&
@@ -516,6 +525,7 @@ class HAXCMSSystemStatusService
             'securityDescription' => 'Checks SALT, private key, and refresh key loading in runtime configuration.',
             'jwtChecksEnabled' => true,
             'jwtDescription' => 'JWT validation is required for authenticated API routes.',
+            'update' => $update,
         ));
     }
 
