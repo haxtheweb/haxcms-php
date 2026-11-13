@@ -152,4 +152,4 @@ See [`test/e2e/README.md`](test/e2e/README.md) for full details, including the *
 - [HAX + 11ty](https://github.com/haxtheweb/hax11ty)
 
 
-![HAX Traveler: World Changer](https://raw.githubusercontent.com/haxtheweb/art/refs/heads/main/haxtheweb/hax-traveler-world-changer.jpg)
+![HAX Future Traveler](https://raw.githubusercontent.com/haxtheweb/art/refs/heads/main/haxtheweb/hax-future-traveler.jpg)
