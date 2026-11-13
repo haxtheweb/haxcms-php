@@ -255,6 +255,16 @@ class HAXCMS
                     $this->config->deploymentProfile = 'self-hosted-multi-site';
                 }
             }
+            // update awareness: the status report checks GitHub for a newer
+            // release and published security advisories. Never on a
+            // host-managed (HAXiam) install; set updates.check to false in
+            // config.json to turn the check off.
+            if (!isset($this->config->updates) || !is_object($this->config->updates)) {
+                $this->config->updates = new stdClass();
+            }
+            if (!isset($this->config->updates->check)) {
+                $this->config->updates->check = TRUE;
+            }
             if (!isset($this->config->mcp)) {
                 $this->config->mcp = new stdClass();
             }

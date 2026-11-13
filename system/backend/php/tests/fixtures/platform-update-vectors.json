@@ -1,0 +1,308 @@
+{
+  "description": "Shared verbatim by haxcms-nodejs test/fixtures/platform-update-vectors.json and haxcms-php system/backend/php/tests/fixtures/platform-update-vectors.json. Advisory shapes follow GET /repos/haxtheweb/issues/security-advisories, including the hand-entered package names found on published advisories.",
+  "compareVersions": [
+    { "a": "26.8.1", "b": "26.8.2", "expected": -1 },
+    { "a": "26.8.2", "b": "26.8.2", "expected": 0 },
+    { "a": "v26.10.0", "b": "26.9.9", "expected": 1 },
+    { "a": "11.0.6", "b": "10.0.3+", "expected": 1 },
+    { "a": "26.8", "b": "26.8.0", "expected": 0 },
+    { "a": "unknown", "b": "26.8.2", "expected": null },
+    { "a": "26.8.1", "b": "> Jun 2, 2025 commit", "expected": null }
+  ],
+  "normalizeAdvisoryPackage": [
+    { "name": "@haxtheweb/haxcms-nodejs", "expected": "haxcms-nodejs" },
+    { "name": "haxcms-nodejs", "expected": "haxcms-nodejs" },
+    { "name": "haxcms-nodejs.operations", "expected": "haxcms-nodejs" },
+    { "name": "haxcms-php", "expected": "haxcms-php" },
+    { "name": "haxtheweb/haxcms-php", "expected": "haxcms-php" },
+    { "name": "/haxtheweb/haxcms-php", "expected": "haxcms-php" },
+    { "name": "haxcms/haxcms-php", "expected": "haxcms-php" },
+    { "name": "haxcms-php.operations", "expected": "haxcms-php" },
+    { "name": "HAXCMS PHP", "expected": "haxcms-php" },
+    { "name": "@haxtheweb/video-player", "expected": "" },
+    { "name": "Operations.php", "expected": "" },
+    { "name": "cdn.waxam.io", "expected": "" },
+    { "name": "", "expected": "" }
+  ],
+  "advisories": [
+    {
+      "ghsa_id": "GHSA-6w22-ghxf-x2pv",
+      "cve_id": null,
+      "severity": "high",
+      "summary": "Example A",
+      "html_url": "https://github.com/haxtheweb/issues/security/advisories/GHSA-6w22-ghxf-x2pv",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "haxtheweb", "name": "haxcms-php" },
+          "vulnerable_version_range": "<= 26.8.1",
+          "patched_versions": "26.8.2"
+        },
+        {
+          "package": { "ecosystem": "npm", "name": "@haxtheweb/haxcms-nodejs" },
+          "vulnerable_version_range": "<= 26.8.1",
+          "patched_versions": "26.8.2"
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-j9p8-vw68-76ww",
+      "cve_id": null,
+      "severity": "critical",
+      "summary": "Example B",
+      "html_url": "https://github.com/haxtheweb/issues/security/advisories/GHSA-j9p8-vw68-76ww",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "npm", "name": "@haxtheweb/haxcms-nodejs" },
+          "vulnerable_version_range": "<= 26.0.1",
+          "patched_versions": "26.8.0"
+        },
+        {
+          "package": { "ecosystem": "haxcms", "name": "haxcms-php" },
+          "vulnerable_version_range": "<= 26.0.2",
+          "patched_versions": "26.8.0"
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-xg43-xm47-74cp",
+      "cve_id": "CVE-2026-46493",
+      "severity": "high",
+      "summary": "Example C, PHP only",
+      "html_url": "https://github.com/haxtheweb/issues/security/advisories/GHSA-xg43-xm47-74cp",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "haxtheweb", "name": "haxcms-php" },
+          "vulnerable_version_range": "<26.0.0",
+          "patched_versions": "26.0.1"
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-0000-0000-wdrn",
+      "cve_id": null,
+      "severity": "critical",
+      "summary": "Withdrawn advisory is ignored",
+      "html_url": "https://github.com/haxtheweb/issues/security/advisories/GHSA-0000-0000-wdrn",
+      "withdrawn_at": "2026-10-01T00:00:00Z",
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "npm", "name": "@haxtheweb/haxcms-nodejs" },
+          "vulnerable_version_range": "<= 99.0.0",
+          "patched_versions": "99.0.1"
+        },
+        {
+          "package": { "ecosystem": "haxtheweb", "name": "haxcms-php" },
+          "vulnerable_version_range": "<= 99.0.0",
+          "patched_versions": "99.0.1"
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-0000-0000-untr",
+      "cve_id": null,
+      "severity": "low",
+      "summary": "Link outside the haxtheweb org is dropped, advisory still counts",
+      "html_url": "https://example.com/not-ours",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "npm", "name": "haxcms-nodejs" },
+          "vulnerable_version_range": "<= 26.8.0",
+          "patched_versions": "v26.8.1"
+        },
+        {
+          "package": { "ecosystem": "php", "name": "haxcms-php" },
+          "vulnerable_version_range": "<= 26.8.0",
+          "patched_versions": "v26.8.1"
+        }
+      ]
+    },
+    {
+      "ghsa_id": "GHSA-0000-0000-file",
+      "cve_id": null,
+      "severity": "high",
+      "summary": "Package named by file is not matched",
+      "html_url": "https://github.com/haxtheweb/issues/security/advisories/GHSA-0000-0000-file",
+      "withdrawn_at": null,
+      "vulnerabilities": [
+        {
+          "package": { "ecosystem": "", "name": "Operations.php" },
+          "vulnerable_version_range": "<= 99.0.0",
+          "patched_versions": "99.0.1"
+        }
+      ]
+    }
+  ],
+  "findSecurityAdvisories": [
+    { "packageKey": "haxcms-nodejs", "current": "26.8.2", "expectedIds": [] },
+    {
+      "packageKey": "haxcms-nodejs",
+      "current": "26.8.1",
+      "expectedIds": ["GHSA-6w22-ghxf-x2pv"]
+    },
+    {
+      "packageKey": "haxcms-nodejs",
+      "current": "26.8.0",
+      "expectedIds": ["GHSA-6w22-ghxf-x2pv", "GHSA-0000-0000-untr"]
+    },
+    {
+      "packageKey": "haxcms-nodejs",
+      "current": "26.0.5",
+      "expectedIds": [
+        "GHSA-6w22-ghxf-x2pv",
+        "GHSA-j9p8-vw68-76ww",
+        "GHSA-0000-0000-untr"
+      ]
+    },
+    {
+      "packageKey": "haxcms-php",
+      "current": "26.0.0",
+      "expectedIds": [
+        "GHSA-6w22-ghxf-x2pv",
+        "GHSA-j9p8-vw68-76ww",
+        "GHSA-xg43-xm47-74cp",
+        "GHSA-0000-0000-untr"
+      ]
+    },
+    { "packageKey": "haxcms-php", "current": "unknown", "expectedIds": [] }
+  ],
+  "buildUpdateInfo": [
+    {
+      "name": "managed install never reports a check",
+      "input": {
+        "currentVersion": "26.0.0",
+        "managed": true,
+        "checkEnabled": true,
+        "installMethod": "php-archive",
+        "packageKey": "haxcms-php",
+        "useRelease": true,
+        "useAdvisories": true
+      },
+      "expected": {
+        "checkEnabled": false,
+        "managed": true,
+        "current": "26.0.0",
+        "latest": "unknown",
+        "updateAvailable": false,
+        "security": false,
+        "advisoryCount": 0,
+        "installMethod": "php-archive",
+        "assetCount": 0
+      }
+    },
+    {
+      "name": "checks turned off in config",
+      "input": {
+        "currentVersion": "26.0.0",
+        "managed": false,
+        "checkEnabled": false,
+        "installMethod": "node-npm",
+        "packageKey": "haxcms-nodejs",
+        "useRelease": true,
+        "useAdvisories": true
+      },
+      "expected": {
+        "checkEnabled": false,
+        "managed": false,
+        "current": "26.0.0",
+        "latest": "unknown",
+        "updateAvailable": false,
+        "security": false,
+        "advisoryCount": 0,
+        "installMethod": "node-npm",
+        "assetCount": 0
+      }
+    },
+    {
+      "name": "behind with a security fix pending",
+      "input": {
+        "currentVersion": "v26.8.1",
+        "managed": false,
+        "checkEnabled": true,
+        "installMethod": "php-git",
+        "packageKey": "haxcms-php",
+        "useRelease": true,
+        "useAdvisories": true
+      },
+      "expected": {
+        "checkEnabled": true,
+        "managed": false,
+        "current": "26.8.1",
+        "latest": "26.9.0",
+        "updateAvailable": true,
+        "security": true,
+        "advisoryCount": 1,
+        "installMethod": "php-git",
+        "assetCount": 2
+      }
+    },
+    {
+      "name": "current release, network failed for advisories",
+      "input": {
+        "currentVersion": "26.9.0",
+        "managed": false,
+        "checkEnabled": true,
+        "installMethod": "bogus",
+        "packageKey": "haxcms-nodejs",
+        "useRelease": true,
+        "useAdvisories": false
+      },
+      "expected": {
+        "checkEnabled": true,
+        "managed": false,
+        "current": "26.9.0",
+        "latest": "26.9.0",
+        "updateAvailable": false,
+        "security": false,
+        "advisoryCount": 0,
+        "installMethod": "unknown",
+        "assetCount": 2
+      }
+    },
+    {
+      "name": "release fetch failed",
+      "input": {
+        "currentVersion": "26.8.2",
+        "managed": false,
+        "checkEnabled": true,
+        "installMethod": "node-docker",
+        "packageKey": "haxcms-nodejs",
+        "useRelease": false,
+        "useAdvisories": true
+      },
+      "expected": {
+        "checkEnabled": true,
+        "managed": false,
+        "current": "26.8.2",
+        "latest": "unknown",
+        "updateAvailable": false,
+        "security": false,
+        "advisoryCount": 0,
+        "installMethod": "node-docker",
+        "assetCount": 0
+      }
+    }
+  ],
+  "release": {
+    "tag_name": "v26.9.0",
+    "html_url": "https://github.com/haxtheweb/haxcms-php/releases/tag/v26.9.0",
+    "published_at": "2026-11-10T15:00:00Z",
+    "assets": [
+      {
+        "name": "haxcms-php-26.9.0.zip",
+        "browser_download_url": "https://github.com/haxtheweb/haxcms-php/releases/download/v26.9.0/haxcms-php-26.9.0.zip"
+      },
+      {
+        "name": "SHA256SUMS",
+        "browser_download_url": "https://github.com/haxtheweb/haxcms-php/releases/download/v26.9.0/SHA256SUMS"
+      },
+      {
+        "name": "evil.zip",
+        "browser_download_url": "https://evil.example/evil.zip"
+      }
+    ]
+  }
+}
