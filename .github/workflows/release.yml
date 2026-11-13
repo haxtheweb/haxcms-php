@@ -1,6 +1,6 @@
 name: release
-# Populates GitHub release notes and publishes SHA256SUMS for a source archive
-# (haxtheweb/issues#3092). Releases are currently cut by hand: `yarn release`
+# Populates GitHub release notes and publishes the release archives (tar.gz and
+# zip), platform-manifest.json and SHA256SUMS (haxtheweb/issues#3092, #1768). Releases are currently cut by hand: `yarn release`
 # (commit-and-tag-version + git push --follow-tags) and then a release is
 # created in the GitHub UI, which has shipped with an empty body (26.8.2).
 #
@@ -70,11 +70,30 @@ jobs:
             gh release create "$TAG" --repo "$REPO" --verify-tag \
               --title "${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
           fi
-      - name: Build source archive and SHA256SUMS
+      - name: Set up PHP for the release manifest
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - name: Build archives, release manifest and SHA256SUMS
+        # haxtheweb/issues#1768: the archives carry system/platform-manifest.json
+        # (every code file with its SHA-256; never site data), which
+        # scripts/platform-upgrade.php upgrades and verifies installs against.
         run: |
-          mkdir -p "$RUNNER_TEMP/dist"
-          name="haxcms-php-${TAG#v}"
-          git archive --format=tar.gz --prefix="$name/" -o "$RUNNER_TEMP/dist/$name.tar.gz" "refs/tags/$TAG"
-          (cd "$RUNNER_TEMP/dist" && sha256sum "$name.tar.gz" > SHA256SUMS && cat SHA256SUMS)
-      - name: Upload archive and SHA256SUMS
+          version="${TAG#v}"
+          name="haxcms-php-$version"
+          mkdir -p "$RUNNER_TEMP/dist" "$RUNNER_TEMP/tree"
+          git archive --format=tar --prefix="$name/" "refs/tags/$TAG" | tar -x -C "$RUNNER_TEMP/tree"
+          tree="$RUNNER_TEMP/tree/$name"
+          for data in _config _sites _published _archived; do
+            if [ -e "$tree/$data" ] && [ -n "$(ls -A "$tree/$data" 2>/dev/null)" ]; then
+              echo "Release tree contains site data in $data" >&2
+              exit 1
+            fi
+          done
+          php scripts/platform-manifest.php "$tree" "$version" "$RUNNER_TEMP/dist/platform-manifest.json"
+          cp "$RUNNER_TEMP/dist/platform-manifest.json" "$tree/system/platform-manifest.json"
+          (cd "$RUNNER_TEMP/tree" && tar -czf "$RUNNER_TEMP/dist/$name.tar.gz" "$name" && zip -qry "$RUNNER_TEMP/dist/$name.zip" "$name")
+          (cd "$RUNNER_TEMP/dist" && sha256sum "$name.tar.gz" "$name.zip" platform-manifest.json > SHA256SUMS && cat SHA256SUMS)
+      - name: Upload archives, manifest and SHA256SUMS
         run: gh release upload "$TAG" "$RUNNER_TEMP"/dist/* --repo "$REPO" --clobber
