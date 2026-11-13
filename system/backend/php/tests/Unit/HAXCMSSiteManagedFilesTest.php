@@ -296,6 +296,28 @@ class HAXCMSSiteManagedFilesTest extends TestCase
         $this->assertSame($agents, file_get_contents($this->siteDir() . '/AGENTS.md'));
     }
 
+    // haxtheweb/issues#3337: theme/ left the boilerplate. New sites are created
+    // without it, and a site that already has the folder keeps every file in it.
+    public function testBoilerplateHasNoThemeFolderAndKeepsCustomBuild(): void
+    {
+        $boilerplate = HAXCMS_ROOT . '/system/boilerplate/site';
+        $this->assertDirectoryDoesNotExist($boilerplate . '/theme');
+        $this->assertFileExists($boilerplate . '/custom/build/custom.es6.js');
+        $this->assertStringNotContainsString('theme/theme.', $this->boilerplate('AGENTS.md'));
+    }
+
+    public function testRebuildLeavesExistingThemeFilesAlone(): void
+    {
+        $css = "site-top-menu { --site-top-menu-bg: #37474f; }\n";
+        $html = "<site-top-menu></site-top-menu>\n";
+        @mkdir($this->siteDir() . '/theme', 0777, true);
+        file_put_contents($this->siteDir() . '/theme/theme.css', $css);
+        file_put_contents($this->siteDir() . '/theme/theme.html', $html);
+        $this->site->rebuildManagedFiles();
+        $this->assertSame($css, file_get_contents($this->siteDir() . '/theme/theme.css'));
+        $this->assertSame($html, file_get_contents($this->siteDir() . '/theme/theme.html'));
+    }
+
     public function testRebuildKeepsOwnerKeysInPackageJson(): void
     {
         $this->site->rebuildManagedFiles();
