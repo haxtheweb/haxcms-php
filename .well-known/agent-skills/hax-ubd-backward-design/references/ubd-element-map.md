@@ -66,17 +66,17 @@ inventing a tag name.
 `promise-progress`, `self-check`, `simple-fields`, `simple-progress`, `sorting-question`,
 `stop-note`, `tagging-question`, `video-player`.
 
-## Rules carried from PRAW RULES.md / Warp rules
+## Rules carried from PRAW RULES.md / agent rules
 
-IDs shown resolve in `https://github.com/haxtheweb/praw/blob/main/RULES.md`; items marked "(Warp rule)" are
+IDs shown resolve in `https://github.com/haxtheweb/praw/blob/main/RULES.md`; items marked "(agent rule)" are
 personal ecosystem rules not duplicated in that file.
 
 - `a11y-collapse` MUST set `heading-button` (rule `a11y-collapse-heading-button`).
 - Audio assets: prefer `media-playlist` + `audio-player` over inline audio.
-- Input elements: use the `simple-fields` ecosystem for constructed response (Warp rule).
+- Input elements: use the `simple-fields` ecosystem for constructed response (agent rule).
 - Admin/tabular presentation: prefer `editable-table-display` — the read-only display variant of
   `editable-table` (defined in `editable-table/lib/editable-table-display.js`) — for consistent
-  table presentation; use `editable-table` where editing is required (Warp rule).
+  table presentation; use `editable-table` where editing is required (agent rule).
 - Educational elements: apply OER Schema metadata (rule `c3XjsqFbCmoA3cxsooNyxG`).
 - Only author HAX-capable components (those with `haxProperties`) (rule `eis0l9w9l2jG1COFySmvdT`).
 - Use DDD design tokens for spacing, color, icon sizing on any rendered component (rule `MLhl56jNSqHvnRiAW5A2GR`).

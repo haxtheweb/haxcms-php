@@ -98,7 +98,7 @@
         },
         {
           "path": "references/ubd-element-map.md",
-          "digest": "sha256:7fb1005e3500e1f5e7f0e4f53fcd15dae39b105c1129c003e4ec217c346dd058"
+          "digest": "sha256:b7dae83c24d737588f30af78d5f8028e8d16f8be672ed1264f694e8ef22fb0d9"
         },
         {
           "path": "references/validity-self-test.md",
@@ -115,7 +115,7 @@
       "files": [
         {
           "path": "references/udl-element-map.md",
-          "digest": "sha256:5c0f5d86282f481a8a949f79233a113a74076271d54834c0142af982982f3334"
+          "digest": "sha256:a3f941037badc9104f76b19759ab753af49e39df4212f4ca1939f568d0e58626"
         }
       ]
     },
