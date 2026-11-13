@@ -45,7 +45,6 @@ trait OperationsRouteSavePlatformSettings {
         'saveAndEdit',
         'deletePage',
         'outlineDesigner',
-        'styleGuide',
         'insights',
         'siteManifest',
         'themeManifest',
