@@ -255,6 +255,16 @@ class HAXCMS
                     $this->config->deploymentProfile = 'self-hosted-multi-site';
                 }
             }
+            // update awareness: the status report checks GitHub for a newer
+            // release and published security advisories. Never on a
+            // host-managed (HAXiam) install; set updates.check to false in
+            // config.json to turn the check off.
+            if (!isset($this->config->updates) || !is_object($this->config->updates)) {
+                $this->config->updates = new stdClass();
+            }
+            if (!isset($this->config->updates->check)) {
+                $this->config->updates->check = TRUE;
+            }
             if (!isset($this->config->mcp)) {
                 $this->config->mcp = new stdClass();
             }
@@ -687,7 +697,6 @@ class HAXCMS
             "manifest-metadata-theme-variables-cssVariable": null,
             "manifest-metadata-theme-variables-palette": null,
             "manifest-metadata-theme-variables-icon": null,
-            "manifest-metadata-theme-styleGuide": null,
             "regions": {
               "manifest-metadata-theme-regions-header": null,
               "manifest-metadata-theme-regions-sidebarFirst": null,
@@ -3558,6 +3567,56 @@ class HAXCMS
               isset($store['users'][$key]['legacyRevokedExp']) ? $store['users'][$key]['legacyRevokedExp'] : 0
             );
           }
+          if (!$this->saveRefreshSessions($store)) {
+            $this->refreshStoreError = true;
+          }
+        });
+      }
+      catch (RuntimeException $e) {
+        $this->refreshStoreError = true;
+      }
+    }
+    /**
+     * Security (SEC-SESSION): revoke EVERY refresh session of a user (sign out
+     * everywhere). Every family currently in the store is tombstoned and a
+     * legacy tombstone is written, so no refresh token issued up to now (with
+     * or without a family claim) can mint another access token. Tokens issued
+     * afterwards start new families and are unaffected. Used where the caller
+     * knows the user but not which family to revoke, e.g. a HAXiam logout
+     * that runs on a different host than the one holding the refresh cookie.
+     * Same store shape as revokeRefreshSession (parity with NodeJS
+     * revokeAllRefreshSessions). Best-effort; sets $refreshStoreError on
+     * failure.
+     */
+    public function revokeAllRefreshSessions($user) {
+      if ($user === null || !is_scalar($user) || (string) $user === '') {
+        return;
+      }
+      try {
+        $this->withRefreshStoreLock(true, function () use ($user) {
+          $store = $this->loadRefreshSessions();
+          $key = $this->refreshUserKey($store, $user, true);
+          if ($key === null) {
+            return;
+          }
+          $now = time();
+          if (!isset($store['users'][$key]['families']) || !is_array($store['users'][$key]['families'])) {
+            $store['users'][$key]['families'] = array();
+          }
+          foreach ($store['users'][$key]['families'] as $familyKey => $existing) {
+            if (is_array($existing) && isset($existing['revoked']) && $existing['revoked'] === true) {
+              continue;
+            }
+            $store['users'][$key]['families'][$familyKey] = array(
+              'revoked' => true,
+              'revokedAt' => $now,
+              'exp' => $this->refreshTombstoneExp((is_array($existing) && isset($existing['exp'])) ? $existing['exp'] : 0),
+            );
+          }
+          $store['users'][$key]['legacyRevokedAt'] = $now;
+          $store['users'][$key]['legacyRevokedExp'] = $this->refreshTombstoneExp(
+            isset($store['users'][$key]['legacyRevokedExp']) ? $store['users'][$key]['legacyRevokedExp'] : 0
+          );
           if (!$this->saveRefreshSessions($store)) {
             $this->refreshStoreError = true;
           }

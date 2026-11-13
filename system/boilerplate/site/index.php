@@ -96,7 +96,7 @@ else {
       top: 50%;
       transform: translateY(-54%);
     }
-    #loading div.messaging h1 {
+    #loading div.messaging .ld-label {
       color: var(--ld-ink);
       font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif !important;
       font-size: 14px !important;
@@ -294,7 +294,7 @@ else {
   </script>
 </head>
 <body <?php print $HAXSiteConfig->getSitePageAttributes();?>>
-  <section role="alert" id="loading" aria-busy="true">
+  <section role="status" id="loading" aria-busy="true">
     <div class="messaging">
       <div class="ld-fig" aria-hidden="true">
         <span class="ld-back" style="--x:78;--y:0;--w:168;--h:192"></span>
@@ -310,7 +310,7 @@ else {
         <span class="ld-l ld9" style="--x:132;--y:182;--w:60;--h:5"></span>
         <span class="ld-caret" style="--x:196;--y:179;--w:2;--h:11"></span>
       </div>
-      <h1>Loading <?php print $HAXSiteConfig->name; ?>...</h1>
+      <p class="ld-label">Loading <?php print $HAXSiteConfig->name; ?>...</p>
     </div>
   </section>
   <haxcms-site-builder id="site" file="site.json<?php print $HAXSiteConfig->cacheBusterHash();?>">

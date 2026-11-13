@@ -97,7 +97,14 @@
         "bibliography-item": "@haxtheweb/bibliography-builder/lib/bibliography-item.js",
         "media-playlist": "@haxtheweb/media-playlist/media-playlist.js",
         "image-gallery": "@haxtheweb/image-gallery/image-gallery.js",
-        "tableau-embed": "@haxtheweb/tableau-embed/tableau-embed.js"
+        "tableau-embed": "@haxtheweb/tableau-embed/tableau-embed.js",
+        "slide-deck": "@haxtheweb/slide-deck/slide-deck.js",
+        "linkedin-embed": "@haxtheweb/linkedin-embed/linkedin-embed.js",
+        "bullet-check-list": "@haxtheweb/bullet-check-list/bullet-check-list.js",
+        "ics-render": "@haxtheweb/ics-render/ics-render.js",
+        "vcf-render": "@haxtheweb/vcf-render/vcf-render.js",
+        "sheet-music": "@haxtheweb/sheet-music/sheet-music.js",
+        "media-quote": "@haxtheweb/media-quote/media-quote.js"
     },
       "apiKeys": {
           "youtube": "",

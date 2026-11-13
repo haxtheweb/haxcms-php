@@ -56,7 +56,13 @@ trait OperationsRouteFileOperation {
       }
     }
   }
-  public function fileOperation() {
+  /**
+   * Shared gate for file mutations (fileOperation, replaceFileContent):
+   * site token, site name, rate limit, site lookup and the uploadMedia
+   * platform feature, then the configured JPEG quality. Returns either a
+   * __failed array or array('site' => ..., 'jpegQuality' => ...).
+   */
+  private function fileOperationGate() {
     if (isset($this->params['site_token']) && !isset($this->params['site']) && !isset($this->params['siteName'])) {
       $tmp = explode('?siteName=', $this->params['site_token']);
       if (count($tmp) == 2) {
@@ -130,6 +136,100 @@ trait OperationsRouteFileOperation {
     if (is_array($mediaSettings) && array_key_exists('jpegQuality', $mediaSettings)) {
       $jpegQuality = $mediaSettings['jpegQuality'];
     }
+    return array('site' => $site, 'jpegQuality' => $jpegQuality);
+  }
+  /**
+   * Whether an upload's temp path came from this request. Kept as its own
+   * method so tests can supply a fixture file.
+   */
+  protected function isReplaceUploadSource($tmpPath) {
+    return is_string($tmpPath) && $tmpPath !== '' && is_uploaded_file($tmpPath);
+  }
+  /**
+   * POST /x/api/v1/files/{fileUuid}/content (replaceFileContent): replace a
+   * JPG, PNG or WebP image's pixels with an uploaded image (the browser-made
+   * crop from haxtheweb/issues#1149), keeping its uuid, path and name.
+   * Security (SEC-UPLOAD): the upload is never written to files/ as sent; it
+   * is decoded and re-encoded into the existing file's own format, so the
+   * bytes on disk always match the file's extension. Mirrors haxcms-nodejs.
+   */
+  public function replaceFileContent() {
+    $gate = $this->fileOperationGate();
+    if (isset($gate['__failed'])) {
+      return $gate;
+    }
+    $site = $gate['site'];
+    $jpegQuality = $gate['jpegQuality'];
+    $upload = null;
+    if (isset($this->rawParams['upload']) && is_array($this->rawParams['upload'])) {
+      $upload = $this->rawParams['upload'];
+    }
+    if (
+      !is_array($upload) ||
+      !isset($upload['tmp_name']) ||
+      is_array($upload['tmp_name']) ||
+      (isset($upload['error']) && intval($upload['error']) !== UPLOAD_ERR_OK) ||
+      !$this->isReplaceUploadSource($upload['tmp_name'])
+    ) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Missing file upload',
+        )
+      );
+    }
+    $requestedPath = isset($this->params['path']) ? $this->params['path'] : '';
+    $pathResult = $this->resolveSiteFileOperationPath($site, $requestedPath);
+    if (!$pathResult['valid']) {
+      return array(
+        '__failed' => array(
+          'status' => $pathResult['status'],
+          'message' => $pathResult['message'],
+        )
+      );
+    }
+    $replaceResult = $this->replaceImageContentInPlaceFile(
+      $pathResult['resolvedPath'],
+      $upload['tmp_name'],
+      $jpegQuality
+    );
+    if (!$replaceResult['success']) {
+      return array(
+        '__failed' => array(
+          'status' => $replaceResult['status'],
+          'message' => $replaceResult['message'],
+        )
+      );
+    }
+    $fileRecord = $this->buildSiteFileRecord(
+      $site,
+      $pathResult['resolvedPath'],
+      $pathResult['normalizedPath']
+    );
+    $site->gitCommit('File content replaced: ' . $pathResult['normalizedPath']);
+    // in-place change: files.json keeps the uuid, size/dimensions/mtime refresh
+    $this->upsertFileRecordInDataStore($site, $pathResult['normalizedPath']);
+    $dataStore = new FilesDataStore($site);
+    $stored = $dataStore->getByPath($pathResult['normalizedPath']);
+    if (is_array($stored) && isset($stored['uuid'])) {
+      $fileRecord['uuid'] = (string) $stored['uuid'];
+    }
+    return array(
+      'status' => 200,
+      'data' => array(
+        'operation' => 'replace-content',
+        'path' => $pathResult['normalizedPath'],
+        'file' => $fileRecord,
+      )
+    );
+  }
+  public function fileOperation() {
+    $gate = $this->fileOperationGate();
+    if (isset($gate['__failed'])) {
+      return $gate;
+    }
+    $site = $gate['site'];
+    $jpegQuality = $gate['jpegQuality'];
     $operation = isset($this->params['operation']) ? trim((string) $this->params['operation']) : '';
     if (!in_array($operation, array('delete', 'rename', 'convert-jpg', 'scale', 'sepia', 'black-and-white', 'rotate-90', 'compress', 'duplicate', 'convert-pptx-deck'), true)) {
       return array(

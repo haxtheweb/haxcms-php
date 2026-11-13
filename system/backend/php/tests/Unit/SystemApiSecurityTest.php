@@ -665,6 +665,55 @@ class SystemApiSecurityTest extends TestCase
         // OPTIONS never lands in the map (methods are get/post/put/patch/delete).
         $this->assertArrayNotHasKey('OPTIONS:v1/session', $map);
     }
+
+    // --- version surfaces (haxtheweb/issues#3174): only a JWT plus a valid
+    // X-HAXCMS-User-Token reaches system/version and status ---
+
+    public static function versionSurfaceProvider(): array
+    {
+        return array(
+            'GET system/version' => array('v1/system/version', 'GET'),
+            'POST system/version' => array('v1/system/version', 'POST'),
+            'GET status' => array('v1/status', 'GET'),
+            'POST status' => array('v1/status', 'POST'),
+        );
+    }
+
+    #[DataProvider('versionSurfaceProvider')]
+    public function testVersionSurfaceDeclaresTheUserToken(string $route, string $method): void
+    {
+        $map = SystemApiSecurity::getSystemUserTokenPolicyMap();
+        $this->assertTrue($map[$method . ':' . $route]);
+    }
+
+    #[DataProvider('versionSurfaceProvider')]
+    public function testVersionSurfaceWithJwtOnlyIsRefused(string $route, string $method): void
+    {
+        $ctx = new SecurityTestContext(array());
+        $result = SystemApiSecurity::enforceSystemApiUserTokenHeader($route, $method, $ctx);
+        $this->assertIsArray($result);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('X-HAXCMS-User-Token header is required for this endpoint', $result['message']);
+    }
+
+    #[DataProvider('versionSurfaceProvider')]
+    public function testVersionSurfaceWithWrongUserTokenIsRefused(string $route, string $method): void
+    {
+        $this->haxcms->validRequestToken = false;
+        $ctx = new SecurityTestContext(array('X-HAXCMS-User-Token' => 'wrong'));
+        $result = SystemApiSecurity::enforceSystemApiUserTokenHeader($route, $method, $ctx);
+        $this->assertIsArray($result);
+        $this->assertSame(403, $result['status']);
+        $this->assertSame('Invalid X-HAXCMS-User-Token header', $result['message']);
+    }
+
+    #[DataProvider('versionSurfaceProvider')]
+    public function testVersionSurfaceWithJwtAndUserTokenIsAllowed(string $route, string $method): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $ctx = new SecurityTestContext(array('X-HAXCMS-User-Token' => 'good'));
+        $this->assertNull(SystemApiSecurity::enforceSystemApiUserTokenHeader($route, $method, $ctx));
+    }
 }
 
 /**

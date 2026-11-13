@@ -38,8 +38,8 @@
   <link rel="llms" href="llms.txt" title="LLM Content Map">
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary">
   <link rel="https://agentskills.io/rels/skills-index" type="application/json" href=".well-known/agent-skills/index.json" title="Agent Skills Discovery Index">
-  <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" crossorigin href="https://fonts.gstatic.com">
   <title>HAXcms</title>
   <meta name="application-name" content="HAXcms" />
   <meta name="apple-mobile-web-app-title" content="HAXcms" />
@@ -47,7 +47,6 @@
   <meta name="og:title" property="og:title" content="HAXcms" />
   <meta name="twitter:title" property="twitter:title" content="HAXcms" />
   <meta name="og:url" property="og:url" content="/" data-managed-seo />
-  <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <!-- build.js and build-haxcms.js are loaded via defer; preloading them is redundant and adds to critical-path bandwidth -->
   <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
   <!-- Static fallback shell modulepreload set. When the HAXcms backend
@@ -83,7 +82,7 @@
   <meta name="msapplication-TileColor" content="">
   <meta name="msapplication-tap-highlight" content="no">
   <meta name="description" content="" />
-  <meta name="og:type" property="og:type" content="article" />
+  <meta name="og:type" property="og:type" content="website" />
   <meta name="og:description" property="og:description" content="" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
   <meta name="twitter:description" property="twitter:description" content="" />
@@ -161,7 +160,7 @@
       top: 50%;
       transform: translateY(-54%);
     }
-    #loading div.messaging h1 {
+    #loading div.messaging .ld-label {
       color: var(--ld-ink);
       font-family: "Roboto", system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif !important;
       font-size: 14px !important;
@@ -389,7 +388,7 @@
   </script>
 </head>
 <body vocab="http://schema.org/" prefix="oer:http://oerschema.org cc:http://creativecommons.org/ns dc:http://purl.org/dc/terms/">
-  <section role="alert" id="loading" aria-busy="true">
+  <section role="status" id="loading" aria-busy="true">
     <div class="messaging">
       <div class="ld-fig" aria-hidden="true">
         <span class="ld-back" style="--x:78;--y:0;--w:168;--h:192"></span>
@@ -405,7 +404,7 @@
         <span class="ld-l ld9" style="--x:132;--y:182;--w:60;--h:5"></span>
         <span class="ld-caret" style="--x:196;--y:179;--w:2;--h:11"></span>
       </div>
-      <h1>Loading...</h1>
+      <p class="ld-label">Loading...</p>
     </div>
   </section>
   <haxcms-site-builder id="site" file="site.json?2GQKWcJ3ni0xrL2X4_Dw_Sr9SeXqY2Sk3XblmvHVArA"></haxcms-site-builder>

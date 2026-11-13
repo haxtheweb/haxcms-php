@@ -102,4 +102,12 @@ DirectoryIndex index.php index.html
 <IfModule mod_mime.c>
   AddCharset UTF-8 .txt .md .json .yaml .yml .xml
 </IfModule>
+# Page bodies (pages/<id>/index.html) are fragments the site shell loads.
+# Crawlers may fetch them to render a page, but they stay out of search
+# results; robots.txt no longer blocks them, so this header does that job.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#(^|/)pages/[^/]+/index\.html$#">
+    Header set X-Robots-Tag "noindex"
+  </If>
+</IfModule>
 # END HAXcms managed

@@ -213,12 +213,16 @@ class OpenApiRouteContractTest extends TestCase
             'get:v1/session',
             'get:v1/session/connection-settings',
             'get:v1/session/connection-test',
+            // one-time sign-in links: GET only shows a confirm page; POST
+            // redeems a token minted with filesystem access (SEC-MAGICLINK)
+            'get:v1/session/magic-link',
             'get:v1/session/refresh',
             'post:v1/session',
             'post:v1/session/connection-settings',
             'post:v1/session/connection-test',
             'post:v1/session/login',
             'post:v1/session/logout',
+            'post:v1/session/magic-link',
             'post:v1/session/refresh',
         );
         sort($expected);

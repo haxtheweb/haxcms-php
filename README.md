@@ -90,6 +90,20 @@ $ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms/master/scripts/h
 - Place HAXcms files in the htdocs folder of MAMP.
 - Turn MAMP on and click "My website"
 - Copy the password it gives you, click to access HAX and then HAX YOUR WEB!
+## Upgrading
+
+The admin panel's **Status** page tells you when a newer release or a security fix is out, and shows the steps for your kind of install. HAXcms never updates itself from the web server. Upgrades run from a shell, as the user who owns the files:
+
+```bash
+php scripts/platform-upgrade.php status             # installed vs latest, security advisories
+php scripts/platform-upgrade.php upgrade --dry-run  # what would change
+php scripts/platform-upgrade.php upgrade            # back up code, upgrade, check
+php scripts/platform-upgrade.php verify             # code files vs the release manifest
+php scripts/platform-upgrade.php rollback           # undo the last upgrade
+```
+
+The upgrader downloads the release archive from GitHub, checks it against the release's `SHA256SUMS` and `platform-manifest.json`, backs up the code files it will change to `_config/platform-upgrade/backups/`, and replaces only code files. Site data (`_config`, `_sites`, `_published`, `_archived`) is never touched. Code files you changed by hand stop the upgrade until you pass `--overwrite-modified`. On HAXiam (`haxiam-managed`) deployments the host manages HAXcms, so `upgrade`, `verify` and `rollback` refuse to run and the Status page skips update checks. A git checkout is updated with git instead (`git fetch --tags && git checkout <version>`); the upgrader refuses to write into one. No shell? Download the release zip, back up those four folders, and unzip it over the install; then run `verify` later, or check the Status page.
+
 ## Scope
 Generate `.html` files which have only "content" in them. Meaning the contents of the page in question. A simple method of adding new pages and managing the organization of those pages into a simple hierarchy (outline). Support for multiple mini web sites so that you can write a lot about different topics. HAXcms is only intended to be a micro-site generator and play nicely with the rest of the HAX ecosystem without needing a monster CMS in order to utilize it.
 
@@ -152,4 +166,4 @@ See [`test/e2e/README.md`](test/e2e/README.md) for full details, including the *
 - [HAX + 11ty](https://github.com/haxtheweb/hax11ty)
 
 
-![HAX Traveler: World Changer](https://raw.githubusercontent.com/haxtheweb/art/refs/heads/main/haxtheweb/hax-traveler-world-changer.jpg)
+![HAX Future Traveler](https://raw.githubusercontent.com/haxtheweb/art/refs/heads/main/haxtheweb/hax-future-traveler.jpg)

@@ -447,10 +447,10 @@ if (!isset($GLOBALS['HAXCMS'])) {
       // canonical flag, if set we use the domain field
       if (isset($this->manifest->metadata->site->settings->canonical) && $this->manifest->metadata->site->settings->canonical) {
         if (isset($this->manifest->metadata->site->domain) && $this->manifest->metadata->site->domain != '') {
-          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($this->manifest->metadata->site->domain . '/' . $page->slug)) . '" />' . "\n";
+          $canonical = '  <link rel="canonical" href="' . $this->esc($this->safeUrl($this->manifest->metadata->site->domain . '/' . $page->slug)) . '" />' . "\n";
         }
         else {
-          $canonical = '  <link name="canonical" href="' . $this->esc($this->safeUrl($domain)) . '" />' . "\n";
+          $canonical = '  <link rel="canonical" href="' . $this->esc($this->safeUrl($domain)) . '" />' . "\n";
         }
       }
       else {

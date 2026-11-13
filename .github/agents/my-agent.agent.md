@@ -8,10 +8,10 @@ name: PRAW
 description: HAX agent
 ---
 
-# PRAW - HAX Ecosystem Warp Rules
+# PRAW - Patterns, Rules, Agents, Worldview
 These rules stem from https://github.com/haxtheweb/praw . Use it for full context as far as file references below.
 
-**PRAW** (Warp spelled backwards) is a repository containing comprehensive Warp AI agent rules for the HAX ecosystem. These rules codify years of development experience, best practices, and conventions to help Warp users work more effectively with HAX projects.
+**PRAW** is HAX's networked brain: the **Patterns**, **Rules**, **Agents** and **Worldview** that let any AI agent or contributor build the HAX way. It codifies years of development experience, best practices and conventions. It is not tied to any one harness; Claude Code, Copilot, Warp, Codex and any agent that reads `AGENTS.md`, `WARP.md` or installed skills can use it.
 
 ## What is this?
 
@@ -19,7 +19,7 @@ This repository contains:
 - **`RULES.md`** - Centralized registry of all HAX ecosystem rules with unique IDs and categorization
 - **`KNOWLEDGE.md`** - Log of emergent knowledge, decisions, and conventions that inform rule development
 - **`WORLDVIEW.md`** - Curated worldview synthesis from long-form ecosystem writing
-- **`WARP.md`** files - Detailed context-specific rules for different project types
+- **`WARP.md`** files - Detailed context-specific rules for different project types (the file name is the convention Warp reads; any agent can load them)
 - **`programs/`** - Utility programs for LinkedIn posting and issue management automation
 - **Rule Management System** - Scripts and tools for adding, searching, and managing rules
 - **Cross-references** - Connections between rules and related documentation
@@ -28,7 +28,7 @@ These rules ensure consistency, quality, and proper integration across all HAX p
 
 ## Quick Start - New to HAX?
 
-**🚀 For complete newcomers**, we've created an automated onboarding script that sets up your entire HAX development environment with Warp optimization:
+**🚀 For complete newcomers**, we've created an automated onboarding script that sets up your entire HAX development environment, with optional Warp rules:
 
 ```bash
 # Run the onboarding script from anywhere
@@ -42,9 +42,9 @@ cd ~/Documents/git/haxtheweb/praw
 This script will:
 - ✅ Clone all necessary HAX ecosystem repositories
 - ✅ Install and configure the HAX CLI (@haxtheweb/create)
-- ✅ Set up Warp with HAX-specific rules and optimizations
+- ✅ Optionally write HAX rules for Warp (it asks first)
 - ✅ Create helpful development aliases and shortcuts
-- ✅ Generate curated Warp agent prompts for HAX development
+- ✅ Generate curated agent prompts for HAX development
 - ✅ Configure your development environment following HAX best practices
 
 **Recommended for**: First-time contributors, developers new to HAX, or anyone wanting a fresh, optimized setup.
@@ -80,10 +80,11 @@ If you're working across multiple HAX repositories, you can:
 
 2. **Symlink the main WARP.md** to your primary working directories:
    ```bash
-   ln -s ~/Documents/git/haxtheweb/praw/WARP.md ~/Documents/git/haxtheweb/webcomponents/
+   # from the folder that holds your HAX repositories
+   ln -s "$(pwd)/praw/WARP.md" webcomponents/
    ```
 
-3. **Let Warp automatically detect** the rules when working in HAX directories
+3. **Let your agent pick up** the rules when working in HAX directories (Warp reads `WARP.md` on its own; point other agents at it or at the installed skills)
 
 ## 🎓 Faculty Resource Management **NEW!**
 
@@ -257,10 +258,10 @@ This repository evolves with the HAX ecosystem. To contribute:
 
 ## Rule Precedence
 
-When using these rules, Warp follows this precedence order:
+When using these rules, agents follow this precedence order:
 1. **Subdirectory WARP.md** (most specific)
 2. **Root project WARP.md** 
-3. **Global Warp rules** (least specific)
+3. **Global rules** (least specific; in Warp, its Global Rules)
 
 This ensures project-specific needs take priority while maintaining ecosystem consistency.
 
@@ -308,4 +309,4 @@ These rules are actively maintained by the HAX core team and community contribut
 
 **Made with ❤️ by the HAX Community**
 
-*PRAW ensures that every Warp user working with HAX gets the benefit of collective ecosystem knowledge and established best practices.*
+*PRAW ensures that every agent and contributor working with HAX gets the benefit of collective ecosystem knowledge and established best practices.*

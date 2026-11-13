@@ -5,11 +5,6 @@ trait OperationsRouteSaveNode {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       
-      // Special handling for style guide endpoint through saveNode
-      if (isset($this->params['node']['id']) && $this->params['node']['id'] === 'x/theme/style-guide') {
-        return $this->handleStyleGuideSave($site);
-      }
-      
       $schema = array();
       if (isset($this->params['node']['body'])) {
         $body = $this->params['node']['body'];

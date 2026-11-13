@@ -1799,6 +1799,86 @@ class Operations {
     }
     return false;
   }
+  /**
+   * Replace a JPG, PNG or WebP image's pixels with an uploaded JPG, PNG or
+   * WebP image, re-encoded into the existing file's format (replaceFileContent,
+   * haxtheweb/issues#1149). Mirrors replaceImageContentInPlace in haxcms-nodejs.
+   */
+  private function replaceImageContentInPlaceFile($sourcePath, $uploadPath, $jpgQuality = null) {
+    if (!$this->isImageProcessingAvailable()) {
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Image processing support is unavailable on this server',
+      );
+    }
+    $replaceable = array(
+      IMAGETYPE_JPEG => 'jpg',
+      IMAGETYPE_PNG => 'png',
+      IMAGETYPE_WEBP => 'webp',
+    );
+    $sourceInfo = @getimagesize($sourcePath);
+    $sourceType = is_array($sourceInfo) ? $sourceInfo[2] : 0;
+    if (!isset($replaceable[$sourceType])) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'Only JPG, PNG and WebP images can be replaced',
+      );
+    }
+    $uploadInfo = @getimagesize($uploadPath);
+    $uploadType = is_array($uploadInfo) ? $uploadInfo[2] : 0;
+    $uploadImage = isset($replaceable[$uploadType]) ? $this->createImageResourceFromPath($uploadPath) : false;
+    if (!$uploadImage) {
+      return array(
+        'success' => false,
+        'status' => 400,
+        'message' => 'The uploaded file must be a JPG, PNG or WebP image',
+      );
+    }
+    $extension = $replaceable[$sourceType];
+    if ($extension !== 'jpg') {
+      @imagealphablending($uploadImage, false);
+      @imagesavealpha($uploadImage, true);
+    }
+    $temporaryPath = $sourcePath . '.replace-' . uniqid('', true);
+    $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
+    if ($extension === 'jpg') {
+      $saved = @imagejpeg($uploadImage, $temporaryPath, $resolvedQuality);
+    }
+    else if ($extension === 'png') {
+      $saved = function_exists('imagepng') ? @imagepng($uploadImage, $temporaryPath, 6) : false;
+    }
+    else {
+      $saved = function_exists('imagewebp') ? @imagewebp($uploadImage, $temporaryPath, $resolvedQuality) : false;
+    }
+    imagedestroy($uploadImage);
+    if (!$saved) {
+      if (file_exists($temporaryPath)) {
+        @unlink($temporaryPath);
+      }
+      return array(
+        'success' => false,
+        'status' => 500,
+        'message' => 'Unable to replace image',
+      );
+    }
+    if (!@rename($temporaryPath, $sourcePath)) {
+      if (@copy($temporaryPath, $sourcePath)) {
+        @unlink($temporaryPath);
+      }
+      else {
+        @unlink($temporaryPath);
+        return array(
+          'success' => false,
+          'status' => 500,
+          'message' => 'Unable to replace image',
+        );
+      }
+    }
+    @touch($sourcePath);
+    return array('success' => true);
+  }
   private function rotateImageInPlaceFile($sourcePath, $degrees = 90) {
     if (
       !$this->isImageProcessingAvailable() ||
@@ -2575,120 +2655,6 @@ class Operations {
     }
     return $theme;
   }
-
-  /**
-   * Handle style guide save operation through saveNode endpoint
-   * @param object $site The HAXcms site object
-   * @return array Response array with status and data
-   */
-  private function handleStyleGuideSave($site) {
-    $siteDirectory = $site->directory . '/' . $site->manifest->metadata->site->name;
-    $styleGuideFile = $siteDirectory . '/theme/style-guide.html';
-    
-    // Extract content from node body (saveNode endpoint)
-    $content = null;
-    if (isset($this->params['node']['body'])) {
-      $content = $this->params['node']['body'];
-    }
-    
-    // validate that we have content to save
-    if (!$content) {
-      return array(
-        '__failed' => array(
-          'status' => 400,
-          'message' => 'Content parameter is required',
-        )
-      );
-    }
-    
-    // validate content is a string and has some actual content
-    if (!is_string($content)) {
-      return array(
-        '__failed' => array(
-          'status' => 400,
-          'message' => 'Content must be a string',
-        )
-      );
-    }
-    
-    // basic validation - ensure we have some HTML-like content
-    $cleanContent = trim($content);
-    if (empty($cleanContent)) {
-      return array(
-        '__failed' => array(
-          'status' => 400,
-          'message' => 'Content cannot be empty',
-        )
-      );
-    }
-    
-    // validate that content appears to be HTML by checking for basic HTML patterns
-    // this follows similar pattern to how saveNode validates content structure
-    if (!preg_match('/<[^>]+>/', $cleanContent)) {
-      return array(
-        '__failed' => array(
-          'status' => 400,
-          'message' => 'Content must be valid HTML',
-        )
-      );
-    }
-    
-    // check if the theme directory exists, if not create it
-    $themeDirectory = $siteDirectory . '/theme';
-    if (!file_exists($themeDirectory)) {
-      if (!mkdir($themeDirectory, 0755, true)) {
-        return array(
-          '__failed' => array(
-            'status' => 500,
-            'message' => 'Failed to create theme directory',
-          )
-        );
-      }
-    }
-    
-    // ensure the site's style guide setting allows writing to the default location
-    // only allow writing to the default location (theme/style-guide.html)
-    // if user has changed the styleGuide setting to an external URL, block writes
-    if (isset($site->manifest->metadata->theme->styleGuide) && 
-        $site->manifest->metadata->theme->styleGuide !== null && 
-        $site->manifest->metadata->theme->styleGuide !== '') {
-      return array(
-        '__failed' => array(
-          'status' => 403,
-          'message' => 'Style guide is configured to use external source. Cannot edit through HAXcms.',
-        )
-      );
-    }
-    
-    // write the content to the style guide file
-    // Security (SEC-SANITIZE): sanitize the style-guide HTML before writing, matching
-    // the standard saveNode path (saveNode.php:109), so an editor cannot inject
-    // arbitrary <script> into theme/style-guide.html (served to all site visitors).
-    $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($cleanContent);
-    $bytes = file_put_contents($styleGuideFile, $sanitizedContent);
-    
-    if ($bytes === false) {
-      return array(
-        '__failed' => array(
-          'status' => 500,
-          'message' => 'Failed to write style guide file',
-        )
-      );
-    }
-    
-    // commit to git
-    $site->gitCommit('Style guide updated');
-    
-    return array(
-      'status' => 200,
-      'message' => 'Style guide saved successfully',
-      'data' => [
-        'bytes' => $bytes,
-        'file' => 'theme/style-guide.html'
-      ]
-    );
-  }
-
 
   /**
    * 

@@ -181,6 +181,40 @@ class HAXCMSSiteManagedFilesTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->siteDir() . '/.well-known/agent-skills');
     }
 
+    private function renderedShellFiles(): array
+    {
+        $sw = file_get_contents($this->siteDir() . '/service-worker.js');
+        $this->assertSame(1, preg_match('/var shellFiles = ([\s\S]*?);\n/', $sw, $match));
+        return json_decode($match[1], true);
+    }
+
+    public function testServiceWorkerPrecachesOnlyTheShell(): void
+    {
+        // uploads and pages are cached as visitors use them, never at install
+        @mkdir($this->siteDir() . '/files', 0777, true);
+        file_put_contents($this->siteDir() . '/files/lecture.pdf', str_repeat('A', 1024));
+        file_put_contents($this->siteDir() . '/site.json', '{"items":[]}');
+        $this->site->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+        $locations = array_map(function ($item) { return $item[0]; }, $this->renderedShellFiles());
+        foreach ($locations as $location) {
+            $this->assertStringStartsNotWith('files/', $location);
+            $this->assertStringStartsNotWith('pages/', $location);
+        }
+        $this->assertContains('site.json', $locations);
+    }
+
+    public function testServiceWorkerVersionFollowsContentNotSize(): void
+    {
+        // a same-size edit (a typo fix) must still give visitors a new shell
+        file_put_contents($this->siteDir() . '/site.json', '{"title":"aaaa"}');
+        $this->site->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+        $before = $this->renderedShellFiles();
+        file_put_contents($this->siteDir() . '/site.json', '{"title":"bbbb"}');
+        $this->site->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+        $after = $this->renderedShellFiles();
+        $this->assertNotEquals($before, $after);
+    }
+
     public function testRebuildManagedFilesUpdatesLlmsAlternateFormatWhenLlmsTemplateIncluded(): void
     {
         // A full rebuild calls $this->updateAlternateFormats('llms'). The test subclass
@@ -260,6 +294,28 @@ class HAXCMSSiteManagedFilesTest extends TestCase
         $this->assertStringEndsWith($edited, $agents);
         $this->site->rebuildManagedFiles();
         $this->assertSame($agents, file_get_contents($this->siteDir() . '/AGENTS.md'));
+    }
+
+    // haxtheweb/issues#3337: theme/ left the boilerplate. New sites are created
+    // without it, and a site that already has the folder keeps every file in it.
+    public function testBoilerplateHasNoThemeFolderAndKeepsCustomBuild(): void
+    {
+        $boilerplate = HAXCMS_ROOT . '/system/boilerplate/site';
+        $this->assertDirectoryDoesNotExist($boilerplate . '/theme');
+        $this->assertFileExists($boilerplate . '/custom/build/custom.es6.js');
+        $this->assertStringNotContainsString('theme/theme.', $this->boilerplate('AGENTS.md'));
+    }
+
+    public function testRebuildLeavesExistingThemeFilesAlone(): void
+    {
+        $css = "site-top-menu { --site-top-menu-bg: #37474f; }\n";
+        $html = "<site-top-menu></site-top-menu>\n";
+        @mkdir($this->siteDir() . '/theme', 0777, true);
+        file_put_contents($this->siteDir() . '/theme/theme.css', $css);
+        file_put_contents($this->siteDir() . '/theme/theme.html', $html);
+        $this->site->rebuildManagedFiles();
+        $this->assertSame($css, file_get_contents($this->siteDir() . '/theme/theme.css'));
+        $this->assertSame($html, file_get_contents($this->siteDir() . '/theme/theme.html'));
     }
 
     public function testRebuildKeepsOwnerKeysInPackageJson(): void

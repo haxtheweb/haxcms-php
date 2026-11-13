@@ -1,0 +1,70 @@
+name: Deploy HAX Site to GitHub Pages
+
+# A HAX site has nothing to install or compile: the site is published as it
+# is, with the ghpages:build script swapping in the CDN-loading index.html.
+# Build and deploy share one job so only one runner has to start.
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Allow one concurrent deployment; a newer push replaces one still running
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages.
+# Actions are pinned to a full commit SHA (version in the trailing comment)
+# so a moved tag can't change what runs here.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      # ghpages:build uses the CDN version of index.html and removes the
+      # links (build, wc-registry.json) that only work on a HAX server.
+      # Any other link left pointing outside the repo (dist, node_modules)
+      # would stop the archive step, so those go too.
+      - name: Prepare HAX site
+        run: |
+          npm run ghpages:build --if-present
+          find . -xtype l -not -path './.git/*' -print -delete
+
+      # What actions/upload-pages-artifact does, without listing every file
+      # in the log and without compressing: a site is mostly images, which
+      # don't shrink, so compressing costs more time than it saves.
+      - name: Archive site
+        run: |
+          tar --dereference --hard-dereference \
+            -cf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git --exclude=.github \
+            .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

@@ -676,6 +676,14 @@ paths:
         Optional ?scope=site|system filters the merged set by scope. Each
         descriptor mirrors the extended EntityDescriptor schema, including the
         storage block that declares how the entity is (or will be) persisted.
+        The merged set and ?scope= filtering are for a signed-in caller that
+        also sends this site's X-HAXCMS-Site-Token. Any other caller gets the
+        site-scope descriptors only, whatever ?scope= asks for. A bearer token
+        without a valid X-HAXCMS-Site-Token for this site is refused with 403.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+        - {}
       parameters:
         - name: scope
           in: query
@@ -683,7 +691,10 @@ paths:
           schema:
             type: string
             enum: [site, system]
-          description: Filter the merged descriptor set by scope.
+          description: >
+            Filter the merged descriptor set by scope (signed-in callers with
+            this site's X-HAXCMS-Site-Token only; other callers always get
+            site scope).
       responses:
         "200":
           description: Entity descriptor collection
@@ -696,6 +707,8 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/EntityCollection"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
   /x/api/v1/schemas:
@@ -2011,6 +2024,55 @@ paths:
                       data:
                         type: object
                         additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /x/api/v1/files/{fileUuid}/content:
+    post:
+      tags:
+        - files
+      operationId: replaceFileContent
+      summary: Replace an image's contents, keeping its uuid, path and name
+      description: >-
+        Replaces a JPG, PNG or WebP image with an uploaded raster image (for
+        example a crop made in the browser). The server re-encodes the upload
+        into the existing file's own format, so every page that uses the file
+        shows the new image. Animated and vector images are not accepted.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/FileUuid"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                upload:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Replaced file result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4197,7 +4259,17 @@ components:
       properties:
         field:
           type: string
-          enum: ["title", "description", "slug", "parent", "order", "published", "hideInMenu", "locked"]
+          enum:
+            [
+              "title",
+              "description",
+              "slug",
+              "parent",
+              "order",
+              "published",
+              "hideInMenu",
+              "locked",
+            ]
           description: description only appears in compareItemRevisions results
         from:
           type: string

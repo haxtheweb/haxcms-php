@@ -124,7 +124,18 @@ class HAXSiteConfig {
     return $this->site->getBaseTag();
   }
   public function getSiteMetadata($page = null) {
-    return $this->site->getSiteMetadata($page);
+    $metadata = $this->site->getSiteMetadata($page);
+    // a page miss answers 404 with the site shell; keep it out of search
+    // results. Private sites already send "none"; only the public value
+    // changes, and any noai directives after it are kept.
+    if ($this->pageNotFound) {
+      $metadata = str_replace(
+        '<meta name="robots" content="index, follow',
+        '<meta name="robots" content="noindex, follow',
+        $metadata
+      );
+    }
+    return $metadata;
   }
   public function getServiceWorkerScript($basePath = null, $ignoreDevMode = FALSE, $addSW = TRUE) {
     return $this->site->getServiceWorkerScript(null, FALSE, $this->getServiceWorkerStatus());

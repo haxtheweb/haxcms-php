@@ -22,9 +22,6 @@ site-root/
 ├── site.json              # JSON Outline Schema - site structure & metadata
 ├── pages/                 # Page content (HTML files)
 ├── files/                 # Media assets and resources
-├── theme/                 # Custom theme files
-│   ├── theme.html        # Theme template
-│   └── theme.css         # Theme styles
 ├── assets/               # Icons, banners, and static assets
 ├── index.html            # Main site entry point
 ├── manifest.json         # PWA manifest
@@ -93,9 +90,8 @@ hax site --title "Page Title" --content "<p>Initial content</p>" --slug "page-sl
 
 ### Theme Architecture
 - **Base Class**: Custom themes should extend `HAXCMSLitElement`
-- **Design System**: Use DDD (Design, Develop, Destroy) tokens for consistency
-- **Template**: `theme/theme.html` defines the layout structure
-- **Styling**: `theme/theme.css` contains theme-specific styles
+- **Design System**: Use DDD (Design, Develop, Deliver) tokens for consistency
+- **Location**: a custom theme is code in `custom/src/`, built into `custom/build/custom.es6.js`
 
 ### Theme Variables
 Available template variables (processed by Twig):
@@ -106,7 +102,7 @@ Available template variables (processed by Twig):
 - `{{ hexCode }}` - Primary theme color
 
 ### Theme Development Workflow
-1. **Edit theme files** in `theme/` directory
+1. **Edit theme code** in `custom/src/`
 2. **Use DDD tokens** for consistent design (colors, spacing, typography)
 3. **Test locally** with `hax serve` or `npm run serve`
 4. **Build theme** with `yarn run build` (critical for HAXCMSLitElement themes)
@@ -218,10 +214,12 @@ npm run build
 ### Custom Component Structure
 ```javascript
 // custom/src/my-component.js
-import { LitElement, html, css } from 'lit';
-import { DDDSuper } from '@haxtheweb/d-d-d/d-d-d.js';
+// Use the Lit that HAX already serves: the site's import map resolves
+// @haxtheweb/* for custom code, but not a bare `lit` import.
+import { html, css } from '@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js';
+import { DDD } from '@haxtheweb/d-d-d/d-d-d.js';
 
-class MyComponent extends DDDSuper(LitElement) {
+class MyComponent extends DDD {
   static get styles() {
     return [
       super.styles,
