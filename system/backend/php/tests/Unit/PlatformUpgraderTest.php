@@ -329,6 +329,46 @@ class PlatformUpgraderTest extends TestCase
         $upgrader->upgrade(array('archive' => $v2['archive'], 'sums' => $v2['sums'], 'manifest' => $v2['manifest']));
     }
 
+    public function testHaxiamDeploymentsRefuseEveryChange(): void
+    {
+        $v1 = $this->v1();
+        $v2 = $this->v2();
+        foreach (array(
+            '{"deploymentProfile":"haxiam-managed"}',
+            '{"deploymentProfile":"HAXIAM-MANAGED"}',
+            '{"iam":true}',
+        ) as $config) {
+            $root = $this->install($v1);
+            file_put_contents($root . '/_config/config.json', $config);
+            $upgrader = new HAXCMSPlatformUpgrader($root);
+            $this->assertTrue($upgrader->isHostManaged(), $config);
+            foreach (array(
+                function () use ($upgrader, $v2) {
+                    $upgrader->upgrade(array('archive' => $v2['archive'], 'sums' => $v2['sums'], 'manifest' => $v2['manifest'], 'dryRun' => true));
+                },
+                function () use ($upgrader) {
+                    $upgrader->verify();
+                },
+                function () use ($upgrader) {
+                    $upgrader->rollback();
+                },
+            ) as $call) {
+                try {
+                    $call();
+                    $this->fail('ran on a HAXiam deployment: ' . $config);
+                } catch (RuntimeException $e) {
+                    $this->assertStringContainsString('HAXiam', $e->getMessage());
+                }
+            }
+            $this->assertSame('<?php // v1', file_get_contents($root . '/index.php'));
+            $this->rm($root);
+        }
+        // an explicit non-HAXiam profile wins over a leftover iam flag
+        $root = $this->install($v1);
+        file_put_contents($root . '/_config/config.json', '{"deploymentProfile":"self-hosted-multi-site","iam":true}');
+        $this->assertFalse((new HAXCMSPlatformUpgrader($root))->isHostManaged());
+    }
+
     public function testSha256SumsParsing(): void
     {
         $sums = HAXCMSPlatformUpgrader::parseSha256Sums(str_repeat('a', 64) . "  a.tar.gz\n" . str_repeat('b', 64) . " *b.zip\nnot a line\n");

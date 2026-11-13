@@ -18,6 +18,8 @@
  *   first; a failed health check rolls the install back automatically
  * - one upgrade at a time (lock file); downloads only from github.com and
  *   GitHub's release-asset hosts over HTTPS
+ * - never on a HAXiam (haxiam-managed) deployment: the host owns the code
+ *   there, so upgrade, verify and rollback all refuse
  */
 class HAXCMSPlatformUpgrader
 {
@@ -102,6 +104,37 @@ class HAXCMSPlatformUpgrader
     public function getRoot()
     {
         return $this->root;
+    }
+
+    /**
+     * The deployment profile from _config/config.json, by the same rule as
+     * HAXCMS::getDeploymentProfile(): an explicit deploymentProfile wins, and
+     * a config with "iam" set and no profile is haxiam-managed.
+     */
+    public function deploymentProfile()
+    {
+        $file = $this->root . '/_config/config.json';
+        $config = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (!is_array($config)) {
+            return 'single-site';
+        }
+        if (isset($config['deploymentProfile']) && is_string($config['deploymentProfile']) && $config['deploymentProfile'] !== '') {
+            $profile = strtolower($config['deploymentProfile']);
+            return in_array($profile, array('single-site', 'self-hosted-multi-site', 'haxiam-managed'), true) ? $profile : 'single-site';
+        }
+        return !empty($config['iam']) ? 'haxiam-managed' : 'self-hosted-multi-site';
+    }
+
+    public function isHostManaged()
+    {
+        return $this->deploymentProfile() === 'haxiam-managed';
+    }
+
+    private function refuseIfHostManaged()
+    {
+        if ($this->isHostManaged()) {
+            throw new RuntimeException('This is a HAXiam (haxiam-managed) deployment. Platform upgrades are not allowed here; the host manages HAXcms.');
+        }
     }
 
     public function installedVersion()
@@ -266,6 +299,7 @@ class HAXCMSPlatformUpgrader
 
     public function verify($manifest = null)
     {
+        $this->refuseIfHostManaged();
         if ($manifest === null) {
             $manifest = $this->localManifest();
         }
@@ -466,6 +500,7 @@ class HAXCMSPlatformUpgrader
      */
     public function upgrade($options = array())
     {
+        $this->refuseIfHostManaged();
         if (is_dir($this->root . '/.git')) {
             // a checkout is updated with git; writing files would leave it dirty
             throw new RuntimeException('This install is a git checkout. Update it with: git fetch --tags && git checkout <version>');
@@ -658,6 +693,7 @@ class HAXCMSPlatformUpgrader
 
     public function rollback()
     {
+        $this->refuseIfHostManaged();
         $backups = $this->listBackups();
         if (count($backups) === 0) {
             throw new RuntimeException('No upgrade backup to roll back to.');

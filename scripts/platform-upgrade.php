@@ -15,7 +15,9 @@
  * Run it as the user who owns the files. The web server never runs it: the
  * admin panel only tells you that an update exists and which command to run.
  * Site data (_config, _sites, _published, _archived) is never touched; code
- * files are backed up to _config/platform-upgrade/backups first.
+ * files are backed up to _config/platform-upgrade/backups first. Not
+ * available on HAXiam (haxiam-managed) deployments, where the host manages
+ * HAXcms: upgrade, verify and rollback refuse there.
  *
  * Exit code 0 on success, 1 on an error or a refused upgrade, 2 when status
  * finds a missing security fix.
@@ -104,6 +106,18 @@ try {
     switch ($args['command']) {
         case 'status':
             $current = $upgrader->installedVersion();
+            if ($upgrader->isHostManaged()) {
+                // no outbound check on a host-managed install, as in the admin panel
+                $update = HAXCMSPlatformUpdateService::buildUpdateInfo(array(
+                    'currentVersion' => $current,
+                    'managed' => true,
+                    'installMethod' => HAXCMSPlatformUpdateService::detectInstallMethod($haxcmsRoot),
+                ));
+                fwrite(STDOUT, $json
+                    ? json_encode($update, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+                    : 'HAXcms ' . $current . ' · Updates for this install are managed by your host (HAXiam).' . PHP_EOL);
+                exit(0);
+            }
             $update = HAXCMSPlatformUpdateService::buildUpdateInfo(array(
                 'currentVersion' => $current,
                 'checkEnabled' => true,
