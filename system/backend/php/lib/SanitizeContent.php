@@ -1320,11 +1320,13 @@ class SanitizeContent
     }
 
     /**
-     * libxml (PHP 8.3) builds an HTML4 tree. Reshape the parts that HAX
-     * content meets so the tree is the one an HTML5 parser (browsers,
-     * haxcms-nodejs, PHP 8.4) builds: the newline an HTML5 parser drops
-     * after <pre>/<listing>/<textarea>, HTML5 void elements libxml put
-     * content inside, and the <tbody> implied around a table's rows.
+     * On PHP 8.3 the tree comes from the parser this backend ships, or
+     * from libxml's HTML4 parser when that library is missing. Reshape the
+     * parts that HAX content meets so the tree is the one an HTML5 parser
+     * (browsers, haxcms-nodejs, PHP 8.4) builds: the newline an HTML5
+     * parser drops after <pre>/<listing>/<textarea>, HTML5 void elements
+     * libxml put content inside, and the <tbody> implied around a table's
+     * rows.
      */
     private static function reshapeLibxmlTree($rootNode)
     {
@@ -1563,10 +1565,14 @@ class SanitizeContent
         if (!class_exists('\DOMDocument')) {
             return null;
         }
-        $wrappedHTML .= '</body></html>';
         // an HTML5 parser reads CR LF and a lone CR as LF before anything
-        // else; libxml keeps the CR
+        // else; neither parser below does
         $wrappedHTML = str_replace(array("\r\n", "\r"), "\n", $wrappedHTML);
+        $dom = self::loadWithBundledParser($wrappedHTML);
+        if ($dom !== null) {
+            return $dom;
+        }
+        $wrappedHTML .= '</body></html>';
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $originalUseInternalErrors = libxml_use_internal_errors(true);
         $loaded = $dom->loadHTML(
@@ -1579,6 +1585,65 @@ class SanitizeContent
             return null;
         }
         return $dom;
+    }
+
+    /**
+     * PHP 8.3 has no HTML5 parser built in. The one this backend ships
+     * (masterminds/html5, pure PHP, pinned in composer.lock) reads the
+     * markup, so what is stored does not change with the libxml a host
+     * happens to have; libxml then only holds the tree. Null when the
+     * library is not installed, which leaves libxml's own HTML parser.
+     */
+    private static function loadWithBundledParser($wrappedHTML)
+    {
+        if (!class_exists('\Masterminds\HTML5\Parser\Tokenizer')) {
+            // included on its own (a script, a test), without the app's autoloader
+            $autoload = dirname(__DIR__) . '/vendor/autoload.php';
+            if (is_file($autoload)) {
+                require_once $autoload;
+            }
+            if (!class_exists('\Masterminds\HTML5\Parser\Tokenizer')) {
+                return null;
+            }
+        }
+        require_once __DIR__ . '/SanitizeHTML5Parser.php';
+        try {
+            // no XHTML namespace on HTML elements: the tree is walked by
+            // local name, as the libxml and PHP 8.4 trees are
+            $events = new SanitizeHTML5TreeBuilder(false, array('disable_html_ns' => true));
+            $scanner = new \Masterminds\HTML5\Parser\Scanner(self::toValidUTF8($wrappedHTML), 'UTF-8');
+            $tokenizer = new SanitizeHTML5Tokenizer($scanner, $events);
+            $tokenizer->parse();
+            $dom = $events->document();
+            return $dom instanceof \DOMDocument ? $dom : null;
+        }
+        catch (\Throwable $exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Content is UTF-8. A byte that is not part of a UTF-8 sequence (a
+     * page saved as Latin-1) is read as the Latin-1 character it most
+     * likely is, so it is kept rather than dropped.
+     */
+    private static function toValidUTF8($html)
+    {
+        if (preg_match('//u', $html) === 1) {
+            return $html;
+        }
+        $fixed = preg_replace_callback(
+            '/[\x00-\x7F]+|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF]|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2}|([\x80-\xFF])/',
+            function ($match) {
+                if (!isset($match[1])) {
+                    return $match[0];
+                }
+                $byte = ord($match[1]);
+                return chr(0xC0 | ($byte >> 6)) . chr(0x80 | ($byte & 0x3F));
+            },
+            $html
+        );
+        return is_string($fixed) ? $fixed : $html;
     }
 
     /**

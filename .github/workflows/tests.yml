@@ -23,7 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 8.4 parses HTML with Dom\HTMLDocument (HTML5); 8.3 with libxml.
+        # 8.4 parses HTML with Dom\HTMLDocument (HTML5); 8.3 with the
+        # parser the backend ships (masterminds/html5).
         # The sanitizer must store the same HTML on both (haxtheweb/issues#3273).
         php-version: ["8.3", "8.4"]
     runs-on: ubuntu-latest
