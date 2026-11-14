@@ -11,7 +11,7 @@
  */
 class OutlineUpkeep {
   public static function parentOf($item) {
-    if (!is_object($item) || !isset($item->parent) || $item->parent === null || $item->parent === '') {
+    if (!is_object($item) || !isset($item->parent) || $item->parent === '') {
       return null;
     }
     return $item->parent;
