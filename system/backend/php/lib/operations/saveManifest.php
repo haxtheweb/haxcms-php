@@ -121,6 +121,11 @@ trait OperationsRouteSaveManifest {
           isset($site->manifest->metadata->theme->designSystem) &&
           is_string($site->manifest->metadata->theme->designSystem)
         ) ? $site->manifest->metadata->theme->designSystem : '';
+        // so is the announcement (set in Appearance)
+        $keptAnnouncement = (
+          isset($site->manifest->metadata->theme->announcement) &&
+          is_object($site->manifest->metadata->theme->announcement)
+        ) ? $site->manifest->metadata->theme->announcement : null;
         // look for a match so we can set the correct data
         foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
           if (
@@ -133,6 +138,9 @@ trait OperationsRouteSaveManifest {
         }
         if ($keptDesignSystem !== '') {
           $site->manifest->metadata->theme->designSystem = $keptDesignSystem;
+        }
+        if (!is_null($keptAnnouncement)) {
+          $site->manifest->metadata->theme->announcement = $keptAnnouncement;
         }
         if (array_key_exists('manifest-metadata-theme-designSystem', $this->params['manifest']['theme'])) {
           // same rule as saveAppearanceSettings: '' or 'ddd' is DDD (no

@@ -383,6 +383,66 @@ class OperationsAppearanceSeoSettingsTest extends TestCase
         $this->assertFalse(isset($this->haxcms->themes['my-theme']->designSystem));
     }
 
+    public function testAppearanceAnnouncementRules(): void
+    {
+        $f = function ($key) {
+            return 'manifest-metadata-theme-announcement-' . $key;
+        };
+        $result = $this->runAppearance(array(
+            $f('title') => 'Spring <b>sections</b> open',
+            $f('text') => "Registration closes\nJanuary 9. Q&A",
+            $f('link') => 'https://example.com/dates',
+            $f('linkText') => 'See dates',
+            $f('ends') => '2027-01-09',
+        ));
+        $this->assertSame(200, $result['status']);
+        $a = $this->persisted()->metadata->theme->announcement;
+        $this->assertSame('Spring b sections /b open', $a->title);
+        $this->assertSame('Registration closes January 9. Q&A', $a->text);
+        $this->assertSame('https://example.com/dates', $a->link);
+        $this->assertSame('See dates', $a->linkText);
+        $this->assertSame('brand', $a->variant);
+        $this->assertSame('2027-01-09', $a->ends);
+
+        // only the fields sent change
+        $this->runAppearance(array($f('variant') => 'warning'));
+        $a = $this->persisted()->metadata->theme->announcement;
+        $this->assertSame('warning', $a->variant);
+        $this->assertSame('Spring b sections /b open', $a->title);
+
+        // unsafe links are dropped, long text is capped by characters
+        $this->runAppearance(array(
+            $f('link') => 'javascript:alert(1)',
+            $f('text') => str_repeat('é', 900),
+        ));
+        $a = $this->persisted()->metadata->theme->announcement;
+        $this->assertSame('', $a->link);
+        $this->assertSame(500, mb_strlen($a->text, 'UTF-8'));
+
+        // bad values are refused
+        foreach (array(
+            array($f('variant') => 'pink'),
+            array($f('ends') => 'next week'),
+            array($f('title') => 42),
+            array($f('link') => array('x')),
+        ) as $bad) {
+            $refused = $this->runAppearance($bad);
+            $this->assertSame(400, $refused['__failed']['status']);
+            $this->assertSame('invalid announcement value', $refused['__failed']['message']);
+        }
+
+        // kept across a theme change
+        $this->haxcms->themes = array(
+            'my-theme' => (object)array('element' => 'my-theme', 'variables' => (object)array()),
+        );
+        $this->runAppearance(array('manifest-metadata-theme-element' => 'my-theme'));
+        $this->assertSame('Spring b sections /b open', $this->persisted()->metadata->theme->announcement->title);
+
+        // no title and no text: no announcement
+        $this->runAppearance(array($f('title') => '', $f('text') => ''));
+        $this->assertFalse(isset($this->persisted()->metadata->theme->announcement));
+    }
+
     public function testAppearanceIconWritesAndRejectsNonStrings(): void
     {
         $result = $this->runAppearance(array(

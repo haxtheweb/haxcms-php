@@ -78,7 +78,8 @@ trait OperationsRouteSaveAppearanceSettings {
           'manifest-metadata-theme-variables-icon',
           'manifest-metadata-theme-designSystem',
         ),
-        array_keys($regionFieldMap)
+        array_keys($regionFieldMap),
+        array_keys($this->announcementFieldMap())
       );
       if (!$this->hasOnlyAllowedKeys($themeParams, $allowedThemeKeys)) {
         return array(
@@ -138,10 +139,17 @@ trait OperationsRouteSaveAppearanceSettings {
         $designSystem = isset($site->manifest->metadata->theme->designSystem)
           ? $site->manifest->metadata->theme->designSystem
           : '';
+        // so is the announcement
+        $announcement = isset($site->manifest->metadata->theme->announcement)
+          ? $site->manifest->metadata->theme->announcement
+          : null;
         // a copy, so the edits below never reach the shared themes list
         $site->manifest->metadata->theme = json_decode(json_encode($themeValue));
         if (is_string($designSystem) && $designSystem !== '') {
           $site->manifest->metadata->theme->designSystem = $designSystem;
+        }
+        if (is_object($announcement)) {
+          $site->manifest->metadata->theme->announcement = $announcement;
         }
       }
 
@@ -295,6 +303,35 @@ trait OperationsRouteSaveAppearanceSettings {
         }
         else {
           $site->manifest->metadata->theme->designSystem = $designSystem;
+        }
+      }
+
+      $announcementSent = false;
+      foreach (array_keys($this->announcementFieldMap()) as $field) {
+        if (array_key_exists($field, $themeParams)) {
+          $announcementSent = true;
+        }
+      }
+      if ($announcementSent) {
+        $announcement = $this->normalizeAnnouncement(
+          $themeParams,
+          isset($site->manifest->metadata->theme->announcement)
+            ? $site->manifest->metadata->theme->announcement
+            : null
+        );
+        if ($announcement === false) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid announcement value',
+            )
+          );
+        }
+        if (is_null($announcement)) {
+          unset($site->manifest->metadata->theme->announcement);
+        }
+        else {
+          $site->manifest->metadata->theme->announcement = $announcement;
         }
       }
 

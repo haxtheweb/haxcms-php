@@ -330,6 +330,110 @@ class Operations {
     return $value;
   }
   /**
+   * The site-wide announcement every theme shows at the top of the site
+   * (metadata.theme.announcement), field name => announcement key.
+   */
+  public function announcementFieldMap() {
+    return array(
+      'manifest-metadata-theme-announcement-title' => 'title',
+      'manifest-metadata-theme-announcement-text' => 'text',
+      'manifest-metadata-theme-announcement-link' => 'link',
+      'manifest-metadata-theme-announcement-linkText' => 'linkText',
+      'manifest-metadata-theme-announcement-variant' => 'variant',
+      'manifest-metadata-theme-announcement-ends' => 'ends',
+    );
+  }
+  /**
+   * One announcement text field. Plain text only: angle brackets and control
+   * characters are removed, so the stored value can never form markup, then
+   * it is trimmed and capped at $limit characters.
+   * Returns the clean text, or false when not a string.
+   */
+  public function cleanAnnouncementText($value, $limit) {
+    if (is_null($value)) {
+      return '';
+    }
+    if (!is_string($value)) {
+      return false;
+    }
+    $clean = preg_replace('/[<>\x00-\x1f\x7f]/u', ' ', $value);
+    if (!is_string($clean)) {
+      return false;
+    }
+    $clean = trim(preg_replace('/ +/', ' ', $clean));
+    return trim(mb_substr($clean, 0, $limit, 'UTF-8'));
+  }
+  /**
+   * The announcement after applying the fields present in $payload to the
+   * current one. Text fields are plain text; the link goes through the URL
+   * sanitizer; variant is one of the DDD variant words (brand when unset);
+   * ends is '' or a YYYY-MM-DD date. With no title and no text left, there
+   * is no announcement.
+   * Returns the announcement object, null for none, or false when a field
+   * is invalid. Same rule as haxcms-nodejs normalizeAnnouncement.
+   */
+  public function normalizeAnnouncement($payload, $current) {
+    $next = (object) array(
+      'title' => '',
+      'text' => '',
+      'link' => '',
+      'linkText' => '',
+      'variant' => 'brand',
+      'ends' => '',
+    );
+    if (is_object($current) || is_array($current)) {
+      foreach ((array) $current as $key => $value) {
+        $next->{$key} = $value;
+      }
+    }
+    $limits = array('title' => 120, 'text' => 500, 'linkText' => 80);
+    $variants = array('brand', 'neutral', 'success', 'warning', 'danger');
+    foreach ($this->announcementFieldMap() as $field => $key) {
+      if (!array_key_exists($field, $payload)) {
+        continue;
+      }
+      $value = $payload[$field];
+      if ($key === 'link') {
+        if (!is_null($value) && !is_string($value)) {
+          return false;
+        }
+        $next->link = SanitizeContent::sanitizeURLValue($value, '');
+      }
+      else if ($key === 'variant') {
+        if (!is_null($value) && !is_string($value)) {
+          return false;
+        }
+        $variant = (is_null($value) || $value === '') ? 'brand' : trim($value);
+        if (!in_array($variant, $variants, true)) {
+          return false;
+        }
+        $next->variant = $variant;
+      }
+      else if ($key === 'ends') {
+        if (is_null($value) || $value === '') {
+          $next->ends = '';
+        }
+        else if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value)) === 1) {
+          $next->ends = trim($value);
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        $clean = $this->cleanAnnouncementText($value, $limits[$key]);
+        if ($clean === false) {
+          return false;
+        }
+        $next->{$key} = $clean;
+      }
+    }
+    if ($next->title === '' && $next->text === '') {
+      return null;
+    }
+    return $next;
+  }
+  /**
    * The site's design system (metadata.theme.designSystem): a lowercase name
    * such as "carbon". '' and 'ddd' mean DDD, which is stored as no value.
    * The front end only ever imports a system its own registry lists, so the
