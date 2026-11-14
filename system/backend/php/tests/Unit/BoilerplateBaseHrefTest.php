@@ -28,4 +28,26 @@ class BoilerplateBaseHrefTest extends TestCase
         );
         $this->assertStringNotContainsString("pathname.split('/')[1]", $html, 'first-segment rule removed');
     }
+
+    /**
+     * haxtheweb/issues#3341: GitLab Pages and Codeberg Pages project sites
+     * take the URL's folder as their base too, in every static file
+     * (index.html, ghpages.html and the 404.html deep-link redirect).
+     *
+     * @dataProvider staticFiles
+     */
+    public function testPagesHostsShareTheFolderRule(string $file): void
+    {
+        $html = file_get_contents(__DIR__ . '/../../../../boilerplate/site/' . $file);
+        $this->assertNotFalse($html, $file . ' exists');
+        $this->assertStringContainsString(
+            '/(^|\\.)(github\\.io|gitlab\\.io|codeberg\\.page)$/',
+            $html
+        );
+    }
+
+    public static function staticFiles(): array
+    {
+        return array(array('index.html'), array('ghpages.html'), array('404.html'));
+    }
 }
