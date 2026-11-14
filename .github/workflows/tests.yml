@@ -62,7 +62,10 @@ jobs:
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-composer-${{ hashFiles('system/backend/php/composer.lock') }}
           restore-keys: ${{ runner.os }}-php-${{ matrix.php-version }}-composer-
       - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        # sabberworm/php-css-parser (via dompdf) still caps PHP at ~8.5, so the
+        # lock does not install on 8.6 yet. Ignore that cap on 8.6 only, so the
+        # code itself is still tested there; remove once the lock allows 8.6.
+        run: composer install --prefer-dist --no-interaction --no-progress ${{ matrix.php-version == '8.6' && '--ignore-platform-req=php+' || '' }}
       - name: Run PHPUnit
         run: vendor/bin/phpunit
   # Dependency vulnerability audit (haxtheweb/issues#3092).
