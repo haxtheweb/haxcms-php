@@ -1545,7 +1545,8 @@ class SanitizeContent
         // (e.g. "ââ") that compounds on every subsequent save.
         // no closing </body></html> for the HTML5 parser: an unclosed
         // <textarea> would take them as text, as it takes the rest of the input
-        $wrappedHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html;
+        // the same bytes for every parser below, so they keep the same characters
+        $wrappedHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . self::toValidUTF8($html);
         if (class_exists('\Dom\HTMLDocument') && method_exists('\Dom\HTMLDocument', 'createFromString')) {
             try {
                 // createFromString accepts only LIBXML_NOERROR,
@@ -1611,7 +1612,7 @@ class SanitizeContent
             // no XHTML namespace on HTML elements: the tree is walked by
             // local name, as the libxml and PHP 8.4 trees are
             $events = new SanitizeHTML5TreeBuilder(false, array('disable_html_ns' => true));
-            $scanner = new \Masterminds\HTML5\Parser\Scanner(self::toValidUTF8($wrappedHTML), 'UTF-8');
+            $scanner = new \Masterminds\HTML5\Parser\Scanner($wrappedHTML, 'UTF-8');
             $tokenizer = new SanitizeHTML5Tokenizer($scanner, $events);
             $tokenizer->parse();
             $dom = $events->document();
