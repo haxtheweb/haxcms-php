@@ -392,6 +392,7 @@ class HAXCMSSite
             'buildhaxcms' => 'build-haxcms.js',
             'outdated' => 'assets/upgrade-browser.html',
             'index' => 'index.html', // static published fallback
+            'ghpages' => 'ghpages.html', // github pages publishing for custom theme work
             '404' => '404.html', // github / static published redirect appropriately
             // seo / performance
             'push' => 'push-manifest.json',
