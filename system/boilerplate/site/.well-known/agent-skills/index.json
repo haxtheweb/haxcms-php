@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment.",
       "url": "hax-site-structure/SKILL.md",
-      "digest": "sha256:8a0d7420ca29db0fde61bcb4f14bca5ed51776fe1374528cc27787ee54a6faf2"
+      "digest": "sha256:60de8c1c930d28558d2463ef4a77386414ff3489f52712b89ead5f48b95dee89"
     },
     {
       "name": "hax-content-authoring",
@@ -20,7 +20,7 @@
       "type": "skill-md",
       "description": "Know which HAXcms files are generated (rebuild, never hand-edit) versus authored. Load before editing a managed file or running a build: no ubiquity script, no top-level monorepo build, local hax CLI instead of npx.",
       "url": "hax-managed-files/SKILL.md",
-      "digest": "sha256:84f254eb99b6b159a1b67e656439ed7501b5d931a91eb08b91014d7cd1a00b7a"
+      "digest": "sha256:2336d607631f7cbfc32e30c2181326c4e332703ff2bf7802a8483d57b29ef0fb"
     },
     {
       "name": "hax-design-system",

@@ -1,7 +1,7 @@
 ---
 name: hax-site-structure
 description: "Read and navigate an existing HAXcms site from its portable files: site.json, pages/, files/, theme, basePath, wc-registry.json. Load FIRST when an agent lands on any HAXsite or deployment."
-version: 1.0.0
+version: 1.0.1
 license: Apache-2.0
 metadata:
   author: haxtheweb
@@ -50,9 +50,8 @@ A HAXsite is a directory with this shape (the HAXcms boilerplate):
 <site>/
 ├── site.json                 # canonical manifest + navigation tree (JSON Outline Schema)
 ├── pages/<item-id>/index.html  # authored page content (one dir per page)
-├── files/                    # static assets (images, pdfs, uploads)
-├── theme/                    # theme.css + theme assets (custom theme layer)
-├── custom/                   # custom build (custom.es6.js) when present
+├── files/                    # static assets (images, pdfs, uploads); always present, even empty
+├── custom/                   # the site's own theme and elements (src/custom.js -> build/custom.es6.js)
 ├── assets/                   # icon/browser assets
 ├── build/ build.js build-haxcms.js  # autoloader wiring
 ├── wc-registry.json          # web component registry (built artifact, see below)
@@ -62,6 +61,13 @@ A HAXsite is a directory with this shape (the HAXcms boilerplate):
 ├── manifest.json service-worker.js  # PWA (generated)
 └── .well-known/              # security.txt, api-catalog, agent-skills/
 ```
+
+The smallest folder that is a HAXcms site is `site.json`, a file at every item's `location`, and
+`files/`. The machine-readable list of every path (required, optional or retired, and who owns
+it) is the site folder contract:
+<https://github.com/haxtheweb/json-outline-schema/blob/master/schema/haxcms-site-contract.json>.
+An older site may also hold a `theme/` folder (theme.css, theme.html); nothing loads it now and
+`custom/` replaced it.
 
 ## site.json — JSON Outline Schema
 
@@ -126,7 +132,7 @@ The `x/` route prefix is reserved for internal HAXcms paths (`x/search`, `x/tags
 ## Generated vs authored (short version)
 
 - Authored (safe to read/edit directly): `site.json` (via CLI, not hand-edit), `pages/*/index.html`
-  (content, the only source of truth), `files/`, `theme/`, `custom/`.
+  (content, the only source of truth), `files/`, `custom/`.
 - Generated per page: `pages/*/index.md|json|yaml|xml`, rebuilt from `index.html` on content saves.
 - Generated (rebuild, do not hand-edit): `llms.txt`, `robots.txt`, `sitemap*.xml`, `rss.xml`,
   `atom.xml`, `lunrSearchIndex.json`, `manifest.json`, `service-worker.js`, `push-manifest.json`,

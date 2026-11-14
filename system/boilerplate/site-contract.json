@@ -6,7 +6,7 @@
     {
       "id": "content",
       "title": "Content",
-      "description": "A valid site.json and a file at every item's location. Portable content any engine can read; what an exporter from another system targets."
+      "description": "A valid site.json, a file at every item's location, and a files/ folder. Portable content any engine can read; what an exporter from another system targets."
     },
     {
       "id": "runnable",
@@ -61,6 +61,14 @@
       "note": "Anything else an author keeps beside a page."
     },
     {
+      "path": "files",
+      "kind": "folder",
+      "status": "required",
+      "level": "content",
+      "owner": "authored",
+      "note": "Where uploads and other static assets live. The folder must exist even when empty, so tools never have to create it before the first upload; keep it in git with files/.gitkeep."
+    },
+    {
       "path": "files/.htaccess",
       "status": "required",
       "owner": "managed",
@@ -81,7 +89,7 @@
       "status": "optional",
       "owner": "scaffold",
       "boilerplate": true,
-      "note": "Keeps files/ in git before the first upload."
+      "note": "Keeps files/ in git while it is empty. Any engine that writes a site adds it."
     },
     {
       "path": "files/**",
@@ -261,6 +269,24 @@
       "note": "SCORM 1.2 schema."
     },
     {
+      "path": "index.php",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Entry point when a PHP host serves the site. Rewritten on a full rebuild."
+    },
+    {
+      "path": "config.php",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Settings and the single-site fallback that index.php loads. Rewritten on a full rebuild."
+    },
+    {
       "path": ".htaccess",
       "status": "required",
       "owner": "partly-managed",
@@ -425,20 +451,6 @@
       "owner": "scaffold",
       "boilerplate": true,
       "note": "GitHub Pages publishing workflow."
-    },
-    {
-      "path": "index.php",
-      "status": "optional",
-      "owner": "scaffold",
-      "boilerplate": true,
-      "note": "Entry point when a PHP host serves the site."
-    },
-    {
-      "path": "config.php",
-      "status": "optional",
-      "owner": "scaffold",
-      "boilerplate": true,
-      "note": "Settings for index.php."
     },
     {
       "path": "assets/banner.jpg",

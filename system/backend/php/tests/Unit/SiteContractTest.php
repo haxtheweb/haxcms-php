@@ -21,6 +21,9 @@ require_once __DIR__ . '/HAXCMSSiteNewSiteTest.php';
  *     contract's managed entries
  *   - a site this backend just made has every required path, no retired path
  *     and no file the contract does not know
+ *   - files/ exists in the boilerplate and in a new site, even when empty
+ *   - rebuildManagedFiles() really rewrites every file the contract calls
+ *     managed (ghpages.html, index.php and config.php included)
  *
  * Mirrors haxcms-nodejs test/unit/site-contract.test.cjs. The full validator
  * (schema checks on site.json, level reporting) lives in json-outline-schema
@@ -37,16 +40,10 @@ class SiteContractTest extends TestCase
     const MANAGED_OUTSIDE_TEMPLATE_LIST = array(
         // HAXCMSSite::rebuildAgentSkills() copies the skills and their index
         '.well-known/agent-skills/index.json',
-    );
-
-    /**
-     * Managed in the contract (and rebuilt by haxcms-nodejs) but not rebuilt
-     * here yet. Each one is reported as a skipped KNOWN GAP test below. When
-     * this backend starts rebuilding a file, remove it from this list.
-     */
-    const KNOWN_GAPS = array(
-        // copied at site creation, never rebuilt (haxtheweb/issues#3351)
-        'ghpages.html',
+        // HAXCMSSite::rebuildManagedFiles() adds the PHP entry point and its
+        // settings to the template list on every full rebuild
+        'index.php',
+        'config.php',
     );
 
     private static $contract;
@@ -63,6 +60,10 @@ class SiteContractTest extends TestCase
         self::$literals = array();
         self::$patterns = array();
         foreach (self::$contract['entries'] as $entry) {
+            // a folder entry is about the folder existing; it never classifies a file
+            if (self::isFolderEntry($entry)) {
+                continue;
+            }
             if (self::hasWildcard($entry['path'])) {
                 self::$patterns[] = array('entry' => $entry, 'regex' => self::patternToRegex($entry['path']));
             } elseif (!isset(self::$literals[$entry['path']])) {
@@ -133,6 +134,23 @@ class SiteContractTest extends TestCase
         return null;
     }
 
+    private static function isFolderEntry(array $entry): bool
+    {
+        return isset($entry['kind']) && $entry['kind'] === 'folder';
+    }
+
+    /** Required folders (they must exist even when empty) missing under $root. */
+    private static function missingFolders(string $root): array
+    {
+        $missing = array();
+        foreach (self::$contract['entries'] as $entry) {
+            if (self::isFolderEntry($entry) && $entry['status'] === 'required' && !is_dir($root . '/' . $entry['path'])) {
+                $missing[] = $entry['path'];
+            }
+        }
+        return $missing;
+    }
+
     private static function isManaged(array $entry): bool
     {
         return $entry['owner'] === 'managed' || $entry['owner'] === 'partly-managed';
@@ -143,7 +161,7 @@ class SiteContractTest extends TestCase
     {
         $paths = array();
         foreach (self::$contract['entries'] as $entry) {
-            if (!self::hasWildcard($entry['path']) && $filter($entry)) {
+            if (!self::hasWildcard($entry['path']) && !self::isFolderEntry($entry) && $filter($entry)) {
                 $paths[] = $entry['path'];
             }
         }
@@ -239,6 +257,10 @@ class SiteContractTest extends TestCase
         $this->assertSame(array(), $missing, 'the contract says the boilerplate ships these; add the file or change system/boilerplate/site-contract.json');
         $this->assertSame(array(), $extra, 'the boilerplate ships files no boilerplate entry covers; add them to system/boilerplate/site-contract.json (and the json-outline-schema and haxcms-nodejs copies)');
         $this->assertSame(array(), $retired, 'the boilerplate still ships a retired path');
+        // files/ must exist in every site, so the boilerplate carries it (kept
+        // in git by files/.gitkeep)
+        $this->assertSame(array(), self::missingFolders(self::boilerplateRoot() . '/site'));
+        $this->assertContains('files/.gitkeep', $files);
     }
 
     // ---- managed files ----
@@ -251,11 +273,10 @@ class SiteContractTest extends TestCase
             self::contractPaths(function ($entry) {
                 return self::isManaged($entry);
             }),
-            self::MANAGED_OUTSIDE_TEMPLATE_LIST,
-            self::KNOWN_GAPS
+            self::MANAGED_OUTSIDE_TEMPLATE_LIST
         ));
         $this->assertSame($expected, $listed);
-        foreach (array_merge(self::MANAGED_OUTSIDE_TEMPLATE_LIST, self::KNOWN_GAPS) as $file) {
+        foreach (self::MANAGED_OUTSIDE_TEMPLATE_LIST as $file) {
             $entry = self::classify($file);
             $this->assertNotNull($entry, $file . ' has no contract entry');
             $this->assertTrue(self::isManaged($entry), $file . ' is not managed in the contract');
@@ -271,16 +292,6 @@ class SiteContractTest extends TestCase
             $this->assertSame($policy['policy'], $entry['policy'], $file . ' policy');
             $this->assertSame($entry['policy'] === 'replace' ? 'managed' : 'partly-managed', $entry['owner'], $file . ' owner');
             $this->assertSame('required', $entry['status'], $file . ' status');
-        }
-    }
-
-    public function testKnownGapsAreStillGaps(): void
-    {
-        $listed = array_values((new HAXCMSSite())->getManagedTemplateFiles());
-        $closed = array_values(array_intersect(self::KNOWN_GAPS, $listed));
-        $this->assertSame(array(), $closed, 'now rebuilt here: remove from KNOWN_GAPS');
-        if (count(self::KNOWN_GAPS) > 0) {
-            $this->markTestSkipped('KNOWN GAP: managed in the contract and rebuilt by haxcms-nodejs, not rebuilt by haxcms-php: ' . implode(', ', self::KNOWN_GAPS));
         }
     }
 
@@ -309,6 +320,7 @@ class SiteContractTest extends TestCase
             $files
         ));
         $this->assertSame(array(), $missing, 'required by the contract, not in a new site');
+        $this->assertSame(array(), self::missingFolders($siteDir), 'a new site lacks a folder the contract requires');
 
         $unknown = array();
         $retired = array();
@@ -330,5 +342,54 @@ class SiteContractTest extends TestCase
             $this->assertSame('pages/' . $item->id . '/index.html', $item->location);
             $this->assertContains($item->location, $files, $item->location . ' is missing');
         }
+    }
+
+    // ---- the contract says "managed"; the rebuild has to agree ----
+
+    public function testRebuildRewritesEveryFileTheContractCallsManaged(): void
+    {
+        $site = new HAXCMSNewSiteTestSite();
+        $site->newSite($this->tmpRoot, '/', 'Contract Rebuild', new stdClass(), null, null);
+        $siteDir = $this->tmpRoot . '/contract-rebuild';
+        // whole-file managed entries, except the skills index (covered by
+        // AgentSkillsIntegrityTest: it is copied with its skill files)
+        $managed = array_values(array_diff(
+            self::contractPaths(function ($entry) {
+                return $entry['owner'] === 'managed' && $entry['policy'] === 'replace';
+            }),
+            array('.well-known/agent-skills/index.json')
+        ));
+        $this->assertContains('ghpages.html', $managed);
+        $this->assertContains('index.php', $managed);
+        $this->assertContains('config.php', $managed);
+        $damage = 'damaged by SiteContractTest';
+        $before = array();
+        foreach ($managed as $file) {
+            $before[$file] = file_get_contents($siteDir . '/' . $file);
+            file_put_contents($siteDir . '/' . $file, $damage);
+        }
+        $site->rebuildManagedFiles();
+        $notRewritten = array();
+        foreach ($managed as $file) {
+            if (file_get_contents($siteDir . '/' . $file) === $damage) {
+                $notRewritten[] = $file;
+            }
+        }
+        $this->assertSame(array(), $notRewritten, 'managed in the contract but left alone by rebuildManagedFiles()');
+        // and the rebuild gives back what site creation wrote (security.txt
+        // carries an expiry date that a rebuild may refresh)
+        foreach ($managed as $file) {
+            if ($file === '.well-known/security.txt') {
+                continue;
+            }
+            $this->assertSame($before[$file], file_get_contents($siteDir . '/' . $file), $file . ' differs after a rebuild');
+        }
+
+        // partly managed files: the owner's part survives, HAXcms's part returns
+        file_put_contents($siteDir . '/robots.txt', "\nUser-agent: contract-test\nDisallow: /x\n", FILE_APPEND);
+        $site->rebuildManagedFiles();
+        $robots = file_get_contents($siteDir . '/robots.txt');
+        $this->assertStringContainsString('User-agent: contract-test', $robots);
+        $this->assertStringContainsString('# BEGIN HAXcms managed', $robots);
     }
 }
