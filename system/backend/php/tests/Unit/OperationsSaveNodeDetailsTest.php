@@ -391,6 +391,21 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertFalse(isset($result2['data']->metadata->tags));
     }
 
+    public function testSetTagsAcceptsAListOfTags(): void
+    {
+        // API clients (haxcms-mcp) send tags as a list; it means the same as
+        // the comma separated text the editor sends
+        $result = $this->runOperation('item-a', array(
+            'operation' => 'setTags',
+            'tags' => array('one', 'two', '<b>three</b>'),
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(
+            array('one', 'two', '&lt;b&gt;three&lt;/b&gt;'),
+            (array) $result['data']->metadata->tags
+        );
+    }
+
     public function testSetIconSetsAndUnsetRemovesIt(): void
     {
         $result = $this->runOperation('item-a', array(

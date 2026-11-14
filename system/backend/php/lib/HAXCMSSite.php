@@ -2274,7 +2274,10 @@ class HAXCMSSite
       if (substr($requestPath, 0, 1) != '/') {
         $requestPath = '/' . $requestPath;
       }
-      return $requestPath;
+      // slugs keep Unicode letters, but the request path arrives
+      // percent-encoded: decode it so /caf%C3%A9 finds the page whose slug
+      // is "café" (mirrors haxcms-nodejs normalizeSlugFromPath)
+      return rawurldecode($requestPath);
     }
     /**
      * Parse explicit extension-based format request.
@@ -2380,6 +2383,9 @@ class HAXCMSSite
         }
         return '/';
       }
+      // the slug is decoded text (it may hold Unicode letters); this path
+      // goes into Link / Content-Location headers, so encode each segment
+      $normalizedSlug = implode('/', array_map('rawurlencode', explode('/', $normalizedSlug)));
       if ($scriptDirectory != '') {
         return $scriptDirectory . '/' . $normalizedSlug;
       }

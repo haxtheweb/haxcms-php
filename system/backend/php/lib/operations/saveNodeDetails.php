@@ -267,8 +267,20 @@ trait OperationsRouteSaveNodeDetails {
           }
           if (array_key_exists('tags', $this->params['node']['details'])) {
             if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
+              $tagsValue = $this->params['node']['details']['tags'];
+              // a list of tags means the same as the comma separated text the
+              // editor sends; join it (as haxcms-nodejs does) instead of
+              // casting the array to the word "Array"
+              if (is_array($tagsValue)) {
+                $tagsValue = implode(',', array_map(function ($tag) {
+                  if (is_bool($tag)) {
+                    return $tag ? 'true' : 'false';
+                  }
+                  return is_scalar($tag) ? (string) $tag : '';
+                }, $tagsValue));
+              }
               $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
-                $this->params['node']['details']['tags']
+                $tagsValue
               );
             } else {
               unset($page->metadata->tags);
