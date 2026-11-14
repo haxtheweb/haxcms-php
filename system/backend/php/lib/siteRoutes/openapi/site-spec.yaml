@@ -1195,6 +1195,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "423":
+          description: The page is locked. Only the setLocked item operation changes a locked page; unlock it first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
     delete:
       tags:
         - items
@@ -1240,6 +1246,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "423":
+          description: The page is locked. Only the setLocked item operation changes a locked page; unlock it first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
   /x/api/v1/items/{idOrSlug}/revisions:
     get:
       tags:
@@ -1523,6 +1535,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "423":
+          description: The page is locked. Only the setLocked item operation changes a locked page; unlock it first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
   /x/api/v1/content/{idOrSlug}:
     get:
       tags:
@@ -1647,6 +1665,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "423":
+          description: The page is locked. Only the setLocked item operation changes a locked page; unlock it first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
   /x/api/v1/content/{idOrSlug}/blocks:
     get:
       tags:

@@ -297,6 +297,100 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame(5, (int) $byId['item-c']->order);
     }
 
+    public function testSetParentWithoutOrderGoesToTheEndOfItsNewSiblings(): void
+    {
+        // item-a already has item-c (order 0) and item-d (order 1)
+        $result = $this->runOperation('item-b', array(
+            'operation' => 'setParent',
+            'parent' => 'item-a',
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('item-a', $result['data']->parent);
+        $this->assertSame(2, (int) $result['data']->order);
+        $this->assertSame(1, (int) $result['data']->indent);
+    }
+
+    public function testSetParentWithATakenOrderMovesTheRestDown(): void
+    {
+        $result = $this->runOperation('item-b', array(
+            'operation' => 'setParent',
+            'parent' => 'item-a',
+            'order' => 1,
+        ));
+        $this->assertSame(200, $result['status']);
+        $byId = $this->persistedById();
+        $this->assertSame(0, (int) $byId['item-c']->order);
+        $this->assertSame(1, (int) $byId['item-b']->order);
+        $this->assertSame(2, (int) $byId['item-d']->order);
+    }
+
+    public function testSiblingsSharingAnOrderAreSettledBeforeAMove(): void
+    {
+        // both top level pages hold order 1: there is no "one below" until
+        // the group is settled in the sequence it is shown in (a, then b)
+        $site = $this->haxcms->loadedSite;
+        $site->loadNode('item-a')->order = 1;
+        $site->loadNode('item-b')->order = 1;
+        $result = $this->runOperation('item-a', array('operation' => 'moveDown'));
+        $this->assertSame(200, $result['status']);
+        $byId = $this->persistedById();
+        $this->assertSame(0, (int) $byId['item-b']->order);
+        $this->assertSame(1, (int) $byId['item-a']->order);
+    }
+
+    public function testMoveSwapsWithTheVisibleNeighbourAcrossAGap(): void
+    {
+        $site = $this->haxcms->loadedSite;
+        $site->loadNode('item-b')->order = 5;
+        $result = $this->runOperation('item-b', array('operation' => 'moveUp'));
+        $this->assertSame(200, $result['status']);
+        $byId = $this->persistedById();
+        $this->assertSame(0, (int) $byId['item-b']->order);
+        $this->assertSame(5, (int) $byId['item-a']->order);
+    }
+
+    public function testIndentFollowsDepthForTheWholeBranch(): void
+    {
+        // item-b indents under item-a; then item-a itself moves under nothing
+        // new, but its children must still read depth 1 and item-b depth 1
+        $this->runOperation('item-b', array('operation' => 'indent'));
+        $byId = $this->persistedById();
+        $this->assertSame(array(0, 1, 1, 1), array(
+            (int) $byId['item-a']->indent,
+            (int) $byId['item-b']->indent,
+            (int) $byId['item-c']->indent,
+            (int) $byId['item-d']->indent,
+        ));
+        // item-c under item-b: depth 2
+        $this->runOperation('item-c', array('operation' => 'setParent', 'parent' => 'item-b'));
+        $byId = $this->persistedById();
+        $this->assertSame(2, (int) $byId['item-c']->indent);
+    }
+
+    public function testALockedPageRefusesEveryOperationButUnlocking(): void
+    {
+        $site = $this->haxcms->loadedSite;
+        $site->loadNode('item-a')->metadata->locked = true;
+        foreach (array('moveDown', 'indent', 'setParent', 'setTitle', 'setTags', 'setPublished', 'setSlug') as $operation) {
+            $result = $this->runOperation('item-a', array(
+                'operation' => $operation, 'title' => 'x', 'tags' => 'x', 'published' => false, 'slug' => 'x', 'parent' => 'item-b',
+            ));
+            $this->assertSame(423, $result['__failed']['status'], $operation);
+            $this->assertSame('locked', $result['__failed']['reason'], $operation);
+        }
+        $this->assertSame(0, (int) $site->loadNode('item-a')->order);
+        $this->assertSame('Item A', $site->loadNode('item-a')->title);
+        // moving another page around a locked one is fine
+        $moved = $this->runOperation('item-b', array('operation' => 'moveUp'));
+        $this->assertSame(200, $moved['status']);
+        // unlocking works, and then the page can change again
+        $unlocked = $this->runOperation('item-a', array('operation' => 'setLocked', 'locked' => false));
+        $this->assertSame(200, $unlocked['status']);
+        $this->assertFalse($unlocked['data']->metadata->locked);
+        $again = $this->runOperation('item-a', array('operation' => 'moveUp'));
+        $this->assertSame(200, $again['status']);
+    }
+
     public function testSetParentWithEmptyStringParentClearsParentAndIndent(): void
     {
         $result = $this->runOperation('item-c', array(
