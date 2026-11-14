@@ -203,6 +203,46 @@ class HAXCMSSiteManagedFilesTest extends TestCase
         $this->assertContains('site.json', $locations);
     }
 
+    public function testServiceWorkerListsEachShellLocationOnce(): void
+    {
+        // haxtheweb/issues#3322: a logo outside files/ resolves to the shipped
+        // icon for each size, and each location is listed once
+        $this->site->manifest->metadata->site->logo = 'assets/banner.jpg';
+        $this->site->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+        $locations = array_map(function ($item) { return $item[0]; }, $this->renderedShellFiles());
+        $this->assertSame(count($locations), count(array_unique($locations)));
+        $this->assertSame('assets/icon-512x512.png', $this->site->getLogoSize('512', '512'));
+        $this->assertSame('assets/favicon.png', $this->site->getLogoSize('32', '32'));
+    }
+
+    public function testStaticShellsCarrySiteMetadata(): void
+    {
+        // haxtheweb/issues#3327: same output as haxcms-nodejs
+        $this->site->manifest->title = 'Tom\'s "R&D" <site>';
+        $this->site->manifest->description = 'Learn <b>things</b> & more';
+        $this->site->manifest->metadata->theme = (object) array(
+            'variables' => (object) array('hexCode' => '#123456', 'image' => 'files/hero.jpg'),
+        );
+        $this->site->rebuildManagedFiles(array('index' => 'index.html', 'ghpages' => 'ghpages.html'));
+        foreach (array('index.html', 'ghpages.html') as $file) {
+            $html = file_get_contents($this->siteDir() . '/' . $file);
+            $this->assertStringNotContainsString('{{', $html, $file);
+            $this->assertStringContainsString('<title>Tom&#039;s &quot;R&amp;D&quot; &lt;site&gt;</title>', $html, $file);
+            $this->assertStringContainsString('<meta name="description" content="Learn &lt;b&gt;things&lt;/b&gt; &amp; more" />', $html, $file);
+            $this->assertStringContainsString('<meta name="theme-color" content="#123456">', $html, $file);
+            $this->assertStringContainsString('<meta name="og:image" property="og:image" content="files/hero.jpg" />', $html, $file);
+        }
+        // no description: the title stands in; no banner or files/ logo: no image
+        $this->site->manifest->description = '';
+        $this->site->manifest->metadata->theme->variables->image = '';
+        $this->site->manifest->metadata->site->logo = 'assets/banner.jpg';
+        $this->site->rebuildManagedFiles(array('index' => 'index.html'));
+        $html = file_get_contents($this->siteDir() . '/index.html');
+        $this->assertStringContainsString('<meta name="description" content="Tom&#039;s &quot;R&amp;D&quot; &lt;site&gt;" />', $html);
+        $this->assertStringNotContainsString('property="og:image"', $html);
+        $this->assertStringNotContainsString('property="twitter:image"', $html);
+    }
+
     public function testServiceWorkerVersionFollowsContentNotSize(): void
     {
         // a same-size edit (a typo fix) must still give visitors a new shell

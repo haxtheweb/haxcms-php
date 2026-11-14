@@ -5,6 +5,67 @@ class HAXCMSMediaSettingsService
   const MAX_JPEG_QUALITY = 100;
   const MIN_UPLOAD_SIZE_MB = 1;
   const MAX_UPLOAD_SIZE_MB = 10240;
+  const DEFAULT_JPEG_QUALITY = 80;
+  const DEFAULT_MAX_UPLOAD_SIZE_MB = 256;
+  // haxtheweb/issues#3054: every format HAXcms can safely store (the
+  // HAXCMSFile upload allowlist). acceptedFormats narrows uploads within this
+  // list; a format outside it is never accepted, whatever the setting says.
+  const SAFE_UPLOAD_FORMATS = array(
+    'jpg', 'jpeg', 'png', 'gif', 'webm', 'webp', 'mp4', 'mp3', 'mov', 'csv',
+    'ppt', 'pptx', 'xlsx', 'doc', 'xls', 'docx', 'pdf', 'rtf', 'txt', 'vtt',
+    'html', 'md', 'xml', 'ics', 'vcf', 'h5p',
+  );
+  // defaults earlier releases stored or showed while the setting was not yet
+  // applied to uploads; a saved copy of one means "not chosen", so it reads as
+  // the default instead of suddenly blocking documents and media
+  const LEGACY_DEFAULT_ACCEPTED_FORMATS = array(
+    'jpg,jpeg,png,gif,webp,svg',
+    'jpg,jpeg,png,webp,gif',
+  );
+
+  public static function getDefaultAcceptedFormats()
+  {
+    return implode(',', self::SAFE_UPLOAD_FORMATS);
+  }
+
+  /**
+   * Saved settings with the documented defaults filled in (parity with Node
+   * getEffectiveMediaSettings).
+   */
+  public static function getEffectiveMediaSettings($settings = array())
+  {
+    $source = is_array($settings) ? $settings : array();
+    $acceptedFormats = (isset($source['acceptedFormats']) && !is_null($source['acceptedFormats']))
+      ? $source['acceptedFormats']
+      : null;
+    if (is_null($acceptedFormats) || in_array($acceptedFormats, self::LEGACY_DEFAULT_ACCEPTED_FORMATS, true)) {
+      $acceptedFormats = self::getDefaultAcceptedFormats();
+    }
+    return array(
+      'jpegQuality' => (isset($source['jpegQuality']) && !is_null($source['jpegQuality']))
+        ? $source['jpegQuality']
+        : self::DEFAULT_JPEG_QUALITY,
+      'maxUploadSizeMb' => (isset($source['maxUploadSizeMb']) && !is_null($source['maxUploadSizeMb']))
+        ? $source['maxUploadSizeMb']
+        : self::DEFAULT_MAX_UPLOAD_SIZE_MB,
+      'acceptedFormats' => $acceptedFormats,
+    );
+  }
+
+  /**
+   * Whether an upload with this extension is accepted: it must be a safe
+   * format, and one the media settings accept (haxtheweb/issues#3054).
+   * Parity with Node isUploadFormatAccepted.
+   */
+  public static function isUploadFormatAccepted($settings, $extension)
+  {
+    $format = ltrim(strtolower(trim((string) $extension)), '.');
+    if (!in_array($format, self::SAFE_UPLOAD_FORMATS, true)) {
+      return false;
+    }
+    $effective = self::getEffectiveMediaSettings($settings);
+    return in_array($format, explode(',', (string) $effective['acceptedFormats']), true);
+  }
 
   private static function normalizeJpegQualityValue($value)
   {
