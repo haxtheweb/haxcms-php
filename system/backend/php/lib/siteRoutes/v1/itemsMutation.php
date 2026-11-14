@@ -227,8 +227,10 @@ return function ($context) {
     }
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
-            array(
-                'message' => $result['__failed']['message'],
+            array_merge(
+                array('message' => $result['__failed']['message']),
+                // a refusal may say why in a word (a locked page: "locked")
+                isset($result['__failed']['reason']) ? array('reason' => $result['__failed']['reason']) : array()
             ),
             array(
                 'statusCode' => intval($result['__failed']['status']),

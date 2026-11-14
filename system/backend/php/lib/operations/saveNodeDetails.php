@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 trait OperationsRouteSaveNodeDetails {
   public function saveNodeDetails() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -53,25 +54,29 @@ trait OperationsRouteSaveNodeDetails {
         );
       }
       // Store original count for safety check
+      // a locked page is changed by nothing but unlocking it
+      if (OutlineUpkeep::isLocked($page) && $operation !== 'setLocked') {
+        return array(
+          '__failed' => array(
+            'status' => 423,
+            'message' => 'Page is locked',
+            'reason' => 'locked',
+          )
+        );
+      }
       $originalItemCount = count($site->manifest->items);
       $items = $site->manifest->items;
-      $sameParent = function($a, $b) {
-        $pa = isset($a->parent) ? $a->parent : null;
-        $pb = isset($b->parent) ? $b->parent : null;
-        return ($pa === $pb);
-      };
+      $outlineOperations = array('moveUp', 'moveDown', 'indent', 'outdent', 'setParent');
+      $isOutlineOperation = in_array($operation, $outlineOperations, true);
       $siblings = array();
-      foreach ($items as $it) {
-        if ($sameParent($it, $page)) { $siblings[] = $it; }
+      $position = false;
+      if ($isOutlineOperation) {
+        // siblings that share an order value have no defined neighbour: settle
+        // the page's group first so "the one above" and "the one below" mean something
+        OutlineUpkeep::healSiblingOrder($items, OutlineUpkeep::parentOf($page));
+        $siblings = OutlineUpkeep::sortedSiblings($items, OutlineUpkeep::parentOf($page));
+        $position = array_search($page, $siblings, true);
       }
-      // helper to find sibling by order within same parent
-      $findSiblingByOrder = function($order) use ($siblings) {
-        foreach ($siblings as $s) {
-          if (isset($s->order) && (int)$s->order === (int)$order) { return $s; }
-        }
-        return null;
-      };
-      // helper to get last child order for a given parent id
       $lastChildOrder = function($parentId) use ($items) {
         $max = -1;
         foreach ($items as $it) {
@@ -86,26 +91,24 @@ trait OperationsRouteSaveNodeDetails {
 
       switch ($operation) {
         case 'moveUp':
-          if (isset($page->order) && (int)$page->order > 0) {
-            $other = $findSiblingByOrder((int)$page->order - 1);
-            if ($other && $other->id !== $page->id) {
-              $other->order = (int)$other->order + 1;
-              $page->order = (int)$page->order - 1;
-            }
+          if ($position !== false && $position > 0) {
+            $other = $siblings[$position - 1];
+            $otherOrder = OutlineUpkeep::orderOf($other);
+            $other->order = OutlineUpkeep::orderOf($page);
+            $page->order = $otherOrder;
           }
           break;
         case 'moveDown':
-          if (isset($page->order)) {
-            $other = $findSiblingByOrder((int)$page->order + 1);
-            if ($other && $other->id !== $page->id) {
-              $other->order = (int)$other->order - 1;
-              $page->order = (int)$page->order + 1;
-            }
+          if ($position !== false && $position < count($siblings) - 1) {
+            $other = $siblings[$position + 1];
+            $otherOrder = OutlineUpkeep::orderOf($other);
+            $other->order = OutlineUpkeep::orderOf($page);
+            $page->order = $otherOrder;
           }
           break;
         case 'indent':
-          if (isset($page->order)) {
-            $prev = $findSiblingByOrder((int)$page->order - 1);
+          if ($position !== false && $position > 0) {
+            $prev = $siblings[$position - 1];
             if ($prev) {
               $page->parent = $prev->id;
               $page->indent = isset($prev->indent) ? ((int)$prev->indent + 1) : 1;
@@ -180,14 +183,21 @@ trait OperationsRouteSaveNodeDetails {
           // Move page under a specific parent
           // Use array_key_exists to properly handle null values
           $newParent = array_key_exists('parent', $this->params['node']['details']) ? $this->params['node']['details']['parent'] : null;
-          $newOrder = array_key_exists('order', $this->params['node']['details']) ? (int)$this->params['node']['details']['order'] : 0;
+          $requestedOrder = array_key_exists('order', $this->params['node']['details']) ? $this->params['node']['details']['order'] : null;
           // account for this being set to empty string which means null
           if (!$newParent || $newParent === '') {
             $newParent = null;
           }
           // Update the page's parent and order
           $page->parent = $newParent;
-          $page->order = $newOrder;
+          if (is_int($requestedOrder) || is_float($requestedOrder) || (is_string($requestedOrder) && preg_match('/^\s*-?\d+/', $requestedOrder))) {
+            // the page takes the spot it asked for; whoever held it moves down
+            $page->order = (int) $requestedOrder;
+            OutlineUpkeep::makeRoomFor($items, $page);
+          } else {
+            // no order given: the page goes to the end of its new siblings
+            $page->order = OutlineUpkeep::lastSiblingOrder($items, $newParent, $page) + 1;
+          }
           // Calculate indent based on new parent depth
           if ($newParent === null) {
             $page->indent = 0;
@@ -267,8 +277,20 @@ trait OperationsRouteSaveNodeDetails {
           }
           if (array_key_exists('tags', $this->params['node']['details'])) {
             if ($this->params['node']['details']['tags'] !== '' && $this->params['node']['details']['tags'] !== null) {
+              $tagsValue = $this->params['node']['details']['tags'];
+              // a list of tags means the same as the comma separated text the
+              // editor sends; join it (as haxcms-nodejs does) instead of
+              // casting the array to the word "Array"
+              if (is_array($tagsValue)) {
+                $tagsValue = implode(',', array_map(function ($tag) {
+                  if (is_bool($tag)) {
+                    return $tag ? 'true' : 'false';
+                  }
+                  return is_scalar($tag) ? (string) $tag : '';
+                }, $tagsValue));
+              }
               $page->metadata->tags = SanitizeContent::sanitizeMetadataValue(
-                $this->params['node']['details']['tags']
+                $tagsValue
               );
             } else {
               unset($page->metadata->tags);
@@ -370,6 +392,10 @@ trait OperationsRouteSaveNodeDetails {
           break;
       }
 
+      // indent is the page's depth, for the moved page and the branch under it
+      if ($isOutlineOperation) {
+        OutlineUpkeep::syncIndentToDepth($items);
+      }
       // Since loadNode returns a reference, $page modifications already update the manifest
       // Only reassign items if we made a copy that needs to go back
       $site->manifest->items = $items;

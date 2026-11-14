@@ -291,6 +291,90 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame($initialCount + 1, count($persisted));
     }
 
+    public function testCreateNodeTakesTheOrderItAsksForAndTheRestMoveDown(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('title' => 'Wedge'),
+            'order' => 1,
+        );
+        $result = $this->ops->createNode();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(1, (int) $result['data']->order);
+        $orders = array();
+        foreach ($this->readPersistedItems() as $item) {
+            $orders[$item->title] = (int) $item->order;
+        }
+        $this->assertEquals(array('Item A' => 0, 'Item B' => 2, 'Wedge' => 1), $orders);
+    }
+
+    public function testCreateNodeWithoutAnOrderGoesToTheEndAndIndentIsItsDepth(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('title' => 'Last'),
+        );
+        $result = $this->ops->createNode();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(2, (int) $result['data']->order);
+        $this->assertSame(0, (int) $result['data']->indent);
+
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('title' => 'Child'),
+            'parent' => 'item-a',
+        );
+        $child = $this->ops->createNode();
+        $this->assertSame(200, $child['status']);
+        $this->assertSame('item-a', $child['data']->parent);
+        $this->assertSame(0, (int) $child['data']->order);
+        $this->assertSame(1, (int) $child['data']->indent);
+    }
+
+    public function testDeleteNodeRefusesALockedPage(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->loadedSite->loadNode('item-a')->metadata->locked = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(423, $result['__failed']['status']);
+        $this->assertSame('locked', $result['__failed']['reason']);
+        $this->assertNotFalse($this->haxcms->loadedSite->loadNode('item-a'));
+    }
+
+    public function testDeleteNodeMovesChildrenToTheTopLevelWithAddressesToMatch(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $site = $this->haxcms->loadedSite;
+        $site->manifest->metadata->site->settings->pathauto = true;
+        $child = $site->loadNode('item-b');
+        $child->parent = 'item-a';
+        $child->indent = 1;
+        $child->order = 0;
+        $child->slug = 'item-a/item-b';
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(200, $result['status']);
+        $persisted = $this->readPersistedItems();
+        $this->assertCount(1, $persisted);
+        $this->assertNull($persisted[0]->parent);
+        $this->assertSame('item-b', $persisted[0]->slug);
+        $this->assertSame(0, (int) $persisted[0]->indent);
+    }
+
     // =========================================================================
     // deleteNode — site_token gate
     // =========================================================================
@@ -1009,7 +1093,8 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('x-x', $page->slug);
         $this->assertSame('item-b', $page->parent);
         $this->assertSame('polaris-flex', $m->theme->key);
-        $this->assertSame(2, $page->indent);
+        // indent is the page's depth under item-b, not the depth the page-break carried
+        $this->assertSame(1, $page->indent);
         $this->assertSame(7, $page->order);
         $this->assertTrue($m->published);
         $this->assertSame('lesson', $m->pageType);
@@ -1026,6 +1111,14 @@ class OperationsNodeOpsTest extends TestCase
             $this->assertTrue(isset($m->$key), $key);
         }
 
+        // the save locked the page: a locked page is changed by nothing but
+        // unlocking it (the setLocked item operation), so a re-save is refused
+        $refused = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" override-pathauto="false"></page-break><p>Body</p>');
+        $this->assertSame(423, $refused['__failed']['status']);
+        $this->assertSame('locked', $refused['__failed']['reason']);
+        $this->assertTrue($this->haxcms->loadedSite->loadNode('item-a')->metadata->locked);
+        $this->haxcms->loadedSite->loadNode('item-a')->metadata->locked = false;
+
         // re-save with none of the optional attributes: every one is cleared
         $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" override-pathauto="false"></page-break><p>Body</p>');
         $m = $result['data']->metadata;
@@ -1036,6 +1129,32 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertFalse($m->overridePathauto);
         $this->assertFalse($m->hideInMenu);
         $this->assertFalse($m->locked);
+    }
+
+    public function testSaveNodeThatMovesThePageKeepsOrdersDistinctAndIndentAtDepth(): void
+    {
+        $this->setUpBodyFixture();
+        $site = $this->haxcms->loadedSite;
+        $before = array();
+        foreach ($site->manifest->items as $item) {
+            if (OutlineUpkeep::parentOf($item) === null && $item->id !== 'item-a') {
+                $before[$item->id] = OutlineUpkeep::orderOf($item);
+            }
+        }
+        $this->assertNotEmpty($before);
+        $target = min($before);
+        // the page-break asks for a spot a sibling holds, with a depth that is wrong
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" order="' . $target . '" depth="4"></page-break><p>Body</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertSame($target, (int) $result['data']->order);
+        $this->assertSame(0, (int) $result['data']->indent);
+        $orders = array();
+        foreach ($site->manifest->items as $item) {
+            if (OutlineUpkeep::parentOf($item) === null) {
+                $orders[] = OutlineUpkeep::orderOf($item);
+            }
+        }
+        $this->assertSame(count($orders), count(array_unique($orders)));
     }
 
     public function testSaveNodeSubRouteSlugAndUnknownThemeAreNeutralised(): void
