@@ -452,10 +452,9 @@ class FormatConvertersTest extends TestCase
             'type' => 'link',
         ), 'v1/actions/pretty-html');
         $this->assertSame(200, $status);
-        // SsrfGuard throws → catch sets html='' → DOMDocument loads empty →
-        // saveHTML produces minimal output (trimmed to empty or DOCTYPE)
-        $contents = $json['data']['contents'];
-        $this->assertTrue(trim($contents) === '' || strpos($contents, '<!DOCTYPE') !== false || strpos($contents, '<html') !== false);
+        // SsrfGuard throws → catch sets html='' → nothing to format, so the
+        // contents are empty whatever libxml version is installed
+        $this->assertSame('', $json['data']['contents']);
     }
 
     public function testPrettyHtmlTypeLinkHappyPathNeedsNetwork(): void
