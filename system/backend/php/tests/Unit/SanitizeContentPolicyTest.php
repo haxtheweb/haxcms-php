@@ -6,7 +6,7 @@ require_once dirname(__DIR__, 2) . '/lib/SanitizeContent.php';
 /**
  * The storage policy shared with haxcms-nodejs (haxtheweb/issues#3273): the
  * decided behaviors (mirroring haxcms-nodejs test/unit/sanitize-parity.test.cjs),
- * the HTML5 serializer, and the libxml (PHP 8.3) tree reshaping that makes
+ * the HTML5 serializer, and the PHP 8.3 tree reshaping that makes
  * stored HTML identical to what a browser and haxcms-nodejs build.
  */
 class SanitizeContentPolicyTest extends TestCase
@@ -129,7 +129,7 @@ class SanitizeContentPolicyTest extends TestCase
         if (class_exists('\Dom\HTMLDocument')) {
             // the HTML5 parser puts stray table text before the table, as the
             // spec and browsers do; haxcms-nodejs' parse5 puts it after
-            $this->markTestSkipped('libxml (PHP 8.3) only');
+            $this->markTestSkipped('PHP 8.3 only');
         }
         $this->assertSame(
             '<p>para</p><table><colgroup><col></colgroup><tbody><tr><td>1</td></tr></tbody></table>ab',
