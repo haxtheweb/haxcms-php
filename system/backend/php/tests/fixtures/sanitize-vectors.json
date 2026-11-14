@@ -7482,7 +7482,8 @@
     {
       "name": "generated 123",
       "html": "<dir selected=\"data:text/html,<script>alert(1)</script>\" xlink:href=\"data:image/svg+xml,<svg onload=alert(1)>\"><portal>&nbsp;</portal><source card=\"&lt;b&gt;\"><dl></dl><s summary=\"  padded  \"></s></source>é",
-      "expect": "<dir>&nbsp;<source card=\"<b>\"><dl></dl><s summary=\"  padded  \"></s>é</dir>"
+      "expect": "<dir>&nbsp;<source card=\"<b>\"><dl></dl><s summary=\"  padded  \"></s>é</dir>",
+      "libxmlDiffers": true
     },
     {
       "name": "generated 124",

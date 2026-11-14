@@ -5,6 +5,13 @@
 if (file_exists('config.php')) {
   include_once 'config.php';
   $HAXSiteConfig = $GLOBALS["HAXSiteConfig"];
+  // page HTML is revalidated on every load (never no-store, so back/forward
+  // navigation can reuse it) and never stored when the request carries
+  // credentials; the same rule as haxcms-nodejs. A single-site deploy without
+  // the HAXCMS class keeps the .htaccess default (public, max-age=0).
+  if (class_exists('HAXCMS') && method_exists('HAXCMS', 'sendUncachedResponseHeaders')) {
+    HAXCMS::sendUncachedResponseHeaders(HAXCMS::requestCarriesCredentials());
+  }
 }
 else {
   print file_get_contents('index.html');

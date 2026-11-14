@@ -37,6 +37,19 @@ return function ($context) {
         }
     }
 
+    // Nothing to format (a blocked or failed type=link fetch leaves no HTML):
+    // answer with empty contents. What DOMDocument serializes for an empty
+    // document differs between libxml versions.
+    if (trim($html) === '') {
+        SiteRouteUtils::sendFormattedResponse(
+            array('status' => 200, 'data' => array('contents' => '')),
+            array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
+
     try {
         // Use DOMDocument to pretty-print HTML
         $dom = new DOMDocument('1.0', 'UTF-8');
