@@ -76,6 +76,7 @@ trait OperationsRouteSaveAppearanceSettings {
           'manifest-metadata-theme-variables-cssVariable',
           'manifest-metadata-theme-variables-palette',
           'manifest-metadata-theme-variables-icon',
+          'manifest-metadata-theme-designSystem',
         ),
         array_keys($regionFieldMap)
       );
@@ -132,7 +133,16 @@ trait OperationsRouteSaveAppearanceSettings {
             )
           );
         }
-        $site->manifest->metadata->theme = $themeValue;
+        // the design system is the site's choice, not the theme's: keep it
+        // when the theme changes
+        $designSystem = isset($site->manifest->metadata->theme->designSystem)
+          ? $site->manifest->metadata->theme->designSystem
+          : '';
+        // a copy, so the edits below never reach the shared themes list
+        $site->manifest->metadata->theme = json_decode(json_encode($themeValue));
+        if (is_string($designSystem) && $designSystem !== '') {
+          $site->manifest->metadata->theme->designSystem = $designSystem;
+        }
       }
 
       if (!isset($site->manifest->metadata->theme->variables) || !is_object($site->manifest->metadata->theme->variables)) {
@@ -266,6 +276,26 @@ trait OperationsRouteSaveAppearanceSettings {
           $iconValue,
           FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
+      }
+
+      if (array_key_exists('manifest-metadata-theme-designSystem', $themeParams)) {
+        $designSystem = $this->normalizeDesignSystem(
+          $themeParams['manifest-metadata-theme-designSystem']
+        );
+        if ($designSystem === false) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid design system value',
+            )
+          );
+        }
+        if ($designSystem === '') {
+          unset($site->manifest->metadata->theme->designSystem);
+        }
+        else {
+          $site->manifest->metadata->theme->designSystem = $designSystem;
+        }
       }
 
       foreach ($regionFieldMap as $field => $regionName) {

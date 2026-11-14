@@ -336,6 +336,53 @@ class OperationsAppearanceSeoSettingsTest extends TestCase
         $this->assertFalse(isset($this->persisted()->metadata->theme->variables->palette));
     }
 
+    public function testAppearanceDesignSystemRules(): void
+    {
+        // a name is stored lowercase on the theme, not its variables
+        $result = $this->runAppearance(array(
+            'manifest-metadata-theme-designSystem' => ' Carbon ',
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('carbon', $this->persisted()->metadata->theme->designSystem);
+
+        // '', null and 'ddd' all mean DDD: no value stored
+        foreach (array('', null, 'ddd') as $ddd) {
+            $this->runAppearance(array('manifest-metadata-theme-designSystem' => 'carbon'));
+            $cleared = $this->runAppearance(array(
+                'manifest-metadata-theme-designSystem' => $ddd,
+            ));
+            $this->assertSame(200, $cleared['status']);
+            $this->assertFalse(isset($this->persisted()->metadata->theme->designSystem));
+        }
+
+        // anything else is refused
+        foreach (array('../carbon', 'has space', 42, array('carbon')) as $bad) {
+            $refused = $this->runAppearance(array(
+                'manifest-metadata-theme-designSystem' => $bad,
+            ));
+            $this->assertSame(400, $refused['__failed']['status']);
+            $this->assertSame('invalid design system value', $refused['__failed']['message']);
+        }
+    }
+
+    public function testAppearanceDesignSystemSurvivesThemeChange(): void
+    {
+        $this->haxcms->themes = array(
+            'my-theme' => (object)array(
+                'element' => 'my-theme',
+                'variables' => (object)array(),
+            ),
+        );
+        $this->runAppearance(array('manifest-metadata-theme-designSystem' => 'carbon'));
+        $result = $this->runAppearance(array('manifest-metadata-theme-element' => 'my-theme'));
+        $this->assertSame(200, $result['status']);
+        $theme = $this->persisted()->metadata->theme;
+        $this->assertSame('my-theme', $theme->element);
+        $this->assertSame('carbon', $theme->designSystem);
+        // the shared themes list is not touched
+        $this->assertFalse(isset($this->haxcms->themes['my-theme']->designSystem));
+    }
+
     public function testAppearanceIconWritesAndRejectsNonStrings(): void
     {
         $result = $this->runAppearance(array(

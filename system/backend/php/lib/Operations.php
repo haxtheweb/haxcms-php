@@ -330,6 +330,29 @@ class Operations {
     return $value;
   }
   /**
+   * The site's design system (metadata.theme.designSystem): a lowercase name
+   * such as "carbon". '' and 'ddd' mean DDD, which is stored as no value.
+   * The front end only ever imports a system its own registry lists, so the
+   * name is stored as given once it passes this shape check.
+   * Returns '' for DDD, the name, or false when invalid.
+   */
+  public function normalizeDesignSystem($value) {
+    if (is_null($value)) {
+      return '';
+    }
+    if (!is_string($value)) {
+      return false;
+    }
+    $name = strtolower(trim($value));
+    if ($name === '' || $name === 'ddd') {
+      return '';
+    }
+    if (strlen($name) > 64 || preg_match('/^[a-z0-9-]+$/', $name) !== 1) {
+      return false;
+    }
+    return $name;
+  }
+  /**
    * Validate and sanitize region ids for appearance settings.
    */
   private function sanitizeAppearanceRegionIds($value) {
