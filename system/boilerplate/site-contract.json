@@ -1,0 +1,697 @@
+{
+  "$schema": "./site-contract.schema.json",
+  "title": "HAXcms site folder contract",
+  "description": "Every path a HAXcms site folder may hold: whether it is required, who owns it, and which schema it follows. site.json itself is described by haxcms-site.schema.json; this file describes the folder around it. Tools check a folder against it with `jos-validate --site <dir>`. haxcms-nodejs and haxcms-php each carry an identical copy and fail their tests when their boilerplate or managed-file list disagrees with it, so adding or dropping a site file is a deliberate edit here.",
+  "levels": [
+    {
+      "id": "content",
+      "title": "Content",
+      "description": "A valid site.json and a file at every item's location. Portable content any engine can read; what an exporter from another system targets."
+    },
+    {
+      "id": "runnable",
+      "title": "Runnable",
+      "description": "Content plus the loader files, so the folder serves as a site from a static host."
+    },
+    {
+      "id": "managed",
+      "title": "Managed",
+      "description": "Runnable plus every file a HAXcms backend writes and rebuilds, so a backend can take the folder over without a first-save rewrite."
+    }
+  ],
+  "ignore": [
+    ".git",
+    "node_modules"
+  ],
+  "entries": [
+    {
+      "path": "site.json",
+      "status": "required",
+      "owner": "authored",
+      "level": "content",
+      "boilerplate": true,
+      "schema": "haxcms-site.schema.json",
+      "note": "The manifest: site metadata and the page outline (JSON Outline Schema). The single source of truth for structure."
+    },
+    {
+      "path": "pages/*/index.html",
+      "status": "required",
+      "owner": "authored",
+      "level": "content",
+      "rule": "item-location",
+      "note": "Page content. Required for every item in site.json: the file at the item's location must exist (HAXcms writes pages/<id>/index.html)."
+    },
+    {
+      "path": "pages/*/index.*",
+      "status": "optional",
+      "owner": "generated",
+      "note": "Alternate formats of a page (md, json, yaml, xml), rebuilt from index.html when content is saved through HAX tooling."
+    },
+    {
+      "path": "pages/.gitkeep",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Keeps pages/ in git before the first page exists."
+    },
+    {
+      "path": "pages/**",
+      "status": "optional",
+      "owner": "authored",
+      "note": "Anything else an author keeps beside a page."
+    },
+    {
+      "path": "files/.htaccess",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Stops uploaded files from executing on Apache hosts."
+    },
+    {
+      "path": "files/files.json",
+      "status": "optional",
+      "owner": "generated",
+      "boilerplate": true,
+      "note": "Index of uploaded files kept by the backends."
+    },
+    {
+      "path": "files/.gitkeep",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Keeps files/ in git before the first upload."
+    },
+    {
+      "path": "files/**",
+      "status": "optional",
+      "owner": "authored",
+      "note": "Uploads and other static assets the content links to."
+    },
+    {
+      "path": "index.html",
+      "status": "required",
+      "owner": "managed",
+      "level": "runnable",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "The site shell every route loads; static fallback when no backend renders the page."
+    },
+    {
+      "path": "build.js",
+      "status": "required",
+      "owner": "managed",
+      "level": "runnable",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Loader (the magic script) that finds the web component build on a CDN or beside the site."
+    },
+    {
+      "path": "build-haxcms.js",
+      "status": "required",
+      "owner": "managed",
+      "level": "runnable",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Loads the HAXcms site builder once build.js has resolved where assets live."
+    },
+    {
+      "path": "404.html",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Static-host fallback that redirects unknown paths back into the site router."
+    },
+    {
+      "path": "ghpages.html",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Site shell variant used when publishing to GitHub Pages."
+    },
+    {
+      "path": "offline.html",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Page the service worker shows offline."
+    },
+    {
+      "path": "manifest.json",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Web app manifest."
+    },
+    {
+      "path": "service-worker.js",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Service worker for offline use."
+    },
+    {
+      "path": "push-manifest.json",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Preload hints for the site shell."
+    },
+    {
+      "path": "browserconfig.xml",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Windows tile settings."
+    },
+    {
+      "path": "assets/upgrade-browser.html",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Shown to browsers too old to run the site."
+    },
+    {
+      "path": ".well-known/security.txt",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Security contact file (RFC 9116)."
+    },
+    {
+      "path": ".well-known/api-catalog",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "API catalog (RFC 9727) for agents and tools."
+    },
+    {
+      "path": "web-dev-server.haxcms.config.cjs",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Local development server settings."
+    },
+    {
+      "path": "imsmanifest.xml",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "SCORM 1.2 package manifest."
+    },
+    {
+      "path": "imsmd_rootv1p2p1.xsd",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "SCORM 1.2 schema."
+    },
+    {
+      "path": "imscp_rootv1p1p2.xsd",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "SCORM 1.2 schema."
+    },
+    {
+      "path": "adlcp_rootv1p2.xsd",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "SCORM 1.2 schema."
+    },
+    {
+      "path": "ims_xml.xsd",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "SCORM 1.2 schema."
+    },
+    {
+      "path": ".htaccess",
+      "status": "required",
+      "owner": "partly-managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "block",
+      "note": "Apache rules. HAXcms owns the block between its markers; the rest is the site owner's."
+    },
+    {
+      "path": "robots.txt",
+      "status": "required",
+      "owner": "partly-managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "block",
+      "note": "Crawler rules. HAXcms owns the block between its markers; the rest is the site owner's."
+    },
+    {
+      "path": "AGENTS.md",
+      "status": "required",
+      "owner": "partly-managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "block",
+      "note": "Agent guidance. HAXcms owns the block between its markers; the rest is the site owner's."
+    },
+    {
+      "path": "package.json",
+      "status": "required",
+      "owner": "partly-managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "json-merge",
+      "note": "HAXcms owns the keys it renders; any other keys are the site owner's."
+    },
+    {
+      "path": ".well-known/agent-skills/index.json",
+      "status": "required",
+      "owner": "managed",
+      "level": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "Index of the agent skills shipped with the site, with a digest per file."
+    },
+    {
+      "path": ".well-known/agent-skills/**",
+      "status": "optional",
+      "owner": "managed",
+      "boilerplate": true,
+      "policy": "replace",
+      "note": "The skill files the index lists, copied from the backend."
+    },
+    {
+      "path": "llms.txt",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "boilerplate": true,
+      "note": "LLM-oriented guide to the site, rebuilt from site.json."
+    },
+    {
+      "path": "sitemap.xml",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "note": "Sitemap, rebuilt from site.json."
+    },
+    {
+      "path": "sitemap-index.xml",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "note": "Sitemap index, rebuilt from site.json."
+    },
+    {
+      "path": "rss.xml",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "note": "RSS feed, rebuilt from site.json."
+    },
+    {
+      "path": "atom.xml",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "note": "Atom feed, rebuilt from site.json."
+    },
+    {
+      "path": "lunrSearchIndex.json",
+      "status": "required",
+      "owner": "generated",
+      "level": "managed",
+      "note": "Search corpus, rebuilt from page content."
+    },
+    {
+      "path": "README.md",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Starter readme."
+    },
+    {
+      "path": "LICENSE.md",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "License text for the site's content."
+    },
+    {
+      "path": ".gitignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Git ignore rules."
+    },
+    {
+      "path": ".nojekyll",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Tells GitHub Pages to serve the folder as is."
+    },
+    {
+      "path": ".dddignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Files the DDD audit skips."
+    },
+    {
+      "path": "CNAME",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Custom domain for GitHub Pages."
+    },
+    {
+      "path": "Dockerfile",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Container recipe for serving the site."
+    },
+    {
+      "path": "docker/haxcms-site.conf",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Web server settings used by the Dockerfile."
+    },
+    {
+      "path": "netlify.toml",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Netlify publishing settings."
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "GitHub Pages publishing workflow."
+    },
+    {
+      "path": "index.php",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Entry point when a PHP host serves the site."
+    },
+    {
+      "path": "config.php",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Settings for index.php."
+    },
+    {
+      "path": "assets/banner.jpg",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default banner image."
+    },
+    {
+      "path": "assets/favicon.ico",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default favicon."
+    },
+    {
+      "path": "assets/favicon.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default favicon."
+    },
+    {
+      "path": "assets/icon-48x48.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-72x72.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-96x96.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-144x144.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-192x192.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-256x256.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/icon-512x512.png",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Default app icon."
+    },
+    {
+      "path": "assets/legacy-outline.css",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Stylesheet shipped with every new site."
+    },
+    {
+      "path": "custom/README.md",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "How the site's own build works."
+    },
+    {
+      "path": "custom/package.json",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Dependencies of the site's own build."
+    },
+    {
+      "path": "custom/rollup.config.js",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Bundler settings for the site's own build."
+    },
+    {
+      "path": "custom/Dockerfile",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Container recipe for the site's own build."
+    },
+    {
+      "path": "custom/src/custom.js",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Source of the site's own theme and elements; empty until someone writes one."
+    },
+    {
+      "path": "custom/build/custom.es6.js",
+      "status": "optional",
+      "owner": "scaffold",
+      "boilerplate": true,
+      "note": "Built output of custom/src, loaded by the site."
+    },
+    {
+      "path": ".npmignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "note": "Written by the HAX CLI when it makes a site."
+    },
+    {
+      "path": ".surgeignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "note": "Written by the HAX CLI when it makes a site; files Surge should not publish."
+    },
+    {
+      "path": ".netlifyignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "note": "Written by the HAX CLI when it makes a site; files Netlify should not publish."
+    },
+    {
+      "path": ".vercelignore",
+      "status": "optional",
+      "owner": "scaffold",
+      "note": "Written by the HAX CLI when it makes a site; files Vercel should not publish."
+    },
+    {
+      "path": ".gitlab-ci.yml",
+      "status": "optional",
+      "owner": "scaffold",
+      "note": "Written by the HAX CLI's GitLab CI setup."
+    },
+    {
+      "path": "custom/**",
+      "status": "optional",
+      "owner": "authored",
+      "note": "The site's own theme and elements."
+    },
+    {
+      "path": "assets/babel-top.js",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Link into the HAXcms install a multi-site backend puts beside the site."
+    },
+    {
+      "path": "assets/babel-bottom.js",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Link into the HAXcms install a multi-site backend puts beside the site."
+    },
+    {
+      "path": "assets/**",
+      "status": "optional",
+      "owner": "authored",
+      "note": "Icons, banners and other brand assets."
+    },
+    {
+      "path": ".github/**",
+      "status": "optional",
+      "owner": "authored",
+      "note": "The owner's own repository automation."
+    },
+    {
+      "path": "build",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Web component build served beside the site (a link into the HAXcms install, or a copy for publishing without a CDN)."
+    },
+    {
+      "path": "build/**",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Web component build served beside the site (a link into the HAXcms install, or a copy for publishing without a CDN)."
+    },
+    {
+      "path": "dist",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Web component build served beside the site (a link into the HAXcms install, or a copy for publishing without a CDN)."
+    },
+    {
+      "path": "dist/**",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Web component build served beside the site (a link into the HAXcms install, or a copy for publishing without a CDN)."
+    },
+    {
+      "path": "wc-registry.json",
+      "status": "optional",
+      "owner": "deployment",
+      "note": "Registry of web components the autoloader may load (a link into the HAXcms install, or a copy for publishing)."
+    },
+    {
+      "path": "theme/**",
+      "status": "retired",
+      "owner": "authored",
+      "replacedBy": "custom/",
+      "note": "Earlier custom theme layer (theme.css, theme.html). Nothing loads it now."
+    },
+    {
+      "path": "dat.json",
+      "status": "retired",
+      "owner": "generated",
+      "note": "Dat protocol metadata written by earlier releases."
+    },
+    {
+      "path": "polymer.json",
+      "status": "retired",
+      "owner": "generated",
+      "note": "Polymer CLI settings written by earlier releases."
+    },
+    {
+      "path": "legacy-outline.html",
+      "status": "retired",
+      "owner": "generated",
+      "note": "Outline page written by earlier releases; nothing references it now."
+    },
+    {
+      "path": "sitemap.xml.gz",
+      "status": "retired",
+      "owner": "generated",
+      "replacedBy": "sitemap.xml",
+      "note": "Compressed sitemap."
+    },
+    {
+      "path": "create-cli.recipe",
+      "status": "retired",
+      "owner": "generated",
+      "note": "Recipe log written by earlier CLI releases."
+    },
+    {
+      "path": "false",
+      "status": "retired",
+      "owner": "generated",
+      "note": "Stray file found in sites made by earlier releases; nothing reads it."
+    }
+  ]
+}
