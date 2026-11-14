@@ -24,10 +24,11 @@
       // https://username.github.io/repo-name/?p=/one/two&q=a=b~and~c=d#qwe
       // Otherwise, leave segmentCount as 0.
       var segmentCount = 0;
-      // account for top level sub-domain on github vs 1 level folder in.
+      // account for top level sub-domain on github vs 1 level folder in
+      // (GitLab Pages and Codeberg Pages project sites work the same way).
       // this has issues w/ org.github.io/dir/project but will resolve org.github.io from /project
       // this will still choke on org/github.io/project/post/deeper/nesting so a build routine would help
-      if (/(^|\.)github\.io$/.test(window.location.hostname) && window.location.pathname.split('/').length > 2) {
+      if (/(^|\.)(github\.io|gitlab\.io|codeberg\.page)$/.test(window.location.hostname) && window.location.pathname.split('/').length > 2) {
         segmentCount = 1;
       }
       var l = window.location;
