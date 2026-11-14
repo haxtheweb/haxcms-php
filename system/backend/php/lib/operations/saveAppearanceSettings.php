@@ -76,6 +76,7 @@ trait OperationsRouteSaveAppearanceSettings {
           'manifest-metadata-theme-variables-cssVariable',
           'manifest-metadata-theme-variables-palette',
           'manifest-metadata-theme-variables-icon',
+          'manifest-metadata-theme-designSystem',
         ),
         array_keys($regionFieldMap)
       );
@@ -132,7 +133,49 @@ trait OperationsRouteSaveAppearanceSettings {
             )
           );
         }
-        $site->manifest->metadata->theme = $themeValue;
+        // the design system is the site's choice, not the theme's: keep it
+        // when the theme changes (haxtheweb/issues#3350)
+        $keptDesignSystem = (isset($site->manifest->metadata->theme->designSystem) && is_string($site->manifest->metadata->theme->designSystem))
+          ? $site->manifest->metadata->theme->designSystem
+          : '';
+        // a copy, so edits below never change the shared theme registry entry
+        $site->manifest->metadata->theme = json_decode(json_encode($themeValue));
+        if ($keptDesignSystem !== '') {
+          $site->manifest->metadata->theme->designSystem = $keptDesignSystem;
+        }
+      }
+      // haxtheweb/issues#3350: the design system (color, type, corners,
+      // density) chosen separately from the theme (layout). '' / null / 'ddd'
+      // mean plain DDD, which is the default, so nothing is stored.
+      if (array_key_exists('manifest-metadata-theme-designSystem', $themeParams)) {
+        $designSystemValue = $themeParams['manifest-metadata-theme-designSystem'];
+        if (!is_null($designSystemValue) && !is_string($designSystemValue)) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid design system value',
+            )
+          );
+        }
+        $designSystem = is_null($designSystemValue)
+          ? ''
+          : strtolower(trim((string) filter_var($designSystemValue, FILTER_SANITIZE_FULL_SPECIAL_CHARS)));
+        if ($designSystem === '' || $designSystem === 'ddd') {
+          if (isset($site->manifest->metadata->theme->designSystem)) {
+            unset($site->manifest->metadata->theme->designSystem);
+          }
+        }
+        else if (preg_match('/^[a-z0-9-]+$/', $designSystem) === 1) {
+          $site->manifest->metadata->theme->designSystem = $designSystem;
+        }
+        else {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid design system value',
+            )
+          );
+        }
       }
 
       if (!isset($site->manifest->metadata->theme->variables) || !is_object($site->manifest->metadata->theme->variables)) {
