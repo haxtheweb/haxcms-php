@@ -1093,7 +1093,8 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('x-x', $page->slug);
         $this->assertSame('item-b', $page->parent);
         $this->assertSame('polaris-flex', $m->theme->key);
-        $this->assertSame(2, $page->indent);
+        // indent is the page's depth under item-b, not the depth the page-break carried
+        $this->assertSame(1, $page->indent);
         $this->assertSame(7, $page->order);
         $this->assertTrue($m->published);
         $this->assertSame('lesson', $m->pageType);
@@ -1128,6 +1129,32 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertFalse($m->overridePathauto);
         $this->assertFalse($m->hideInMenu);
         $this->assertFalse($m->locked);
+    }
+
+    public function testSaveNodeThatMovesThePageKeepsOrdersDistinctAndIndentAtDepth(): void
+    {
+        $this->setUpBodyFixture();
+        $site = $this->haxcms->loadedSite;
+        $before = array();
+        foreach ($site->manifest->items as $item) {
+            if (OutlineUpkeep::parentOf($item) === null && $item->id !== 'item-a') {
+                $before[$item->id] = OutlineUpkeep::orderOf($item);
+            }
+        }
+        $this->assertNotEmpty($before);
+        $target = min($before);
+        // the page-break asks for a spot a sibling holds, with a depth that is wrong
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" order="' . $target . '" depth="4"></page-break><p>Body</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertSame($target, (int) $result['data']->order);
+        $this->assertSame(0, (int) $result['data']->indent);
+        $orders = array();
+        foreach ($site->manifest->items as $item) {
+            if (OutlineUpkeep::parentOf($item) === null) {
+                $orders[] = OutlineUpkeep::orderOf($item);
+            }
+        }
+        $this->assertSame(count($orders), count(array_unique($orders)));
     }
 
     public function testSaveNodeSubRouteSlugAndUnknownThemeAreNeutralised(): void
