@@ -888,7 +888,7 @@ class SanitizeContent
         if (self::$templateContents === null) {
             self::$templateContents = new \SplObjectStorage();
         }
-        if (self::$templateContents->contains($node)) {
+        if (self::$templateContents->offsetExists($node)) {
             return self::$templateContents[$node];
         }
         $inner = isset($node->innerHTML) ? (string)$node->innerHTML : '';

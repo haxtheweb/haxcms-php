@@ -576,21 +576,18 @@ if (!function_exists('haxcmsSystemDownscalePdfJpeg')) {
         $srcWidth = imagesx($source);
         $srcHeight = imagesy($source);
         if ($srcWidth < 1 || $srcHeight < 1) {
-            imagedestroy($source);
             return $result;
         }
         $scale = min($maxEdge / $srcWidth, $maxEdge / $srcHeight, 1);
         $newWidth = max(1, (int) round($srcWidth * $scale));
         $newHeight = max(1, (int) round($srcHeight * $scale));
         $scaled = imagescale($source, $newWidth, $newHeight, IMG_BICUBIC);
-        imagedestroy($source);
         if ($scaled === false) {
             return $result;
         }
         ob_start();
         $ok = imagejpeg($scaled, null, 90);
         $data = ob_get_clean();
-        imagedestroy($scaled);
         if (!$ok || !is_string($data) || $data === '') {
             return $result;
         }
@@ -767,7 +764,6 @@ if (!function_exists('haxcmsSystemDecodePdfRasterImage')) {
         ob_start();
         $ok = imagejpeg($image, null, 90);
         $jpeg = ob_get_clean();
-        imagedestroy($image);
         if (!$ok || !is_string($jpeg) || $jpeg === '') {
             return null;
         }
@@ -834,7 +830,6 @@ if (!function_exists('haxcmsSystemFlattenPdfSoftMask')) {
                 imagesetpixel($image, $x, $y, ($r << 16) | ($g << 8) | $b);
             }
         }
-        imagedestroy($maskImage);
     }
 }
 

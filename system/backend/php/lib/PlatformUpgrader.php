@@ -405,7 +405,6 @@ class HAXCMSPlatformUpgrader
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $location = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
-            curl_close($ch);
             if ($handle) {
                 fclose($handle);
             }

@@ -669,7 +669,6 @@ class SsrfGuard
             $raw = curl_exec($ch);
             if ($raw === false) {
                 $errno = curl_errno($ch);
-                curl_close($ch);
                 // 63 = CURLE_FILESIZE_EXCEEDED, 42 = CURLE_ABORTED_BY_CALLBACK
                 if ($errno === 63 || $errno === 42) {
                     throw self::tooLarge($limit);
@@ -682,7 +681,6 @@ class SsrfGuard
             $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             $headers = substr($raw, 0, $headerSize);
             $body = substr($raw, $headerSize);
-            curl_close($ch);
             if (strlen($body) > $limit) {
                 throw self::tooLarge($limit);
             }

@@ -84,10 +84,8 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
         $reflection = new ReflectionClass('HAXCMS');
         $haxcms = $reflection->newInstanceWithoutConstructor();
         $privateKey = new ReflectionProperty('HAXCMS', 'privateKey');
-        $privateKey->setAccessible(true);
         $privateKey->setValue($haxcms, 'cov-router-private-key');
         $salt = new ReflectionProperty('HAXCMS', 'salt');
-        $salt->setAccessible(true);
         $salt->setValue($haxcms, 'cov-router-salt');
         $haxcms->user = new stdClass();
         $haxcms->user->name = 'admin';
@@ -100,7 +98,6 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
             'extension' => '.cache',
         ));
         $cacheProperty = new ReflectionProperty('HAXCMS', 'cache');
-        $cacheProperty->setAccessible(true);
         $cacheProperty->setValue($haxcms, $cache);
         $GLOBALS['HAXCMS'] = $haxcms;
         $this->haxcms = $haxcms;
@@ -414,7 +411,6 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
     {
         $haxcms = $this->makeHaxcms();
         $cacheProperty = new ReflectionProperty('HAXCMS', 'cache');
-        $cacheProperty->setAccessible(true);
         $cache = $cacheProperty->getValue($haxcms);
         // Pre-store an active block (blockedUntil in the future) for the
         // IP::username attempt key used by HAXCMS::authenticateBasicAuthorization.
@@ -567,7 +563,6 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
     private function invokeSpecialCases($targetRoute, $routes)
     {
         $method = new ReflectionMethod('SiteApiRouter', 'matchSpecialCaseRoutes');
-        $method->setAccessible(true);
         return $method->invoke(null, $targetRoute, $routes);
     }
 

@@ -119,7 +119,6 @@ class OperationsReplaceFileContentTest extends TestCase
         $img = imagecreatetruecolor($width, $height);
         imagefill($img, 0, 0, imagecolorallocate($img, 255, 0, 0));
         imagepng($img, $path);
-        imagedestroy($img);
     }
 
     /** an upload as PHP leaves it: a temp file outside files/ */
@@ -129,7 +128,6 @@ class OperationsReplaceFileContentTest extends TestCase
         $img = imagecreatetruecolor($width, $height);
         imagefill($img, 0, 0, imagecolorallocate($img, 0, 128, 0));
         imagejpeg($img, $tmp, 90);
-        imagedestroy($img);
         return array('name' => 'crop.jpg', 'type' => 'image/jpeg', 'tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK, 'size' => filesize($tmp));
     }
 

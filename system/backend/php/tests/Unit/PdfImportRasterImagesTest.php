@@ -358,7 +358,6 @@ class PdfImportRasterImagesTest extends TestCase
         imagefill($png, 0, 0, imagecolorallocatealpha($png, 0, 0, 0, 127));
         imagefilledrectangle($png, 40, 20, 79, 59, imagecolorallocatealpha($png, 30, 160, 60, 0));
         imagepng($png, $siteDir . '/files/diagram.png');
-        imagedestroy($png);
         $site = new stdClass();
         $site->siteDirectory = $siteDir;
         $pdf = ExportConverters::htmlToPdfString(

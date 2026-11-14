@@ -142,7 +142,6 @@ class OperationsSaveFileUploadResolutionTest extends TestCase
     private function callPrivate(string $method, array $args = array())
     {
         $ref = new ReflectionMethod('Operations', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->ops, $args);
     }
 

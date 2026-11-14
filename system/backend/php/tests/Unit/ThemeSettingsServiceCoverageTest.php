@@ -474,7 +474,6 @@ class ThemeSettingsServiceCoverageTest extends TestCase
         $this->assertSame('explicit-name', $byName['explicit-name']['machineName']);
         // internal map keeps per-directory scopes: user dirs are 'user-config'
         $ref = new ReflectionMethod('HAXCMSThemeSettingsService', 'discoverConfigDirectoryThemes');
-        $ref->setAccessible(true);
         $configThemes = $ref->invoke(null, $fake);
         $this->assertSame('user-config', $configThemes['user-theme']['scope']);
         $this->assertSame('config', $configThemes['explicit-name']['scope']);
