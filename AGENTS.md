@@ -96,6 +96,15 @@ The PHP backend lives in `system/backend/php`. The web component build tooling d
   ```
   - The write invariants behind them, kept the same in haxcms-nodejs: every `site.json` write is atomic (a temp file in the same directory, flushed and renamed over it: `JSONOutlineSchema::writeFileAtomic`), so a failed write leaves the previous file and throws; an outline that cannot be encoded as JSON throws too and writes nothing (never a silent no-op); a `site.json` that does not parse to an outline is refused on load, never treated as an empty outline; an invalid outline payload (items that are not objects, an item without an id, a new page id sent twice, a parent cycle) is rejected with a 400 before anything is written; a page folder exists only for a page `site.json` lists (a request removes the folders it created when the write that would list them fails); a Throwable inside any API route answers the 500 ApiError envelope (`SiteRouteUtils::invokeRouteHandler`). saveOutline is checkpointed, not atomic as a whole: the structure is written once, then a failure in the content or delete phase leaves it saved.
   - A check PHP does not pass yet runs inside `knownBug()` and shows as skipped with `KNOWN BUG: <scenario> ...`. When a fix makes it pass, remove the `knownBug()` wrapper so it stays fixed. A new scenario uses the same ID in both backends.
+- **Fuzz** (`tests/Unit/BlockOperationsFuzzTest.php`): part of every PHPUnit run with the fixed seed 3270. `fuzz-nightly.yml` reruns it nightly on PHP 8.3 and 8.5 with a random seed and 2000 generated pages and puts the seed in the job summary. Replay a seed from `system/backend/php`:
+  ```bash
+  BLOCK_FUZZ_SEED=<seed> BLOCK_FUZZ_ITERATIONS=2000 vendor/bin/phpunit --filter BlockOperationsFuzzTest
+  ```
+- **Mutation testing** (report-only, weekly in `mutation-testing.yml`): Infection mutates the site.json / page write helpers saveOutline uses (`JSONOutlineSchema`, `JSONOutlineSchemaItem`) and reruns the `saveOutline` testsuite in `phpunit.xml`. A surviving mutant is a gap in the saveOutline tests. Needs PCOV or Xdebug:
+  ```bash
+  npm run test:mutation
+  ```
+  The pinned, checksum-verified `infection.phar` is downloaded by `scripts/infection.sh`, so it is not a Composer dependency.
 - **E2E UI workflows** (headless browser):
   ```bash
   npm run test:e2e

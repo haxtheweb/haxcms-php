@@ -1,0 +1,93 @@
+name: fuzz-nightly
+
+# Nightly fuzz hunt (haxtheweb/issues#3262, #3272), the PHP side of
+# haxcms-nodejs's fuzz-nightly. Plain scripting, no AI.
+#
+# PHPUnit runs the seeded block-operations fuzz (tests/Unit/BlockOperationsFuzzTest.php)
+# with a random BLOCK_FUZZ_SEED and far more pages than the per-PR run (which
+# always uses seed 3270), on PHP 8.3 (masterminds/html5 parser) and on 8.5
+# (Dom\HTMLDocument), since the two parse HTML differently. The seed is in the
+# job summary; a failure fails the run red with the command that replays it.
+# Nothing is opened, commented or pushed.
+on:
+  schedule:
+    - cron: "37 8 * * *" # 3:37 AM America/New_York (EST); 4:37 AM during EDT
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Replay a seed (integer); leave empty for a random one"
+        required: false
+        default: ""
+      iterations:
+        description: "Generated pages per run"
+        required: false
+        default: "2000"
+permissions:
+  contents: read
+concurrency:
+  group: fuzz-nightly
+  cancel-in-progress: false
+jobs:
+  fuzz:
+    name: "block operations fuzz (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.5"]
+    defaults:
+      run:
+        working-directory: system/backend/php
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, dom, simplexml, gd, zip, curl, intl, fileinfo, iconv, xmlreader, xmlwriter, zlib
+          ini-values: "error_reporting=E_ALL & ~E_NOTICE & ~E_DEPRECATED"
+          coverage: none
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Pick the seed
+        id: seed
+        env:
+          SEED_INPUT: ${{ inputs.seed }}
+          ITERATIONS_INPUT: ${{ inputs.iterations }}
+        run: |
+          if [ -n "$SEED_INPUT" ]; then
+            seed="$SEED_INPUT"
+          else
+            seed=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
+          fi
+          case "$seed" in (*[!0-9]*|'') echo "::error::seed must be a non-negative integer"; exit 1;; esac
+          iterations="${ITERATIONS_INPUT:-2000}"
+          case "$iterations" in (*[!0-9]*|'') echo "::error::iterations must be a positive integer"; exit 1;; esac
+          echo "seed=$seed" >> "$GITHUB_OUTPUT"
+          echo "iterations=$iterations" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Block operations fuzz (PHP ${{ matrix.php-version }})"
+            echo ""
+            echo "Seed \`$seed\`, $iterations generated pages."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fuzz hunt
+        env:
+          BLOCK_FUZZ_SEED: ${{ steps.seed.outputs.seed }}
+          BLOCK_FUZZ_ITERATIONS: ${{ steps.seed.outputs.iterations }}
+        run: vendor/bin/phpunit --filter BlockOperationsFuzzTest
+      - name: Replay command
+        if: failure()
+        env:
+          SEED: ${{ steps.seed.outputs.seed }}
+          ITERATIONS: ${{ steps.seed.outputs.iterations }}
+        run: |
+          {
+            echo ""
+            echo "**Failed.** Replay locally on PHP ${{ matrix.php-version }} from system/backend/php:"
+            echo ""
+            echo "    BLOCK_FUZZ_SEED=$SEED BLOCK_FUZZ_ITERATIONS=$ITERATIONS vendor/bin/phpunit --filter BlockOperationsFuzzTest"
+          } >> "$GITHUB_STEP_SUMMARY"
