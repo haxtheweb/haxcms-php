@@ -5,7 +5,7 @@
   "main": "../index.html",
   "repository": {
     "type": "git",
-    "url": "git@github.com/haxtheweb/haxcms-php.git"
+    "url": "git+https://github.com/haxtheweb/haxcms-php.git"
   },
   "author": {
     "name": "btopro"
@@ -25,7 +25,26 @@
     "sharp": "^0.35.5"
   },
   "resolutions": {
-    "image-size": "^2.0.4"
+    "image-size": "^2.0.4",
+    "**/twig/minimatch": "^11.0.1",
+    "**/editorconfig/minimatch": "^11.0.1",
+    "**/readdir-glob/minimatch": "^11.0.1",
+    "**/js-beautify/glob": "^14.0.2"
+  },
+  "overrides": {
+    "image-size": "^2.0.4",
+    "twig": {
+      "minimatch": "^11.0.1"
+    },
+    "editorconfig": {
+      "minimatch": "^11.0.1"
+    },
+    "readdir-glob": {
+      "minimatch": "^11.0.1"
+    },
+    "js-beautify": {
+      "glob": "^14.0.2"
+    }
   },
   "scripts": {
     "start": "yarn run dev",
@@ -42,5 +61,16 @@
   "private": false,
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "homepage": "https://haxtheweb.org/",
+  "keywords": [
+    "haxcms",
+    "hax",
+    "haxtheweb",
+    "cms",
+    "php",
+    "web-components",
+    "accessibility",
+    "oer"
+  ]
 }

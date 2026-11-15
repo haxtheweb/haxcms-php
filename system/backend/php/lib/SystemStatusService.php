@@ -90,21 +90,32 @@ class HAXCMSSystemStatusService
         }
         return 'Unknown';
     }
+    // Security (SEC-EXEC): git runs as an argv array through proc_open, never
+    // as a shell string, so nothing here is interpreted by a shell.
     private static function detectGitVersion()
     {
-        if (function_exists('exec')) {
-            $output = array();
-            $statusCode = 1;
-            @exec('git --version 2>&1', $output, $statusCode);
-            if ($statusCode === 0 && is_array($output) && count($output) > 0) {
-                return trim(implode(' ', $output));
-            }
+        if (!function_exists('proc_open')) {
+            return '';
         }
-        if (function_exists('shell_exec')) {
-            $shellOutput = @shell_exec('git --version 2>&1');
-            if (is_string($shellOutput) && trim($shellOutput) !== '') {
-                return trim($shellOutput);
-            }
+        $gitBin = class_exists('Git') ? Git::get_bin() : '';
+        if (!is_string($gitBin) || $gitBin === '') {
+            $gitBin = 'git';
+        }
+        $pipes = array();
+        $process = @proc_open(
+            array($gitBin, '--version'),
+            array(1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
+            $pipes
+        );
+        if (!is_resource($process)) {
+            return '';
+        }
+        $output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $statusCode = proc_close($process);
+        if ($statusCode === 0 && is_string($output) && trim($output) !== '') {
+            return trim($output);
         }
         return '';
     }
