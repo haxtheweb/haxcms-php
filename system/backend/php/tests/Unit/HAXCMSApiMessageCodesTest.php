@@ -148,6 +148,13 @@ class HAXCMSApiMessageCodesTest extends TestCase
             if (substr($file->getFilename(), -4) !== '.php') {
                 continue;
             }
+            // DRAFT plugin platform: lib/plugins is a port of the plugin spec's reference engine, whose messages
+            // (logs, vetoes, refusals) are defined and asserted by the spec's conformance cases; haxcms-nodejs runs
+            // the same engine from node_modules, outside its own scan. Codes for them belong in the spec
+            // (haxtheweb/issues#3356).
+            if (strpos($file->getPathname(), DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR) !== false) {
+                continue;
+            }
             $tokens = token_get_all(file_get_contents($file->getPathname()));
             $count = count($tokens);
             for ($i = 0; $i < $count; $i++) {

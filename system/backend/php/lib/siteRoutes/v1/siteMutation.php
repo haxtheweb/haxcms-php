@@ -65,7 +65,7 @@ return function ($context) {
         SiteRouteUtils::sendFormattedResponse(
             array(
                 'message' => $result['__failed']['message'],
-            ),
+            ) + (isset($result['__failed']['data']) && is_array($result['__failed']['data']) ? $result['__failed']['data'] : array()),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),

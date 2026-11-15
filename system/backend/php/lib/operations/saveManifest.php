@@ -374,9 +374,41 @@ trait OperationsRouteSaveManifest {
         }
 
         $site->manifest->metadata->site->updated = time();
+        // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): plugins see the proposed site
+        // record (entity.before.update on site, aliased as manifest.before.save) and may veto; the stored record
+        // before this request is ctx.previous
+        $pluginSiteRecord = null;
+        $pluginSitePrevious = null;
+        if (getenv('HAXCMS_PLUGINS') !== 'off') {
+          include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+          $stored = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+          $pluginSitePrevious = array(
+            'id' => $stored->manifest->id,
+            'title' => $stored->manifest->title,
+            'description' => $stored->manifest->description,
+            'metadata' => json_decode(json_encode($stored->manifest->metadata ?: new stdClass()), true),
+          );
+          $proposed = array(
+            'id' => $site->manifest->id,
+            'title' => $site->manifest->title,
+            'description' => $site->manifest->description,
+            'metadata' => json_decode(json_encode($site->manifest->metadata ?: new stdClass()), true),
+          );
+          $pre = HAXCMSPluginSystem::before($site, 'site', $proposed, $pluginSitePrevious, array('user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName())));
+          if (!empty($pre['veto'])) {
+            return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+          }
+          $pluginSiteRecord = $pre['record'];
+          if (isset($pluginSiteRecord['metadata']['plugins'])) {
+            $site->manifest->metadata->plugins = json_decode(json_encode($pluginSiteRecord['metadata']['plugins'] ?: new stdClass()));
+          }
+        }
         // don't reorganize the structure
         $site->manifest->save(false);
         $site->gitCommit('Manifest updated');
+        if ($pluginSiteRecord) {
+          HAXCMSPluginSystem::after($site, 'site', $pluginSiteRecord, $pluginSitePrevious);
+        }
         // rebuild the files that twig processes
         $site->rebuildManagedFiles();
         $site->updateAlternateFormats();

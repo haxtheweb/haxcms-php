@@ -1358,6 +1358,12 @@ class HAXCMSSite
       if (is_null($format) || $format == 'service-worker') {
         $this->rebuildManagedFiles(array('sw' => 'service-worker.js'));
       }
+      // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): rebuild.before / rebuild.after so
+      // plugins write their managed files. A plugin failure never fails the save.
+      if (getenv('HAXCMS_PLUGINS') !== 'off') {
+        include_once __DIR__ . '/plugins/HAXCMSPluginSystem.php';
+        HAXCMSPluginSystem::rebuild($this, is_null($format) ? 'save' : $format);
+      }
     }
     /**
      * Generate llms.txt content based on site structure and generated markdown pages.

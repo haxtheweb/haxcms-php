@@ -25,6 +25,14 @@ class SystemApiRouter
             self::sendOptionsResponse();
             return true;
         }
+        // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): system/api/v1/plugins and
+        // system/api/v1/plugins/<id>/...; the plugin engine enforces each operation's declared security
+        if (getenv('HAXCMS_PLUGINS') !== 'off' && is_string($context->routeSuffix) && ($context->routeSuffix === 'v1/plugins' || strpos($context->routeSuffix, 'v1/plugins/') === 0)) {
+            include_once dirname(__FILE__) . '/../plugins/HAXCMSPluginRoutes.php';
+            if (HAXCMSPluginRoutes::dispatchSystem($context)) {
+                return true;
+            }
+        }
         $allRoutes = SystemRoutesMap::getRoutesMap();
         $allowedMethods = array();
         foreach ($allRoutes as $allowedMethod => $methodRoutes) {
