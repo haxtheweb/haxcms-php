@@ -535,6 +535,14 @@ class HAXCMSFile
         }
         catch (Exception $e) {}
         $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
+        // haxtheweb/issues#3054: the media settings' accepted formats narrow
+        // the safe list above (an operator can turn off, say, csv uploads)
+        if ($isAllowedExtension) {
+            $isAllowedExtension = HAXCMSMediaSettingsService::isUploadFormatAccepted(
+                HAXCMSMediaSettingsService::readMediaSettings($HAXCMS),
+                pathinfo((string) $name, PATHINFO_EXTENSION)
+            );
+        }
         $passesMimeValidation = false;
         if ($isUploadSourceValid && $isAllowedExtension) {
             $passesMimeValidation = $this->validateUploadMimeAndContent(

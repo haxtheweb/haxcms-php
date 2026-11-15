@@ -303,6 +303,43 @@ class OperationsAppearanceSeoSettingsTest extends TestCase
         $this->assertFalse(isset($this->persisted()->metadata->theme->variables->cssVariable));
     }
 
+    public function testAppearanceDesignSystemRules(): void
+    {
+        // haxtheweb/issues#3350, same cases as haxcms-nodejs
+        $result = $this->runAppearance(array('manifest-metadata-theme-designSystem' => ' Carbon '));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('carbon', $this->persisted()->metadata->theme->designSystem);
+        foreach (array('ddd', '', null) as $cleared) {
+            $this->runAppearance(array('manifest-metadata-theme-designSystem' => 'carbon'));
+            $result = $this->runAppearance(array('manifest-metadata-theme-designSystem' => $cleared));
+            $this->assertSame(200, $result['status']);
+            $this->assertFalse(isset($this->persisted()->metadata->theme->designSystem));
+        }
+        foreach (array('has spaces', '../carbon', 42, array('carbon')) as $invalid) {
+            $bad = $this->runAppearance(array('manifest-metadata-theme-designSystem' => $invalid));
+            $this->assertSame(400, $bad['__failed']['status']);
+            $this->assertSame('invalid design system value', $bad['__failed']['message']);
+        }
+    }
+
+    public function testAppearanceDesignSystemStaysWhenTheThemeChanges(): void
+    {
+        $this->haxcms->themes = array(
+            'my-theme' => (object)array(
+                'element' => 'my-theme',
+                'variables' => (object)array('hexCode' => '#123456'),
+            ),
+        );
+        $this->runAppearance(array('manifest-metadata-theme-designSystem' => 'patternfly'));
+        $result = $this->runAppearance(array('manifest-metadata-theme-element' => 'my-theme'));
+        $this->assertSame(200, $result['status']);
+        $theme = $this->persisted()->metadata->theme;
+        $this->assertSame('my-theme', $theme->element);
+        $this->assertSame('patternfly', $theme->designSystem);
+        // the shared registry entry is not changed
+        $this->assertFalse(isset($this->haxcms->themes['my-theme']->designSystem));
+    }
+
     public function testAppearancePaletteRules(): void
     {
         // valid slug writes lowercase

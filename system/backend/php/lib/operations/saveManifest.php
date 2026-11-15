@@ -115,6 +115,11 @@ trait OperationsRouteSaveManifest {
                 );
             }
         }
+        // the design system is the site's choice, not the theme's: keep it
+        // when the theme entry is copied in below (haxtheweb/issues#3350)
+        $keptDesignSystem = (isset($site->manifest->metadata->theme->designSystem) && is_string($site->manifest->metadata->theme->designSystem))
+          ? $site->manifest->metadata->theme->designSystem
+          : '';
         // look for a match so we can set the correct data
         foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
           if (
@@ -123,6 +128,9 @@ trait OperationsRouteSaveManifest {
           ) {
               $site->manifest->metadata->theme = $theme;
           }
+        }
+        if ($keptDesignSystem !== '' && isset($site->manifest->metadata->theme) && is_object($site->manifest->metadata->theme)) {
+          $site->manifest->metadata->theme->designSystem = $keptDesignSystem;
         }
         if (!isset($site->manifest->metadata->theme->variables)) {
           $site->manifest->metadata->theme->variables = new stdClass();

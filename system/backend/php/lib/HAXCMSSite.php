@@ -516,6 +516,14 @@ class HAXCMSSite
           'privateSite' => $privateSetting,
           'reservedSite' => HAXCMSLicenses::isAllRightsReserved($this->manifest->license ?? null),
           'description' => SanitizeContent::sanitizeManagedTemplateText($this->manifest->description),
+          // static index.html / ghpages.html (haxtheweb/issues#3327): the site
+          // description, else the site title, so a static publish always has one
+          'metaDescription' => SanitizeContent::sanitizeManagedTemplateText(
+              (isset($this->manifest->description) && $this->manifest->description != '')
+                  ? $this->manifest->description
+                  : (isset($this->manifest->title) ? $this->manifest->title : '')
+          ),
+          'socialImage' => $this->getSiteSocialShareImage($this->getLogoSize('512','512')),
           'forceUpgrade' => $this->getForceUpgrade(),
           'getGaID' => $this->getGaID(),
           'swhash' => array(),
@@ -551,7 +559,14 @@ class HAXCMSSite
           $this->getLogoSize('192','192'),
       );
       $siteRealPath = realpath($siteDirectoryPath);
+      // haxtheweb/issues#3322: one precache entry per location, so a logo size
+      // that resolves to a file already listed is not added again
+      $hashedLocations = array();
       foreach ($shellFiles as $location) {
+          if (isset($hashedLocations[(string) $location])) {
+              continue;
+          }
+          $hashedLocations[(string) $location] = TRUE;
           // managed files are hashed from the boilerplate source, matching the
           // old copy-then-render flow (the site copy may be one rebuild behind)
           $filePath = isset($managedSourcePaths[$location]) ? $managedSourcePaths[$location] : null;
@@ -1946,6 +1961,31 @@ class HAXCMSSite
         }
       }
       return $fileName;
+    }
+    /**
+     * Site-level social image for the static index.html / ghpages.html (no
+     * page context): the theme banner image, else the site's own logo (a logo
+     * under files/) at its 512 size, else '' (never the generic HAX icon).
+     * Same rule as Node getSiteSocialShareImage.
+     * @param string $sizedLogo the getLogoSize('512','512') result
+     * @return string sanitized URL or ''
+     */
+    public function getSiteSocialShareImage($sizedLogo = '') {
+      if (
+        isset($this->manifest->metadata->theme->variables->image) &&
+        trim((string) $this->manifest->metadata->theme->variables->image) != ''
+      ) {
+        return SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->metadata->theme->variables->image), '');
+      }
+      if (
+        isset($this->manifest->metadata->site->logo) &&
+        is_string($this->manifest->metadata->site->logo) &&
+        strpos($this->manifest->metadata->site->logo, 'files/') === 0 &&
+        $sizedLogo != ''
+      ) {
+        return SanitizeContent::sanitizeURLValue($sizedLogo, '');
+      }
+      return '';
     }
     /**
      * Return attributes for the site
@@ -3346,13 +3386,7 @@ class HAXCMSSite
         else {
           // ensure this path exists otherwise let's create it on the fly
           $path = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $this->manifest->metadata->site->name . '/';
-          // support for default so we compress it using same engine
-          if ($this->manifest->metadata->site->logo == 'assets/banner.jpg') {
-            $fileName = str_replace('assets/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
-          }
-          else {
-            $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
-          }
+          $fileName = str_replace('files/', 'files/haxcms-managed/' . $height . 'x' . $width . '-', $this->manifest->metadata->site->logo);
           // always replace this terrible name
           $fileName = str_replace('.jpeg', '.jpg', $fileName);
           if ($format == "jpg") {
@@ -3361,7 +3395,18 @@ class HAXCMSSite
           else {
             $fileName = str_replace('.jpg', '.png', $fileName);
           }
-          if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
+          if (!is_string($this->manifest->metadata->site->logo) || strpos($this->manifest->metadata->site->logo, 'files/') !== 0) {
+            // haxtheweb/issues#3322 (Node parity): only a logo under files/
+            // gets sized copies; any other logo (the default assets/banner.jpg
+            // included) uses the icons the boilerplate ships, one per size
+            if ((string) $height === '16' || (string) $height === '32') {
+              $fileName = 'assets/favicon.png';
+            }
+            else {
+              $fileName = 'assets/icon-' . $height . 'x' . $width . '.png';
+            }
+          }
+          else if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
             global $fileSystem;
             $fileSystem->mkdir($path . 'files/haxcms-managed');
             $image = new ImageResize($path . $this->manifest->metadata->site->logo);
