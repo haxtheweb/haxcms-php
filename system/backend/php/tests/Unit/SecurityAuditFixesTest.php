@@ -180,7 +180,6 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringNotContainsString("'.svg'  => 'image/svg+xml'", $src);
         $ops = new Operations();
         $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
-        $m->setAccessible(true);
         $this->assertFalse($m->invoke($ops, 'theme/logo.svg'));
         $this->assertSame('theme/logo.png', $m->invoke($ops, 'theme/logo.png'));
     }

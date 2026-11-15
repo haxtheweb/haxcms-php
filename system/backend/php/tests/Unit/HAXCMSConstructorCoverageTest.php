@@ -132,7 +132,6 @@ class HAXCMSConstructorCoverageTest extends TestCase
         $this->assertNull($haxcms->sitesDirectory);
         $this->assertNull($haxcms->configDirectory);
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $this->assertNull($cacheProp->getValue($haxcms));
         $this->assertSame('system/api', $haxcms->systemRequestBase);
         $this->assertCount(13, $haxcms->acceptedHAXFileTypes);
@@ -212,7 +211,6 @@ class HAXCMSConstructorCoverageTest extends TestCase
         $haxcms = $this->newHaxcms();
         $this->assertSame(HAXCMS_ROOT . '/_config', $haxcms->configDirectory);
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $this->assertInstanceOf('Cache', $cacheProp->getValue($haxcms));
         $this->assertSame('system/api/generateAppStore', $haxcms->appStoreFile);
         $this->assertSame('cov-salt-xyz', $haxcms->salt);
@@ -248,7 +246,6 @@ class HAXCMSConstructorCoverageTest extends TestCase
         file_put_contents($dir . '/cache', 'not a directory');
         $haxcms = $this->newHaxcms();
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $this->assertNull($cacheProp->getValue($haxcms));
         $this->assertNull($haxcms->getCache('anything'));
         $this->assertNull($haxcms->setCache('anything', 'v'));

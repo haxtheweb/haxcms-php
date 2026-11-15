@@ -56,7 +56,6 @@ class OperationsImageOpsTest extends TestCase
     private function invokePrivate(string $method, array $args = [])
     {
         $ref = new ReflectionMethod('Operations', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->ops, $args);
     }
 
@@ -66,7 +65,6 @@ class OperationsImageOpsTest extends TestCase
         $color = imagecolorallocate($img, 10, 200, 90);
         imagefill($img, 0, 0, $color);
         imagepng($img, $path);
-        imagedestroy($img);
     }
 
     private function makeJpg(string $path, int $width = 20, int $height = 15): void
@@ -75,7 +73,6 @@ class OperationsImageOpsTest extends TestCase
         $color = imagecolorallocate($img, 200, 50, 10);
         imagefill($img, 0, 0, $color);
         imagejpeg($img, $path, 90);
-        imagedestroy($img);
     }
 
     private function makeTextFile(string $path): void

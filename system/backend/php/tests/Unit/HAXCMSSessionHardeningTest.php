@@ -903,7 +903,6 @@ echo $ok . " " . $jti;
         $GLOBALS['HAXCMS'] = $haxcms;
         $settings = (object) array('windowMs' => 60000, 'blockMs' => 60000);
         $m = new ReflectionMethod(Operations::class, 'saveLoginAttemptEntry');
-        $m->setAccessible(true);
         $m->invoke(new Operations(), 'login-rate:new', array('firstAttempt' => 1, 'failedAttempts' => 1, 'blockedUntil' => 0), $settings);
         $all = $cache->retrieveAll(true);
         $this->assertCount(2, $all);

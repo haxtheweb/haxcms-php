@@ -30,7 +30,6 @@ class HAXCMSAuthCoverageTest extends TestCase
         $this->haxcms->basePath = '/';
         $this->haxcms->configDirectory = null;
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->haxcms, null);
         $this->haxcms->sessionJwt = null;
         $this->haxcms->user = new stdClass();
@@ -85,7 +84,6 @@ class HAXCMSAuthCoverageTest extends TestCase
     private function invokePrivate($method, ...$args)
     {
         $ref = new ReflectionMethod('HAXCMS', $method);
-        $ref->setAccessible(true);
         return $ref->invoke($this->haxcms, ...$args);
     }
 
@@ -408,7 +406,6 @@ class HAXCMSAuthCoverageTest extends TestCase
             'extension' => '.cache',
         ));
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($h, $cache);
         $c = $h->config;
         $c->security = new stdClass();
@@ -441,7 +438,6 @@ class HAXCMSAuthCoverageTest extends TestCase
     {
         $h = $this->haxcms;
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($h, new Cache(array(
             'name' => 'covauth2',
             'path' => $this->tmpDir . '/',

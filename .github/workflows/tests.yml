@@ -23,11 +23,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 8.4 parses HTML with Dom\HTMLDocument (HTML5); 8.3 with the
+        # 8.4+ parses HTML with Dom\HTMLDocument (HTML5); 8.3 with the
         # parser the backend ships (masterminds/html5).
-        # The sanitizer must store the same HTML on both (haxtheweb/issues#3273).
-        php-version: ["8.3", "8.4"]
+        # The sanitizer must store the same HTML on all (haxtheweb/issues#3273).
+        php-version: ["8.3", "8.4", "8.5", "8.6"]
     runs-on: ubuntu-latest
+    # 8.6 reaches GA on 2026-11-19; until then it is a release candidate, so a
+    # failure there shows on the run without failing the check. Drop this once
+    # 8.6.0 is out.
+    continue-on-error: ${{ matrix.php-version == '8.6' }}
     # The PHP backend (composer.json, composer.lock, phpunit.xml, lib/, tests/)
     # lives under system/backend/php, so run composer/phpunit from there.
     defaults:
@@ -58,7 +62,10 @@ jobs:
           key: ${{ runner.os }}-php-${{ matrix.php-version }}-composer-${{ hashFiles('system/backend/php/composer.lock') }}
           restore-keys: ${{ runner.os }}-php-${{ matrix.php-version }}-composer-
       - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        # sabberworm/php-css-parser (via dompdf) still caps PHP at ~8.5, so the
+        # lock does not install on 8.6 yet. Ignore that cap on 8.6 only, so the
+        # code itself is still tested there; remove once the lock allows 8.6.
+        run: composer install --prefer-dist --no-interaction --no-progress ${{ matrix.php-version == '8.6' && '--ignore-platform-req=php+' || '' }}
       - name: Run PHPUnit
         run: vendor/bin/phpunit
   # Dependency vulnerability audit (haxtheweb/issues#3092).

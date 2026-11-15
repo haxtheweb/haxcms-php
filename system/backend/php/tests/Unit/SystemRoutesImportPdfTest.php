@@ -139,7 +139,6 @@ class SystemRoutesImportPdfTest extends TestCase
         imagefill($image, 0, 0, imagecolorallocate($image, 120, 60, 200));
         $path = tempnam(sys_get_temp_dir(), 'hax-pdf-img-');
         imagejpeg($image, $path, 80);
-        imagedestroy($image);
         $bytes = file_get_contents($path);
         unlink($path);
         return $bytes;
