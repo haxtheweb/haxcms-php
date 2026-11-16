@@ -89,7 +89,7 @@ The PHP backend lives in `system/backend/php`. The web component build tooling d
   cd system/backend/php && composer install && ./vendor/bin/phpunit
   ```
   - `yarn test` runs the PHPUnit step once dependencies are installed.
-  - CI runs the same on PHP 8.3 (`.github/workflows/tests.yml`).
+  - CI runs the same on PHP 8.3, 8.4, 8.5 and 8.6 (`.github/workflows/tests.yml`). To check a version locally, run it with that binary, e.g. `php8.5 vendor/bin/phpunit`.
 - **Fault-injection tests** (`tests/Unit/FaultInjection*Test.php`, part of the PHPUnit run above, blocking): saveOutline and the other critical writes (page content, create/delete page, site settings, upload) run through the real site-route handlers while `tests/Unit/FaultInjectionFileWrapper.php` makes chosen filesystem calls fail (full disk, permission denied, a write that stops part-way, slow IO). No production code changes are needed: the wrapper replaces PHP's `file://` stream wrapper for the duration of one request. The invariant: a failed write answers with a displayable non-2xx ApiError envelope, leaves the data on disk as it was, leaves no orphaned page folder, and the next request is served. Scenario IDs (`FI-OUT-*`, `FI-PAY-*`, `FI-NODE-*`, `FI-SITE-*`, `FI-UP-*`, `FI-HTTP-*`) match the haxcms-nodejs fault-injection tests.
   ```bash
   cd system/backend/php && ./vendor/bin/phpunit --display-skipped --filter FaultInjection

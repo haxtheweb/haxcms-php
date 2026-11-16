@@ -449,8 +449,8 @@ class OperationsSettingsTest extends TestCase
         $this->assertSame(200, $result['status']);
         // Documented effective defaults (parity with Node getEffectiveMediaSettings).
         $this->assertSame(80, $result['data']['jpegQuality']);
-        $this->assertSame(1024, $result['data']['maxUploadSizeMb']);
-        $this->assertSame('jpg,jpeg,png,gif,webp,svg', $result['data']['acceptedFormats']);
+        $this->assertSame(256, $result['data']['maxUploadSizeMb']);
+        $this->assertSame('jpg,jpeg,png,gif,webm,webp,mp4,mp3,mov,csv,ppt,pptx,xlsx,doc,xls,docx,pdf,rtf,txt,vtt,html,md,xml,ics,vcf,h5p', $result['data']['acceptedFormats']);
     }
 
     // ===== saveLocalizationSettings =====

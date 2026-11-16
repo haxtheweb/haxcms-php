@@ -117,7 +117,6 @@ class OperationsFileOperationGapsTest extends TestCase
         $red = imagecolorallocate($img, 255, 0, 0);
         imagefill($img, 0, 0, $red);
         imagepng($img, $this->siteRoot . '/files/test.png');
-        imagedestroy($img);
 
         $manifest = (object)array(
             'id' => 'site-fileops-uuid',

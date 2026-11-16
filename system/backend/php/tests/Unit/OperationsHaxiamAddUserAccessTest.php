@@ -465,7 +465,6 @@ class OperationsHaxiamAddUserAccessTest extends TestCase
     {
         unset($this->haxcms->config->iamSitesRoot);
         $method = new ReflectionMethod(Operations::class, '_haxiamSitesRoot');
-        $method->setAccessible(true);
         $expected = defined('IAM_ROOT') ? rtrim(IAM_ROOT, '/') . '/users_sites' : '/var/www/sites';
         $this->assertSame($expected, $method->invoke($this->ops));
     }
@@ -474,7 +473,6 @@ class OperationsHaxiamAddUserAccessTest extends TestCase
     {
         $this->haxcms->config->iamSitesRoot = '/srv/haxiam/users_sites/';
         $method = new ReflectionMethod(Operations::class, '_haxiamSitesRoot');
-        $method->setAccessible(true);
         $this->assertSame('/srv/haxiam/users_sites', $method->invoke($this->ops));
     }
 }

@@ -67,7 +67,6 @@ class PdfExportImportRoundTripTest extends TestCase
         ob_start();
         imagejpeg($image, null, 80);
         $bytes = ob_get_clean();
-        imagedestroy($image);
         return $bytes;
     }
 

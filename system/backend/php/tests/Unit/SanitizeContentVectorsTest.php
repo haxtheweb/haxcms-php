@@ -7,8 +7,10 @@ require_once dirname(__DIR__, 2) . '/lib/SanitizeContent.php';
  * Runs the shared storage sanitizer vectors (tests/fixtures/
  * sanitize-vectors.json, haxtheweb/issues#3273). haxcms-nodejs runs the same
  * file (test/unit/sanitize-vectors.test.cjs); both backends must store
- * exactly this HTML. On PHP 8.3 (libxml) the cases marked libxmlDiffers are
- * malformed markup libxml builds a different tree from; PHP 8.4
+ * exactly this HTML. PHP 8.3 parses with the parser this backend ships
+ * (masterminds/html5), so its result is the same on every host; the cases
+ * marked php83Differs are malformed markup it builds a different tree
+ * from, and every real page must match. PHP 8.4
  * (Dom\HTMLDocument) must match every probe and real page; its parser
  * follows a newer HTML spec than parse5 on malformed markup (stray table
  * text, elements inside <select>), so the seeded garbage cases and the few
@@ -46,7 +48,7 @@ class SanitizeContentVectorsTest extends TestCase
             $html = isset($c['page']) ? $vectors['pages'][$c['page']] : $c['html'];
             $out = SanitizeContent::sanitizeHTMLForStorage($html, isset($c['options']) ? $c['options'] : array());
             $this->assertIsString($out);
-            if (!self::html5Parser() && !empty($c['libxmlDiffers'])) {
+            if (!self::html5Parser() && !empty($c['php83Differs'])) {
                 continue;
             }
             if (self::html5Parser() && (!empty($c['fosterText']) || strpos($c['name'], 'generated ') === 0)) {
@@ -64,8 +66,24 @@ class SanitizeContentVectorsTest extends TestCase
             }
         }
         $this->assertSame(array(), $failures, implode("\n", $failures));
-        // 1785 cases; PHP 8.4 checks the 1385 probes and pages
+        // 1803 cases; PHP 8.4 checks the 1403 probes and pages
         $this->assertGreaterThan(1300, $checked);
+    }
+
+    public function testEveryRealPageMatchesOnEveryParser(): void
+    {
+        foreach (self::vectors()['cases'] as $c) {
+            if (isset($c['page'])) {
+                $this->assertArrayNotHasKey('php83Differs', $c, $c['name']);
+            }
+        }
+    }
+
+    public function testBytesThatAreNotUTF8AreKeptAsLatin1(): void
+    {
+        // a page saved as Latin-1: é and ÿ as single bytes, next to real UTF-8
+        $out = SanitizeContent::sanitizeHTMLForStorage("<p>caf\xE9 \xFF \xE2\x82\xAC \xC3\xA9</p>");
+        $this->assertSame("<p>caf\u{E9} \u{FF} \u{20AC} \u{E9}</p>", $out);
     }
 
     public function testRealPagesAreStableOnASecondSave(): void

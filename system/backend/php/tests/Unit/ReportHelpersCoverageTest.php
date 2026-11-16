@@ -489,7 +489,6 @@ HTML;
         $site = $this->makeSite($items);
         $selected = null;
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'getSelectedItems');
-        $ref->setAccessible(true);
         $selected = $ref->invoke(null, $site, 'root');
         $this->assertSame(array('root', 'child', 'grand'), $this->idsOf($selected));
         // deep activeId: only the node itself (ancestors are not members)
@@ -519,7 +518,6 @@ HTML;
         // negative timestamps clamp to epoch
         $items[] = $this->item('neg', 'Neg', 'neg', array('updated' => -5));
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'getUpdatedItems');
-        $ref->setAccessible(true);
         $updated = $ref->invoke(null, $items);
         $this->assertCount(6, $updated);
         // newest first; the tie sorts stably right after u8
@@ -539,7 +537,6 @@ HTML;
     public function testGetItemMetaValueObjectArrayAndMissing()
     {
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'getItemMetaValue');
-        $ref->setAccessible(true);
         $obj = $this->item('a', 'A', 'a', array('pageType' => 'portfolio', 'published' => false));
         $this->assertSame('portfolio', $ref->invoke(null, $obj, 'pageType', ''));
         $this->assertFalse($ref->invoke(null, $obj, 'published', null));
@@ -559,7 +556,6 @@ HTML;
     public function testGetPageContentFailureModes()
     {
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'getPageContent');
-        $ref->setAccessible(true);
         $site = $this->makeSite(array());
         // item without an id
         $this->assertSame('', $ref->invoke(null, $site, $this->bareItem()));
@@ -579,7 +575,6 @@ HTML;
     public function testResolveLocalSourceViaReflection()
     {
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'resolveLocalSource');
-        $ref->setAccessible(true);
         $this->assertSame('', $ref->invoke(null, '', 'http://localhost'));
         $this->assertSame('a.jpg', $ref->invoke(null, 'a.jpg', ''));
         $this->assertSame('a.jpg', $ref->invoke(null, 'a.jpg', 'not a url'));
@@ -598,7 +593,6 @@ HTML;
     public function testResolveMediaSourceViaReflection()
     {
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'resolveMediaSource');
-        $ref->setAccessible(true);
         $empty = $ref->invoke(null, '', '');
         $this->assertSame('unknown', $empty['source']);
         $this->assertSame('unknown', $empty['name']);
@@ -616,7 +610,6 @@ HTML;
     public function testToISOTimeClampsNegative()
     {
         $ref = new ReflectionMethod('HAXCMSReportHelpers', 'toISOTime');
-        $ref->setAccessible(true);
         $this->assertSame('1970-01-01T00:00:00Z', $ref->invoke(null, -5));
         $this->assertSame('1970-01-01T00:00:00Z', $ref->invoke(null, 'junk'));
         $this->assertSame(gmdate('Y-m-d\TH:i:s\Z', 1700000000), $ref->invoke(null, 1700000000));

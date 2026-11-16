@@ -172,7 +172,6 @@ class RSSFeedTest extends TestCase
     private function invokePrivate(string $method, array $args = [])
     {
         $ref = new ReflectionMethod('FeedMe', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->feed, $args);
     }
 

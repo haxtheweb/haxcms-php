@@ -1255,12 +1255,6 @@ parameters:
 			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
 
 		-
-			message: '#^Constant HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: lib/systemRoutes/v1/imports/convertDrupalToSite.php
-
-		-
 			message: '#^Offset 1 on array\{0\: non\-falsy\-string, 1\: string, 2\: string, 3\?\: string\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
@@ -1337,30 +1331,6 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: lib/systemRoutes/v1/imports/convertNotionToSite.php
-
-		-
-			message: '#^Constant HAXCMS_OPENSTAX_DROP_ELEMENTS not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
-
-		-
-			message: '#^Constant HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
-
-		-
-			message: '#^Constant HAXCMS_OPENSTAX_KEEP_ATTRIBUTES not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
-
-		-
-			message: '#^Constant HAXCMS_OPENSTAX_SITE_LICENSES not found\.$#'
-			identifier: constant.notFound
-			count: 1
-			path: lib/systemRoutes/v1/imports/convertOpenstaxToSite.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between mixed and null will always evaluate to true\.$#'

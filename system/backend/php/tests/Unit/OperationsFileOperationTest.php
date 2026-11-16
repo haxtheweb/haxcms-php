@@ -114,7 +114,6 @@ class OperationsFileOperationTest extends TestCase
         $red = imagecolorallocate($img, 255, 0, 0);
         imagefill($img, 0, 0, $red);
         imagepng($img, $this->siteRoot . '/files/test.png');
-        imagedestroy($img);
 
         $manifest = (object)array(
             'id' => 'site-fileops-uuid',
@@ -441,7 +440,6 @@ class OperationsFileOperationTest extends TestCase
         $green = imagecolorallocate($img, 0, 255, 0);
         imagefill($img, 0, 0, $green);
         imagejpeg($img, $existingJpg, 90);
-        imagedestroy($img);
         $existingBytes = file_get_contents($existingJpg);
 
         $png = $this->siteRoot . '/files/image.png';
@@ -449,7 +447,6 @@ class OperationsFileOperationTest extends TestCase
         $blue = imagecolorallocate($img, 0, 0, 255);
         imagefill($img, 0, 0, $blue);
         imagepng($img, $png);
-        imagedestroy($img);
 
         $this->ops->params = array(
             'site_token' => 'good',

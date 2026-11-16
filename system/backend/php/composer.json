@@ -11,6 +11,7 @@
         "gumlet/php-image-resize": "^1.9",
         "michelf/php-markdown": "^2.0",
         "league/html-to-markdown": "^5.1",
+        "masterminds/html5": "^2.10",
         "symfony/yaml": "^7.0",
         "phpoffice/phpspreadsheet": "^5.9",
         "phpoffice/phpword": "^1.4",

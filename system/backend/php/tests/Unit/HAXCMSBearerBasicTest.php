@@ -114,7 +114,6 @@ class HAXCMSBearerBasicTest extends TestCase
     private function setCache($cache): void
     {
         $prop = new ReflectionProperty(HAXCMS::class, 'cache');
-        $prop->setAccessible(true);
         $prop->setValue($this->haxcms, $cache);
     }
 

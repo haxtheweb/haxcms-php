@@ -27,7 +27,6 @@ class ExportConvertersDocxImagesTest extends TestCase
         ob_start();
         imagepng($im);
         $bytes = ob_get_clean();
-        imagedestroy($im);
         return $bytes;
     }
 
