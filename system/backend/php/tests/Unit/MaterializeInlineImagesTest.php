@@ -348,9 +348,9 @@ class MaterializeInlineImagesTest extends TestCase
         $this->assertNotSame($page, $outlinePage);
         $this->assertSame($page->metadata->files, $outlinePage->metadata->files);
 
-        // a page with no inline files records an empty list, as haxcms-nodejs does
+        // a page with no inline files records no list, as haxcms-nodejs does
         $plain = $site->addPage(null, 'Plain Page', 'html', 'plain-page', null, null, '<p>Text</p>');
-        $this->assertSame(array(), $site->loadNode($plain->id)->metadata->files);
+        $this->assertFalse(isset($site->loadNode($plain->id)->metadata->files));
     }
 }
 

@@ -234,7 +234,9 @@ trait OperationsRouteSaveNodeDetails {
         // Singular field modification operations
         case 'setTitle':
           if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
-            $page->title = strip_tags($this->params['node']['details']['title']);
+            // stored without leading or trailing white space, like every
+            // other write path and the CLI
+            $page->title = SanitizeContent::trimTitle(strip_tags($this->params['node']['details']['title']));
             // white space or the text "null" is no title
             if (SanitizeContent::isBlankPageTitle($page->title)) {
               $page->title = SanitizeContent::DEFAULT_PAGE_TITLE;

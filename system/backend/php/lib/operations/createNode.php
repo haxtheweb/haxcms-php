@@ -174,13 +174,16 @@ trait OperationsRouteCreateNode {
               $site->manifest->metadata->site->name .
               '/'
             );
-            if (!isset($page->metadata) || !is_object($page->metadata)) {
-              $page->metadata = new stdClass();
-            }
-            $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
+            // only a page that brought files gets the list (same rule as
+            // addPage and haxcms-nodejs)
+            $uuids = isset($materialized['uuids']) && is_array($materialized['uuids'])
               ? $materialized['uuids']
               : array();
-            if (count($page->metadata->files) > 0) {
+            if (count($uuids) > 0) {
+              if (!isset($page->metadata) || !is_object($page->metadata)) {
+                $page->metadata = new stdClass();
+              }
+              $page->metadata->files = $uuids;
               $site->manifest->save();
             }
           }
