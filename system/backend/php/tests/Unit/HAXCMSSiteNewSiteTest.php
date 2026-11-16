@@ -428,6 +428,7 @@ class HAXCMSNewSiteTestSite extends HAXCMSSite
 class HAXCMSNewSiteTestHaxcms extends OperationsTestHaxcms
 {
     public $cdn = './';
+    public $coreConfigPath;
     public $developerMode = false;
     private $cacheData = array();
 

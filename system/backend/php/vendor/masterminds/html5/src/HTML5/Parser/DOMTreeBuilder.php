@@ -371,10 +371,19 @@ class DOMTreeBuilder implements EventHandler
             $prefix = ($pos = strpos($lname, ':')) ? substr($lname, 0, $pos) : '';
 
             if (false !== $needsWorkaround) {
-                $xml = "<$lname xmlns=\"$needsWorkaround\" " . (strlen($prefix) && isset($this->nsStack[0][$prefix]) ? ("xmlns:$prefix=\"" . $this->nsStack[0][$prefix] . '"') : '') . '/>';
+                $xml = "<$lname xmlns=\"" . htmlspecialchars($needsWorkaround, ENT_QUOTES | ENT_XML1, 'UTF-8') . '" ' . (strlen($prefix) && isset($this->nsStack[0][$prefix]) ? ("xmlns:$prefix=\"" . htmlspecialchars($this->nsStack[0][$prefix], ENT_QUOTES | ENT_XML1, 'UTF-8') . '"') : '') . '/>';
 
                 $frag = new \DOMDocument('1.0', 'UTF-8');
-                $frag->loadXML($xml);
+                $previous = libxml_use_internal_errors(true);
+                try {
+                    $loaded = $frag->loadXML($xml);
+                } finally {
+                    libxml_clear_errors();
+                    libxml_use_internal_errors($previous);
+                }
+                if (!$loaded || null === $frag->documentElement) {
+                    throw new \DOMException('Invalid namespace declaration');
+                }
 
                 $ele = $this->doc->importNode($frag->documentElement, true);
             } else {
@@ -385,7 +394,7 @@ class DOMTreeBuilder implements EventHandler
                 }
             }
         } catch (\DOMException $e) {
-            $this->parseError("Illegal tag name: <$lname>. Replaced with <invalid>.");
+            $this->parseError("Illegal tag name or namespace: <$lname>. Replaced with <invalid>.");
             $ele = $this->doc->createElement('invalid');
         }
 
@@ -397,9 +406,9 @@ class DOMTreeBuilder implements EventHandler
         // When we are on a void tag, we do not need to care about namesapce nesting.
         if ($pushes > 0 && !Elements::isA($name, Elements::VOID_TAG)) {
             // PHP tends to free the memory used by DOM,
-            // to avoid spl_object_hash collisions whe have to avoid garbage collection of $ele storing it into $pushes
+            // to avoid spl_object_id collisions we have to avoid garbage collection of $ele storing it into $pushes
             // see https://bugs.php.net/bug.php?id=67459
-            $this->pushes[spl_object_hash($ele)] = array($pushes, $ele);
+            $this->pushes[spl_object_id($ele)] = array($pushes, $ele);
         }
 
         foreach ($attributes as $aName => $aVal) {
@@ -521,7 +530,7 @@ class DOMTreeBuilder implements EventHandler
             $lname = Elements::normalizeSvgElement($lname);
         }
 
-        $cid = spl_object_hash($this->current);
+        $cid = spl_object_id($this->current);
 
         // XXX: HTML has no parent. What do we do, though,
         // if this element appears in the wrong place?
@@ -670,6 +679,20 @@ class DOMTreeBuilder implements EventHandler
                 $this->current = $working->parentNode;
 
                 return true;
+            }
+
+            // Stop at an ancestor whose own insertion would already have closed
+            // any open <p>. Inserting an AUTOCLOSE_P element calls autoclose('p'),
+            // which moves the insertion point above the <p>, so no <p> can still
+            // be open further up. Without this the walk runs to the document root
+            // on every block-level start tag, making deeply nested markup
+            // quadratic. Elements that are BLOCK_TAG but not AUTOCLOSE_P (table,
+            // address, canvas, dd, hr, noscript, output, tfoot) are NOT boundaries,
+            // because they nest inside a <p> without closing it.
+            if ('p' === $tagName
+                && $working !== $this->current
+                && Elements::isA($working->tagName, Elements::AUTOCLOSE_P)) {
+                return false;
             }
         } while ($working = $working->parentNode);
 
