@@ -122,6 +122,6 @@ class PhpBackend {
 
 export async function createBackend(opts = {}) {
   const b = new PhpBackend();
-  await b.rpc("create", { haxcmsVersion: opts.haxcmsVersion || "26.10.1", ...(opts.user !== undefined ? { user: opts.user } : {}), ...(opts.hookTimeout ? { hookTimeout: opts.hookTimeout } : {}) });
+  await b.rpc("create", { haxcmsVersion: opts.haxcmsVersion || "26.10.1", ...(opts.user !== undefined ? { user: opts.user } : {}), ...(opts.hookTimeout ? { hookTimeout: opts.hookTimeout } : {}), ...(opts.site === null ? { site: null } : {}) });
   return b;
 }

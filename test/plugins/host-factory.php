@@ -2,7 +2,8 @@
 /**
  * DRAFT (plugin platform). A fresh HAXcms site for each case: a temp HAXcms root with a site folder holding a
  * site.json outline (no pages), loaded through JSONOutlineSchema like any site, and HAXCMSPluginHost over it. System
- * and siteData stores and plugin settings go to that temp root, so cases never share state.
+ * and siteData stores and plugin settings go to that temp root, so cases never share state. `site: null` gives the
+ * system engine over the same kind of temp root, with no site.
  */
 $backend = dirname(__DIR__, 2) . '/system/backend/php';
 require_once $backend . '/lib/JSONOutlineSchemaItem.php';
@@ -13,6 +14,16 @@ require_once $backend . '/lib/plugins/HAXCMSPluginHost.php';
 function haxcms_plugin_test_host(array $o)
 {
     $root = HAXCMSPluginEngine::tempDir('haxcms-php-plugin-cases-');
+    // site null: the system engine (spec/13 section 8b), HAXcms-wide with no site
+    if (array_key_exists('site', $o) && $o['site'] === null) {
+        return new HAXCMSPluginHost([
+            'manifest' => null,
+            'root' => $root,
+            'version' => $o['haxcmsVersion'] ?? '26.10.1',
+            'hookTimeout' => $o['hookTimeout'] ?? 5000,
+            'now' => HAXCMSPluginEngine::parseTime('2026-01-01T00:00:00Z'),
+        ] + (array_key_exists('user', $o) ? ['user' => $o['user']] : []));
+    }
     $name = 'conformance-' . getmypid() . '-' . bin2hex(random_bytes(3));
     $dir = "$root/_sites/$name";
     mkdir("$dir/pages", 0775, true);

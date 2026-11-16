@@ -103,8 +103,10 @@ class HAXCMSPluginEngine
         $this->coreContracts = $spec['contracts'];
         $this->manifestSchema = $spec['schema'];
         $this->haxcms = ['version' => $o['haxcmsVersion'] ?? '26.10.1', 'runtime' => 'php'];
-        $site = $o['site'] ?? ['id' => '00000000-0000-4000-8000-000000000001', 'name' => 'test-site', 'path' => ''];
-        if (empty($site['path'])) {
+        // site null is the system engine (spec/13 section 8b): HAXcms-wide work with no site; anything that needs a
+        // site refuses through requireSite()
+        $site = array_key_exists('site', $o) ? $o['site'] : ['id' => '00000000-0000-4000-8000-000000000001', 'name' => 'test-site', 'path' => ''];
+        if ($site !== null && empty($site['path'])) {
             // a real, empty folder stands in for the site directory, so plugins that work with files can be tested
             $site['path'] = self::tempDir('hax-site-');
         }
@@ -112,7 +114,16 @@ class HAXCMSPluginEngine
         $this->frozenNow = array_key_exists('now', $o) ? $o['now'] : self::parseTime('2026-01-01T00:00:00Z');
         $this->user = array_key_exists('user', $o) ? $o['user'] : ['id' => 'u1', 'name' => 'admin', 'displayName' => 'Admin', 'roles' => ['admin'], 'avatar' => null, 'email' => 'admin@example.invalid', 'passwordHash' => 'never-exposed'];
         $this->hookTimeout = $o['hookTimeout'] ?? 5000;
-        $this->records = ['config' => ['core' => ['appStore' => ['apiKeys' => []]]], 'site' => [$site['id'] => ['id' => $site['id'], 'title' => $site['name'], 'metadata' => ['plugins' => []], 'items' => []]], 'page' => [], 'file' => []];
+        $this->records = ['config' => ['core' => ['appStore' => ['apiKeys' => []]]], 'site' => $site !== null ? [$site['id'] => ['id' => $site['id'], 'title' => $site['name'], 'metadata' => ['plugins' => []], 'items' => []]] : [], 'page' => [], 'file' => []];
+    }
+    /** Store scopes that live with one site; the system engine has none of them. */
+    const SITE_SCOPES = ['site', 'siteData', 'manifest'];
+    /** The system engine has no site: site records, site stores, site files, rendering and rebuilds refuse there. */
+    public function requireSite($what)
+    {
+        if ($this->site === null) {
+            throw new RuntimeException("$what: needs a site; this is the system engine");
+        }
     }
 
     // ---- spec files ----
@@ -294,6 +305,7 @@ class HAXCMSPluginEngine
     public function seed(array $records = [])
     {
         if (isset($records['site'])) {
+            $this->requireSite('site records');
             $this->records['site'][$this->site['id']] = array_merge(['id' => $this->site['id'], 'metadata' => ['plugins' => []], 'items' => []], $records['site']);
         }
         foreach ($records as $type => $list) {
@@ -362,6 +374,10 @@ class HAXCMSPluginEngine
                 $refuse('invalid manifest: ' . implode('; ', $errors));
             } elseif (self::cmpVersion($m['specVersion'], $this->specVersion) > 0) {
                 $refuse("specVersion {$m['specVersion']} is newer than this backend supports ({$this->specVersion})");
+            } elseif (($m['kind'] ?? null) !== 'pack' && isset($m['runtimes']) && is_array($m['runtimes']) && !in_array($this->runtime, $m['runtimes'], true)) {
+                // code for another runtime only: refused with the reason, rather than active with every operation
+                // answering 501 and every hook silently skipped (spec/13 section 2)
+                $refuse("no {$this->runtime} implementation: this plugin ships " . implode(', ', $m['runtimes']) . ' only');
             } elseif (in_array($p->id, $blocked, true)) {
                 $refuse('blocked by deployment config');
             } elseif (in_array($p->id, $disabled, true) && empty($m['required']) && !in_array($p->id, $required, true)) {
@@ -533,7 +549,7 @@ class HAXCMSPluginEngine
             return ['status' => 409, 'body' => ['error' => "$pluginId is {$p->status}"]];
         }
         $scope = $job['scope'] ?? 'site';
-        $subject = ['job' => $jobId, 'plugin' => $pluginId, 'scope' => $scope, 'siteId' => $this->site['id'], 'lastRun' => $this->lastRuns["$pluginId:$jobId"] ?? null];
+        $subject = ['job' => $jobId, 'plugin' => $pluginId, 'scope' => $scope, 'siteId' => $this->site['id'] ?? null, 'lastRun' => $this->lastRuns["$pluginId:$jobId"] ?? null];
         $before = $this->fire('schedule.before.run', $subject);
         if (!empty($before['veto'])) {
             return ['status' => 200, 'body' => ['ran' => false, 'skipped' => $before['veto']['message']]];
@@ -556,7 +572,7 @@ class HAXCMSPluginEngine
             $this->log[] = ['level' => 'error', 'plugin' => $pluginId, 'message' => "schedule $jobId: $error"];
         }
         $this->lastRuns["$pluginId:$jobId"] = $this->now();
-        $this->fire('schedule.after.run', ['job' => $jobId, 'plugin' => $pluginId, 'scope' => $scope, 'siteId' => $this->site['id'], 'ok' => $ok, 'durationMs' => $this->now() - $started] + ($error !== null ? ['error' => $error] : []));
+        $this->fire('schedule.after.run', ['job' => $jobId, 'plugin' => $pluginId, 'scope' => $scope, 'siteId' => $this->site['id'] ?? null, 'ok' => $ok, 'durationMs' => $this->now() - $started] + ($error !== null ? ['error' => $error] : []));
         return ['status' => $ok ? 200 : 500, 'body' => ['ran' => true, 'ok' => $ok] + ($value !== null ? ['result' => $value] : []) + ($error !== null ? ['error' => $error] : [])];
     }
 
@@ -778,6 +794,9 @@ class HAXCMSPluginEngine
     }
     public function siteInfo()
     {
+        if ($this->site === null) {
+            return null;
+        }
         $rec = $this->records['site'][$this->site['id']] ?? [];
         $domain = $rec['metadata']['site']['domain'] ?? null;
         $url = rtrim((string) ($domain ?: "https://haxcms.example.invalid/sites/{$this->site['name']}/"), '/') . '/';
@@ -801,6 +820,9 @@ class HAXCMSPluginEngine
     }
     public function legacyValue($path)
     {
+        if ($this->site === null && strpos($path, 'config:') !== 0) {
+            return null;
+        }
         $l = $this->legacyLocation($path);
         return self::getPath($this->records[$l['type']][$l['id']] ?? null, implode('.', $l['keys']));
     }
@@ -1027,6 +1049,14 @@ class HAXCMSPluginEngine
         $this->execCalls[] = ['plugin' => $p->id, 'cmd' => $cmd, 'args' => array_map(function ($a) {
             return str_replace('{tmp}', '<tmp>', $a);
         }, $args), 'files' => $files];
+        return $this->execOnce($p, $cmd, $args, (array) $opts);
+    }
+    /**
+     * Runs one checked command. Here the answer comes from the case's exec fakes; HAXCMSPluginHost runs the command
+     * for real (no shell, a private {tmp} folder for files, a timeout).
+     */
+    protected function execOnce($p, $cmd, array $args, array $opts)
+    {
         $fake = $this->execFakes[$cmd] ?? null;
         if (!$fake) {
             throw new RuntimeException("exec \"$cmd\" has no fake in this case (run.exec)");
@@ -1189,7 +1219,10 @@ class HAXCMSPluginEngine
         if (!$s) {
             throw new RuntimeException("{$p->id}: unknown store \"$id\"");
         }
-        return "{$p->id}:{$s['scope']}:" . (in_array($s['scope'], ['site', 'siteData', 'manifest'], true) ? $this->site['id'] : '-') . ":$id";
+        if (in_array($s['scope'], self::SITE_SCOPES, true)) {
+            $this->requireSite("{$p->id}: store \"$id\" ({$s['scope']} scope)");
+        }
+        return "{$p->id}:{$s['scope']}:" . (in_array($s['scope'], self::SITE_SCOPES, true) ? $this->site['id'] : '-') . ":$id";
     }
     public function readStore($p, $id)
     {
@@ -1204,6 +1237,7 @@ class HAXCMSPluginEngine
             return self::readAny("{$p->dir}/data/{$s['file']}");
         }
         if ($s['scope'] === 'manifest') {
+            $this->requireSite("{$p->id}: store \"$id\" (manifest scope)");
             return self::getPath($this->records['site'][$this->site['id']] ?? null, "metadata.plugins.{$p->id}.$id");
         }
         return $this->memory[$this->storeKey($p, $id)] ?? null;
@@ -1216,6 +1250,7 @@ class HAXCMSPluginEngine
         unset($p->storeOverrides[$id]);
         $value = self::json($value);
         if (isset($p->stores[$id]) && $p->stores[$id]['scope'] === 'manifest') {
+            $this->requireSite("{$p->id}: store \"$id\" (manifest scope)");
             $this->bump('site', $this->site['id']);
             $this->records['site'][$this->site['id']]['metadata']['plugins'][$p->id][$id] = $value;
             return;
@@ -1316,6 +1351,7 @@ class HAXCMSPluginEngine
         if (!preg_match('#^files/[A-Za-z0-9._/-]+$#', $clean) || strpos($clean, '..') !== false) {
             throw new RuntimeException("{$p->id}: site files live under files/ ($path)");
         }
+        $this->requireSite("{$p->id}: site files");
         return $this->site['path'] . '/' . $clean;
     }
     public function putSiteFile($p, $path, $data)
@@ -1413,6 +1449,7 @@ class HAXCMSPluginEngine
     // ---- rebuild (spec/07 managed files) ----
     public function rebuild($reason = 'save')
     {
+        $this->requireSite('rebuild');
         $before = $this->fire('rebuild.before', ['scope' => 'site', 'siteId' => $this->site['id'], 'reason' => $reason, 'fragments' => []]);
         if (!empty($before['veto'])) {
             return ['status' => $before['veto']['status'] ?: 409, 'body' => ['error' => $before['veto']['message']]];
@@ -1479,6 +1516,9 @@ class HAXCMSPluginEngine
         if (!$area) {
             return;
         }
+        if ($type !== 'config') {
+            $this->requireSite("$type records");
+        }
         $caps = $p->manifest['capabilities'] ?? [];
         if (!in_array("$area:$action", $caps, true) && !($action === 'read' && in_array("$area:write", $caps, true))) {
             throw new RuntimeException("{$p->id} needs the $area:$action capability to $action $type records");
@@ -1487,6 +1527,9 @@ class HAXCMSPluginEngine
     // pages and site.json are files in a HAXcms site
     protected function writeToDisk($type, $record)
     {
+        if ($this->site === null) {
+            return;
+        }
         if ($type === 'page') {
             $d = $this->site['path'] . '/pages/' . $record['id'];
             if (!is_dir($d)) {
@@ -1508,6 +1551,9 @@ class HAXCMSPluginEngine
     }
     public function saveEntity($type, $record)
     {
+        if (in_array($type, ['site', 'page', 'file'], true)) {
+            $this->requireSite("$type records");
+        }
         $record = self::json($record);
         $id = $type === 'site' ? ($record['id'] ?? $this->site['id']) : ($record['id'] ?? $record['uuid'] ?? null);
         $previous = $this->records[$type][$id] ?? null;
@@ -1550,7 +1596,7 @@ class HAXCMSPluginEngine
         $out = [];
         foreach ($this->plugins as $p) {
             foreach ($p->stores as $s) {
-                if (!empty($s['personalData']) && $s['scope'] !== 'package') {
+                if (!empty($s['personalData']) && $s['scope'] !== 'package' && ($this->site !== null || !in_array($s['scope'], self::SITE_SCOPES, true))) {
                     $out[] = ['p' => $p, 's' => $s, 'key' => $s['userKey'] ?? 'userId'];
                 }
             }
@@ -2156,6 +2202,7 @@ class HAXCMSPluginEngine
     {
         $theme = $o['theme'] ?? 'clean-one';
         $mode = $o['mode'] ?? 'dynamic';
+        $this->requireSite('rendering');
         $ctx0 = ['site' => ['id' => $this->site['id'], 'name' => $this->site['name']], 'page' => $page, 'theme' => $theme, 'mode' => $mode, 'cacheable' => true, 'head' => [], 'content' => $page['content'] ?? '', 'body' => ['start' => [], 'end' => []], 'html' => null];
         $before = $this->fire('render.before', $ctx0);
         if (array_key_exists('respond', $before)) {

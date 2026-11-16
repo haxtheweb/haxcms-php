@@ -10,6 +10,7 @@
  *   - managed files are written into the site folder;
  *   - ctx->fetch goes to the network through SsrfGuard when liveNetwork is on, with the plugin's egress list checked
  *     again on every redirect hop;
+ *   - ctx->exec runs the command when liveExec is on: no shell, files in a private {tmp} folder, a timeout;
  *   - ctx->now() is the real clock unless a test freezes it.
  * Unlike the Node host, an atomic transaction that fails also puts back what it wrote to disk (site.json, page
  * files, store files, managed files, plugin settings), not only the in-memory records.
@@ -23,19 +24,25 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     public $siteDirectory;
     public $root;
     public $liveNetwork = false;
+    public $liveExec = false;
 
     /**
-     * @param array $o manifest (a loaded JSONOutlineSchema), siteDirectory, root (HAXcms root for siteData, system
-     *   stores and plugin settings), version, user (omitted: the engine's default admin), hookTimeout, liveNetwork,
-     *   specDir, now (null: the real clock)
+     * @param array $o manifest (a loaded JSONOutlineSchema, or null for the system engine: HAXcms-wide work with no
+     *   site, spec/13 section 8b), siteDirectory, root (HAXcms root for siteData, system stores and plugin settings),
+     *   version, user (omitted: the engine's default admin), hookTimeout, liveNetwork, liveExec, specDir, now (null:
+     *   the real clock)
      */
     public function __construct(array $o)
     {
-        $m = $o['manifest'];
-        $name = $m->metadata->site->name ?? basename($o['siteDirectory']);
+        $m = $o['manifest'] ?? null;
+        $site = null;
+        if ($m) {
+            $name = $m->metadata->site->name ?? basename($o['siteDirectory']);
+            $site = ['id' => (string) $m->id, 'name' => $name, 'path' => rtrim($o['siteDirectory'], '/')];
+        }
         $engine = [
             'haxcmsVersion' => $o['version'] ?? '26.10.1',
-            'site' => ['id' => (string) $m->id, 'name' => $name, 'path' => rtrim($o['siteDirectory'], '/')],
+            'site' => $site,
             'hookTimeout' => $o['hookTimeout'] ?? 5000,
             'now' => array_key_exists('now', $o) ? $o['now'] : null,
         ];
@@ -47,9 +54,10 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         }
         parent::__construct($engine);
         $this->manifest = $m;
-        $this->siteDirectory = rtrim($o['siteDirectory'], '/');
+        $this->siteDirectory = $m ? rtrim($o['siteDirectory'], '/') : null;
         $this->root = rtrim($o['root'], '/');
         $this->liveNetwork = !empty($o['liveNetwork']);
+        $this->liveExec = !empty($o['liveExec']);
         $this->hydrate();
     }
 
@@ -57,6 +65,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     public function hydrate()
     {
         $m = $this->manifest;
+        if (!$m) {
+            return;
+        }
         $this->records['site'] = [$this->site['id'] => [
             'id' => (string) $m->id,
             'title' => $m->title,
@@ -73,6 +84,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     /** Re-reads site.json and the page files (records are what is on disk, not what was last held in memory). */
     public function reload()
     {
+        if (!$this->manifest) {
+            return;
+        }
         $m = new JSONOutlineSchema();
         if ($m->load($this->manifest->file)) {
             $this->manifest = $m;
@@ -119,6 +133,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     protected function writeToDisk($type, $record)
     {
         $m = $this->manifest;
+        if (!$m) {
+            return;
+        }
         if ($type === 'page') {
             $item = $m->getItemById($record['id']);
             if (!$item) {
@@ -155,7 +172,7 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     }
     protected function removeFromDisk($type, $id, $previous)
     {
-        if ($type !== 'page') {
+        if ($type !== 'page' || !$this->manifest) {
             return;
         }
         $m = $this->manifest;
@@ -178,6 +195,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     public function siteInfo()
     {
         $info = parent::siteInfo();
+        if ($info === null) {
+            return null;
+        }
         $domain = $this->manifest->metadata->site->domain ?? null;
         $base = getenv('HAXCMS_PUBLIC_URL');
         if (!$domain && $base) {
@@ -210,6 +230,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     public function storeFile($p, $s)
     {
         $file = $s['file'] ?? "{$s['id']}.json";
+        if (in_array($s['scope'], self::SITE_SCOPES, true)) {
+            $this->requireSite("{$p->id}: store \"{$s['id']}\" ({$s['scope']} scope)");
+        }
         switch ($s['scope']) {
             case 'site':
                 return "{$this->siteDirectory}/_config/data/{$p->id}/$file";
@@ -247,6 +270,7 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     // ---- managed files land in the site folder ----
     public function writeManaged($p, $path, $content)
     {
+        $this->requireSite("{$p->id}: managed files");
         $r = parent::writeManaged($p, $path, $content);
         $this->writeFile($this->siteDirectory . '/' . $path, $content);
         return $r;
@@ -275,7 +299,7 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         }
         // site.json was put back by the file snapshot: reload the outline from it
         $m = new JSONOutlineSchema();
-        if ($m->load($this->manifest->file)) {
+        if ($this->manifest && $m->load($this->manifest->file)) {
             $this->manifest = $m;
         }
     }
@@ -291,5 +315,126 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
             $body = json_encode($body);
         }
         return SsrfGuard::safeFetchOnce($url, $init['method'] ?? 'GET', (array) ($init['headers'] ?? []), $body);
+    }
+
+    // ---- ctx->exec: the engine has checked the exec list and argument list; this runs the command (spec/13) ----
+    /**
+     * No shell: proc_open with an argument array. `files` go into a private temp folder, named {tmp} in arguments,
+     * removed afterwards. The command runs in the site folder (or a `cwd` inside it) with a minimal environment
+     * (PATH, HOME={tmp}, LANG), a timeout (60 s by default, 300 s at most) and a 10 MB cap on each of stdout and
+     * stderr; a time-out or an output over the cap kills it and throws. Same rules as haxcms-nodejs's
+     * HaxcmsPluginHost.execOnce.
+     */
+    protected function execOnce($p, $cmd, array $args, array $opts)
+    {
+        if (!$this->liveExec) {
+            return parent::execOnce($p, $cmd, $args, $opts);
+        }
+        $files = (array) ($opts['files'] ?? []);
+        foreach (array_keys($files) as $name) {
+            if (!preg_match('/^[A-Za-z0-9._-]+$/', (string) $name) || $name === '.' || $name === '..') {
+                throw new RuntimeException("exec file name \"$name\" is not a plain file name");
+            }
+        }
+        // a site engine runs in the site folder (or under it); the system engine has none, so it runs in its temp folder
+        $cwd = null;
+        if ($this->siteDirectory !== null) {
+            $site = realpath($this->siteDirectory);
+            $cwd = realpath($site . '/' . (string) ($opts['cwd'] ?? '.'));
+            if ($site === false || $cwd === false || ($cwd !== $site && strpos($cwd, $site . DIRECTORY_SEPARATOR) !== 0)) {
+                throw new RuntimeException('exec cwd must be inside the site folder');
+            }
+        } elseif (isset($opts['cwd']) && $opts['cwd'] !== '.' && $opts['cwd'] !== '') {
+            $this->requireSite('exec cwd');
+        }
+        $timeout = isset($opts['timeout']) && is_int($opts['timeout']) && $opts['timeout'] > 0 ? $opts['timeout'] : 60000;
+        $timeout = min($timeout, 300000);
+        $cap = 10 * 1024 * 1024;
+        $tmp = self::tempDir('hax-exec-');
+        chmod($tmp, 0700);
+        if ($cwd === null) {
+            $cwd = $tmp;
+        }
+        try {
+            foreach ($files as $name => $f) {
+                file_put_contents("$tmp/$name", (string) ($f['content'] ?? ''));
+                chmod("$tmp/$name", isset($f['mode']) && is_int($f['mode']) ? $f['mode'] : 0600);
+            }
+            $argv = array_merge([$cmd], array_map(function ($a) use ($tmp) {
+                return str_replace('{tmp}', $tmp, $a);
+            }, $args));
+            $env = ['PATH' => getenv('PATH') ?: '/usr/bin:/bin', 'HOME' => $tmp, 'LANG' => 'C.UTF-8'];
+            $proc = @proc_open($argv, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $cwd, $env);
+            if (!is_resource($proc)) {
+                throw new RuntimeException("exec \"$cmd\" could not start");
+            }
+            $input = array_key_exists('input', $opts) && $opts['input'] !== null ? (string) $opts['input'] : '';
+            if ($input !== '') {
+                @fwrite($pipes[0], $input);
+            }
+            fclose($pipes[0]);
+            stream_set_blocking($pipes[1], false);
+            stream_set_blocking($pipes[2], false);
+            $out = [1 => '', 2 => ''];
+            $deadline = microtime(true) + $timeout / 1000;
+            $failure = null;
+            $open = [1 => $pipes[1], 2 => $pipes[2]];
+            while ($open) {
+                $left = $deadline - microtime(true);
+                if ($left <= 0) {
+                    $failure = "exec \"$cmd\" timed out after $timeout ms";
+                    break;
+                }
+                $read = array_values($open);
+                $w = null;
+                $e = null;
+                if (@stream_select($read, $w, $e, (int) floor($left), (int) (($left - floor($left)) * 1000000)) === false) {
+                    break;
+                }
+                foreach ($open as $n => $pipe) {
+                    if (!in_array($pipe, $read, true)) {
+                        continue;
+                    }
+                    $chunk = fread($pipe, 65536);
+                    if ($chunk === '' || $chunk === false) {
+                        if (feof($pipe)) {
+                            unset($open[$n]);
+                        }
+                        continue;
+                    }
+                    $out[$n] .= $chunk;
+                    if (strlen($out[$n]) > $cap) {
+                        $failure = "exec \"$cmd\" " . ($n === 1 ? 'stdout' : 'stderr') . ' exceeded 10 MB';
+                        break 2;
+                    }
+                }
+            }
+            if ($failure !== null) {
+                proc_terminate($proc, 9);
+            }
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            $code = proc_close($proc);
+            if ($failure !== null) {
+                throw new RuntimeException($failure);
+            }
+            return ['code' => $code < 0 ? 1 : $code, 'stdout' => $out[1], 'stderr' => $out[2]];
+        } finally {
+            self::removeTree($tmp);
+        }
+    }
+
+    private static function removeTree($dir)
+    {
+        if (!is_dir($dir) || is_link($dir)) {
+            @unlink($dir);
+            return;
+        }
+        foreach (scandir($dir) ?: [] as $n) {
+            if ($n !== '.' && $n !== '..') {
+                self::removeTree("$dir/$n");
+            }
+        }
+        @rmdir($dir);
     }
 }

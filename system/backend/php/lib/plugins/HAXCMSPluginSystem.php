@@ -8,6 +8,7 @@
  *   rebuild($site, $reason)                                 rebuild.before / rebuild.after after core rewrote
  *                                                            its managed files
  *   host($site, $opts)                                      the engine, for routes and anything else
+ *   systemHost($opts)                                       the system engine (no site), for system routes
  * Core never names a plugin here: everything comes from the plugin folders and the deployment's plugin config.
  * HAXCMS_PLUGINS=off turns all of it off (every call is then a no-op).
  *
@@ -170,6 +171,7 @@ class HAXCMSPluginSystem
                 'version' => $version,
                 'user' => $opts['user'] ?? null,
                 'liveNetwork' => true,
+                'liveExec' => true,
             ]);
             $found = self::pluginDirsFor($dir, $root);
             $h->load($found['dirs'], [
@@ -182,6 +184,46 @@ class HAXCMSPluginSystem
         // core reloads the site during a request; keep the engine's view of site.json and pages current
         $h->manifest = $site->manifest;
         $h->hydrate();
+        if (array_key_exists('user', $opts)) {
+            $h->user = $opts['user'];
+        }
+        return $h;
+    }
+
+    /**
+     * The system engine (cached for this request): HAXcms-wide plugins with no site, for system-scope operations,
+     * the plugin list and dashboard contributions (spec/13 section 8b). Site-tier plugins are not part of it.
+     * @return HAXCMSPluginHost|null
+     */
+    public static function systemHost(array $opts = [])
+    {
+        if (!self::enabled() || !self::specRoot()) {
+            return null;
+        }
+        $root = $opts['root'] ?? (defined('HAXCMS_ROOT') ? HAXCMS_ROOT : getcwd());
+        $key = "\0system:$root";
+        $h = self::$hosts[$key] ?? null;
+        if (!$h) {
+            $version = '0.0.0';
+            if (isset($GLOBALS['HAXCMS']) && method_exists($GLOBALS['HAXCMS'], 'getHAXCMSVersion')) {
+                $version = (string) $GLOBALS['HAXCMS']->getHAXCMSVersion();
+            }
+            $h = new HAXCMSPluginHost([
+                'manifest' => null,
+                'root' => $root,
+                'version' => $version,
+                'user' => $opts['user'] ?? null,
+                'liveNetwork' => true,
+                'liveExec' => true,
+            ]);
+            $found = self::pluginDirsFor(null, $root);
+            $h->load($found['dirs'], [
+                'disabled' => $found['cfg']['disabled'],
+                'blocked' => $found['cfg']['blocked'],
+                'settings' => self::pluginSettings($found['dirs'], null, $root),
+            ]);
+            self::$hosts[$key] = $h;
+        }
         if (array_key_exists('user', $opts)) {
             $h->user = $opts['user'];
         }

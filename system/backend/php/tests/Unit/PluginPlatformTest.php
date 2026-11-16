@@ -205,6 +205,57 @@ class PluginPlatformTest extends TestCase
         $this->assertSame('system-contrib', $h->get('fx-vetoer')->tier);
     }
 
+    /** The system engine (spec/13 section 8b): no site, system stores only; anything site-bound refuses. */
+    public function testSystemEngineHasNoSite(): void
+    {
+        $root = HAXCMSPluginEngine::tempDir('haxcms-plugin-test-');
+        $this->tmp[] = $root;
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->fx('fx-scheduled'));
+        $h = HAXCMSPluginSystem::systemHost(['root' => $root]);
+        $this->assertNotNull($h);
+        $this->assertSame($h, HAXCMSPluginSystem::systemHost(['root' => $root]), 'cached per HAXcms root');
+        $this->assertNull($h->site);
+        $this->assertNull($h->siteInfo());
+        $this->assertSame('active', $h->get('fx-scheduled')->status);
+        // fx-scheduled keeps its ticks in a site store, so the job is refused rather than run against some site
+        $r = $h->runSchedule('fx-scheduled', 'tick');
+        $this->assertSame(500, $r['status']);
+        $this->assertStringContainsString('needs a site; this is the system engine', $r['body']['error']);
+        try {
+            $h->render(['id' => 'p1', 'content' => 'x']);
+            $this->fail('rendering needs a site');
+        } catch (RuntimeException $e) {
+            $this->assertSame('rendering: needs a site; this is the system engine', $e->getMessage());
+        }
+        try {
+            $h->saveEntity('page', ['id' => 'p1', 'title' => 'x']);
+            $this->fail('page records need a site');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('page records: needs a site', $e->getMessage());
+        }
+    }
+
+    /** /.well-known/<reserved name> is answered by the plugin that declares it, on the system engine (spec/05). */
+    public function testWellKnownServesADeclaredReservedName(): void
+    {
+        $root = HAXCMSPluginEngine::tempDir('haxcms-plugin-test-');
+        $this->tmp[] = $root;
+        mkdir("$root/_config/plugins/config", 0775, true);
+        file_put_contents("$root/_config/plugins/config/oauth.json", json_encode(['issuer' => 'https://cms.example.edu']));
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->spec . '/core-plugins/oauth');
+        $this->assertSame('active', HAXCMSPluginSystem::systemHost(['root' => $root])->get('oauth')->status);
+        // not reserved, another base path, or not a GET: never a plugin's
+        $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/.well-known/security.txt', '/', 'GET', ['root' => $root]));
+        $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/other/.well-known/oauth-authorization-server', '/', 'GET', ['root' => $root]));
+        $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/.well-known/oauth-authorization-server', '/', 'POST', ['root' => $root]));
+        $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/.well-known/openid-configuration', '/', 'GET', ['root' => $root]), 'nothing declares it');
+        ob_start();
+        $served = HAXCMSPluginRoutes::dispatchWellKnown('/.well-known/oauth-authorization-server', '/', 'GET', ['root' => $root]);
+        $body = json_decode((string) ob_get_clean(), true);
+        $this->assertTrue($served);
+        $this->assertSame('https://cms.example.edu', $body['issuer'] ?? null, json_encode($body));
+    }
+
     public function testRoutesMatchPathTemplatesAndScope(): void
     {
         $p = new HAXCMSPluginRecord();
@@ -269,5 +320,55 @@ class PluginPlatformTest extends TestCase
         $this->assertSame([['Doc', null, 'doc'], ['One', null, 'one'], ['Sub', 'item-2', 'one/sub'], ['Two', null, 'two']], array_map(function ($i) {
             return [$i['title'], $i['parent'], $i['slug']];
         }, $items));
+    }
+
+    /** ctx->exec on a real HAXcms: the same rules haxcms-nodejs's host runs (plugin-platform.test.cjs). */
+    private function execHost()
+    {
+        $s = $this->site();
+        $h = new HAXCMSPluginHost(['manifest' => $s['manifest'], 'siteDirectory' => $s['dir'], 'root' => $s['root'], 'now' => 0, 'liveExec' => true]);
+        $p = new HAXCMSPluginRecord();
+        $p->id = 'fx-exec-live';
+        $p->manifest = ['capabilities' => ['exec:run'], 'exec' => [PHP_BINARY]];
+        return [$h, $p, $s];
+    }
+
+    public function testExecRunsListedCommandsWithFilesInAPrivateTmp(): void
+    {
+        [$h, $p, $s] = $this->execHost();
+        putenv('HAX_SECRET_TEST=leak');
+        $script = '$t=$argv[1];echo json_encode(["key"=>file_get_contents("$t/id"),"mode"=>decoct(fileperms("$t/id")&0777),"home"=>getenv("HOME")===$t,"cwd"=>getcwd(),"secret"=>getenv("HAX_SECRET_TEST")?:null,"input"=>stream_get_contents(STDIN),"tmp"=>$t]);fwrite(STDERR,"warn");';
+        try {
+            $r = $h->execFor($p, PHP_BINARY, ['-r', $script, '{tmp}'], ['files' => ['id' => ['content' => 'KEY']], 'input' => 'hello']);
+        } finally {
+            putenv('HAX_SECRET_TEST');
+        }
+        $this->assertSame(0, $r['code']);
+        $this->assertSame('warn', $r['stderr']);
+        $out = json_decode($r['stdout'], true);
+        $this->assertSame(['KEY', '600', true, null, 'hello'], [$out['key'], $out['mode'], $out['home'], $out['secret'], $out['input']]);
+        $this->assertSame(realpath($s['dir']), realpath($out['cwd']));
+        $this->assertDirectoryDoesNotExist($out['tmp']);
+        $this->assertSame(['<tmp>'], array_slice(end($h->execCalls)['args'], -1));
+    }
+
+    public function testExecReturnsExitCodesAndRefusesTimeoutsAndEscapes(): void
+    {
+        [$h, $p] = $this->execHost();
+        $this->assertSame(3, $h->execFor($p, PHP_BINARY, ['-r', 'exit(3);'])['code']);
+        foreach ([
+            [['-r', 'sleep(10);'], ['timeout' => 200], 'timed out after 200 ms'],
+            [['-r', '1;'], ['cwd' => '..'], 'cwd must be inside the site folder'],
+            [['-r', '1;'], ['files' => ['../x' => ['content' => '']]], 'not a plain file name'],
+        ] as [$args, $opts, $message]) {
+            try {
+                $h->execFor($p, PHP_BINARY, $args, $opts);
+                $this->fail("expected: $message");
+            } catch (RuntimeException $e) {
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
+        }
+        $this->expectExceptionMessage('may not run "sh"');
+        $h->execFor($p, 'sh', ['-c', 'id']);
     }
 }

@@ -7,9 +7,9 @@
  *   system scope  system/api/v1/plugins/<id>/...
  * plus GET system/api/v1/plugins (the plugin list) and GET .../plugins/contributions (spec/07). The engine enforces
  * each operation's declared security from the credentials resolved here; routes never decide auth themselves.
- *
- * Not served yet (parity gap with haxcms-nodejs#138): /.well-known/<name> for x-hax-well-known operations, which
- * needs a rewrite rule in front of the static file server.
+ * and GET <basePath>.well-known/<name> for a public system GET a plugin marks with x-hax-well-known (spec/05). A
+ * request for a file that does not exist already reaches index.php (the .htaccess catch-all, nginx try_files), which
+ * hands reserved names here; a real file of that name still wins, as in haxcms-nodejs.
  */
 require_once __DIR__ . '/HAXCMSPluginSystem.php';
 
@@ -38,46 +38,73 @@ class HAXCMSPluginRoutes
         if (!HAXCMSPluginSystem::enabled() || ($suffix !== 'v1/plugins' && strpos($suffix, 'v1/plugins/') !== 0)) {
             return false;
         }
-        // TODO(draft, same as haxcms-nodejs#138): one engine per site, so system-scope operations borrow a site's
-        // engine (the first site); a system-level engine is an open item (spec/13 section 9)
-        $site = self::anySite();
+        // system-scope work runs on the system engine, never on some site's (spec/13 section 8b)
         if ($suffix === 'v1/plugins') {
-            $auth = self::resolveAuth($context, $site);
+            $auth = self::resolveAuth($context, null);
             if (!$auth['jwt']) {
                 self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
                 return true;
             }
-            $h = $site ? HAXCMSPluginSystem::host($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])]) : null;
+            $h = HAXCMSPluginSystem::systemHost(['user' => HAXCMSPluginSystem::userRecord($auth['userName'])]);
             self::send(200, ['status' => 200, 'data' => $h ? $h->status() : []]);
             return true;
         }
         $rest = substr($suffix, strlen('v1/plugins/'));
         if ($rest === 'contributions' && $context->method === 'GET') {
-            self::contributions('dashboard', $site, $context);
+            self::contributions('dashboard', null, $context);
             return true;
         }
-        if (!$site) {
-            self::send(404, ['status' => 404, 'data' => ['message' => 'Unable to resolve site context for plugin route']]);
-            return true;
-        }
-        self::operation('system', $rest, $site, $context);
+        self::operation('system', $rest, null, $context);
         return true;
     }
 
-    private static function anySite()
+    /** Reserved names a plugin may serve at /.well-known/ (spec/05); anything else is never a plugin's. */
+    const WELL_KNOWN = ['oauth-authorization-server', 'oauth-protected-resource', 'openid-configuration'];
+
+    /**
+     * GET <basePath>.well-known/<name>: the first active plugin on the system engine whose public GET declares
+     * x-hax-well-known: <name> answers it, with no credentials. Same rule as haxcms-nodejs pluginRoutes.js. $opts go to
+     * systemHost (root, for tests).
+     * @return bool true when a plugin answered
+     */
+    public static function dispatchWellKnown($requestPath, $basePath, $method, array $opts = [])
     {
-        if (!isset($GLOBALS['HAXCMS']) || !defined('HAXCMS_ROOT')) {
-            return null;
+        if (!HAXCMSPluginSystem::enabled() || strtoupper((string) $method) !== 'GET') {
+            return false;
         }
-        $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory;
-        $names = [];
-        foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $n) {
-            if ($n[0] !== '.' && is_file("$dir/$n/site.json")) {
-                $names[] = $n;
+        $prefix = rtrim((string) $basePath, '/') . '/.well-known/';
+        if (strpos((string) $requestPath, $prefix) !== 0) {
+            return false;
+        }
+        $name = substr((string) $requestPath, strlen($prefix));
+        if (!in_array($name, self::WELL_KNOWN, true)) {
+            return false;
+        }
+        try {
+            $h = HAXCMSPluginSystem::systemHost(['user' => null] + $opts);
+            if (!$h) {
+                return false;
             }
+            foreach ($h->plugins as $p) {
+                if ($p->status !== 'active' || !is_file("{$p->dir}/config/openapi.yaml")) {
+                    continue;
+                }
+                $api = HAXCMSPluginEngine::readAny("{$p->dir}/config/openapi.yaml");
+                foreach ((is_array($api) ? ($api['paths'] ?? []) : []) as $verbs) {
+                    $op = is_array($verbs) ? ($verbs['get'] ?? null) : null;
+                    if (is_array($op) && ($op['x-hax-well-known'] ?? null) === $name && isset($op['operationId'])) {
+                        $r = $h->call($op['operationId'], ['params' => [], 'query' => $_GET, 'body' => [], 'headers' => self::requestHeaders()], 'none');
+                        self::send($r['status'] ?? 200, array_key_exists('body', $r) ? $r['body'] : null);
+                        return true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugin well-known: ' . $e->getMessage());
+            self::send(500, ['status' => 500, 'data' => ['message' => 'server error']]);
+            return true;
         }
-        sort($names, SORT_STRING);
-        return $names ? $GLOBALS['HAXCMS']->loadSite($names[0]) : null;
+        return false;
     }
 
     /**
@@ -164,7 +191,8 @@ class HAXCMSPluginRoutes
     {
         try {
             $auth = self::resolveAuth($context, $site);
-            $h = HAXCMSPluginSystem::host($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])]);
+            $user = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
+            $h = $scope === 'system' ? HAXCMSPluginSystem::systemHost($user) : HAXCMSPluginSystem::host($site, $user);
             $slash = strpos($rest, '/');
             $id = $slash === false ? $rest : substr($rest, 0, $slash);
             $path = '/' . ltrim($slash === false ? '' : substr($rest, $slash + 1), '/');
@@ -196,7 +224,8 @@ class HAXCMSPluginRoutes
             self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
             return;
         }
-        $h = $site ? HAXCMSPluginSystem::host($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])]) : null;
+        $user = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
+        $h = $surface === 'site' ? HAXCMSPluginSystem::host($site, $user) : HAXCMSPluginSystem::systemHost($user);
         if (!$h) {
             self::send(200, ['status' => 200, 'data' => ['contributions' => [], 'contracts' => new stdClass()]]);
             return;
@@ -236,6 +265,11 @@ class HAXCMSPluginRoutes
                 // a plugin names its own response headers; never let one carry a line break
                 header(preg_replace('/[\r\n:]/', '', (string) $k) . ': ' . preg_replace('/[\r\n]/', '', (string) $v));
             }
+        }
+        // the same code / params next to the English message as every other API answer (haxtheweb/issues#3157)
+        if (is_array($body)) {
+            include_once dirname(__DIR__) . '/HAXCMSApiMessageCodes.php';
+            $body = HAXCMSApiMessageCodes::annotate($body, (int) $status);
         }
         echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
