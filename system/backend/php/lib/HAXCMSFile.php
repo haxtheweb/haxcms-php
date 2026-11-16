@@ -7,7 +7,14 @@ use \Gumlet\ImageResize;
 // a site object
 class HAXCMSFile
 {
-    private $allowedUploadPattern = '/\.(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf|h5p)$/i';
+    // the one upload allowlist (HAXCMSMediaSettingsService::SAFE_UPLOAD_FORMATS),
+    // set in the constructor because a property default can't call a method
+    private $allowedUploadPattern;
+
+    public function __construct()
+    {
+        $this->allowedUploadPattern = HAXCMSMediaSettingsService::safeUploadExtensionPattern();
+    }
     private $allowedMimeByExtension = array(
         'jpg' => array('image/jpeg'),
         'jpeg' => array('image/jpeg'),

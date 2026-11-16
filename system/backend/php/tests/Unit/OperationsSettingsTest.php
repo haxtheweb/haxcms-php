@@ -430,6 +430,29 @@ class OperationsSettingsTest extends TestCase
         $this->assertSame(512, $persisted['maxUploadSizeMb']);
     }
 
+    public function testSaveMediaSettingsRefusesFormatsHaxcmsCanNeverStore(): void
+    {
+        // haxtheweb/issues#3054, parity with haxcms-nodejs
+        // save-settings-routes.test.cjs
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'user_token' => 'good',
+            'mediaSettings' => array('acceptedFormats' => 'png, SVG, pdf, .exe'),
+        );
+        $result = $this->ops->saveMediaSettings();
+        $this->assertSame(400, $result['__failed']['status']);
+        $this->assertSame('Invalid acceptedFormats value: unsupported svg, exe', $result['__failed']['message']);
+        $this->assertFileDoesNotExist($this->settingsPath('media.json'));
+
+        $this->ops->params = array(
+            'user_token' => 'good',
+            'mediaSettings' => array('acceptedFormats' => 'png,pdf'),
+        );
+        $result = $this->ops->saveMediaSettings();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('png,pdf', $result['data']['acceptedFormats']);
+    }
+
     // ===== getMediaSettings =====
 
     public function testGetMediaSettingsFailsWithInvalidUserToken(): void
