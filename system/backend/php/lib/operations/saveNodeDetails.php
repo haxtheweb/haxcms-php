@@ -235,6 +235,10 @@ trait OperationsRouteSaveNodeDetails {
         case 'setTitle':
           if (array_key_exists('title', $this->params['node']['details']) && $this->params['node']['details']['title'] !== '') {
             $page->title = strip_tags($this->params['node']['details']['title']);
+            // white space or the text "null" is no title
+            if (SanitizeContent::isBlankPageTitle($page->title)) {
+              $page->title = SanitizeContent::DEFAULT_PAGE_TITLE;
+            }
             // If pathauto is on and overridePathauto is not set, regenerate the slug and cascade
             $pathautoEnabled = $site->isPathautoEnabled();
             $overridePathauto = isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true;

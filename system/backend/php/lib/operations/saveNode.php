@@ -60,8 +60,10 @@ trait OperationsRouteSaveNode {
           }
           foreach($pageData as $data) {
             // trap to ensure if front-end didnt send a UUID for id then we make it
-            if (!isset($data["attributes"]["title"])) {
-              $data["attributes"]["title"] = 'New page';
+            // a page-break with no title, a blank one, or the text "null"
+            // saves the default title
+            if (!isset($data["attributes"]["title"]) || SanitizeContent::isBlankPageTitle(SanitizeContent::plainText($data["attributes"]["title"]))) {
+              $data["attributes"]["title"] = SanitizeContent::DEFAULT_PAGE_TITLE;
             }
             // to avoid critical error in parsing, we defer to the POST's ID always
             // this also blocks multiple page breaks if it doesn't exist as we don't allow

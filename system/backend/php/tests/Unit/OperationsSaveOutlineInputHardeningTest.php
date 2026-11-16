@@ -311,6 +311,19 @@ class OperationsSaveOutlineInputHardeningTest extends TestCase
         $this->assertSame('Bold Title', $byId['item-b']->title);
     }
 
+    public function testTitleNullOrWhiteSpaceGetsTheDefaultTitle(): void
+    {
+        $this->buildSite(true);
+        $result = $this->runOutline(array(
+            $this->item('item-a', array('title' => 'null')),
+            $this->item('item-b', array('title' => '   ')),
+        ));
+        $this->assertSaved($result);
+        $byId = $this->persisted();
+        $this->assertSame('New page', $byId['item-a']->title);
+        $this->assertSame('New page', $byId['item-b']->title);
+    }
+
     public function testScalarMetadataIsNormalizedToAnObject(): void
     {
         $this->buildSite(true);
