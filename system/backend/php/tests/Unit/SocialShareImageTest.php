@@ -85,7 +85,6 @@ class SocialShareImageTest extends TestCase
                 } else {
                     imagejpeg($img, $fullPath);
                 }
-                imagedestroy($img);
             } else {
                 file_put_contents($fullPath, $contents);
             }
@@ -219,6 +218,7 @@ class SocialShareImageTest extends TestCase
  */
 class SocialShareTestSite extends HAXCMSSite
 {
+    public $siteDirectory = '';
     // Inherited getSocialShareImage uses $this->manifest and $GLOBALS['HAXCMS'].
     // getLogoSize is stubbed so the logo fallback needs no image toolchain.
     public function getLogoSize($height, $width, $format = "png")

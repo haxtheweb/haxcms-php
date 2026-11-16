@@ -63,7 +63,6 @@ class HAXCMSFile
             // build once from a shared instance (the map is constant)
             $inst = new self();
             $ref = new ReflectionProperty(self::class, 'allowedMimeByExtension');
-            $ref->setAccessible(true);
             $map = $ref->getValue($inst);
         }
         $ext = strtolower((string) $ext);
@@ -84,7 +83,6 @@ class HAXCMSFile
         if ($exts === null) {
             $inst = new self();
             $ref = new ReflectionProperty(self::class, 'imageExtensions');
-            $ref->setAccessible(true);
             $exts = $ref->getValue($inst);
             if (!is_array($exts)) {
                 $exts = array('jpg', 'jpeg', 'png', 'gif', 'webp');
@@ -196,7 +194,6 @@ class HAXCMSFile
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             if ($finfo !== false) {
                 $mimeType = finfo_file($finfo, $tmpPath);
-                finfo_close($finfo);
             }
         }
         if (($mimeType === false || $mimeType === null || $mimeType === '') && function_exists('mime_content_type')) {
@@ -412,7 +409,6 @@ class HAXCMSFile
             return false;
         }
         $saved = @imagejpeg($sourceImage, $fullpath, $jpegQuality);
-        imagedestroy($sourceImage);
         return ($saved === true);
     }
     public static function getBulkImportStagingRootPath()
@@ -539,6 +535,14 @@ class HAXCMSFile
         }
         catch (Exception $e) {}
         $isAllowedExtension = preg_match($this->allowedUploadPattern, $name);
+        // haxtheweb/issues#3054: the media settings' accepted formats narrow
+        // the safe list above (an operator can turn off, say, csv uploads)
+        if ($isAllowedExtension) {
+            $isAllowedExtension = HAXCMSMediaSettingsService::isUploadFormatAccepted(
+                HAXCMSMediaSettingsService::readMediaSettings($HAXCMS),
+                pathinfo((string) $name, PATHINFO_EXTENSION)
+            );
+        }
         $passesMimeValidation = false;
         if ($isUploadSourceValid && $isAllowedExtension) {
             $passesMimeValidation = $this->validateUploadMimeAndContent(
@@ -610,9 +614,12 @@ class HAXCMSFile
                 $i++;
             }
             // sanitization for the file name
-            $actual_name = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $actual_name);
+            // Keeps the characters mbregex's Unicode \w \s \d kept (Alphabetic,
+            // marks, decimal digits, connector punctuation, white space) plus
+            // - _ ~ , ; [ ] ( ) . ; mb_ereg_replace is deprecated in PHP 8.6.
+            $actual_name = (string) preg_replace('/[^\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\s\-_~,;\[\]\(\).]/u', '', (string) $actual_name);
             // Remove any runs of periods (thanks falstro!)
-            $actual_name = mb_ereg_replace("([\.]{2,})", '', $actual_name);
+            $actual_name = (string) preg_replace('/\.{2,}/', '', $actual_name);
             $name = $actual_name . "." . $extension;
             // on bulk import we keep directory tree and apply changes to the name itself
             if (isset($upload['bulk-import'])) {

@@ -429,7 +429,6 @@ class Operations {
       $finfo = finfo_open(FILEINFO_MIME_TYPE);
       if ($finfo !== false) {
         $detected = finfo_buffer($finfo, $content);
-        finfo_close($finfo);
       }
     }
     if (($detected === false || $detected === null || $detected === '') && function_exists('mime_content_type')) {
@@ -1408,7 +1407,6 @@ class Operations {
     $width = imagesx($sourceImage);
     $height = imagesy($sourceImage);
     if ($width <= 0 || $height <= 0) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1417,7 +1415,6 @@ class Operations {
     }
     $targetImage = imagecreatetruecolor($width, $height);
     if (!$targetImage) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1436,8 +1433,6 @@ class Operations {
     }
     $jpgQuality = $this->resolveJpegQualityValue($jpgQuality);
     $saved = @imagejpeg($targetImage, $outputPath, $jpgQuality);
-    imagedestroy($sourceImage);
-    imagedestroy($targetImage);
     if (!$saved) {
       return array(
         'success' => false,
@@ -1470,7 +1465,6 @@ class Operations {
     $sourceWidth = imagesx($sourceImage);
     $sourceHeight = imagesy($sourceImage);
     if ($sourceWidth <= 0 || $sourceHeight <= 0) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1479,7 +1473,6 @@ class Operations {
     }
     $extension = $this->getImageExtensionForRotation($sourcePath);
     if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 400,
@@ -1497,7 +1490,6 @@ class Operations {
     $outputHeight = max((int) floor($sourceHeight * $ratio), 1);
     $targetImage = imagecreatetruecolor($outputWidth, $outputHeight);
     if (!$targetImage) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1543,8 +1535,6 @@ class Operations {
     else {
       $saved = false;
     }
-    imagedestroy($sourceImage);
-    imagedestroy($targetImage);
     if (!$saved) {
       if (file_exists($temporaryPath)) {
         @unlink($temporaryPath);
@@ -1601,7 +1591,6 @@ class Operations {
     $width = imagesx($sourceImage);
     $height = imagesy($sourceImage);
     if ($width <= 0 || $height <= 0) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1610,7 +1599,6 @@ class Operations {
     }
     $extension = $this->getImageExtensionForRotation($sourcePath);
     if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 400,
@@ -1638,7 +1626,6 @@ class Operations {
     else {
       $saved = false;
     }
-    imagedestroy($sourceImage);
     if (!$saved) {
       if (file_exists($temporaryPath)) {
         @unlink($temporaryPath);
@@ -1699,7 +1686,6 @@ class Operations {
     $width = imagesx($sourceImage);
     $height = imagesy($sourceImage);
     if ($width <= 0 || $height <= 0) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 500,
@@ -1708,7 +1694,6 @@ class Operations {
     }
     $extension = $this->getImageExtensionForRotation($sourcePath);
     if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 400,
@@ -1743,7 +1728,6 @@ class Operations {
     else {
       $saved = false;
     }
-    imagedestroy($sourceImage);
     if (!$saved) {
       if (file_exists($temporaryPath)) {
         @unlink($temporaryPath);
@@ -1852,7 +1836,6 @@ class Operations {
     else {
       $saved = function_exists('imagewebp') ? @imagewebp($uploadImage, $temporaryPath, $resolvedQuality) : false;
     }
-    imagedestroy($uploadImage);
     if (!$saved) {
       if (file_exists($temporaryPath)) {
         @unlink($temporaryPath);
@@ -1900,7 +1883,6 @@ class Operations {
     }
     $extension = $this->getImageExtensionForRotation($sourcePath);
     if (!in_array($extension, array('jpg', 'png', 'gif', 'webp'), true)) {
-      imagedestroy($sourceImage);
       return array(
         'success' => false,
         'status' => 400,
@@ -1917,7 +1899,6 @@ class Operations {
     }
     $backgroundColor = imagecolorallocatealpha($sourceImage, 0, 0, 0, 127);
     $rotatedImage = @imagerotate($sourceImage, $rotationDegrees, $backgroundColor);
-    imagedestroy($sourceImage);
     if (!$rotatedImage) {
       return array(
         'success' => false,
@@ -1935,7 +1916,6 @@ class Operations {
       $temporaryPath,
       $extension
     );
-    imagedestroy($rotatedImage);
     if (!$saved) {
       if (file_exists($temporaryPath)) {
         @unlink($temporaryPath);

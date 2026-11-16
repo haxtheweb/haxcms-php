@@ -250,7 +250,6 @@ class SystemRoutesLanguagesTest extends TestCase
 
         $ops = new Operations();
         $call = new ReflectionMethod($ops, 'collectLanguageTranslations');
-        $call->setAccessible(true);
         $all = $call->invoke($ops, 'es', '', 'all', $root);
         $this->assertSame(3, $all['count']);
         $keys = array_keys($all['namespaces']);

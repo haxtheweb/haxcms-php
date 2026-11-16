@@ -95,7 +95,6 @@ class OperationsSkeletonTest extends TestCase
     private function invokePrivate(string $method, array $args = [])
     {
         $ref = new ReflectionMethod('Operations', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->ops, $args);
     }
 

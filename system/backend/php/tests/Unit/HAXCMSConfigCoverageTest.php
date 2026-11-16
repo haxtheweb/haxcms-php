@@ -34,7 +34,6 @@ class HAXCMSConfigCoverageTest extends TestCase
         $this->haxcms->systemRequestBase = 'system/api';
         $this->haxcms->configDirectory = null;
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->haxcms, null);
         $this->haxcms->user = new stdClass();
         $this->haxcms->user->name = null;
@@ -93,7 +92,6 @@ class HAXCMSConfigCoverageTest extends TestCase
     private function invokePrivate($method, ...$args)
     {
         $ref = new ReflectionMethod('HAXCMS', $method);
-        $ref->setAccessible(true);
         return $ref->invoke($this->haxcms, ...$args);
     }
 
@@ -341,7 +339,6 @@ class HAXCMSConfigCoverageTest extends TestCase
         $this->assertNull($this->haxcms->setCache('anything', 'data'));
         // real cache -> round trip
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->haxcms, new Cache(array(
             'name' => 'covcache',
             'path' => $this->tmpDir . '/',

@@ -295,7 +295,6 @@ assertTrue(isset($routes['POST']['v1/haxiamAddUserAccess']), 'POST v1/haxiamAddU
 echo "[4/13] Route pattern matching...\n";
 $ref = new ReflectionClass('SystemApiRouter');
 $matchPattern = $ref->getMethod('matchPattern');
-$matchPattern->setAccessible(true);
 $result = $matchPattern->invoke(null, 'v1/sites/:siteName', 'v1/sites/my-site');
 assertTrue(is_array($result) && isset($result['siteName']) && $result['siteName'] === 'my-site', 'Route pattern extracts siteName parameter');
 $result = $matchPattern->invoke(null, 'v1/sites/:siteName/clone', 'v1/sites/my-site/clone');
@@ -308,7 +307,6 @@ echo "[5/13] SystemApiSecurity route security...\n";
 include_once $repoRoot . '/system/backend/php/lib/systemRoutes/SystemApiSecurity.php';
 $refSec = new ReflectionClass('SystemApiSecurity');
 $getRouteSecurity = $refSec->getMethod('getRouteSecurity');
-$getRouteSecurity->setAccessible(true);
 assertEquals('public', $getRouteSecurity->invoke(null, 'v1/session/login', 'POST'), 'session/login is public');
 assertEquals('public', $getRouteSecurity->invoke(null, 'v1/session/logout', 'POST'), 'session/logout is public');
 assertEquals('authenticated', $getRouteSecurity->invoke(null, 'v1/status', 'GET'), 'v1/status is authenticated');

@@ -64,7 +64,6 @@ class ConfigJsonSafeguardTest extends TestCase
     private function invokeLoadConfigJson(string $path)
     {
         $method = new ReflectionMethod(HAXCMS::class, 'loadConfigJson');
-        $method->setAccessible(true);
         return $method->invoke($this->haxcms, $path);
     }
 
@@ -200,7 +199,6 @@ class ConfigJsonSafeguardTest extends TestCase
     public function testMinimalConfigFallbackShapeMatchesSpec(): void
     {
         $method = new ReflectionMethod(HAXCMS::class, 'minimalConfigFallback');
-        $method->setAccessible(true);
         $config = $method->invoke($this->haxcms);
 
         $this->assertIsObject($config->themes);

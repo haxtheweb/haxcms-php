@@ -28,7 +28,6 @@ class SystemStatusServiceGapsTest extends TestCase
     private function call(string $method, ...$args)
     {
         $ref = new ReflectionMethod('HAXCMSSystemStatusService', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs(null, $args);
     }
 

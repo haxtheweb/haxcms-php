@@ -138,7 +138,6 @@ class MaterializeInlineImagesTest extends TestCase
         ob_start();
         imagepng($img);
         $bytes = ob_get_clean();
-        imagedestroy($img);
         return 'data:image/png;base64,' . base64_encode($bytes);
     }
 
@@ -251,7 +250,6 @@ class MaterializeInlineImagesTest extends TestCase
         ob_start();
         imagepng($img);
         $bytes = ob_get_clean();
-        imagedestroy($img);
         $uri = 'data:image/png;base64,' . base64_encode($bytes);
 
         $result = MaterializeInlineImages::materialize(

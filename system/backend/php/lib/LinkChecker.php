@@ -211,7 +211,6 @@ class LinkChecker
         curl_exec($ch);
         $errno = curl_errno($ch);
         $status = intval(curl_getinfo($ch, CURLINFO_RESPONSE_CODE));
-        curl_close($ch);
         // 23 = CURLE_WRITE_ERROR from the deliberate abort above
         if ($status > 0 && ($errno === 0 || $errno === 23)) {
             $errno = 0;
