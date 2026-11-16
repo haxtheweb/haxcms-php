@@ -1,27 +1,31 @@
 name: fuzz-nightly
-
-# Nightly fuzz hunt (haxtheweb/issues#3262, #3272), the PHP side of
-# haxcms-nodejs's fuzz-nightly. Plain scripting, no AI.
+# Nightly fuzz hunt (haxtheweb/issues#3262), the PHP side of the same job in
+# create, haxcms-nodejs and webcomponents. Plain scripting, no AI.
 #
-# PHPUnit runs the seeded block-operations fuzz (tests/Unit/BlockOperationsFuzzTest.php)
-# with a random BLOCK_FUZZ_SEED and far more pages than the per-PR run (which
-# always uses seed 3270), on PHP 8.3 (masterminds/html5 parser) and on 8.5
-# (Dom\HTMLDocument), since the two parse HTML differently. The seed is in the
-# job summary; a failure fails the run red with the command that replays it.
-# Nothing is opened, commented or pushed.
+# Runs `yarn test:fuzz` (tests/Unit/BlockOperationsFuzzTest.php with a random
+# HAX_FUZZ_SEED and 2000 generated pages; the per-PR run always uses seed 3270
+# and 40) on PHP 8.3 (masterminds/html5 parser) and 8.5 (Dom\HTMLDocument),
+# since the two parse HTML differently. The seed is in the job summary; a
+# failing page is replayed with its seed and path to confirm it, and the run
+# fails red. With the optional HAX_ISSUES_TOKEN secret (Issues: read and write
+# on haxtheweb/issues) it also opens or comments on a
+# `[fuzz] haxcms-php: <property>` issue there; without it, issue filing is
+# skipped with a note in the summary.
+#
+# Cost: standard GitHub-hosted runners are free in public repositories; each
+# leg takes a few minutes, at night, so it does not hold up PR checks.
+#
+# Logic: scripts/fuzz-nightly.mjs (same file in create, haxcms-nodejs and
+# webcomponents). Seed convention: haxtheweb/issues#3272.
 on:
   schedule:
-    - cron: "37 8 * * *" # 3:37 AM America/New_York (EST); 4:37 AM during EDT
+    - cron: "23 8 * * *" # 3:23 AM America/New_York (EST); 4:23 AM during EDT
   workflow_dispatch:
     inputs:
       seed:
         description: "Replay a seed (integer); leave empty for a random one"
         required: false
         default: ""
-      iterations:
-        description: "Generated pages per run"
-        required: false
-        default: "2000"
 permissions:
   contents: read
 concurrency:
@@ -29,16 +33,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   fuzz:
-    name: "block operations fuzz (PHP ${{ matrix.php-version }})"
+    name: "fuzz hunt (PHP ${{ matrix.php-version }})"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         php-version: ["8.3", "8.5"]
-    defaults:
-      run:
-        working-directory: system/backend/php
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,43 +52,37 @@ jobs:
           extensions: mbstring, xml, dom, simplexml, gd, zip, curl, intl, fileinfo, iconv, xmlreader, xmlwriter, zlib
           ini-values: "error_reporting=E_ALL & ~E_NOTICE & ~E_DEPRECATED"
           coverage: none
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-      - name: Pick the seed
-        id: seed
-        env:
-          SEED_INPUT: ${{ inputs.seed }}
-          ITERATIONS_INPUT: ${{ inputs.iterations }}
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install
+        id: install
+        working-directory: system/backend/php
         run: |
-          if [ -n "$SEED_INPUT" ]; then
-            seed="$SEED_INPUT"
-          else
-            seed=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
-          fi
-          case "$seed" in (*[!0-9]*|'') echo "::error::seed must be a non-negative integer"; exit 1;; esac
-          iterations="${ITERATIONS_INPUT:-2000}"
-          case "$iterations" in (*[!0-9]*|'') echo "::error::iterations must be a positive integer"; exit 1;; esac
-          echo "seed=$seed" >> "$GITHUB_OUTPUT"
-          echo "iterations=$iterations" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Block operations fuzz (PHP ${{ matrix.php-version }})"
-            echo ""
-            echo "Seed \`$seed\`, $iterations generated pages."
-          } >> "$GITHUB_STEP_SUMMARY"
+          set -o pipefail
+          composer install --prefer-dist --no-interaction --no-progress 2>&1 | tee "$RUNNER_TEMP/install.log"
       - name: Fuzz hunt
+        id: fuzz
         env:
-          BLOCK_FUZZ_SEED: ${{ steps.seed.outputs.seed }}
-          BLOCK_FUZZ_ITERATIONS: ${{ steps.seed.outputs.iterations }}
-        run: vendor/bin/phpunit --filter BlockOperationsFuzzTest
-      - name: Replay command
-        if: failure()
+          HAX_FUZZ_SEED_INPUT: ${{ inputs.seed }}
+          HAX_ISSUES_TOKEN: ${{ secrets.HAX_ISSUES_TOKEN }}
+        run: node scripts/fuzz-nightly.mjs -- yarn --silent test:fuzz
+      - name: Report a failed setup step
+        if: failure() && steps.fuzz.outcome != 'failure'
         env:
-          SEED: ${{ steps.seed.outputs.seed }}
-          ITERATIONS: ${{ steps.seed.outputs.iterations }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
         run: |
           {
-            echo ""
-            echo "**Failed.** Replay locally on PHP ${{ matrix.php-version }} from system/backend/php:"
-            echo ""
-            echo "    BLOCK_FUZZ_SEED=$SEED BLOCK_FUZZ_ITERATIONS=$ITERATIONS vendor/bin/phpunit --filter BlockOperationsFuzzTest"
+            echo "## Nightly fuzz hunt: setup failed"
+            echo
+            echo "- Install: $INSTALL_OUTCOME"
+            if [ -f "$RUNNER_TEMP/install.log" ]; then
+              echo
+              echo "Last lines of the install output:"
+              echo
+              echo '~~~text'
+              tail -n 40 "$RUNNER_TEMP/install.log"
+              echo '~~~'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
