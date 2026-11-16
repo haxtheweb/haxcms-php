@@ -76,4 +76,17 @@ class WritingSkeletonTest extends TestCase
         $ids = array_column($items, 'id');
         $this->assertSame(count($ids), count(array_unique($ids)));
     }
+
+    /**
+     * New installs offer the new blocks in the block picker: the picker's list
+     * is the appStore autoloader in the system setup config, copied into
+     * _config/config.json on install.
+     */
+    public function testNewInstallsOfferTheNewBlocks(): void
+    {
+        $config = json_decode(file_get_contents(dirname(__DIR__, 4) . '/boilerplate/systemsetup/config.json'), true);
+        $autoloader = $config['appStore']['autoloader'];
+        $this->assertSame('@haxtheweb/a11y-footnote/a11y-footnote.js', $autoloader['a11y-footnote']);
+        $this->assertSame('@haxtheweb/d-d-d/lib/ddd-hero.js', $autoloader['ddd-hero']);
+    }
 }
