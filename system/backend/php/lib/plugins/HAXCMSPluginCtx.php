@@ -46,6 +46,11 @@ class HAXCMSPluginCtxStorage
         $this->e->writeStore($this->p, $id, $value);
         return true;
     }
+    /** Read, change and write one store as a single step (spec/04). $fn gets the stored value and returns the new one. */
+    public function update($id, callable $fn)
+    {
+        return $this->e->updateStore($this->p, $id, $fn);
+    }
 }
 
 class HAXCMSPluginCtxPackage

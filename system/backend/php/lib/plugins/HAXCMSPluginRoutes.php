@@ -14,7 +14,9 @@
  *   GET  x/api/v1/plugins                       the registry as one site sees it   (JWT + site token)
  *   POST x/api/v1/plugins/<id>/enable           enable for that site               (JWT + site token)
  *   POST x/api/v1/plugins/<id>/disable
- * enable, disable and settings are reserved sub-paths: a plugin operation cannot take them.
+ *   GET, POST .../plugins/<id>/settings         a plugin's settings form and values; secrets are write-only
+ *   GET  .../plugins/<id>/assets/<path>         one of its front-end files (frontend/dist), no credentials
+ * assets, enable, disable and settings are reserved sub-paths: a plugin operation cannot take them.
  * and GET <basePath>.well-known/<name> for a public system GET a plugin marks with x-hax-well-known (spec/05). A
  * request for a file that does not exist already reaches index.php (the .htaccess catch-all, nginx try_files), which
  * hands reserved names here; a real file of that name still wins, as in haxcms-nodejs.
@@ -39,7 +41,7 @@ class HAXCMSPluginRoutes
             self::contributions('site', $site, $context);
             return true;
         }
-        if (self::toggle('site', $rest, $site, $context)) {
+        if (self::toggle('site', $rest, $site, $context) || self::settings('site', $rest, $site, $context) || self::asset($rest, $site)) {
             return true;
         }
         self::operation('site', $rest, $site, $context);
@@ -63,7 +65,7 @@ class HAXCMSPluginRoutes
             self::contributions('dashboard', null, $context);
             return true;
         }
-        if (self::toggle('system', $rest, null, $context)) {
+        if (self::toggle('system', $rest, null, $context) || self::settings('system', $rest, null, $context) || self::asset($rest, null)) {
             return true;
         }
         self::operation('system', $rest, null, $context);
@@ -85,6 +87,63 @@ class HAXCMSPluginRoutes
             return;
         }
         self::send(200, ['status' => 200, 'data' => HAXCMSPluginSystem::registry($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])])]);
+    }
+
+    /** GET or POST .../plugins/<id>/settings (spec/13 section 7). @return bool true when answered */
+    private static function settings($scope, $rest, $site, $context)
+    {
+        if (!preg_match('#^([^/]+)/settings$#', (string) $rest, $m) || !in_array($context->method, ['GET', 'POST'], true)) {
+            return false;
+        }
+        $auth = self::resolveAuth($context, $site);
+        if (!self::allowed($scope, $auth, $site)) {
+            self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
+            return true;
+        }
+        $opts = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
+        try {
+            if ($context->method === 'POST') {
+                $body = self::requestBody($context);
+                $r = HAXCMSPluginSystem::saveSettings($site, $m[1], is_array($body) && array_key_exists('values', $body) ? $body['values'] : $body, $opts);
+            } else {
+                $r = HAXCMSPluginSystem::settings($site, $m[1], $opts);
+            }
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: settings failed: ' . $e->getMessage());
+            self::send(500, ['status' => 500, 'data' => ['message' => 'server error']]);
+            return true;
+        }
+        if ($r['status'] !== 200) {
+            self::send($r['status'], ['status' => $r['status'], 'data' => ['message' => $r['body']['error'] ?? 'refused']]);
+            return true;
+        }
+        self::send(200, ['status' => 200, 'data' => $r['body']]);
+        return true;
+    }
+
+    /**
+     * GET .../plugins/<id>/assets/<path> (spec/07, assets): frontend/dist of a plugin that is on, nothing else, with no
+     * credentials. @return bool true when the request was for an asset and was answered
+     */
+    private static function asset($rest, $site)
+    {
+        if (!preg_match('#^([^/]+)/assets/(.+)$#', (string) $rest, $m)) {
+            return false;
+        }
+        $h = $site ? HAXCMSPluginSystem::host($site, ['user' => null]) : HAXCMSPluginSystem::systemHost(['user' => null]);
+        $found = $h ? $h->asset($m[1], $m[2]) : ['status' => 404];
+        if ($found['status'] !== 200) {
+            self::send(404, ['status' => 404, 'data' => ['message' => 'not found']]);
+            return true;
+        }
+        if (!headers_sent()) {
+            http_response_code(200);
+            header('Content-Type: ' . $found['type']);
+            header('X-Content-Type-Options: nosniff');
+            header('Cache-Control: public, max-age=300');
+        }
+        readfile($found['file']);
+        return true;
     }
 
     /** POST .../plugins/<id>/enable|disable. @return bool true when the request was one of these and was answered */
@@ -270,7 +329,8 @@ class HAXCMSPluginRoutes
                 'query' => $_GET,
                 'body' => self::requestBody($context),
                 'headers' => self::requestHeaders(),
-            ], self::credentialsOf($auth));
+            // an anonymous call is counted against the caller's address (spec/05)
+            ], self::credentialsOf($auth), (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
             self::send($r['status'] ?? 200, array_key_exists('body', $r) ? $r['body'] : null, $r['headers'] ?? []);
         } catch (\Throwable $e) {
             error_log('HAXcms plugin route: ' . $e->getMessage());

@@ -99,6 +99,7 @@ class PhpBackend {
   deleteEntity(type, id) { return this.rpc("deleteEntity", type, id); }
   advertisedContracts() { return this.rpc("advertisedContracts"); }
   registry() { return this.rpc("registry"); }
+  asset(plugin, path) { return this.rpc("asset", plugin, path); }
   rebuild(reason) { return this.rpc("rebuild", reason); }
   callContract(name, op, input, opts = {}) { return this.rpc("callContract", name, op, input, opts); }
   runSchedule(plugin, id) { return this.rpc("runSchedule", plugin, id); }

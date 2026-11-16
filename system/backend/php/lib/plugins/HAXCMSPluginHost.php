@@ -131,15 +131,77 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         $s = trim(preg_replace('/[^a-z0-9]+/', '-', preg_replace('/<[^>]+>/', '', strtolower((string) $t))), '-');
         return $s === '' ? 'page' : $s;
     }
-    private function writeFile($full, $content)
+    /** Written whole to a temp file beside it and renamed, so a reader never sees half a file (spec/04). */
+    private function writeFile($full, $content, $mode = null)
     {
         $this->rememberFile($full);
         if (!is_dir(dirname($full))) {
             mkdir(dirname($full), 0775, true);
         }
-        if (file_put_contents($full, (string) $content) === false) {
+        $tmp = $full . '.' . getmypid() . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (file_put_contents($tmp, (string) $content) === false) {
             throw new RuntimeException('could not write ' . basename($full));
         }
+        if ($mode !== null) {
+            chmod($tmp, $mode);
+        }
+        if (!rename($tmp, $full)) {
+            @unlink($tmp);
+            throw new RuntimeException('could not write ' . basename($full));
+        }
+    }
+
+    /** Run $fn holding an exclusive lock named after $file, so requests in other processes wait their turn. */
+    private function withFileLock($file, callable $fn)
+    {
+        if (!is_dir(dirname($file))) {
+            mkdir(dirname($file), 0775, true);
+        }
+        $lock = fopen($file . '.lock', 'c');
+        if ($lock === false) {
+            throw new RuntimeException('could not lock ' . basename($file));
+        }
+        try {
+            flock($lock, LOCK_EX);
+            return $fn();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /** ctx.storage.update (spec/04): the read, the change and the write happen under the store file's lock. */
+    public function updateStore($p, $id, callable $fn)
+    {
+        $s = $p->stores[$id] ?? null;
+        $file = $s && ($s['scope'] ?? null) !== 'package' && !array_key_exists($id, $p->storeOverrides) ? $this->storeFile($p, $s) : null;
+        if (!$file) {
+            return parent::updateStore($p, $id, $fn);
+        }
+        return $this->withFileLock($file, function () use ($p, $id, $fn) {
+            return parent::updateStore($p, $id, $fn);
+        });
+    }
+
+    /** Anonymous calls are counted in one file per HAXcms root, under a lock, so every request sees the same counts. */
+    protected function countAnonymousCall($key, $max, $windowMs)
+    {
+        if (!$this->liveNetwork) {
+            // test hosts keep the counts in memory, like the reference
+            return parent::countAnonymousCall($key, $max, $windowMs);
+        }
+        $file = "{$this->root}/_config/plugins/rate.json";
+        return $this->withFileLock($file, function () use ($file, $key, $max, $windowMs) {
+            $all = is_file($file) ? json_decode((string) file_get_contents($file), true) : [];
+            $now = $this->now();
+            // forget windows that ended, so the file stays small
+            $this->rate = array_filter(is_array($all) ? $all : [], function ($slot) use ($now) {
+                return is_array($slot) && $now - (int) ($slot['start'] ?? 0) < self::RATE_WINDOWS['hour'];
+            });
+            $retry = parent::countAnonymousCall($key, $max, $windowMs);
+            $this->writeFile($file, json_encode((object) $this->rate));
+            return $retry;
+        });
     }
     private function saveManifest()
     {
@@ -229,18 +291,72 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
     {
         return "{$this->root}/_config/plugins/config/$id.json";
     }
+    /**
+     * Where a plugin's settings are saved (spec/13 sections 1 and 7): config in the scope's _config/plugins/config, and
+     * secret fields (x-secret) never there: system secrets in <root>/_config/plugins/secrets/<id>.json, a site's in
+     * <root>/_config/siteData/<site uuid>/plugins/<id>.secrets.json, outside every site folder and its git history.
+     */
+    public function settingsFiles($p)
+    {
+        $perSite = $this->site !== null && in_array($p->manifest['settingsScope'] ?? 'system', ['site', 'both'], true);
+        return [
+            'config' => $perSite ? "{$this->siteDirectory}/_config/plugins/config/{$p->id}.json" : $this->configFile($p->id),
+            'secrets' => $perSite ? "{$this->root}/_config/siteData/{$this->site['id']}/plugins/{$p->id}.secrets.json" : "{$this->root}/_config/plugins/secrets/{$p->id}.json",
+        ];
+    }
+    /** @return array<string, bool> the settings fields marked x-secret */
+    public function secretFields($p)
+    {
+        $out = [];
+        foreach ($p->form as $f) {
+            if (!empty($f['x-secret'])) {
+                $out[$f['property']] = true;
+            }
+        }
+        return $out;
+    }
     public function saveConfig($id, $values)
     {
         $r = parent::saveConfig($id, $values);
         $p = $this->get($id);
         if ($r['status'] === 200 && $p) {
-            $saved = [];
+            $secret = $this->secretFields($p);
+            $files = $this->settingsFiles($p);
+            $plain = [];
+            $hidden = [];
             foreach (array_keys($p->explicit) as $k) {
-                $saved[$k] = $p->settings[$k] ?? null;
+                if (isset($secret[$k])) {
+                    $hidden[$k] = $p->settings[$k] ?? null;
+                } else {
+                    $plain[$k] = $p->settings[$k] ?? null;
+                }
             }
-            $this->writeFile($this->configFile($id), json_encode((object) $saved, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+            $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+            $this->writeFile($files['config'], json_encode((object) $plain, $flags) . "\n");
+            if ($secret) {
+                $this->writeFile($files['secrets'], json_encode((object) $hidden, $flags) . "\n", 0600);
+            }
         }
         return $r;
+    }
+    /** A plugin's settings for a screen: the form, and the values with every secret replaced by whether it is set. */
+    public function settingsView($id)
+    {
+        $p = $this->get($id);
+        if (!$p) {
+            return null;
+        }
+        $secret = $this->secretFields($p);
+        $values = [];
+        foreach ($this->effectiveSettings($p) as $k => $v) {
+            $values[$k] = isset($secret[$k]) ? ['secret' => true, 'set' => $v !== null && $v !== ''] : $v;
+        }
+        foreach (array_keys($secret) as $k) {
+            if (!array_key_exists($k, $values)) {
+                $values[$k] = ['secret' => true, 'set' => false];
+            }
+        }
+        return ['id' => $p->id, 'scope' => $p->manifest['settingsScope'] ?? 'system', 'fields' => $p->form, 'values' => (object) $values, 'status' => $p->status, 'unmet' => $p->unmet ?: []];
     }
 
     // ---- plugin stores at the spec/04 locations ----

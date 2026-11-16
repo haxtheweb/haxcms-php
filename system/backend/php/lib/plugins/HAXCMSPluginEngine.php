@@ -58,6 +58,11 @@ class HAXCMSPluginEngine
 {
     const TIERS = ['haxiam-core' => 1, 'haxiam-contrib' => 2, 'system-core' => 3, 'system-contrib' => 4, 'site' => 5];
     const LIMITED_USER = ['id', 'name', 'displayName', 'roles', 'avatar'];
+    /** What the assets route serves, by extension (spec/07): scripts, styles, images, fonts and data a page loads. */
+    const ASSET_TYPES = ['.js' => 'text/javascript', '.mjs' => 'text/javascript', '.css' => 'text/css', '.json' => 'application/json', '.svg' => 'image/svg+xml', '.png' => 'image/png', '.jpg' => 'image/jpeg', '.jpeg' => 'image/jpeg', '.gif' => 'image/gif', '.webp' => 'image/webp', '.avif' => 'image/avif', '.woff2' => 'font/woff2', '.woff' => 'font/woff', '.txt' => 'text/plain', '.map' => 'application/json'];
+    /** Anonymous calls to one operation from one client (spec/05): the default, and the windows x-hax-rate-limit may name. */
+    const RATE_DEFAULT = ['requests' => 60, 'per' => 'minute'];
+    const RATE_WINDOWS = ['second' => 1000, 'minute' => 60000, 'hour' => 3600000];
     /** What a new site's site.json carries besides its id and title (boilerplate/site/site.json); the same in haxcms-nodejs. */
     const NEW_SITE = ['author' => '', 'description' => '', 'license' => 'by-sa'];
     const USER_TOKEN_REQUIRED = 'X-HAXCMS-User-Token header is required for this endpoint';
@@ -92,6 +97,8 @@ class HAXCMSPluginEngine
     public $fragments = [];
     public $lastRuns = [];
     public $flushed = 0;
+    /** @var array<string, array{start: int, count: int}> anonymous calls per "<operation>|<client>" (spec/05) */
+    public $rate = [];
     private $running = [];
     private $collectingPrompts = null;
     private $coreHooks;
@@ -433,6 +440,7 @@ class HAXCMSPluginEngine
                             'atomic' => ($op['x-hax-transaction'] ?? $api['x-hax-transaction'] ?? null) === 'atomic',
                             'security' => $op['security'] ?? $api['security'] ?? [],
                             'proxy' => $op['x-hax-proxy'] ?? null,
+                            'rateLimit' => $op['x-hax-rate-limit'] ?? null,
                         ];
                     }
                 }
@@ -550,6 +558,89 @@ class HAXCMSPluginEngine
             $p->reason = 'entry failed to load: ' . $e->getMessage();
             $this->log[] = ['level' => 'error', 'plugin' => $p->id, 'message' => $p->reason];
         }
+    }
+
+    /**
+     * Count one anonymous call. Returns null when it is within the limit, else the seconds to wait. The engine keeps
+     * the counts in memory; a host whose requests are separate processes keeps them where they all see them.
+     */
+    protected function countAnonymousCall($key, $max, $windowMs)
+    {
+        $now = $this->now();
+        $slot = $this->rate[$key] ?? null;
+        if (!$slot || $now - $slot['start'] >= $windowMs) {
+            $this->rate[$key] = ['start' => $now, 'count' => 1];
+            return null;
+        }
+        if ($slot['count'] >= $max) {
+            return max(1, (int) ceil(($slot['start'] + $windowMs - $now) / 1000));
+        }
+        $this->rate[$key]['count']++;
+        return null;
+    }
+
+    /**
+     * ctx.storage.update (spec/04): read, change and write one store as a single step. One PHP process runs one step at
+     * a time, so here it is read, $fn, write; a host with store files holds a lock on the file for the same span.
+     */
+    public function updateStore($p, $id, callable $fn)
+    {
+        if (($p->stores[$id]['scope'] ?? null) === 'package') {
+            throw new RuntimeException("{$p->id}: store \"$id\" is read-only (package scope)");
+        }
+        $next = $fn($this->readStore($p, $id));
+        if ($next !== null) {
+            $this->writeStore($p, $id, self::json($next));
+        }
+        return $next === null ? $this->readStore($p, $id) : self::json($next);
+    }
+
+    /**
+     * A front-end file of a plugin, for GET .../plugins/<id>/assets/<path> (spec/07, assets). Only files under
+     * frontend/dist of a plugin that is on, with an extension from the list, and (once the manifest has `assets`)
+     * only the files it lists whose hash still matches. Every refusal is the same 404.
+     * @return array{status: int, file?: string, type?: string}
+     */
+    public function asset($pluginId, $path)
+    {
+        $none = ['status' => 404];
+        $p = is_string($pluginId) ? $this->get($pluginId) : null;
+        if (!$p || !($p->status === 'active' || $p->status === 'inactive')) {
+            return $none;
+        }
+        $rel = (string) $path;
+        if ($rel === '' || strpos($rel, '\\') !== false || strpos($rel, "\0") !== false) {
+            return $none;
+        }
+        foreach (explode('/', $rel) as $seg) {
+            if ($seg === '' || $seg === '.' || $seg === '..' || $seg[0] === '.') {
+                return $none;
+            }
+        }
+        $dot = strrpos($rel, '.');
+        $type = $dot === false ? null : (self::ASSET_TYPES[strtolower(substr($rel, $dot))] ?? null);
+        if (!$type) {
+            return $none;
+        }
+        $base = realpath($p->dir . '/frontend/dist');
+        $file = $base === false ? false : realpath("$base/$rel");
+        // a link that leaves frontend/dist is not served
+        if ($base === false || $file === false || !is_file($file) || strpos($file, $base . DIRECTORY_SEPARATOR) !== 0) {
+            return $none;
+        }
+        if (isset($p->manifest['assets']) && is_array($p->manifest['assets'])) {
+            $entry = null;
+            foreach ($p->manifest['assets'] as $a) {
+                if (is_array($a) && ($a['id'] ?? null) === $rel) {
+                    $entry = $a;
+                }
+            }
+            // a file changed since the build is not what was packaged, reviewed or signed
+            if (!$entry || ($entry['hash'] ?? '') !== 'sha256-' . base64_encode(hash_file('sha256', $file, true))) {
+                return $none;
+            }
+        }
+        return ['status' => 200, 'file' => $file, 'type' => $type];
     }
 
     // ---- deployment targets (spec/14); the same rules as the spec's scripts/backend-needs.mjs ----
@@ -2148,7 +2239,8 @@ class HAXCMSPluginEngine
     /**
      * @param string $credentials both (user and site tokens), jwt (a JWT only) or none
      */
-    public function call($operationId, array $request = [], $credentials = 'both')
+    /** $client is who is calling when nobody is signed in: the request's address. */
+    public function call($operationId, array $request = [], $credentials = 'both', $client = null)
     {
         $p = null;
         foreach ($this->plugins as $x) {
@@ -2179,6 +2271,15 @@ class HAXCMSPluginEngine
             }
             if ($needsUser && $credentials !== 'both') {
                 return ['status' => 401, 'body' => ['error' => $needsSite ? 'X-HAXCMS-Site-Token header is required for this endpoint' : self::USER_TOKEN_REQUIRED]];
+            }
+        }
+        // anonymous calls are limited per operation and client (spec/05): 60 a minute unless x-hax-rate-limit says otherwise
+        if ($credentials === 'none' && ($op['public'] || $optional)) {
+            $lim = is_array($op['rateLimit'] ?? null) && (int) ($op['rateLimit']['requests'] ?? 0) > 0 ? $op['rateLimit'] : self::RATE_DEFAULT;
+            $win = self::RATE_WINDOWS[$lim['per'] ?? 'minute'] ?? self::RATE_WINDOWS['minute'];
+            $retry = $this->countAnonymousCall("$operationId|" . ($client ?: '-'), (int) $lim['requests'], $win);
+            if ($retry !== null) {
+                return ['status' => 429, 'headers' => ['retry-after' => (string) $retry], 'body' => ['error' => 'too many requests']];
             }
         }
         $req = array_merge(['params' => [], 'query' => [], 'body' => [], 'headers' => [], 'files' => []], $request);

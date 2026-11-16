@@ -88,7 +88,7 @@ while (($line = fgets(STDIN)) !== false) {
                 unset($r['transaction']);
                 break;
             case 'call':
-                $r = $engine->call($a[0], $a[1] ?? [], $a[2]['credentials'] ?? 'both');
+                $r = $engine->call($a[0], $a[1] ?? [], $a[2]['credentials'] ?? 'both', $a[2]['client'] ?? null);
                 break;
             case 'txBegin':
                 $openTx[] = $engine->beginTransaction($a[0] ?? []);
@@ -104,7 +104,7 @@ while (($line = fgets(STDIN)) !== false) {
             case 'render': case 'enable': case 'disable': case 'saveConfig': case 'upgrade': case 'saveEntity':
             case 'deleteEntity': case 'advertisedContracts': case 'rebuild': case 'callContract': case 'runSchedule':
             case 'importFile': case 'contractImplementers': case 'exportUser': case 'eraseUser': case 'flushLog':
-            case 'status': case 'unifiedContract': case 'reload': case 'registry':
+            case 'status': case 'unifiedContract': case 'reload': case 'registry': case 'asset':
                 $r = $engine->{$msg['m']}(...$a);
                 break;
             default:

@@ -982,6 +982,16 @@
       "match": ["enabled for the whole system; a site cannot turn it off"]
     },
     {
+      "code": "PLUGIN_SETTINGS_SCOPE",
+      "en": "This plugin's settings aren't saved here.",
+      "match": ["these settings are not saved in this scope"]
+    },
+    {
+      "code": "PLUGIN_RATE_LIMITED",
+      "en": "Too many requests. Try again shortly.",
+      "match": ["too many requests"]
+    },
+    {
       "code": "PLUGIN_DEPENDENCIES_OFF",
       "en": "Turn on the plugins this one depends on first.",
       "match": ["enable its dependencies first"]

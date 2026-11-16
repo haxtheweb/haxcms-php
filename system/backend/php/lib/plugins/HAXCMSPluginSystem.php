@@ -188,7 +188,7 @@ class HAXCMSPluginSystem
     }
 
     /** Saved settings: <root>/_config/plugins/config/<id>.json, then the site's own copy (site wins). */
-    public static function pluginSettings(array $dirs, $siteDirectory, $root)
+    public static function pluginSettings(array $dirs, $siteDirectory, $root, $siteUuid = null)
     {
         $out = [];
         foreach ($dirs as $d) {
@@ -198,8 +198,12 @@ class HAXCMSPluginSystem
             }
             $system = self::readJson("$root/_config/plugins/config/$id.json", []);
             $local = $siteDirectory ? self::readJson("$siteDirectory/_config/plugins/config/$id.json", []) : [];
-            if ($system || $local) {
-                $out[$id] = array_merge($system, $local);
+            // secret fields are kept outside every site folder (spec/13 section 1)
+            $secrets = self::readJson("$root/_config/plugins/secrets/$id.json", []);
+            $siteSecrets = $siteUuid ? self::readJson("$root/_config/siteData/$siteUuid/plugins/$id.secrets.json", []) : [];
+            $all = array_merge($system, $local, $secrets, $siteSecrets);
+            if ($all) {
+                $out[$id] = $all;
             }
         }
         return $out;
@@ -252,7 +256,7 @@ class HAXCMSPluginSystem
                 'enabled' => $on['enabled'],
                 'blocked' => $on['blocked'],
                 'required' => $on['locked'],
-                'settings' => self::pluginSettings($found['dirs'], $dir, $root),
+                'settings' => self::pluginSettings($found['dirs'], $dir, $root, (string) ($site->manifest->id ?? '')),
             ]);
             self::$hosts[$dir] = $h;
         }
@@ -509,6 +513,42 @@ class HAXCMSPluginSystem
             $entry['inUse'] = $r['body']['inUse'];
         }
         return ['status' => 200, 'body' => $entry];
+    }
+
+    // ---- settings (spec/13 section 7) ----
+    /** A plugin's settings form and values for the system ($site null) or one site; secrets come back as set or not. */
+    public static function settings($site, $id, array $opts = [])
+    {
+        $h = $site ? self::host($site, $opts) : self::systemHost($opts);
+        $view = $h && is_string($id) && preg_match(self::ID, $id) ? $h->settingsView($id) : null;
+        return $view ? ['status' => 200, 'body' => $view] : ['status' => 404, 'body' => ['error' => 'not installed']];
+    }
+
+    /**
+     * Save a plugin's settings. The system saves system-scope settings; a site saves its own only for a plugin whose
+     * settingsScope is site or both. A secret left out or sent empty keeps its stored value.
+     */
+    public static function saveSettings($site, $id, $values, array $opts = [])
+    {
+        $h = $site ? self::host($site, $opts + ['hydrate' => true]) : self::systemHost($opts);
+        $p = $h && is_string($id) && preg_match(self::ID, $id) ? $h->get($id) : null;
+        if (!$p || $p->status === 'available' || $p->status === 'refused') {
+            return ['status' => 404, 'body' => ['error' => 'not installed']];
+        }
+        $scope = $p->manifest['settingsScope'] ?? 'system';
+        if ($site ? $scope === 'system' : $scope === 'site') {
+            return ['status' => 409, 'body' => ['error' => 'these settings are not saved in this scope']];
+        }
+        $secret = $h->secretFields($p);
+        $clean = [];
+        foreach (is_array($values) ? $values : [] as $k => $v) {
+            if (isset($secret[$k]) && ($v === '' || $v === null)) {
+                continue;
+            }
+            $clean[$k] = $v;
+        }
+        $r = $h->saveConfig($id, $clean);
+        return $r['status'] !== 200 ? $r : ['status' => 200, 'body' => $h->settingsView($id)];
     }
 
     /** A veto as the site API answers it (the shape saveNode, deleteNode and saveManifest return). */

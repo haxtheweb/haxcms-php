@@ -475,4 +475,66 @@ class PluginPlatformTest extends TestCase
         $this->assertSame('active', $server->get('fx-exec')->status);
         $this->assertSame([], $server->get('fx-optional')->limited);
     }
+
+    /** Settings (spec/13 section 7): a secret is saved outside the config file, never handed back, kept when empty. */
+    public function testSecretSettingsAreWriteOnlyAndKeptOutsideConfig(): void
+    {
+        $s = $this->site();
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->spec . '/examples/example');
+        $o = ['root' => $s['root'], 'user' => HAXCMSPluginSystem::userRecord('admin')];
+        $before = HAXCMSPluginSystem::settings(null, 'example', $o);
+        $this->assertSame(200, $before['status']);
+        $this->assertSame(['secret' => true, 'set' => false], $before['body']['values']->apiKey);
+        $saved = HAXCMSPluginSystem::saveSettings(null, 'example', ['apiKey' => 'k-12345-secret'], $o);
+        $this->assertSame(200, $saved['status'], json_encode($saved));
+        $this->assertSame(['secret' => true, 'set' => true], $saved['body']['values']->apiKey);
+        $this->assertStringNotContainsString('k-12345-secret', json_encode($saved));
+        $secrets = $s['root'] . '/_config/plugins/secrets/example.json';
+        $this->assertSame('k-12345-secret', json_decode(file_get_contents($secrets), true)['apiKey']);
+        $this->assertSame(0, fileperms($secrets) & 0077, 'the secrets file is readable by others');
+        $this->assertStringNotContainsString('k-12345-secret', file_get_contents($s['root'] . '/_config/plugins/config/example.json'));
+        // a new request reads the secret back from its own file; sending it empty keeps it
+        HAXCMSPluginSystem::reset();
+        $again = HAXCMSPluginSystem::saveSettings(null, 'example', ['apiKey' => ''], $o);
+        $this->assertSame(['secret' => true, 'set' => true], $again['body']['values']->apiKey);
+        $this->assertSame('k-12345-secret', json_decode(file_get_contents($secrets), true)['apiKey']);
+        $this->assertSame(404, HAXCMSPluginSystem::settings(null, 'no-such-plugin', $o)['status']);
+    }
+
+    /** Front-end files, store updates under a lock, and anonymous limits kept where every request sees them. */
+    public function testAssetsStoreUpdatesAndAnonymousLimits(): void
+    {
+        $s = $this->site();
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->fx('fx-tally'));
+        $h = HAXCMSPluginSystem::host($s['site'], ['root' => $s['root'], 'user' => null]);
+        $ok = $h->asset('fx-tally', 'fx-tally-board.js');
+        $this->assertSame(200, $ok['status']);
+        $this->assertSame('text/javascript', $ok['type']);
+        foreach (['unlisted.js', 'edited.js', '../config/openapi.yaml', 'img/../../src/php/Plugin.php', 'sneaky.php', '.env'] as $bad) {
+            $this->assertSame(404, $h->asset('fx-tally', $bad)['status'], $bad);
+        }
+        $this->assertSame(404, $h->asset('../fx-tally', 'fx-tally-board.js')['status']);
+
+        // three anonymous votes from one address count, the fourth waits; the counts are in a file, so the next
+        // request (a new engine) still knows
+        $vote = function ($ip) use ($s) {
+            HAXCMSPluginSystem::reset();
+            $h = HAXCMSPluginSystem::host($s['site'], ['root' => $s['root'], 'user' => null]);
+            return $h->call('fxTallyVote', [], 'none', $ip);
+        };
+        foreach ([1, 2, 3] as $n) {
+            $this->assertSame(200, $vote('203.0.113.5')['status'], "vote $n");
+        }
+        $over = $vote('203.0.113.5');
+        $this->assertSame(429, $over['status']);
+        $this->assertGreaterThan(0, (int) $over['headers']['retry-after']);
+        $this->assertSame(200, $vote('203.0.113.9')['status']);
+        $dir = $s['root'] . '/_config/siteData/' . $s['manifest']->id . '/fx-tally';
+        $this->assertSame(['n' => 4], json_decode(file_get_contents("$dir/tally.json"), true));
+        $left = array_values(array_filter(scandir($dir), function ($f) {
+            return substr($f, -4) === '.tmp';
+        }));
+        $this->assertSame([], $left, 'a temp file was left behind');
+        $this->assertFileExists("$dir/tally.json.lock");
+    }
 }
