@@ -325,6 +325,55 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertEquals(array('Item A' => 0, 'Item B' => 2, 'Wedge' => 1), $orders);
     }
 
+    public function testCreateNodeCountsTheOrderAsAPositionWhenSiblingsHaveAGap(): void
+    {
+        // Item A at 0, Item B at 5: the front end sees them at positions 0
+        // and 1, so "add after Item A" sends order 1 and the page must land
+        // between them, with the group numbered 0..n-1
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->loadedSite->loadNode('item-b')->order = 5;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('title' => 'After A'),
+            'order' => 1,
+        );
+        $result = $this->ops->createNode();
+        $this->assertSame(200, $result['status']);
+        $orders = array();
+        foreach ($this->readPersistedItems() as $item) {
+            $orders[$item->title] = (int) $item->order;
+        }
+        $this->assertEquals(array('Item A' => 0, 'After A' => 1, 'Item B' => 2), $orders);
+    }
+
+    public function testCompactSiblingOrdersNumbersEachGroupWithoutGaps(): void
+    {
+        $item = function ($id, $parent, $order) {
+            return (object) array('id' => $id, 'parent' => $parent, 'order' => $order);
+        };
+        $items = array(
+            $item('a', null, 0),
+            $item('b', null, 4),
+            $item('c', 'a', 3),
+            $item('d', null, 4),
+            $item('e', 'a', 9),
+        );
+        $this->assertTrue(OutlineUpkeep::compactSiblingOrders($items));
+        $orders = array();
+        foreach ($items as $entry) {
+            $orders[$entry->id] = $entry->order;
+        }
+        // ties keep their array position (b before d); same as haxcms-nodejs
+        $this->assertSame(array('a' => 0, 'b' => 1, 'c' => 0, 'd' => 2, 'e' => 1), $orders);
+        $this->assertFalse(OutlineUpkeep::compactSiblingOrders($items));
+        // a page left out keeps its order and is not counted
+        $items[] = $item('new', null, 1);
+        OutlineUpkeep::compactSiblingOrders($items, $items[5]);
+        $this->assertSame(1, $items[5]->order);
+        $this->assertSame(2, $items[3]->order);
+    }
+
     public function testCreateNodeWithoutAnOrderGoesToTheEndAndIndentIsItsDepth(): void
     {
         $this->haxcms->validRequestToken = true;
@@ -388,6 +437,22 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertNull($persisted[0]->parent);
         $this->assertSame('item-b', $persisted[0]->slug);
         $this->assertSame(0, (int) $persisted[0]->indent);
+    }
+
+    public function testDeleteNodeLeavesNoGapInItsSiblingsOrders(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(200, $result['status']);
+        $persisted = $this->readPersistedItems();
+        $this->assertCount(1, $persisted);
+        $this->assertSame('item-b', $persisted[0]->id);
+        $this->assertSame(0, (int) $persisted[0]->order);
     }
 
     // =========================================================================
@@ -1092,6 +1157,12 @@ class OperationsNodeOpsTest extends TestCase
     {
         $this->setUpBodyFixture();
         $this->haxcms->themes = (object) array('polaris-flex' => (object) array('element' => 'polaris-flex'));
+        $placeBefore = null;
+        foreach ($this->haxcms->loadedSite->manifest->items as $item) {
+            if ($item->id === 'item-a') {
+                $placeBefore = array(OutlineUpkeep::parentOf($item), OutlineUpkeep::orderOf($item), (int) $item->indent);
+            }
+        }
         $body = '<page-break title="Item A" item-id="item-a" slug="x" parent="item-b"'
             . ' developer-theme="polaris-flex" depth="2" order="7" published="published" page-type="lesson"'
             . ' hide-in-menu override-pathauto related-items="item-b" image="files/hero.png" tags="one,two"'
@@ -1106,11 +1177,10 @@ class OperationsNodeOpsTest extends TestCase
         $page = $result['data'];
         $m = $page->metadata;
         $this->assertSame('x-x', $page->slug);
-        $this->assertSame('item-b', $page->parent);
+        // every detail applies except the page's place: parent, order and
+        // depth stay where the outline has them
+        $this->assertSame($placeBefore, array(OutlineUpkeep::parentOf($page), OutlineUpkeep::orderOf($page), (int) $page->indent));
         $this->assertSame('polaris-flex', $m->theme->key);
-        // indent is the page's depth under item-b, not the depth the page-break carried
-        $this->assertSame(1, $page->indent);
-        $this->assertSame(7, $page->order);
         $this->assertTrue($m->published);
         $this->assertSame('lesson', $m->pageType);
         $this->assertTrue($m->hideInMenu);
@@ -1146,30 +1216,28 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertFalse($m->locked);
     }
 
-    public function testSaveNodeThatMovesThePageKeepsOrdersDistinctAndIndentAtDepth(): void
+    public function testSaveNodeNeverMovesThePage(): void
     {
         $this->setUpBodyFixture();
         $site = $this->haxcms->loadedSite;
         $before = array();
+        $siblingId = null;
         foreach ($site->manifest->items as $item) {
-            if (OutlineUpkeep::parentOf($item) === null && $item->id !== 'item-a') {
-                $before[$item->id] = OutlineUpkeep::orderOf($item);
+            $before[$item->id] = array(OutlineUpkeep::parentOf($item), OutlineUpkeep::orderOf($item), (int) $item->indent);
+            if ($item->id !== 'item-a' && $siblingId === null) {
+                $siblingId = $item->id;
             }
         }
-        $this->assertNotEmpty($before);
-        $target = min($before);
-        // the page-break asks for a spot a sibling holds, with a depth that is wrong
-        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" order="' . $target . '" depth="4"></page-break><p>Body</p>');
+        $this->assertNotNull($siblingId);
+        // the browser renumbers orders when it loads the outline, so the
+        // page-break can carry any parent, order or depth; none of it counts
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" parent="' . $siblingId . '" order="0" depth="4"></page-break><p>Body</p>');
         $this->assertSame(200, $result['status']);
-        $this->assertSame($target, (int) $result['data']->order);
-        $this->assertSame(0, (int) $result['data']->indent);
-        $orders = array();
+        $after = array();
         foreach ($site->manifest->items as $item) {
-            if (OutlineUpkeep::parentOf($item) === null) {
-                $orders[] = OutlineUpkeep::orderOf($item);
-            }
+            $after[$item->id] = array(OutlineUpkeep::parentOf($item), OutlineUpkeep::orderOf($item), (int) $item->indent);
         }
-        $this->assertSame(count($orders), count(array_unique($orders)));
+        $this->assertSame($before, $after);
     }
 
     public function testSaveNodeSubRouteSlugAndUnknownThemeAreNeutralised(): void

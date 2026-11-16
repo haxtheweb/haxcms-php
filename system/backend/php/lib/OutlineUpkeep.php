@@ -5,7 +5,10 @@
  * outline designer sent it and does not use any of this.
  *
  * The rules kept here, the same in haxcms-nodejs (src/lib/outlineUpkeep.js):
- *  - siblings never share an `order` value after a single-page operation
+ *  - after a single-page operation the pages under each parent are numbered
+ *    0..n-1 with no gaps and no repeats, in the sequence a reader sees them.
+ *    The front end numbers siblings by position when it loads the outline,
+ *    so an order it sends ("after this page") means the same spot here.
  *  - `indent` is the page's depth: 0 at the top level, parent's indent + 1 below
  *  - a locked page is changed by nothing but unlocking it
  */
@@ -73,6 +76,37 @@ class OutlineUpkeep {
       $sibling->order = $position;
     }
     return true;
+  }
+
+  /**
+   * Number the pages under every parent 0..n-1 in the sequence they are shown
+   * in (by order, then position in the items array), so orders have no gaps
+   * and no repeats. $except is left out and keeps its order: a page that is
+   * about to be placed by an order the client counted without it.
+   * @return bool whether any order changed
+   */
+  public static function compactSiblingOrders($items, $except = null) {
+    $parents = array();
+    foreach ($items as $item) {
+      if (is_object($item) && $item !== $except && !in_array(self::parentOf($item), $parents, true)) {
+        $parents[] = self::parentOf($item);
+      }
+    }
+    $changed = false;
+    foreach ($parents as $parentId) {
+      $position = 0;
+      foreach (self::sortedSiblings($items, $parentId) as $sibling) {
+        if ($sibling === $except) {
+          continue;
+        }
+        if (!isset($sibling->order) || $sibling->order !== $position) {
+          $sibling->order = $position;
+          $changed = true;
+        }
+        $position++;
+      }
+    }
+    return $changed;
   }
 
   /**

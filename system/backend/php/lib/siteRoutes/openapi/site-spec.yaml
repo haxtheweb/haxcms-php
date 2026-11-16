@@ -1616,6 +1616,7 @@ paths:
         - content
       operationId: updateContentByIdOrSlug
       summary: Update one item content payload by id or slug
+      description: Saves the page body and the details its leading page-break carries (title, slug, tags and the rest). The page's place in the outline never changes here; the page-break's parent, order and depth are ignored. Move pages with the item operations.
       security:
         - bearerAuth: []
           siteTokenHeader: []

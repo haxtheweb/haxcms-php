@@ -169,16 +169,10 @@ trait OperationsRouteSaveNode {
                     $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"])
                   );
                 }
-                // where the page sat before this save applies the page-break's
-                // parent / order, to tell whether the save moves it
-                $parentBeforeSave = OutlineUpkeep::parentOf($page);
-                $orderBeforeSave = OutlineUpkeep::orderOf($page);
-                if (isset($data["attributes"]["parent"])) {
-                  $page->parent = $data["attributes"]["parent"];
-                }
-                else {
-                  $page->parent = null;
-                }
+                // a content save never moves the page: the page-break's parent,
+                // order and depth are ignored. The client renumbers sibling
+                // orders when it loads the outline, so those values need not
+                // match the outline; pages move through the item operations.
                 // allow setting theme via page break
                 if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
                   $themes = $GLOBALS['HAXCMS']->getThemes();
@@ -196,19 +190,6 @@ trait OperationsRouteSaveNode {
                 else if (isset($page->metadata->theme)) {
                   unset($page->metadata->theme);
                 }
-                if (isset($data["attributes"]["depth"])) {
-                  $page->indent = (int)$data["attributes"]["depth"];
-                }
-                if (isset($data["attributes"]["order"])) {
-                  $page->order = (int)$data["attributes"]["order"];
-                }
-                // a save that moves the page keeps the outline rules the item
-                // operations keep: no two siblings share an order, and indent
-                // is the page's depth whatever depth the page-break carried
-                if ($parentBeforeSave !== OutlineUpkeep::parentOf($page) || $orderBeforeSave !== OutlineUpkeep::orderOf($page)) {
-                  OutlineUpkeep::makeRoomFor($site->manifest->items, $page);
-                }
-                OutlineUpkeep::syncIndentToDepth($site->manifest->items);
                 // boolean so these are either there or not
                 // historically we are published if this value is not set
                 // and that will remain true however as we save / update pages
