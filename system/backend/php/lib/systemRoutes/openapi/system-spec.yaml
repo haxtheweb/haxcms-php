@@ -3802,6 +3802,11 @@ components:
           type: integer
         acceptedFormats:
           type: string
+          description: >
+            Comma-separated file extensions uploads may use. It narrows the
+            server's safe upload list and never widens it: every route into
+            files/ checks it, and saveMediaSettingsPatch answers 400 for a
+            format outside that list.
       additionalProperties: true
     LocalizationSettingsData:
       type: object

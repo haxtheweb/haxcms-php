@@ -444,6 +444,23 @@ class CreateSiteBuildFilesTest extends TestCase
         $this->assertNotSame('', $w['reason']);
     }
 
+    public function testFormatTurnedOffInMediaSettingsIsSkippedBeforeFetching(): void
+    {
+        // haxtheweb/issues#3054, parity with haxcms-nodejs
+        // createSiteBuildFiles.test.cjs
+        $mediaSettings = $this->configDir . '/settings/media.json';
+        @mkdir(dirname($mediaSettings), 0777, true);
+        file_put_contents($mediaSettings, json_encode(array('acceptedFormats' => 'pdf')));
+        $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);
+        $warnings = array();
+        $this->assertFalse($this->importBuildFileWithWarnings('files/photo.png', self::REMOTE . '/photo.png', $client, $warnings));
+        $this->assertSame(1, $mock->count(), 'nothing was fetched');
+        $this->assertNull($this->entityAt('files/photo.png'));
+        $w = $this->warningFor($warnings, 'files/photo.png');
+        $this->assertNotNull($w);
+        $this->assertSame('File format turned off in Media settings', $w['reason']);
+    }
+
     public function testNonHttpUnsafeSourceRecordsWarningAndStillReturnsFalse(): void
     {
         $client = $this->mockClient(array(new Response(200, array(), $this->png)), $mock);

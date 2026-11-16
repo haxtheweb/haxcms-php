@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/SsrfGuard.php';
+include_once dirname(__FILE__) . '/MediaSettingsService.php';
 
 // Bulk-import staging shared by the site importers and createSite (#3060).
 // HAXCMSFile::isValidBulkImportTmpPath only accepts real files under
@@ -30,13 +31,13 @@ if (!defined('HAXCMS_IMPORT_STAGED_MAX_AGE')) {
     define('HAXCMS_IMPORT_STAGED_MAX_AGE', 86400);
 }
 
-// Security (SEC-SSRF): extensions a staged file may carry. Same list as the
-// HAXCMSFile upload allowlist ($allowedUploadPattern) / Operations
-// $safeBulkImportFilePattern. Anything else is staged with no extension.
+// Security (SEC-SSRF): a staged file only keeps an extension from the one
+// upload allowlist (HAXCMSMediaSettingsService::SAFE_UPLOAD_FORMATS).
+// Anything else is staged with no extension.
 if (!function_exists('haxcms_import_staged_extension')) {
     function haxcms_import_staged_extension($relPath) {
         $ext = strtolower((string) pathinfo((string) $relPath, PATHINFO_EXTENSION));
-        if ($ext === '' || preg_match('/^(jpg|jpeg|png|gif|webm|webp|mp4|mp3|mov|csv|ppt|pptx|xlsx|doc|xls|docx|pdf|rtf|txt|vtt|html|md|xml|ics|vcf|h5p)$/', $ext) !== 1) {
+        if ($ext === '' || !in_array($ext, HAXCMSMediaSettingsService::SAFE_UPLOAD_FORMATS, true)) {
             return '';
         }
         return $ext;

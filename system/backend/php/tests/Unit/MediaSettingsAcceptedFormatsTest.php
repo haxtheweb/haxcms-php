@@ -49,6 +49,27 @@ class MediaSettingsAcceptedFormatsTest extends TestCase
         }
     }
 
+    public function testOneAllowlistPatternMatchesExactlyTheSafeFormats(): void
+    {
+        $pattern = HAXCMSMediaSettingsService::safeUploadExtensionPattern();
+        foreach (HAXCMSMediaSettingsService::SAFE_UPLOAD_FORMATS as $format) {
+            $this->assertSame(1, preg_match($pattern, 'a.' . $format), $format);
+            $this->assertSame(1, preg_match($pattern, 'A.' . strtoupper($format)), $format);
+        }
+        foreach (array('a.svg', 'a.php', 'a.png.php', 'a', 'png') as $name) {
+            $this->assertSame(0, preg_match($pattern, $name), $name);
+        }
+    }
+
+    public function testUnsupportedAcceptedFormatsNamesWhatCanNeverBeStored(): void
+    {
+        $this->assertSame(array('svg', 'exe'), HAXCMSMediaSettingsService::unsupportedAcceptedFormats('png, SVG, pdf, .exe'));
+        $this->assertSame(array(), HAXCMSMediaSettingsService::unsupportedAcceptedFormats('png,pdf'));
+        $this->assertSame(array(), HAXCMSMediaSettingsService::unsupportedAcceptedFormats(''));
+        $this->assertSame(array(), HAXCMSMediaSettingsService::unsupportedAcceptedFormats(null));
+        $this->assertSame(array('php'), HAXCMSMediaSettingsService::unsupportedAcceptedFormats(array('jpg', 'php')));
+    }
+
     public function testEffectiveDefaultsMatchNode(): void
     {
         $this->assertSame(

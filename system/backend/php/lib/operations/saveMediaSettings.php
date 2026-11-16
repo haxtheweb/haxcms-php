@@ -77,6 +77,19 @@ trait OperationsRouteSaveMediaSettings {
         );
       }
     }
+    // haxtheweb/issues#3054: the setting narrows the upload allowlist, so a
+    // format HAXcms can never store is refused instead of saved as a no-op
+    $unsupported = isset($payload['acceptedFormats'])
+      ? HAXCMSMediaSettingsService::unsupportedAcceptedFormats($payload['acceptedFormats'])
+      : array();
+    if (count($unsupported) > 0) {
+      return array(
+        '__failed' => array(
+          'status' => 400,
+          'message' => 'Invalid acceptedFormats value: unsupported ' . implode(', ', $unsupported),
+        ),
+      );
+    }
     try {
       $mediaSettings = HAXCMSMediaSettingsService::writeMediaSettings($GLOBALS['HAXCMS'], $payload);
       return array(
