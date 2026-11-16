@@ -373,6 +373,19 @@ class OperationsAppearanceSeoSettingsTest extends TestCase
         $this->assertFalse(isset($this->persisted()->metadata->theme->variables->palette));
     }
 
+    public function testAppearanceDesignSystemNameIsCapped(): void
+    {
+        // the same 64-character limit haxcms-nodejs keeps
+        $ok = $this->runAppearance(array(
+            'manifest-metadata-theme-designSystem' => str_repeat('a', 64),
+        ));
+        $this->assertSame(200, $ok['status']);
+        $long = $this->runAppearance(array(
+            'manifest-metadata-theme-designSystem' => str_repeat('a', 65),
+        ));
+        $this->assertSame(400, $long['__failed']['status']);
+    }
+
     public function testAppearanceIconWritesAndRejectsNonStrings(): void
     {
         $result = $this->runAppearance(array(
