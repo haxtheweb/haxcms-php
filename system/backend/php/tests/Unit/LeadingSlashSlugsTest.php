@@ -86,4 +86,32 @@ class LeadingSlashSlugsTest extends TestCase
         $this->assertSame('b', $site->loadNodeByLocation('child-1')->id);
         $this->assertSame('a', $site->loadNodeByLocation('parent')->id);
     }
+
+    #[TestDox('loadNodeByLocation: a percent-encoded request path finds a page whose slug holds Unicode letters')]
+    public function testLoadNodeByLocationDecodesTheRequestPath(): void
+    {
+        $data = $this->siteWith(array(
+            array('id' => 'a', 'slug' => 'parent'),
+            array('id' => 'u', 'slug' => "caf\u{e9}/\u{65e5}\u{672c}\u{8a9e}"),
+        ));
+        $site = (new ReflectionClass('HAXCMSSite'))->newInstanceWithoutConstructor();
+        $site->manifest = $data->manifest;
+        $server = $_SERVER;
+        try {
+            $_SERVER['SCRIPT_NAME'] = '/sites/demo/index.php';
+            $_SERVER['REQUEST_URI'] = '/sites/demo/caf%C3%A9/%E6%97%A5%E6%9C%AC%E8%AA%9E?x=1';
+            $this->assertSame('u', $site->loadNodeByLocation()->id);
+            $this->assertFalse($site->lastPathLookupMiss);
+            // the path that goes into Link / Content-Location headers is encoded again
+            $canonical = new ReflectionMethod('HAXCMSSite', 'getCanonicalPagePathForSlug');
+            $canonical->setAccessible(true);
+            $this->assertSame(
+                '/sites/demo/caf%C3%A9/%E6%97%A5%E6%9C%AC%E8%AA%9E',
+                $canonical->invoke($site, "caf\u{e9}/\u{65e5}\u{672c}\u{8a9e}")
+            );
+            $this->assertSame('/sites/demo/parent', $canonical->invoke($site, 'parent'));
+        } finally {
+            $_SERVER = $server;
+        }
+    }
 }

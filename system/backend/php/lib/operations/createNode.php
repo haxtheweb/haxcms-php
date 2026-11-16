@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 include_once dirname(__FILE__) . '/../MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteCreateNode {
@@ -100,6 +101,21 @@ trait OperationsRouteCreateNode {
         );
         // add the item back into the outline schema
         $site->manifest->addItem($item);
+        // place it among its siblings: at the order asked for (whoever held
+        // that spot moves down), or at the end when no order was sent, so no
+        // two siblings share an order; indent is the page's depth
+        if ($placed = $site->loadNode($item->id)) {
+          $requestedOrder = is_array($nodeParams) && array_key_exists('order', $nodeParams) ? $nodeParams['order'] : null;
+          if (is_int($requestedOrder) || is_float($requestedOrder) || (is_string($requestedOrder) && preg_match('/^\s*-?\d+/', $requestedOrder))) {
+            $placed->order = (int) $requestedOrder;
+            OutlineUpkeep::makeRoomFor($site->manifest->items, $placed);
+          } else {
+            $placed->order = OutlineUpkeep::lastSiblingOrder($site->manifest->items, OutlineUpkeep::parentOf($placed), $placed) + 1;
+          }
+          OutlineUpkeep::syncIndentToDepth($site->manifest->items);
+          $item->order = $placed->order;
+          $item->indent = $placed->indent;
+        }
         try {
           $site->manifest->save();
         } catch (Throwable $e) {
