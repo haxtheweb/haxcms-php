@@ -23,11 +23,11 @@ if (!defined('HAXCMS_DRUPAL_IMPORT_LIMITS_MAXFILES')) {
     // HAXCMSFile.save preserves the bulk-import directory tree.
     define('HAXCMS_DRUPAL_FILES_PATH_REGEX', '#^/(?:sites/[^/]+/)?files/(.+)$#i');
     // system menus never describe the site outline
-    define('HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS', serialize(array(
+    define('HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS', array(
         '/jsonapi/menu_items/',
         '/jsonapi/menu/',
         '/jsonapi/jsonapi_menu/',
-    )));
+    ));
 }
 
 if (!function_exists('haxcmsImportConvertDrupalToSite')) {
@@ -1222,7 +1222,7 @@ if (!function_exists('haxcmsImportConvertDrupalToSite')) {
     function haxcmsImportDrupalFetchMenuItemsForest($client, $base, $menuRecords, $pageSet, $aliasMap)
     {
         $menuNames = haxcmsImportDrupalBuildMenuNameCandidates($menuRecords);
-        $patterns = unserialize(HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS);
+        $patterns = HAXCMS_DRUPAL_MENU_ENDPOINT_PATTERNS;
         foreach ($menuNames as $menuName) {
             foreach ($patterns as $endpointPath) {
                 $payload = haxcmsImportDrupalFetchJSON($client, $base . $endpointPath . rawurlencode($menuName));
