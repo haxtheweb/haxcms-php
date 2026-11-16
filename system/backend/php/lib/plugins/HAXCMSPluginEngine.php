@@ -1,6 +1,6 @@
 <?php
 /**
- * DRAFT (plugin platform, haxtheweb/issues#3356; spec: haxtheweb/haxcms-plugin-examples#4).
+ * DRAFT (plugin platform, haxtheweb/issues#3356; spec: haxtheweb/haxcms-plugins#4).
  *
  * A native PHP implementation of the HAX backend platform contract (spec/13). It is a line-by-line port of the
  * spec's reference engine (harness/memory-backend.mjs), which haxcms-nodejs runs (haxcms-nodejs#138), so both
@@ -45,6 +45,12 @@ class HAXCMSPluginRecord
     public $status = 'enabled';
     public $reason = null;
     public $unmet = [];
+    /** @var array<int, string> what it needs from a backend (spec/14) */
+    public $needs = [];
+    /** @var array<int, array{key: string, message: string}> what this backend's target only half gives it */
+    public $limited = [];
+    /** @var array<int, array{key: string, message: string}> what this backend's target cannot give it at all */
+    public $targetUnmet = [];
     public $inputHost = null;
 }
 
@@ -52,6 +58,8 @@ class HAXCMSPluginEngine
 {
     const TIERS = ['haxiam-core' => 1, 'haxiam-contrib' => 2, 'system-core' => 3, 'system-contrib' => 4, 'site' => 5];
     const LIMITED_USER = ['id', 'name', 'displayName', 'roles', 'avatar'];
+    /** What a new site's site.json carries besides its id and title (boilerplate/site/site.json); the same in haxcms-nodejs. */
+    const NEW_SITE = ['author' => '', 'description' => '', 'license' => 'by-sa'];
     const USER_TOKEN_REQUIRED = 'X-HAXCMS-User-Token header is required for this endpoint';
 
     public $specDir;
@@ -89,6 +97,9 @@ class HAXCMSPluginEngine
     private $coreHooks;
     private $coreContracts;
     private $manifestSchema;
+    /** @var array schema/targets.json of the spec: needs and what each deployment target provides */
+    private $targets;
+    public $target = 'server';
     private static $specCache = [];
 
     /**
@@ -102,7 +113,14 @@ class HAXCMSPluginEngine
         $this->coreHooks = $spec['hooks'];
         $this->coreContracts = $spec['contracts'];
         $this->manifestSchema = $spec['schema'];
-        $this->haxcms = ['version' => $o['haxcmsVersion'] ?? '26.10.1', 'runtime' => 'php'];
+        $this->targets = $spec['targets'];
+        // where this backend runs (spec/14): server, desktop or browser. haxcms-php is only ever a server; the
+        // option exists so the same conformance cases run here
+        $this->target = $o['target'] ?? 'server';
+        if (!isset($this->targets['targets'][$this->target])) {
+            throw new RuntimeException("unknown target \"{$this->target}\"; known: " . implode(', ', array_keys($this->targets['targets'])));
+        }
+        $this->haxcms = ['version' => $o['haxcmsVersion'] ?? '26.10.1', 'runtime' => 'php', 'target' => $this->target];
         // site null is the system engine (spec/13 section 8b): HAXcms-wide work with no site; anything that needs a
         // site refuses through requireSite()
         $site = array_key_exists('site', $o) ? $o['site'] : ['id' => '00000000-0000-4000-8000-000000000001', 'name' => 'test-site', 'path' => ''];
@@ -114,7 +132,7 @@ class HAXCMSPluginEngine
         $this->frozenNow = array_key_exists('now', $o) ? $o['now'] : self::parseTime('2026-01-01T00:00:00Z');
         $this->user = array_key_exists('user', $o) ? $o['user'] : ['id' => 'u1', 'name' => 'admin', 'displayName' => 'Admin', 'roles' => ['admin'], 'avatar' => null, 'email' => 'admin@example.invalid', 'passwordHash' => 'never-exposed'];
         $this->hookTimeout = $o['hookTimeout'] ?? 5000;
-        $this->records = ['config' => ['core' => ['appStore' => ['apiKeys' => []]]], 'site' => $site !== null ? [$site['id'] => ['id' => $site['id'], 'title' => $site['name'], 'metadata' => ['plugins' => []], 'items' => []]] : [], 'page' => [], 'file' => []];
+        $this->records = ['config' => ['core' => ['appStore' => ['apiKeys' => []]]], 'site' => $site !== null ? [$site['id'] => ['id' => $site['id'], 'title' => $site['name']] + self::NEW_SITE + ['metadata' => ['plugins' => []], 'items' => []]] : [], 'page' => [], 'file' => []];
     }
     /** Store scopes that live with one site; the system engine has none of them. */
     const SITE_SCOPES = ['site', 'siteData', 'manifest'];
@@ -146,6 +164,7 @@ class HAXCMSPluginEngine
                 'hooks' => json_decode(file_get_contents("$dir/schema/hook-contracts.json"), true),
                 'contracts' => Yaml::parseFile("$dir/schema/core-contracts.yaml")['contracts'] ?? [],
                 'schema' => new HAXCMSPluginSchema(json_decode(file_get_contents("$dir/schema/plugin.schema.json"))),
+                'targets' => json_decode(file_get_contents("$dir/schema/targets.json"), true),
             ];
         }
         return self::$specCache[$dir];
@@ -265,7 +284,7 @@ class HAXCMSPluginEngine
     public function status()
     {
         return array_map(function ($p) {
-            return ['id' => $p->id, 'status' => $p->status, 'reason' => $p->reason, 'unmet' => $p->unmet];
+            return ['id' => $p->id, 'status' => $p->status, 'reason' => $p->reason, 'unmet' => $p->unmet, 'limited' => $p->status === 'active' ? $p->limited : []];
         }, $this->plugins);
     }
     public function coreHook($name)
@@ -306,7 +325,7 @@ class HAXCMSPluginEngine
     {
         if (isset($records['site'])) {
             $this->requireSite('site records');
-            $this->records['site'][$this->site['id']] = array_merge(['id' => $this->site['id'], 'metadata' => ['plugins' => []], 'items' => []], $records['site']);
+            $this->records['site'][$this->site['id']] = array_merge(['id' => $this->site['id']] + self::NEW_SITE + ['metadata' => ['plugins' => []], 'items' => []], $records['site']);
         }
         foreach ($records as $type => $list) {
             if ($type === 'site') {
@@ -321,7 +340,10 @@ class HAXCMSPluginEngine
     // ---- loading (spec/13 section 2) ----
     /**
      * @param array $dirs paths, or ['path' => ..., 'tier' => ...]
-     * @param array $o settings, stores (by plugin id), disabled, blocked, required, records
+     * @param array $o settings, stores (by plugin id), enabled, disabled, blocked, required, records. `enabled`,
+     *   when given, is the scope's list of enabled plugin ids (the registry, spec/03): a plugin that is not on it,
+     *   not required and not locked is `available` and none of its code is loaded. Left out, every plugin found is
+     *   enabled, which is what test cases over a few fixtures want.
      */
     public function load(array $dirs, array $o = [])
     {
@@ -330,6 +352,7 @@ class HAXCMSPluginEngine
         $disabled = $o['disabled'] ?? [];
         $blocked = $o['blocked'] ?? [];
         $required = $o['required'] ?? [];
+        $enabled = array_key_exists('enabled', $o) && is_array($o['enabled']) ? $o['enabled'] : null;
         if (!empty($o['records'])) {
             $this->seed($o['records']);
         }
@@ -383,13 +406,21 @@ class HAXCMSPluginEngine
             } elseif (in_array($p->id, $disabled, true) && empty($m['required']) && !in_array($p->id, $required, true)) {
                 $p->status = 'disabled';
                 $p->reason = 'disabled';
+            } elseif ($enabled !== null && !in_array($p->id, $enabled, true) && empty($m['required']) && !in_array($p->id, $required, true)) {
+                $p->status = 'available';
+                $p->reason = 'not enabled';
             }
             if ($p->status === 'refused') {
                 $this->plugins[] = $p;
                 continue;
             }
-            if (!empty($m['openapi'])) {
-                $api = self::readAny("{$p->dir}/{$m['openapi']}");
+            $api = !empty($m['openapi']) ? self::readAny("{$p->dir}/{$m['openapi']}") : null;
+            // what it needs from a backend, and how this backend's target fits (spec/14)
+            $p->needs = $this->backendNeeds($m, $api);
+            $fit = $this->targetFit($m, $p->needs, $this->target);
+            $p->targetUnmet = $fit['unmet'];
+            $p->limited = $fit['limited'];
+            if ($api !== null) {
                 foreach ($api['paths'] ?? [] as $path => $verbs) {
                     foreach ($verbs as $verb => $op) {
                         if (!is_array($op) || empty($op['operationId'])) {
@@ -437,14 +468,9 @@ class HAXCMSPluginEngine
             $p->explicit = array_fill_keys(array_keys($settings[$p->id] ?? []), true);
             $p->form = !empty($m['settings']) && is_file("{$p->dir}/{$m['settings']}") ? (self::readAny("{$p->dir}/{$m['settings']}")['configure'] ?? []) : [];
             $p->storeOverrides = $stores[$p->id] ?? [];
-            if (($m['kind'] ?? null) !== 'pack' && !empty($m['entry']['php'])) {
-                try {
-                    $p->instance = $this->instantiate($p);
-                } catch (\Throwable $e) {
-                    $p->status = 'failed';
-                    $p->reason = 'entry failed to load: ' . $e->getMessage();
-                    $this->log[] = ['level' => 'error', 'plugin' => $p->id, 'message' => $p->reason];
-                }
+            // code of a plugin that is not enabled is never loaded; enable() loads it then
+            if ($p->status !== 'available') {
+                $this->loadEntry($p);
             }
             $this->plugins[] = $p;
         }
@@ -511,6 +537,135 @@ class HAXCMSPluginEngine
      * versions, or a fixture and its original) cannot both be loaded in one request, so the class is checked to come
      * from this plugin's own entry file.
      */
+    private function loadEntry(HAXCMSPluginRecord $p)
+    {
+        $m = $p->manifest;
+        if ($p->instance !== null || ($m['kind'] ?? null) === 'pack' || empty($m['entry']['php'])) {
+            return;
+        }
+        try {
+            $p->instance = $this->instantiate($p);
+        } catch (\Throwable $e) {
+            $p->status = 'failed';
+            $p->reason = 'entry failed to load: ' . $e->getMessage();
+            $this->log[] = ['level' => 'error', 'plugin' => $p->id, 'message' => $p->reason];
+        }
+    }
+
+    // ---- deployment targets (spec/14); the same rules as the spec's scripts/backend-needs.mjs ----
+    /** What a plugin needs from a backend, in the order of schema/targets.json. */
+    public function backendNeeds($m, $api = null)
+    {
+        $caps = $m['capabilities'] ?? [];
+        $visitors = false;
+        foreach (($api['paths'] ?? []) as $verbs) {
+            foreach ((is_array($verbs) ? $verbs : []) as $op) {
+                if (!is_array($op) || empty($op['operationId'])) {
+                    continue;
+                }
+                $security = $op['security'] ?? $api['security'] ?? [];
+                $optional = false;
+                foreach ($security as $req) {
+                    if (is_array($req) && count($req) === 0) {
+                        $optional = true;
+                    }
+                }
+                if (($op['x-hax-public'] ?? null) === true || $optional) {
+                    $visitors = true;
+                }
+            }
+        }
+        $has = [
+            'backend' => ($m['kind'] ?? null) !== 'pack' && (!empty($m['entry']) || !empty($m['openapi'])),
+            'process' => in_array('exec:run', $caps, true),
+            'visitors' => $visitors,
+            'schedule' => !empty($m['schedules']) && is_array($m['schedules']),
+            'network' => in_array('network:egress', $caps, true),
+            'secrets' => in_array('settings:secret', $caps, true),
+        ];
+        $out = [];
+        foreach (array_keys($this->targets['needs']) as $n) {
+            if (!empty($has[$n])) {
+                $out[] = $n;
+            }
+        }
+        return $out;
+    }
+    /** How a plugin fits one target: `unmet` keeps it inactive there, `limited` is a caveat while it runs. */
+    public function targetFit($m, array $needs, $target)
+    {
+        $t = $this->targets['targets'][$target];
+        $unmet = [];
+        $limited = [];
+        $declared = $m['targets'] ?? null;
+        if (is_array($declared) && !in_array($target, $declared, true)) {
+            return ['unmet' => [['key' => "target.$target", 'message' => "Not made for the {$t['title']}: this plugin lists " . implode(', ', $declared)]], 'limited' => []];
+        }
+        foreach ($needs as $n) {
+            $need = $this->targets['needs'][$n];
+            if (in_array($n, $t['provides'], true)) {
+                continue;
+            }
+            if (isset($t['partial'][$n])) {
+                $limited[] = ['key' => "backend.$n", 'message' => "On the {$t['title']}, {$t['partial'][$n]}"];
+            } elseif (!empty($need['hard'])) {
+                $unmet[] = ['key' => "backend.$n", 'message' => "Needs {$need['title']}, which the {$t['title']} does not have"];
+            } else {
+                $limited[] = ['key' => "backend.$n", 'message' => "Needs {$need['title']}, which the {$t['title']} does not have"];
+            }
+        }
+        return ['unmet' => $unmet, 'limited' => $limited];
+    }
+    /** Per target: full, limited or no. */
+    public function targetSummary($m, array $needs)
+    {
+        $out = [];
+        foreach ($this->targets['targets'] as $name => $t) {
+            $runtimes = ($m['kind'] ?? null) !== 'pack' && isset($m['runtimes']) && is_array($m['runtimes']) ? $m['runtimes'] : null;
+            if ($runtimes !== null && !array_intersect($runtimes, $t['runtimes'])) {
+                $out[$name] = 'no';
+                continue;
+            }
+            $fit = $this->targetFit($m, $needs, $name);
+            $out[$name] = $fit['unmet'] ? 'no' : ($fit['limited'] ? 'limited' : 'full');
+        }
+        return $out;
+    }
+    /** The plugin registry (spec/03): one entry per installed plugin with what the system keeps track of. */
+    public function registry()
+    {
+        $on = function ($x) {
+            return $x->status === 'active' || $x->status === 'inactive';
+        };
+        $out = [];
+        foreach ($this->plugins as $p) {
+            $m = $p->manifest;
+            $dependents = [];
+            foreach ($this->plugins as $x) {
+                if (!$on($x)) {
+                    continue;
+                }
+                foreach ($x->manifest['dependencies'] ?? [] as $d) {
+                    if (explode('@', $d)[0] === $p->id) {
+                        $dependents[] = $x->id;
+                        break;
+                    }
+                }
+            }
+            $out[] = [
+                'id' => $p->id, 'title' => $m['title'] ?? $p->id, 'version' => $m['version'] ?? null, 'tier' => $p->tier, 'kind' => $m['kind'] ?? 'plugin',
+                'status' => $p->status, 'reason' => $p->reason, 'enabled' => $on($p), 'required' => ($m['required'] ?? null) === true,
+                'unmet' => $p->unmet ?: [], 'limited' => $on($p) ? $p->limited : [],
+                'needs' => $p->needs, 'targets' => $p->status === 'refused' ? [] : $this->targetSummary($m, $p->needs),
+                'staticCapable' => array_key_exists('staticCapable', $m) ? $m['staticCapable'] === true : !in_array('backend', $p->needs, true),
+                'dependencies' => array_map(function ($d) {
+                    return explode('@', $d)[0];
+                }, $m['dependencies'] ?? []),
+                'dependents' => $dependents,
+            ];
+        }
+        return $out;
+    }
     private function instantiate(HAXCMSPluginRecord $p)
     {
         $file = realpath($p->dir . '/' . $p->manifest['entry']['php']);
@@ -931,7 +1086,11 @@ class HAXCMSPluginEngine
             if (!in_array('network:egress', $p->manifest['capabilities'] ?? [], true) || !(in_array('*', $hosts, true) || in_array($host, $hosts, true))) {
                 throw new RuntimeException("fetch to $host not allowed" . ($hop ? ' (redirected)' : ''));
             }
-            $this->fetchCalls[] = ['plugin' => $p->id, 'method' => strtoupper($init['method'] ?? 'GET'), 'url' => $current];
+            $this->secretGuard($p, $host, $current, $init, $hop);
+            // header names are recorded so cases can see where a key travelled; values never are
+            $headerNames = array_map('strtolower', array_map('strval', array_keys((array) ($init['headers'] ?? []))));
+            sort($headerNames);
+            $this->fetchCalls[] = ['plugin' => $p->id, 'method' => strtoupper($init['method'] ?? 'GET'), 'url' => $current, 'headers' => $headerNames];
             $res = $this->fetchOnce($p, $current, $init, $host);
             $status = $res['status'];
             if (in_array($status, [301, 302, 303, 307, 308], true) && !empty($res['headers']['location'])) {
@@ -977,9 +1136,52 @@ class HAXCMSPluginEngine
     // egress: fixed hosts, plus hosts of the URLs in any setting named by { setting } (spec/08)
     public function egressHosts($p)
     {
+        return $this->hostsFrom($p, $p->manifest['egress'] ?? []);
+    }
+    /**
+     * x-secret-egress (spec/07): a secret setting's value may only travel (URL, header or body; plain, URL-encoded or
+     * base64) to the hosts its field names. A secret field without x-secret-egress may go to any egress host.
+     */
+    public function secretGuard($p, $host, $url, $init, $hop)
+    {
+        $eff = $this->effectiveSettings($p);
+        $carriers = [(string) $url];
+        foreach ((array) ($init['headers'] ?? []) as $v) {
+            $carriers[] = (string) $v;
+        }
+        $carriers[] = is_string($init['body'] ?? null) ? $init['body'] : '';
+        foreach ($p->form as $f) {
+            if (empty($f['x-secret']) || !isset($f['x-secret-egress']) || !is_array($f['x-secret-egress'])) {
+                continue;
+            }
+            $v = $eff[$f['property']] ?? null;
+            if (!is_string($v) || strlen($v) < 4) {
+                continue;
+            }
+            $forms = [$v, rawurlencode($v), base64_encode($v)];
+            $carried = false;
+            foreach ($carriers as $c) {
+                foreach ($forms as $x) {
+                    if ($x !== '' && strpos($c, $x) !== false) {
+                        $carried = true;
+                    }
+                }
+            }
+            if (!$carried) {
+                continue;
+            }
+            $allowed = $this->hostsFrom($p, $f['x-secret-egress']);
+            if (!(in_array('*', $allowed, true) || in_array($host, $allowed, true))) {
+                throw new RuntimeException("secret setting \"{$f['property']}\" may not be sent to $host" . ($hop ? ' (redirected)' : ''));
+            }
+        }
+    }
+    /** Hosts named by a list of egress-shaped entries (egress itself, or a secret field's x-secret-egress). */
+    public function hostsFrom($p, array $entries)
+    {
         $eff = $this->effectiveSettings($p);
         $out = [];
-        foreach ($p->manifest['egress'] ?? [] as $e) {
+        foreach ($entries as $e) {
             if (is_string($e)) {
                 $out[] = $e;
             } elseif (!empty($e['any'])) {
@@ -1079,7 +1281,8 @@ class HAXCMSPluginEngine
     public function requiredUnmet($p)
     {
         $eff = $this->effectiveSettings($p);
-        $out = [];
+        // what this backend's target cannot give the plugin comes first (spec/14): no setting fixes that
+        $out = $p->targetUnmet;
         foreach ($p->form as $f) {
             $v = $eff[$f['property']] ?? null;
             if (!empty($f['required']) && ($v === null || $v === '')) {
@@ -1109,6 +1312,22 @@ class HAXCMSPluginEngine
         }
         $subject = ['id' => $id, 'version' => $p->manifest['version'], 'scope' => 'system'];
         $was = $p->status;
+        $this->loadEntry($p);
+        if ($p->status === 'failed' && $p->instance === null && is_string($p->reason) && strpos($p->reason, 'entry failed') === 0) {
+            return ['status' => 409, 'body' => ['error' => $p->reason, 'status' => 'failed', 'previous' => $was]];
+        }
+        // a dependency that is off keeps it off; the caller enables the dependency first (after confirmation, spec/03)
+        $missing = [];
+        foreach ($p->manifest['dependencies'] ?? [] as $dep) {
+            $d = $this->get(explode('@', $dep)[0]);
+            if (!$d || !($d->status === 'active' || $d->status === 'inactive')) {
+                $missing[] = explode('@', $dep)[0];
+            }
+        }
+        if ($missing) {
+            return ['status' => 409, 'body' => ['error' => 'enable its dependencies first', 'dependencies' => $missing]];
+        }
+        $p->reason = null;
         $p->status = 'active';
         try {
             $first = !isset($this->installed["$id:system"]);

@@ -22,7 +22,7 @@ function haxcms_plugin_test_host(array $o)
             'version' => $o['haxcmsVersion'] ?? '26.10.1',
             'hookTimeout' => $o['hookTimeout'] ?? 5000,
             'now' => HAXCMSPluginEngine::parseTime('2026-01-01T00:00:00Z'),
-        ] + (array_key_exists('user', $o) ? ['user' => $o['user']] : []));
+        ] + (array_key_exists('user', $o) ? ['user' => $o['user']] : []) + (!empty($o['target']) ? ['target' => $o['target']] : []));
     }
     $name = 'conformance-' . getmypid() . '-' . bin2hex(random_bytes(3));
     $dir = "$root/_sites/$name";
@@ -47,6 +47,6 @@ function haxcms_plugin_test_host(array $o)
         'hookTimeout' => $o['hookTimeout'] ?? 5000,
         // the reference's frozen clock, so time-based cases mean the same thing (a case's run.now overrides it)
         'now' => HAXCMSPluginEngine::parseTime('2026-01-01T00:00:00Z'),
-    ] + (array_key_exists('user', $o) ? ['user' => $o['user']] : []));
+    ] + (array_key_exists('user', $o) ? ['user' => $o['user']] : []) + (!empty($o['target']) ? ['target' => $o['target']] : []));
     return $host;
 }

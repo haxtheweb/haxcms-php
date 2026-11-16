@@ -104,7 +104,7 @@ while (($line = fgets(STDIN)) !== false) {
             case 'render': case 'enable': case 'disable': case 'saveConfig': case 'upgrade': case 'saveEntity':
             case 'deleteEntity': case 'advertisedContracts': case 'rebuild': case 'callContract': case 'runSchedule':
             case 'importFile': case 'contractImplementers': case 'exportUser': case 'eraseUser': case 'flushLog':
-            case 'status': case 'unifiedContract': case 'reload':
+            case 'status': case 'unifiedContract': case 'reload': case 'registry':
                 $r = $engine->{$msg['m']}(...$a);
                 break;
             default:

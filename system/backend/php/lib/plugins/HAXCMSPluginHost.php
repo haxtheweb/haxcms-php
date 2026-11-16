@@ -49,6 +49,9 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         if (array_key_exists('user', $o)) {
             $engine['user'] = $o['user'];
         }
+        if (!empty($o['target'])) {
+            $engine['target'] = $o['target'];
+        }
         if (!empty($o['specDir'])) {
             $engine['specDir'] = $o['specDir'];
         }
@@ -58,7 +61,21 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         $this->root = rtrim($o['root'], '/');
         $this->liveNetwork = !empty($o['liveNetwork']);
         $this->liveExec = !empty($o['liveExec']);
-        $this->hydrate();
+        // HAXcms reads the site's records only once a plugin is active (HAXCMSPluginSystem::host); test hosts read now
+        if (!array_key_exists('hydrate', $o) || $o['hydrate']) {
+            $this->hydrate();
+        }
+    }
+
+    /** Whether any plugin is active: when none is, nothing listens and core's saves need no engine work at all. */
+    public function hasActive()
+    {
+        foreach ($this->plugins as $p) {
+            if ($p->status === 'active') {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ---- records: site.json and the page files ----

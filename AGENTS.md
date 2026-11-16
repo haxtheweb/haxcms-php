@@ -111,7 +111,7 @@ The PHP backend lives in `system/backend/php`. The web component build tooling d
   npm run test:e2e
   ```
   - `npm run test:e2e:update` regenerates screenshot baselines after an intentional UI change. Details: `test/e2e/README.md`.
-- **Plugin platform (DRAFT, haxtheweb/issues#3356)**: `system/backend/php/lib/plugins/` is a native PHP implementation of the plugin spec's backend contract (https://github.com/haxtheweb/haxcms-plugin-examples, spec/13), ported from the spec's reference engine that haxcms-nodejs runs. Keep the two in step: a behavior change goes into the spec's reference engine, haxcms-nodejs and here in the same round. `HAXCMS_PLUGINS=off` turns it off. With the spec checked out (`HAXCMS_PLUGIN_SPEC_DIR`, or `node_modules/@haxtheweb/haxcms-plugin-spec`):
+- **Plugin platform (DRAFT, haxtheweb/issues#3356)**: `system/backend/php/lib/plugins/` is a native PHP implementation of the plugin spec's backend contract (https://github.com/haxtheweb/haxcms-plugins, spec/13), ported from the spec's reference engine that haxcms-nodejs runs. Keep the two in step: a behavior change goes into the spec's reference engine, haxcms-nodejs and here in the same round. `HAXCMS_PLUGINS=off` turns it off. With the spec checked out (`HAXCMS_PLUGIN_SPEC_DIR`, or `node_modules/@haxtheweb/haxcms-plugin-spec`):
   ```bash
   HAXCMS_PLUGIN_SPEC_DIR=../haxcms-plugin-examples yarn test:plugins          # conformance + every plugin's cases + parity with the reference engine
   cd system/backend/php && HAXCMS_PLUGIN_SPEC_DIR=... ./vendor/bin/phpunit --filter PluginPlatform

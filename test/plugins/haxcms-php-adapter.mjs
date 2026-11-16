@@ -98,6 +98,7 @@ class PhpBackend {
   saveEntity(type, record) { return this.rpc("saveEntity", type, record); }
   deleteEntity(type, id) { return this.rpc("deleteEntity", type, id); }
   advertisedContracts() { return this.rpc("advertisedContracts"); }
+  registry() { return this.rpc("registry"); }
   rebuild(reason) { return this.rpc("rebuild", reason); }
   callContract(name, op, input, opts = {}) { return this.rpc("callContract", name, op, input, opts); }
   runSchedule(plugin, id) { return this.rpc("runSchedule", plugin, id); }
@@ -122,6 +123,6 @@ class PhpBackend {
 
 export async function createBackend(opts = {}) {
   const b = new PhpBackend();
-  await b.rpc("create", { haxcmsVersion: opts.haxcmsVersion || "26.10.1", ...(opts.user !== undefined ? { user: opts.user } : {}), ...(opts.hookTimeout ? { hookTimeout: opts.hookTimeout } : {}), ...(opts.site === null ? { site: null } : {}) });
+  await b.rpc("create", { haxcmsVersion: opts.haxcmsVersion || "26.10.1", ...(opts.user !== undefined ? { user: opts.user } : {}), ...(opts.hookTimeout ? { hookTimeout: opts.hookTimeout } : {}), ...(opts.site === null ? { site: null } : {}), ...(opts.target ? { target: opts.target } : {}) });
   return b;
 }

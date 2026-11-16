@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
  * only PHP can check: the JSON Schema subset, the real-storage host (site.json, page files, store files, rollback on
  * disk), the core hook points, route matching and the SSRF-guarded single hop.
  *
- * They need the spec (haxtheweb/haxcms-plugin-examples) on disk: HAXCMS_PLUGIN_SPEC_DIR, or
+ * They need the spec (haxtheweb/haxcms-plugins) on disk: HAXCMS_PLUGIN_SPEC_DIR, or
  * node_modules/@haxtheweb/haxcms-plugin-spec. Without it they are skipped.
  */
 class PluginPlatformTest extends TestCase
@@ -198,7 +198,7 @@ class PluginPlatformTest extends TestCase
     {
         $s = $this->site();
         mkdir($s['root'] . '/_config/plugins', 0775, true);
-        file_put_contents($s['root'] . '/_config/plugins/plugins.json', json_encode(['blocked' => ['fx-vetoer']]));
+        file_put_contents($s['root'] . '/_config/plugins/plugins.yaml', "version: 1\nblocked: [fx-vetoer]\n");
         putenv('HAXCMS_PLUGIN_DIRS=' . $this->fx('fx-vetoer'));
         $h = HAXCMSPluginSystem::host($s['site'], ['root' => $s['root']]);
         $this->assertSame('refused', $h->get('fx-vetoer')->status);
@@ -370,5 +370,109 @@ class PluginPlatformTest extends TestCase
         }
         $this->expectExceptionMessage('may not run "sh"');
         $h->execFor($p, 'sh', ['-c', 'id']);
+    }
+
+    /**
+     * Install a fixture the way a deployment installs a plugin, as a folder under _plugins. A link, not a copy: PHP
+     * has one class table per process, so a second copy of the same plugin class could not load in this test run.
+     */
+    private function install($from, $to)
+    {
+        if (!is_dir(dirname($to))) {
+            mkdir(dirname($to), 0775, true);
+        }
+        symlink($from, $to);
+    }
+
+    /** With no plugin enabled, core's save points do no engine work and the site's pages are never read. */
+    public function testNothingEnabledMeansNothingIsReadOrFired(): void
+    {
+        $s = $this->site();
+        $this->install($this->fx('fx-vetoer'), $s['root'] . '/_plugins/fx-vetoer');
+        $record = ['id' => 'p1', 'title' => 'forbidden'];
+        $pre = HAXCMSPluginSystem::before($s['site'], 'page', $record, ['id' => 'p1', 'title' => 'old'], ['root' => $s['root']]);
+        $this->assertNull($pre['veto'], 'an available plugin vetoed');
+        $this->assertSame($record, $pre['record']);
+        $this->assertSame([], HAXCMSPluginSystem::after($s['site'], 'page', $record, null, ['root' => $s['root']])['warnings']);
+        $this->assertNull(HAXCMSPluginSystem::rebuild($s['site'], 'save', ['root' => $s['root']]));
+        $h = HAXCMSPluginSystem::host($s['site'], ['root' => $s['root']]);
+        $this->assertSame('available', $h->get('fx-vetoer')->status);
+        $this->assertNull($h->get('fx-vetoer')->instance, 'the code of a plugin that is not enabled was loaded');
+        $this->assertSame([], $h->records['page'] ?? [], 'pages were read with nothing listening');
+    }
+
+    /** The registry (spec/03): installed is not enabled; enable and disable write plugins.yaml per scope. */
+    public function testRegistryEnableAndDisablePerScope(): void
+    {
+        $s = $this->site();
+        $o = ['root' => $s['root'], 'user' => HAXCMSPluginSystem::userRecord('admin')];
+        foreach (['fx-exec', 'fx-optional'] as $id) {
+            $this->install($this->fx($id), $s['root'] . "/_plugins/$id");
+        }
+        $entry = function ($list, $id) {
+            foreach ($list as $e) {
+                if ($e['id'] === $id) {
+                    return $e;
+                }
+            }
+            return null;
+        };
+        $e = $entry(HAXCMSPluginSystem::registry(null, $o), 'fx-exec');
+        $this->assertSame('available', $e['status']);
+        $this->assertFalse($e['enabled']);
+        $this->assertSame(['backend', 'process'], $e['needs']);
+        $this->assertSame(['server' => 'full', 'desktop' => 'full', 'browser' => 'no'], $e['targets']);
+
+        // for the system: written to <root>/_config/plugins/plugins.yaml, on in every site, a site cannot turn it off
+        $on = HAXCMSPluginSystem::enable(null, 'fx-exec', $o);
+        $this->assertSame(200, $on['status'], json_encode($on));
+        $this->assertSame('active', $on['body']['status']);
+        $this->assertSame('system', $on['body']['scope']);
+        $reg = HAXCMSPluginSystem::readRegistryFile($s['root']);
+        $this->assertSame(['fx-exec'], $reg['enabled']);
+        $this->assertSame('admin', $reg['plugins']['fx-exec']['by']);
+        $this->assertSame('active', $entry(HAXCMSPluginSystem::registry($s['site'], $o), 'fx-exec')['status']);
+        $this->assertSame(409, HAXCMSPluginSystem::disable($s['site'], 'fx-exec', $o)['status']);
+
+        // for one site: written to the site's own file and counted by the system
+        $site = HAXCMSPluginSystem::enable($s['site'], 'fx-optional', $o);
+        $this->assertSame(200, $site['status'], json_encode($site));
+        $this->assertSame('site', $site['body']['scope']);
+        $this->assertSame(['fx-optional'], HAXCMSPluginSystem::readRegistryFile($s['dir'])['enabled']);
+        $system = $entry(HAXCMSPluginSystem::registry(null, $o), 'fx-optional');
+        $this->assertSame('available', $system['status']);
+        $this->assertSame(['demo'], $system['sites']);
+
+        // disable removes it again; ids that are not plugin ids are not found
+        $off = HAXCMSPluginSystem::disable(null, 'fx-exec', $o);
+        $this->assertSame(200, $off['status'], json_encode($off));
+        $this->assertFalse($off['body']['enabled']);
+        $this->assertSame([], HAXCMSPluginSystem::readRegistryFile($s['root'])['enabled']);
+        $this->assertSame(200, HAXCMSPluginSystem::disable($s['site'], 'fx-optional', $o)['status']);
+        $this->assertSame([], HAXCMSPluginSystem::readRegistryFile($s['dir'])['enabled']);
+        $this->assertSame(404, HAXCMSPluginSystem::enable(null, 'no-such-plugin', $o)['status']);
+        $this->assertSame(404, HAXCMSPluginSystem::enable(null, '../etc', $o)['status']);
+
+        // a blocked plugin cannot be enabled
+        file_put_contents($s['root'] . '/_config/plugins/plugins.yaml', "version: 1\nenabled: []\nblocked: [fx-exec]\n");
+        HAXCMSPluginSystem::reset();
+        $this->assertSame(409, HAXCMSPluginSystem::enable(null, 'fx-exec', $o)['status']);
+    }
+
+    /** The engine knows which deployment target it is (spec/14); haxcms-php itself is always a server. */
+    public function testTargetDecidesWhatAnEnabledPluginCanDo(): void
+    {
+        $s = $this->site();
+        $browser = new HAXCMSPluginHost(['manifest' => $s['manifest'], 'siteDirectory' => $s['dir'], 'root' => $s['root'], 'now' => 0, 'target' => 'browser']);
+        $browser->load([$this->fx('fx-exec'), $this->fx('fx-optional')]);
+        $this->assertSame('inactive', $browser->get('fx-exec')->status);
+        $this->assertSame('backend.process', $browser->get('fx-exec')->unmet[0]['key']);
+        $this->assertSame('active', $browser->get('fx-optional')->status);
+        $this->assertSame('backend.visitors', $browser->get('fx-optional')->limited[0]['key']);
+        $server = $this->host($s);
+        $server->load([$this->fx('fx-exec'), $this->fx('fx-optional')]);
+        $this->assertSame('server', $server->haxcms['target']);
+        $this->assertSame('active', $server->get('fx-exec')->status);
+        $this->assertSame([], $server->get('fx-optional')->limited);
     }
 }

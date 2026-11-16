@@ -5,8 +5,16 @@
  * Plugin operations (spec/05): each plugin's config/openapi.yaml paths live under
  *   site scope    x/api/v1/plugins/<id>/...    (and <sitesDirectory>/<site>/x/api/v1/plugins/<id>/...)
  *   system scope  system/api/v1/plugins/<id>/...
- * plus GET system/api/v1/plugins (the plugin list) and GET .../plugins/contributions (spec/07). The engine enforces
- * each operation's declared security from the credentials resolved here; routes never decide auth themselves.
+ * plus GET .../plugins/contributions (spec/07). The engine enforces each operation's declared security from the
+ * credentials resolved here. Core's own routes are the plugin registry and enablement (spec/03, The plugin registry;
+ * the same as haxcms-nodejs pluginRoutes.js):
+ *   GET  system/api/v1/plugins                  the registry for the system        (JWT + user token)
+ *   POST system/api/v1/plugins/<id>/enable      enable for the whole system        (JWT + user token)
+ *   POST system/api/v1/plugins/<id>/disable
+ *   GET  x/api/v1/plugins                       the registry as one site sees it   (JWT + site token)
+ *   POST x/api/v1/plugins/<id>/enable           enable for that site               (JWT + site token)
+ *   POST x/api/v1/plugins/<id>/disable
+ * enable, disable and settings are reserved sub-paths: a plugin operation cannot take them.
  * and GET <basePath>.well-known/<name> for a public system GET a plugin marks with x-hax-well-known (spec/05). A
  * request for a file that does not exist already reaches index.php (the .htaccess catch-all, nginx try_files), which
  * hands reserved names here; a real file of that name still wins, as in haxcms-nodejs.
@@ -19,12 +27,19 @@ class HAXCMSPluginRoutes
     public static function dispatchSite($context, $site)
     {
         $suffix = (string) $context->routeSuffix;
-        if (!HAXCMSPluginSystem::enabled() || strpos($suffix, 'v1/plugins/') !== 0) {
+        if (!HAXCMSPluginSystem::enabled() || ($suffix !== 'v1/plugins' && strpos($suffix, 'v1/plugins/') !== 0)) {
             return false;
+        }
+        if ($suffix === 'v1/plugins') {
+            self::registry($site, $context);
+            return true;
         }
         $rest = substr($suffix, strlen('v1/plugins/'));
         if ($rest === 'contributions' && $context->method === 'GET') {
             self::contributions('site', $site, $context);
+            return true;
+        }
+        if (self::toggle('site', $rest, $site, $context)) {
             return true;
         }
         self::operation('site', $rest, $site, $context);
@@ -40,13 +55,7 @@ class HAXCMSPluginRoutes
         }
         // system-scope work runs on the system engine, never on some site's (spec/13 section 8b)
         if ($suffix === 'v1/plugins') {
-            $auth = self::resolveAuth($context, null);
-            if (!$auth['jwt']) {
-                self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
-                return true;
-            }
-            $h = HAXCMSPluginSystem::systemHost(['user' => HAXCMSPluginSystem::userRecord($auth['userName'])]);
-            self::send(200, ['status' => 200, 'data' => $h ? $h->status() : []]);
+            self::registry(null, $context);
             return true;
         }
         $rest = substr($suffix, strlen('v1/plugins/'));
@@ -54,7 +63,61 @@ class HAXCMSPluginRoutes
             self::contributions('dashboard', null, $context);
             return true;
         }
+        if (self::toggle('system', $rest, null, $context)) {
+            return true;
+        }
         self::operation('system', $rest, null, $context);
+        return true;
+    }
+
+    // ---- the plugin registry and enablement (spec/03) ----
+    /** Both credentials for the system, the site token for one site. */
+    private static function allowed($scope, array $auth, $site)
+    {
+        return $scope === 'site' ? ($site && $auth['jwt'] && $auth['siteToken']) : ($auth['jwt'] && $auth['userToken']);
+    }
+
+    private static function registry($site, $context)
+    {
+        $auth = self::resolveAuth($context, $site);
+        if ($context->method !== 'GET' || !self::allowed($site ? 'site' : 'system', $auth, $site)) {
+            self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
+            return;
+        }
+        self::send(200, ['status' => 200, 'data' => HAXCMSPluginSystem::registry($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])])]);
+    }
+
+    /** POST .../plugins/<id>/enable|disable. @return bool true when the request was one of these and was answered */
+    private static function toggle($scope, $rest, $site, $context)
+    {
+        if (!preg_match('#^([^/]+)/(enable|disable)$#', (string) $rest, $m) || $context->method !== 'POST') {
+            return false;
+        }
+        $auth = self::resolveAuth($context, $site);
+        if (!self::allowed($scope, $auth, $site)) {
+            self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
+            return true;
+        }
+        $opts = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
+        try {
+            $r = $m[2] === 'enable' ? HAXCMSPluginSystem::enable($site, $m[1], $opts) : HAXCMSPluginSystem::disable($site, $m[1], $opts);
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: ' . $m[2] . ' failed: ' . $e->getMessage());
+            self::send(500, ['status' => 500, 'data' => ['message' => 'server error']]);
+            return true;
+        }
+        if ($r['status'] !== 200) {
+            $body = is_array($r['body'] ?? null) ? $r['body'] : [];
+            $data = ['message' => $body['error'] ?? 'refused'];
+            foreach (['dependencies', 'dependents', 'status', 'previous'] as $k) {
+                if (array_key_exists($k, $body)) {
+                    $data[$k] = $body[$k];
+                }
+            }
+            self::send($r['status'], ['status' => $r['status'], 'data' => $data]);
+            return true;
+        }
+        self::send(200, ['status' => 200, 'data' => $r['body']]);
         return true;
     }
 
@@ -220,7 +283,8 @@ class HAXCMSPluginRoutes
     private static function contributions($surface, $site, $context)
     {
         $auth = self::resolveAuth($context, $site);
-        if (!$auth['jwt'] || ($surface === 'site' && !$site)) {
+        // both credentials for the dashboard, site credentials for a site's admin screens (spec/13 section 8)
+        if (!self::allowed($surface === 'site' ? 'site' : 'system', $auth, $site)) {
             self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
             return;
         }

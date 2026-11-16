@@ -12,13 +12,17 @@
  * Core never names a plugin here: everything comes from the plugin folders and the deployment's plugin config.
  * HAXCMS_PLUGINS=off turns all of it off (every call is then a no-op).
  *
- * Where plugins come from (spec/03 tiers, simplified for the draft, the same as haxcms-nodejs):
- *   - core plugins shipped with HAXcms: the spec package's core-plugins/ folder; required ones are always on, the
- *     rest only when listed in `enabled`
- *   - system tier: <HAXCMS_ROOT>/_config/plugins/<id>/
- *   - extra folders: HAXCMS_PLUGIN_DIRS (path list), for development and tests
- *   - site tier: <site>/_config/plugins/<id>/
- * Deployment config: <HAXCMS_ROOT>/_config/plugins/plugins.json { "enabled": [], "disabled": [], "blocked": [] }.
+ *   registry($site, $opts) / enable(...) / disable(...)      what is installed and what is on (spec/03, The plugin
+ *                                                            registry)
+ *
+ * Where plugins come from (spec/03 tiers, spec/13 section 1; the same as haxcms-nodejs):
+ *   - core plugins shipped with HAXcms: the spec package's core-plugins/ folder (none in its base today)
+ *   - system contrib: <HAXCMS_ROOT>/_plugins/<id>/
+ *   - site:           <site>/_plugins/<id>/
+ *   - development and tests: HAXCMS_PLUGIN_DIRS (path list); these are on without being listed
+ * What is on: <HAXCMS_ROOT>/_config/plugins/plugins.yaml for the system and <site>/_config/plugins/plugins.yaml for one
+ * site, each { version: 1, enabled: [ids], plugins: {...} }; the system file also carries locked and blocked. A plugin
+ * that is installed and not enabled is "available": the engine reads its manifest and loads none of its code.
  */
 require_once __DIR__ . '/HAXCMSPluginHost.php';
 
@@ -62,57 +66,125 @@ class HAXCMSPluginSystem
         return $out;
     }
 
-    public static function deploymentConfig($root)
+    const ID = '/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/';
+
+    // ---- the registry files (spec/03) ----
+    public static function registryFile($scopeRoot)
     {
-        $c = self::readJson("$root/_config/plugins/plugins.json", []);
+        return rtrim($scopeRoot, '/') . '/_config/plugins/plugins.yaml';
+    }
+
+    private static function idList($v)
+    {
+        $out = [];
+        foreach (is_array($v) ? $v : [] as $x) {
+            if (is_string($x) && preg_match(self::ID, $x)) {
+                $out[] = $x;
+            }
+        }
+        return $out;
+    }
+
+    /** One scope's registry file, with every list present. A missing or unreadable file is an empty registry. */
+    public static function readRegistryFile($scopeRoot)
+    {
+        $d = [];
+        $file = self::registryFile($scopeRoot);
+        if (is_file($file)) {
+            try {
+                $parsed = \Symfony\Component\Yaml\Yaml::parseFile($file);
+                $d = is_array($parsed) ? $parsed : [];
+            } catch (\Throwable $e) {
+                $d = [];
+            }
+        }
         return [
-            'enabled' => is_array($c['enabled'] ?? null) ? $c['enabled'] : [],
-            'disabled' => is_array($c['disabled'] ?? null) ? $c['disabled'] : [],
-            'blocked' => is_array($c['blocked'] ?? null) ? $c['blocked'] : [],
+            'version' => 1,
+            'enabled' => self::idList($d['enabled'] ?? null),
+            'locked' => self::idList($d['locked'] ?? null),
+            'blocked' => self::idList($d['blocked'] ?? null),
+            'plugins' => is_array($d['plugins'] ?? null) ? $d['plugins'] : [],
         ];
     }
 
-    private static function manifestId($dir)
+    /** Written whole to a temp file and renamed, so a reader never sees half a registry. */
+    public static function writeRegistryFile($scopeRoot, array $reg)
     {
-        $text = @file_get_contents("$dir/plugin.yaml");
-        if (!is_string($text) || !preg_match('/^id:\s*(\S+)/m', $text, $m)) {
-            return [null, false];
+        $file = self::registryFile($scopeRoot);
+        if (!is_dir(dirname($file))) {
+            mkdir(dirname($file), 0775, true);
         }
-        return [$m[1], (bool) preg_match('/^required:\s*true/m', $text)];
+        $enabled = $reg['enabled'];
+        sort($enabled, SORT_STRING);
+        $out = ['version' => 1, 'enabled' => $enabled];
+        if ($reg['locked']) {
+            $out['locked'] = $reg['locked'];
+        }
+        if ($reg['blocked']) {
+            $out['blocked'] = $reg['blocked'];
+        }
+        $out['plugins'] = $reg['plugins'] ?: new \stdClass();
+        $tmp = $file . '.' . getmypid() . '.tmp';
+        file_put_contents($tmp, \Symfony\Component\Yaml\Yaml::dump($out, 4, 2, \Symfony\Component\Yaml\Yaml::DUMP_OBJECT_AS_MAP));
+        rename($tmp, $file);
     }
 
-    /** The plugin folders for a site, lowest tier first. */
+    /** What the deployment decided for every site: the system registry (enabled, locked, blocked). */
+    public static function deploymentConfig($root)
+    {
+        return self::readRegistryFile($root);
+    }
+
+    /**
+     * The plugin folders for a site, lowest tier first, and the ids that are on without being listed: plugins from
+     * HAXCMS_PLUGIN_DIRS.
+     */
     public static function pluginDirsFor($siteDirectory, $root)
     {
-        $cfg = self::deploymentConfig($root);
         $out = [];
+        $dev = [];
         $spec = self::specRoot();
         if ($spec) {
             foreach (self::listPluginDirs("$spec/core-plugins") as $d) {
-                [$id, $required] = self::manifestId($d);
-                if ($id && ($required || in_array($id, $cfg['enabled'], true))) {
-                    $out[] = ['path' => $d, 'tier' => 'system-core'];
-                }
+                $out[] = ['path' => $d, 'tier' => 'system-core'];
             }
         }
-        foreach (self::listPluginDirs("$root/_config/plugins") as $d) {
+        foreach (self::listPluginDirs(rtrim($root, '/') . '/_plugins') as $d) {
             $out[] = ['path' => $d, 'tier' => 'system-contrib'];
         }
         foreach (array_filter(explode(PATH_SEPARATOR, (string) getenv('HAXCMS_PLUGIN_DIRS'))) as $d) {
-            if (is_file("$d/plugin.yaml")) {
-                $out[] = ['path' => $d, 'tier' => 'system-contrib'];
-            } else {
-                foreach (self::listPluginDirs($d) as $x) {
-                    $out[] = ['path' => $x, 'tier' => 'system-contrib'];
-                }
+            $found = is_file("$d/plugin.yaml") ? [$d] : self::listPluginDirs($d);
+            foreach ($found as $x) {
+                $out[] = ['path' => $x, 'tier' => 'system-contrib'];
+                $dev[] = basename($x);
             }
         }
         if ($siteDirectory) {
-            foreach (self::listPluginDirs("$siteDirectory/_config/plugins") as $d) {
+            foreach (self::listPluginDirs("$siteDirectory/_plugins") as $d) {
                 $out[] = ['path' => $d, 'tier' => 'site'];
             }
         }
-        return ['dirs' => $out, 'cfg' => $cfg];
+        return ['dirs' => $out, 'dev' => $dev];
+    }
+
+    /** The ids enabled for a scope: the system's list, that site's own list, locked ones and development folders. */
+    public static function enabledFor($siteDirectory, $root, array $dev)
+    {
+        $system = self::readRegistryFile($root);
+        $own = $siteDirectory ? self::readRegistryFile($siteDirectory)['enabled'] : [];
+        $ids = array_values(array_unique(array_merge($system['enabled'], $system['locked'], $own, $dev)));
+        return [
+            'enabled' => array_values(array_diff($ids, $system['blocked'])),
+            'locked' => $system['locked'],
+            'blocked' => $system['blocked'],
+            'system' => $system['enabled'],
+            'own' => $own,
+        ];
+    }
+
+    private static function rootOf(array $opts)
+    {
+        return $opts['root'] ?? (defined('HAXCMS_ROOT') ? HAXCMS_ROOT : getcwd());
     }
 
     /** Saved settings: <root>/_config/plugins/config/<id>.json, then the site's own copy (site wins). */
@@ -120,8 +192,8 @@ class HAXCMSPluginSystem
     {
         $out = [];
         foreach ($dirs as $d) {
-            [$id] = self::manifestId($d['path']);
-            if (!$id) {
+            $id = basename($d['path']);
+            if (!preg_match(self::ID, $id)) {
                 continue;
             }
             $system = self::readJson("$root/_config/plugins/config/$id.json", []);
@@ -172,18 +244,24 @@ class HAXCMSPluginSystem
                 'user' => $opts['user'] ?? null,
                 'liveNetwork' => true,
                 'liveExec' => true,
+                'hydrate' => false,
             ]);
             $found = self::pluginDirsFor($dir, $root);
+            $on = self::enabledFor($dir, $root, $found['dev']);
             $h->load($found['dirs'], [
-                'disabled' => $found['cfg']['disabled'],
-                'blocked' => $found['cfg']['blocked'],
+                'enabled' => $on['enabled'],
+                'blocked' => $on['blocked'],
+                'required' => $on['locked'],
                 'settings' => self::pluginSettings($found['dirs'], $dir, $root),
             ]);
             self::$hosts[$dir] = $h;
         }
-        // core reloads the site during a request; keep the engine's view of site.json and pages current
+        // core reloads the site during a request; keep the engine's view of site.json and pages current. The
+        // records are read only when a plugin is active: with none, nothing listens and nothing is read
         $h->manifest = $site->manifest;
-        $h->hydrate();
+        if ($h->hasActive() || !empty($opts['hydrate'])) {
+            $h->hydrate();
+        }
         if (array_key_exists('user', $opts)) {
             $h->user = $opts['user'];
         }
@@ -217,9 +295,11 @@ class HAXCMSPluginSystem
                 'liveExec' => true,
             ]);
             $found = self::pluginDirsFor(null, $root);
+            $on = self::enabledFor(null, $root, $found['dev']);
             $h->load($found['dirs'], [
-                'disabled' => $found['cfg']['disabled'],
-                'blocked' => $found['cfg']['blocked'],
+                'enabled' => $on['enabled'],
+                'blocked' => $on['blocked'],
+                'required' => $on['locked'],
                 'settings' => self::pluginSettings($found['dirs'], null, $root),
             ]);
             self::$hosts[$key] = $h;
@@ -243,7 +323,7 @@ class HAXCMSPluginSystem
     public static function before($site, $type, $record, $previous, array $opts = [])
     {
         $h = self::host($site, $opts);
-        if (!$h) {
+        if (!$h || !$h->hasActive()) {
             return ['record' => $record, 'veto' => null, 'warnings' => []];
         }
         $delete = !empty($opts['delete']);
@@ -262,7 +342,7 @@ class HAXCMSPluginSystem
     public static function after($site, $type, $record, $previous, array $opts = [])
     {
         $h = self::host($site, $opts);
-        if (!$h) {
+        if (!$h || !$h->hasActive()) {
             return ['warnings' => []];
         }
         $op = !empty($opts['delete']) ? 'delete' : ($previous ? 'update' : 'create');
@@ -280,13 +360,155 @@ class HAXCMSPluginSystem
         $running = true;
         try {
             $h = self::host($site, $opts);
-            return $h ? $h->rebuild($reason) : null;
+            return $h && $h->hasActive() ? $h->rebuild($reason) : null;
         } catch (\Throwable $e) {
             error_log('HAXcms plugins: rebuild failed: ' . $e->getMessage());
             return null;
         } finally {
             $running = false;
         }
+    }
+
+    // ---- the registry (spec/03) ----
+    /** Sites that enabled a plugin themselves: [pluginId => [site folder names]], from each site's registry file. */
+    public static function sitesUsing($root, $sitesDirectory = '_sites')
+    {
+        $out = [];
+        $base = rtrim($root, '/') . '/' . $sitesDirectory;
+        if (!is_dir($base)) {
+            return $out;
+        }
+        $names = scandir($base) ?: [];
+        sort($names, SORT_STRING);
+        foreach ($names as $name) {
+            if ($name[0] === '.' || !is_file(self::registryFile("$base/$name"))) {
+                continue;
+            }
+            foreach (self::readRegistryFile("$base/$name")['enabled'] as $id) {
+                $out[$id][] = $name;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * The registry for the system ($site null) or for one site: one entry per installed plugin with its status, what
+     * it needs from a backend, how it fits each target and what is limited here (spec/03, spec/14).
+     */
+    public static function registry($site, array $opts = [])
+    {
+        $root = self::rootOf($opts);
+        $h = $site ? self::host($site, $opts) : self::systemHost($opts);
+        if (!$h) {
+            return [];
+        }
+        $system = self::readRegistryFile($root);
+        $own = $site ? self::readRegistryFile(self::siteDirectory($site))['enabled'] : [];
+        $using = $site ? [] : self::sitesUsing($root, $opts['sitesDirectory'] ?? '_sites');
+        $out = [];
+        foreach ($h->registry() as $e) {
+            $e['locked'] = in_array($e['id'], $system['locked'], true);
+            $e['blocked'] = in_array($e['id'], $system['blocked'], true);
+            $e['scope'] = in_array($e['id'], $system['enabled'], true) ? 'system' : (in_array($e['id'], $own, true) ? 'site' : null);
+            if (!$site) {
+                $e['sites'] = $using[$e['id']] ?? [];
+            }
+            $out[] = $e;
+        }
+        return $out;
+    }
+
+    private static function entryOf($site, $id, array $opts)
+    {
+        foreach (self::registry($site, $opts) as $e) {
+            if ($e['id'] === $id) {
+                return $e;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Enable a plugin for the system ($site null) or for one site. Runs the engine's enable (install hooks on a first
+     * enable, plugin.before.enable, requirements) and writes the registry file only when that succeeded.
+     * @return array{status: int, body: mixed}
+     */
+    public static function enable($site, $id, array $opts = [])
+    {
+        $root = self::rootOf($opts);
+        if (!is_string($id) || !preg_match(self::ID, $id)) {
+            return ['status' => 404, 'body' => ['error' => 'not installed']];
+        }
+        $system = self::readRegistryFile($root);
+        if (in_array($id, $system['blocked'], true)) {
+            return ['status' => 409, 'body' => ['error' => 'blocked by deployment config']];
+        }
+        // install and enable hooks may read the site's records, which are not read while nothing is active
+        $h = $site ? self::host($site, $opts + ['hydrate' => true]) : self::systemHost($opts);
+        $p = $h ? $h->get($id) : null;
+        if (!$p) {
+            return ['status' => 404, 'body' => ['error' => 'not installed']];
+        }
+        if ($site && $p->tier !== 'site' && in_array($id, $system['enabled'], true)) {
+            // already on for every site: nothing to record for this one
+            return ['status' => 200, 'body' => self::entryOf($site, $id, $opts)];
+        }
+        $r = $p->status === 'active' || $p->status === 'inactive' ? ['status' => 200] : $h->enable($id);
+        if ($r['status'] !== 200) {
+            return $r;
+        }
+        $scopeRoot = $site ? self::siteDirectory($site) : $root;
+        $reg = self::readRegistryFile($scopeRoot);
+        if (!in_array($id, $reg['enabled'], true)) {
+            $reg['enabled'][] = $id;
+        }
+        $reg['plugins'][$id] = [
+            'version' => (string) ($p->manifest['version'] ?? ''),
+            'enabledAt' => gmdate('Y-m-d\\TH:i:s\\Z'),
+            'by' => (string) ($opts['user']['name'] ?? ''),
+        ];
+        self::writeRegistryFile($scopeRoot, $reg);
+        if (!$site) {
+            // every site's engine has to see the new system list
+            self::reset();
+        }
+        return ['status' => 200, 'body' => self::entryOf($site, $id, $opts)];
+    }
+
+    /** Disable a plugin for the system or for one site. Refusals come from the engine (required, dependents). */
+    public static function disable($site, $id, array $opts = [])
+    {
+        $root = self::rootOf($opts);
+        if (!is_string($id) || !preg_match(self::ID, $id)) {
+            return ['status' => 404, 'body' => ['error' => 'not installed']];
+        }
+        $system = self::readRegistryFile($root);
+        $h = $site ? self::host($site, $opts + ['hydrate' => true]) : self::systemHost($opts);
+        $p = $h ? $h->get($id) : null;
+        if (!$p) {
+            return ['status' => 404, 'body' => ['error' => 'not installed']];
+        }
+        if (in_array($id, $system['locked'], true)) {
+            return ['status' => 409, 'body' => ['error' => 'locked by deployment config']];
+        }
+        if ($site && in_array($id, $system['enabled'], true)) {
+            return ['status' => 409, 'body' => ['error' => 'enabled for the whole system; a site cannot turn it off']];
+        }
+        $r = $h->disable($id);
+        if ($r['status'] !== 200) {
+            return $r;
+        }
+        $scopeRoot = $site ? self::siteDirectory($site) : $root;
+        $reg = self::readRegistryFile($scopeRoot);
+        $reg['enabled'] = array_values(array_diff($reg['enabled'], [$id]));
+        unset($reg['plugins'][$id]);
+        self::writeRegistryFile($scopeRoot, $reg);
+        self::reset();
+        $entry = self::entryOf($site, $id, $opts);
+        if (!empty($r['body']['inUse']) && is_array($entry)) {
+            $entry['inUse'] = $r['body']['inUse'];
+        }
+        return ['status' => 200, 'body' => $entry];
     }
 
     /** A veto as the site API answers it (the shape saveNode, deleteNode and saveManifest return). */

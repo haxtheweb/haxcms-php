@@ -1,6 +1,6 @@
 name: plugins
 # DRAFT plugin platform (haxtheweb/issues#3356). haxcms-php's native plugin engine against the plugin spec
-# (haxtheweb/haxcms-plugin-examples): the spec's conformance cases and every plugin's own executable cases on real
+# (haxtheweb/haxcms-plugins): the spec's conformance cases and every plugin's own executable cases on real
 # HAXcms storage, a case-by-case comparison with the spec's reference engine, and the PHPUnit tests that need the
 # spec on disk. haxcms-nodejs#138 runs the same cases against its engine.
 on:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 env:
   # The plugin spec's base branch: spec, harness, conformance and examples, no catalog plugins
-  # (https://github.com/haxtheweb/haxcms-plugin-examples/pull/15). Point this at the spec's default branch once it merges.
+  # (https://github.com/haxtheweb/haxcms-plugins/pull/15). Point this at the spec's default branch once it merges.
   PLUGIN_SPEC_REF: foundation/spec-harness-checks
 jobs:
   plugins:
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout the plugin spec
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: haxtheweb/haxcms-plugin-examples
+          repository: haxtheweb/haxcms-plugins
           ref: ${{ env.PLUGIN_SPEC_REF }}
           path: .plugin-spec
           persist-credentials: false

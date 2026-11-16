@@ -66,6 +66,7 @@ for (const tier of ["core-plugins", "contrib-plugins", "examples"]) {
     if (bad) failed.push(name);
   }
 }
-console.log(differ.length ? `\n${differ.length} case(s) differ between haxcms-php and the reference engine: ${differ.join(", ")}` : "\nhaxcms-php and the reference engine agree on every case");
+// a case that failed on either side was never compared, so "agree" is only said about the ones that were
+console.log(differ.length ? `\n${differ.length} case(s) differ between haxcms-php and the reference engine: ${differ.join(", ")}` : failed.length ? `\nno differences in the cases that ran on both engines; ${failed.join(", ")} failed and ${failed.length > 1 ? "were" : "was"} not compared` : "\nhaxcms-php and the reference engine agree on every case");
 console.log(failed.length ? `failed: ${failed.join(", ")}` : "all plugin cases pass against haxcms-php");
 process.exit(failed.length || differ.length ? 1 : 0);
