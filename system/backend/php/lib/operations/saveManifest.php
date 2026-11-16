@@ -116,21 +116,36 @@ trait OperationsRouteSaveManifest {
             }
         }
         // the design system is the site's choice, not the theme's: keep it
-        // when the theme entry is copied in below (haxtheweb/issues#3350)
-        $keptDesignSystem = (isset($site->manifest->metadata->theme->designSystem) && is_string($site->manifest->metadata->theme->designSystem))
-          ? $site->manifest->metadata->theme->designSystem
-          : '';
+        // when the theme changes
+        $keptDesignSystem = (
+          isset($site->manifest->metadata->theme->designSystem) &&
+          is_string($site->manifest->metadata->theme->designSystem)
+        ) ? $site->manifest->metadata->theme->designSystem : '';
         // look for a match so we can set the correct data
         foreach ($GLOBALS['HAXCMS']->getThemes() as $key => $theme) {
           if (
               filter_var($this->params['manifest']['theme']['manifest-metadata-theme-element'], FILTER_SANITIZE_FULL_SPECIAL_CHARS) ==
               $key
           ) {
-              $site->manifest->metadata->theme = $theme;
+              // a copy, so the edits below never reach the shared themes list
+              $site->manifest->metadata->theme = json_decode(json_encode($theme));
           }
         }
-        if ($keptDesignSystem !== '' && isset($site->manifest->metadata->theme) && is_object($site->manifest->metadata->theme)) {
+        if ($keptDesignSystem !== '') {
           $site->manifest->metadata->theme->designSystem = $keptDesignSystem;
+        }
+        if (array_key_exists('manifest-metadata-theme-designSystem', $this->params['manifest']['theme'])) {
+          // same rule as saveAppearanceSettings: '' or 'ddd' is DDD (no
+          // value); anything else must be a lowercase name, or it is ignored
+          $designSystem = $this->normalizeDesignSystem(
+            $this->params['manifest']['theme']['manifest-metadata-theme-designSystem']
+          );
+          if ($designSystem === '') {
+            unset($site->manifest->metadata->theme->designSystem);
+          }
+          else if ($designSystem !== false) {
+            $site->manifest->metadata->theme->designSystem = $designSystem;
+          }
         }
         if (!isset($site->manifest->metadata->theme->variables)) {
           $site->manifest->metadata->theme->variables = new stdClass();

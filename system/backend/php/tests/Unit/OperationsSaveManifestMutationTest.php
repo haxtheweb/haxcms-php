@@ -199,6 +199,7 @@ class OperationsSaveManifestMutationTest extends TestCase
                     'manifest-metadata-theme-variables-imageLink' => 'https://example.com',
                     'manifest-metadata-theme-variables-hexCode' => '#aa8833',
                     'manifest-metadata-theme-variables-palette' => 'grey',
+                    'manifest-metadata-theme-designSystem' => 'Carbon',
                     'manifest-metadata-theme-regions-header' => array('block-1'),
                 ),
                 'author' => array(
@@ -244,6 +245,8 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('A banner', $result->metadata->theme->variables->imageAlt);
         $this->assertSame('#aa8833', $result->metadata->theme->variables->hexCode);
         $this->assertSame('grey', $result->metadata->theme->variables->palette);
+        // the design system sits on the theme, lowercased
+        $this->assertSame('carbon', $result->metadata->theme->designSystem);
         $this->assertSame(array('block-1'), $result->metadata->theme->regions->header);
 
         // seo settings parsed through their filters

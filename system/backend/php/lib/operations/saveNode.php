@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -27,7 +28,19 @@ trait OperationsRouteSaveNode {
       // this ensures that writing is always to what the file system
       // determines to be the correct page
       // @todo review this step by step
-      if ($page = $site->loadNode($this->params['node']['id'])) {
+      $page = $site->loadNode($this->params['node']['id']);
+      // a locked page is changed by nothing but unlocking it (the setLocked
+      // item operation); the lock a save carries applies to an unlocked page
+      if (OutlineUpkeep::isLocked($page)) {
+        return array(
+          '__failed' => array(
+            'status' => 423,
+            'message' => 'Page is locked',
+            'reason' => 'locked',
+          )
+        );
+      }
+      if ($page) {
         // convert web location for loading into file location for writing
         if (isset($body)) {
           $bytes = 0;
@@ -47,8 +60,10 @@ trait OperationsRouteSaveNode {
           }
           foreach($pageData as $data) {
             // trap to ensure if front-end didnt send a UUID for id then we make it
-            if (!isset($data["attributes"]["title"])) {
-              $data["attributes"]["title"] = 'New page';
+            // a page-break with no title, a blank one, or the text "null"
+            // saves the default title
+            if (!isset($data["attributes"]["title"]) || SanitizeContent::isBlankPageTitle(SanitizeContent::plainText($data["attributes"]["title"]))) {
+              $data["attributes"]["title"] = SanitizeContent::DEFAULT_PAGE_TITLE;
             }
             // to avoid critical error in parsing, we defer to the POST's ID always
             // this also blocks multiple page breaks if it doesn't exist as we don't allow
@@ -153,6 +168,10 @@ trait OperationsRouteSaveNode {
                     $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"])
                   );
                 }
+                // where the page sat before this save applies the page-break's
+                // parent / order, to tell whether the save moves it
+                $parentBeforeSave = OutlineUpkeep::parentOf($page);
+                $orderBeforeSave = OutlineUpkeep::orderOf($page);
                 if (isset($data["attributes"]["parent"])) {
                   $page->parent = $data["attributes"]["parent"];
                 }
@@ -182,6 +201,13 @@ trait OperationsRouteSaveNode {
                 if (isset($data["attributes"]["order"])) {
                   $page->order = (int)$data["attributes"]["order"];
                 }
+                // a save that moves the page keeps the outline rules the item
+                // operations keep: no two siblings share an order, and indent
+                // is the page's depth whatever depth the page-break carried
+                if ($parentBeforeSave !== OutlineUpkeep::parentOf($page) || $orderBeforeSave !== OutlineUpkeep::orderOf($page)) {
+                  OutlineUpkeep::makeRoomFor($site->manifest->items, $page);
+                }
+                OutlineUpkeep::syncIndentToDepth($site->manifest->items);
                 // boolean so these are either there or not
                 // historically we are published if this value is not set
                 // and that will remain true however as we save / update pages
