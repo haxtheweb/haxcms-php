@@ -1106,6 +1106,17 @@ class HAXCMSSite
           $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
             ? $materialized['uuids']
             : array();
+          // the outline's save() above rebuilt its items, so $page is no
+          // longer the object in $this->manifest->items: set the list on the
+          // outline's copy too, or it never reaches site.json (haxcms-nodejs
+          // keeps the same object, so it records the list either way)
+          $outlinePage = $this->loadNode($page->id);
+          if ($outlinePage && $outlinePage !== $page) {
+            if (!isset($outlinePage->metadata) || !is_object($outlinePage->metadata)) {
+              $outlinePage->metadata = new stdClass();
+            }
+            $outlinePage->metadata->files = $page->metadata->files;
+          }
           if (count($page->metadata->files) > 0 && !$bulk) {
             $this->manifest->save();
           }
