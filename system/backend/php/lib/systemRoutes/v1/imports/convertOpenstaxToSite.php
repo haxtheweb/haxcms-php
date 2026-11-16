@@ -13,17 +13,17 @@ include_once dirname(__FILE__) . '/../../../stageRemoteFile.php';
 if (!defined('HAXCMS_OPENSTAX_ORIGIN')) {
     define('HAXCMS_OPENSTAX_ORIGIN', 'https://openstax.org');
     // image types HAXCMSFile accepts, keyed by the content type the archive serves
-    define('HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE', serialize(array(
+    define('HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE', array(
         'image/png'  => 'png',
         'image/jpeg' => 'jpg',
         'image/gif'  => 'gif',
         'image/webp' => 'webp',
-    )));
+    ));
     // license codes site.license understands (mirrors convertPressbooksToSite)
-    define('HAXCMS_OPENSTAX_SITE_LICENSES', serialize(array('by', 'by-sa', 'by-nd', 'by-nc', 'by-nc-sa', 'by-nc-nd')));
+    define('HAXCMS_OPENSTAX_SITE_LICENSES', array('by', 'by-sa', 'by-nd', 'by-nc', 'by-nc-sa', 'by-nc-nd'));
     // attributes worth keeping, by tag. Everything else (os-* classes, fs-id
     // ids, data-type hooks, inline styles) is dropped so HAX gets clean markup
-    define('HAXCMS_OPENSTAX_KEEP_ATTRIBUTES', serialize(array(
+    define('HAXCMS_OPENSTAX_KEEP_ATTRIBUTES', array(
         'a'           => array('href'),
         'img'         => array('src', 'alt', 'width', 'height'),
         'td'          => array('colspan', 'rowspan', 'headers'),
@@ -31,9 +31,9 @@ if (!defined('HAXCMS_OPENSTAX_ORIGIN')) {
         'ol'          => array('start', 'type'),
         'math'        => array('display'),
         'media-image' => array('source', 'alt'),
-    )));
+    ));
     // dropped outright: presentation and script material with no content value
-    define('HAXCMS_OPENSTAX_DROP_ELEMENTS', serialize(array('style', 'script', 'link', 'meta', 'noscript', 'head')));
+    define('HAXCMS_OPENSTAX_DROP_ELEMENTS', array('style', 'script', 'link', 'meta', 'noscript', 'head'));
 }
 
 if (!function_exists('haxcmsImportConvertOpenstaxToSite')) {
@@ -245,7 +245,7 @@ if (!function_exists('haxcmsImportConvertOpenstaxToSite')) {
         $url = isset($license['url']) && is_scalar($license['url']) ? (string) $license['url'] : '';
         $name = isset($license['name']) && is_scalar($license['name']) ? (string) $license['name'] : '';
         $value = strtolower($url . ' ' . $name);
-        foreach (unserialize(HAXCMS_OPENSTAX_SITE_LICENSES) as $code) {
+        foreach (HAXCMS_OPENSTAX_SITE_LICENSES as $code) {
             if (strpos($value, '/licenses/' . $code . '/') !== false) {
                 return $code;
             }
@@ -471,7 +471,7 @@ if (!function_exists('haxcmsImportConvertOpenstaxToSite')) {
         if (!$container) {
             return '<p></p>';
         }
-        foreach (unserialize(HAXCMS_OPENSTAX_DROP_ELEMENTS) as $tag) {
+        foreach (HAXCMS_OPENSTAX_DROP_ELEMENTS as $tag) {
             foreach (iterator_to_array($xpath->query('.//' . $tag, $container)) as $dropped) {
                 if ($dropped->parentNode) {
                     $dropped->parentNode->removeChild($dropped);
@@ -563,7 +563,7 @@ if (!function_exists('haxcmsImportConvertOpenstaxToSite')) {
         }
         $parts = explode(';', $response->getHeaderLine('Content-Type'));
         $contentType = strtolower(trim($parts[0]));
-        $types = unserialize(HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE);
+        $types = HAXCMS_OPENSTAX_EXTENSION_BY_CONTENT_TYPE;
         // archive resources are extension-less hashes, so the type names the file
         if (!isset($types[$contentType])) {
             return null;
@@ -637,7 +637,7 @@ if (!function_exists('haxcmsImportConvertOpenstaxToSite')) {
      */
     function haxcmsImportOpenstaxStripPresentationAttributes($xpath, $container)
     {
-        $keepByTag = unserialize(HAXCMS_OPENSTAX_KEEP_ATTRIBUTES);
+        $keepByTag = HAXCMS_OPENSTAX_KEEP_ATTRIBUTES;
         foreach (iterator_to_array($xpath->query('.//*', $container)) as $element) {
             $tag = strtolower($element->nodeName);
             if ($tag === '' || haxcmsImportOpenstaxInsideMath($element)) {

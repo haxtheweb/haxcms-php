@@ -47,7 +47,6 @@ class SiteApiSecurityUserTokenAndFallbackJwtTest extends TestCase
             $this->savedHaxcms = $GLOBALS['HAXCMS'];
         }
         $this->policyProperty = new ReflectionProperty('SiteRouteUtils', 'siteApiAuthPolicies');
-        $this->policyProperty->setAccessible(true);
         $this->savedPolicies = $this->policyProperty->getValue();
     }
 

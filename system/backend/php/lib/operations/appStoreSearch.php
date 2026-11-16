@@ -273,11 +273,9 @@ trait OperationsRouteAppStoreSearch
     $upstreamBody = curl_exec($curl);
     if ($upstreamBody === false) {
       $curlError = curl_error($curl);
-      curl_close($curl);
       return $this->appStoreSearchFail(502, 'Unable to reach upstream provider: ' . $curlError);
     }
     $upstreamStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    curl_close($curl);
     $trimmedBody = trim((string) $upstreamBody);
     $upstreamJson = null;
     if ($trimmedBody !== '') {

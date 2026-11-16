@@ -60,10 +60,8 @@ class LoginThrottleTest extends TestCase
     private function resetRequestAttempts(): void
     {
         $p = new ReflectionProperty(HAXCMS::class, 'loginThrottleRequestAttempts');
-        $p->setAccessible(true);
         $p->setValue(null, 0);
         $w = new ReflectionProperty(HAXCMS::class, 'loginThrottleBackendWarned');
-        $w->setAccessible(true);
         $w->setValue(null, true);
     }
 
@@ -89,7 +87,6 @@ class LoginThrottleTest extends TestCase
         $h->superUser->password = $h->user->password;
         $h->configDirectory = $this->tmp;
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         if ($withCache) {
             $cacheProp->setValue($h, new Cache(array('name' => 'haxcms', 'path' => $this->tmp . '/cache/', 'extension' => '.cache')));
         } else {

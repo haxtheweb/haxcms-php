@@ -111,7 +111,7 @@ return function ($context) {
         ob_start();
         $fp = fopen('php://output', 'w');
         foreach ($csvRows as $row) {
-            fputcsv($fp, $row);
+            fputcsv($fp, $row, ",", "\"", "\\");
         }
         fclose($fp);
         $csvOutput = ob_get_clean();

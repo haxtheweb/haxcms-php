@@ -180,7 +180,6 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringNotContainsString("'.svg'  => 'image/svg+xml'", $src);
         $ops = new Operations();
         $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
-        $m->setAccessible(true);
         $this->assertFalse($m->invoke($ops, 'theme/logo.svg'));
         $this->assertSame('theme/logo.png', $m->invoke($ops, 'theme/logo.png'));
     }
@@ -303,6 +302,53 @@ class SecurityAuditFixesTest extends TestCase
         } finally {
             shell_exec('rm -rf ' . escapeshellarg($path));
         }
+    }
+
+    // ---- SEC-EXEC: no shell strings, no unserialize/eval/assert in lib ------
+
+    public function testLibHasNoShellStringOrUnserializeCalls(): void
+    {
+        $banned = array('exec', 'shell_exec', 'system', 'passthru', 'popen', 'unserialize', 'eval', 'assert');
+        $libDir = dirname(__DIR__, 2) . '/lib';
+        $found = array();
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($libDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (substr($file->getFilename(), -4) !== '.php') {
+                continue;
+            }
+            $tokens = token_get_all(file_get_contents($file->getPathname()));
+            $count = count($tokens);
+            for ($i = 0; $i < $count; $i++) {
+                $token = $tokens[$i];
+                $isName = is_array($token) && ($token[0] === T_STRING || $token[0] === T_EVAL);
+                if (!$isName || !in_array(strtolower($token[1]), $banned, true)) {
+                    continue;
+                }
+                // previous significant token: skip ->exec(), ::exec() and `function exec(`
+                $prev = null;
+                for ($p = $i - 1; $p >= 0; $p--) {
+                    if (!is_array($tokens[$p]) || !in_array($tokens[$p][0], array(T_WHITESPACE, T_COMMENT, T_DOC_COMMENT), true)) {
+                        $prev = $tokens[$p];
+                        break;
+                    }
+                }
+                if (is_array($prev) && in_array($prev[0], array(T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION, T_NULLSAFE_OBJECT_OPERATOR), true)) {
+                    continue;
+                }
+                // next significant token must be "(" for a call
+                $next = null;
+                for ($n = $i + 1; $n < $count; $n++) {
+                    if (!is_array($tokens[$n]) || $tokens[$n][0] !== T_WHITESPACE) {
+                        $next = $tokens[$n];
+                        break;
+                    }
+                }
+                if ($next === '(') {
+                    $found[] = str_replace($libDir . '/', '', $file->getPathname()) . ':' . $token[2] . ' ' . $token[1] . '()';
+                }
+            }
+        }
+        $this->assertSame(array(), $found, 'SEC-EXEC: use proc_open with an argv array, and plain array constants instead of serialize/unserialize');
     }
 
     // ---- SEC-SANITIZE: site shell output encoding ------------------------

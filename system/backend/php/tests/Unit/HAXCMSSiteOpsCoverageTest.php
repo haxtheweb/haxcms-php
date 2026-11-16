@@ -32,7 +32,6 @@ class HAXCMSSiteOpsCoverageTest extends TestCase
         $this->haxcms->salt = 'cov-salt';
         $this->haxcms->configDirectory = null;
         $cacheProp = new ReflectionProperty(HAXCMS::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue($this->haxcms, null);
         $this->haxcms->sessionJwt = null;
         $this->haxcms->config = new stdClass();

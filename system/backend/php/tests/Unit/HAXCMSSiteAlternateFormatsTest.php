@@ -105,7 +105,6 @@ class HAXCMSSiteAlternateFormatsTest extends TestCase
     private function invokePrivate(string $method, array $args = [])
     {
         $ref = new ReflectionMethod(HAXCMSSite::class, $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->site, $args);
     }
 

@@ -8519,8 +8519,8 @@
         "lib/DDDReading.js": ["e75e4e8f4e52294e247a1c646d822fdf", "44b121db0132926a4270a09ae1a917d0"],
         "lib/DDDStatusTokens.js": ["5031b18926bb3cffea2dc3fa4eadde99", "b3e7849da992f76db945c74fed59f604"],
         "lib/DDDStyleGuideAuthoring.js": ["6a751db82e5d5cc56a88f3f8d580bbfd", "29ca58b2059c2ad63049e5e3f1d43a0f"],
-        "lib/DDDStyleGuidePresets.js": ["0ddae029289fe53d2ec3c88ddd3279d9", "35bb9fdf819881bdcc5ee976aad911e0"],
-        "lib/DDDStyles.js": ["06da18dcb41ee0fa1d50d93942d71641", "41b9a8127e0733dd1b7cc800d8c44439"],
+        "lib/DDDStyleGuidePresets.js": ["8ab2b15fd64776cd1fbad8cbf0b2bf20", "f85dcea01cdcd440e2bc570b2c267c77"],
+        "lib/DDDStyles.js": ["d1d7e07140115f4a68e88c13cbd733f8", "f6c1d8dac13502c0811101945b4b4fec"],
         "lib/DDDTable.js": ["25999206e071f1b4470709e4c3868b0f", "ade4f92f4c99eead81c0954cdfec1521"],
         "lib/DDDUtilityClasses.js": ["622b6c339c59ac96ebb627a5bd957ad6", "a0d4b8f11856b79db79ffd4c28e0e43e"],
         "lib/DDDViewport.js": ["b8b7dc287b80565ca6e7024913fe4e9b", "ff66d76a90e148e87ce0770b5a1336ba"],
@@ -19246,7 +19246,7 @@
         "lib/core/utils/site-skeleton-generator.js": ["83203f812adc117fded8abbda91c24dd", "30cf205fbd40f65a484f5945ec4438a1"],
         "lib/core/utils/urlHost.js": ["a971149ff4f90c190ff2d6dc2f0c4387", "f25715abf623c046d9cc9b90407c3d07"],
         "lib/development/haxcms-dev-theme.js": ["9cea46fa9c48fed4fc14b8777ad96d24", "dc739463dbad68a2da8e53f319e5fb6d"],
-        "lib/hax-elements-registry.json": ["f830a5dc935983def806bb6080f193cc", "fb5c9d3679bf05813d58c27d2a946ef0"],
+        "lib/hax-elements-registry.json": ["fb5c9d3679bf05813d58c27d2a946ef0", "fb5c9d3679bf05813d58c27d2a946ef0"],
         "lib/haxcms-api-codes.json": ["ecaec9a0bea5b32d8c955ae3eb12ab8f", "ecaec9a0bea5b32d8c955ae3eb12ab8f"],
         "lib/haxcms-elements.add-blocks.motion.json": ["79751ecae34f26fcf9f267ad5b8b43d6", "79751ecae34f26fcf9f267ad5b8b43d6"],
         "lib/haxcms-elements.configure.motion.json": ["867ffc25e4988b4e80402ab5ff1c23e2", "867ffc25e4988b4e80402ab5ff1c23e2"],
@@ -19325,7 +19325,7 @@
         "lib/theme-screenshots/theme-training-theme.jpg": ["e01c88e5cd76176eca1c4b07d8b9f3b7", "e01c88e5cd76176eca1c4b07d8b9f3b7"],
         "lib/theme-screenshots/theme-twenty-six-theme-thumb.jpg": ["18f511164da5fa36c5c0f5c48ae82595", "18f511164da5fa36c5c0f5c48ae82595"],
         "lib/theme-screenshots/theme-twenty-six-theme.jpg": ["95d96abe896a6879499822425fb6d8c1", "95d96abe896a6879499822425fb6d8c1"],
-        "lib/themes.json": ["f6031b142cc559d554e6bd4ad8107ccd", "e0958aa6b04b4584968cc4919cf67f6d"],
+        "lib/themes.json": ["3865353b746ce153ce0b2c1259b5229c", "e0958aa6b04b4584968cc4919cf67f6d"],
         "lib/ui-components/active-item/site-active-fields.js": ["a9034f6b665bf120a3a0050d1d8356fa", "1ee20b8004778af80a19b4d244c44814"],
         "lib/ui-components/active-item/site-active-media-banner.js": ["a45b2dabcaf081b76cbe21652ae965a5", "d4c7093b0dc7f09c9006882c56966415"],
         "lib/ui-components/active-item/site-active-tags.js": ["0f384ac356a19dd9cf507457a0f3708d", "f55486683d1f51babdfe78793a6d1cef"],
@@ -25307,7 +25307,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["87695d8bb001a38e9f7c6126aa623a97", "87695d8bb001a38e9f7c6126aa623a97"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["8566f7c53342439b5f4c1c21c4ebf3b6", "d284eb17a54d2d0ef5c863cf93c9cccb"]
+        "lib/translation-manifest.json": ["753ec256fb6fb9aed56d34c4c574bcea", "d284eb17a54d2d0ef5c863cf93c9cccb"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -46583,7 +46583,7 @@
     }
   },
   "source": {
-    "commit": "5761da5148c9e4dd34f16c81085a9b56a9508d46",
+    "commit": "194857bd81afcf09f9ec7933c82f0e97b39b1fcd",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },

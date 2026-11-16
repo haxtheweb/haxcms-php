@@ -90,6 +90,7 @@ class SiteRoutesFakeSite
 {
     public $manifest;
     public $siteDirectory = '';
+    public $saveInvoked = false;
     public $directory = '';
     public $name = 'testsite';
     public $language = 'en';

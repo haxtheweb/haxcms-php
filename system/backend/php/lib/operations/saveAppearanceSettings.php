@@ -134,13 +134,35 @@ trait OperationsRouteSaveAppearanceSettings {
           );
         }
         // the design system is the site's choice, not the theme's: keep it
-        // when the theme changes
-        $designSystem = isset($site->manifest->metadata->theme->designSystem)
+        // when the theme changes (haxtheweb/issues#3350)
+        $keptDesignSystem = (isset($site->manifest->metadata->theme->designSystem) && is_string($site->manifest->metadata->theme->designSystem))
           ? $site->manifest->metadata->theme->designSystem
           : '';
-        // a copy, so the edits below never reach the shared themes list
+        // a copy, so edits below never change the shared theme registry entry
         $site->manifest->metadata->theme = json_decode(json_encode($themeValue));
-        if (is_string($designSystem) && $designSystem !== '') {
+        if ($keptDesignSystem !== '') {
+          $site->manifest->metadata->theme->designSystem = $keptDesignSystem;
+        }
+      }
+      // haxtheweb/issues#3350: the design system (color, type, corners,
+      // density) chosen separately from the theme (layout). '' / null / 'ddd'
+      // mean plain DDD, which is the default, so nothing is stored.
+      if (array_key_exists('manifest-metadata-theme-designSystem', $themeParams)) {
+        $designSystem = $this->normalizeDesignSystem(
+          $themeParams['manifest-metadata-theme-designSystem']
+        );
+        if ($designSystem === false) {
+          return array(
+            '__failed' => array(
+              'status' => 400,
+              'message' => 'invalid design system value',
+            )
+          );
+        }
+        if ($designSystem === '') {
+          unset($site->manifest->metadata->theme->designSystem);
+        }
+        else {
           $site->manifest->metadata->theme->designSystem = $designSystem;
         }
       }
@@ -276,26 +298,6 @@ trait OperationsRouteSaveAppearanceSettings {
           $iconValue,
           FILTER_SANITIZE_FULL_SPECIAL_CHARS
         );
-      }
-
-      if (array_key_exists('manifest-metadata-theme-designSystem', $themeParams)) {
-        $designSystem = $this->normalizeDesignSystem(
-          $themeParams['manifest-metadata-theme-designSystem']
-        );
-        if ($designSystem === false) {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid design system value',
-            )
-          );
-        }
-        if ($designSystem === '') {
-          unset($site->manifest->metadata->theme->designSystem);
-        }
-        else {
-          $site->manifest->metadata->theme->designSystem = $designSystem;
-        }
       }
 
       foreach ($regionFieldMap as $field => $regionName) {

@@ -44,7 +44,6 @@ class OperationsPrivateHelpersGapsTest extends TestCase
     private function call(string $method, ...$args)
     {
         $ref = new ReflectionMethod('Operations', $method);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($this->ops, $args);
     }
 
@@ -84,7 +83,6 @@ class OperationsPrivateHelpersGapsTest extends TestCase
             case 'jpg': imagejpeg($img, $path); break;
             default: imagepng($img, $path);
         }
-        imagedestroy($img);
     }
 
     // ------------------------------------------------------------------
@@ -175,7 +173,6 @@ class OperationsPrivateHelpersGapsTest extends TestCase
         ob_start();
         $img = imagecreatetruecolor(2, 2);
         imagepng($img);
-        imagedestroy($img);
         $png = ob_get_clean();
         $this->assertTrue($this->call('siteFileContentMimeAcceptable', $png, 'theme/a.png'));
         // text/plain is tolerated for text-type extensions
@@ -334,7 +331,6 @@ class OperationsPrivateHelpersGapsTest extends TestCase
         $img = imagecreatetruecolor(2, 2);
         $this->assertFalse($this->call('saveImageResourceByExtension', $img, $this->tmp . '/x.bmp', 'bmp'));
         $this->assertTrue($this->call('saveImageResourceByExtension', $img, $this->tmp . '/x.gif', 'gif'));
-        imagedestroy($img);
     }
 
     // ------------------------------------------------------------------

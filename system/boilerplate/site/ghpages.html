@@ -93,12 +93,12 @@
   <link rel="https://agentskills.io/rels/skills-index" type="application/json" href=".well-known/agent-skills/index.json" title="Agent Skills Discovery Index">
   <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
   <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
-  <title>HAXcms</title>
-  <meta name="application-name" content="HAXcms" />
-  <meta name="apple-mobile-web-app-title" content="HAXcms" />
-  <meta name="og:site_name" property="og:site_name" content="HAXcms" />
-  <meta name="og:title" property="og:title" content="HAXcms" />
-  <meta name="twitter:title" property="twitter:title" content="HAXcms" />
+  <title>{{ title }}</title>
+  <meta name="application-name" content="{{ title }}" />
+  <meta name="apple-mobile-web-app-title" content="{{ title }}" />
+  <meta name="og:site_name" property="og:site_name" content="{{ title }}" />
+  <meta name="og:title" property="og:title" content="{{ title }}" />
+  <meta name="twitter:title" property="twitter:title" content="{{ title }}" />
   <meta name="og:url" property="og:url" content="/" data-managed-seo />
   <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <!-- build.js and build-haxcms.js are loaded via script at the end of body; removing redundant preload -->
@@ -121,7 +121,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
   <link rel="icon" href="assets/icon-48x48.png">
-  <meta name="theme-color" content="">
+  <meta name="theme-color" content="{{ hexCode }}">
   <meta name="robots" content="index, follow">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -132,14 +132,16 @@
   <link rel="apple-touch-icon" sizes="144x144" href="assets/icon-144x144.png">
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192x192.png">
   <meta name="msapplication-TileImage" content="assets/icon-144x144.png">
-  <meta name="msapplication-TileColor" content="">
+  <meta name="msapplication-TileColor" content="{{ hexCode }}">
   <meta name="msapplication-tap-highlight" content="no">
-  <meta name="description" content="" />
+  <meta name="description" content="{{ metaDescription }}" />
   <meta name="og:type" property="og:type" content="article" />
-  <meta name="og:description" property="og:description" content="" />
+  <meta name="og:description" property="og:description" content="{{ metaDescription }}" />
   <meta name="twitter:card" property="twitter:card" content="summary_large_image" />
-  <meta name="twitter:description" property="twitter:description" content="" />
-  <meta name="twitter:image" property="twitter:image" content="" />
+  <meta name="twitter:description" property="twitter:description" content="{{ metaDescription }}" />
+{% if socialImage %}  <meta name="og:image" property="og:image" content="{{ socialImage }}" />
+  <meta name="twitter:image" property="twitter:image" content="{{ socialImage }}" />
+{% endif %}
   <link rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/" title="Creative Commons: Attribution Share a like" />
   
   <!-- Service worker disabled via settings -->
