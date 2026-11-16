@@ -458,6 +458,14 @@ class OperationsSaveNodeDetailsTest extends TestCase
         }
     }
 
+    public function testSetTitleTrimsTheTitle(): void
+    {
+        $result = $this->runOperation('item-a', array('operation' => 'setTitle', 'title' => '  Padded title  '));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Padded title', $result['data']->title);
+        $this->assertSame('Padded title', $this->persistedById()['item-a']->title);
+    }
+
     // =========================================================================
     // Field operations
     // =========================================================================

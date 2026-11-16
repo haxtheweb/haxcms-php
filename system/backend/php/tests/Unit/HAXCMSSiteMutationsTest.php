@@ -626,6 +626,19 @@ class HAXCMSSiteMutationsTest extends TestCase
         }
     }
 
+    public function testItemFromParamsTrimsTheTitle(): void
+    {
+        $item = $this->site->itemFromParams(array('node' => array('title' => "  Padded <b>title</b> ")));
+        $this->assertSame('Padded title', $item->title);
+    }
+
+    public function testAddPageTrimsTheTitle(): void
+    {
+        // the same characters as JavaScript trim(), so U+00A0 goes too
+        $page = $this->site->addPage(null, "  Padded title\u{00A0} ", 'init', 'padded-title');
+        $this->assertSame('Padded title', $page->title);
+    }
+
     public function testAddPageMarkupOnlyTitleFallsBackToDefault(): void
     {
         // same default as itemFromParams and haxcms-nodejs addPage

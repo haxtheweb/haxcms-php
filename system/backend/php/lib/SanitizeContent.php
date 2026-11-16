@@ -434,8 +434,27 @@ class SanitizeContent
         if ($title === null || is_array($title) || is_object($title)) {
             return true;
         }
-        $text = trim((string)$title);
+        $text = self::trimTitle((string)$title);
         return $text === '' || strtolower($text) === 'null';
+    }
+
+    /**
+     * A title without leading or trailing white space. Removes the same
+     * characters as JavaScript's String.prototype.trim (so haxcms-nodejs and
+     * the CLI store the same title): ASCII white space plus Unicode spaces
+     * such as U+00A0, U+FEFF, U+2028 and U+2029. PHP's trim() only knows the
+     * ASCII ones.
+     */
+    public static function trimTitle($title)
+    {
+        $text = (string)$title;
+        $trimmed = preg_replace(
+            '/^[\s\p{Zs}\x{FEFF}\x{2028}\x{2029}]+|[\s\p{Zs}\x{FEFF}\x{2028}\x{2029}]+$/u',
+            '',
+            $text
+        );
+        // invalid UTF-8: fall back to ASCII trimming rather than losing the title
+        return $trimmed === null ? trim($text) : $trimmed;
     }
 
     public static function plainText($value)

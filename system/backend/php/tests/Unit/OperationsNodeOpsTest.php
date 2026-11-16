@@ -1203,6 +1203,14 @@ class OperationsNodeOpsTest extends TestCase
         }
     }
 
+    public function testSaveNodeTrimsThePageBreakTitle(): void
+    {
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody('<page-break item-id="item-a" title="  Padded title  "></page-break><p>b</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Padded title', $result['data']->title);
+    }
+
     public function testSaveNodeUnknownNodeIdFails500(): void
     {
         $this->setUpBodyFixture();

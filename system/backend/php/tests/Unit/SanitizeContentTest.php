@@ -314,4 +314,21 @@ class SanitizeContentTest extends TestCase
     {
         $this->assertSame('', SanitizeContent::sanitizeHTMLForStorage(''));
     }
+
+    public function testTrimTitleRemovesWhatJavaScriptTrimRemoves(): void
+    {
+        // haxcms-nodejs and the CLI use String.prototype.trim
+        $this->assertSame('Padded title', SanitizeContent::trimTitle("  Padded title \t\n"));
+        $this->assertSame('x', SanitizeContent::trimTitle("\u{00A0}x\u{3000}"));
+        $this->assertSame('y', SanitizeContent::trimTitle("\u{FEFF}y\u{2028}\u{2029}"));
+        $this->assertSame('a  b', SanitizeContent::trimTitle(' a  b '), 'inner white space stays');
+        $this->assertSame('', SanitizeContent::trimTitle("\u{00A0}\u{00A0}"));
+    }
+
+    public function testATitleOfOnlyUnicodeSpacesIsBlank(): void
+    {
+        $this->assertTrue(SanitizeContent::isBlankPageTitle("\u{00A0}\u{00A0}"));
+        $this->assertTrue(SanitizeContent::isBlankPageTitle("\u{00A0}null\u{00A0}"));
+        $this->assertFalse(SanitizeContent::isBlankPageTitle("\u{00A0}ok"));
+    }
 }

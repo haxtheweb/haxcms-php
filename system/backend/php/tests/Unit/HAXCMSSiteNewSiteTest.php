@@ -164,6 +164,8 @@ class HAXCMSSiteNewSiteTest extends TestCase
         $this->assertSame(0, $page->order);
         $this->assertNull($page->parent);
         $this->assertTrue($page->metadata->published);
+        // a page that brought no files has no files list (same as haxcms-nodejs)
+        $this->assertFalse(isset($page->metadata->files));
         // page HTML for skeleton pages is not written in this fixture (see the
         // class comment), so the starter text is checked at the API level
     }

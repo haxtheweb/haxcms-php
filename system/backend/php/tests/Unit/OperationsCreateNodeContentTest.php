@@ -225,13 +225,14 @@ class OperationsCreateNodeContentTest extends TestCase
         $this->assertStringNotContainsStringIgnoringCase('javascript:', $body);
     }
 
-    public function testContentsWithoutInlineImagesLeaveFilesEmpty(): void
+    public function testContentsWithoutInlineImagesHaveNoFilesList(): void
     {
+        // a page that brought no files has no files list (same as haxcms-nodejs)
         $result = $this->create(array('title' => 'Plain', 'contents' => '<p>No images here</p>'));
         $this->assertSame(200, $result['status']);
         $page = $this->haxcms->loadedSite->loadNode($result['data']->id);
         $this->assertIsObject($page->metadata);
-        $this->assertSame(array(), $page->metadata->files);
+        $this->assertFalse(isset($page->metadata->files));
     }
 
     public function testDuplicateWinsOverContentsWhenBothAreSent(): void

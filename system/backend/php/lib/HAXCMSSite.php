@@ -997,7 +997,9 @@ class HAXCMSSite
         }
         // set a crappy default title
         // Security (SEC-SANITIZE): titles are plain text (matches saveNode)
-        $page->title = SanitizeContent::plainText($title);
+        // stored without leading or trailing white space (same in
+        // haxcms-nodejs and the CLI)
+        $page->title = SanitizeContent::trimTitle(SanitizeContent::plainText($title));
         // a title that is blank, only markup, or the text "null" gets the
         // default (matches haxcms-nodejs HAXCMSSite.addPage)
         if (SanitizeContent::isBlankPageTitle($page->title)) {
@@ -1100,14 +1102,21 @@ class HAXCMSSite
           // Associate via FileEntity uuids returned by the helper — do NOT
           // FileContentScanner-rebuild from content (import HTML no longer has
           // data: URIs for the images just created).
-          if (!isset($page->metadata) || !is_object($page->metadata)) {
-            $page->metadata = new stdClass();
-          }
-          $page->metadata->files = isset($materialized['uuids']) && is_array($materialized['uuids'])
+          // Only a page that brought files gets the list. An empty list used
+          // to be set here too, and whether it reached site.json depended on
+          // a later save happening, so the same page differed between
+          // backends. Readers treat a missing list as no files.
+          $uuids = isset($materialized['uuids']) && is_array($materialized['uuids'])
             ? $materialized['uuids']
             : array();
-          if (count($page->metadata->files) > 0 && !$bulk) {
-            $this->manifest->save();
+          if (count($uuids) > 0) {
+            if (!isset($page->metadata) || !is_object($page->metadata)) {
+              $page->metadata = new stdClass();
+            }
+            $page->metadata->files = $uuids;
+            if (!$bulk) {
+              $this->manifest->save();
+            }
           }
         }
         $this->writePageAlternateFormats($page, $alternateContent);
@@ -2170,9 +2179,9 @@ class HAXCMSSite
         // Security (SEC-SANITIZE): titles are plain text, same as addPage /
         // saveOutline / saveNode; a title that is nothing but markup gets the
         // same default as addPage (mirrors haxcms-nodejs itemFromParams)
-        $title = str_replace("\n", '', SanitizeContent::plainText(
+        $title = SanitizeContent::trimTitle(str_replace("\n", '', SanitizeContent::plainText(
             isset($params['node']['title']) ? $params['node']['title'] : ''
-        ));
+        )));
         $item->title = SanitizeContent::isBlankPageTitle($title) ? SanitizeContent::DEFAULT_PAGE_TITLE : $title;
         if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
             // Security (SEC-PATH): sanitize a client-supplied id
