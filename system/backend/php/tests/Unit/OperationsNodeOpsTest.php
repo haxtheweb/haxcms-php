@@ -291,6 +291,21 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame($initialCount + 1, count($persisted));
     }
 
+    public function testCreateNodeTitledNullOrBlankGetsTheDefaultTitle(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        foreach (array('null', ' NULL ', '   ') as $title) {
+            $this->ops->params = array(
+                'site_token' => 'good',
+                'site' => array('name' => $this->siteName),
+                'node' => array('title' => $title),
+            );
+            $result = $this->ops->createNode();
+            $this->assertSame(200, $result['status'], $title);
+            $this->assertSame('New page', $result['data']->title, $title);
+        }
+    }
+
     public function testCreateNodeTakesTheOrderItAsksForAndTheRestMoveDown(): void
     {
         $this->haxcms->validRequestToken = true;
@@ -1176,6 +1191,16 @@ class OperationsNodeOpsTest extends TestCase
         ));
         $this->assertSame(200, $result['status']);
         $this->assertSame('New page', $result['data']->title);
+    }
+
+    public function testSaveNodeTitledNullOrBlankSavesTheDefaultTitle(): void
+    {
+        $this->setUpBodyFixture();
+        foreach (array('null', '', '  ') as $title) {
+            $result = $this->saveNodeBody('<page-break item-id="item-a" title="' . $title . '"></page-break><p>b</p>');
+            $this->assertSame(200, $result['status'], $title);
+            $this->assertSame('New page', $result['data']->title, $title);
+        }
     }
 
     public function testSaveNodeUnknownNodeIdFails500(): void

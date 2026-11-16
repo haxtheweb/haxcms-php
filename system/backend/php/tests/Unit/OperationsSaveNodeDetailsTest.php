@@ -448,6 +448,16 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame('item-a', $byId['item-a']->slug);
     }
 
+    public function testSetTitleToNullOrWhiteSpaceGivesTheDefaultTitle(): void
+    {
+        foreach (array('null', 'Null', '   ') as $title) {
+            $result = $this->runOperation('item-a', array('operation' => 'setTitle', 'title' => $title));
+            $this->assertSame(200, $result['status'], $title);
+            $this->assertSame('New page', $result['data']->title, $title);
+            $this->assertSame('New page', $this->persistedById()['item-a']->title, $title);
+        }
+    }
+
     // =========================================================================
     // Field operations
     // =========================================================================

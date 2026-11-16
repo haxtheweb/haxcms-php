@@ -53,6 +53,41 @@ class HAXCMSSite
         $this->name = $this->manifest->metadata->site->name;
     }
     /**
+     * The pages of the default-starter skeleton: the first page a site gets
+     * when it is created without a build. Looked up in the same order as
+     * every other skeleton (user, then config, then core), so a deployment
+     * can replace it. Returns null when no readable default-starter has any
+     * pages. Same rule as haxcms-nodejs readDefaultStarterItems.
+     */
+    public static function defaultStarterItems()
+    {
+        $haxcms = $GLOBALS['HAXCMS'];
+        $dirs = array();
+        if (!empty($haxcms->configDirectory)) {
+            $dirs[] = $haxcms->configDirectory . '/user/skeletons';
+            $dirs[] = $haxcms->configDirectory . '/skeletons';
+        }
+        if (!empty($haxcms->coreConfigPath)) {
+            $dirs[] = $haxcms->coreConfigPath . 'skeletons';
+        }
+        foreach ($dirs as $dir) {
+            $filePath = $dir . '/default-starter.json';
+            if (!is_file($filePath)) {
+                continue;
+            }
+            $skeleton = json_decode(file_get_contents($filePath), true);
+            if (
+                is_array($skeleton) &&
+                isset($skeleton['build']['items']) &&
+                is_array($skeleton['build']['items']) &&
+                count($skeleton['build']['items']) > 0
+            ) {
+                return $skeleton['build']['items'];
+            }
+        }
+        return null;
+    }
+    /**
      * Initialize a new site with a single page to start the outline
      * @var $directory string file system path
      * @var $siteBasePath string web based url / base_path
@@ -151,6 +186,18 @@ class HAXCMSSite
         // create an initial page to make sense of what's there
         // this will double as saving our location and other updated data
         // accept a schema which can generate an array of pages to start
+        // no build: the site starts with the default-starter skeleton's pages,
+        // the same first page the dashboard gives a new site. Only when there
+        // is no usable default-starter does it fall back to a "Welcome" page.
+        // (mirrors haxcms-nodejs HAXCMSSite.newSite)
+        if ($build == null) {
+          $starterItems = self::defaultStarterItems();
+          if ($starterItems) {
+            $build = new stdClass();
+            $build->structure = 'from-skeleton';
+            $build->items = $starterItems;
+          }
+        }
         if ($build == null) {
           $this->addPage(null, 'Welcome', 'init', 'welcome');
         }
@@ -951,10 +998,10 @@ class HAXCMSSite
         // set a crappy default title
         // Security (SEC-SANITIZE): titles are plain text (matches saveNode)
         $page->title = SanitizeContent::plainText($title);
-        // a title that is nothing but markup falls back to a default
-        // (matches haxcms-nodejs HAXCMSSite.addPage)
-        if ($page->title === '') {
-          $page->title = 'New page';
+        // a title that is blank, only markup, or the text "null" gets the
+        // default (matches haxcms-nodejs HAXCMSSite.addPage)
+        if (SanitizeContent::isBlankPageTitle($page->title)) {
+          $page->title = SanitizeContent::DEFAULT_PAGE_TITLE;
         }
         if ($parent == null) {
           $page->parent = null;
@@ -2126,7 +2173,7 @@ class HAXCMSSite
         $title = str_replace("\n", '', SanitizeContent::plainText(
             isset($params['node']['title']) ? $params['node']['title'] : ''
         ));
-        $item->title = ($title === '') ? 'New page' : $title;
+        $item->title = SanitizeContent::isBlankPageTitle($title) ? SanitizeContent::DEFAULT_PAGE_TITLE : $title;
         if (isset($params['node']['id']) && $params['node']['id'] != '' && $params['node']['id'] != null) {
             // Security (SEC-PATH): sanitize a client-supplied id
             // before composing the on-disk location. generateMachineName
