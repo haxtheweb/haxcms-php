@@ -1088,6 +1088,19 @@ class OperationsNodeOpsTest extends TestCase
         return $this->ops->saveNode();
     }
 
+    public function testSaveNodeStoresHideTitleOnlyWhileItIsOn(): void
+    {
+        // parity with haxcms-nodejs save-settings-routes.test.cjs
+        $this->setUpBodyFixture();
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" published hide-title></page-break><p>x</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertTrue($result['data']->metadata->hideTitle);
+        // the title shows by default, so nothing is stored once it is shown again
+        $result = $this->saveNodeBody('<page-break title="Item A" item-id="item-a" published></page-break><p>x</p>');
+        $this->assertSame(200, $result['status']);
+        $this->assertFalse(property_exists($result['data']->metadata, 'hideTitle'));
+    }
+
     public function testSaveNodeAppliesEveryPageBreakAttribute(): void
     {
         $this->setUpBodyFixture();

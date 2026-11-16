@@ -241,6 +241,15 @@ trait OperationsRouteSaveNode {
                 else {
                   $page->metadata->hideInMenu = false;
                 }
+                // "Hide page title" (page-break hide-title): the title shows unless
+                // the page hides it, so it is only stored while it is on. Bare
+                // attribute, so array_key_exists as with hide-in-menu.
+                if (array_key_exists("hide-title", $data["attributes"])) {
+                  $page->metadata->hideTitle = true;
+                }
+                else if (property_exists($page->metadata, 'hideTitle')) {
+                  unset($page->metadata->hideTitle);
+                }
                 // support for defining and updating related-items
                 if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {
                   $page->metadata->relatedItems = SanitizeContent::sanitizeMetadataValue(

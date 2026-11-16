@@ -259,6 +259,11 @@
     "polaris-cta": {
       "link": "url"
     },
+    "polaris-hero": {
+      "alt": "text",
+      "heading": "text",
+      "source": "url"
+    },
     "polaris-mark": {
       "url": "url"
     },
