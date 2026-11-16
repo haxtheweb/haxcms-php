@@ -1,0 +1,5 @@
+parameters:
+    level: 3
+    phpVersion: 80100
+    paths:
+        - lib

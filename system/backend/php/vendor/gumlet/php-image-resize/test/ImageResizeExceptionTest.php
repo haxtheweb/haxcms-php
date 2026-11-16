@@ -1,8 +1,8 @@
 <?php
 
-use \Gumlet\ImageResize;
-use \Gumlet\ImageResizeException;
-use \PHPUnit\Framework\TestCase;
+use Gumlet\ImageResize;
+use Gumlet\ImageResizeException;
+use PHPUnit\Framework\TestCase;
 
 class ImageResizeExceptionTest extends TestCase
 {
@@ -31,7 +31,7 @@ class ImageResizeExceptionTest extends TestCase
 
     public function testExceptionThrown()
     {
-        try{
+        try {
             throw new ImageResizeException("General error");
         } catch (\Exception $e) {
             $this->assertEquals("General error", $e->getMessage());

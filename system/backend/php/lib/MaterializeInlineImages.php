@@ -11,7 +11,7 @@ include_once dirname(__FILE__) . '/HAXCMSFile.php';
 include_once dirname(__FILE__) . '/EntityRegistry.php';
 include_once dirname(__FILE__) . '/FileStorage.php';
 include_once dirname(__FILE__) . '/FileEntity.php';
-use \Gumlet\ImageResize;
+include_once dirname(__FILE__) . '/HAXCMSImageResize.php';
 
 class MaterializeInlineImages
 {
@@ -161,10 +161,10 @@ class MaterializeInlineImages
     public static function optimizeInlineImageBuffer($bytes, $extension)
     {
         try {
-            if (!class_exists('Gumlet\\ImageResize') && !class_exists('ImageResize')) {
+            if (!class_exists('HAXCMSImageResize')) {
                 return array('bytes' => $bytes, 'extension' => $extension);
             }
-            $image = ImageResize::createFromString($bytes);
+            $image = HAXCMSImageResize::createFromBytes($bytes);
             $image->resizeToBestFit(self::MAX_WIDTH, self::MAX_HEIGHT, false);
             $tmp = tempnam(sys_get_temp_dir(), 'hax-mii-opt-');
             if ($tmp === false) {
