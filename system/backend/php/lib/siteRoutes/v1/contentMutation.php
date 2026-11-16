@@ -120,9 +120,13 @@ return function ($context) {
     }
     if (is_array($result) && isset($result['__failed'])) {
         SiteRouteUtils::sendFormattedResponse(
-            array(
-                'message' => $result['__failed']['message'],
-            ) + (isset($result['__failed']['data']) && is_array($result['__failed']['data']) ? $result['__failed']['data'] : array()),
+            array_merge(
+                array('message' => $result['__failed']['message']),
+                // a refusal may say why in a word (a locked page: "locked")
+                isset($result['__failed']['reason']) ? array('reason' => $result['__failed']['reason']) : array(),
+                // and who refused it (a plugin veto names the plugin)
+                isset($result['__failed']['data']) && is_array($result['__failed']['data']) ? $result['__failed']['data'] : array()
+            ),
             array(
                 'statusCode' => intval($result['__failed']['status']),
                 'allowedFormats' => array('json'),

@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 trait OperationsRouteDeleteNode {
   public function deleteNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -17,6 +18,16 @@ trait OperationsRouteDeleteNode {
       // this ensures that writing is always to what the file system
       // determines to be the correct page
       if ($page = $site->loadNode($this->params['node']['id'])) {
+          // a locked page is changed by nothing but unlocking it
+          if (OutlineUpkeep::isLocked($page)) {
+            return array(
+              '__failed' => array(
+                'status' => 423,
+                'message' => 'Page is locked',
+                'reason' => 'locked',
+              )
+            );
+          }
           // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): page.before.delete /
           // page.after.delete around the delete
           $pluginRecord = json_decode(json_encode($page), true);
@@ -39,6 +50,7 @@ trait OperationsRouteDeleteNode {
             $deletedPage = $page;
             // now, we need to look for orphans if we deleted anything
             $orphanCheck = $site->manifest->items;
+            $orphans = array();
             foreach ($orphanCheck as $key => $item) {
               // just to be safe..
               if ($orphanPage = $site->loadNode($item->id)) {
@@ -47,9 +59,22 @@ trait OperationsRouteDeleteNode {
                   $orphanPage->parent = null;
                   // force to bottom of things while still being in old order if lots of things got axed
                   $orphanPage->order = (int)$orphanPage->order + count($site->manifest->items) - 1;
-                  $site->updateNode($orphanPage);
+                  $orphans[] = $orphanPage;
                 }
               }
+            }
+            // the rescued pages now live at the top level: their addresses
+            // (and their branches') drop the deleted parent's slug, no two top
+            // level pages share an order, and indent follows the new depth
+            if (count($orphans) > 0) {
+              $items = $site->manifest->items;
+              foreach ($orphans as $orphan) {
+                OutlineUpkeep::reslugPageAndBranch($site, $orphan, $items);
+              }
+              OutlineUpkeep::healSiblingOrder($items, null);
+              OutlineUpkeep::syncIndentToDepth($items);
+              $site->manifest->save(false);
+              $site->updateAlternateFormats();
             }
             $site->gitCommit(
               'Page deleted: ' . $deletedPage->title . ' (' . $deletedPage->id . ')'

@@ -272,7 +272,8 @@ trait OperationsRouteSaveOutline {
             // a title that is nothing but markup keeps the existing title
             $plainTitle = SanitizeContent::plainText($item->title);
             if ($plainTitle !== '') {
-              $page->title = $plainTitle;
+              // the text "null" or only white space is no title
+              $page->title = SanitizeContent::isBlankPageTitle($plainTitle) ? SanitizeContent::DEFAULT_PAGE_TITLE : $plainTitle;
             }
           }
           // description belongs to the JSON Outline Schema item; same handling

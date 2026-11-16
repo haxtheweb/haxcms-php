@@ -420,6 +420,24 @@ class SanitizeContent
      * an encoded payload like &lt;img onerror=...&gt; cannot re-emerge as
      * markup after stripping.
      */
+    // the title a page gets when it has none
+    const DEFAULT_PAGE_TITLE = 'New page';
+
+    /**
+     * Whether a title counts as no title: empty, only white space, or the
+     * text `null` in any case. `null` is what a missing value turns into
+     * when it is written out as text, so it is never a real title.
+     * Same rule as haxcms-nodejs isBlankPageTitle.
+     */
+    public static function isBlankPageTitle($title)
+    {
+        if ($title === null || is_array($title) || is_object($title)) {
+            return true;
+        }
+        $text = trim((string)$title);
+        return $text === '' || strtolower($text) === 'null';
+    }
+
     public static function plainText($value)
     {
         if ($value === null || is_array($value) || is_object($value)) {

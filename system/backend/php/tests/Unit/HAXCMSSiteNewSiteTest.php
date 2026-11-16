@@ -149,8 +149,40 @@ class HAXCMSSiteNewSiteTest extends TestCase
         $this->assertGreaterThan(0, $manifest->metadata->site->updated);
     }
 
-    // ---- default build: welcome page ----
+    // ---- default build: the default-starter page ----
 
+    public function testNewSiteStartsWithTheDefaultStarterPageByDefault(): void
+    {
+        // the shipped default-starter skeleton
+        $this->haxcms->coreConfigPath = dirname(__DIR__, 4) . '/coreConfig/';
+        $this->createSite();
+        $manifest = $this->manifestJson();
+        $this->assertCount(1, $manifest->items);
+        $page = $manifest->items[0];
+        $this->assertSame('Home', $page->title);
+        $this->assertSame('home', $page->slug);
+        $this->assertSame(0, $page->order);
+        $this->assertNull($page->parent);
+        $this->assertTrue($page->metadata->published);
+        // page HTML for skeleton pages is not written in this fixture (see the
+        // class comment), so the starter text is checked at the API level
+    }
+
+    public function testADeploymentDefaultStarterWinsOverTheCoreOne(): void
+    {
+        $this->haxcms->coreConfigPath = dirname(__DIR__, 4) . '/coreConfig/';
+        $this->haxcms->configDirectory = $this->tmpRoot . '/_config';
+        mkdir($this->tmpRoot . '/_config/skeletons', 0777, true);
+        file_put_contents($this->tmpRoot . '/_config/skeletons/default-starter.json', json_encode(array(
+            'build' => array('structure' => 'from-skeleton', 'items' => array(
+                array('id' => 'item-start', 'title' => 'Start', 'slug' => 'start', 'order' => 0, 'parent' => null, 'indent' => 0, 'content' => '<p>Ours</p>'),
+            )),
+        )));
+        $this->createSite();
+        $this->assertSame('Start', $this->manifestJson()->items[0]->title);
+    }
+
+    // with no usable default-starter skeleton the site falls back to a Welcome page
     public function testNewSiteAddsWelcomePageByDefault(): void
     {
         $this->createSite();
@@ -396,6 +428,7 @@ class HAXCMSNewSiteTestSite extends HAXCMSSite
 class HAXCMSNewSiteTestHaxcms extends OperationsTestHaxcms
 {
     public $cdn = './';
+    public $coreConfigPath;
     public $developerMode = false;
     private $cacheData = array();
 

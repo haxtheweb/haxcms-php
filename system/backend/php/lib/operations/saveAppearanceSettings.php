@@ -148,8 +148,10 @@ trait OperationsRouteSaveAppearanceSettings {
       // density) chosen separately from the theme (layout). '' / null / 'ddd'
       // mean plain DDD, which is the default, so nothing is stored.
       if (array_key_exists('manifest-metadata-theme-designSystem', $themeParams)) {
-        $designSystemValue = $themeParams['manifest-metadata-theme-designSystem'];
-        if (!is_null($designSystemValue) && !is_string($designSystemValue)) {
+        $designSystem = $this->normalizeDesignSystem(
+          $themeParams['manifest-metadata-theme-designSystem']
+        );
+        if ($designSystem === false) {
           return array(
             '__failed' => array(
               'status' => 400,
@@ -157,24 +159,11 @@ trait OperationsRouteSaveAppearanceSettings {
             )
           );
         }
-        $designSystem = is_null($designSystemValue)
-          ? ''
-          : strtolower(trim((string) filter_var($designSystemValue, FILTER_SANITIZE_FULL_SPECIAL_CHARS)));
-        if ($designSystem === '' || $designSystem === 'ddd') {
-          if (isset($site->manifest->metadata->theme->designSystem)) {
-            unset($site->manifest->metadata->theme->designSystem);
-          }
-        }
-        else if (preg_match('/^[a-z0-9-]+$/', $designSystem) === 1) {
-          $site->manifest->metadata->theme->designSystem = $designSystem;
+        if ($designSystem === '') {
+          unset($site->manifest->metadata->theme->designSystem);
         }
         else {
-          return array(
-            '__failed' => array(
-              'status' => 400,
-              'message' => 'invalid design system value',
-            )
-          );
+          $site->manifest->metadata->theme->designSystem = $designSystem;
         }
       }
 
