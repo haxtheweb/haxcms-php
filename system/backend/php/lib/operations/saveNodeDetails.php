@@ -77,18 +77,6 @@ trait OperationsRouteSaveNodeDetails {
         $siblings = OutlineUpkeep::sortedSiblings($items, OutlineUpkeep::parentOf($page));
         $position = array_search($page, $siblings, true);
       }
-      $lastChildOrder = function($parentId) use ($items) {
-        $max = -1;
-        foreach ($items as $it) {
-          $p = isset($it->parent) ? $it->parent : null;
-          if ($p === $parentId && isset($it->order)) {
-            $o = (int)$it->order;
-            if ($o > $max) { $max = $o; }
-          }
-        }
-        return $max;
-      };
-
       switch ($operation) {
         case 'moveUp':
           if ($position !== false && $position > 0) {
@@ -112,7 +100,9 @@ trait OperationsRouteSaveNodeDetails {
             if ($prev) {
               $page->parent = $prev->id;
               $page->indent = isset($prev->indent) ? ((int)$prev->indent + 1) : 1;
-              $page->order = $lastChildOrder($prev->id) + 1;
+              // the page is now one of $prev's children: leave it out, or
+              // its own old order counts as the last child's
+              $page->order = OutlineUpkeep::lastSiblingOrder($items, $prev->id, $page) + 1;
             }
           }
           $pathautoEnabled = $site->isPathautoEnabled();
