@@ -1,8 +1,13 @@
 name: Deploy HAX Site to GitHub Pages
 
-# A HAX site has nothing to install or compile: the site is published as it
-# is, with the ghpages:build script swapping in the CDN-loading index.html.
-# Build and deploy share one job so only one runner has to start.
+# A HAX site has nothing to compile. The HAX CLI builds a copy for the static
+# host (hax site site:build-static): every published page as its own HTML file
+# with its title, description and text, so search engines and AI agents can
+# read the site without running JavaScript, and the generated files (llms.txt,
+# robots.txt, sitemap) rebuilt for this address. If that can't run, the site
+# is published as before, with the ghpages:build script swapping in the
+# CDN-loading index.html. Build and deploy share one job so only one runner
+# has to start.
 on:
   push:
     branches: [ main, master ]
@@ -37,11 +42,25 @@ jobs:
         id: pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
-      # ghpages:build uses the CDN version of index.html and removes the
-      # links (build, wc-registry.json) that only work on a HAX server.
+      # haxtheweb/issues#3352: built into a folder of its own; the checkout
+      # is not changed. The address comes from configure-pages.
+      - name: Build the static site
+        id: static
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+          OUT_DIR: ${{ runner.temp }}/site
+        run: |
+          npx --yes @haxtheweb/create site site:build-static --root . --out-dir "$OUT_DIR" --domain "$SITE_URL" --y --no-i
+          test -f "$OUT_DIR/index.html"
+          echo "dir=$OUT_DIR" >> "$GITHUB_OUTPUT"
+
+      # Fallback: ghpages:build uses the CDN version of index.html and removes
+      # the links (build, wc-registry.json) that only work on a HAX server.
       # Any other link left pointing outside the repo (dist, node_modules)
       # would stop the archive step, so those go too.
       - name: Prepare HAX site
+        if: steps.static.outcome != 'success'
         run: |
           npm run ghpages:build --if-present
           find . -xtype l -not -path './.git/*' -print -delete
@@ -50,9 +69,12 @@ jobs:
       # in the log and without compressing: a site is mostly images, which
       # don't shrink, so compressing costs more time than it saves.
       - name: Archive site
+        env:
+          SITE_DIR: ${{ steps.static.outputs.dir || '.' }}
         run: |
           tar --dereference --hard-dereference \
             -cf "$RUNNER_TEMP/artifact.tar" \
+            -C "$SITE_DIR" \
             --exclude=.git --exclude=.github \
             .
 
