@@ -47,7 +47,7 @@ trait OperationsRouteDeleteNode {
             // any other page whose parent is gone (left by an older save)
             // goes to the end of the top level, as before
             foreach ($items as $item) {
-              if (is_object($item) && isset($item->parent) && $item->parent !== null && $item->parent !== '' && !$site->loadNode($item->parent)) {
+              if (is_object($item) && isset($item->parent) && $item->parent !== '' && !$site->loadNode($item->parent)) {
                 $item->parent = null;
                 $item->order = (int) $item->order + count($items) - 1;
                 $moved[] = $item;
