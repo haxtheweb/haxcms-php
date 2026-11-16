@@ -1,0 +1,88 @@
+name: fuzz-nightly
+# Nightly fuzz hunt (haxtheweb/issues#3262), the PHP side of the same job in
+# create, haxcms-nodejs and webcomponents. Plain scripting, no AI.
+#
+# Runs `yarn test:fuzz` (tests/Unit/BlockOperationsFuzzTest.php with a random
+# HAX_FUZZ_SEED and 2000 generated pages; the per-PR run always uses seed 3270
+# and 40) on PHP 8.3 (masterminds/html5 parser) and 8.5 (Dom\HTMLDocument),
+# since the two parse HTML differently. The seed is in the job summary; a
+# failing page is replayed with its seed and path to confirm it, and the run
+# fails red. With the optional HAX_ISSUES_TOKEN secret (Issues: read and write
+# on haxtheweb/issues) it also opens or comments on a
+# `[fuzz] haxcms-php: <property>` issue there; without it, issue filing is
+# skipped with a note in the summary.
+#
+# Cost: standard GitHub-hosted runners are free in public repositories; each
+# leg takes a few minutes, at night, so it does not hold up PR checks.
+#
+# Logic: scripts/fuzz-nightly.mjs (same file in create, haxcms-nodejs and
+# webcomponents). Seed convention: haxtheweb/issues#3272.
+on:
+  schedule:
+    - cron: "23 8 * * *" # 3:23 AM America/New_York (EST); 4:23 AM during EDT
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Replay a seed (integer); leave empty for a random one"
+        required: false
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: fuzz-nightly
+  cancel-in-progress: false
+jobs:
+  fuzz:
+    name: "fuzz hunt (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.5"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, dom, simplexml, gd, zip, curl, intl, fileinfo, iconv, xmlreader, xmlwriter, zlib
+          ini-values: "error_reporting=E_ALL & ~E_NOTICE & ~E_DEPRECATED"
+          coverage: none
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install
+        id: install
+        working-directory: system/backend/php
+        run: |
+          set -o pipefail
+          composer install --prefer-dist --no-interaction --no-progress 2>&1 | tee "$RUNNER_TEMP/install.log"
+      - name: Fuzz hunt
+        id: fuzz
+        env:
+          HAX_FUZZ_SEED_INPUT: ${{ inputs.seed }}
+          HAX_ISSUES_TOKEN: ${{ secrets.HAX_ISSUES_TOKEN }}
+        run: node scripts/fuzz-nightly.mjs -- yarn --silent test:fuzz
+      - name: Report a failed setup step
+        if: failure() && steps.fuzz.outcome != 'failure'
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+        run: |
+          {
+            echo "## Nightly fuzz hunt: setup failed"
+            echo
+            echo "- Install: $INSTALL_OUTCOME"
+            if [ -f "$RUNNER_TEMP/install.log" ]; then
+              echo
+              echo "Last lines of the install output:"
+              echo
+              echo '~~~text'
+              tail -n 40 "$RUNNER_TEMP/install.log"
+              echo '~~~'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

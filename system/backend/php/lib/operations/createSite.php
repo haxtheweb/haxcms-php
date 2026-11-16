@@ -5,6 +5,7 @@ include_once dirname(__FILE__) . '/../EntityRegistry.php';
 include_once dirname(__FILE__) . '/../FileStorage.php';
 include_once dirname(__FILE__) . '/../FileEntity.php';
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../MediaSettingsService.php';
 trait OperationsRouteCreateSite {
   private function isSystemV1Request()
   {
@@ -551,6 +552,17 @@ trait OperationsRouteCreateSite {
     if (preg_match($this->safeBulkImportFilePattern, $normalizedImportName) !== 1) {
       if (is_array($warnings)) {
         $warnings[] = array('file' => $locationName, 'reason' => 'Disallowed file extension in build.files');
+      }
+      return false;
+    }
+    // haxtheweb/issues#3054: a format turned off in Media settings is skipped
+    // before anything is downloaded, and says why (the save would refuse it)
+    if (!HAXCMSMediaSettingsService::isUploadFormatAccepted(
+      HAXCMSMediaSettingsService::readMediaSettings($GLOBALS['HAXCMS']),
+      pathinfo($normalizedImportName, PATHINFO_EXTENSION)
+    )) {
+      if (is_array($warnings)) {
+        $warnings[] = array('file' => $locationName, 'reason' => 'File format turned off in Media settings');
       }
       return false;
     }

@@ -273,7 +273,8 @@ trait OperationsRouteSaveOutline {
             $plainTitle = SanitizeContent::plainText($item->title);
             if ($plainTitle !== '') {
               // the text "null" or only white space is no title
-              $page->title = SanitizeContent::isBlankPageTitle($plainTitle) ? SanitizeContent::DEFAULT_PAGE_TITLE : $plainTitle;
+              // stored without leading or trailing white space
+              $page->title = SanitizeContent::isBlankPageTitle($plainTitle) ? SanitizeContent::DEFAULT_PAGE_TITLE : SanitizeContent::trimTitle($plainTitle);
             }
           }
           // description belongs to the JSON Outline Schema item; same handling

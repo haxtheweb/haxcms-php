@@ -324,6 +324,16 @@ class OperationsSaveOutlineInputHardeningTest extends TestCase
         $this->assertSame('New page', $byId['item-b']->title);
     }
 
+    public function testTitleIsStoredTrimmed(): void
+    {
+        $this->buildSite(true);
+        $result = $this->runOutline(array(
+            $this->item('item-a', array('title' => "  <b>Real</b> title\u{00A0}")),
+        ));
+        $this->assertSaved($result);
+        $this->assertSame('Real title', $this->persisted()['item-a']->title);
+    }
+
     public function testScalarMetadataIsNormalizedToAnObject(): void
     {
         $this->buildSite(true);

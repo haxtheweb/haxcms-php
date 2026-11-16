@@ -23,6 +23,38 @@ class HAXCMSMediaSettingsService
     'jpg,jpeg,png,webp,gif',
   );
 
+  /**
+   * The one upload allowlist as a file-name pattern. Every route that writes
+   * into files/ (direct upload, build.files bulk import, importers, remote
+   * staging) uses this, so the list lives in one place. Built only from the
+   * fixed [a-z0-9] tokens of SAFE_UPLOAD_FORMATS, never from input.
+   * Parity with Node SAFE_UPLOAD_EXTENSION_REGEX.
+   */
+  public static function safeUploadExtensionPattern()
+  {
+    return '/\.(' . implode('|', self::SAFE_UPLOAD_FORMATS) . ')$/i';
+  }
+
+  /**
+   * Formats in a submitted acceptedFormats value that HAXcms can never store
+   * (outside SAFE_UPLOAD_FORMATS). saveMediaSettings refuses a list that names
+   * any (haxtheweb/issues#3054). Parity with Node unsupportedAcceptedFormats.
+   */
+  public static function unsupportedAcceptedFormats($value)
+  {
+    $normalized = self::normalizeAcceptedFormatsValue($value);
+    if (is_null($normalized)) {
+      return array();
+    }
+    $unsupported = array();
+    foreach (explode(',', $normalized) as $format) {
+      if (!in_array($format, self::SAFE_UPLOAD_FORMATS, true)) {
+        $unsupported[] = $format;
+      }
+    }
+    return $unsupported;
+  }
+
   public static function getDefaultAcceptedFormats()
   {
     return implode(',', self::SAFE_UPLOAD_FORMATS);
