@@ -314,6 +314,44 @@ class MaterializeInlineImagesTest extends TestCase
         $this->assertStringContainsString('media-image', $content);
         $this->assertStringNotContainsString('data:image', $content);
     }
+
+    // The real outline rebuilds its items when it saves, so the page addPage
+    // holds is no longer the one in the outline. The uuids must still reach
+    // the outline's copy, the one written to site.json.
+    public function testAddPageFilesReachTheOutlineAfterItRebuildsItsItems(): void
+    {
+        require_once dirname(__DIR__, 2) . '/lib/HAXCMSSite.php';
+        require_once dirname(__DIR__, 2) . '/lib/JSONOutlineSchemaItem.php';
+
+        $site = new MiiHaxcmsSite();
+        $site->name = $this->siteName;
+        $site->directory = HAXCMS_ROOT . '/_sites';
+        $site->siteDirectory = $this->siteRoot;
+        $site->manifest = new MiiRebuildingManifest();
+        $site->manifest->items = array();
+        $site->manifest->metadata = new stdClass();
+        $site->manifest->metadata->site = new stdClass();
+        $site->manifest->metadata->site->name = $this->siteName;
+        $site->manifest->metadata->site->updated = time();
+
+        $page = $site->addPage(
+            null,
+            'Imported Page',
+            'html',
+            'imported-page',
+            null,
+            null,
+            '<p><img alt="chart" src="' . $this->pngDataUri() . '"></p>'
+        );
+        $this->assertNotEmpty($page->metadata->files);
+        $outlinePage = $site->manifest->items[0];
+        $this->assertNotSame($page, $outlinePage);
+        $this->assertSame($page->metadata->files, $outlinePage->metadata->files);
+
+        // a page with no inline files records an empty list, as haxcms-nodejs does
+        $plain = $site->addPage(null, 'Plain Page', 'html', 'plain-page', null, null, '<p>Text</p>');
+        $this->assertSame(array(), $site->loadNode($plain->id)->metadata->files);
+    }
 }
 
 /**
@@ -358,6 +396,26 @@ class MiiHaxcmsSite extends HAXCMSSite
     public function getUniqueSlugName($slug, $item = null, $pathauto = false)
     {
         return $slug !== '' ? $slug : 'page';
+    }
+}
+
+/**
+ * Like MiiManifest, but save() replaces every item and its metadata with a
+ * copy, as the real JSONOutlineSchema::save() does (normalizeItemValues).
+ */
+class MiiRebuildingManifest extends MiiManifest
+{
+    public function save($reorder = true)
+    {
+        $this->saves++;
+        foreach ($this->items as $key => $item) {
+            $copy = clone $item;
+            if (isset($item->metadata) && is_object($item->metadata)) {
+                $copy->metadata = clone $item->metadata;
+            }
+            $this->items[$key] = $copy;
+        }
+        return true;
     }
 }
 
