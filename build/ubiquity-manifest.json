@@ -1,6 +1,6 @@
 {
   "files": {
-    "THIRD_PARTY_LICENSES": ["b3371b7fa1e6b2b652eb5a357b34574f"],
+    "THIRD_PARTY_LICENSES": ["8643070505155b1a3808d5aa8dc4690d"],
     "es6/build.js": ["3e9afae69d221c099106497dbf9fa10d", "a63e0a219b2b41de070829a5f2f8a789"],
     "es6/dist/app.js": ["67bb10c81633c6b4143145bbea9eee2f", "baa22b4f634b4b8e29868da831f2cd6f"],
     "es6/dist/build-cms.js": ["d76dd41e84859a3c19539fe49bde2e62", "e61cef575a875e890d8d533cfeef53c5"],
@@ -916,7 +916,7 @@
     },
     "@haxtheweb/a11y-media-player": {
       "files": {
-        "a11y-media-player.js": ["2c6cb9f59e9241bc123fd305c359ab12", "828d3e52f0b2c555387e633dd67c10b6"],
+        "a11y-media-player.js": ["706e06e556c5e9bf31925ec3f6f8e9b5", "f48af7d68bc65f3032d4c7632cd432cc"],
         "lib/a11y-media-button.js": ["2066880c352848ed38cbcd42bfd421e8", "5f9a1415ebc4de6281b0c68f79025411"],
         "lib/a11y-media-fallback.js": ["520124865e947d4f17b37e3c33838932", "ae10b1bf084ea27b315aabc5dd129644"],
         "lib/a11y-media-play-button.js": ["9803e5f0887ca4a38ee8e9547722d115", "973d8fabecaf5586fd55fe6e645824c4"],
@@ -3370,6 +3370,17 @@
       "source": "elements/app-hax",
       "version": "26.8.0"
     },
+    "@haxtheweb/arithmetic-drill": {
+      "files": {
+        "arithmetic-drill.js": ["608a18cbfb53beb877e884ff13a90a1c", "8f1024997110cf106fd9af11f86efe82"],
+        "lib/arithmetic-drill-problems.js": ["67588cda65b5ef3365481f6518b20c51", "dc3554ebf1872a79f061b753af5804b5"],
+        "lib/arithmetic-drill.docs.json": ["3e7d4d602b2387d92739792d58c2e79a", "3e7d4d602b2387d92739792d58c2e79a"],
+        "lib/arithmetic-drill.haxProperties.json": ["70967230385c65111e3a9a839ac0b348", "70967230385c65111e3a9a839ac0b348"],
+        "locales/arithmetic-drill.en.json": ["d8f9829689ef985aab33f4b9183e9298", "d8f9829689ef985aab33f4b9183e9298"]
+      },
+      "source": "elements/arithmetic-drill",
+      "version": "0.0.0"
+    },
     "@haxtheweb/audio-player": {
       "files": {
         "audio-player.js": ["06cae78919f7a7e895748b75e23b7f3c", "c9ef1030c001c23bcf25e1301c092a3d"],
@@ -4683,6 +4694,19 @@
       },
       "source": "elements/bootstrap-theme",
       "version": "26.8.0"
+    },
+    "@haxtheweb/branching-scenario": {
+      "files": {
+        "branching-scenario.js": ["a54e19aef7033cfd33435538216a5510", "504c941230cd828f46c2632d428b0a45"],
+        "lib/branching-scenario.docs.json": ["889c545879a6201f689a6a2a8bb0999e", "889c545879a6201f689a6a2a8bb0999e"],
+        "lib/branching-scenario.haxProperties.json": ["0e98d6b1fad42085ea32720fa682f8d6", "0e98d6b1fad42085ea32720fa682f8d6"],
+        "lib/branching-scene.haxProperties.json": ["7312ab46c306d904841c0e24a3c586f3", "7312ab46c306d904841c0e24a3c586f3"],
+        "lib/branching-scene.js": ["5187eba75ec7ac3dd69929fc109978ab", "a63906f12e27c7771eb8adcf1372afc7"],
+        "locales/branching-scenario.en.json": ["ed73650b8e55a701a01a77a0d637ddcd", "ed73650b8e55a701a01a77a0d637ddcd"],
+        "locales/branching-scene.en.json": ["7004c700eac58de41d6c03a9602eb9ae", "7004c700eac58de41d6c03a9602eb9ae"]
+      },
+      "source": "elements/branching-scenario",
+      "version": "0.0.0"
     },
     "@haxtheweb/bullet-check-list": {
       "files": {
@@ -8387,6 +8411,17 @@
       "source": "elements/course-model",
       "version": "26.8.0"
     },
+    "@haxtheweb/crossword-puzzle": {
+      "files": {
+        "crossword-puzzle.js": ["4c16a60f560d7de96e25042abb50400c", "3179ad148f4c5713dfc2268686a46885"],
+        "lib/crossword-layout.js": ["e5d8603cf5610922000f575aaf1988e7", "973fffa954aaa9fae3209e8b1c3c1600"],
+        "lib/crossword-puzzle.docs.json": ["9600044afc202875dae6e0af5fbfab39", "9600044afc202875dae6e0af5fbfab39"],
+        "lib/crossword-puzzle.haxProperties.json": ["15c2dcfbe6189a217761604909447d7f", "15c2dcfbe6189a217761604909447d7f"],
+        "locales/crossword-puzzle.en.json": ["52bd3566bd17453029d0f350d43e3b3f", "52bd3566bd17453029d0f350d43e3b3f"]
+      },
+      "source": "elements/crossword-puzzle",
+      "version": "26.8.0"
+    },
     "@haxtheweb/csv-render": {
       "files": {
         "csv-render.js": ["4edfab280896b746aaa42d5b7754c63a", "8883d59d89d23866dd66ac57cf5f24e3"],
@@ -8502,8 +8537,8 @@
     "@haxtheweb/d-d-d": {
       "files": {
         "d-d-d.js": ["ea222516d35c43cda603b574d0086dc5", "a99cfb7c9bbbcd8e245459a5ddf77123"],
-        "lib/DDDAccent.js": ["70849c04ff4147d180b3dff5cb8d5638", "ae81911442dc4a27df66034d4360c3f3"],
-        "lib/DDDBlock.js": ["9a487de4a955419a5a23791dc7cd1ad5", "9bda78c3fdf60a5d107a9467a7e7108d"],
+        "lib/DDDAccent.js": ["032f22e15380e344bc914ba03c4624f0", "d7fb04207db8fe5c1c63f1dcc4eedbfd"],
+        "lib/DDDBlock.js": ["9572a894eaaacb1df0297959192c1fa1", "801b0cd49fbd4e15bf5bdcaa594244d1"],
         "lib/DDDBorders.js": ["91bba3a6b7d966c3f6be606b4a39a83a", "db23c2ca0e72cf29eb3afb71449a92d1"],
         "lib/DDDChart.js": ["a689eabd0e5d0759c99d55d0083b9742", "0944c42ce246e702d6f9f5c3f22c0378"],
         "lib/DDDConnector.js": ["945ddcd654cba919b637ee76e6b43a3a", "992e061f288342749150d1bd0ad536b7"],
@@ -9270,7 +9305,7 @@
     },
     "@haxtheweb/d-d-docs": {
       "files": {
-        "d-d-docs.js": ["f1a35b776d75b83416eeae70e142cc3b", "d855070a4aa6dd7e34a00fe2b33f17ea"],
+        "d-d-docs.js": ["c24150b5f9b7771d077ac3ea441afc4c", "164105f7542fd68580185fd1cec05895"],
         "lib/d-d-docs.docs.json": ["1bfe359d5d5b5fe016199add16636469", "1bfe359d5d5b5fe016199add16636469"],
         "locales/d-d-docs.af.json": ["2a58812009334d6dde158e85221faa81", "2a58812009334d6dde158e85221faa81"],
         "locales/d-d-docs.am.json": ["711fae8803bada5dda31884c1fc9c9e4", "711fae8803bada5dda31884c1fc9c9e4"],
@@ -10046,7 +10081,7 @@
       "files": {
         "documentation-player.js": ["f3b39bf03a09441c5f5a9583246b2f30", "613a28ca3883991b602e8ec426d61019"],
         "lib/documentation-player.docs.json": ["a545f188622d1ea633b20825f23d882a", "a545f188622d1ea633b20825f23d882a"],
-        "lib/documentation-player.haxProperties.json": ["d77dc85360fee3dc150ebf7c6490afce", "d77dc85360fee3dc150ebf7c6490afce"],
+        "lib/documentation-player.haxProperties.json": ["edb5c339b149e126405e03f0d4fc5225", "edb5c339b149e126405e03f0d4fc5225"],
         "lib/motion-core.js": ["0219eb1837876f29375379b221eb92df", "0112fe34fe59d2adfd7d8b8b6f6864a7"],
         "locales/documentation-player.af.json": ["f92e8d4cb4dce7d6bbb07503b91a86a5", "f92e8d4cb4dce7d6bbb07503b91a86a5"],
         "locales/documentation-player.am.json": ["1d84a41e72f1443274571e71508c7870", "1d84a41e72f1443274571e71508c7870"],
@@ -10186,10 +10221,10 @@
     },
     "@haxtheweb/ecosystem-web": {
       "files": {
-        "ecosystem-web.js": ["151885df7cc7ba3a98e3b6738845cfc7", "16cb7efb945fd352e8b7e82a3792b93a"],
+        "ecosystem-web.js": ["25f74a679b7b00682f3762ffc1f791fd", "12ae22481f1e66c128ee6318cfb7a3fd"],
         "lib/ecosystem-model.js": ["21abf847b9e1949528b8225da62a14c8", "399a4501ae6375165e79854cb261d3d4"],
         "lib/ecosystem-web.docs.json": ["40ee893bf41e25ad138ac6201c33ed8c", "40ee893bf41e25ad138ac6201c33ed8c"],
-        "lib/ecosystem-web.haxProperties.json": ["34e04c37d4f698b12a21f5aeadf430cb", "34e04c37d4f698b12a21f5aeadf430cb"]
+        "lib/ecosystem-web.haxProperties.json": ["f471bfa5e2187b01fc5617e3681becb6", "f471bfa5e2187b01fc5617e3681becb6"]
       },
       "source": "elements/ecosystem-web",
       "version": "26.8.0"
@@ -11873,7 +11908,7 @@
     },
     "@haxtheweb/fullscreen-behaviors": {
       "files": {
-        "fullscreen-behaviors.js": ["641934428cc7b8323caf21b8423b6c9b", "13851b6618fd2668d23471148df6e01e"],
+        "fullscreen-behaviors.js": ["a3e5daab9ba8ebc3f4c9ffdbd99827cb", "686fa6061b6bf1896502fdac38fc37d7"],
         "lib/fullscreen-behaviors.docs.json": ["75f89bae5b34d52c86535d4f26cf4cd8", "75f89bae5b34d52c86535d4f26cf4cd8"]
       },
       "source": "elements/fullscreen-behaviors",
@@ -13867,10 +13902,10 @@
         "lib/hax-context-behaviors.js": ["c9e4cae8d88b9b1a907280cb0dd0b03f", "74f0a7f260d35f8d428508c97aab90f2"],
         "lib/hax-context-item-textop.js": ["35283e22275bd85b204fd3785fcc7578", "b8c5dc41e5f17accb5b86f45444c2695"],
         "lib/hax-context-item.js": ["2416fd8610580a302ffee0c5fdd289cc", "4a6da8b018f8d906e27df66a1d46e12c"],
-        "lib/hax-element-demo.js": ["1c48481b6bf0179959f3dddaffb14c8e", "de3e31086abdd21c52267761539ae893"],
+        "lib/hax-element-demo.js": ["591938d0362fac9a05e2f5a2d3c9f849", "15bbb4051702139d7ee32c7e7c377ca7"],
         "lib/hax-export-dialog.js": ["5f569df28324fa1db2ef438946903cbf", "55da4284869f26e080bcfd032e6a76e7"],
         "lib/hax-file-actions.js": ["32f4f2b57ce985bb04433c1a7361ef8b", "81e6f926c61feb92ce36c6e6e10c3be4"],
-        "lib/hax-gizmo-browser.js": ["aedd26d673d9e25789e14194987a44d3", "cef102e984415bf90779902a8307d8aa"],
+        "lib/hax-gizmo-browser.js": ["980c94c3c36e684caccf129983e42ea3", "205e752e75efd81a7a9267d6d907c412"],
         "lib/hax-image-crop.js": ["da8104f77156f720a83f87fc1449ae09", "22d6fb84af14534ba787694ef484bfab"],
         "lib/hax-map-tree.js": ["76984b624d13b68c88a8dfa2e3a950ec", "ec5c2a64d7262cd89fd4057b639be94f"],
         "lib/hax-map.js": ["9647887642e8cf96b6fe3bea262f9972", "5d5b0eb2af6ab799cd3b3dab7173963f"],
@@ -13890,7 +13925,7 @@
         "lib/hax-tray-button.js": ["0e56c9b6a619ff6e4e28bd9e317d88eb", "59b291a233c24b5d381971b695a84f99"],
         "lib/hax-tray-upload.js": ["9a3c308859e2cf3c363567496f3d2a5e", "3d6a77a8f5b1b27cedd4abe9d6b25a16"],
         "lib/hax-tray.js": ["5b4e7d5bf3f6ba4d225e7982b1a05a09", "51cfb8a2ab6589998ef583e05cefd702"],
-        "lib/hax-ui-styles.js": ["a355535165039913e658b596d0b51ed5", "09b3e31fabcca0d94ba90548b75fa08d"],
+        "lib/hax-ui-styles.js": ["907d701d4f22c7eccbcbc9fcafec17e9", "bf58160ce1a343ccd62b397b1dea2cc2"],
         "lib/hax-upload-field.js": ["28dbfb3da942191ae02df420e83e082b", "c843c2683beffb648f662debada5ed9d"],
         "lib/hax-view-source.js": ["6d4ba7c5186561d8aeccd13ad6fa61f2", "a05459277b1b732225d96f68137c0d59"],
         "lib/simple-fields-srcset.js": ["be21c511a97b1587a6f36d9c61d0cfea", "278b68af1c0563b0ba0d4d7ed7a729b2"],
@@ -16154,7 +16189,7 @@
         "locales/hax.da.json": ["faddc240a5a6e2c96b7d308ee9e1f3e0", "faddc240a5a6e2c96b7d308ee9e1f3e0"],
         "locales/hax.de.json": ["ac5b02f1eac4fc265cb4aa2a35d1ddce", "ac5b02f1eac4fc265cb4aa2a35d1ddce"],
         "locales/hax.el.json": ["f95baea8f6c0b718a35f867b8c2f3fe8", "f95baea8f6c0b718a35f867b8c2f3fe8"],
-        "locales/hax.en.json": ["fbc41f2c3c0d0cb74955c6a452dbd58f", "fbc41f2c3c0d0cb74955c6a452dbd58f"],
+        "locales/hax.en.json": ["2917c4fe9032bc7638479e15ffa69864", "2917c4fe9032bc7638479e15ffa69864"],
         "locales/hax.eo.json": ["dda3ede8ef52e53bb181a5de2a9e28f8", "dda3ede8ef52e53bb181a5de2a9e28f8"],
         "locales/hax.es.json": ["68bb8482948d4a6b7ce29a542a52d0ab", "68bb8482948d4a6b7ce29a542a52d0ab"],
         "locales/hax.et.json": ["d4b552bbb0ae27472c3c3c6c9f97a648", "d4b552bbb0ae27472c3c3c6c9f97a648"],
@@ -19213,7 +19248,7 @@
         "lib/core/utils/EmailPageMixin.js": ["edfd56eb072cc6e7b57cc376891ba474", "d235b276c360289de3cd9b6b2214f82a"],
         "lib/core/utils/ExportPageProgram.js": ["cb49f09b7cac54783d3fbe152eb7cb70", "9bb2bb7bf214df33d34f03c172756ccb"],
         "lib/core/utils/ExportSiteProgram.js": ["5f40fdc6e8b9fd31d2ce0a888256ccbf", "a83e9727c170982eb5a83b98b30be02c"],
-        "lib/core/utils/HAXCMSApiMessages.js": ["66ca0e1764ddd04a2a70cdf250dfa584", "b5216a9fabaf2faccf7886fbc26118ef"],
+        "lib/core/utils/HAXCMSApiMessages.js": ["f931b27af44e31edb4455a8c221e0036", "21af58ad2ec9db1182d639fc1f5013ff"],
         "lib/core/utils/HAXCMSButton.js": ["fbca337bfbf4d964e8a50da44ef4d99e", "1bc43a2931bc3b981337d84e394e7eea"],
         "lib/core/utils/HAXCMSDesignSystems.js": ["f62d8173651072925fd620e6832cc59d", "78e58234bf928f244d10952344d44fea"],
         "lib/core/utils/HAXCMSI18NMixin.js": ["e69efb8855960bdd8f82b453cfed970f", "ecd9c93be0abfd9d6170d6a239616b27"],
@@ -19224,7 +19259,7 @@
         "lib/core/utils/HAXCMSRememberRoute.js": ["7a85920db24f3cff685b9c07944fb927", "bf399b5d7b81316a564ac46ee4775b74"],
         "lib/core/utils/HAXCMSThemeA11yTestHelpers.js": ["7ca9453401b3a16ec3b625f7f4c6ac7d", "8198b21bd5814b8ce8da4175f43d656a"],
         "lib/core/utils/HAXCMSThemeParts.js": ["d2b23418214ec2192f8e05063821b53c", "fd2e8af3075dc745846638a5e48d917d"],
-        "lib/core/utils/HAXCMSUserStylesMenu.js": ["7f500ea9e07e68507a7e77500123c8a2", "35e6c1765f715ac586b5987d6d65d12e"],
+        "lib/core/utils/HAXCMSUserStylesMenu.js": ["0a6ec12daee2c94553d2ab7656a5e5a6", "c72be49fc0d993f92535b1d0e3a241b9"],
         "lib/core/utils/HAXCMSWebMCP.js": ["7044b6796dead10147e79ae791ccddf6", "4510c4d250ae88c00dad8c30dce30b82"],
         "lib/core/utils/LTIResizingMixin.js": ["64d7c4aa33993e09b1b296cc7bea6188", "63a07af905741c3f5eb3ab9ff11839a5"],
         "lib/core/utils/PDFPageMixin.js": ["f84fea3c1df789227888a1d4350def24", "1a63a96798c7770add2f24ffb3414c8f"],
@@ -19249,8 +19284,8 @@
         "lib/core/utils/urlHost.js": ["a971149ff4f90c190ff2d6dc2f0c4387", "f25715abf623c046d9cc9b90407c3d07"],
         "lib/designSystems.json": ["21bd96e7c0f242411dc0d26d83e32cda", "21bd96e7c0f242411dc0d26d83e32cda"],
         "lib/development/haxcms-dev-theme.js": ["9cea46fa9c48fed4fc14b8777ad96d24", "dc739463dbad68a2da8e53f319e5fb6d"],
-        "lib/hax-elements-registry.json": ["fb5c9d3679bf05813d58c27d2a946ef0", "fb5c9d3679bf05813d58c27d2a946ef0"],
-        "lib/haxcms-api-codes.json": ["dad7c6722cbfff88b5dd8fd817796a1f", "dad7c6722cbfff88b5dd8fd817796a1f"],
+        "lib/hax-elements-registry.json": ["fb5c9d3679bf05813d58c27d2a946ef0", "96a5a272ffd2c3a51b56122a65f2c7fe"],
+        "lib/haxcms-api-codes.json": ["0a6d144087f60501ed9117ee091480ce", "0a6d144087f60501ed9117ee091480ce"],
         "lib/haxcms-elements.add-blocks.motion.json": ["79751ecae34f26fcf9f267ad5b8b43d6", "79751ecae34f26fcf9f267ad5b8b43d6"],
         "lib/haxcms-elements.configure.motion.json": ["867ffc25e4988b4e80402ab5ff1c23e2", "867ffc25e4988b4e80402ab5ff1c23e2"],
         "lib/haxcms-elements.docs.json": ["b08e7cd12e85ae13225860c2b04ecf17", "b08e7cd12e85ae13225860c2b04ecf17"],
@@ -19939,7 +19974,7 @@
         "locales/haxcms-api.da.json": ["c6225b3ef259771d727054681c6d84a3", "c6225b3ef259771d727054681c6d84a3"],
         "locales/haxcms-api.de.json": ["1c0d285f7e9f68a820cb685149d6af3e", "1c0d285f7e9f68a820cb685149d6af3e"],
         "locales/haxcms-api.el.json": ["d5a3f598d9995e5359cbaa1f6b6d813a", "d5a3f598d9995e5359cbaa1f6b6d813a"],
-        "locales/haxcms-api.en.json": ["3d984491d1b3892b56c51868e9dad4bf", "3d984491d1b3892b56c51868e9dad4bf"],
+        "locales/haxcms-api.en.json": ["02ba583dd64f2c6d17e97e4a24f0acea", "02ba583dd64f2c6d17e97e4a24f0acea"],
         "locales/haxcms-api.eo.json": ["cb55165b1ff60c783a3431b1f6233149", "cb55165b1ff60c783a3431b1f6233149"],
         "locales/haxcms-api.es.json": ["cafb4c53ee1f0290ae6e6d633b460ab5", "cafb4c53ee1f0290ae6e6d633b460ab5"],
         "locales/haxcms-api.et.json": ["b863fa5cfdf7e302c608ab646032dd99", "b863fa5cfdf7e302c608ab646032dd99"],
@@ -25332,7 +25367,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["87695d8bb001a38e9f7c6126aa623a97", "87695d8bb001a38e9f7c6126aa623a97"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["753ec256fb6fb9aed56d34c4c574bcea", "d284eb17a54d2d0ef5c863cf93c9cccb"]
+        "lib/translation-manifest.json": ["753ec256fb6fb9aed56d34c4c574bcea", "61a6ea5718725b79dc36f72bc8de7544"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -25552,6 +25587,18 @@
       },
       "source": "elements/ics-render",
       "version": "26.8.0"
+    },
+    "@haxtheweb/identify-hotspots": {
+      "files": {
+        "identify-hotspots.js": ["3cd04212a184593ecc424cae7937d2f7", "4445aaf3cf5c9b58dab0e4018b0e5709"],
+        "lib/hotspot-regions.js": ["21b37359f7ad09591bed88b11568ab4b", "34a8838fb3bbfb7b840ddb372540766c"],
+        "lib/identify-hotspots.docs.json": ["0d65549d4fd3734f92a81ec3a1d78a31", "0d65549d4fd3734f92a81ec3a1d78a31"],
+        "lib/identify-hotspots.haxProperties.json": ["2d37f590140e7f4b686f1e5702605fd1", "2d37f590140e7f4b686f1e5702605fd1"],
+        "lib/workshop-scene.svg": ["9cd1f3a8eb20fdfa6129ebdf6caa591b", "9cd1f3a8eb20fdfa6129ebdf6caa591b"],
+        "locales/identify-hotspots.en.json": ["66a68033cf2dedd4dad8d8d46ca5b8ca", "66a68033cf2dedd4dad8d8d46ca5b8ca"]
+      },
+      "source": "elements/identify-hotspots",
+      "version": "0.0.0"
     },
     "@haxtheweb/iframe-loader": {
       "files": {
@@ -25880,6 +25927,17 @@
       },
       "source": "elements/image-compare-slider",
       "version": "26.8.0"
+    },
+    "@haxtheweb/image-dropzone": {
+      "files": {
+        "image-dropzone.js": ["2eb33642b9240636399cc6337fcd4cfa", "ecb36c2f70478330f7672fc323604b1c"],
+        "lib/image-dropzone.docs.json": ["568a6ff414506bcf9643761abab6d24f", "568a6ff414506bcf9643761abab6d24f"],
+        "lib/image-dropzone.haxProperties.json": ["6ebc0e3e5bc1b949d81a6244217be7b6", "6ebc0e3e5bc1b949d81a6244217be7b6"],
+        "lib/page-wireframe.svg": ["888b12a09aa0cc8aa048f1dab87d6369", "888b12a09aa0cc8aa048f1dab87d6369"],
+        "locales/image-dropzone.en.json": ["9d784bd8f7b8ad921c7e233f99bbe15e", "9d784bd8f7b8ad921c7e233f99bbe15e"]
+      },
+      "source": "elements/image-dropzone",
+      "version": "0.0.0"
     },
     "@haxtheweb/image-gallery": {
       "files": {
@@ -26223,10 +26281,10 @@
     },
     "@haxtheweb/img-view-modal": {
       "files": {
-        "img-view-modal.js": ["1542a53d71db966d0302f604cccb6ff2", "6c3ab0f5e8aaca1c369c3cdfde2092da"],
+        "img-view-modal.js": ["7df6718c4677bf2392d1f81f386e5cea", "d0e68f8805b5577adce6f99347d4f715"],
         "lib/img-view-modal.docs.json": ["db9a57372a7b448813d6da00e9335823", "db9a57372a7b448813d6da00e9335823"],
         "lib/img-view-modal.motion.json": ["f4c526cd5a297256eafc10e2ca35ea75", "f4c526cd5a297256eafc10e2ca35ea75"],
-        "lib/img-view-viewer.js": ["ffe58053ae2529fefab9db399f2476fa", "95be935d3227b4d0714b61427c9092ba"],
+        "lib/img-view-viewer.js": ["06fd5b8bb970bc12736a113fb333b7a8", "b7e0dabe5b3ef83c7d75cdbfecdf75ff"],
         "locales/img-view-viewer.af.json": ["7d5ff9832cb6d7459c2a3106f28ea683", "7d5ff9832cb6d7459c2a3106f28ea683"],
         "locales/img-view-viewer.am.json": ["30daa0416b7960153fe75e925c4b79fb", "30daa0416b7960153fe75e925c4b79fb"],
         "locales/img-view-viewer.ar.json": ["a798426f6fcdbd0b4bed0bfa4d16191d", "a798426f6fcdbd0b4bed0bfa4d16191d"],
@@ -29126,6 +29184,17 @@
       "source": "elements/lrs-elements",
       "version": "26.8.0"
     },
+    "@haxtheweb/lti-launch": {
+      "files": {
+        "lib/lti-launch-url.js": ["666f1555d225492c6f08b8e4b98156e5", "cd6272ec2a773384c458d20760d8bad7"],
+        "lib/lti-launch.docs.json": ["adb514946e31a140bfe4a3f2cfe48154", "adb514946e31a140bfe4a3f2cfe48154"],
+        "lib/lti-launch.haxProperties.json": ["54862987aadfa06b194dbccbcd608253", "54862987aadfa06b194dbccbcd608253"],
+        "locales/lti-launch.en.json": ["94b39697bfb7a8959df55fbea1995516", "94b39697bfb7a8959df55fbea1995516"],
+        "lti-launch.js": ["ef2f421a255a2f3f50dd1c1d120c6e44", "e92dcbdda62c8a858c347af16ae7b3a1"]
+      },
+      "source": "elements/lti-launch",
+      "version": "0.0.0"
+    },
     "@haxtheweb/lunr-search": {
       "files": {
         "lib/lunr-search.docs.json": ["cbdde9f1e3be13b85cdd160470e7c04d", "cbdde9f1e3be13b85cdd160470e7c04d"],
@@ -30161,7 +30230,7 @@
         "locales/media-playlist.da.json": ["c38ad8aedbb7c83610c6928517ae171f", "c38ad8aedbb7c83610c6928517ae171f"],
         "locales/media-playlist.de.json": ["19e06a885bb9cbcbf73db9f7ca085880", "19e06a885bb9cbcbf73db9f7ca085880"],
         "locales/media-playlist.el.json": ["3aeac7e6cea68b4fd544b6b5a2373947", "3aeac7e6cea68b4fd544b6b5a2373947"],
-        "locales/media-playlist.en.json": ["8873b0cb301dc762fdd4f86f7d3bde9e", "8873b0cb301dc762fdd4f86f7d3bde9e"],
+        "locales/media-playlist.en.json": ["e341773e1d627937356585a6b9df01b6", "e341773e1d627937356585a6b9df01b6"],
         "locales/media-playlist.eo.json": ["d18066e391f9b790f194e4bf61f6676b", "d18066e391f9b790f194e4bf61f6676b"],
         "locales/media-playlist.es.json": ["750df81af4dadf94522e035697d11d57", "750df81af4dadf94522e035697d11d57"],
         "locales/media-playlist.et.json": ["90e0741acffcfbef71489d382114a415", "90e0741acffcfbef71489d382114a415"],
@@ -30351,7 +30420,7 @@
         "locales/media-playlist.yo.json": ["e1e0290f14fd0feab8dde39de3bd8c30", "e1e0290f14fd0feab8dde39de3bd8c30"],
         "locales/media-playlist.zh.json": ["052b812fb98889b3251cad7044dea199", "052b812fb98889b3251cad7044dea199"],
         "locales/media-playlist.zu.json": ["d0595318465b84d6567168334c9e25df", "d0595318465b84d6567168334c9e25df"],
-        "media-playlist.js": ["a4477317bad7c6ff6ae53ff802394b87", "26b90d9cd79fab0145fffec2867df214"]
+        "media-playlist.js": ["e25c905b4c09cad2e7d64c2c700563a2", "a352a389469c6a4821509690089673a6"]
       },
       "source": "elements/media-playlist",
       "unshipped": ["rollup.config.js"],
@@ -30683,6 +30752,16 @@
       },
       "source": "elements/meme-maker",
       "version": "26.8.0"
+    },
+    "@haxtheweb/memory-match": {
+      "files": {
+        "lib/memory-match.docs.json": ["cdea69930ad2215f769d8de4c4d69beb", "cdea69930ad2215f769d8de4c4d69beb"],
+        "lib/memory-match.haxProperties.json": ["6c4fb3e07069cf107fb6b0fb793eae9d", "6c4fb3e07069cf107fb6b0fb793eae9d"],
+        "locales/memory-match.en.json": ["ffc23a7aa6549cd8ce3a82bc67fb68f1", "ffc23a7aa6549cd8ce3a82bc67fb68f1"],
+        "memory-match.js": ["caf4e7870709439eeb0284ca236f124e", "0f876380fb4fd2bb27272e2e2a8aaf1f"]
+      },
+      "source": "elements/memory-match",
+      "version": "0.0.0"
     },
     "@haxtheweb/merit-badge": {
       "files": {
@@ -31107,6 +31186,20 @@
       },
       "source": "elements/merit-badge",
       "version": "26.8.0"
+    },
+    "@haxtheweb/mermaid-diagram": {
+      "files": {
+        "lib/flowchart-text.js": ["45327f74448f66f9e7907cf3ca5de449", "8347f223dcc83f0717dc68818fd458ad"],
+        "lib/mermaid-diagram.docs.json": ["b4cea8e3ada669fe11a915efed3c80c0", "b4cea8e3ada669fe11a915efed3c80c0"],
+        "lib/mermaid-diagram.haxProperties.json": ["10bf9a13bf35d386e7d6c1553b8e26ea", "10bf9a13bf35d386e7d6c1553b8e26ea"],
+        "lib/mermaid/LICENSE": ["ec9fb67dcb25eccc416ed56e1aab8192", "ec9fb67dcb25eccc416ed56e1aab8192"],
+        "lib/mermaid/README.md": ["476090463cb199c3652433d64b0d220a", "476090463cb199c3652433d64b0d220a"],
+        "lib/mermaid/mermaid.min.js": ["92276848d1378b29a3add7b8c659ca38", "18327bef70d96fb505fe7287d9f6a736"],
+        "locales/mermaid-diagram.en.json": ["30a24c25ed161daf4b7b7bc06bb90f42", "30a24c25ed161daf4b7b7bc06bb90f42"],
+        "mermaid-diagram.js": ["a919b5d160a7cf8ee2f5fe50cd7b2d1d", "ac45580ce330cfdedce26ea75370ed7a"]
+      },
+      "source": "elements/mermaid-diagram",
+      "version": "0.0.0"
     },
     "@haxtheweb/micro-frontend-registry": {
       "files": {
@@ -31974,7 +32067,7 @@
     },
     "@haxtheweb/multiple-choice": {
       "files": {
-        "lib/QuestionElement.js": ["d6684bb73d86132a4719cfb01af22064", "e5b299eb0fd07e33fb415f0acad3213e"],
+        "lib/QuestionElement.js": ["c0158a84df8acf3a2ca6eb7e3c9044a2", "f9d367c277f515f3b2b19a84af85d38c"],
         "lib/confetti-container.js": ["6c520ba0d27135415b7b1a02d022111d", "a099cbf7f30ae8fcc4441d5b370395ab"],
         "lib/multiple-choice.docs.json": ["c5861b98da81378cf0461c3f04cce4ed", "c5861b98da81378cf0461c3f04cce4ed"],
         "lib/multiple-choice.haxProperties.json": ["ab5feb682c924c761e18c6be4987ff7e", "ab5feb682c924c761e18c6be4987ff7e"],
@@ -32826,6 +32919,17 @@
         "mutation-observer-import-mixin.js": ["b7d0f216b70f684aea6abc404e8a2878", "6606f4c3ab5f982439956d08a52bd8e0"]
       },
       "source": "elements/mutation-observer-import-mixin",
+      "version": "26.8.0"
+    },
+    "@haxtheweb/numeric-question": {
+      "files": {
+        "lib/numeric-formula.js": ["0bee1ce5b215057c3737912a2837738e", "f9d9e869d7fb277c906ff83f14788df5"],
+        "lib/numeric-question.docs.json": ["6f98385d0205b702e2198332e17a7e20", "6f98385d0205b702e2198332e17a7e20"],
+        "lib/numeric-question.haxProperties.json": ["07d9926adc42a81881af96b18073cd09", "07d9926adc42a81881af96b18073cd09"],
+        "locales/numeric-question.en.json": ["8cf4a442bf242fbe11823334211ecae5", "8cf4a442bf242fbe11823334211ecae5"],
+        "numeric-question.js": ["2175f78f9e414f7e61890d4092a9ed1c", "5b7d49829fef5ab4cafe7e0d7a26b197"]
+      },
+      "source": "elements/numeric-question",
       "version": "26.8.0"
     },
     "@haxtheweb/oer-schema": {
@@ -34625,7 +34729,7 @@
         "locales/play-list.da.json": ["c698052a879795dfe0c347907491933a", "c698052a879795dfe0c347907491933a"],
         "locales/play-list.de.json": ["d1e51c337cb4c1a056f056ef379cab61", "d1e51c337cb4c1a056f056ef379cab61"],
         "locales/play-list.el.json": ["15eb465ad2a4dbac56ad4ff9ec598385", "15eb465ad2a4dbac56ad4ff9ec598385"],
-        "locales/play-list.en.json": ["4695ff6f66284d29f57f4d3aa33e89ac", "4695ff6f66284d29f57f4d3aa33e89ac"],
+        "locales/play-list.en.json": ["c1b5f8e4db71afba9a8c528c6d278aab", "c1b5f8e4db71afba9a8c528c6d278aab"],
         "locales/play-list.eo.json": ["d3d79342d165a9ee16305eb09c25649f", "d3d79342d165a9ee16305eb09c25649f"],
         "locales/play-list.es.json": ["bc94717de8111f629727d7eef498c57a", "bc94717de8111f629727d7eef498c57a"],
         "locales/play-list.et.json": ["9a5e5613d3961752f3a99f6b6d0bcf78", "9a5e5613d3961752f3a99f6b6d0bcf78"],
@@ -34815,7 +34919,7 @@
         "locales/play-list.yo.json": ["95f051b09e40587023f509046bb0a6e5", "95f051b09e40587023f509046bb0a6e5"],
         "locales/play-list.zh.json": ["0d5fec1d47c72368980c0bc6e32fa0f6", "0d5fec1d47c72368980c0bc6e32fa0f6"],
         "locales/play-list.zu.json": ["1074675df6a274f67244cebcc5c2f17d", "1074675df6a274f67244cebcc5c2f17d"],
-        "play-list.js": ["c4735b279ef73fe1cd938f2c18e072b5", "7ec7c83c7e3a804c69fce5c3d43879dc"]
+        "play-list.js": ["5ce8023fc947ac0da39c280bd03d989f", "6aa23bda62e855052c1d68f83c3da935"]
       },
       "source": "elements/play-list",
       "version": "26.8.0"
@@ -41766,7 +41870,7 @@
         "locales/slide-deck.yo.json": ["527e7fa4b5ee8ffb45c46f3b22369ffe", "527e7fa4b5ee8ffb45c46f3b22369ffe"],
         "locales/slide-deck.zh.json": ["7f444f322906b4481769c92197d37c67", "7f444f322906b4481769c92197d37c67"],
         "locales/slide-deck.zu.json": ["2303a4f72f0207fcc5c8c07c901ab128", "2303a4f72f0207fcc5c8c07c901ab128"],
-        "slide-deck.js": ["26e51c8baa490d06211289c1465968f8", "6766e0a1ce1dd3d7435ca0627d06c302"]
+        "slide-deck.js": ["3e0a4c4b32318c32d9cc595f70dc6fc2", "7a61f57f4c380bb4cdd56818e38417ca"]
       },
       "source": "elements/slide-deck",
       "version": "0.0.0"
@@ -41782,9 +41886,9 @@
     },
     "@haxtheweb/sorting-question": {
       "files": {
-        "lib/sorting-option.js": ["1ab177e70c61e4d6b17863fdb994678b", "6de0bd6acbae5d975e75f76c7e8a9d70"],
-        "lib/sorting-question.docs.json": ["d916801b40c616f2bfdb86b8d0d02c5d", "d916801b40c616f2bfdb86b8d0d02c5d"],
-        "lib/sorting-question.haxProperties.json": ["91007967d3e014cd80346dc4995f8c2c", "91007967d3e014cd80346dc4995f8c2c"],
+        "lib/sorting-option.js": ["d08309f23574fcb64daa6a48828f4c40", "2c820d71f0165028d54b0fa00a6c81a1"],
+        "lib/sorting-question.docs.json": ["54006698e283eaa8d812c91c8501ff1f", "54006698e283eaa8d812c91c8501ff1f"],
+        "lib/sorting-question.haxProperties.json": ["f413c6618d7212a8f1a4206af564fbfb", "f413c6618d7212a8f1a4206af564fbfb"],
         "lib/sorting-question.motion.json": ["21842121fa4538c8ad8c660f51e5c569", "21842121fa4538c8ad8c660f51e5c569"],
         "locales/sorting-option.af.json": ["09b959c6958d4cf82bf6ab7f20ba7b43", "09b959c6958d4cf82bf6ab7f20ba7b43"],
         "locales/sorting-option.am.json": ["04b66a2817ae8a76d9e60711cac9e906", "04b66a2817ae8a76d9e60711cac9e906"],
@@ -41801,7 +41905,7 @@
         "locales/sorting-option.da.json": ["e6a137ab454ed57c6696b9294786cc7c", "e6a137ab454ed57c6696b9294786cc7c"],
         "locales/sorting-option.de.json": ["40f9556acee0157feabaa0f9f2bb8769", "40f9556acee0157feabaa0f9f2bb8769"],
         "locales/sorting-option.el.json": ["116c3984881c3bcf6067b856d6cb849b", "116c3984881c3bcf6067b856d6cb849b"],
-        "locales/sorting-option.en.json": ["071b52bd4123d4b67e7523c7204d691f", "071b52bd4123d4b67e7523c7204d691f"],
+        "locales/sorting-option.en.json": ["811a83c5bd6b8c36e521755c93ac2216", "811a83c5bd6b8c36e521755c93ac2216"],
         "locales/sorting-option.eo.json": ["68b2ad059d2f4d033a362f58da336a79", "68b2ad059d2f4d033a362f58da336a79"],
         "locales/sorting-option.es.json": ["ee59bc7125b1bb2d1429dc6b7cab7c0e", "ee59bc7125b1bb2d1429dc6b7cab7c0e"],
         "locales/sorting-option.et.json": ["755c25de365ec0e48ff04b38a1f833e5", "755c25de365ec0e48ff04b38a1f833e5"],
@@ -41904,7 +42008,7 @@
         "locales/sorting-question.da.json": ["997e04605d3752cf4d96e70608e329fb", "997e04605d3752cf4d96e70608e329fb"],
         "locales/sorting-question.de.json": ["ad0f134d209038ffda85b2a10c508313", "ad0f134d209038ffda85b2a10c508313"],
         "locales/sorting-question.el.json": ["9ad6aebff893fa00944a85e3d67dab64", "9ad6aebff893fa00944a85e3d67dab64"],
-        "locales/sorting-question.en.json": ["fdcc1ee893c1fc3bb0d8267723893ef3", "fdcc1ee893c1fc3bb0d8267723893ef3"],
+        "locales/sorting-question.en.json": ["3d73c77a6c6d31292d3f408c92736412", "3d73c77a6c6d31292d3f408c92736412"],
         "locales/sorting-question.eo.json": ["a056f8db200b766bc8563595fd9e3bf7", "a056f8db200b766bc8563595fd9e3bf7"],
         "locales/sorting-question.es.json": ["e3b7f9f1b7976cd17bcb3307bd8fbc0e", "e3b7f9f1b7976cd17bcb3307bd8fbc0e"],
         "locales/sorting-question.et.json": ["370c152f5c1c0513853ab2823757b60a", "370c152f5c1c0513853ab2823757b60a"],
@@ -42094,7 +42198,7 @@
         "locales/sorting-question.yo.json": ["a02d7771237be73a5959789c62c5ba56", "a02d7771237be73a5959789c62c5ba56"],
         "locales/sorting-question.zh.json": ["4cd79de1580a418debed9dff0c2cfd09", "4cd79de1580a418debed9dff0c2cfd09"],
         "locales/sorting-question.zu.json": ["6547869beaf4aafc124d14ff4509fae9", "6547869beaf4aafc124d14ff4509fae9"],
-        "sorting-question.js": ["a248c18a0cc10909a80bfc1447c62a95", "493f0c8f2550b72ce3166b4bde5c00a4"]
+        "sorting-question.js": ["9601fe457b27daf800857c9037d9ce1a", "448803908942ed517a873d5cf1f49694"]
       },
       "source": "elements/sorting-question",
       "version": "26.8.0"
@@ -44386,9 +44490,9 @@
         "lib/UserActionBroker.js": ["f9bb58e1fae785c2d48060be2de38cb4", "11bd467a1b6f0875d30e97bfff026f5f"],
         "lib/user-action.docs.json": ["246045e1b6ba006457f871997d7c81f1", "246045e1b6ba006457f871997d7c81f1"],
         "lib/user-action.motion.json": ["16a8cbdac8c9f243eed80820542622c6", "16a8cbdac8c9f243eed80820542622c6"],
-        "lib/xapi-vocabulary.js": ["03fbd682d89e204ed602e580b1dabb9f", "11d939e4649aaa05edde35df64c719a5"],
-        "lib/xapi-vocabulary.json": ["2fa8e0468b96b1b95b705e86aeb9a224", "2fa8e0468b96b1b95b705e86aeb9a224"],
-        "lib/xapi.js": ["8f819d86e1ea34ed7dac9b3a321afde7", "c203f938bde1bd83315da30933140a98"],
+        "lib/xapi-vocabulary.js": ["dfbc4b25995106c1a1763b7bfe36d33e", "551b0879572baf64f7cd2eebc498f0d2"],
+        "lib/xapi-vocabulary.json": ["464b42c49291a87cac01b13082a31f0d", "464b42c49291a87cac01b13082a31f0d"],
+        "lib/xapi.js": ["73e0b26d98340d02e614e5f399a7f20e", "e4bce6a34f2d6ad83c3da000f2d4d512"],
         "user-action.js": ["975ae5b56ccd69f946e310b088c73c2e", "daaf900c925dba175250d82239052667"]
       },
       "source": "elements/user-action",
@@ -46007,6 +46111,17 @@
       "source": "elements/word-count",
       "version": "26.8.0"
     },
+    "@haxtheweb/word-search": {
+      "files": {
+        "lib/word-search-generator.js": ["f262f2fbffc364c24182d5ced68f8bc1", "4ac837753e51b3215bfde731b6580fb4"],
+        "lib/word-search.docs.json": ["03a9d1b7e01752b39694b13a398f5641", "03a9d1b7e01752b39694b13a398f5641"],
+        "lib/word-search.haxProperties.json": ["d9a2289f47d751ba91f1695753e65b2e", "d9a2289f47d751ba91f1695753e65b2e"],
+        "locales/word-search.en.json": ["0d389f70aa8d5997c732761a7ed47300", "0d389f70aa8d5997c732761a7ed47300"],
+        "word-search.js": ["03d02e8bcfb05485abd5ca1e9b5e629b", "f39267fe91c56b3d2bb504d1a15df37c"]
+      },
+      "source": "elements/word-search",
+      "version": "0.0.0"
+    },
     "@haxtheweb/wysiwyg-hax": {
       "files": {
         "lib/wysiwyg-hax.docs.json": ["760b031883ac86748c930f5502cbd023", "760b031883ac86748c930f5502cbd023"],
@@ -46612,7 +46727,7 @@
     }
   },
   "source": {
-    "commit": "c2d9022209688f67144c6dd1b3a0d4ecd376622e",
+    "commit": "39715eb6ae160063fe3e98012a1916e1e98b5cc8",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
