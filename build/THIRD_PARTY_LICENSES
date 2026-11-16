@@ -105,6 +105,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #6
 
+@haxtheweb/arithmetic-drill
+  build path:  es6/node_modules/@haxtheweb/arithmetic-drill
+  license:     Apache-2.0
+  attribution: see license text #5
+
 @haxtheweb/audio-player
   build path:  es6/node_modules/@haxtheweb/audio-player
   license:     Apache-2.0
@@ -144,6 +149,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/bootstrap-theme
   license:     Apache-2.0
   attribution: see license text #2
+
+@haxtheweb/branching-scenario
+  build path:  es6/node_modules/@haxtheweb/branching-scenario
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/bullet-check-list
   build path:  es6/node_modules/@haxtheweb/bullet-check-list
@@ -224,6 +234,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/course-model
   license:     Apache-2.0
   attribution: see license text #7
+
+@haxtheweb/crossword-puzzle
+  build path:  es6/node_modules/@haxtheweb/crossword-puzzle
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/csv-render
   build path:  es6/node_modules/@haxtheweb/csv-render
@@ -470,6 +485,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #5
 
+@haxtheweb/identify-hotspots
+  build path:  es6/node_modules/@haxtheweb/identify-hotspots
+  license:     Apache-2.0
+  attribution: see license text #5
+
 @haxtheweb/iframe-loader
   build path:  es6/node_modules/@haxtheweb/iframe-loader
   license:     Apache-2.0
@@ -479,6 +499,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/image-compare-slider
   license:     Apache-2.0
   attribution: see license text #2
+
+@haxtheweb/image-dropzone
+  build path:  es6/node_modules/@haxtheweb/image-dropzone
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/image-gallery
   build path:  es6/node_modules/@haxtheweb/image-gallery
@@ -615,6 +640,11 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #3
 
+@haxtheweb/lti-launch
+  build path:  es6/node_modules/@haxtheweb/lti-launch
+  license:     Apache-2.0
+  attribution: see license text #5
+
 @haxtheweb/lunr-search
   build path:  es6/node_modules/@haxtheweb/lunr-search
   license:     Apache-2.0
@@ -675,10 +705,20 @@ PACKAGE INDEX
   license:     Apache-2.0
   attribution: see license text #2
 
+@haxtheweb/memory-match
+  build path:  es6/node_modules/@haxtheweb/memory-match
+  license:     Apache-2.0
+  attribution: see license text #5
+
 @haxtheweb/merit-badge
   build path:  es6/node_modules/@haxtheweb/merit-badge
   license:     Apache-2.0
   attribution: see license text #7
+
+@haxtheweb/mermaid-diagram
+  build path:  es6/node_modules/@haxtheweb/mermaid-diagram
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/micro-frontend-registry
   build path:  es6/node_modules/@haxtheweb/micro-frontend-registry
@@ -714,6 +754,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/mutation-observer-import-mixin
   license:     Apache-2.0
   attribution: see license text #3
+
+@haxtheweb/numeric-question
+  build path:  es6/node_modules/@haxtheweb/numeric-question
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/oer-schema
   build path:  es6/node_modules/@haxtheweb/oer-schema
@@ -1224,6 +1269,11 @@ PACKAGE INDEX
   build path:  es6/node_modules/@haxtheweb/word-count
   license:     Apache-2.0
   attribution: see license text #2
+
+@haxtheweb/word-search
+  build path:  es6/node_modules/@haxtheweb/word-search
+  license:     Apache-2.0
+  attribution: see license text #5
 
 @haxtheweb/wysiwyg-hax
   build path:  es6/node_modules/@haxtheweb/wysiwyg-hax
@@ -2179,7 +2229,7 @@ source files: LICENSE
    limitations under the License.
 
 --------------------------------------------------------------------------------
-#5 - Apache-2.0 (shared by 25 packages)
+#5 - Apache-2.0 (shared by 35 packages)
 source files: LICENSE
 --------------------------------------------------------------------------------
 ---- LICENSE ----
