@@ -135,15 +135,26 @@ class SystemRoutesIntegrationsTest extends TestCase
         $this->assertSame('hdr-token', haxcmsResolveIntegrationsSiteToken());
     }
 
-    public function testResolveSiteTokenStringCastsNonStringHeaderFromGetallheaders(): void
+    public function testResolveSiteTokenUsesFirstEntryOfAListHeader(): void
     {
-        // A non-string $_SERVER value skips the first branch, so the
-        // getallheaders() fallback (composer polyfill mirroring $_SERVER)
-        // finds the header case-insensitively and the helper string-casts it.
-        // The polyfill passes arrays through untouched, so the (string) cast
-        // in the loop yields PHP's canonical 'Array'.
-        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = array('not', 'a', 'string');
-        $this->assertSame('Array', haxcmsResolveIntegrationsSiteToken());
+        // Same rule as haxcms-nodejs getRequestHeaderValue: a header that
+        // arrives as a list uses its first entry, trimmed.
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = array(' first-token ', 'second');
+        $this->assertSame('first-token', haxcmsResolveIntegrationsSiteToken());
+    }
+
+    public function testResolveSiteTokenTreatsEmptyListAsNoHeader(): void
+    {
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = array();
+        $this->assertSame('', haxcmsResolveIntegrationsSiteToken());
+    }
+
+    public function testResolveSiteTokenTreatsNonStringValueAsNoHeader(): void
+    {
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = new stdClass();
+        $this->assertSame('', haxcmsResolveIntegrationsSiteToken());
+        $_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'] = array(array('nested'));
+        $this->assertSame('', haxcmsResolveIntegrationsSiteToken());
     }
 
     public function testResolveSiteTokenIgnoresNonMatchingGetallheadersEntries(): void

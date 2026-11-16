@@ -2,7 +2,7 @@
 include_once dirname(__FILE__) . "/../vendor/autoload.php";
 include_once dirname(__FILE__) . "/MediaSettingsService.php";
 include_once dirname(__FILE__) . "/FilesDataStore.php";
-use \Gumlet\ImageResize;
+include_once dirname(__FILE__) . "/HAXCMSImageResize.php";
 
 // a site object
 class HAXCMSFile
@@ -673,7 +673,7 @@ class HAXCMSFile
                         echo "An error occurred while creating your directory at " .
                             $exception->getPath();
                     }
-                    $image = new ImageResize($fullpath);
+                    $image = new HAXCMSImageResize($fullpath);
                     $image
                         ->scale(50)
                         ->save($path . 'scale-50/' . $name)
@@ -715,7 +715,7 @@ class HAXCMSFile
                 // and O(1)-lookupable.
                 // perform scale / crop operations if requested
                 if ($imageOps != null) {
-                  $image = new ImageResize($fullpath);
+                  $image = new HAXCMSImageResize($fullpath);
                   switch ($imageOps) {
                     case 'thumbnail':
                     $image

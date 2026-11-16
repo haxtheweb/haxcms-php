@@ -7,7 +7,7 @@ include_once dirname(__FILE__) . '/CommitContext.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
 include_once dirname(__FILE__) . '/ManagedFiles.php';
-use \Gumlet\ImageResize;
+include_once dirname(__FILE__) . '/HAXCMSImageResize.php';
 // a site object
 class HAXCMSSite
 {
@@ -1114,6 +1114,17 @@ class HAXCMSSite
               $page->metadata = new stdClass();
             }
             $page->metadata->files = $uuids;
+            // the outline's save() above rebuilt its items, so $page is no
+            // longer the object in $this->manifest->items: set the list on the
+            // outline's copy too, or it never reaches site.json (haxcms-nodejs
+            // keeps the same object, so it records the list either way)
+            $outlinePage = $this->loadNode($page->id);
+            if ($outlinePage && $outlinePage !== $page) {
+              if (!isset($outlinePage->metadata) || !is_object($outlinePage->metadata)) {
+                $outlinePage->metadata = new stdClass();
+              }
+              $outlinePage->metadata->files = $uuids;
+            }
             if (!$bulk) {
               $this->manifest->save();
             }
@@ -3471,7 +3482,7 @@ class HAXCMSSite
           else if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
             global $fileSystem;
             $fileSystem->mkdir($path . 'files/haxcms-managed');
-            $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+            $image = new HAXCMSImageResize($path . $this->manifest->metadata->site->logo);
             if ($format == "png") {
               $image->resizeToBestFit($height, $width)
               ->crop($height, $width, TRUE)
