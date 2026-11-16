@@ -8,7 +8,7 @@
         "twig/twig": "^3.27",
         "icamys/php-sitemap-generator": "^1.0",
         "symfony/filesystem": "^4.2",
-        "gumlet/php-image-resize": "^1.9",
+        "gumlet/php-image-resize": "^3.0.1",
         "michelf/php-markdown": "^2.0",
         "league/html-to-markdown": "^5.1",
         "masterminds/html5": "^2.10",

@@ -1,21 +1,35 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/../../HAXCMSApiMessageCodes.php';
+if (!function_exists('haxcmsNormalizeIntegrationsHeaderValue')) {
+    /**
+     * One header value as a string, by the same rule as haxcms-nodejs
+     * getRequestHeaderValue: a string is trimmed, a list uses its first
+     * entry, and anything else (or an empty first entry) counts as no header.
+     */
+    function haxcmsNormalizeIntegrationsHeaderValue($value)
+    {
+        if (is_array($value)) {
+            $value = count($value) > 0 ? reset($value) : '';
+            if (is_int($value) || is_float($value)) {
+                $value = (string) $value;
+            }
+        }
+        return is_string($value) ? trim($value) : '';
+    }
+}
 if (!function_exists('haxcmsResolveIntegrationsSiteToken')) {
     function haxcmsResolveIntegrationsSiteToken()
     {
-        if (
-            isset($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']) &&
-            is_string($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'])
-        ) {
-            return trim($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']);
+        if (isset($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN'])) {
+            return haxcmsNormalizeIntegrationsHeaderValue($_SERVER['HTTP_X_HAXCMS_SITE_TOKEN']);
         }
         if (function_exists('getallheaders')) {
             $headers = getallheaders();
             if (is_array($headers)) {
                 foreach ($headers as $name => $value) {
                     if (strcasecmp($name, 'X-HAXCMS-Site-Token') === 0) {
-                        return trim((string) $value);
+                        return haxcmsNormalizeIntegrationsHeaderValue($value);
                     }
                 }
             }

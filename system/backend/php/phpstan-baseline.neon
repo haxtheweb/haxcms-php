@@ -709,12 +709,6 @@ parameters:
 			path: lib/HAXCMSSite.php
 
 		-
-			message: '#^Parameter \#2 \$image_type of method Gumlet\\ImageResize\:\:save\(\) expects string\|null, int given\.$#'
-			identifier: argument.type
-			count: 2
-			path: lib/HAXCMSSite.php
-
-		-
 			message: '#^Parameter \#4 \$priority of method Icamys\\SitemapGenerator\\SitemapGenerator\:\:addURL\(\) expects float\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -791,12 +785,6 @@ parameters:
 			identifier: phpDoc.parseError
 			count: 1
 			path: lib/JSONOutlineSchema.php
-
-		-
-			message: '#^Parameter \#2 \$image_type of method Gumlet\\ImageResize\:\:save\(\) expects string\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: lib/MaterializeInlineImages.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between non\-empty\-string and null will always evaluate to false\.$#'

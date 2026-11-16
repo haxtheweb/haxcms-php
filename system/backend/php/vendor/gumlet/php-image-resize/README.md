@@ -3,12 +3,12 @@ php-image-resize
 
 PHP library to resize, scale and crop images.
 
-[![Build Status](https://travis-ci.org/gumlet/php-image-resize.svg?branch=master)](https://travis-ci.org/gumlet/php-image-resize) [![Latest Stable Version](https://poser.pugx.org/gumlet/php-image-resize/v/stable)](https://packagist.org/packages/gumlet/php-image-resize) [![Monthly Downloads](https://poser.pugx.org/gumlet/php-image-resize/d/monthly)](https://packagist.org/packages/gumlet/php-image-resize)
+![Build Status](https://github.com/gumlet/php-image-resize/workflows/PHP%20CI/badge.svg) [![Latest Stable Version](https://poser.pugx.org/gumlet/php-image-resize/v/stable)](https://packagist.org/packages/gumlet/php-image-resize) [![Monthly Downloads](https://poser.pugx.org/gumlet/php-image-resize/d/monthly)](https://packagist.org/packages/gumlet/php-image-resize) [![Coverage Status](https://coveralls.io/repos/github/gumlet/php-image-resize/badge.svg?branch=master)](https://coveralls.io/github/gumlet/php-image-resize?branch=master)
 
-Hosted Solution
+Cloud Solution
 ---------------
 
-If you don't want to crop, resize and store images on your server, <a href="https://www.gumlet.com" target="_blank">Gumlet.com</a> is a **free** service which can process images in real-time and serve worldwide through CDN.
+If you don't want to crop, resize and store images on your server, <a href="https://www.gumlet.com/image-optimization/" target="_blank">Gumlet.com</a> is a **free** service which can process images in real-time and serve worldwide through CDN.
 
 ------------------
 
@@ -22,12 +22,51 @@ If using [Composer](https://getcomposer.org/), in your `composer.json` file add:
 ```json
 {
     "require": {
-        "gumlet/php-image-resize": "1.9.*"
+        "gumlet/php-image-resize": "^3.0"
     }
 }
 ```
 
-If you are still using PHP 5.3, please install version ```1.7.0``` and if you are using PHP 5.4, please install version ```1.8.0``` of this library.
+**PHP 8.1 or newer** is required (with the `gd` and `fileinfo` extensions). For older PHP versions, stay on the 2.x line:
+
+| PHP version | Library version |
+|-------------|-----------------|
+| 8.1 – 8.5+  | **3.x** (`^3.0`) |
+| 7.2 – 8.0   | `2.0.x` |
+| 8.0 (legacy)| `2.1.x` (if you were already on it) |
+
+### Upgrading from 2.x to 3.0
+
+3.0 is a **major** release focused on modern PHP, static analysis, and PHP 8.5 compatibility. Behavior is largely the same; most upgrades are about types and environment.
+
+**Requirements**
+
+- PHP **>= 8.1** (2.x supported older PHP).
+- `ext-gd` and `ext-fileinfo` (unchanged).
+
+**Breaking / API changes**
+
+- **Typed public API** — Methods and public properties use scalar types and `static` return types (e.g. `resize(int $width, int $height, bool $allow_enlarge = false): static`). Custom subclasses that override methods must match these signatures.
+- **`ImageResize::__construct(string $filename)`** — The path must be a non-empty string. Passing `null` is a `TypeError` in PHP 8+ (previously you could pass `null` and get `ImageResizeException`). Use a real path, a `data:` URL, or `ImageResize::createFromString()` for binary data.
+- **`ImageResize::createFromString(string $image_data)`** — Only accepts `string`; empty string still throws `ImageResizeException` with message `image_data must not be empty`.
+- **`save()` signature** — Documented types: `string|resource|null $filename`, optional `?int $image_type`, `int|string|null $quality`, `?int $permissions`, and `array|false $exact_size` (canvas size `[width, height]`, not a boolean).
+- **Class constants** — Crop/flip constants are `public const` on `ImageResize` (same names and values as before).
+- **BMP output** — `imagebmp()` is called without a invalid third argument (fixes deprecation when quality was `null`).
+
+**Fixes (compatible behavior)**
+
+- MIME detection via `finfo` runs only when `getimagesize()` fails (no `finfo_open` on every load).
+- **`chmod`** after save only runs when the destination is a **file path** string (not streams or `null` used by `output()`).
+- PHP **8.5**: removed deprecated `finfo_close()` usage.
+
+**Development / quality (library consumers unaffected unless you contribute)**
+
+- PSR-12 via PHP-CS-Fixer (`composer cs-fix` / `cs-check`).
+- PHPStan level 3 on `lib/` (`composer phpstan`).
+- PHPUnit 10+ config migrated; CI runs tests on PHP 8.2–8.5 and a separate static-analysis job.
+- Expanded test suite (missing file, `exact_size`, enlarge, WebP/AVIF save, gamma, filters).
+
+See [CHANGELOG.md](CHANGELOG.md) for the full 3.0.0 release notes.
 
 Otherwise:
 
@@ -62,7 +101,7 @@ To scale an image, in this case to half it's size (scaling is percentage based):
 ```php
 $image = new ImageResize('image.jpg');
 $image->scale(50);
-$image->save('image2.jpg')
+$image->save('image2.jpg');
 ```
 
 To resize an image according to one dimension (keeping aspect ratio):
@@ -221,6 +260,9 @@ If you would like to save/output in a different image type, you need to pass a (
 - `IMAGETYPE_GIF`
 - `IMAGETYPE_JPEG`
 - `IMAGETYPE_PNG`
+- `IMAGETYPE_WEBP` (when GD is built with WebP support)
+- `IMAGETYPE_AVIF` (when GD is built with AVIF support)
+- `IMAGETYPE_BMP`
 
 This allows you to save in a different type to the source:
 
@@ -233,7 +275,7 @@ $image->save('image.png', IMAGETYPE_PNG);
 Quality
 -------
 
-The properties `$quality_jpg` and `$quality_png` are available for you to configure:
+The properties `$quality_jpg`, `$quality_webp` and `$quality_png` are available for you to configure:
 
 ```php
 $image = new ImageResize('image.jpg');
@@ -242,7 +284,7 @@ $image->resize(800, 600);
 $image->save('image2.jpg');
 ```
 
-By default they are set to 85 and 6 respectively. See the manual entries for [`imagejpeg()`](http://www.php.net/manual/en/function.imagejpeg.php) and [`imagepng()`](http://www.php.net/manual/en/function.imagepng.php) for more info.
+By default they are set to 85, 85 (WebP), 60 (AVIF), and 6 (PNG) respectively. See the manual entries for [`imagejpeg()`](http://www.php.net/manual/en/function.imagejpeg.php) and [`imagepng()`](http://www.php.net/manual/en/function.imagepng.php) for more info.
 
 You can also pass the quality directly to the `save()`, `output()` and `getImageAsString()` methods:
 
@@ -295,6 +337,19 @@ $image
 ;
 ```
 
+Input Limit
+-----------
+
+This library imposes input image pixel limit of 15,000,000 pixels (3873x3873) to prevent decompression bombs. If you want to raise this limit, you can do it like this.
+
+```php
+$image->max_source_pixels = 30_000_000;
+
+// or you can completely disable the limit for trusted input
+$image->max_source_pixels = 0;
+
+```
+
 Exceptions
 --------
 
@@ -303,11 +358,10 @@ ImageResize throws ImageResizeException for it's own for errors. You can catch t
 It is not to be expected, but should anything go horribly wrong mid way then notice or warning Errors could be shown from the PHP GD and Image Functions (http://php.net/manual/en/ref.image.php)
 
 ```php
-try{
-    $image = new ImageResize(null);
-    echo "This line will not be printed";
+try {
+    new ImageResize('/path/that/does/not/exist.jpg');
 } catch (ImageResizeException $e) {
-    echo "Something went wrong" . $e->getMessage();
+    echo 'Something went wrong: ' . $e->getMessage();
 }
 ```
 
@@ -348,7 +402,9 @@ Flips an image using a given mode and this method is only for PHP version 5.4.
 $flip = new ImageResize('image.png');
 $image = imagecreatetruecolor(200, 100);
 
-$flip->imageFlip($image, 0);
+$image->addFilter(function ($image) {
+    imageflip($image, IMG_FLIP_HORIZONTAL);
+});
 
 ```
 
@@ -357,11 +413,11 @@ Both functions will be used in the order in which they were added.
 Gamma color correction
 --------
 
-You can disable the gamma color correction enabled by default.
+You can enable the gamma color correction which is disabled by default.
 
 ```php
 $image = new ImageResize('image.png');
-$image->gamma(false);
+$image->gamma(true);
 ```
 
 API Doc
@@ -376,4 +432,4 @@ Maintainer
 
 This library is maintained by <a href="https://www.gumlet.com" target="_blank">Gumlet.com</a>
 
-[<img src="https://www.gumlet.com/public/img/logo.png" width="300px">](https://www.gumlet.com)
+[<img src="https://assets.gumlet.io/public/img/logo.png" width="300px">](https://www.gumlet.com)

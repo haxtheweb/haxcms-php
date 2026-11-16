@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4aed1108790200da65fe01b09021d26b",
+    "content-hash": "4401054f94743f219a18c78d33ad4762",
     "packages": [
         {
             "name": "composer/pcre",
@@ -239,29 +239,30 @@
         },
         {
             "name": "gumlet/php-image-resize",
-            "version": "1.9.2",
+            "version": "3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/gumlet/php-image-resize.git",
-                "reference": "06339a9c1b167acd58173db226f57957a6617547"
+                "reference": "cd01c9e8aa2382211d760c825799c8102987a8c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gumlet/php-image-resize/zipball/06339a9c1b167acd58173db226f57957a6617547",
-                "reference": "06339a9c1b167acd58173db226f57957a6617547",
+                "url": "https://api.github.com/repos/gumlet/php-image-resize/zipball/cd01c9e8aa2382211d760c825799c8102987a8c2",
+                "reference": "cd01c9e8aa2382211d760c825799c8102987a8c2",
                 "shasum": ""
             },
             "require": {
                 "ext-fileinfo": "*",
                 "ext-gd": "*",
-                "php": ">=5.5.0"
+                "php": ">=8.1.0"
             },
             "require-dev": {
-                "apigen/apigen": "^4.1",
                 "ext-exif": "*",
                 "ext-gd": "*",
+                "friendsofphp/php-cs-fixer": "^3.64",
                 "php-coveralls/php-coveralls": "^2.1",
-                "phpunit/phpunit": "^4.8"
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^10.0"
             },
             "suggest": {
                 "ext-exif": "Auto-rotate jpeg files"
@@ -290,7 +291,11 @@
                 "resize",
                 "scale"
             ],
-            "time": "2019-01-01T13:53:00+00:00"
+            "support": {
+                "issues": "https://github.com/gumlet/php-image-resize/issues",
+                "source": "https://github.com/gumlet/php-image-resize/tree/3.0.1"
+            },
+            "time": "2026-10-06T18:10:28+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
