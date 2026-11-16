@@ -104,7 +104,6 @@ class LeadingSlashSlugsTest extends TestCase
             $this->assertFalse($site->lastPathLookupMiss);
             // the path that goes into Link / Content-Location headers is encoded again
             $canonical = new ReflectionMethod('HAXCMSSite', 'getCanonicalPagePathForSlug');
-            $canonical->setAccessible(true);
             $this->assertSame(
                 '/sites/demo/caf%C3%A9/%E6%97%A5%E6%9C%AC%E8%AA%9E',
                 $canonical->invoke($site, "caf\u{e9}/\u{65e5}\u{672c}\u{8a9e}")
