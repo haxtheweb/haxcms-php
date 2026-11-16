@@ -758,7 +758,8 @@ class OperationsNodeOpsTest extends TestCase
 
     public function testSaveNodePluginFieldsLandInSiteJson(): void
     {
-        $this->withPlugins(array('contrib-plugins/reading-time'));
+        // fx-backend: the spec's fixture for a backend's own integration tests (page.before.save adds metadata.plugins.fx-backend.words)
+        $this->withPlugins(array('conformance/fixtures/fx-backend'));
         try {
             $this->setUpBodyFixture();
             $this->haxcms->validRequestToken = true;
@@ -778,7 +779,7 @@ class OperationsNodeOpsTest extends TestCase
                 return $i['id'] === 'item-a';
             }))[0];
             // the same values haxcms-nodejs stores for the same page (plugin-platform.test.cjs)
-            $this->assertSame(array('words' => 410, 'minutes' => 2), $item['metadata']['plugins']['reading-time']);
+            $this->assertSame(array('words' => 410), $item['metadata']['plugins']['fx-backend']);
         } finally {
             putenv('HAXCMS_PLUGIN_DIRS');
             HAXCMSPluginSystem::reset();

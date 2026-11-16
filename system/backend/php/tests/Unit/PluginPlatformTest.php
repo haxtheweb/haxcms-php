@@ -241,9 +241,9 @@ class PluginPlatformTest extends TestCase
         $root = HAXCMSPluginEngine::tempDir('haxcms-plugin-test-');
         $this->tmp[] = $root;
         mkdir("$root/_config/plugins/config", 0775, true);
-        file_put_contents("$root/_config/plugins/config/oauth.json", json_encode(['issuer' => 'https://cms.example.edu']));
-        putenv('HAXCMS_PLUGIN_DIRS=' . $this->spec . '/core-plugins/oauth');
-        $this->assertSame('active', HAXCMSPluginSystem::systemHost(['root' => $root])->get('oauth')->status);
+        file_put_contents("$root/_config/plugins/config/fx-well-known.json", json_encode(['issuer' => 'https://cms.example.edu']));
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->fx('fx-well-known'));
+        $this->assertSame('active', HAXCMSPluginSystem::systemHost(['root' => $root])->get('fx-well-known')->status);
         // not reserved, another base path, or not a GET: never a plugin's
         $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/.well-known/security.txt', '/', 'GET', ['root' => $root]));
         $this->assertFalse(HAXCMSPluginRoutes::dispatchWellKnown('/other/.well-known/oauth-authorization-server', '/', 'GET', ['root' => $root]));

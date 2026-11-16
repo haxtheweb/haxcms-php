@@ -12,9 +12,9 @@ on:
 permissions:
   contents: read
 env:
-  # The spec branch with the PHP conformance fixtures (haxcms-plugin-examples#11, stacked on #4). Point this at the
-  # spec's default branch once those merge.
-  PLUGIN_SPEC_REF: harness/plugin-check
+  # The plugin spec's base branch: spec, harness, conformance and examples, no catalog plugins
+  # (https://github.com/haxtheweb/haxcms-plugin-examples/pull/15). Point this at the spec's default branch once it merges.
+  PLUGIN_SPEC_REF: foundation/spec-harness-checks
 jobs:
   plugins:
     name: "Plugin spec (PHP ${{ matrix.php-version }})"
