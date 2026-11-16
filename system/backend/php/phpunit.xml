@@ -4,10 +4,31 @@
          bootstrap="tests/phpunit-bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
-         executionOrder="defects">
+         executionOrder="defects"
+         defaultTestSuite="Unit">
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
+        </testsuite>
+        <!-- The saveOutline write path: what mutation testing (infection.json5) runs per mutant.
+             FaultInjectionSaveOutlineTest is left out: under Infection's runner its PHPUnit
+             process is terminated (exit 143) on its second test, so Infection refuses to start.
+             Its scenarios still run, blocking, in the normal PHPUnit job. -->
+        <testsuite name="saveOutline">
+            <file>tests/Unit/JSONOutlineSchemaAtomicWriteTest.php</file>
+            <file>tests/Unit/JSONOutlineSchemaItemWriteLocationTest.php</file>
+            <file>tests/Unit/JSONOutlineSchemaOrderTreeCharacterizationTest.php</file>
+            <file>tests/Unit/JSONOutlineSchemaTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineBatchingTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineBehaviorsTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineDesignerContractTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineFailureTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineGapsTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineInputHardeningTest.php</file>
+            <file>tests/Unit/OperationsSaveOutlineLargeParityTest.php</file>
+            <file>tests/Unit/OutlineNumericIdsTest.php</file>
+            <file>tests/Unit/OutlineParentCyclesTest.php</file>
+            <file>tests/Unit/RemoveCreatedPageFolderTest.php</file>
         </testsuite>
     </testsuites>
     <extensions>

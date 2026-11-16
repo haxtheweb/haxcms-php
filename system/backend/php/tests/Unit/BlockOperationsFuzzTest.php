@@ -15,7 +15,17 @@ require_once dirname(__DIR__, 2) . '/lib/BlockOperations.php';
  * are never written; a one-byte change to before is never accepted at the
  * same element.
  *
- * BLOCK_FUZZ_SEED and BLOCK_FUZZ_ITERATIONS override the defaults.
+ * Seed convention (haxtheweb/issues#3272, the same variables as the fast-check
+ * tests in create, haxcms-nodejs and webcomponents):
+ *   HAX_FUZZ_SEED   integer, or `random`; default 3270, so every PR run
+ *                   checks the same pages
+ *   HAX_FUZZ_RUNS   generated pages; default 40 (`npm run test:fuzz` hunts
+ *                   with a random seed and 2000)
+ *   HAX_FUZZ_PATH   replay: stop after this page index of the seed's run
+ * BLOCK_FUZZ_SEED and BLOCK_FUZZ_ITERATIONS are kept as aliases.
+ * A failure is reported as fast-check reports one (`{ seed, path }` and a
+ * `Counterexample:` line), so scripts/fuzz-nightly.mjs replays and files it
+ * the same way for every repo.
  */
 class BlockOperationsFuzzTest extends TestCase
 {
@@ -108,12 +118,33 @@ class BlockOperationsFuzzTest extends TestCase
         return $out . '>';
     }
 
+    private static function env(array $names)
+    {
+        foreach ($names as $n) {
+            $v = getenv($n);
+            if ($v !== false && $v !== '') {
+                return array($n, $v);
+            }
+        }
+        return null;
+    }
+
     public function testFuzz(): void
     {
-        $env = getenv('BLOCK_FUZZ_SEED');
-        $this->seed = $env !== false && $env !== '' ? ((int) $env) & 0xffffffff : 3270;
-        $iterations = getenv('BLOCK_FUZZ_ITERATIONS');
-        $iterations = $iterations !== false && $iterations !== '' ? (int) $iterations : 40;
+        $seed = 3270;
+        $env = self::env(array('HAX_FUZZ_SEED', 'BLOCK_FUZZ_SEED'));
+        if ($env && $env[1] === 'random') {
+            $seed = random_int(1, 2147483647);
+        } elseif ($env) {
+            $this->assertMatchesRegularExpression('/^-?\d+$/', $env[1], $env[0] . ' must be an integer or random');
+            $seed = ((int) $env[1]) & 0xffffffff;
+        }
+        $this->seed = $seed;
+        $runs = self::env(array('HAX_FUZZ_RUNS', 'BLOCK_FUZZ_ITERATIONS'));
+        $iterations = $runs ? (int) $runs[1] : 40;
+        $this->assertGreaterThan(0, $iterations, 'HAX_FUZZ_RUNS must be a positive integer');
+        $path = self::env(array('HAX_FUZZ_PATH'));
+        $stopAfter = $path ? (int) $path[1] : null;
         $reasons = array('invalid', 'not-allowed', 'not-addressable', 'stale', 'ambiguous', 'overlap', 'sanitizer-rejected', 'structure-changed');
         $text = array('A diagram of the water cycle', 'He said "hi" & left', "it's <b>bold</b> > less", '&amp; already &lt;', "line\nbreak\ttab", '  padded  ', '', "emoji \u{1F9EA} مرحبا 光合作用 İ", '"><script>alert(1)</script>', "' onerror='x", 'x]>y', str_repeat('x', 3000));
         $urls = array('https://media.psu.edu/a.mp4', 'files/b.png', '/abs/c.jpg', 'https://e.x/?a=1&b="2"', '/files/café.png', 'javascript:alert(1)', '//evil.example', 'data:x', ' https://trim.me/x ');
@@ -131,72 +162,96 @@ class BlockOperationsFuzzTest extends TestCase
             $pages[] = $this->gen(0) . $this->gen(0) . $this->gen(0) . $this->gen(0);
         }
         $accepted = 0;
-        foreach ($pages as $html) {
-            $blocks = BlockOperations::listBlocks($html);
-            for ($k = 0; $k < min(4, count($blocks)); $k++) {
-                $block = $this->pick($blocks);
-                $name = $this->pick(array_keys($allow[$block['tag']]));
-                $kind = $allow[$block['tag']][$name];
-                $value = $this->rnd() < 0.1 ? null : $this->pick($kind === 'url' ? $urls : $text);
-                $op = array('op' => 'setAttributes', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'set' => array($name => $value));
-                $r = BlockOperations::runBlockOperations($html, array($op));
-                if (!$r['ok']) {
-                    $this->assertContains($r['code'], $reasons);
-                    $this->assertNotSame('structure-changed', $r['code'], $block['tag'] . ' ' . $name . ': ' . $r['message']);
-                    continue;
-                }
-                $accepted++;
-                // 1. bytes outside the element are untouched
-                $same = array_values(array_filter(BlockOperations::scanElements($html), function ($e) use ($block) {
-                    return $e['tag'] === $block['tag'];
-                }));
-                $el = $same[$block['index']];
-                $span = $r['results'][0];
-                $this->assertSame(substr($html, 0, $el['start']), substr($r['content'], 0, $span['start']));
-                $this->assertSame(substr($html, $el['end']), substr($r['content'], $span['end']));
-                // 2. the new value reads back from a parse of the new start tag
-                $want = $value === null ? null : BlockOperations::normalizeValue($kind, $value, $name)['value'];
-                $after = BlockOperations::listBlocks(substr($r['content'], $span['start'], $span['end'] - $span['start']), $block['tag']);
-                $attrs = (array) $after[0]['attributes'];
-                $this->assertSame($want, array_key_exists($name, $attrs) ? $attrs[$name] : null, $block['tag'] . ' ' . $name);
-                // 3. putting the old value back gives the old tree
-                $old = (array) $block['attributes'];
-                $revert = BlockOperations::runBlockOperations($r['content'], array(array(
-                    'op' => 'setAttributes', 'tag' => $block['tag'], 'index' => $block['index'],
-                    'before' => substr($r['content'], $span['start'], $span['end'] - $span['start']),
-                    'set' => array($name => array_key_exists($name, $old) ? $old[$name] : null),
-                )));
-                // (only when the old value is already in stored form; a legacy
-                // URL with raw non-ASCII would come back percent-encoded)
-                $oldValue = array_key_exists($name, $old) ? $old[$name] : null;
-                $oldNorm = BlockOperations::normalizeValue($kind, $oldValue, $name);
-                if ($revert['ok'] && $oldNorm['ok'] && $oldNorm['value'] === $oldValue) {
-                    $this->assertSame(
-                        self::treeString(SanitizeContent::parseBodyForComparison($html)),
-                        self::treeString(SanitizeContent::parseBodyForComparison($revert['content'])),
-                        $block['tag'] . ' ' . $name . ': page differs beyond the edit'
-                    );
-                }
-                // identity replace leaves the page byte-identical
-                $id = BlockOperations::runBlockOperations($html, array(array('op' => 'replaceBlock', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'after' => $block['before'])));
-                if ($id['ok']) {
-                    $this->assertSame($html, $id['content']);
-                }
-                // hostile replacements are never written
-                $payload = sprintf($this->pick($hostile), $block['tag']);
-                $h = BlockOperations::runBlockOperations($html, array(array('op' => 'replaceBlock', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'after' => $payload)));
-                $this->assertFalse($h['ok'], 'hostile written into ' . $block['tag'] . ': ' . $payload);
-                // a one-byte change to before is never accepted at that element
-                $flip = (int) floor($this->rnd() * strlen($block['before']));
-                $stale = $block['before'];
-                $stale[$flip] = $stale[$flip] === 'x' ? 'y' : 'x';
-                $op['before'] = $stale;
-                $s = BlockOperations::runBlockOperations($html, array($op));
-                if ($s['ok']) {
-                    $this->assertNotSame($r['results'][0]['start'], $s['results'][0]['start']);
-                }
+        foreach ($pages as $pageIndex => $html) {
+            if ($stopAfter !== null && $pageIndex > $stopAfter) {
+                break;
+            }
+            try {
+                $accepted += $this->checkPage($html, $allow, $reasons, $text, $urls, $hostile);
+            } catch (\PHPUnit\Framework\AssertionFailedError $e) {
+                // reported the way fast-check reports a failure, so scripts/fuzz-nightly.mjs
+                // reads the seed and path, replays it and names the property
+                throw new \PHPUnit\Framework\AssertionFailedError(
+                    "Property failed by returning false\n{ seed: $seed, path: \"$pageIndex\", endOnFailure: true }\n"
+                    . 'Counterexample: ' . json_encode($html, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
+                    . "Replay: HAX_FUZZ_SEED=$seed HAX_FUZZ_RUNS=$iterations HAX_FUZZ_PATH=$pageIndex vendor/bin/phpunit --filter BlockOperationsFuzzTest\n"
+                    . $e->getMessage()
+                );
             }
         }
-        $this->assertGreaterThan(0, $accepted);
+        if ($stopAfter === null) {
+            $this->assertGreaterThan(0, $accepted);
+        }
+    }
+
+    /** One page: up to four random edits and every check on each. Returns the accepted edits. */
+    private function checkPage($html, $allow, $reasons, $text, $urls, $hostile)
+    {
+        $accepted = 0;
+        $blocks = BlockOperations::listBlocks($html);
+        for ($k = 0; $k < min(4, count($blocks)); $k++) {
+            $block = $this->pick($blocks);
+            $name = $this->pick(array_keys($allow[$block['tag']]));
+            $kind = $allow[$block['tag']][$name];
+            $value = $this->rnd() < 0.1 ? null : $this->pick($kind === 'url' ? $urls : $text);
+            $op = array('op' => 'setAttributes', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'set' => array($name => $value));
+            $r = BlockOperations::runBlockOperations($html, array($op));
+            if (!$r['ok']) {
+                $this->assertContains($r['code'], $reasons);
+                $this->assertNotSame('structure-changed', $r['code'], $block['tag'] . ' ' . $name . ': ' . $r['message']);
+                continue;
+            }
+            $accepted++;
+            // 1. bytes outside the element are untouched
+            $same = array_values(array_filter(BlockOperations::scanElements($html), function ($e) use ($block) {
+                return $e['tag'] === $block['tag'];
+            }));
+            $el = $same[$block['index']];
+            $span = $r['results'][0];
+            $this->assertSame(substr($html, 0, $el['start']), substr($r['content'], 0, $span['start']));
+            $this->assertSame(substr($html, $el['end']), substr($r['content'], $span['end']));
+            // 2. the new value reads back from a parse of the new start tag
+            $want = $value === null ? null : BlockOperations::normalizeValue($kind, $value, $name)['value'];
+            $after = BlockOperations::listBlocks(substr($r['content'], $span['start'], $span['end'] - $span['start']), $block['tag']);
+            $attrs = (array) $after[0]['attributes'];
+            $this->assertSame($want, array_key_exists($name, $attrs) ? $attrs[$name] : null, $block['tag'] . ' ' . $name);
+            // 3. putting the old value back gives the old tree
+            $old = (array) $block['attributes'];
+            $revert = BlockOperations::runBlockOperations($r['content'], array(array(
+                'op' => 'setAttributes', 'tag' => $block['tag'], 'index' => $block['index'],
+                'before' => substr($r['content'], $span['start'], $span['end'] - $span['start']),
+                'set' => array($name => array_key_exists($name, $old) ? $old[$name] : null),
+            )));
+            // (only when the old value is already in stored form; a legacy
+            // URL with raw non-ASCII would come back percent-encoded)
+            $oldValue = array_key_exists($name, $old) ? $old[$name] : null;
+            $oldNorm = BlockOperations::normalizeValue($kind, $oldValue, $name);
+            if ($revert['ok'] && $oldNorm['ok'] && $oldNorm['value'] === $oldValue) {
+                $this->assertSame(
+                    self::treeString(SanitizeContent::parseBodyForComparison($html)),
+                    self::treeString(SanitizeContent::parseBodyForComparison($revert['content'])),
+                    $block['tag'] . ' ' . $name . ': page differs beyond the edit'
+                );
+            }
+            // identity replace leaves the page byte-identical
+            $id = BlockOperations::runBlockOperations($html, array(array('op' => 'replaceBlock', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'after' => $block['before'])));
+            if ($id['ok']) {
+                $this->assertSame($html, $id['content']);
+            }
+            // hostile replacements are never written
+            $payload = sprintf($this->pick($hostile), $block['tag']);
+            $h = BlockOperations::runBlockOperations($html, array(array('op' => 'replaceBlock', 'tag' => $block['tag'], 'index' => $block['index'], 'before' => $block['before'], 'after' => $payload)));
+            $this->assertFalse($h['ok'], 'hostile written into ' . $block['tag'] . ': ' . $payload);
+            // a one-byte change to before is never accepted at that element
+            $flip = (int) floor($this->rnd() * strlen($block['before']));
+            $stale = $block['before'];
+            $stale[$flip] = $stale[$flip] === 'x' ? 'y' : 'x';
+            $op['before'] = $stale;
+            $s = BlockOperations::runBlockOperations($html, array($op));
+            if ($s['ok']) {
+                $this->assertNotSame($r['results'][0]['start'], $s['results'][0]['start']);
+            }
+        }
+        return $accepted;
     }
 }

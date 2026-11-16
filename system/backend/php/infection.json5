@@ -1,0 +1,27 @@
+{
+    // Mutation testing of the outline designer's bulk save (saveOutline), the
+    // PHP side of haxcms-nodejs's Stryker run. Infection changes the site.json
+    // / page write helpers one small edit at a time (the files are listed in
+    // scripts/infection.sh) and reruns the saveOutline tests (the
+    // `saveOutline` testsuite in phpunit.xml); an edit no test notices (a
+    // surviving mutant) is a gap in those tests. Report-only: no score
+    // threshold. Run with `npm run test:mutation` from the repo root.
+    "$schema": "https://raw.githubusercontent.com/infection/infection/0.35.10/resources/schema.json",
+    "source": {
+        "directories": ["lib"]
+    },
+    "phpUnit": {
+        "configDir": "."
+    },
+    "testFrameworkOptions": "--testsuite=saveOutline",
+    "tmpDir": ".infection-tmp",
+    "logs": {
+        "text": "reports/mutation/infection.log",
+        "html": "reports/mutation/infection.html",
+        "summary": "reports/mutation/summary.log",
+        "json": "reports/mutation/infection.json"
+    },
+    "mutators": {
+        "@default": true
+    }
+}

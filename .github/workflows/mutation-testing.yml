@@ -1,0 +1,57 @@
+name: mutation testing
+# Weekly mutation testing (Infection) of the outline designer's bulk save,
+# the PHP side of haxcms-nodejs's Stryker run: the site.json / page write
+# helpers saveOutline calls (JSONOutlineSchema, JSONOutlineSchemaItem; the
+# file list is in scripts/infection.sh), retested by the `saveOutline`
+# testsuite in system/backend/php/phpunit.xml. An edit no test notices (a
+# surviving mutant) is a gap in the saveOutline tests.
+#
+# REPORT-ONLY: the Infection step is continue-on-error and there is no score
+# threshold, so this never fails a build. It writes the score and the
+# surviving mutants to the job summary and uploads the HTML report as an
+# artifact. Nothing is opened, commented or pushed.
+#
+# Run locally: npm run test:mutation (needs PCOV or Xdebug)
+on:
+  schedule:
+    - cron: "41 4 * * 0" # weekly, Sunday 04:41 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mutation-testing
+  cancel-in-progress: false
+jobs:
+  infection:
+    name: "infection (saveOutline write path)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, dom, simplexml, gd, zip, curl, intl, fileinfo, iconv, xmlreader, xmlwriter, zlib, pcntl
+          ini-values: "error_reporting=E_ALL & ~E_NOTICE & ~E_DEPRECATED"
+          coverage: pcov
+      - name: Install dependencies
+        working-directory: system/backend/php
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Mutation tests (report-only)
+        continue-on-error: true
+        run: bash scripts/infection.sh --threads="$(nproc)"
+      - name: Job summary
+        if: always()
+        run: php scripts/mutation-summary.php system/backend/php/reports/mutation/infection.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report
+          path: system/backend/php/reports/mutation/
+          if-no-files-found: warn
+          retention-days: 30

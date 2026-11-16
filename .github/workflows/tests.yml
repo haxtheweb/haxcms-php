@@ -62,14 +62,15 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
   # Dependency vulnerability audit (haxtheweb/issues#3092).
-  # On push / pull_request this is REPORTING ONLY: the audit step uses
-  # continue-on-error, so a finding shows up as a warning annotation + log
-  # output but does not turn the "tests" check red. On the nightly schedule
-  # and manual runs it is BLOCKING (haxtheweb/issues#3262), so a new advisory
-  # against composer.lock fails that run. Kept as its own job so PHPUnit is
-  # unaffected.
+  # BLOCKING on a pull request that changes composer.lock (it brings the
+  # dependency in, like haxcms-nodejs's blocking npm audit), on the nightly
+  # schedule and on manual runs (haxtheweb/issues#3262). REPORTING ONLY on
+  # other pull requests and on push: the audit step uses continue-on-error,
+  # so an advisory published against an existing dependency shows up as a
+  # warning annotation + log output without blocking unrelated work. Kept as
+  # its own job so PHPUnit is unaffected.
   composer-audit:
-    name: "Composer audit (blocking nightly, reporting on PRs)"
+    name: "Composer audit (blocking when composer.lock changes and nightly)"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -82,15 +83,35 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
+      - name: Checkout base branch composer.lock
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .audit-base
+          sparse-checkout: system/backend/php/composer.lock
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Does this pull request change composer.lock?
+        id: lock
+        if: github.event_name == 'pull_request'
+        run: |
+          base="$GITHUB_WORKSPACE/.audit-base/system/backend/php/composer.lock"
+          if [ -f "$base" ] && cmp -s "$base" composer.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "composer.lock changes in this pull request: the audit blocks."
+          fi
       - name: Composer audit
         id: audit
         # --locked audits composer.lock directly; no install needed.
         # Exit code is non-zero when advisories (or abandoned packages) exist.
-        continue-on-error: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+        continue-on-error: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && steps.lock.outputs.changed != 'true') }}
         run: composer audit --locked --no-interaction
       - name: Flag audit findings
         if: steps.audit.outcome == 'failure'
-        run: echo "::warning title=composer audit::Advisories or abandoned packages found in composer.lock. See the previous step's log. Reporting only on push / pull_request; blocking on the nightly run."
+        run: echo "::warning title=composer audit::Advisories or abandoned packages found in composer.lock. See the previous step's log. Reporting only on push and on pull requests that leave composer.lock alone; blocking when a pull request changes composer.lock and on the nightly run."
   # End-to-end UI suite (test/e2e, haxtheweb/issues#2939) against the DDEV
   # project, nightly and on manual runs only. REPORT-ONLY for now: the job uses
   # continue-on-error, so a failure is visible in the run but does not fail the
