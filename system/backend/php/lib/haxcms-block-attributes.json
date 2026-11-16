@@ -125,6 +125,11 @@
       "src": "url",
       "title": "text"
     },
+    "ddd-hero": {
+      "alt": "text",
+      "heading": "text",
+      "source": "url"
+    },
     "ddd-steps-list-item": {
       "title": "text"
     },
@@ -258,11 +263,6 @@
     },
     "polaris-cta": {
       "link": "url"
-    },
-    "polaris-hero": {
-      "alt": "text",
-      "heading": "text",
-      "source": "url"
     },
     "polaris-mark": {
       "url": "url"
