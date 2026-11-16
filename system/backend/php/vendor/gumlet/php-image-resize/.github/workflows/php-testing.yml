@@ -1,0 +1,55 @@
+name: PHP CI
+
+on: ["push", "pull_request"]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-24.04
+    name: Static analysis (PHP 8.3)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: gd, fileinfo
+          tools: php-cs-fixer
+
+      - name: Composer Install
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: PHP-CS-Fixer (PSR-12)
+        run: composer cs-check
+
+      - name: PHPStan
+        run: composer phpstan
+
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-24.04]
+        php-versions: ['8.2', '8.3', '8.4', '8.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: gd, xdebug, fileinfo
+          coverage: xdebug
+          tools: phpunit
+
+      - name: Composer Install
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Running Tests
+        run: |
+          mkdir -p build/logs
+          ./vendor/bin/phpunit

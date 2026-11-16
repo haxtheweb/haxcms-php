@@ -7,7 +7,7 @@ include_once dirname(__FILE__) . '/CommitContext.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
 include_once dirname(__FILE__) . '/ManagedFiles.php';
-use \Gumlet\ImageResize;
+include_once dirname(__FILE__) . '/HAXCMSImageResize.php';
 // a site object
 class HAXCMSSite
 {
@@ -3479,7 +3479,7 @@ class HAXCMSSite
           else if (file_exists($path . $this->manifest->metadata->site->logo) && !file_exists($path . $fileName)) {
             global $fileSystem;
             $fileSystem->mkdir($path . 'files/haxcms-managed');
-            $image = new ImageResize($path . $this->manifest->metadata->site->logo);
+            $image = new HAXCMSImageResize($path . $this->manifest->metadata->site->logo);
             if ($format == "png") {
               $image->resizeToBestFit($height, $width)
               ->crop($height, $width, TRUE)
