@@ -10186,7 +10186,7 @@
     },
     "@haxtheweb/ecosystem-web": {
       "files": {
-        "ecosystem-web.js": ["ffb3283f2d6fa4655bc66143bd74dcfd", "89169a809b61041f536da767ecf4859f"],
+        "ecosystem-web.js": ["151885df7cc7ba3a98e3b6738845cfc7", "16cb7efb945fd352e8b7e82a3792b93a"],
         "lib/ecosystem-model.js": ["21abf847b9e1949528b8225da62a14c8", "399a4501ae6375165e79854cb261d3d4"],
         "lib/ecosystem-web.docs.json": ["40ee893bf41e25ad138ac6201c33ed8c", "40ee893bf41e25ad138ac6201c33ed8c"],
         "lib/ecosystem-web.haxProperties.json": ["34e04c37d4f698b12a21f5aeadf430cb", "34e04c37d4f698b12a21f5aeadf430cb"]
@@ -46612,7 +46612,7 @@
     }
   },
   "source": {
-    "commit": "1f7b12db7850bbd6f73048e6ce9528144a96e51e",
+    "commit": "c2d9022209688f67144c6dd1b3a0d4ecd376622e",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
