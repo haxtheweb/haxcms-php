@@ -1,6 +1,7 @@
 {
   "meta": {
     "name": "blog",
+    "priority": -1,
     "description": "A blog starter on the Clean One theme: posts, a journal and topic pages, shown with a sample coffee blog.",
     "version": "1.0.0",
     "created": "2026-02-09T16:45:47.565Z",
