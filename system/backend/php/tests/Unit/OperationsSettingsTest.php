@@ -657,6 +657,115 @@ class OperationsSettingsTest extends TestCase
         $this->assertIsArray($result['data']);
     }
 
+    // ===== theme / skeleton lists when the settings folder cannot be written =====
+    // Listing fills newly detected themes / skeletons into the enabled map and
+    // saves it under <configDirectory>/settings/. That save is housekeeping:
+    // when it fails (full disk, read-only or wrongly owned config folder) the
+    // list is still answered from the map in memory. Scenario ids are shared
+    // with haxcms-nodejs test/unit/fault-injection-settings-lists.test.cjs.
+
+    private function settingsPathFault(string $op, string $errno): array
+    {
+        $settingsDir = $this->haxcms->configDirectory . '/settings';
+        return array(array(
+            'op' => $op,
+            'match' => function ($path) use ($settingsDir) {
+                return $path === $settingsDir || strpos($path, $settingsDir . '/') === 0;
+            },
+            'errno' => $errno,
+        ));
+    }
+
+    private function withFaults(array $rules, callable $fn)
+    {
+        require_once __DIR__ . '/FaultInjectionFileWrapper.php';
+        set_error_handler(function () {
+            return true;
+        });
+        // the expected "could not save" line goes to error_log; keep it out of the run
+        $savedLog = ini_set('error_log', '/dev/null');
+        try {
+            FaultInjectionFileWrapper::install($rules);
+            return $fn();
+        } finally {
+            FaultInjectionFileWrapper::uninstall();
+            ini_set('error_log', $savedLog === false ? '' : $savedLog);
+            restore_error_handler();
+        }
+    }
+
+    // FI-SET-01 GET /system/api/v1/themes, the settings folder cannot be created
+    public function testFiSet01ThemesListAnswers200WhenTheEnabledMapCannotBeSaved(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->themesForTest = array(
+            'theme-a' => array('element' => 'theme-a', 'name' => 'Theme A'),
+            'theme-b' => array('element' => 'theme-b', 'name' => 'Theme B'),
+        );
+        $this->ops->params = array('user_token' => 'good', 'includeDisabled' => 'true');
+        $result = $this->withFaults($this->settingsPathFault('mkdir', 'ENOSPC'), function () {
+            return $this->ops->themesList();
+        });
+        $this->assertNotEmpty(FaultInjectionFileWrapper::$fired, 'fault fired');
+        $this->assertArrayNotHasKey('__failed', $result);
+        $this->assertSame(200, $result['status']);
+        $names = array_map(function ($item) {
+            return $item['machineName'];
+        }, $result['data']);
+        $this->assertContains('theme-a', $names);
+        $this->assertContains('theme-b', $names);
+        foreach ($result['data'] as $item) {
+            $this->assertTrue($item['enabled'], 'newly detected themes default to enabled');
+        }
+        $this->assertFileDoesNotExist($this->settingsPath('enabledThemes.json'));
+    }
+
+    // FI-SET-02 GET /system/api/v1/skeletons, the settings file cannot be written
+    public function testFiSet02SkeletonsListAnswers200WhenTheEnabledMapCannotBeSaved(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->writeSkeletonFile('fi-set-skeleton', '{"meta":{"name":"FI set"},"site":{},"build":{}}');
+        $this->ops->params = array('user_token' => 'good', 'includeDisabled' => 'true');
+        $rules = array_merge(
+            $this->settingsPathFault('mkdir', 'EACCES'),
+            $this->settingsPathFault('open', 'EACCES')
+        );
+        $result = $this->withFaults($rules, function () {
+            return $this->ops->skeletonsList();
+        });
+        $this->assertNotEmpty(FaultInjectionFileWrapper::$fired, 'fault fired');
+        $this->assertSame(200, $result['status']);
+        $found = null;
+        foreach ($result['data'] as $item) {
+            if ($item['machineName'] === 'fi-set-skeleton') {
+                $found = $item;
+            }
+        }
+        $this->assertNotNull($found, 'the skeleton is listed');
+        $this->assertTrue($found['enabled']);
+        $this->assertFileDoesNotExist($this->settingsPath('enabledSkeletons.json'));
+    }
+
+    // FI-SET-03 the shared save helpers (also used by GET /x/api/v1/themes)
+    // report a failed save instead of throwing, and save normally otherwise
+    public function testFiSet03SettingsSaveHelpersReturnFalseOnAFailedWrite(): void
+    {
+        $this->assertTrue(HAXCMSThemeSettingsService::persistDetectedThemeDefaults($this->haxcms, array('theme-a' => true)));
+        $this->assertTrue(HAXCMSSkeletonSettingsService::persistDetectedSkeletonDefaults($this->haxcms, array('skel-a' => true)));
+        $stored = json_decode(file_get_contents($this->settingsPath('enabledThemes.json')), true);
+        $this->assertSame(array('theme-a' => true), $stored['enabledThemes']);
+        $results = $this->withFaults($this->settingsPathFault('open', 'EROFS'), function () {
+            return array(
+                HAXCMSThemeSettingsService::persistDetectedThemeDefaults($this->haxcms, array('theme-b' => true)),
+                HAXCMSSkeletonSettingsService::persistDetectedSkeletonDefaults($this->haxcms, array('skel-b' => true)),
+            );
+        });
+        $this->assertSame(array(false, false), $results);
+        // the saved map is left as it was
+        $stored = json_decode(file_get_contents($this->settingsPath('enabledThemes.json')), true);
+        $this->assertSame(array('theme-a' => true), $stored['enabledThemes']);
+    }
+
     // ===== systemBlocksList =====
 
     public function testSystemBlocksListFailsWithInvalidUserToken(): void
@@ -902,6 +1011,16 @@ class OperationsSettingsTestHaxcms extends OperationsTestHaxcms
     public $iamAllowed = true;
     public $iamStatus = 403;
     public $iamMessage = 'Access denied';
+    /** @var array|null theme registry getThemes() answers; null keeps the parent's empty one */
+    public $themesForTest = null;
+
+    public function getThemes()
+    {
+        if (is_array($this->themesForTest)) {
+            return json_decode(json_encode($this->themesForTest));
+        }
+        return parent::getThemes();
+    }
 
     public function generateMachineName($name)
     {
