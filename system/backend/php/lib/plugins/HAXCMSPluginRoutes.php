@@ -415,6 +415,8 @@ class HAXCMSPluginRoutes
                 'headers' => self::requestHeaders(),
             // an anonymous call is counted against the caller's address (spec/05)
             ], self::credentialsOf($auth), (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+            // what the operation logged goes to the log sinks
+            HAXCMSPluginSystem::settle($h);
             self::send($r['status'] ?? 200, array_key_exists('body', $r) ? $r['body'] : null, $r['headers'] ?? []);
         } catch (\Throwable $e) {
             error_log('HAXcms plugin route: ' . $e->getMessage());

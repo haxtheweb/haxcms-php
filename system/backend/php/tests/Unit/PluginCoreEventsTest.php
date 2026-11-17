@@ -238,6 +238,41 @@ class PluginCoreEventsTest extends TestCase
         $this->assertSame(1, $this->heard(null, 'user.after.logout'));
     }
 
+    public function testTheLogReachesALogSinkFromPluginsAndFromCore(): void
+    {
+        $this->buildSite();
+        $got = function () {
+            $out = array();
+            foreach (HAXCMSPluginSystem::systemHost()->log as $l) {
+                if (strpos((string) ($l['message'] ?? ''), 'fx-log-sink got') === 0) {
+                    $out[] = $l['message'];
+                }
+            }
+            return $out;
+        };
+        // no sink on: the entry is taken and goes nowhere
+        $this->assertTrue(HAXCMSPluginSystem::log(null, 'warn', 'nobody is listening'));
+        $this->assertSame(array(), $got());
+
+        putenv('HAXCMS_PLUGIN_DIRS=' . implode(PATH_SEPARATOR, array(
+            $this->spec . '/conformance/fixtures/fx-core-events',
+            $this->spec . '/conformance/fixtures/fx-log-sink',
+        )));
+        HAXCMSPluginSystem::reset();
+        $this->assertTrue(HAXCMSPluginSystem::log(null, 'error', 'site.json could not be written'));
+        HAXCMSPluginSystem::event(null, 'site.before.create', array('name' => 'logged'));
+        $lines = $got();
+        $this->assertContains('fx-log-sink got [error] core: site.json could not be written', $lines);
+        $this->assertContains('fx-log-sink got [info] fx-core-events: fx-core-events:site.before.create', $lines);
+        foreach ($lines as $l) {
+            $this->assertStringNotContainsString('] fx-log-sink:', $l, 'the sink received its own entry');
+        }
+
+        putenv('HAXCMS_PLUGINS=off');
+        HAXCMSPluginSystem::reset();
+        $this->assertFalse(HAXCMSPluginSystem::log(null, 'info', 'x'));
+    }
+
     public function testWithPluginsOffNothingFiresAndNothingIsRefused(): void
     {
         $this->buildSite();

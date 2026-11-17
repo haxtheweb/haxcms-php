@@ -339,7 +339,51 @@ class HAXCMSPluginSystem
         if (empty($r['veto']) && !$delete) {
             $warnings = array_merge($warnings, $h->checkPluginMetadata($type, $subject));
         }
+        self::settle($h);
         return ['record' => $delete ? $record : $subject, 'veto' => $r['veto'] ?? null, 'warnings' => $warnings];
+    }
+
+    /**
+     * After core has fired hooks or run an operation: hand what was logged since last time to the plugins that
+     * implement log.sink (spec/13). Never fails the operation.
+     */
+    public static function settle($h)
+    {
+        if (!$h) {
+            return;
+        }
+        try {
+            $h->flushLog();
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: a log sink failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Write an entry to the log from core: a failure path, a sign-in, anything worth keeping. It reaches whichever
+     * plugin implements log.sink, when one is on; with none, nothing happens and nothing is kept. $site null
+     * writes to the system log. Returns whether a plugin was there to receive it.
+     */
+    public static function log($site, $level, $message, array $extra = [])
+    {
+        if (!self::enabled()) {
+            return false;
+        }
+        try {
+            $h = ($site && isset($site->manifest)) ? self::host($site, $extra) : self::systemHost($extra);
+            if (!$h || !$h->hasActive()) {
+                return false;
+            }
+            $entry = ['level' => (string) ($level ?: 'info'), 'plugin' => 'core', 'message' => (string) $message];
+            if (!empty($extra['scope'])) {
+                $entry['scope'] = $extra['scope'];
+            }
+            $h->log[] = $entry;
+            self::settle($h);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /** Fire the after hooks once core has written (or deleted) the record. */
@@ -351,6 +395,7 @@ class HAXCMSPluginSystem
         }
         $op = !empty($opts['delete']) ? 'delete' : ($previous ? 'update' : 'create');
         $r = $h->fire("entity.after.$op", HAXCMSPluginEngine::json($record), ['entity' => $type, 'previous' => HAXCMSPluginEngine::json($previous)]);
+        self::settle($h);
         return ['warnings' => $r['warnings']];
     }
 
@@ -379,6 +424,7 @@ class HAXCMSPluginSystem
             }
             return null;
         }, ['bulk' => true, 'origin' => $opts['origin'] ?? 'core']);
+        self::settle($h);
         return ['veto' => $veto, 'warnings' => $warnings];
     }
 
@@ -397,6 +443,7 @@ class HAXCMSPluginSystem
             }
             return null;
         }, ['bulk' => true, 'origin' => $opts['origin'] ?? 'core']);
+        self::settle($h);
         return ['warnings' => $warnings];
     }
 
@@ -419,6 +466,7 @@ class HAXCMSPluginSystem
                 return $none;
             }
             $r = $h->fire($hook, HAXCMSPluginEngine::json($subject), $opts['extra'] ?? []);
+            self::settle($h);
             return ['veto' => $r['veto'] ?? null, 'warnings' => $r['warnings'] ?? []];
         } catch (\Throwable $e) {
             error_log('HAXcms plugins: ' . $hook . ' failed: ' . $e->getMessage());
@@ -494,7 +542,12 @@ class HAXCMSPluginSystem
         $running = true;
         try {
             $h = self::host($site, $opts);
-            return $h && $h->hasActive() ? $h->rebuild($reason) : null;
+            if (!$h || !$h->hasActive()) {
+                return null;
+            }
+            $result = $h->rebuild($reason);
+            self::settle($h);
+            return $result;
         } catch (\Throwable $e) {
             error_log('HAXcms plugins: rebuild failed: ' . $e->getMessage());
             return null;
