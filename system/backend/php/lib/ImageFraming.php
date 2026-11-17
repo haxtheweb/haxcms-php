@@ -5,9 +5,8 @@ include_once dirname(__FILE__) . '/HAXCMSImageResize.php';
  * Image framing: one photo framed for each screen size
  * (haxtheweb/issues#2976).
  *
- * Elements that frame a photo (ddd-hero, or anything carrying a `framing`
- * attribute next to its `source`) are served from files cut when the page is
- * saved, under files/haxcms-managed/framing/:
+ * Elements that frame a photo (the tags in TAGS) are served from files cut
+ * when the page is saved, under files/haxcms-managed/framing/:
  *
  * - width variants of the original, for the sizes left automatic:
  *   <stem>-full-<w>w.<ext> at 600, 1200, 1920 and 2880
@@ -20,9 +19,18 @@ include_once dirname(__FILE__) . '/HAXCMSImageResize.php';
  * only ever made, never upscaled: a file is named for the width asked for
  * even when the photo is smaller.
  *
- * Security (SEC-PATH): the photo is read and every cut written only through
- * containedPath(), so both stay inside the site's directory, and only plain
- * files/ paths with still-image extensions are cut at all.
+ * Security (SEC-PATH): the photo is read and every cut written or removed
+ * only through containedPath(), so all of it stays inside the site's
+ * directory, and only plain files/ paths with still-image extensions are cut.
+ *
+ * Stability: a save never does unbounded image work. Only allowlisted tags
+ * are cut; the photo's first bytes must be the image type its extension
+ * names; photos over MAX_BYTES or MAX_PIXELS, or that would not fit in the
+ * memory PHP has left, are left to the CSS fallback; one save cuts at most
+ * MAX_PHOTOS photos and stops starting new files after MAX_SECONDS (the next
+ * save carries on, since files already made are kept). When a framing
+ * changes, the cuts of that photo no page uses any more are removed, so the
+ * folder doesn't grow with every reframing.
  */
 class ImageFraming
 {
@@ -30,8 +38,15 @@ class ImageFraming
     const FULL_WIDTHS = array(600, 1200, 1920, 2880);
     const FORMATS = array('jpg', 'jpeg', 'png', 'webp');
     const DIR = 'files/haxcms-managed/framing/';
-    // elements that are served from cuts even with every size automatic
+    // the only elements whose photos are cut
     const TAGS = array('ddd-hero');
+    // limits on the work one save may do
+    const MAX_PHOTOS = 12;
+    const MAX_BYTES = 26214400; // 25 MB
+    const MAX_PIXELS = 40000000;
+    const MAX_SECONDS = 20;
+    // pages read when looking for cuts still in use; past this nothing is removed
+    const MAX_PAGES = 5000;
 
     private static function isNum($n)
     {
@@ -176,12 +191,15 @@ class ImageFraming
 
     /**
      * Every file the framed photos in this HTML are served from:
-     * a list of array(source, location, width, sizeId?, rect?)
+     * a list of array(source, location, width, sizeId?, rect?).
+     * Only the first MAX_PHOTOS photos are planned, unless $limited is false
+     * (used when listing what is in use, never for cutting).
      */
-    public static function framingPlan($html)
+    public static function framingPlan($html, $limited = true)
     {
         $plan = array();
         $seen = array();
+        $photos = array();
         if (!is_string($html) || strpos($html, 'source') === false || !class_exists('DOMDocument')) {
             return $plan;
         }
@@ -199,8 +217,7 @@ class ImageFraming
                 continue;
             }
             $tag = strtolower($el->nodeName);
-            $hasFraming = $el->hasAttribute('framing');
-            if (!in_array($tag, self::TAGS, true) && !$hasFraming) {
+            if (!in_array($tag, self::TAGS, true)) {
                 continue;
             }
             $mediaType = $el->getAttribute('media-type');
@@ -211,6 +228,13 @@ class ImageFraming
             if (!self::framingSource($source)) {
                 continue;
             }
+            $photo = preg_split('/[?#]/', $source)[0];
+            if (!isset($photos[$photo])) {
+                if ($limited !== false && count($photos) >= self::MAX_PHOTOS) {
+                    continue;
+                }
+                $photos[$photo] = true;
+            }
             foreach (self::FULL_WIDTHS as $width) {
                 $location = self::framingFullUrl($source, $width);
                 if (!isset($seen[$location])) {
@@ -218,7 +242,7 @@ class ImageFraming
                     $plan[] = array('source' => $source, 'location' => $location, 'width' => $width);
                 }
             }
-            $custom = self::parseFraming($hasFraming ? $el->getAttribute('framing') : '');
+            $custom = self::parseFraming($el->hasAttribute('framing') ? $el->getAttribute('framing') : '');
             foreach (array_keys(self::SIZES) as $id) {
                 if (!isset($custom[$id])) {
                     continue;
@@ -279,13 +303,194 @@ class ImageFraming
         return $candidate;
     }
 
+    /** the image type a file's first bytes say it is: 'jpg', 'png', 'webp' or null */
+    public static function sniffImage($file)
+    {
+        $handle = @fopen($file, 'rb');
+        if ($handle === false) {
+            return null;
+        }
+        $head = fread($handle, 12);
+        fclose($handle);
+        if (!is_string($head)) {
+            return null;
+        }
+        if (strlen($head) >= 3 && substr($head, 0, 3) === "\xFF\xD8\xFF") {
+            return 'jpg';
+        }
+        if (strlen($head) >= 8 && substr($head, 0, 8) === "\x89PNG\r\n\x1a\n") {
+            return 'png';
+        }
+        if (strlen($head) >= 12 && substr($head, 0, 4) === 'RIFF' && substr($head, 8, 4) === 'WEBP') {
+            return 'webp';
+        }
+        return null;
+    }
+
+    /** bytes PHP may still use, or null when memory is not limited */
+    private static function memoryLeft()
+    {
+        $limit = trim((string) ini_get('memory_limit'));
+        if ($limit === '' || $limit === '-1') {
+            return null;
+        }
+        $bytes = (float) $limit;
+        $unit = strtolower(substr($limit, -1));
+        if ($unit === 'g') {
+            $bytes *= 1073741824;
+        } elseif ($unit === 'm') {
+            $bytes *= 1048576;
+        } elseif ($unit === 'k') {
+            $bytes *= 1024;
+        }
+        return $bytes - memory_get_usage(true);
+    }
+
+    /**
+     * array('width' => ..., 'height' => ...) of a photo that may be cut, or
+     * null: not a regular file, too big (on disk, in pixels, or for the
+     * memory PHP has left), not the image type its extension names, or
+     * unreadable. Reads the header only.
+     */
+    public static function framingPhoto($input, $ext)
+    {
+        if (!is_file($input) || is_link($input)) {
+            return null;
+        }
+        $size = @filesize($input);
+        if ($size === false || $size > self::MAX_BYTES) {
+            return null;
+        }
+        $type = self::sniffImage($input);
+        if ($type === null || $type !== ($ext === 'jpeg' ? 'jpg' : $ext)) {
+            return null;
+        }
+        $info = @getimagesize($input);
+        if (!is_array($info) || $info[0] < 1 || $info[1] < 1) {
+            return null;
+        }
+        if ($info[0] * $info[1] > self::MAX_PIXELS) {
+            return null;
+        }
+        // GD holds the whole photo decoded: running out of memory is a fatal
+        // error no try can catch, so don't start what won't fit
+        $left = self::memoryLeft();
+        if ($left !== null && $info[0] * $info[1] * 6 + 33554432 > $left) {
+            return null;
+        }
+        return array('width' => $info[0], 'height' => $info[1]);
+    }
+
+    /** every index.html under pages/ in the site, or null when there are too many */
+    private static function framingPageFiles($siteDirectory)
+    {
+        $out = array();
+        $root = self::containedPath($siteDirectory, 'pages');
+        if ($root === false || !is_dir($root)) {
+            return $out;
+        }
+        $stack = array(array($root, 0));
+        while (count($stack) > 0) {
+            list($dir, $depth) = array_pop($stack);
+            $names = @scandir($dir);
+            if ($names === false) {
+                return null;
+            }
+            foreach ($names as $name) {
+                if ($name === '.' || $name === '..') {
+                    continue;
+                }
+                $full = $dir . '/' . $name;
+                if (is_link($full)) {
+                    continue;
+                }
+                if (is_dir($full)) {
+                    if ($depth >= 8) {
+                        return null;
+                    }
+                    $stack[] = array($full, $depth + 1);
+                } elseif ($name === 'index.html' && is_file($full)) {
+                    $out[] = $full;
+                    if (count($out) > self::MAX_PAGES) {
+                        return null;
+                    }
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Remove the custom cuts of the photos named by $stems that no page in
+     * the site uses any more. Only files in the framing folder whose names
+     * are cuts of those photos are ever removed; width variants of the photo
+     * are kept, and so is every location listed in $keep (the save in hand).
+     * Returns the locations removed.
+     */
+    public static function cleanFramings($siteDirectory, $stems, $keep = array())
+    {
+        $removed = array();
+        $dir = self::containedPath($siteDirectory, self::DIR);
+        if ($dir === false || !is_dir($dir) || count($stems) === 0) {
+            return $removed;
+        }
+        $pages = self::framingPageFiles($siteDirectory);
+        // can't tell what is in use: remove nothing
+        if ($pages === null) {
+            return $removed;
+        }
+        $used = array();
+        foreach ($keep as $location) {
+            $used[$location] = true;
+        }
+        foreach ($pages as $page) {
+            $html = @file_get_contents($page);
+            if ($html === false) {
+                return $removed;
+            }
+            if (strpos($html, 'framing') === false) {
+                continue;
+            }
+            foreach (self::framingPlan($html, false) as $entry) {
+                $used[$entry['location']] = true;
+            }
+        }
+        $names = @scandir($dir);
+        if ($names === false) {
+            return $removed;
+        }
+        foreach ($names as $name) {
+            if (!preg_match('/^(.+)-(sm|md|lg|xl)-[0-9a-f]{8}-[0-9]+w\.(jpg|jpeg|png|webp)$/', $name, $match)) {
+                continue;
+            }
+            if (!in_array($match[1], $stems, true)) {
+                continue;
+            }
+            $location = self::DIR . $name;
+            if (isset($used[$location])) {
+                continue;
+            }
+            $target = self::containedPath($siteDirectory, $location);
+            if ($target === false || !is_file($target) || is_link($target)) {
+                continue;
+            }
+            if (@unlink($target)) {
+                $removed[] = $location;
+            }
+        }
+        return $removed;
+    }
+
     /**
      * Make the files the framed photos in `html` need, inside
-     * `siteDirectory`. Files already there are kept; a photo that is missing
-     * or can't be read is skipped (the element falls back to framing the
-     * original in CSS). Returns the locations written.
+     * `siteDirectory`, within the limits at the top of this class. Files
+     * already there are kept; a photo that is missing, too big or not an
+     * image is skipped (the element falls back to framing the original in
+     * CSS). When a new custom cut is written, that photo's cuts no page uses
+     * any more are removed. $options['maxSeconds'] overrides MAX_SECONDS.
+     * Returns the locations written.
      */
-    public static function cutFramings($siteDirectory, $html)
+    public static function cutFramings($siteDirectory, $html, $options = array())
     {
         $written = array();
         $plan = self::framingPlan($html);
@@ -295,13 +500,26 @@ class ImageFraming
         if (self::containedPath($siteDirectory, self::DIR) === false) {
             return $written;
         }
+        $maxSeconds = isset($options['maxSeconds']) && is_numeric($options['maxSeconds'])
+            ? (float) $options['maxSeconds']
+            : self::MAX_SECONDS;
+        $deadline = microtime(true) + $maxSeconds;
+        $photos = array();
+        $reframed = array();
         foreach ($plan as $entry) {
+            if (microtime(true) >= $deadline) {
+                break;
+            }
             $input = self::containedPath($siteDirectory, preg_split('/[?#]/', $entry['source'])[0]);
             $target = self::containedPath($siteDirectory, $entry['location']);
             if ($input === false || $target === false || file_exists($target)) {
                 continue;
             }
-            if (!is_file($input) || is_link($input)) {
+            $source = self::framingSource($entry['source']);
+            if (!array_key_exists($input, $photos)) {
+                $photos[$input] = self::framingPhoto($input, $source['ext']);
+            }
+            if ($photos[$input] === null) {
                 continue;
             }
             try {
@@ -329,8 +547,26 @@ class ImageFraming
                 }
                 $image->save($target, $type);
                 $written[] = $entry['location'];
+                if (isset($entry['rect']) && !in_array($source['stem'], $reframed, true)) {
+                    $reframed[] = $source['stem'];
+                }
             } catch (\Throwable $e) {
-                // unreadable photo: leave it to the CSS fallback
+                // unreadable photo: leave it to the CSS fallback; never
+                // leave a half-written file behind to be served
+                if (is_file($target)) {
+                    @unlink($target);
+                }
+            }
+        }
+        if (count($reframed) > 0) {
+            try {
+                $keep = array();
+                foreach ($plan as $entry) {
+                    $keep[] = $entry['location'];
+                }
+                self::cleanFramings($siteDirectory, $reframed, $keep);
+            } catch (\Throwable $e) {
+                // cleaning up is best effort
             }
         }
         return $written;
