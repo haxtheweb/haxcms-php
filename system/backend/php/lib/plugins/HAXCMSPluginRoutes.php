@@ -16,6 +16,8 @@
  *   POST x/api/v1/plugins/<id>/disable
  *   GET, POST .../plugins/<id>/settings         a plugin's settings form and values; secrets are write-only
  *   GET  .../plugins/<id>/assets/<path>         one of its front-end files (frontend/dist), no credentials
+ *   GET  .../plugins/openapi.json|yaml          what the plugins that are on add to the API, for that scope
+ *   GET  .../plugins/<id>/openapi.json|yaml     the same for one plugin
  * assets, enable, disable and settings are reserved sub-paths: a plugin operation cannot take them.
  * and GET <basePath>.well-known/<name> for a public system GET a plugin marks with x-hax-well-known (spec/05). A
  * request for a file that does not exist already reaches index.php (the .htaccess catch-all, nginx try_files), which
@@ -25,6 +27,25 @@ require_once __DIR__ . '/HAXCMSPluginSystem.php';
 
 class HAXCMSPluginRoutes
 {
+    /**
+     * The routes core answers itself under .../plugins, the same at system scope (system/api/v1/plugins) and site
+     * scope (x/api/v1/plugins): [method, path, credentials]. Both OpenAPI specs document exactly these, and
+     * haxcms-nodejs carries the same list (PLATFORM_ROUTES in src/lib/plugins/pluginRoutes.js).
+     */
+    public const PLATFORM_ROUTES = [
+        ['get', '', true],
+        ['get', '/contributions', true],
+        ['get', '/openapi.json', true],
+        ['get', '/openapi.yaml', true],
+        ['post', '/{plugin}/enable', true],
+        ['post', '/{plugin}/disable', true],
+        ['get', '/{plugin}/settings', true],
+        ['post', '/{plugin}/settings', true],
+        ['get', '/{plugin}/openapi.json', true],
+        ['get', '/{plugin}/openapi.yaml', true],
+        ['get', '/{plugin}/assets/{assetPath}', false],
+    ];
+
     /** @return bool true when the request was a plugin route and has been answered */
     public static function dispatchSite($context, $site)
     {
@@ -41,7 +62,7 @@ class HAXCMSPluginRoutes
             self::contributions('site', $site, $context);
             return true;
         }
-        if (self::toggle('site', $rest, $site, $context) || self::settings('site', $rest, $site, $context) || self::asset($rest, $site)) {
+        if (self::contract('site', $rest, $site, $context) || self::toggle('site', $rest, $site, $context) || self::settings('site', $rest, $site, $context) || self::asset($rest, $site)) {
             return true;
         }
         self::operation('site', $rest, $site, $context);
@@ -65,7 +86,7 @@ class HAXCMSPluginRoutes
             self::contributions('dashboard', null, $context);
             return true;
         }
-        if (self::toggle('system', $rest, null, $context) || self::settings('system', $rest, null, $context) || self::asset($rest, null)) {
+        if (self::contract('system', $rest, null, $context) || self::toggle('system', $rest, null, $context) || self::settings('system', $rest, null, $context) || self::asset($rest, null)) {
             return true;
         }
         self::operation('system', $rest, null, $context);
@@ -87,6 +108,69 @@ class HAXCMSPluginRoutes
             return;
         }
         self::send(200, ['status' => 200, 'data' => HAXCMSPluginSystem::registry($site, ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])])]);
+    }
+
+    /**
+     * GET .../plugins/openapi.json|yaml and .../plugins/<id>/openapi.json|yaml (spec/13 section 5): what the plugins
+     * that are on add to the API at this scope, or what one of them adds. @return bool true when answered
+     */
+    private static function contract($scope, $rest, $site, $context)
+    {
+        if (!preg_match('#^(?:([^/]+)/)?openapi\.(json|yaml)$#', (string) $rest, $m) || $context->method !== 'GET') {
+            return false;
+        }
+        $auth = self::resolveAuth($context, $site);
+        if (!self::allowed($scope, $auth, $site)) {
+            self::send(401, ['status' => 401, 'data' => ['message' => 'access denied']]);
+            return true;
+        }
+        try {
+            $opts = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
+            $h = $scope === 'site' ? HAXCMSPluginSystem::host($site, $opts) : HAXCMSPluginSystem::systemHost($opts);
+            $doc = $h
+                ? $h->unifiedContract($m[1] !== '' ? ['scope' => $scope, 'plugin' => $m[1]] : ['scope' => $scope])
+                : ['openapi' => '3.1.0', 'info' => ['title' => 'HAXcms plugins'], 'paths' => []];
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: contract failed: ' . $e->getMessage());
+            self::send(500, ['status' => 500, 'data' => ['message' => 'server error']]);
+            return true;
+        }
+        // one plugin's document exists only while that plugin is on and has operations in this scope
+        if ($m[1] !== '' && !$doc['paths']) {
+            self::send(404, ['status' => 404, 'data' => ['message' => 'not found']]);
+            return true;
+        }
+        $doc = self::contractForOutput($doc);
+        if (!headers_sent()) {
+            http_response_code(200);
+            header('Content-Type: ' . ($m[2] === 'yaml' ? 'application/yaml; charset=utf-8' : 'application/json'));
+        }
+        echo $m[2] === 'yaml'
+            ? \Symfony\Component\Yaml\Yaml::dump($doc, 12, 2, \Symfony\Component\Yaml\Yaml::DUMP_OBJECT_AS_MAP | \Symfony\Component\Yaml\Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE)
+            : json_encode($doc, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return true;
+    }
+
+    /**
+     * The contract as it is written out: YAML read into PHP arrays loses the difference between {} and [], so the
+     * maps that may be empty (paths, an empty security requirement, responses) are objects again.
+     */
+    public static function contractForOutput(array $doc)
+    {
+        foreach ($doc['paths'] as $path => $verbs) {
+            foreach ($verbs as $verb => $op) {
+                if (isset($op['security']) && is_array($op['security'])) {
+                    $doc['paths'][$path][$verb]['security'] = array_values(array_map(function ($req) {
+                        return (object) (is_array($req) ? $req : []);
+                    }, $op['security']));
+                }
+                if (isset($op['responses']) && is_array($op['responses'])) {
+                    $doc['paths'][$path][$verb]['responses'] = (object) $op['responses'];
+                }
+            }
+        }
+        $doc['paths'] = (object) $doc['paths'];
+        return $doc;
     }
 
     /** GET or POST .../plugins/<id>/settings (spec/13 section 7). @return bool true when answered */

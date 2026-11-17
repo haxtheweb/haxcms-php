@@ -881,9 +881,11 @@ class HAXCMSPluginEngine
     public function unifiedContract($opts = [])
     {
         $scope = $opts['scope'] ?? null;
+        // plugin: only that plugin's operations, the document served at .../plugins/<id>/openapi.json
+        $only = $opts['plugin'] ?? null;
         $paths = [];
         foreach ($this->activePlugins() as $p) {
-            if (empty($p->manifest['openapi'])) {
+            if (empty($p->manifest['openapi']) || ($only && $p->id !== $only)) {
                 continue;
             }
             $api = self::readAny("{$p->dir}/{$p->manifest['openapi']}");
@@ -903,7 +905,7 @@ class HAXCMSPluginEngine
             }
         }
         ksort($paths, SORT_STRING);
-        return ['openapi' => '3.1.0', 'info' => ['title' => 'HAXcms plugins', 'version' => $this->haxcms['version']], 'paths' => $paths];
+        return ['openapi' => '3.1.0', 'info' => ['title' => $only ? "HAXcms plugin $only" : 'HAXcms plugins', 'version' => $this->haxcms['version']], 'paths' => $paths];
     }
 
     // the merged theme registry

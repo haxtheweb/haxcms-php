@@ -100,6 +100,7 @@ class PhpBackend {
   advertisedContracts() { return this.rpc("advertisedContracts"); }
   registry() { return this.rpc("registry"); }
   asset(plugin, path) { return this.rpc("asset", plugin, path); }
+  unifiedContract(opts = {}) { return this.rpc("unifiedContract", opts); }
   rebuild(reason) { return this.rpc("rebuild", reason); }
   callContract(name, op, input, opts = {}) { return this.rpc("callContract", name, op, input, opts); }
   runSchedule(plugin, id) { return this.rpc("runSchedule", plugin, id); }

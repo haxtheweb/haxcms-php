@@ -537,4 +537,31 @@ class PluginPlatformTest extends TestCase
         $this->assertSame([], $left, 'a temp file was left behind');
         $this->assertFileExists("$dir/tally.json.lock");
     }
+
+    public function testTheContractIsWrittenWithMapsAsMaps(): void
+    {
+        $s = $this->site();
+        putenv('HAXCMS_PLUGIN_DIRS=' . $this->fx('fx-tally'));
+        $h = HAXCMSPluginSystem::host($s['site'], ['root' => $s['root'], 'user' => null]);
+        $one = $h->unifiedContract(['scope' => 'site', 'plugin' => 'fx-tally']);
+        $this->assertSame('HAXcms plugin fx-tally', $one['info']['title']);
+        $this->assertSame(
+            ['/x/api/v1/plugins/fx-tally/burst', '/x/api/v1/plugins/fx-tally/careless', '/x/api/v1/plugins/fx-tally/vote'],
+            array_keys($one['paths'])
+        );
+        // nothing at system scope, and nothing for a plugin that is not on
+        $this->assertSame([], $h->unifiedContract(['scope' => 'system', 'plugin' => 'fx-tally'])['paths']);
+        $this->assertSame([], $h->unifiedContract(['scope' => 'site', 'plugin' => 'fx-absent'])['paths']);
+
+        // YAML read into arrays cannot tell {} from []: what is sent keeps maps as maps
+        $json = json_encode(HAXCMSPluginRoutes::contractForOutput([
+            'openapi' => '3.1.0',
+            'paths' => ['/x/api/v1/plugins/p/a' => ['get' => ['operationId' => 'a', 'security' => [[], ['bearerAuth' => []]], 'responses' => []]]],
+        ]), JSON_UNESCAPED_SLASHES);
+        $this->assertStringContainsString('"security":[{},{"bearerAuth":[]}]', $json);
+        $this->assertStringContainsString('"responses":{}', $json);
+        $this->assertSame('{"openapi":"3.1.0","paths":{}}', json_encode(HAXCMSPluginRoutes::contractForOutput(['openapi' => '3.1.0', 'paths' => []])));
+        $sent = json_decode(json_encode(HAXCMSPluginRoutes::contractForOutput($one), JSON_UNESCAPED_SLASHES), true);
+        $this->assertSame('fxTallyVote', $sent['paths']['/x/api/v1/plugins/fx-tally/vote']['post']['operationId']);
+    }
 }
