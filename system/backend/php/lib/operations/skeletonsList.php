@@ -146,7 +146,7 @@ trait OperationsRouteSkeletonsList {
       ? $withDefaults['enabledSkeletons']
       : array();
     if (isset($withDefaults['changed']) && $withDefaults['changed']) {
-      HAXCMSSkeletonSettingsService::writeEnabledSkeletonMap(
+      HAXCMSSkeletonSettingsService::persistDetectedSkeletonDefaults(
         $GLOBALS['HAXCMS'],
         $enabledSkeletons
       );

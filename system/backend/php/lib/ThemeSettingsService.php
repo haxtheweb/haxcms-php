@@ -213,6 +213,26 @@ class HAXCMSThemeSettingsService
     return self::normalizeEnabledThemeMap($haxcms, $decoded);
   }
 
+  /**
+   * Listing themes fills newly detected themes into the enabled map and saves
+   * it. That save is housekeeping: when the settings folder cannot be written
+   * (full disk, read-only or wrongly owned config folder) the list is still
+   * answered from the map in memory and the failure is logged, never a 500.
+   * The saveEnabledThemes route saves the map for real and still reports a
+   * failed write. Mirrors haxcms-nodejs persistDetectedThemeDefaults.
+   */
+  public static function persistDetectedThemeDefaults($haxcms, $enabledThemes = array())
+  {
+    try {
+      self::writeEnabledThemeMap($haxcms, $enabledThemes);
+      return true;
+    }
+    catch (Exception $e) {
+      @error_log('HAXcms: could not save ' . self::getEnabledThemesFilePath($haxcms) . ' (' . $e->getMessage() . '); listing themes from memory');
+      return false;
+    }
+  }
+
   public static function writeEnabledThemeMap($haxcms, $enabledThemes = array())
   {
     $filePath = self::getEnabledThemesFilePath($haxcms);
