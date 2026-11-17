@@ -263,6 +263,18 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame(2, (int) $byId['item-b']->order);
     }
 
+    public function testIndentPlacesThePageAfterTheLastChildNotAfterItself(): void
+    {
+        // item-b's own order (5) must not count as one of item-a's children:
+        // it goes right after the last child (item-d, order 1) => 2
+        // (haxtheweb/issues#3360)
+        $this->haxcms->loadedSite->loadNode('item-b')->order = 5;
+        $result = $this->runOperation('item-b', array('operation' => 'indent'));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('item-a', $result['data']->parent);
+        $this->assertSame(2, (int) $result['data']->order);
+    }
+
     public function testOutdentMovesUnderGrandparentAndShiftsSiblings(): void
     {
         // item-c (parent item-a, order 0) outdents: new parent = item-a's
