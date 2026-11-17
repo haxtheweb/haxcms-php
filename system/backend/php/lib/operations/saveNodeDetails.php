@@ -71,9 +71,9 @@ trait OperationsRouteSaveNodeDetails {
       $siblings = array();
       $position = false;
       if ($isOutlineOperation) {
-        // siblings that share an order value have no defined neighbour: settle
-        // the page's group first so "the one above" and "the one below" mean something
-        OutlineUpkeep::healSiblingOrder($items, OutlineUpkeep::parentOf($page));
+        // number every group 0..n-1 first: siblings that share an order have
+        // no defined neighbour, and an order the client sends counts positions
+        OutlineUpkeep::compactSiblingOrders($items);
         $siblings = OutlineUpkeep::sortedSiblings($items, OutlineUpkeep::parentOf($page));
         $position = array_search($page, $siblings, true);
       }
@@ -388,8 +388,10 @@ trait OperationsRouteSaveNodeDetails {
           break;
       }
 
+      // no gaps or repeats left behind in the old or the new group, and
       // indent is the page's depth, for the moved page and the branch under it
       if ($isOutlineOperation) {
+        OutlineUpkeep::compactSiblingOrders($items);
         OutlineUpkeep::syncIndentToDepth($items);
       }
       // Since loadNode returns a reference, $page modifications already update the manifest

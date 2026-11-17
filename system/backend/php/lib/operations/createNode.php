@@ -106,12 +106,16 @@ trait OperationsRouteCreateNode {
         // two siblings share an order; indent is the page's depth
         if ($placed = $site->loadNode($item->id)) {
           $requestedOrder = is_array($nodeParams) && array_key_exists('order', $nodeParams) ? $nodeParams['order'] : null;
+          // the client counts orders as positions among the other pages, so
+          // number those 0..n-1 before reading the order it sent
+          OutlineUpkeep::compactSiblingOrders($site->manifest->items, $placed);
           if (is_int($requestedOrder) || is_float($requestedOrder) || (is_string($requestedOrder) && preg_match('/^\s*-?\d+/', $requestedOrder))) {
             $placed->order = (int) $requestedOrder;
             OutlineUpkeep::makeRoomFor($site->manifest->items, $placed);
           } else {
             $placed->order = OutlineUpkeep::lastSiblingOrder($site->manifest->items, OutlineUpkeep::parentOf($placed), $placed) + 1;
           }
+          OutlineUpkeep::compactSiblingOrders($site->manifest->items);
           OutlineUpkeep::syncIndentToDepth($site->manifest->items);
           $item->order = $placed->order;
           $item->indent = $placed->indent;

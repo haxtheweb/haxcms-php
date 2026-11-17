@@ -54,20 +54,14 @@ trait OperationsRouteDeleteNode {
               }
             }
             // the moved pages' addresses (and their branches') drop the
-            // deleted parent's slug, no two siblings share an order, and
-            // indent follows the new depth
-            if (count($moved) > 0) {
-              foreach ($moved as $movedPage) {
-                OutlineUpkeep::reslugPageAndBranch($site, $movedPage, $items);
-              }
-              $parents = array();
-              foreach ($moved as $movedPage) {
-                $parentKey = OutlineUpkeep::parentOf($movedPage);
-                $parents[$parentKey === null ? "\0" : (string) $parentKey] = $parentKey;
-              }
-              foreach ($parents as $parentId) {
-                OutlineUpkeep::healSiblingOrder($items, $parentId);
-              }
+            // deleted parent's slug, and indent follows the new depth. The
+            // deleted page leaves no gap among its siblings: every group is
+            // numbered 0..n-1 again, in the order a reader sees them.
+            foreach ($moved as $movedPage) {
+              OutlineUpkeep::reslugPageAndBranch($site, $movedPage, $items);
+            }
+            $renumbered = OutlineUpkeep::compactSiblingOrders($items);
+            if (count($moved) > 0 || $renumbered) {
               OutlineUpkeep::syncIndentToDepth($items);
               $site->manifest->save(false);
               $site->updateAlternateFormats();
