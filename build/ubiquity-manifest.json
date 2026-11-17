@@ -37,10 +37,9 @@
     },
     "@google/model-viewer": {
       "files": {
-        "dist/model-viewer.js": ["a8242ce399bdf30290aebb9720e4856b"]
+        "dist/model-viewer.js": ["63eb8480bc12f4fb4bc0a6c3952aeee5"]
       },
-      "patch": "e00105918d098e8389c49f02de920659",
-      "version": "3.2.1"
+      "version": "4.4.0"
     },
     "@haxtheweb/a11y-carousel": {
       "files": {
@@ -47639,9 +47638,9 @@
     },
     "marked": {
       "files": {
-        "lib/marked.esm.js": ["d1a7e7129f7aa247d9b7b59685551a8c"]
+        "lib/marked.esm.js": ["f9cbdaab4599877a4564043e2bae4809"]
       },
-      "version": "18.0.3"
+      "version": "18.2.0"
     },
     "mobx": {
       "files": {
@@ -47849,7 +47848,7 @@
     }
   },
   "source": {
-    "commit": "56ffce555df3a9b7c6520cd1bc772084f615c863",
+    "commit": "83e8b3ec0b868c872a3563ed8711f6553c8cadd7",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
