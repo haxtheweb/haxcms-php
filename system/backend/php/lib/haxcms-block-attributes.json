@@ -125,6 +125,11 @@
       "src": "url",
       "title": "text"
     },
+    "ddd-hero": {
+      "alt": "text",
+      "heading": "text",
+      "source": "url"
+    },
     "ddd-steps-list-item": {
       "title": "text"
     },

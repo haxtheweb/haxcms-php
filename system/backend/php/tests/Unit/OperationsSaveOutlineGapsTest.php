@@ -555,10 +555,11 @@ class OperationsSaveOutlineGapsTest extends TestCase
 
         $byId = $this->persistedById();
         $this->assertArrayHasKey('item-c', $byId);
-        // orphaned child reparented to the top level
+        // the child moves up one level into item-a's place: item-a was at
+        // the top level, order 0 (haxtheweb/issues#3360)
         $this->assertNull($byId['item-c']->parent);
-        // order bumped to the bottom of the surviving outline
-        $this->assertGreaterThanOrEqual(1, (int) $byId['item-c']->order);
+        $this->assertSame(0, (int) $byId['item-c']->order);
+        $this->assertSame(0, (int) $byId['item-c']->indent);
     }
 }
 

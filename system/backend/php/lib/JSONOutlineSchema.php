@@ -351,7 +351,7 @@ class JSONOutlineSchema
      * Canonical value types for site.json, per haxtheweb/json-outline-schema:
      * item ids and parents are strings (normalizeOutlineId), top-level parent
      * is null, indent / order / timestamps are integers,
-     * published / hideInMenu / locked are booleans, tags and relatedItems are
+     * published / hideInMenu / hideTitle / locked are booleans, tags and relatedItems are
      * arrays. Older sites stored "1" / "" flags, numeric strings and
      * comma-separated tags; readers keep accepting those, every save writes
      * the canonical form. Meaning is preserved: published is only false for
@@ -385,7 +385,7 @@ class JSONOutlineSchema
             if (array_key_exists('published', $metadata)) {
                 $metadata['published'] = !self::isFalseLike($metadata['published']);
             }
-            foreach (array('hideInMenu', 'locked') as $flag) {
+            foreach (array('hideInMenu', 'hideTitle', 'locked') as $flag) {
                 if (array_key_exists($flag, $metadata)) {
                     $metadata[$flag] = self::isTrueLike($metadata[$flag]);
                 }

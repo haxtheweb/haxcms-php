@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
+include_once dirname(__FILE__) . '/../ImageFraming.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -133,6 +134,16 @@ trait OperationsRouteSaveNode {
                 )
               );
             } else {
+                // framed photos (ddd-hero) are served from cuts made at save
+                // time; a photo that can't be cut falls back to CSS framing
+                try {
+                  ImageFraming::cutFramings(
+                    HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+                    $sanitizedContent
+                  );
+                } catch (\Throwable $e) {
+                  // never fail a save over a cut
+                }
                 // sanity check
                 if (!isset($page->metadata)) {
                   $page->metadata = new stdClass();
@@ -221,6 +232,15 @@ trait OperationsRouteSaveNode {
                 }
                 else {
                   $page->metadata->hideInMenu = false;
+                }
+                // "Hide page title" (page-break hide-title): the title shows unless
+                // the page hides it, so it is only stored while it is on. Bare
+                // attribute, so array_key_exists as with hide-in-menu.
+                if (array_key_exists("hide-title", $data["attributes"])) {
+                  $page->metadata->hideTitle = true;
+                }
+                else if (property_exists($page->metadata, 'hideTitle')) {
+                  unset($page->metadata->hideTitle);
                 }
                 // support for defining and updating related-items
                 if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {

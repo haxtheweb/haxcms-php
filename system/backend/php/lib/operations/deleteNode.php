@@ -36,33 +36,32 @@ trait OperationsRouteDeleteNode {
               )
             );
           } else {
-            // capture the deleted page before the orphan loop clobbers $page
             $deletedPage = $page;
-            // now, we need to look for orphans if we deleted anything
-            $orphanCheck = $site->manifest->items;
-            $orphans = array();
-            foreach ($orphanCheck as $key => $item) {
-              // just to be safe..
-              if ($orphanPage = $site->loadNode($item->id)) {
-                // ensure that parent is valid to rescue orphan items
-                if ($orphanPage->parent != null && !($parentPage = $site->loadNode($orphanPage->parent))) {
-                  $orphanPage->parent = null;
-                  // force to bottom of things while still being in old order if lots of things got axed
-                  $orphanPage->order = (int)$orphanPage->order + count($site->manifest->items) - 1;
-                  $orphans[] = $orphanPage;
-                }
+            $items = $site->manifest->items;
+            // the deleted page's children move up one level, into its place
+            $moved = OutlineUpkeep::adoptChildren($items, (object) array(
+              'id' => $deletedPage->id,
+              'parent' => isset($deletedPage->parent) ? $deletedPage->parent : null,
+              'order' => isset($deletedPage->order) ? $deletedPage->order : 0,
+            ));
+            // any other page whose parent is gone (left by an older save)
+            // goes to the end of the top level, as before
+            foreach ($items as $item) {
+              if (is_object($item) && isset($item->parent) && $item->parent !== '' && !$site->loadNode($item->parent)) {
+                $item->parent = null;
+                $item->order = (int) $item->order + count($items) - 1;
+                $moved[] = $item;
               }
             }
-            // the rescued pages now live at the top level: their addresses
-            // (and their branches') drop the deleted parent's slug, and indent
-            // follows the new depth. The deleted page leaves no gap among its
-            // siblings: every group is numbered 0..n-1 again.
-            $items = $site->manifest->items;
-            foreach ($orphans as $orphan) {
-              OutlineUpkeep::reslugPageAndBranch($site, $orphan, $items);
+            // the moved pages' addresses (and their branches') drop the
+            // deleted parent's slug, and indent follows the new depth. The
+            // deleted page leaves no gap among its siblings: every group is
+            // numbered 0..n-1 again, in the order a reader sees them.
+            foreach ($moved as $movedPage) {
+              OutlineUpkeep::reslugPageAndBranch($site, $movedPage, $items);
             }
             $renumbered = OutlineUpkeep::compactSiblingOrders($items);
-            if (count($orphans) > 0 || $renumbered) {
+            if (count($moved) > 0 || $renumbered) {
               OutlineUpkeep::syncIndentToDepth($items);
               $site->manifest->save(false);
               $site->updateAlternateFormats();
