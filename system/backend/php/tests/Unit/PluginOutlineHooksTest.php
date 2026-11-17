@@ -279,6 +279,116 @@ class PluginOutlineHooksTest extends TestCase
         $this->assertArrayNotHasKey('__failed', $result, json_encode($result));
     }
 
+    // ---- the other places core writes site.json or a page (spec/06) ----
+
+    public function testAThemeChangedOnAnyScreenFiresTheThemeHook(): void
+    {
+        $site = $this->buildSite();
+        $this->plugins(array('fx-probe-a'));
+        $stored = function () {
+            $fresh = new PluginOutlineTestSite();
+            $fresh->load($this->tmpRoot, '/', $this->siteName);
+            return $fresh;
+        };
+        // a save that leaves the theme alone is a manifest save and not a theme change
+        $site->manifest->metadata->site->updated = 1;
+        $plain = HAXCMSPluginSystem::siteSave($site, array('stored' => $stored));
+        $this->assertNull($plain['veto']);
+        $this->assertNotNull($plain['state']);
+        HAXCMSPluginSystem::saved($site, $plain['state']);
+        $this->assertSame(0, $this->seen($this->messages($site), 'fx-probe-a:theme.before.change'));
+        // the theme changes
+        $site->manifest->metadata->theme = (object) array('element' => 'clean-two');
+        $themed = HAXCMSPluginSystem::siteSave($site, array('stored' => $stored));
+        $this->assertNull($themed['veto']);
+        $this->assertSame(1, $this->seen($this->messages($site), 'fx-probe-a:theme.before.change'));
+    }
+
+    public function testASettingsScreenGoesThroughTheManifestHooksAndStillSaves(): void
+    {
+        $site = $this->buildSite();
+        $this->plugins(array('fx-probe-a'));
+        $this->ops->params = array('site_token' => 'good', 'site' => array('name' => $this->siteName));
+        $this->ops->rawParams = array('platform' => array('audience' => 'expert'));
+        $result = $this->ops->saveEditorSettings();
+        $this->assertFalse(is_array($result) && isset($result['__failed']), json_encode($result));
+        $saved = json_decode($this->siteJson());
+        $this->assertSame('expert', $saved->metadata->platform->audience);
+        // the hooks were given the stored site to compare with: it was loaded a second time
+        $this->assertSame(2, $GLOBALS['HAXCMS']->loads);
+
+        // with no plugin on, the same screen loads the site once and saves the same way
+        $this->plugins(array());
+        $GLOBALS['HAXCMS']->loads = 0;
+        $this->ops->rawParams = array('platform' => array('audience' => 'novice'));
+        $again = $this->ops->saveEditorSettings();
+        $this->assertFalse(is_array($again) && isset($again['__failed']), json_encode($again));
+        $this->assertSame(1, $GLOBALS['HAXCMS']->loads);
+        $this->assertSame('novice', json_decode($this->siteJson())->metadata->platform->audience);
+    }
+
+    public function testNoPluginMeansASettingsScreenAsksTheEngineNothing(): void
+    {
+        $site = $this->buildSite();
+        $called = false;
+        $idle = HAXCMSPluginSystem::siteSave($site, array('stored' => function () use (&$called) {
+            $called = true;
+            return null;
+        }));
+        $this->assertSame(array('veto' => null, 'state' => null), $idle);
+        $this->assertFalse($called, 'the stored site was loaded with no plugin listening');
+    }
+
+    public function testAChangeToAPagesDetailsIsAPageSaveAndAVetoRefusesIt(): void
+    {
+        $site = $this->buildSite();
+        $this->plugins(array('fx-probe-a', 'fx-vetoer'));
+        $details = function ($id, $title) {
+            $this->ops->params = array(
+                'site_token' => 'good',
+                'site' => array('name' => $this->siteName),
+                'node' => array('id' => $id, 'details' => array('operation' => 'setTitle', 'title' => $title)),
+            );
+            $this->ops->rawParams = $this->ops->params;
+            return $this->ops->saveNodeDetails();
+        };
+        $ok = $details('b', 'B renamed');
+        $this->assertArrayNotHasKey('__failed', $ok, json_encode($ok));
+        $log = $this->messages($site);
+        $this->assertSame(1, $this->seen($log, 'fx-probe-a:page.before.save'));
+        $this->assertSame(1, $this->seen($log, 'fx-probe-a:page.after.save'));
+        // a page a plugin refuses is left as it is
+        $json = json_decode($this->siteJson());
+        foreach ($json->items as $i) {
+            if ($i->id === 'a') {
+                $i->title = 'forbidden';
+            }
+        }
+        file_put_contents($this->tmpRoot . '/' . $this->siteName . '/site.json', json_encode($json, JSON_PRETTY_PRINT));
+        $GLOBALS['HAXCMS']->loadedSite->load($this->tmpRoot, '/', $this->siteName);
+        $stored = $this->siteJson();
+        $no = $details('a', 'Anything');
+        $this->assertSame(409, $no['__failed']['status'] ?? null, json_encode($no));
+        $this->assertSame('fx-vetoer: forbidden', $no['__failed']['message']);
+        $this->assertSame($stored, $this->siteJson());
+    }
+
+    public function testAPageWriteOutsideThePageSaveFiresThePageHooks(): void
+    {
+        $site = $this->buildSite();
+        $this->plugins(array('fx-probe-a', 'fx-vetoer'));
+        $page = $site->loadNode('a');
+        $ok = HAXCMSPluginSystem::pageSave($site, array_merge(json_decode(json_encode($page), true), array('content' => '<p>new</p>')), $page);
+        $this->assertNull($ok['veto']);
+        HAXCMSPluginSystem::saved($site, $ok['state']);
+        $log = $this->messages($site);
+        $this->assertSame(1, $this->seen($log, 'fx-probe-a:page.before.save'));
+        $this->assertSame(1, $this->seen($log, 'fx-probe-a:page.after.save'));
+        $no = HAXCMSPluginSystem::pageSave($site, array_merge(json_decode(json_encode($page), true), array('title' => 'forbidden')), $page);
+        $this->assertSame('fx-vetoer: forbidden', $no['veto']['message']);
+        $this->assertNull($no['state']);
+    }
+
     public function testCreateNodeFiresThePageHooksAndAVetoRefusesThePage(): void
     {
         $site = $this->buildSite();
@@ -320,6 +430,15 @@ class PluginOutlineHooksTest extends TestCase
 class PluginOutlineTestHaxcms extends OperationsTestHaxcms
 {
     public $outlineSchema;
+    /** how many times an operation asked for the site */
+    public $loads = 0;
+
+    public function loadSite($name, $create = false, $domain = null, $build = null)
+    {
+        $this->loads++;
+        return parent::loadSite($name, $create, $domain, $build);
+    }
+
     /** who logout() revoked, for PluginCoreEventsTest */
     public $revoked = array();
 

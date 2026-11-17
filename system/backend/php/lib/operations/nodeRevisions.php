@@ -856,6 +856,19 @@ trait OperationsRouteNodeRevisions {
       // Security (SEC-SANITIZE): historic revisions may predate sanitizer
       // fixes; re-sanitize before the content becomes live again
       $revisionContent = SanitizeContent::sanitizeHTMLForStorage($revisionContent);
+      // DRAFT plugin platform: restoring a revision rewrites the page, so it is a page save with the restored
+      // content as the subject; a veto refuses it before anything is written
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginPage = json_decode(json_encode($context['page']), true);
+      $pluginSave = HAXCMSPluginSystem::pageSave(
+        $context['site'],
+        is_array($pluginPage) ? array_merge($pluginPage, array('content' => $revisionContent)) : $pluginPage,
+        $pluginPage,
+        array('user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()))
+      );
+      if (!empty($pluginSave['veto'])) {
+        return $this->nodeRevisionFailed((int) ($pluginSave['veto']['status'] ?: 409), (string) $pluginSave['veto']['message']);
+      }
       $bytes = $context['page']->writeLocation($revisionContent, $siteDirectory);
       if ($bytes === false) {
         return $this->nodeRevisionFailed(500, 'Failed writing restored revision');
@@ -887,6 +900,7 @@ trait OperationsRouteNodeRevisions {
       $context['page']->metadata->updated = $now;
       $context['site']->manifest->metadata->site->updated = $now;
       $context['site']->manifest->save(false);
+      HAXCMSPluginSystem::saved($context['site'], $pluginSave['state']);
       $note = self::normalizeNodeRevisionRestoreNote(
         isset($this->params['note']) ? $this->params['note'] : ''
       );

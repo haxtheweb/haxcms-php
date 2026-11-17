@@ -64,6 +64,18 @@ trait OperationsRouteSaveNodeDetails {
           )
         );
       }
+      // DRAFT plugin platform: a change to a page's details is a page save; a veto refuses it before it is applied
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginRecord = json_decode(json_encode($page), true);
+      $pluginSave = HAXCMSPluginSystem::pageSave(
+        $site,
+        is_array($pluginRecord) ? array_merge($pluginRecord, array('operation' => $operation)) : $pluginRecord,
+        $pluginRecord,
+        array('user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()))
+      );
+      if (!empty($pluginSave['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pluginSave['veto']);
+      }
       $originalItemCount = count($site->manifest->items);
       $items = $site->manifest->items;
       $outlineOperations = array('moveUp', 'moveDown', 'indent', 'outdent', 'setParent');
@@ -428,6 +440,7 @@ trait OperationsRouteSaveNodeDetails {
       $site->manifest->save(false);
       $site->updateAlternateFormats();
       $site->gitCommit('Node operation: ' . $operation . ' on ' . $page->title . ' (' . $page->id . ')');
+      HAXCMSPluginSystem::saved($site, $pluginSave['state'], $site->loadNode($page->id) ?: null);
 
       $updated = $site->loadNode($page->id);
       return array(

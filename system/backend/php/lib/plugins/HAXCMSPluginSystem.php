@@ -223,13 +223,24 @@ class HAXCMSPluginSystem
         return ['id' => $userName, 'name' => $userName, 'displayName' => $userName, 'roles' => ['admin'], 'avatar' => null];
     }
 
+    /** The signed-in user of this request as plugins see it, or null: for routes that are not Operations methods. */
+    public static function activeUser()
+    {
+        $haxcms = $GLOBALS['HAXCMS'] ?? null;
+        if (!is_object($haxcms) || !method_exists($haxcms, 'getActiveUserName')) {
+            return null;
+        }
+        return self::userRecord($haxcms->getActiveUserName());
+    }
+
     /**
      * The plugin engine for a site (cached for this request). $opts: root (HAXCMS_ROOT), user (a user record or null).
      * @return HAXCMSPluginHost|null
      */
     public static function host($site, array $opts = [])
     {
-        if (!self::enabled() || !$site || !isset($site->manifest) || !self::specRoot()) {
+        // a site with no folder of its own is not one plugins can be loaded for
+        if (!self::enabled() || !$site || !isset($site->manifest) || !isset($site->directory) || !isset($site->manifest->metadata->site->name) || !self::specRoot()) {
             return null;
         }
         $dir = self::siteDirectory($site);
@@ -487,6 +498,76 @@ class HAXCMSPluginSystem
             'theme' => $meta->theme->element ?? null,
             'owner' => $meta->author->name ?? (isset($m->author) && is_string($m->author) ? $m->author : null),
         ], $extra);
+    }
+
+    /** The site record the manifest hooks carry: what site.json says about the site itself, without its pages. */
+    public static function siteRecord($site)
+    {
+        $m = ($site && isset($site->manifest)) ? $site->manifest : new \stdClass();
+        return [
+            'id' => $m->id ?? null,
+            'title' => $m->title ?? null,
+            'description' => $m->description ?? null,
+            'metadata' => json_decode(json_encode(isset($m->metadata) && $m->metadata ? $m->metadata : new \stdClass()), true),
+        ];
+    }
+
+    /**
+     * For a core operation that has changed $site->manifest in memory and is about to write site.json (a settings
+     * screen, a slug clean-up): the manifest before hooks, with the stored site as ctx.previous, so a theme change
+     * made anywhere fires theme.before.change. $opts['stored'] is a callable that loads the site as it is on
+     * disk; it is called only when a plugin is listening. Returns ['veto', 'state']: on a veto core must not
+     * write; otherwise it writes and then calls siteSaved($site, $state). As in saveManifest, the only thing taken
+     * from what the hooks return is the plugins' own metadata.plugins fields.
+     */
+    public static function siteSave($site, array $opts = [])
+    {
+        $idle = ['veto' => null, 'state' => null];
+        if (!self::enabled() || !self::listening($site, $opts)) {
+            return $idle;
+        }
+        $stored = isset($opts['stored']) && is_callable($opts['stored']) ? call_user_func($opts['stored']) : null;
+        $previous = ($stored && isset($stored->manifest)) ? self::siteRecord($stored) : null;
+        $pre = self::before($site, 'site', self::siteRecord($site), $previous, $opts);
+        if (!empty($pre['veto'])) {
+            return ['veto' => $pre['veto'], 'state' => null];
+        }
+        if (isset($pre['record']['metadata']['plugins'])) {
+            $site->manifest->metadata->plugins = json_decode(json_encode($pre['record']['metadata']['plugins'] ?: new \stdClass()));
+        }
+        return ['veto' => null, 'state' => ['type' => 'site', 'record' => $pre['record'], 'previous' => $previous, 'opts' => $opts]];
+    }
+
+    /**
+     * For a core operation other than the page save that is about to write one page (a block edit, a restored
+     * revision, a change to a page's details): the page before hooks. Returns ['veto', 'state'] like siteSave.
+     * What the hooks return is not applied.
+     */
+    public static function pageSave($site, $record, $previous, array $opts = [])
+    {
+        if (!self::enabled() || !self::listening($site, $opts)) {
+            return ['veto' => null, 'state' => null];
+        }
+        $record = HAXCMSPluginEngine::json($record);
+        $previous = HAXCMSPluginEngine::json($previous);
+        $pre = self::before($site, 'page', $record, $previous, $opts);
+        if (!empty($pre['veto'])) {
+            return ['veto' => $pre['veto'], 'state' => null];
+        }
+        return ['veto' => null, 'state' => ['type' => 'page', 'record' => $record, 'previous' => $previous, 'opts' => $opts]];
+    }
+
+    /** The after hooks for what siteSave or pageSave let through, once core has written. Never fails the operation. */
+    public static function saved($site, $state, $stored = null)
+    {
+        if (!$state) {
+            return;
+        }
+        try {
+            self::after($site, $state['type'], $stored !== null ? HAXCMSPluginEngine::json($stored) : $state['record'], $state['previous'], $state['opts']);
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: after hooks failed: ' . $e->getMessage());
+        }
     }
 
     /** True when a plugin is active for this site, so an operation can skip building what only hooks would read. */
