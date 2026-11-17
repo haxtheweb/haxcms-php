@@ -164,6 +164,26 @@ trait OperationsRouteSaveFile {
       if ($nodeId != '') {
         $page = $site->loadNode($nodeId);
       }
+      // DRAFT plugin platform: file.before.save for the upload; a veto refuses it before it is stored
+      $pluginUpload = null;
+      $pluginOpts = array();
+      if (getenv('HAXCMS_PLUGINS') !== 'off') {
+        include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+        if (HAXCMSPluginSystem::listening($site)) {
+          $pluginOpts = array('user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()));
+          $pluginUpload = array(
+            'id' => null,
+            'name' => isset($upload['name']) && is_string($upload['name']) ? $upload['name'] : '',
+            'path' => '',
+            'mimeType' => isset($upload['type']) && is_string($upload['type']) ? $upload['type'] : '',
+            'size' => isset($upload['size']) ? (int) $upload['size'] : 0,
+          );
+          $pre = HAXCMSPluginSystem::before($site, 'file', $pluginUpload, null, $pluginOpts);
+          if (!empty($pre['veto'])) {
+            return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+          }
+        }
+      }
       $file = new HAXCMSFile();
       $fileResult = $file->save($upload, $site, $page);
       if ($fileResult['status'] == 500) {
@@ -188,6 +208,19 @@ trait OperationsRouteSaveFile {
         $savedFileName = (string) $fileResult['data']['file']['name'];
       }
       $site->gitCommit('File added: ' . $savedFileName);
+      if ($pluginUpload !== null) {
+        try {
+          $stored = isset($fileResult['data']['file']) && is_array($fileResult['data']['file']) ? $fileResult['data']['file'] : array();
+          HAXCMSPluginSystem::after($site, 'file', array_merge($pluginUpload, array(
+            'id' => isset($stored['uuid']) ? $stored['uuid'] : null,
+            'name' => $savedFileName,
+            'path' => isset($stored['path']) ? (string) $stored['path'] : '',
+          )), null, $pluginOpts);
+        } catch (\Throwable $e) {
+          // the file is stored; a plugin failing afterwards never undoes it
+          error_log('HAXcms plugins: file after hooks failed: ' . $e->getMessage());
+        }
+      }
       return $fileResult;
     }
     else {

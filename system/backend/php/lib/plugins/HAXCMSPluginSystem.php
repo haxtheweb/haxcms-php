@@ -400,6 +400,47 @@ class HAXCMSPluginSystem
         return ['warnings' => $warnings];
     }
 
+    /**
+     * An event that is not a record save (spec/06): a site about to be created, duplicated, archived or exported,
+     * a sign-in or sign-out, a git commit. With $site the site's engine answers (system plugins and that site's
+     * own); with null the system engine does. Returns ['veto', 'warnings']: when veto is set on a before hook,
+     * core must not go on. What a hook returns is not applied. With no active plugin nothing runs, and a failure
+     * in the engine never fails the operation.
+     */
+    public static function event($site, $hook, $subject, array $opts = [])
+    {
+        $none = ['veto' => null, 'warnings' => []];
+        if (!self::enabled()) {
+            return $none;
+        }
+        try {
+            $h = ($site && isset($site->manifest)) ? self::host($site, $opts) : self::systemHost($opts);
+            if (!$h || !$h->hasActive()) {
+                return $none;
+            }
+            $r = $h->fire($hook, HAXCMSPluginEngine::json($subject), $opts['extra'] ?? []);
+            return ['veto' => $r['veto'] ?? null, 'warnings' => $r['warnings'] ?? []];
+        } catch (\Throwable $e) {
+            error_log('HAXcms plugins: ' . $hook . ' failed: ' . $e->getMessage());
+            return $none;
+        }
+    }
+
+    /** The site summary the site lifecycle hooks carry: id, name, title, path, theme, owner. */
+    public static function siteSummary($site, array $extra = [])
+    {
+        $m = ($site && isset($site->manifest)) ? $site->manifest : null;
+        $meta = ($m && isset($m->metadata)) ? $m->metadata : null;
+        return array_merge([
+            'id' => $m->id ?? null,
+            'name' => $meta->site->name ?? ($site->name ?? null),
+            'title' => $m->title ?? null,
+            'path' => ($site && $meta && isset($meta->site->name) && isset($site->directory)) ? self::siteDirectory($site) : null,
+            'theme' => $meta->theme->element ?? null,
+            'owner' => $meta->author->name ?? (isset($m->author) && is_string($m->author) ? $m->author : null),
+        ], $extra);
+    }
+
     /** True when a plugin is active for this site, so an operation can skip building what only hooks would read. */
     public static function listening($site, array $opts = [])
     {

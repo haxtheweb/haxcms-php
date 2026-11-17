@@ -38,7 +38,7 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
         $site = null;
         if ($m) {
             $name = $m->metadata->site->name ?? basename($o['siteDirectory']);
-            $site = ['id' => (string) $m->id, 'name' => $name, 'path' => rtrim($o['siteDirectory'], '/')];
+            $site = ['id' => (string) ($m->id ?? ''), 'name' => $name, 'path' => rtrim($o['siteDirectory'], '/')];
         }
         $engine = [
             'haxcmsVersion' => $o['version'] ?? '26.10.1',

@@ -421,7 +421,7 @@ class PluginPlatformTest extends TestCase
         $this->assertSame('available', $e['status']);
         $this->assertFalse($e['enabled']);
         $this->assertSame(['backend', 'process'], $e['needs']);
-        $this->assertSame(['server' => 'full', 'desktop' => 'full', 'browser' => 'no'], $e['targets']);
+        $this->assertSame(['server' => 'full', 'desktop' => 'full', 'cli' => 'full', 'browser' => 'no'], $e['targets']);
 
         // for the system: written to <root>/_config/plugins/plugins.yaml, on in every site, a site cannot turn it off
         $on = HAXCMSPluginSystem::enable(null, 'fx-exec', $o);

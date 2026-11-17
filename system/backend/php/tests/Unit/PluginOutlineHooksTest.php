@@ -320,6 +320,23 @@ class PluginOutlineHooksTest extends TestCase
 class PluginOutlineTestHaxcms extends OperationsTestHaxcms
 {
     public $outlineSchema;
+    /** who logout() revoked, for PluginCoreEventsTest */
+    public $revoked = array();
+
+    public function decodeRefreshToken($token)
+    {
+        return (object) array('user' => 'ada', 'family' => 'f1');
+    }
+
+    public function revokeRefreshSession($user, $family = null)
+    {
+        $this->revoked[] = $user;
+    }
+
+    public function setRefreshTokenCookie($value = '', $ttl = null)
+    {
+        return true;
+    }
 
     public function __construct()
     {

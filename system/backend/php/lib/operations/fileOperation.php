@@ -188,6 +188,16 @@ trait OperationsRouteFileOperation {
         )
       );
     }
+    // DRAFT plugin platform: file.before.save for the file whose content is about to be replaced
+    $pluginSubject = $this->pluginFileSubject($site, $pathResult, 'replace-content');
+    if ($pluginSubject !== null) {
+      $pre = HAXCMSPluginSystem::before($site, 'file', $pluginSubject, $pluginSubject, array(
+        'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()),
+      ));
+      if (!empty($pre['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+      }
+    }
     $replaceResult = $this->replaceImageContentInPlaceFile(
       $pathResult['resolvedPath'],
       $upload['tmp_name'],
@@ -214,6 +224,15 @@ trait OperationsRouteFileOperation {
     if (is_array($stored) && isset($stored['uuid'])) {
       $fileRecord['uuid'] = (string) $stored['uuid'];
     }
+    if ($pluginSubject !== null) {
+      try {
+        HAXCMSPluginSystem::after($site, 'file', array_merge($pluginSubject, array('size' => isset($fileRecord['size']) ? (int) $fileRecord['size'] : 0)), $pluginSubject, array(
+          'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()),
+        ));
+      } catch (\Throwable $e) {
+        error_log('HAXcms plugins: file after hooks failed: ' . $e->getMessage());
+      }
+    }
     return array(
       'status' => 200,
       'data' => array(
@@ -223,7 +242,50 @@ trait OperationsRouteFileOperation {
       )
     );
   }
+  /**
+   * DRAFT plugin platform (spec/06): file.before.save / file.after.save around a change to an existing file and
+   * file.before.delete / file.after.delete around a delete. A veto refuses the operation before the file is
+   * touched. With no active plugin nothing runs; what a hook returns is not applied.
+   * @return array|null the subject for the hooks, or null when no plugin listens
+   */
+  private function pluginFileSubject($site, array $pathResult, $operation) {
+    if (getenv('HAXCMS_PLUGINS') === 'off') {
+      return null;
+    }
+    include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+    if (!HAXCMSPluginSystem::listening($site)) {
+      return null;
+    }
+    $record = $this->buildSiteFileRecord($site, $pathResult['resolvedPath'], $pathResult['normalizedPath']);
+    return array(
+      'id' => isset($record['uuid']) ? $record['uuid'] : null,
+      'name' => isset($record['name']) ? (string) $record['name'] : basename($pathResult['normalizedPath']),
+      'path' => isset($record['path']) ? (string) $record['path'] : $pathResult['normalizedPath'],
+      'mimeType' => isset($record['mimetype']) ? (string) $record['mimetype'] : '',
+      'size' => isset($record['size']) ? (int) $record['size'] : 0,
+      'operation' => $operation,
+    );
+  }
+
   public function fileOperation() {
+    // what the after hook needs, set once the before hooks have let the operation through: [site, subject, deleted]
+    $event = null;
+    $result = $this->runFileOperation($event);
+    if (is_array($event) && is_array($result) && !isset($result['__failed'])) {
+      try {
+        HAXCMSPluginSystem::after($event[0], 'file', $event[1], $event[2] ? null : $event[1], array(
+          'delete' => $event[2],
+          'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()),
+        ));
+      } catch (\Throwable $e) {
+        // the file operation is done; a plugin failing afterwards never undoes it
+        error_log('HAXcms plugins: file after hooks failed: ' . $e->getMessage());
+      }
+    }
+    return $result;
+  }
+
+  private function runFileOperation(&$pluginEvent) {
     $gate = $this->fileOperationGate();
     if (isset($gate['__failed'])) {
       return $gate;
@@ -265,6 +327,18 @@ trait OperationsRouteFileOperation {
           'message' => $pathResult['message'],
         )
       );
+    }
+    $pluginSubject = $this->pluginFileSubject($site, $pathResult, $operation);
+    if ($pluginSubject !== null) {
+      $pluginGone = $operation === 'delete';
+      $pre = HAXCMSPluginSystem::before($site, 'file', $pluginSubject, $pluginGone ? null : $pluginSubject, array(
+        'delete' => $pluginGone,
+        'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()),
+      ));
+      if (!empty($pre['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+      }
+      $pluginEvent = array($site, $pluginSubject, $pluginGone);
     }
     if ($operation == 'convert-pptx-deck') {
       // The .pptx stays where it was uploaded in files/ (no move). The deck

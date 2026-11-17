@@ -25,6 +25,16 @@ trait OperationsRouteCloneSite {
       $configuredSourcePrefix = $basePath . '/' . $sitesDirectory . '/' . $originalSiteName . '/files/';
       $legacySourcePrefix = '/sites/' . $originalSiteName . '/files/';
       $cloneName = $GLOBALS['HAXCMS']->getUniqueName($site->name);
+      // DRAFT plugin platform: site.before.duplicate / site.after.duplicate (spec/06)
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginOpts = array(
+        'user' => HAXCMSPluginSystem::userRecord($GLOBALS['HAXCMS']->getActiveUserName()),
+        'extra' => array('target' => array('name' => $cloneName)),
+      );
+      $pre = HAXCMSPluginSystem::event($site, 'site.before.duplicate', HAXCMSPluginSystem::siteSummary($site), $pluginOpts);
+      if (!empty($pre['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+      }
       // ensure the path to the new folder is valid
       // resolve symlinks so that mirror copies real contents instead of recreating links
       $sourcePath = realpath(
@@ -105,6 +115,7 @@ trait OperationsRouteCloneSite {
         }
       }
       $site->save();
+      HAXCMSPluginSystem::event($site, 'site.after.duplicate', HAXCMSPluginSystem::siteSummary($site, array('source' => $originalSiteName)), $pluginOpts);
       return array(
         'status' => 200,
         'data' => array(
