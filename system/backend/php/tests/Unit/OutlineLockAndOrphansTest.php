@@ -516,6 +516,94 @@ class OutlineLockAndOrphansTest extends TestCase
         $this->assertNotNull($made);
         $this->assertStringContainsString('<p>x</p>', $this->pageContent($made));
     }
+
+    // =========================================================================
+    // bulk save: a page listed before the ancestor the save renames or moves
+    // =========================================================================
+
+    /** Every page but $last as sent (through $map), then $last. */
+    private function saveWithLast($last, array $lastExtra, ?callable $map = null): array
+    {
+        $out = array();
+        foreach ($this->readItems() as $item) {
+            if ($item->id === $last->id) {
+                continue;
+            }
+            $out[] = $map ? $map($item) : $this->sent($item);
+        }
+        $out[] = $this->sent($last, $lastExtra);
+        return $this->save($out);
+    }
+
+    #[TestDox("slug order: a page listed before its renamed parent gets the parent's new address")]
+    public function testSlugOrderRenamedParentListedLast(): void
+    {
+        $this->buildCourse();
+        $result = $this->saveWithLast($this->byTitle('Unit'), array('title' => 'Unit one'));
+        $this->assertArrayHasKey('items', $result, json_encode($result));
+        $this->assertSame(array(
+            array('Activity', 'Lesson', 0, 2, 'unit-one/lesson/activity'),
+            array('Lesson', 'Unit one', 0, 1, 'unit-one/lesson'),
+            array('Next unit', null, 1, 0, 'next-unit'),
+            array('Quiz', 'Unit one', 1, 1, 'unit-one/quiz'),
+            array('Unit one', null, 0, 0, 'unit-one'),
+        ), $this->shape());
+    }
+
+    #[TestDox('slug order: a page moved under a parent renamed later in the same save')]
+    public function testSlugOrderMovedUnderParentRenamedLater(): void
+    {
+        $this->buildCourse();
+        $next = $this->byTitle('Next unit');
+        $quiz = $this->byTitle('Quiz');
+        $result = $this->saveWithLast($next, array('title' => 'Unit two'), function ($i) use ($quiz, $next) {
+            return $i->id === $quiz->id
+                ? $this->sent($i, array('parent' => $next->id, 'order' => 0))
+                : $this->sent($i);
+        });
+        $this->assertArrayHasKey('items', $result, json_encode($result));
+        $this->assertSame('unit-two/quiz', $this->byId($quiz->id)->slug);
+    }
+
+    #[TestDox('slug order: a custom address is left alone when its parent is renamed later')]
+    public function testSlugOrderCustomAddressLeftAlone(): void
+    {
+        $this->buildCourse();
+        $quiz = $this->byTitle('Quiz');
+        $result = $this->saveWithLast($this->byTitle('Unit'), array('title' => 'Unit one'), function ($i) use ($quiz) {
+            if ($i->id === $quiz->id) {
+                $meta = isset($i->metadata) ? (array) $i->metadata : array();
+                $meta['overridePathauto'] = true;
+                return $this->sent($i, array('slug' => 'my-quiz', 'metadata' => $meta));
+            }
+            return $this->sent($i);
+        });
+        $this->assertArrayHasKey('items', $result, json_encode($result));
+        $this->assertSame('my-quiz', $this->byId($quiz->id)->slug);
+    }
+
+    #[TestDox('slug order: a parents-first save keeps numbered addresses as they are')]
+    public function testSlugOrderParentsFirstKeepsNumberedAddresses(): void
+    {
+        $this->buildCourse();
+        $out = array();
+        foreach ($this->readItems() as $item) {
+            $out[] = $this->sent($item);
+        }
+        $out[] = $this->newPage('q2', 'Quiz', array(
+            'parent' => $this->byTitle('Unit')->id,
+            'indent' => 1,
+            'order' => 2,
+        ));
+        $result = $this->save($out);
+        $this->assertArrayHasKey('items', $result, json_encode($result));
+        $before = $this->shape();
+        $result = $this->saveAll(function ($i) {
+            return $this->sent($i);
+        });
+        $this->assertArrayHasKey('items', $result, json_encode($result));
+        $this->assertSame($before, $this->shape());
+    }
 }
 
 class OutlineLockAndOrphansTestHaxcms extends OperationsTestHaxcms

@@ -31,6 +31,43 @@ trait OperationsRouteSaveOutline {
     return OutlineUpkeep::isLocked($page);
   }
 
+  /**
+   * Whether the ancestor part of a page's address no longer matches its
+   * ancestors: every segment before the last is an ancestor's last segment,
+   * nearest last (how getUniqueSlugName builds a pathauto address).
+   */
+  private function hasStaleAncestorSlug($site, $page) {
+    if (!isset($page->parent) || $page->parent === '') {
+      return false;
+    }
+    if (isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true) {
+      return false;
+    }
+    if (!isset($page->slug) || !is_string($page->slug) || $page->slug === '') {
+      return false;
+    }
+    $expected = array();
+    $seen = array((string) $page->id => true);
+    $up = $page;
+    while ($up = $site->loadNode($up->parent)) {
+      if (isset($seen[(string) $up->id])) {
+        break;
+      }
+      $seen[(string) $up->id] = true;
+      $segments = explode('/', isset($up->slug) ? (string) $up->slug : '');
+      $segment = array_pop($segments);
+      if ($segment !== '') {
+        array_unshift($expected, $segment);
+      }
+      if (!isset($up->parent) || $up->parent === '') {
+        break;
+      }
+    }
+    $actual = explode('/', $page->slug);
+    array_pop($actual);
+    return implode('/', $actual) !== implode('/', $expected);
+  }
+
   private function validateOutlineItems($site, $items) {
     $parents = array();
     foreach ($site->manifest->items as $existing) {
@@ -453,6 +490,46 @@ trait OperationsRouteSaveOutline {
           if ($existing) {
               $feedsPending = true;
               $feedItems = $savedItems;
+          }
+        }
+        // a page's address is built from its ancestors' as they were when
+        // the page was processed. A save that lists a page before an
+        // ancestor it renames or moves leaves that page under the ancestor's
+        // old address: re-slug those, top-down. outline-designer sends
+        // parents first, so its saves have nothing stale here and are
+        // written as before.
+        if ($site->isPathautoEnabled()) {
+          $sentIds = array();
+          foreach ($items as $sentItem) {
+            $sentId = isset($itemMap[$sentItem->id]) ? $itemMap[$sentItem->id] : $sentItem->id;
+            $sentIds[(string) $sentId] = true;
+          }
+          $live = $site->manifest->items;
+          $entries = array();
+          $position = 0;
+          foreach ($live as $liveItem) {
+            if (!is_object($liveItem) || !isset($sentIds[(string) $liveItem->id])) {
+              continue;
+            }
+            $depth = 0;
+            $seen = array((string) $liveItem->id => true);
+            $up = $liveItem;
+            while (isset($up->parent) && $up->parent !== '' && ($up = $site->loadNode($up->parent)) && !isset($seen[(string) $up->id])) {
+              $seen[(string) $up->id] = true;
+              $depth++;
+            }
+            $entries[] = array('item' => $liveItem, 'position' => $position++, 'depth' => $depth);
+          }
+          usort($entries, function ($x, $y) {
+            if ($x['depth'] !== $y['depth']) {
+              return $x['depth'] - $y['depth'];
+            }
+            return $x['position'] - $y['position'];
+          });
+          foreach ($entries as $entry) {
+            if ($this->hasStaleAncestorSlug($site, $entry['item'])) {
+              OutlineUpkeep::reslugPageAndBranch($site, $entry['item'], $live);
+            }
           }
         }
         // siblings that share an order are told apart by their position in
