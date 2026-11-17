@@ -38822,7 +38822,7 @@
         "locales/screen-recorder.yo.json": ["587f2336233e3340a494a6fd15675201", "587f2336233e3340a494a6fd15675201"],
         "locales/screen-recorder.zh.json": ["044680da988d3f91b017d6fdcf736ae6", "044680da988d3f91b017d6fdcf736ae6"],
         "locales/screen-recorder.zu.json": ["bb96dd64f3f0b12451b26062bc28cf5c", "bb96dd64f3f0b12451b26062bc28cf5c"],
-        "screen-recorder.js": ["fed6b349afa1c219f6da4254b846df8f", "c2b7c1acad77b9964520faecdbd1bf2d"]
+        "screen-recorder.js": ["7a2d3755a8a09207f67933ad14249cd0", "79c3053301ed03822eb1314215f01604"]
       },
       "source": "elements/screen-recorder",
       "unshipped": ["rollup.config.js"],
@@ -40246,12 +40246,12 @@
         "lib/simple-fields-tabs.js": ["f36d17cf2255599ac9c1372d17356b40", "8448ed2a45e33c30c12b6580bd2880ca"],
         "lib/simple-fields-tag-list.js": ["5af1ee468b7354f069dff2003e331ada", "9bbd6b24b0f140849d805c1c92620a94"],
         "lib/simple-fields-ui.js": ["bd14cc13a6efe6c77e26db9c35577130", "3ba32cc3e33eb5b7156225291b371382"],
-        "lib/simple-fields-upload.js": ["8405e2b4cf60f008bff712b3d8300cae", "4ffe6ba499ae6fa1d1157186c20a8b70"],
+        "lib/simple-fields-upload.js": ["8f6aa223049c573d1747a12e9bf676a5", "20978a987f5531d8cb0940674a1273f1"],
         "lib/simple-fields-url-combo-item.js": ["7caeab2aae637cb28f42a5ed6e79fbec", "29c29f7321545eb52e846b86db5df8b1"],
         "lib/simple-fields-url-combo.js": ["de080c5f19024650698cb73291d394da", "6b46a8cbe14d8ffc2977743302ab3d3d"],
         "lib/simple-fields.docs.json": ["753303f46e0cfedb5a07a4f59a348243", "753303f46e0cfedb5a07a4f59a348243"],
         "lib/simple-fields.motion.json": ["8979bd5ce56259e78141262fca3ae72a", "8979bd5ce56259e78141262fca3ae72a"],
-        "lib/simple-file-upload.js": ["593750f687b3e82a9ceaf8df7f9d7299", "58ad88a23b4bc6ba3102d84f2fd83929"],
+        "lib/simple-file-upload.js": ["08944828923ce66d845c17b819f5145a", "8a307ad9a2df0e756680b7982c61f102"],
         "lib/simple-login-avatar.js": ["29b3f22a1d6dc897833f3fddb004b5a3", "388ae9463c3005542fcea62a765f529d"],
         "lib/simple-login-camera.js": ["296cf3bbd121c907ad9d055d6476e0be", "864e3f23ff59e063571f640b0e26b9eb"],
         "lib/simple-tag-lite.js": ["f26ce4833556a77e4f83ee9b53406f16", "db4ffbff4f4e78cc6f982f4c30eac7c2"],
@@ -47848,7 +47848,7 @@
     }
   },
   "source": {
-    "commit": "83e8b3ec0b868c872a3563ed8711f6553c8cadd7",
+    "commit": "d41ee15012e54f23e17dec014b9a471bcf390af3",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
