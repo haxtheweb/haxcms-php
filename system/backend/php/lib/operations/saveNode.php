@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
+include_once dirname(__FILE__) . '/../ImageFraming.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -133,6 +134,16 @@ trait OperationsRouteSaveNode {
                 )
               );
             } else {
+                // framed photos (ddd-hero) are served from cuts made at save
+                // time; a photo that can't be cut falls back to CSS framing
+                try {
+                  ImageFraming::cutFramings(
+                    HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+                    $sanitizedContent
+                  );
+                } catch (\Throwable $e) {
+                  // never fail a save over a cut
+                }
                 // sanity check
                 if (!isset($page->metadata)) {
                   $page->metadata = new stdClass();
