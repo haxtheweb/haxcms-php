@@ -405,4 +405,15 @@ class JSONOutlineSchemaTest extends TestCase
             @unlink($elsewhere);
         }
     }
+
+    public function testNormalizeItemValuesStoresHideTitleAsBoolean(): void
+    {
+        // parity with haxcms-nodejs json-outline-schema.test.cjs
+        $on = JSONOutlineSchema::normalizeItemValues((object) array('metadata' => (object) array('hideTitle' => '1')));
+        $this->assertTrue($on->metadata->hideTitle);
+        $off = JSONOutlineSchema::normalizeItemValues((object) array('metadata' => (object) array('hideTitle' => '')));
+        $this->assertFalse($off->metadata->hideTitle);
+        $absent = JSONOutlineSchema::normalizeItemValues((object) array('metadata' => new stdClass()));
+        $this->assertFalse(property_exists($absent->metadata, 'hideTitle'));
+    }
 }
