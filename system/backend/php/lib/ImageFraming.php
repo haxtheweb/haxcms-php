@@ -195,6 +195,9 @@ class ImageFraming
         }
         $xpath = new DOMXPath($dom);
         foreach ($xpath->query('//*[@source]') as $el) {
+            if (!($el instanceof DOMElement)) {
+                continue;
+            }
             $tag = strtolower($el->nodeName);
             $hasFraming = $el->hasAttribute('framing');
             if (!in_array($tag, self::TAGS, true) && !$hasFraming) {
