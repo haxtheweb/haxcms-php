@@ -21,6 +21,16 @@ trait OperationsRouteDownloadSite {
       }
       // load site
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
+      // DRAFT plugin platform: site.before.export / site.after.export (spec/06), format zip
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginOpts = array(
+        'user' => HAXCMSPluginSystem::userRecord($GLOBALS['HAXCMS']->getActiveUserName()),
+        'extra' => array('format' => 'zip'),
+      );
+      $pre = HAXCMSPluginSystem::event($site, 'site.before.export', HAXCMSPluginSystem::siteSummary($site), $pluginOpts);
+      if (!empty($pre['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+      }
       // helpful boilerplate https://stackoverflow.com/questions/29873248/how-to-zip-a-whole-directory-and-download-using-php
       $dir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name;
       $publishedDir = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->publishedDirectory;
@@ -64,6 +74,7 @@ trait OperationsRouteDownloadSite {
       }
       // Zip archive will be created only after closing object
       $zip->close();
+      HAXCMSPluginSystem::event($site, 'site.after.export', HAXCMSPluginSystem::siteSummary($site), $pluginOpts);
       return array(
         'status' => 200,
         'data' => array(

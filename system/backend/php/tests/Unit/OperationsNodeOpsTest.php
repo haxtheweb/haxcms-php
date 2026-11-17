@@ -714,6 +714,79 @@ class OperationsNodeOpsTest extends TestCase
     }
 
     // =========================================================================
+    // saveNode — DRAFT plugin platform (haxtheweb/issues#3356, mirrors the
+    // haxcms-nodejs#138 plugin-platform tests): page.before.save runs before
+    // the write; a veto stops it, a plugin's declared fields reach site.json.
+    // Needs the plugin spec (HAXCMS_PLUGIN_SPEC_DIR); skipped without it.
+    // =========================================================================
+
+    private function withPlugins(array $dirs): void
+    {
+        $spec = HAXCMSPluginEngine::defaultSpecDir();
+        if (!is_file($spec . '/schema/plugin.schema.json')) {
+            $this->markTestSkipped('plugin spec not found (set HAXCMS_PLUGIN_SPEC_DIR)');
+        }
+        putenv('HAXCMS_PLUGIN_DIRS=' . implode(PATH_SEPARATOR, array_map(function ($d) use ($spec) {
+            return $spec . '/' . $d;
+        }, $dirs)));
+        HAXCMSPluginSystem::reset();
+    }
+
+    public function testSaveNodePluginVetoStopsTheWriteWith409(): void
+    {
+        $this->withPlugins(array('conformance/fixtures/fx-vetoer'));
+        try {
+            $this->setUpBodyFixture();
+            $this->haxcms->validRequestToken = true;
+            $this->ops->params = array(
+                'site_token' => 'good',
+                'site' => array('name' => $this->siteName),
+                'node' => array(
+                    'id' => 'item-a',
+                    'body' => '<page-break title="Forbidden plans" item-id="item-a" slug="item-a"></page-break><p>Nope</p>',
+                ),
+            );
+            $result = $this->ops->saveNode();
+            $this->assertSame(array('status' => 409, 'message' => 'fx-vetoer: forbidden', 'data' => array('plugin' => 'fx-vetoer')), $result['__failed']);
+            $this->assertSame('<p>Original A</p>', file_get_contents($this->bodyFixtureDir . '/' . $this->siteName . '/pages/item-a/index.html'));
+            $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits);
+        } finally {
+            putenv('HAXCMS_PLUGIN_DIRS');
+            HAXCMSPluginSystem::reset();
+        }
+    }
+
+    public function testSaveNodePluginFieldsLandInSiteJson(): void
+    {
+        // fx-backend: the spec's fixture for a backend's own integration tests (page.before.save adds metadata.plugins.fx-backend.words)
+        $this->withPlugins(array('conformance/fixtures/fx-backend'));
+        try {
+            $this->setUpBodyFixture();
+            $this->haxcms->validRequestToken = true;
+            $words = implode(' ', array_fill(0, 410, 'word'));
+            $this->ops->params = array(
+                'site_token' => 'good',
+                'site' => array('name' => $this->siteName),
+                'node' => array(
+                    'id' => 'item-a',
+                    'body' => '<page-break title="Reading" item-id="item-a" slug="item-a"></page-break><p>' . $words . '</p>',
+                ),
+            );
+            $result = $this->ops->saveNode();
+            $this->assertSame(200, $result['status']);
+            $persisted = json_decode(file_get_contents($this->bodyFixtureDir . '/' . $this->siteName . '/site.json'), true);
+            $item = array_values(array_filter($persisted['items'], function ($i) {
+                return $i['id'] === 'item-a';
+            }))[0];
+            // the same values haxcms-nodejs stores for the same page (plugin-platform.test.cjs)
+            $this->assertSame(array('words' => 410), $item['metadata']['plugins']['fx-backend']);
+        } finally {
+            putenv('HAXCMS_PLUGIN_DIRS');
+            HAXCMSPluginSystem::reset();
+        }
+    }
+
+    // =========================================================================
     // saveNode — body whose item-id does not exist yet creates the page from
     // the boilerplate (recurseCopy + addItem + Page added:/Page updated:)
     // =========================================================================

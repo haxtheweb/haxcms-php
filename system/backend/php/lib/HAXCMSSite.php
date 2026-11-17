@@ -810,6 +810,22 @@ class HAXCMSSite
         if ($this->gitScope() === 'parent') {
             return true;
         }
+        // DRAFT plugin platform: git.before.commit / git.after.commit (spec/06). A veto leaves the work tree
+        // uncommitted; the message a hook returns is not used, so plugin text never reaches git.
+        $pluginCommit = null;
+        if (getenv('HAXCMS_PLUGINS') !== 'off') {
+            include_once __DIR__ . '/plugins/HAXCMSPluginSystem.php';
+            $pluginCommit = array(
+                'siteId' => isset($this->manifest->id) ? $this->manifest->id : null,
+                'message' => CommitContext::formatCommitMessage($msg, $op),
+                'files' => array(),
+                'author' => null,
+            );
+            $pluginPre = HAXCMSPluginSystem::event($this, 'git.before.commit', $pluginCommit);
+            if (!empty($pluginPre['veto'])) {
+                return true;
+            }
+        }
         $git = new Git();
         // commit, true flag will attempt to make this a git repo if it currently isn't
         $repo = $git->open(
@@ -829,6 +845,9 @@ class HAXCMSSite
             }
         }
         // commit should execute the automatic push flag if it's on
+        if ($pluginCommit !== null) {
+            HAXCMSPluginSystem::event($this, 'git.after.commit', $pluginCommit);
+        }
         if (isset($this->manifest->metadata->site->git->autoPush) && $this->manifest->metadata->site->git->autoPush && isset($this->manifest->metadata->site->git->branch)) {
             $repo->push('origin', $this->manifest->metadata->site->git->branch);
         }
@@ -1424,6 +1443,12 @@ class HAXCMSSite
       // that this page updated since their last visit
       if (is_null($format) || $format == 'service-worker') {
         $this->rebuildManagedFiles(array('sw' => 'service-worker.js'));
+      }
+      // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): rebuild.before / rebuild.after so
+      // plugins write their managed files. A plugin failure never fails the save.
+      if (getenv('HAXCMS_PLUGINS') !== 'off') {
+        include_once __DIR__ . '/plugins/HAXCMSPluginSystem.php';
+        HAXCMSPluginSystem::rebuild($this, is_null($format) ? 'save' : $format);
       }
     }
     /**

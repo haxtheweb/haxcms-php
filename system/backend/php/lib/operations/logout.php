@@ -1,6 +1,8 @@
 <?php
 trait OperationsRouteLogout {
   public function logout() {
+    // DRAFT plugin platform: who is signing out, for user.after.logout below
+    $pluginUserName = '';
     // Security (SEC-SESSION): revoke the refresh-token family server-side
     // so a refresh token exfiltrated before logout can't mint new access tokens
     // after this user logs out. Best-effort: legacy tokens without a stored
@@ -17,6 +19,7 @@ trait OperationsRouteLogout {
             $decoded->user,
             (isset($decoded->family) && $decoded->family !== '') ? $decoded->family : null
           );
+          $pluginUserName = (string) $decoded->user;
         }
       }
     }
@@ -25,6 +28,12 @@ trait OperationsRouteLogout {
     // Secure/SameSite flags match how the cookie was set (required for the
     // browser to actually delete it).
     $GLOBALS['HAXCMS']->setRefreshTokenCookie('', 1);
+    // DRAFT plugin platform: user.after.logout (spec/06), once the session has ended. Sign-out is never held up
+    // or stopped by a plugin, so there is no before hook here.
+    if ($pluginUserName !== '' && getenv('HAXCMS_PLUGINS') !== 'off') {
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      HAXCMSPluginSystem::event(null, 'user.after.logout', HAXCMSPluginSystem::userRecord($pluginUserName), array('user' => null));
+    }
     return array(
       "status" => 200,
       "data" => 'loggedout',

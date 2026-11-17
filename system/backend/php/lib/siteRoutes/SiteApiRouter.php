@@ -36,6 +36,14 @@ class SiteApiRouter
             HAXCMSInstallGate::sendNotInstalledResponse();
             return true;
         }
+        // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): x/api/v1/plugins/<id>/...
+        // The plugin engine enforces each operation's declared security (HAXCMS_PLUGINS=off turns this off).
+        if ($context->method !== 'OPTIONS' && getenv('HAXCMS_PLUGINS') !== 'off' && is_string($context->routeSuffix) && strpos($context->routeSuffix, 'v1/plugins/') === 0) {
+            include_once dirname(__FILE__) . '/../plugins/HAXCMSPluginRoutes.php';
+            if (HAXCMSPluginRoutes::dispatchSite($context, $site)) {
+                return true;
+            }
+        }
         $allRoutes = SiteRoutesMap::getRoutesMap();
         $allowedMethods = array();
         foreach ($allRoutes as $method => $routes) {

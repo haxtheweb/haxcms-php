@@ -28,6 +28,16 @@ trait OperationsRouteDeleteNode {
               )
             );
           }
+          // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): page.before.delete /
+          // page.after.delete around the delete
+          $pluginRecord = json_decode(json_encode($page), true);
+          if (getenv('HAXCMS_PLUGINS') !== 'off') {
+            include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+            $pre = HAXCMSPluginSystem::before($site, 'page', $pluginRecord, null, array('delete' => true, 'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName())));
+            if (!empty($pre['veto'])) {
+              return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+            }
+          }
           if ($site->deleteNode($page) === false) {
             return array(
               '__failed' => array(
@@ -69,6 +79,9 @@ trait OperationsRouteDeleteNode {
             $site->gitCommit(
               'Page deleted: ' . $deletedPage->title . ' (' . $deletedPage->id . ')'
             );
+            if (getenv('HAXCMS_PLUGINS') !== 'off') {
+              HAXCMSPluginSystem::after($site, 'page', $pluginRecord, null, array('delete' => true));
+            }
             return array(
               'status' => 200,
               'data' => $deletedPage

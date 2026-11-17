@@ -144,6 +144,48 @@ return function ($context) {
         }
         $remaining = $nextBatch;
     }
+    // DRAFT plugin platform: every page whose slug will change goes to the page before hooks, in one bulk
+    // transaction whose origin is "normalizeSlugs"; a veto refuses the clean-up before anything is written
+    $pluginChanges = array();
+    $pluginOpts = array('origin' => 'normalizeSlugs');
+    if (!$isPreview && count($changes) > 0 && getenv('HAXCMS_PLUGINS') !== 'off') {
+        include_once dirname(__FILE__) . '/../../plugins/HAXCMSPluginSystem.php';
+        if (HAXCMSPluginSystem::listening($site, $pluginOpts)) {
+            $pluginOpts['user'] = HAXCMSPluginSystem::activeUser();
+            foreach ($changes as $change) {
+                foreach ($items as $candidate) {
+                    if ((string) $candidate->id === $change['id']) {
+                        $pluginChanges[] = array(
+                            'op' => 'update',
+                            'record' => json_decode(json_encode($candidate), true),
+                            'previous' => isset($originalItems[$candidate->id]) ? json_decode(json_encode($originalItems[$candidate->id]), true) : null,
+                        );
+                        break;
+                    }
+                }
+            }
+            $pre = HAXCMSPluginSystem::beforeMany($site, 'page', $pluginChanges, $pluginOpts);
+            if (!empty($pre['veto'])) {
+                $site->manifest->items = $originalManifestItems;
+                $pluginStatus = (int) ($pre['veto']['status'] ?: 409);
+                SiteRouteUtils::sendFormattedResponse(
+                    array('status' => $pluginStatus, 'data' => array(
+                        'message' => (string) $pre['veto']['message'],
+                        'plugin' => isset($pre['veto']['plugin']) ? $pre['veto']['plugin'] : null,
+                    )),
+                    array(
+                        'statusCode' => $pluginStatus,
+                        'allowedFormats' => array('json'),
+                        'defaultFormat' => 'json',
+                        'envelope' => false,
+                    ),
+                    $context->routeSuffix,
+                    $apiBasePath
+                );
+                return;
+            }
+        }
+    }
     if ($isPreview) {
         $site->manifest->items = $originalManifestItems;
     } else {
@@ -151,6 +193,14 @@ return function ($context) {
         $site->manifest->save(false);
         $site->updateAlternateFormats();
         $site->gitCommit('Bulk slug normalization: ' . count($changes) . ' changed, ' . count($skipped) . ' skipped');
+        if (count($pluginChanges) > 0) {
+            try {
+                HAXCMSPluginSystem::afterMany($site, 'page', $pluginChanges, $pluginOpts);
+            } catch (\Throwable $e) {
+                // the slugs are saved; a plugin failing afterwards never undoes it
+                error_log('HAXcms plugins: slug clean-up after hooks failed: ' . $e->getMessage());
+            }
+        }
     }
     $data = array(
         'changed' => count($changes) > 0,

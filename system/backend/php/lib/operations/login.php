@@ -172,11 +172,31 @@ trait OperationsRouteLogin {
     else {
       $this->clearLoginAttemptEntry($attemptKey);
     }
+    // DRAFT plugin platform: user.before.login (spec/06), once the password is verified and before any token
+    // is issued. A veto refuses the sign-in.
+    $pluginUser = null;
+    if (getenv('HAXCMS_PLUGINS') !== 'off') {
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginUser = HAXCMSPluginSystem::userRecord((string) $u);
+      $pluginPre = HAXCMSPluginSystem::event(null, 'user.before.login', $pluginUser, array('user' => null));
+      if (!empty($pluginPre['veto'])) {
+        return array(
+          '__failed' => array(
+            'status' => 403,
+            'message' => $pluginPre['veto']['message'],
+            'data' => array('plugin' => isset($pluginPre['veto']['plugin']) ? $pluginPre['veto']['plugin'] : null),
+          )
+        );
+      }
+    }
     // set a refresh_token COOKIE that will ship w/ all calls automatically.
     // Security (SEC-SESSION): Secure flag is protocol-driven and
     // SameSite=Lax is set via the centralized helper so flags are consistent
     // across every call site and non-TLS dev/DDEV still works.
     $GLOBALS['HAXCMS']->setRefreshTokenCookie($GLOBALS['HAXCMS']->getRefreshToken($u));
+    if ($pluginUser !== null) {
+      HAXCMSPluginSystem::event(null, 'user.after.login', $pluginUser, array('user' => $pluginUser));
+    }
     if ($legacy) {
       return $GLOBALS['HAXCMS']->getJWT($u);
     }

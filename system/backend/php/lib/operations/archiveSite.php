@@ -14,6 +14,14 @@ trait OperationsRouteArchiveSite {
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
       if ($site->manifest->metadata->site->name) {
         $siteName = $site->manifest->metadata->site->name;
+        // DRAFT plugin platform: site.before.archive / site.after.archive (spec/06)
+        include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+        $pluginOpts = array('user' => HAXCMSPluginSystem::userRecord($GLOBALS['HAXCMS']->getActiveUserName()));
+        $pluginSubject = HAXCMSPluginSystem::siteSummary($site);
+        $pre = HAXCMSPluginSystem::event($site, 'site.before.archive', $pluginSubject, $pluginOpts);
+        if (!empty($pre['veto'])) {
+          return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+        }
         $archivedRoot = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory;
         // ensure archived directory exists
         if (!file_exists($archivedRoot)) {
@@ -49,6 +57,8 @@ trait OperationsRouteArchiveSite {
         $detail = ($archivedName === $siteName)
           ? 'Site archived'
           : 'Site archived as ' . $archivedName . ' because an archived copy already existed';
+        // the site's folder has moved: the system engine hears that it is archived
+        HAXCMSPluginSystem::event(null, 'site.after.archive', array_merge($pluginSubject, array('archivedName' => $archivedName)), $pluginOpts);
         return array(
           'status' => 200,
           'data' => array(

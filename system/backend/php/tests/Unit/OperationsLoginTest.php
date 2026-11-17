@@ -526,6 +526,41 @@ class OperationsLoginTest extends TestCase
         // testLogin should NOT have been called
         $this->assertFalse($this->haxcms->testLoginWasCalled);
     }
+
+    // =========================================================================
+    // login() and the plugin platform (spec/06): user.before.login can refuse
+    // a sign-in once the password is verified, before any token is issued
+    // =========================================================================
+
+    public function testAPluginCanRefuseASignInBeforeAnyTokenIsIssued(): void
+    {
+        require_once dirname(__DIR__, 2) . '/lib/plugins/HAXCMSPluginSystem.php';
+        $fixture = HAXCMSPluginEngine::defaultSpecDir() . '/conformance/fixtures/fx-core-events';
+        if (!is_dir($fixture)) {
+            $this->markTestSkipped('plugin spec with fx-core-events not found (set HAXCMS_PLUGIN_SPEC_DIR)');
+        }
+        putenv('HAXCMS_PLUGIN_DIRS=' . $fixture);
+        HAXCMSPluginSystem::reset();
+        try {
+            $this->haxcms->testLoginResult = true;
+            $this->ops->params = array('username' => 'forbidden', 'password' => 'right');
+            $refused = $this->ops->login();
+            $this->assertSame(403, $refused['__failed']['status'] ?? null, json_encode($refused));
+            $this->assertSame('fx-core-events: forbidden', $refused['__failed']['message']);
+            $this->ops->params = array('username' => 'ada', 'password' => 'right');
+            $ok = $this->ops->login();
+            $this->assertArrayNotHasKey('__failed', $ok, json_encode($ok));
+            $heard = array();
+            foreach (HAXCMSPluginSystem::systemHost()->log as $l) {
+                $heard[] = $l['message'] ?? '';
+            }
+            $this->assertSame(2, count(array_keys($heard, 'fx-core-events:user.before.login', true)));
+            $this->assertSame(1, count(array_keys($heard, 'fx-core-events:user.after.login', true)));
+        } finally {
+            putenv('HAXCMS_PLUGIN_DIRS');
+            HAXCMSPluginSystem::reset();
+        }
+    }
 }
 
 /**

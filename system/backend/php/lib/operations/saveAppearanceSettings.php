@@ -316,7 +316,21 @@ trait OperationsRouteSaveAppearanceSettings {
       }
 
       $site->manifest->metadata->site->updated = time();
+      // DRAFT plugin platform: this screen writes site.json, so it is a manifest save (manifest.before.save, and
+      // theme.before.change when the theme changed). A veto refuses it before anything is written.
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginSiteName = $site->manifest->metadata->site->name;
+      $pluginSave = HAXCMSPluginSystem::siteSave($site, array(
+        'stored' => function () use ($pluginSiteName) {
+          return $GLOBALS['HAXCMS']->loadSite($pluginSiteName);
+        },
+        'user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName()),
+      ));
+      if (!empty($pluginSave['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pluginSave['veto']);
+      }
       $site->manifest->save(false);
+      HAXCMSPluginSystem::saved($site, $pluginSave['state']);
       $site->gitCommit('Appearance settings updated');
       $site->rebuildManagedFiles();
       $site->updateAlternateFormats();

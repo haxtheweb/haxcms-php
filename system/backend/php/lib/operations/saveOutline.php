@@ -186,6 +186,27 @@ trait OperationsRouteSaveOutline {
           )
         );
       }
+      // DRAFT plugin platform. An outline save is page events: each page it
+      // will add, change or remove goes to the page before hooks, in one bulk
+      // transaction whose origin is "saveOutline". A veto refuses the whole
+      // save here, before anything is written, like an invalid outline. With
+      // no active plugin none of this runs, and what the hooks return is
+      // never applied, so the save itself is unchanged.
+      $pluginOpts = array('origin' => 'saveOutline');
+      $pluginChanges = array();
+      if (getenv('HAXCMS_PLUGINS') !== 'off') {
+        include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+        $pluginOpts['user'] = HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName());
+        if (HAXCMSPluginSystem::listening($site, $pluginOpts)) {
+          $pluginChanges = HAXCMSPluginSystem::outlineChanges($original, $normalizedItems);
+        }
+      }
+      if (count($pluginChanges) > 0) {
+        $pre = HAXCMSPluginSystem::beforeMany($site, 'page', $pluginChanges, $pluginOpts);
+        if (!empty($pre['veto'])) {
+          return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+        }
+      }
       $this->rawParams['items'] = $normalizedItems;
       $items = $this->rawParams['items'];
       $itemMap = array();
@@ -677,6 +698,27 @@ trait OperationsRouteSaveOutline {
       // update alt formats like rss as we did massive changes
       $site->updateAlternateFormats();
       $site->gitCommit('Outline updated in bulk');
+      // DRAFT plugin platform: the page after hooks, with each page as it was
+      // stored (a new page under its server id)
+      if (count($pluginChanges) > 0) {
+        try {
+          foreach ($pluginChanges as $pluginIndex => $pluginChange) {
+            if ($pluginChange['op'] === 'delete') {
+              continue;
+            }
+            $pluginId = $pluginChange['record']['id'];
+            $storedPage = $site->loadNode(isset($itemMap[$pluginId]) ? $itemMap[$pluginId] : $pluginId);
+            if ($storedPage) {
+              $pluginChanges[$pluginIndex]['record'] = HAXCMSPluginEngine::json($storedPage);
+            }
+          }
+          HAXCMSPluginSystem::afterMany($site, 'page', $pluginChanges, $pluginOpts);
+        } catch (Throwable $e) {
+          // the outline is saved; a plugin failing afterwards never turns
+          // that into an error
+          error_log('HAXcms plugins: outline after hooks failed: ' . $e->getMessage());
+        }
+      }
       // D49: return items wrapped in an object with 'items' key so the
       // siteMutation.php wrapper produces {status:200, data:{items:[...]}}
       // matching the Node canonical outline success shape.

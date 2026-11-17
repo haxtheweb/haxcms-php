@@ -51,6 +51,15 @@ if ($indexUserConfigPhpPath === '' || !file_exists($indexUserConfigPhpPath)) {
     exit;
 }
 include_once $indexUserConfigPhpPath;
+// DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): /.well-known/<reserved name> for a
+// plugin's x-hax-well-known operation. A missing file reaches this script (the .htaccess catch-all, nginx try_files).
+if (getenv('HAXCMS_PLUGINS') !== 'off' && strpos((string) ($_SERVER['REQUEST_URI'] ?? ''), '/.well-known/') !== false) {
+    include_once __DIR__ . '/system/backend/php/lib/plugins/HAXCMSPluginRoutes.php';
+    $wellKnownPath = (string) parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (HAXCMSPluginRoutes::dispatchWellKnown($wellKnownPath, $HAXCMS->basePath, $_SERVER['REQUEST_METHOD'] ?? 'GET')) {
+        exit;
+    }
+}
 $appSettings = $HAXCMS->appJWTConnectionSettings('');
 ?>
 <!DOCTYPE html>
