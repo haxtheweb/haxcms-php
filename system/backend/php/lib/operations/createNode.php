@@ -31,6 +31,24 @@ trait OperationsRouteCreateNode {
       }
       if ($hasItems) {
         $item = null;
+        // DRAFT plugin platform: every page about to be added goes to the
+        // before hooks first, as one bulk transaction; a veto refuses the
+        // whole request before a folder is made
+        $pluginOpts = array('origin' => 'createNode');
+        $pluginChanges = array();
+        if (getenv('HAXCMS_PLUGINS') !== 'off') {
+          include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+          $pluginOpts['user'] = HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName());
+          if (HAXCMSPluginSystem::listening($site, $pluginOpts)) {
+            $pluginChanges = HAXCMSPluginSystem::outlineChanges(array(), $nodeParams['items']);
+          }
+        }
+        if (count($pluginChanges) > 0) {
+          $pre = HAXCMSPluginSystem::beforeMany($site, 'page', $pluginChanges, $pluginOpts);
+          if (!empty($pre['veto'])) {
+            return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+          }
+        }
         // create pages; site.json is written and the generated files rebuilt
         // once for the whole request, not once per page (haxtheweb/issues#3248)
         $bulk = new stdClass();
@@ -82,10 +100,25 @@ trait OperationsRouteCreateNode {
           );
         }
         $site->gitCommit(count($nodeParams['items']) . ' pages added'); 
+        if (count($pluginChanges) > 0) {
+          HAXCMSPluginSystem::afterMany($site, 'page', $pluginChanges, $pluginOpts);
+        }
       }
       else {
         // generate a new item based on the site
         $item = $site->itemFromParams($nodeParams);
+        // DRAFT plugin page.before.save for the new page: a veto refuses it
+        // before anything is copied
+        $pluginsOn = getenv('HAXCMS_PLUGINS') !== 'off';
+        $pluginOpts = array();
+        if ($pluginsOn) {
+          include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+          $pluginOpts['user'] = HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName());
+          $pre = HAXCMSPluginSystem::before($site, 'page', json_decode(json_encode($item), true), null, $pluginOpts);
+          if (!empty($pre['veto'])) {
+            return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+          }
+        }
         $item->metadata->images = array();
         $item->metadata->videos = array();
         // generate the boilerplate to fill this page
@@ -192,6 +225,10 @@ trait OperationsRouteCreateNode {
           $site->writePageAlternateFormats($page, $alternateContent);
         }
         $site->gitCommit('Page added:' . $item->title . ' (' . $item->id . ')'); 
+        if ($pluginsOn) {
+          $pluginStored = $site->loadNode($item->id);
+          HAXCMSPluginSystem::after($site, 'page', json_decode(json_encode($pluginStored ? $pluginStored : $item), true), null, $pluginOpts);
+        }
         // update the alternate formats as a new page exists
         $site->updateAlternateFormats();
       }

@@ -354,6 +354,95 @@ class HAXCMSPluginSystem
         return ['warnings' => $r['warnings']];
     }
 
+    /**
+     * The before hooks for an operation that changes many records at once (an outline save, a bulk create), as one
+     * bulk transaction whose origin names the operation. $changes is a list of ['op', 'record', 'previous']. The
+     * first veto stops the rest, and core must then write nothing. What the hooks return is not applied: these
+     * operations change structure, and a plugin that changes a page does it on that page's own save.
+     */
+    public static function beforeMany($site, $type, array $changes, array $opts = [])
+    {
+        $h = $changes ? self::host($site, $opts) : null;
+        if (!$h || !$h->hasActive()) {
+            return ['veto' => null, 'warnings' => []];
+        }
+        $veto = null;
+        $warnings = [];
+        $h->transaction(function () use ($h, $type, $changes, &$veto, &$warnings) {
+            foreach ($changes as $c) {
+                $r = $h->fire("entity.before.{$c['op']}", $c['record'], ['entity' => $type, 'previous' => $c['previous'] ?? null]);
+                $warnings = array_merge($warnings, $r['warnings'] ?? []);
+                if (!empty($r['veto'])) {
+                    $veto = $r['veto'];
+                    return null;
+                }
+            }
+            return null;
+        }, ['bulk' => true, 'origin' => $opts['origin'] ?? 'core']);
+        return ['veto' => $veto, 'warnings' => $warnings];
+    }
+
+    /** The after hooks for the same changes, once core has written all of them, again as one bulk transaction. */
+    public static function afterMany($site, $type, array $changes, array $opts = [])
+    {
+        $h = $changes ? self::host($site, $opts) : null;
+        if (!$h || !$h->hasActive()) {
+            return ['warnings' => []];
+        }
+        $warnings = [];
+        $h->transaction(function () use ($h, $type, $changes, &$warnings) {
+            foreach ($changes as $c) {
+                $r = $h->fire("entity.after.{$c['op']}", $c['record'], ['entity' => $type, 'previous' => $c['previous'] ?? null]);
+                $warnings = array_merge($warnings, $r['warnings'] ?? []);
+            }
+            return null;
+        }, ['bulk' => true, 'origin' => $opts['origin'] ?? 'core']);
+        return ['warnings' => $warnings];
+    }
+
+    /** True when a plugin is active for this site, so an operation can skip building what only hooks would read. */
+    public static function listening($site, array $opts = [])
+    {
+        $h = self::host($site, $opts);
+        return $h && $h->hasActive();
+    }
+
+    /**
+     * What an outline save is about to do to each page, from the stored items and the submitted ones: a submitted
+     * item marked delete whose page exists is a delete, one whose id is stored is an update, any other is a create.
+     */
+    public static function outlineChanges($stored, $submitted)
+    {
+        $byId = [];
+        foreach (($stored ?: []) as $it) {
+            $it = HAXCMSPluginEngine::json($it);
+            if (is_array($it) && isset($it['id'])) {
+                $byId[(string) $it['id']] = $it;
+            }
+        }
+        $out = [];
+        foreach (($submitted ?: []) as $raw) {
+            $raw = HAXCMSPluginEngine::json($raw);
+            if (!is_array($raw) || ($raw !== [] && array_is_list($raw))) {
+                continue;
+            }
+            $id = isset($raw['id']) && is_scalar($raw['id']) ? (string) $raw['id'] : null;
+            $before = $id !== null && isset($byId[$id]) ? $byId[$id] : null;
+            $gone = isset($raw['delete']) && ($raw['delete'] === true || $raw['delete'] === 'true');
+            if ($gone) {
+                if ($before) {
+                    $out[] = ['op' => 'delete', 'record' => $before, 'previous' => null];
+                }
+                continue;
+            }
+            unset($raw['delete'], $raw['content'], $raw['contents']);
+            $out[] = $before
+                ? ['op' => 'update', 'record' => array_merge($before, $raw), 'previous' => $before]
+                : ['op' => 'create', 'record' => $raw, 'previous' => null];
+        }
+        return $out;
+    }
+
     /** rebuild.before / rebuild.after around core's managed-file rewrite. A plugin failure never fails the save. */
     public static function rebuild($site, $reason = 'save', array $opts = [])
     {
