@@ -474,7 +474,6 @@ if (!isset($GLOBALS['HAXCMS'])) {
       }
       $metadata = '
           <meta charset="utf-8">' . $preconnect . '
-          <link rel="preconnect" crossorigin href="https://fonts.googleapis.com">
           <link rel="preconnect" crossorigin href="https://cdnjs.cloudflare.com">
           <link rel="preload" href="' . $base . 'build.js" as="script" />
           <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />

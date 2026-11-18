@@ -3006,8 +3006,6 @@ class HAXCMSSite
       $canonical .= $alternateLinks;
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://fonts.gstatic.com">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />

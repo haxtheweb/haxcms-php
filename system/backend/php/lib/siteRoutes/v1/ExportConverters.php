@@ -372,7 +372,6 @@ class ExportConverters
             $parts[] = '<head>';
             $parts[] = '<meta charset="utf-8">';
             $parts[] = '<link rel="preconnect" crossorigin href="' . self::escapeHtmlValue($magic) . '">';
-            $parts[] = '<link rel="preconnect" crossorigin href="https://fonts.googleapis.com">';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'build.js" as="script" />';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'wc-registry.json" as="fetch" crossorigin="anonymous" />';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />';

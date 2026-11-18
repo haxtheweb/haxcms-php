@@ -377,9 +377,10 @@ class HAXCMSSiteMetadataTest extends TestCase
         // twitter:site is an @handle, never a URL; HAXcms has none to give
         $this->assertStringNotContainsString('twitter:site', $metadata);
         $this->assertStringContainsString('<meta name="og:type" property="og:type" content="website" />', $metadata);
-        // the font CSS host (no CORS) and the font file host (CORS) only
-        $this->assertStringContainsString('<link rel="preconnect" href="https://fonts.googleapis.com">', $metadata);
-        $this->assertStringContainsString('<link rel="preconnect" crossorigin href="https://fonts.gstatic.com">', $metadata);
+        // HAX serves its own fonts (webcomponents d-d-d/lib/fonts): a site
+        // never opens a connection to Google Fonts
+        $this->assertStringNotContainsString('fonts.googleapis.com', $metadata);
+        $this->assertStringNotContainsString('fonts.gstatic.com', $metadata);
         $this->assertStringNotContainsString('cdnjs.cloudflare.com', $metadata);
     }
 
