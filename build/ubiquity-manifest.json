@@ -14306,7 +14306,7 @@
         "lib/hax-picker.js": ["358047855a2a65cda34532bd6e8c0a34", "64fed8b380ff708704db095b3d6babe7"],
         "lib/hax-plate-context.js": ["0e2ec479f6080035cfae5adc594aa219", "aef463c39181d61bc890dbc62a0ad987"],
         "lib/hax-stax-browser.js": ["53dc6b9105ae5f789552f3d172c54c91", "46f2c13f6ded77dd1ed6e02dbdff9af3"],
-        "lib/hax-store.js": ["ba356c163dfbd1e743f60e160e31a5f3", "d922d0be4084d965db37c575bfcd94a3"],
+        "lib/hax-store.js": ["65d9159822e9e51c46625e056f5ca4f3", "a8f31ee69a67c410096bcdb697b5f4f7"],
         "lib/hax-text-editor-button.js": ["f87b41664287213d5408fd18207c6f00", "3684ebd3110f89ed1a5b3ad745a8bd01"],
         "lib/hax-text-editor-paste-button.js": ["339dbe2b60a6db129ed16e22db589c78", "ed1f0f1b6695393ca35ba91b89924fb7"],
         "lib/hax-text-editor-toolbar.js": ["3b666dc82db27d89e599658307419f26", "5da673ce007dd53909988518bc805223"],
@@ -19537,7 +19537,7 @@
         "lib/assets/images/ButtonBGDM.svg": ["09a29e6b588a109e9a9332952bb7b639", "09a29e6b588a109e9a9332952bb7b639"],
         "lib/assets/images/ButtonBGLM.svg": ["6b4c37c1bd5aaa3adf09e27af0989a55", "6b4c37c1bd5aaa3adf09e27af0989a55"],
         "lib/base.css": ["0007e14897ce31d4949fe8361ed81f07", "0007e14897ce31d4949fe8361ed81f07"],
-        "lib/core/HAXCMSLitElementTheme.js": ["1f6a66448a3fa9cd3c7ae0c1f855be33", "f780e09dace8cdb147a7e4ed8d6566a2"],
+        "lib/core/HAXCMSLitElementTheme.js": ["ae6fa7a1d386474b10e215c08450ec05", "75333e3e3f89de58620370f940e3c5bf"],
         "lib/core/HAXCMSThemeWiring.js": ["b761667470ac40175523bc6417bb1e74", "dcd7f5c75cb2b15e2129ab43274a5dee"],
         "lib/core/admin/HaxcmsAdminPanelStyles.js": ["a579da1be229fdb39dbaed7953ea42b0", "fa7832b8b9f504ae3b15f33610c62a6d"],
         "lib/core/admin/HaxcmsAdminSectionMixin.js": ["6ebcbe41a742a0a4d68c9715d80d8286", "1a67cdf3f4019d9242c2aaa0beb0813b"],
@@ -19566,7 +19566,7 @@
         "lib/core/haxcms-page-revisions-dialog.js": ["dd7e7dc6b09a9ad1c50e252ca85d8d44", "77b93915bbf26865160ce51d7da5da17"],
         "lib/core/haxcms-reading-progress.js": ["07d1d2fb4b87b6d2bd0d74472e837eae", "dc2062f409fc6f872412670fb4d6fd58"],
         "lib/core/haxcms-seo-admin-dialog.js": ["9d18c955b9dc15a8ee455124db23afae", "ee83a8474bf8b3404b670a12c3f35533"],
-        "lib/core/haxcms-site-builder.js": ["96bb6c94f4385da9699d99fb94260491", "7542da5a4790a6790a0486eafe88e821"],
+        "lib/core/haxcms-site-builder.js": ["044c49db929fc6dc8238bf9401f51bdd", "58d1a21d6aca5d30a6f48961c23df19d"],
         "lib/core/haxcms-site-dashboard.js": ["823ee050275d3ed120ba91e9a360cfbf", "4edf9f07e54d9b4dc037b3b5cfc36b86"],
         "lib/core/haxcms-site-details-dialog.js": ["161583c337a1c12c7c2259fee27f2848", "4bc0b2d1b84ba3aed6c3d41502a90b35"],
         "lib/core/haxcms-site-editor-ui.js": ["dc0b8007f029c63bb0b957ce0d68f1ef", "a867b243608efa7a78ae5b8a35bb25c3"],
@@ -19823,7 +19823,7 @@
         "lib/theme-screenshots/theme-writing-theme.jpg": ["e269fcac8f6f6e7f8f52c9fa03f26898", "e269fcac8f6f6e7f8f52c9fa03f26898"],
         "lib/theme-screenshots/theme-wysiwyg96-theme-thumb.jpg": ["9c8204c6966d0ae91703f4b4c155f8f6", "9c8204c6966d0ae91703f4b4c155f8f6"],
         "lib/theme-screenshots/theme-wysiwyg96-theme.jpg": ["cd438057366a9a33f627082209f9ed9e", "cd438057366a9a33f627082209f9ed9e"],
-        "lib/themes.json": ["0071009921d7f47912f0f93e7c1885ca", "6fb1bfee00653f04fb15f4e577b45f5b"],
+        "lib/themes.json": ["0071009921d7f47912f0f93e7c1885ca", "691d9d16c1eedecef01c990c0c5510e4"],
         "lib/ui-components/active-item/site-active-fields.js": ["a9034f6b665bf120a3a0050d1d8356fa", "1ee20b8004778af80a19b4d244c44814"],
         "lib/ui-components/active-item/site-active-media-banner.js": ["a45b2dabcaf081b76cbe21652ae965a5", "d4c7093b0dc7f09c9006882c56966415"],
         "lib/ui-components/active-item/site-active-tags.js": ["0f384ac356a19dd9cf507457a0f3708d", "f55486683d1f51babdfe78793a6d1cef"],
@@ -27509,9 +27509,9 @@
     },
     "@haxtheweb/la-tex": {
       "files": {
-        "la-tex.js": ["727d633499b0f84e2862fcac65cda7e4", "08cc665e232b2d82132679a47c0d616d"],
-        "lib/la-tex.docs.json": ["983820b9a7061b7a876aae8e962a15d6", "983820b9a7061b7a876aae8e962a15d6"],
-        "lib/la-tex.haxProperties.json": ["c1b14625b7ce6f7ab52c7ad8ee7fc0aa", "c1b14625b7ce6f7ab52c7ad8ee7fc0aa"],
+        "la-tex.js": ["7b69a4b40d485f695294cca98e33d75d", "48b318cc5efb52e7430c1e5c63d87d9f"],
+        "lib/la-tex.docs.json": ["2f19bfe10ff3886dfb6a05effc716296", "2f19bfe10ff3886dfb6a05effc716296"],
+        "lib/la-tex.haxProperties.json": ["4272cf9cc651a1bc178b3382e3db5283", "4272cf9cc651a1bc178b3382e3db5283"],
         "lib/la-tex.motion.json": ["531662e207affccfc882404f5af3cab3", "531662e207affccfc882404f5af3cab3"],
         "lib/latex2html5.js": ["8b1c55b1e82241a9b550db656f4019e7", "d70b63a5b085780c3fb3bfa5eebfd02c"],
         "locales/la-tex.af.json": ["553a2c7ddc7839f7c04e467f16f09a97", "553a2c7ddc7839f7c04e467f16f09a97"],
@@ -45646,6 +45646,7 @@
         "lib/selection.js": ["329ce411232e07b623b69e3367e95ce3", "05f4b5be3f3e889ece06afbadd78efaa"],
         "lib/slot.js": ["6edce8477dd5daddebe5c4672acb6007", "d8c3b4d8686646f4696383091f370c19"],
         "lib/storage.js": ["03468adb3fc6d62c9fba0a1c04f26e99", "b26efb462e2d1380d37dafa885922371"],
+        "lib/svg-contrast.js": ["83dc68ac4cc103cc65f53f1dc9e4e543", "d414842092d2dcd20000257699b86bcd"],
         "lib/url.js": ["f4060b66c7243f59df6258ff9270be6d", "2054602df0fe57f0291f1e0282b6a558"],
         "lib/utils.docs.json": ["3d4c62b9e92e1725b96f7752ca7d8e69", "3d4c62b9e92e1725b96f7752ca7d8e69"],
         "utils.js": ["61d07b3fab400b9149eb749340c79208", "d38e9ca24cb512310abc49bb9599f5ac"]
@@ -47883,7 +47884,7 @@
     }
   },
   "source": {
-    "commit": "8c65c3b0dc140ea70dd089b7e1b04378d8c26b7e",
+    "commit": "00d5a9da6bf66de007ea7be2b4c6ef14ba80d2ca",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
