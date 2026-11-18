@@ -40,7 +40,7 @@ class WritingSkeletonTest extends TestCase
         $this->assertSame('from-skeleton', $skeleton['build']['structure']);
     }
 
-    public function testTopLevelIsHomeAboutArchiveThenPostsOutOfTheMenu(): void
+    public function testTopLevelIsHomeAboutArchiveContactThenPostsOutOfTheMenu(): void
     {
         $items = self::skeleton()['build']['items'];
         $top = array_values(array_filter($items, function ($item) {
@@ -49,7 +49,7 @@ class WritingSkeletonTest extends TestCase
         usort($top, function ($a, $b) {
             return $a['order'] <=> $b['order'];
         });
-        $this->assertSame(array('home', 'about', 'archive', 'posts'), array_column($top, 'slug'));
+        $this->assertSame(array('home', 'about', 'archive', 'contact', 'posts'), array_column($top, 'slug'));
         $this->assertTrue(self::bySlug($items, 'posts')['metadata']['hideInMenu']);
         // the home page's content stands in for a title, so the title is hidden
         $this->assertTrue(self::bySlug($items, 'home')['metadata']['hideTitle']);
