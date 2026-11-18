@@ -2769,7 +2769,7 @@ paths:
       summary: Get what enabled plugins add to this site's admin screens
       description: >-
         Declarative interface contributions from the plugins that are on, and the
-        core contracts they advertise by contract and result name.
+        core contracts they advertise by contract and result name, and the importers (choices) a person can pick from.
       security:
         - bearerAuth: []
           siteTokenHeader: []
@@ -4947,6 +4947,35 @@ components:
           items:
             type: object
             additionalProperties: true
+        choices:
+          type: object
+          description: >-
+            For each core contract a person picks one implementer for (import.platform), the
+            implementers offered on admin screens, with what each asks for.
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/PluginChoice"
         contracts:
           type: object
           additionalProperties: true
+    PluginChoice:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          description: The plugin to name in the import call; screens build their form from input and uploads.
+        title:
+          type: string
+        description:
+          type: string
+        input:
+          type: array
+          items:
+            type: string
+            enum: [url, upload, html, xml]
+        uploads:
+          type: array
+          items:
+            type: string

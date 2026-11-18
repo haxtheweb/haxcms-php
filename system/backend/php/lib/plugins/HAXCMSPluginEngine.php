@@ -961,22 +961,46 @@ class HAXCMSPluginEngine
         return ['status' => 200, 'body' => $body];
     }
 
-    public function contractImplementers($name)
+    // what an import screen (or any chooser) lists for a contract. $opts['surface'] (admin, cli, mcp) keeps the
+    // implementers offered there; a hidden plugin is never offered for a contract the caller chooses (spec/07, Choices)
+    public function contractImplementers($name, $opts = [])
     {
+        $chosen = ($this->coreContracts[$name]['dispatch'] ?? null) === 'chosen';
+        $surface = is_array($opts) ? ($opts['surface'] ?? null) : null;
         $out = [];
         foreach ($this->activePlugins() as $x) {
             $e = self::implEntry($x->manifest, $name);
-            if (!$e) {
+            if (!$e || ($chosen && ($x->manifest['hidden'] ?? false) === true)) {
+                continue;
+            }
+            if ($surface && !in_array($surface, $e['surfaces'] ?? ['admin', 'cli', 'mcp'], true)) {
                 continue;
             }
             $row = ['id' => $x->id, 'title' => $x->manifest['title'] ?? null, 'description' => $x->manifest['description'] ?? null];
-            if (!empty($e['accepts'])) {
-                $row['accepts'] = $e['accepts'];
-            }
-            if (!empty($e['provides'])) {
-                $row['provides'] = $e['provides'];
+            foreach (['accepts', 'provides', 'input', 'uploads', 'surfaces'] as $k) {
+                if (!empty($e[$k])) {
+                    $row[$k] = $e[$k];
+                }
             }
             $out[] = $row;
+        }
+        return $out;
+    }
+    // choices (spec/07): for every core contract the caller chooses one implementer for, what one surface offers
+    public function contractChoices($surface)
+    {
+        $out = [];
+        foreach ($this->coreContracts as $name => $def) {
+            if (($def['dispatch'] ?? null) !== 'chosen') {
+                continue;
+            }
+            $impl = array_map(function ($row) {
+                unset($row['surfaces']);
+                return $row;
+            }, $this->contractImplementers($name, ['surface' => $surface]));
+            if ($impl) {
+                $out[$name] = $impl;
+            }
         }
         return $out;
     }

@@ -235,6 +235,34 @@ class PluginPlatformTest extends TestCase
         }
     }
 
+    /**
+     * Choices (spec/07): the dashboard's contributions carry the importers offered on admin screens; a hidden plugin is
+     * never offered, and with nothing on nothing is. The inputs each importer declares are checked by the spec's
+     * conformance cases on this engine (plat-017). (Mirrors haxcms-nodejs test/unit/plugin-platform.test.cjs.)
+     */
+    public function testSystemEngineOffersImporterChoices(): void
+    {
+        $root = HAXCMSPluginEngine::tempDir('haxcms-plugin-test-');
+        $this->tmp[] = $root;
+        $dirs = [];
+        foreach (['fx-pick' => false, 'fx-pick-hidden' => true] as $id => $hidden) {
+            $dir = "$root/plugins/$id";
+            mkdir("$dir/src/php", 0775, true);
+            $class = str_replace(' ', '', ucwords(str_replace('-', ' ', $id))) . 'Plugin';
+            file_put_contents("$dir/plugin.yaml", "specVersion: \"0.1.0\"\nid: $id\nuuid: " . ($hidden ? 'b6c2f1d4-7a39-4e58-9c01-3d5e8f2a6b70' : 'a5b1e0c3-6928-4d47-8bf0-2c4d7e1f5a69') . "\ntitle: Pick $id\ndescription: An importer to choose.\nversion: 0.1.0\nruntimes: [php]\nentry: { php: src/php/Plugin.php }\n" . ($hidden ? "hidden: true\n" : '') . "implements: [import.platform]\n");
+            file_put_contents("$dir/src/php/Plugin.php", "<?php\nclass $class {\n  public function importPlatformConvert(\$ctx, \$input) {\n    return ['title' => 'x', 'items' => []];\n  }\n}\n");
+            $dirs[] = $dir;
+        }
+        $this->assertSame([], HAXCMSPluginSystem::systemHost(['root' => $root])->contractChoices('admin'), 'nothing on, nothing offered');
+        HAXCMSPluginSystem::reset();
+        putenv('HAXCMS_PLUGIN_DIRS=' . implode(PATH_SEPARATOR, $dirs));
+        $h = HAXCMSPluginSystem::systemHost(['root' => $root]);
+        $this->assertSame('active', $h->get('fx-pick-hidden')->status);
+        $choices = $h->contractChoices('admin');
+        $this->assertSame([['id' => 'fx-pick', 'title' => 'Pick fx-pick', 'description' => 'An importer to choose.']], $choices['import.platform'] ?? null, json_encode($choices));
+        $this->assertSame(['fx-pick'], array_column($h->contractImplementers('import.platform', ['surface' => 'cli']), 'id'));
+    }
+
     /** /.well-known/<reserved name> is answered by the plugin that declares it, on the system engine (spec/05). */
     public function testWellKnownServesADeclaredReservedName(): void
     {

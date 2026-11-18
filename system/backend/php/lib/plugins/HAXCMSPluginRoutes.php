@@ -437,7 +437,7 @@ class HAXCMSPluginRoutes
         $user = ['user' => HAXCMSPluginSystem::userRecord($auth['userName'])];
         $h = $surface === 'site' ? HAXCMSPluginSystem::host($site, $user) : HAXCMSPluginSystem::systemHost($user);
         if (!$h) {
-            self::send(200, ['status' => 200, 'data' => ['contributions' => [], 'contracts' => new stdClass()]]);
+            self::send(200, ['status' => 200, 'data' => ['contributions' => [], 'choices' => new stdClass(), 'contracts' => new stdClass()]]);
             return;
         }
         $items = [];
@@ -463,7 +463,8 @@ class HAXCMSPluginRoutes
         usort($items, function ($a, $b) {
             return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
         });
-        self::send(200, ['status' => 200, 'data' => ['contributions' => $items, 'contracts' => (object) $h->advertisedContracts()]]);
+        // choices (spec/07): the importers (and any other contract a person picks one implementer for) offered on admin screens
+        self::send(200, ['status' => 200, 'data' => ['contributions' => $items, 'choices' => (object) $h->contractChoices('admin'), 'contracts' => (object) $h->advertisedContracts()]]);
     }
 
     private static function send($status, $body, array $headers = [])

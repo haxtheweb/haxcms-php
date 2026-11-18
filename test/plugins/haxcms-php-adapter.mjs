@@ -105,7 +105,8 @@ class PhpBackend {
   callContract(name, op, input, opts = {}) { return this.rpc("callContract", name, op, input, opts); }
   runSchedule(plugin, id) { return this.rpc("runSchedule", plugin, id); }
   importFile(input) { return this.rpc("importFile", input); }
-  contractImplementers(name) { return this.rpc("contractImplementers", name); }
+  contractImplementers(name, opts = {}) { return this.rpc("contractImplementers", name, opts); }
+  contractChoices(surface) { return this.rpc("contractChoices", surface); }
   exportUser(id) { return this.rpc("exportUser", id); }
   eraseUser(id) { return this.rpc("eraseUser", id); }
   flushLog() { return this.rpc("flushLog"); }
