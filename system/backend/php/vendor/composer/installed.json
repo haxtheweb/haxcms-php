@@ -3666,25 +3666,28 @@
                 },
                 {
                         "name": "symfony/filesystem",
-                        "version": "v4.4.42",
-                        "version_normalized": "4.4.42.0",
+                        "version": "v7.4.23",
+                        "version_normalized": "7.4.23.0",
                         "source": {
                                 "type": "git",
                                 "url": "https://github.com/symfony/filesystem.git",
-                                "reference": "815412ee8971209bd4c1eecd5f4f481eacd44bf5"
+                                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93"
                         },
                         "dist": {
                                 "type": "zip",
-                                "url": "https://api.github.com/repos/symfony/filesystem/zipball/815412ee8971209bd4c1eecd5f4f481eacd44bf5",
-                                "reference": "815412ee8971209bd4c1eecd5f4f481eacd44bf5",
+                                "url": "https://api.github.com/repos/symfony/filesystem/zipball/53d609da66578dad5a39fe290e8f924ec8f05e93",
+                                "reference": "53d609da66578dad5a39fe290e8f924ec8f05e93",
                                 "shasum": ""
                         },
                         "require": {
-                                "php": ">=7.1.3",
+                                "php": ">=8.2",
                                 "symfony/polyfill-ctype": "~1.8",
-                                "symfony/polyfill-php80": "^1.16"
+                                "symfony/polyfill-mbstring": "~1.8"
                         },
-                        "time": "2022-05-20T08:49:14+00:00",
+                        "require-dev": {
+                                "symfony/process": "^6.4|^7.0|^8.0"
+                        },
+                        "time": "2026-11-04T08:27:22+00:00",
                         "type": "library",
                         "installation-source": "dist",
                         "autoload": {
@@ -3712,7 +3715,7 @@
                         "description": "Provides basic utilities for the filesystem",
                         "homepage": "https://symfony.com",
                         "support": {
-                                "source": "https://github.com/symfony/filesystem/tree/v4.4.42"
+                                "source": "https://github.com/symfony/filesystem/tree/v7.4.23"
                         },
                         "funding": [
                                 {
@@ -3721,6 +3724,10 @@
                                 },
                                 {
                                         "url": "https://github.com/fabpot",
+                                        "type": "github"
+                                },
+                                {
+                                        "url": "https://github.com/nicolas-grekas",
                                         "type": "github"
                                 },
                                 {
