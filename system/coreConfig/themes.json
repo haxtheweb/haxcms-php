@@ -1,4 +1,18 @@
 {
+  "al-folio-theme": {
+    "element": "al-folio-theme",
+    "path": "@haxtheweb/papermod-theme/lib/al-folio-theme.js",
+    "name": "al-folio",
+    "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-al-folio-theme-thumb.jpg",
+    "description": "Start with a blank site using the al-folio",
+    "category": [
+      "Website"
+    ],
+    "hidden": false,
+    "priority": 0,
+    "terrible": false,
+    "supportedPalettes": null
+  },
   "app-hax-theme": {
     "element": "app-hax-theme",
     "path": "@haxtheweb/app-hax/lib/app-hax-theme.js",
@@ -9,6 +23,20 @@
       "Course"
     ],
     "hidden": true,
+    "priority": 0,
+    "terrible": false,
+    "supportedPalettes": null
+  },
+  "astrowind-theme": {
+    "element": "astrowind-theme",
+    "path": "@haxtheweb/papermod-theme/lib/astrowind-theme.js",
+    "name": "AstroWind",
+    "thumbnail": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-astrowind-theme-thumb.jpg",
+    "description": "Start with a blank site using the AstroWind",
+    "category": [
+      "Website"
+    ],
+    "hidden": false,
     "priority": 0,
     "terrible": false,
     "supportedPalettes": null
