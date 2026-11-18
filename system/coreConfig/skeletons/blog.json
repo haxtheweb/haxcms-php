@@ -2,12 +2,12 @@
   "meta": {
     "name": "blog",
     "priority": -1,
-    "description": "A blog starter on the Clean One theme: posts, a journal and topic pages, shown with a sample coffee blog.",
+    "description": "A blog starter on the Clean One theme: posts, a journal, topic pages, about and contact, shown with a sample coffee blog.",
     "version": "1.0.0",
     "created": "2026-02-09T16:45:47.565Z",
     "type": "skeleton",
     "useCaseTitle": "Blog",
-    "useCaseDescription": "A blog starter on the Clean One theme: posts, a journal and topic pages, shown with a sample coffee blog.",
+    "useCaseDescription": "A blog starter on the Clean One theme: posts, a journal, topic pages, about and contact, shown with a sample coffee blog.",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-clean-one-thumb.jpg",
     "category": ["Website"],
     "tags": ["blog", "journal", "writing"],
@@ -134,6 +134,34 @@
         "parent": "b9f33e46-9b91-6a49-95f9-42ee22832376",
         "indent": 1,
         "content": "<h4 data-style-guide=\"byline\" data-design-treatment=\"horz-10p\" data-primary=\"8\" data-border-radius=\"xs\">Finding Your Flavor Identity</h4>\n<p>If you’ve ever looked at a bag of specialty coffee and seen the words \"Washed\" or \"Natural\" and felt confused, you aren’t alone. These terms refer to how the coffee cherry is processed after being picked. In \"Washed\" coffee, the fruit is stripped away before drying, leading to a clean, bright, and acidic cup. I love Washed coffees when I’m in a high-focus \"deep work\" mode; they are sharp and intellectually stimulating, offering clear notes of jasmine or lime that don't weigh down your palate.</p>\n<p>On the flip side, \"Natural\" processing involves drying the entire coffee cherry with the bean still inside. This allows the sugars from the fruit to ferment and soak into the seed, creating what I call \"Fruit Bombs.\" These coffees are wild, funky, and often taste like strawberry jam or red wine. I reach for a Natural process bean on a slow Sunday morning or when I&#8217;m brainstorming creative ideas. It&#8217;s a polarizing flavor&#8212;people usually either love the funk or find it too intense&#8212;but it represents the beautiful diversity of the coffee world.</p>\n<p>For a clean, crisp Washed experience, look for a <strong>Honduran or Guatemalan bean</strong>. If you want to try the wild side of Natural processing, seek out a <strong>Natural Processed Sidama</strong> from a local roaster like <strong>Sowers</strong>. It will completely redefine what you thought coffee was supposed to taste like.</p>\n<h3 data-style-guide=\"sectionDivider\" data-design-treatment=\"horz-md\" data-primary=\"2\" data-padding=\"xs\">At a Glance</h3><editable-table accent-color=\"grey\" column-header><table><thead><tr><th scope=\"col\">Process</th><th scope=\"col\">Tastes like</th><th scope=\"col\">Reach for it when</th></tr></thead><tbody><tr><td><strong>Washed</strong></td><td>Clean, bright, acidic: jasmine, lime</td><td>You need focus for deep work</td></tr><tr><td><strong>Natural</strong></td><td>Wild, fruity, funky: strawberry jam, red wine</td><td>A slow morning or a brainstorm</td></tr></tbody></table></editable-table>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "00d5a559-245c-59a3-809f-7cb389294dcd",
+        "title": "About",
+        "slug": "about",
+        "order": 5,
+        "parent": null,
+        "indent": 0,
+        "content": "<p>This blog is about coffee: where it grows, how it is roasted and why it tastes the way it does.</p><p>Replace this with who writes here, why, and how often new posts come out.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "4a6abb0c-c422-52d9-80aa-a6989c192ced",
+        "title": "Contact",
+        "slug": "contact",
+        "order": 6,
+        "parent": null,
+        "indent": 0,
+        "content": "<p>Questions, corrections, or a bean you think we should try? Send us a note.</p><simple-cta label=\"Email the blog\" link=\"mailto:hello@example.com\"></simple-cta>",
         "metadata": {
           "published": true,
           "hideInMenu": false,

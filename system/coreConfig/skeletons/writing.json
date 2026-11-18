@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "writing",
-    "description": "A writing-only site on the Writing theme: a home page of recent posts, an About page, an archive by year, and posts under Posts.",
+    "description": "A writing-only site on the Writing theme: a home page of recent posts, an About page, a Contact page, an archive by year, and posts under Posts.",
     "version": "1.0.0",
     "created": "2026-11-16T00:00:00.000Z",
     "type": "skeleton",
@@ -74,7 +74,7 @@
         "id": "d8324e5c-5f7d-51fe-bc27-56d025bd3c6c",
         "title": "Posts",
         "slug": "posts",
-        "order": 3,
+        "order": 4,
         "parent": null,
         "indent": 0,
         "content": "<p>Every post lives under this page. It stays out of the menu; the archive lists them all.</p>",
@@ -138,6 +138,20 @@
           "published": true,
           "hideInMenu": false,
           "tags": ["soil", "mulch"]
+        }
+      },
+      {
+        "id": "02b484c8-512e-5008-9e11-5064d94158a6",
+        "title": "Contact",
+        "slug": "contact",
+        "order": 3,
+        "parent": null,
+        "indent": 0,
+        "content": "<p>Questions about something we wrote, or a correction? We read everything that comes in.</p><p>Email <a href=\"mailto:farm@example.com\">farm@example.com</a>.</p>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
         }
       }
     ],
