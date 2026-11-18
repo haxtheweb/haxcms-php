@@ -1,0 +1,110 @@
+name: perf
+# Weekly perf + memory run of haxcms-php at scale (haxtheweb/issues#3355).
+# There is one harness for both backends: haxcms-nodejs's test/perf, checked
+# out from its main branch. It builds a seeded 500 page site through the HTTP
+# API (login, createSite, bulk page creation), then measures memory over a
+# long session, cold page loads and opening the outline designer, against the
+# DDEV project (http://haxcms.ddev.site resolves to 127.0.0.1 inside the
+# runner; no live deployment is touched). haxcms-php serves sites from
+# /sites/, hence --sites-dir sites.
+#
+# REPORT-ONLY: no --check, because test/perf/budgets.json is tuned for
+# haxcms-nodejs. The report goes to the job summary and the results JSON is
+# uploaded, so PHP budgets can be set once there is a baseline.
+#
+# Same triggers as haxcms-nodejs's perf workflow: weekly (Sunday night US
+# Eastern, ready for Monday review), manual runs, and PRs labeled `perf`.
+on:
+  schedule:
+    - cron: "53 4 * * 1" # weekly, Monday 04:53 UTC (Sunday night US Eastern)
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "all | memory | lighthouse | outline | scale"
+        required: false
+        default: "all"
+      sizes:
+        description: "page counts for scale, e.g. 100,500,1000"
+        required: false
+        default: "100,500,1000"
+  pull_request:
+    types: [labeled, synchronize, opened, reopened]
+permissions:
+  contents: read
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  perf:
+    name: "perf (DDEV, report-only)"
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'perf')
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      PERF_COMMAND: ${{ github.event.inputs.command || 'all' }}
+      PERF_SIZES: ${{ github.event.inputs.sizes || '100,500,1000' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check out the perf harness from haxcms-nodejs main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: haxtheweb/haxcms-nodejs
+          ref: main
+          path: .perf/haxcms-nodejs
+          persist-credentials: false
+          sparse-checkout: |
+            package.json
+            test/perf
+            test/e2e/helpers
+          sparse-checkout-cone-mode: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install harness dependencies
+        # Only what test/perf loads, at the versions haxcms-nodejs pins.
+        # Install scripts are skipped: puppeteer-core downloads nothing (the
+        # runner's Google Chrome is used).
+        working-directory: .perf/haxcms-nodejs
+        run: |
+          deps=$(node -e 'const p=require("./package.json");const all=Object.assign({},p.dependencies,p.devDependencies);console.log(["axios","minimist","puppeteer-core"].map(n=>n+"@"+all[n]).join(" "))')
+          echo "installing $deps"
+          npm install --ignore-scripts --no-save --no-package-lock --no-audit --no-fund $deps
+          npm install --prefix "$RUNNER_TEMP/lighthouse" --ignore-scripts --no-audit --no-fund lighthouse@13.6.0
+      - name: Set up DDEV and start the project
+        # ddev start runs the .ddev post-start hooks, which seed admin / admin.
+        uses: ddev/github-action-setup-ddev@fdf2f5c97943bae638f31df6df86f1defa6210c0 # v1.12.1
+      - name: Run perf harness
+        # ubuntu-latest ships Google Chrome at /usr/bin/google-chrome, which
+        # the harness auto-detects.
+        working-directory: .perf/haxcms-nodejs
+        env:
+          HAXCMS_PERF_USERNAME: admin
+          HAXCMS_PERF_PASSWORD: admin
+          HAXCMS_PERF_LIGHTHOUSE_DIR: ${{ runner.temp }}/lighthouse
+        run: |
+          if [ "$PERF_COMMAND" = "scale" ]; then
+            node test/perf/run.cjs scale --sizes "$PERF_SIZES" --base-url http://haxcms.ddev.site --sites-dir sites
+          else
+            node test/perf/run.cjs "$PERF_COMMAND" --base-url http://haxcms.ddev.site --sites-dir sites
+          fi
+      - name: Job summary
+        if: always()
+        run: |
+          for f in .perf/haxcms-nodejs/test/perf/results/*.md; do
+            [ -f "$f" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: perf-results
+          path: .perf/haxcms-nodejs/test/perf/results/
+          if-no-files-found: ignore
+          retention-days: 30
