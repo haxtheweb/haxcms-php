@@ -955,8 +955,6 @@ if ($installTokenEnabled && !$installTokenCookieValid) {
       is imported by the installer after its first render, so it never
       holds up the page.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <?php
   $installerPreloads = array(
     'lit/index.js',
