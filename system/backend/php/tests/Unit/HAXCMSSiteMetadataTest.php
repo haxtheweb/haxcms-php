@@ -522,6 +522,34 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertSame('https://example.com/author.png', $author['image']['url']);
     }
 
+    public function testGetSiteMetadataJsonLdSameAsOnOrganizationAndPerson(): void
+    {
+        // haxtheweb/issues#3367: the site's profiles elsewhere go on the
+        // Organization node; both author social links go on the Person
+        $this->site->manifest->metadata->site->sameAs = array(
+            'https://github.com/haxtheweb',
+            'javascript:alert(1)',
+            'https://www.linkedin.com/company/haxtheweb',
+        );
+        $this->site->manifest->metadata->author = (object) array(
+            'name' => 'Author',
+            'socialLink' => 'https://mastodon.social/@author',
+            'socialLink2' => 'https://github.com/author',
+        );
+        $graph = $this->extractJsonLd($this->site->getSiteMetadata($this->homePage()));
+        $this->assertSame(
+            array('https://github.com/haxtheweb', 'https://www.linkedin.com/company/haxtheweb'),
+            $this->graphNodeByType($graph, 'Organization')['sameAs']
+        );
+        $this->assertSame(
+            array('https://mastodon.social/@author', 'https://github.com/author'),
+            $this->graphNodeByType($graph, 'Person')['sameAs']
+        );
+        unset($this->site->manifest->metadata->site->sameAs);
+        $plain = $this->extractJsonLd($this->site->getSiteMetadata($this->homePage()));
+        $this->assertArrayNotHasKey('sameAs', $this->graphNodeByType($plain, 'Organization'));
+    }
+
     public function testGetSiteMetadataJsonLdOmitsPersonWithoutAuthor(): void
     {
         $this->site->manifest->author = '';

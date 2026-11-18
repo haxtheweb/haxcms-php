@@ -267,6 +267,27 @@ trait OperationsRouteSaveSeoSettings {
         );
       }
 
+      // the site's profiles elsewhere, published as Organization sameAs
+      $sameAsSent = false;
+      $sameAsValue = null;
+      if (array_key_exists('sameAs', $seo)) {
+        $sameAsSent = true;
+        $sameAsValue = $seo['sameAs'];
+      }
+      else if (array_key_exists('manifest.metadata.site.sameAs', $manifestSeo)) {
+        $sameAsSent = true;
+        $sameAsValue = $manifestSeo['manifest.metadata.site.sameAs'];
+      }
+      if ($sameAsSent) {
+        $sameAs = HAXCMSSameAs::normalize($sameAsValue);
+        if (count($sameAs) > 0) {
+          $site->manifest->metadata->site->sameAs = $sameAs;
+        }
+        else {
+          unset($site->manifest->metadata->site->sameAs);
+        }
+      }
+
       $langValue = null;
       if (array_key_exists('lang', $seo)) {
         $langValue = $seo['lang'];

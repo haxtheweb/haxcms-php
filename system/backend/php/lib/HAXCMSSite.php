@@ -3,6 +3,7 @@
 include_once 'RSS.php';
 include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
+include_once 'HAXCMSSameAs.php';
 include_once dirname(__FILE__) . '/CommitContext.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
@@ -3117,6 +3118,13 @@ class HAXCMSSite
       else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->socialLink) && trim((string) $this->manifest->author->socialLink) != '') {
         $authorSocialLink = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->author->socialLink), '');
       }
+      $authorSocialLink2 = '';
+      if (isset($this->manifest->metadata->author->socialLink2) && trim((string) $this->manifest->metadata->author->socialLink2) != '') {
+        $authorSocialLink2 = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->metadata->author->socialLink2), '');
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->socialLink2) && trim((string) $this->manifest->author->socialLink2) != '') {
+        $authorSocialLink2 = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->author->socialLink2), '');
+      }
       $authorImageForStructuredData = '';
       if (isset($this->manifest->metadata->author->image) && trim((string) $this->manifest->metadata->author->image) != '') {
         $authorImageForStructuredData = $toAbsoluteStructuredDataUrl(trim((string) $this->manifest->metadata->author->image));
@@ -3213,7 +3221,7 @@ class HAXCMSSite
       $jsonLdGraph = array();
       $authorNode = null;
       $publisherNode = null;
-      if ($authorName != '' || $authorSocialLink != '' || $authorImageForStructuredData != '') {
+      if ($authorName != '' || $authorSocialLink != '' || $authorSocialLink2 != '' || $authorImageForStructuredData != '') {
         $authorNode = array(
           '@type' => 'Person',
           '@id' => $authorStructuredDataId,
@@ -3221,8 +3229,10 @@ class HAXCMSSite
         if ($authorName != '') {
           $authorNode['name'] = $authorName;
         }
-        if ($authorSocialLink != '') {
-          $authorNode['sameAs'] = array($authorSocialLink);
+        // both social links the SEO form collects; http(s) only
+        $authorSameAs = HAXCMSSameAs::normalize(array($authorSocialLink, $authorSocialLink2));
+        if (count($authorSameAs) > 0) {
+          $authorNode['sameAs'] = $authorSameAs;
         }
         if ($authorImageForStructuredData != '') {
           $authorNode['image'] = array(
@@ -3245,7 +3255,14 @@ class HAXCMSSite
             'url' => $siteLogoForStructuredData,
           );
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        // the site's profiles elsewhere (metadata.site.sameAs)
+        $siteSameAs = HAXCMSSameAs::normalize(
+          isset($this->manifest->metadata->site->sameAs) ? $this->manifest->metadata->site->sameAs : null
+        );
+        if (count($siteSameAs) > 0) {
+          $publisherNode['sameAs'] = $siteSameAs;
+        }
+        if ($authorNode !== null) {
           $publisherNode['founder'] = array(
             '@id' => $authorNode['@id'],
           );
@@ -3274,12 +3291,12 @@ class HAXCMSSite
             'query-input' => 'required name=search_term_string',
           );
         }
-        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+        if ($publisherNode !== null) {
           $webSiteNode['publisher'] = array(
             '@id' => $publisherNode['@id'],
           );
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        if ($authorNode !== null) {
           $webSiteNode['author'] = array(
             '@id' => $authorNode['@id'],
           );
@@ -3329,12 +3346,12 @@ class HAXCMSSite
         if ($pageUpdatedISO != '') {
           $webPageNode['dateModified'] = $pageUpdatedISO;
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        if ($authorNode !== null) {
           $webPageNode['author'] = array(
             '@id' => $authorNode['@id'],
           );
         }
-        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+        if ($publisherNode !== null) {
           $webPageNode['publisher'] = array(
             '@id' => $publisherNode['@id'],
           );
