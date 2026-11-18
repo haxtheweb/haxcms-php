@@ -1204,10 +1204,13 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
                     // 4.1.2); use the video's own title or caption, else a
                     // generic "Video" label. Mirrors haxcms-nodejs.
                     $videoTitle = 'Video';
-                    foreach (array('title', 'media-title', 'caption', 'aria-label') as $titleAttr) {
-                        if ($el->hasAttribute($titleAttr) && $el->getAttribute($titleAttr) != '') {
-                            $videoTitle = $el->getAttribute($titleAttr);
-                            break;
+                    if ($el instanceof DOMElement) {
+                        foreach (array('title', 'media-title', 'caption', 'aria-label') as $titleAttr) {
+                            $titleValue = $el->getAttribute($titleAttr);
+                            if ($titleValue != '') {
+                                $videoTitle = $titleValue;
+                                break;
+                            }
                         }
                     }
                     $embed = $doc->createDocumentFragment();
