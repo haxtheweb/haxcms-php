@@ -93,6 +93,27 @@ class ExportConverters
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    // Accessibility: every exported HTML document declares the site's language
+    // (WCAG 3.1.1) and its text direction, so screen readers pick the right
+    // voice and right-to-left sites read in order. Only BCP 47 characters are
+    // kept. Mirrors haxcms-nodejs exports.js getSiteExportLang.
+    const RTL_LANGUAGES = array('ar', 'arc', 'ckb', 'dv', 'fa', 'he', 'ks', 'ku', 'ps', 'sd', 'ug', 'ur', 'yi');
+
+    public static function getSiteExportLang($site = null)
+    {
+        $lang = $site !== null ? (string) SiteRouteUtils::getSiteLanguage($site) : '';
+        $lang = substr(preg_replace('/[^A-Za-z0-9-]/', '', $lang), 0, 35);
+        return $lang != '' ? $lang : 'en';
+    }
+
+    public static function getExportLangDirAttributes($lang = 'en')
+    {
+        $parts = explode('-', (string) $lang);
+        $primary = strtolower($parts[0]);
+        $dir = in_array($primary, self::RTL_LANGUAGES, true) ? 'rtl' : 'ltr';
+        return 'lang="' . self::escapeHtmlValue($lang) . '" dir="' . $dir . '"';
+    }
+
     public static function sanitizeExportHtml($html = '')
     {
         // Security (SEC-SANITIZE): use the DOM-based SanitizeContent sanitizer instead
@@ -138,13 +159,13 @@ class ExportConverters
         return;
     }
 
-    public static function buildItemExportHtml($item, $content = '')
+    public static function buildItemExportHtml($item, $content = '', $site = null)
     {
         $itemTitle = self::buildItemExportDocumentTitle($item);
         $itemContent = (string) $content;
         $parts = array();
         $parts[] = '<!doctype html>';
-        $parts[] = '<html>';
+        $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
         $parts[] = '<head>';
         $parts[] = '<meta charset="utf-8" />';
         $parts[] = '<title>' . self::escapeHtmlValue($itemTitle) . '</title>';
@@ -347,7 +368,7 @@ class ExportConverters
             $content = self::buildSiteExportHtmlContent($site, $ancestor, $visibleOnly);
             $parts = array();
             $parts[] = '<!DOCTYPE html>';
-            $parts[] = '<html lang="en">';
+            $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
             $parts[] = '<head>';
             $parts[] = '<meta charset="utf-8">';
             $parts[] = '<link rel="preconnect" crossorigin href="' . self::escapeHtmlValue($magic) . '">';
@@ -374,7 +395,7 @@ class ExportConverters
 
         $parts = array();
         $parts[] = '<!doctype html>';
-        $parts[] = '<html>';
+        $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
         $parts[] = '<head>';
         $parts[] = '<meta charset="utf-8" />';
         $parts[] = '<title>' . self::escapeHtmlValue($siteTitle) . '</title>';
@@ -1179,9 +1200,22 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
                 }
 
                 if ($videoId != '') {
+                    // Accessibility: an embedded frame needs a title (WCAG
+                    // 4.1.2); use the video's own title or caption, else a
+                    // generic "Video" label. Mirrors haxcms-nodejs.
+                    $videoTitle = 'Video';
+                    if ($el instanceof DOMElement) {
+                        foreach (array('title', 'media-title', 'caption', 'aria-label') as $titleAttr) {
+                            $titleValue = $el->getAttribute($titleAttr);
+                            if ($titleValue != '') {
+                                $videoTitle = $titleValue;
+                                break;
+                            }
+                        }
+                    }
                     $embed = $doc->createDocumentFragment();
                     $embed->appendXML(
-                        '<div xmlns="' . $xhtmlNs . '" class="responsive-iframe-container"><iframe class="responsive-iframe" width="100%" height="100%" frameborder="0" src="' . self::escapeHtmlValue($videoId) . '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
+                        '<div xmlns="' . $xhtmlNs . '" class="responsive-iframe-container"><iframe class="responsive-iframe" title="' . self::escapeHtmlValue($videoTitle) . '" width="100%" height="100%" frameborder="0" src="' . self::escapeHtmlValue($videoId) . '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
                     );
                     $el->parentNode->replaceChild($embed, $el);
                 }

@@ -227,7 +227,7 @@ return function ($context) {
         }
         try {
             $content = SiteRouteUtils::getItemContent($site, $item);
-            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content, $site);
         }
             catch (Exception $e) {
                 @error_log('haxcms item export HTML failed: ' . $e->getMessage());
@@ -257,7 +257,7 @@ return function ($context) {
     if ($format == 'html') {
         try {
             $content = SiteRouteUtils::getItemContent($site, $item);
-            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content, $site);
         }
         catch (Exception $e) {
             $sendTopLevelError(500, 'Unable to build item export HTML: ' . $e->getMessage());
