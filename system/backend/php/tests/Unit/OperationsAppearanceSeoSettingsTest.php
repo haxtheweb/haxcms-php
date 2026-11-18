@@ -543,6 +543,42 @@ class OperationsAppearanceSeoSettingsTest extends TestCase
         $this->assertSame('UA-000000-1', $persisted->metadata->site->settings->gaID);
     }
 
+    public function testSeoSameAsIsNormalizedAndEmptyRemovesIt(): void
+    {
+        // haxtheweb/issues#3367; same behavior as haxcms-nodejs saveSeoSettings
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'seo' => array(
+                'sameAs' => "https://github.com/haxtheweb\njavascript:alert(1)\nhttps://github.com/haxtheweb\nhttps://www.youtube.com/@haxtheweb",
+            ),
+        );
+        $this->ops->saveSeoSettings();
+        $this->assertSame(
+            array('https://github.com/haxtheweb', 'https://www.youtube.com/@haxtheweb'),
+            $this->persisted()->metadata->site->sameAs
+        );
+        // a save that doesn't send sameAs leaves it alone
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'seo' => array('lang' => 'en'),
+        );
+        $this->ops->saveSeoSettings();
+        $this->assertSame(
+            array('https://github.com/haxtheweb', 'https://www.youtube.com/@haxtheweb'),
+            $this->persisted()->metadata->site->sameAs
+        );
+        // the dotted manifest form works too, and an empty list removes it
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'manifest' => array('seo' => array('manifest.metadata.site.sameAs' => array())),
+        );
+        $this->ops->saveSeoSettings();
+        $this->assertObjectNotHasProperty('sameAs', $this->persisted()->metadata->site);
+    }
+
     public function testSeoBooleanSettingsInterpretation(): void
     {
         $this->ops->params = array(

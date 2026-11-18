@@ -1,0 +1,145 @@
+{
+  "//": "Shared with haxcms-php tests/fixtures/same-as-vectors.json: both backends keep exactly these sameAs URLs, spelled the same way (haxtheweb/issues#3367).",
+  "vectors": [
+    {
+      "input": "https://github.com/haxtheweb",
+      "kept": "https://github.com/haxtheweb"
+    },
+    {
+      "input": "https://GitHub.com",
+      "kept": "https://github.com/"
+    },
+    {
+      "input": "HTTPS://Example.org:443/a?b=c#d",
+      "kept": "https://example.org/a?b=c#d"
+    },
+    {
+      "input": "http://example.org:8080",
+      "kept": "http://example.org:8080/"
+    },
+    {
+      "input": "https://example.org/a/../b",
+      "kept": null
+    },
+    {
+      "input": "https://example.org/./b",
+      "kept": null
+    },
+    {
+      "input": "https://exämple.org",
+      "kept": null
+    },
+    {
+      "input": "https://example.org/a b",
+      "kept": null
+    },
+    {
+      "input": "https://example.org/a<b",
+      "kept": null
+    },
+    {
+      "input": "https://user@example.com",
+      "kept": null
+    },
+    {
+      "input": "https://[::1]/x",
+      "kept": "https://[::1]/x"
+    },
+    {
+      "input": "https://example.org?x=1",
+      "kept": "https://example.org/?x=1"
+    },
+    {
+      "input": "https://example.org/%7Euser",
+      "kept": "https://example.org/%7Euser"
+    },
+    {
+      "input": "https://example.org/a\\b",
+      "kept": null
+    },
+    {
+      "input": "ftp://example.org",
+      "kept": null
+    },
+    {
+      "input": "https:example.org",
+      "kept": null
+    },
+    {
+      "input": "https://",
+      "kept": null
+    },
+    {
+      "input": "https://example.org/path/",
+      "kept": "https://example.org/path/"
+    },
+    {
+      "input": "https://example.org/.well-known/x",
+      "kept": "https://example.org/.well-known/x"
+    },
+    {
+      "input": "https://www.youtube.com/@haxtheweb",
+      "kept": "https://www.youtube.com/@haxtheweb"
+    },
+    {
+      "input": "https:example.org",
+      "kept": null
+    },
+    {
+      "input": "https://0x7f.1/",
+      "kept": null
+    },
+    {
+      "input": "https://1.2/",
+      "kept": null
+    },
+    {
+      "input": "https://example.org:0443/",
+      "kept": null
+    },
+    {
+      "input": "https://example.org./",
+      "kept": "https://example.org./"
+    },
+    {
+      "input": "https://EXAMPLE.org:443",
+      "kept": "https://example.org/"
+    },
+    {
+      "input": "http://example.org:80/a",
+      "kept": "http://example.org/a"
+    },
+    {
+      "input": "https://example.org:/a",
+      "kept": null
+    },
+    {
+      "input": "https://ex_ample.org/",
+      "kept": "https://ex_ample.org/"
+    },
+    {
+      "input": "https://192.168.0.1/x",
+      "kept": "https://192.168.0.1/x"
+    },
+    {
+      "input": "https://256.1.1.1/",
+      "kept": null
+    },
+    {
+      "input": "https://example.123/",
+      "kept": null
+    },
+    {
+      "input": "https://a.0x10/",
+      "kept": null
+    },
+    {
+      "input": "https://example.org.:8443/z",
+      "kept": "https://example.org.:8443/z"
+    },
+    {
+      "input": "HTTP://Example.ORG:80",
+      "kept": "http://example.org/"
+    }
+  ]
+}

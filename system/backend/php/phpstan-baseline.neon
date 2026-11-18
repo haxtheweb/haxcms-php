@@ -613,18 +613,6 @@ parameters:
 			path: lib/HAXCMSSite.php
 
 		-
-			message: '#^Offset ''@id'' on array\{''@type''\: ''Organization'', ''@id''\: non\-falsy\-string, url\: mixed, name\: string, logo\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}, founder\?\: array\{''@id''\: non\-falsy\-string\}\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 2
-			path: lib/HAXCMSSite.php
-
-		-
-			message: '#^Offset ''@id'' on array\{''@type''\: ''Person'', ''@id''\: non\-falsy\-string, name\?\: non\-empty\-string, sameAs\?\: array\{mixed\}, image\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 3
-			path: lib/HAXCMSSite.php
-
-		-
 			message: '#^Offset 1 on array\{non\-falsy\-string, string, non\-falsy\-string\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
