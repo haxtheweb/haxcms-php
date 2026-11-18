@@ -49,10 +49,23 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         // Stage 1: per page, normalize text runs into visual lines (grouped by y).
         $pageLines = array();
         foreach ($pages as $page) {
-            $tmData = $page->getDataTm();
+            $dataCommands = array();
+            try {
+                $dataCommands = $page->getDataCommands();
+            } catch (\Throwable $e) {
+                $dataCommands = array();
+            }
+            $tmData = $page->getDataTm($dataCommands ? $dataCommands : null);
+            // getDataTm() composes a cm with the earlier one in the wrong
+            // order, so a page that starts with a flip (Chrome / Skia:
+            // "0.24 0 0 -0.24 0 792 cm") reports y values far outside the
+            // page. Where that happens and our own walk of the same commands
+            // puts every line on the page, use its y instead, so lines and
+            // images share one space and images interleave (#3181).
+            $truePositions = haxcmsSystemPdfTruePositionsWhenNeeded($page, $tmData, $dataCommands);
             $runs   = array();
             $fontMetrics = array();
-            foreach ($tmData as $row) {
+            foreach ($tmData as $rowIndex => $row) {
                 if (!is_array($row) || count($row) < 4) {
                     continue;
                 }
@@ -64,6 +77,9 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                 }
                 $x       = (float) $matrix[4];
                 $y       = (float) $matrix[5];
+                if ($truePositions !== null && isset($truePositions[$rowIndex])) {
+                    $y = $truePositions[$rowIndex];
+                }
                 $vScale  = (float) $matrix[3];
                 // Effective rendered size = declared font size × vertical scale
                 // (the text matrix already folds in the CTM). Mirrors Node's
@@ -510,6 +526,161 @@ if (!function_exists('haxcmsSystemGetPdfPageTop')) {
             $node = $parent;
         }
         return null;
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfTextShowYs')) {
+    /**
+     * Walk the text commands getDataTm() reads (Page::getDataCommands) with
+     * the transform math done in the right order (operand matrix applied
+     * first, PDF 32000 8.3.4) and return the page-space y of the origin of
+     * every text show (Tj, TJ, ' and "), in the order getDataTm() emits its
+     * rows. Returns null when the commands cannot be read.
+     *
+     * @return float[]|null
+     */
+    function haxcmsSystemGetPdfTextShowYs($commands)
+    {
+        if (!is_array($commands)) {
+            return null;
+        }
+        $multiply = function ($n, $m) {
+            // n x m: n applied first, then m
+            return array(
+                $n[0] * $m[0] + $n[1] * $m[2],
+                $n[0] * $m[1] + $n[1] * $m[3],
+                $n[2] * $m[0] + $n[3] * $m[2],
+                $n[2] * $m[1] + $n[3] * $m[3],
+                $n[4] * $m[0] + $n[5] * $m[2] + $m[4],
+                $n[4] * $m[1] + $n[5] * $m[3] + $m[5],
+            );
+        };
+        $numbers = function ($args, $count) {
+            $parts = preg_split('/\s+/', trim(is_array($args) ? implode(' ', $args) : (string) $args));
+            if (!is_array($parts) || count($parts) < $count) {
+                return null;
+            }
+            $values = array();
+            for ($i = 0; $i < $count; $i++) {
+                if (!is_numeric($parts[$i])) {
+                    return null;
+                }
+                $values[] = (float) $parts[$i];
+            }
+            return $values;
+        };
+        $identity = array(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        $ctm = $identity;
+        $stack = array();
+        $tm = $identity;
+        $tlm = $identity;
+        $leading = 0.0;
+        $ys = array();
+        $nextLine = function () use (&$tm, &$tlm, &$leading, $multiply) {
+            $tlm = $multiply(array(1.0, 0.0, 0.0, 1.0, 0.0, -$leading), $tlm);
+            $tm = $tlm;
+        };
+        foreach ($commands as $command) {
+            if (!is_array($command) || !isset($command['o'])) {
+                continue;
+            }
+            $op = $command['o'];
+            $args = isset($command['c']) ? $command['c'] : '';
+            if ($op === 'q') {
+                $stack[] = $ctm;
+            } elseif ($op === 'Q') {
+                if (count($stack) > 0) {
+                    $ctm = array_pop($stack);
+                }
+            } elseif ($op === 'cm') {
+                $n = $numbers($args, 6);
+                if ($n !== null) {
+                    $ctm = $multiply($n, $ctm);
+                }
+            } elseif ($op === 'BT') {
+                $tm = $identity;
+                $tlm = $identity;
+            } elseif ($op === 'Tm') {
+                $n = $numbers($args, 6);
+                if ($n !== null) {
+                    $tm = $n;
+                    $tlm = $n;
+                }
+            } elseif ($op === 'Td' || $op === 'TD') {
+                $n = $numbers($args, 2);
+                if ($n !== null) {
+                    if ($op === 'TD') {
+                        $leading = -$n[1];
+                    }
+                    $tlm = $multiply(array(1.0, 0.0, 0.0, 1.0, $n[0], $n[1]), $tlm);
+                    $tm = $tlm;
+                }
+            } elseif ($op === 'TL') {
+                $n = $numbers($args, 1);
+                if ($n !== null) {
+                    $leading = $n[0];
+                }
+            } elseif ($op === 'T*') {
+                $nextLine();
+            } elseif ($op === 'Tj' || $op === 'TJ' || $op === "'" || $op === '"') {
+                if ($op === "'" || $op === '"') {
+                    $nextLine();
+                }
+                $ys[] = $tm[4] * $ctm[1] + $tm[5] * $ctm[3] + $ctm[5];
+            }
+        }
+        return $ys;
+    }
+}
+
+if (!function_exists('haxcmsSystemPdfTruePositionsWhenNeeded')) {
+    /**
+     * The y of each getDataTm() row from haxcmsSystemGetPdfTextShowYs(),
+     * keyed like $tmData, but only when getDataTm() put a row outside the
+     * page box, our walk found a y for every row, and every one of those is
+     * on the page. Otherwise null, and getDataTm()'s own values are used
+     * (Dompdf and other PDFs that position text without a flip are
+     * unchanged).
+     *
+     * @return array<int, float>|null
+     */
+    function haxcmsSystemPdfTruePositionsWhenNeeded($page, $tmData, $commands)
+    {
+        if (!is_array($tmData) || !$tmData || !$commands) {
+            return null;
+        }
+        $pageTop = haxcmsSystemGetPdfPageTop($page);
+        if ($pageTop === null) {
+            return null;
+        }
+        $onPage = function ($y) use ($pageTop) {
+            return $y >= -1 && $y <= $pageTop + 1;
+        };
+        $outside = false;
+        foreach ($tmData as $row) {
+            if (is_array($row) && isset($row[0][5]) && !$onPage((float) $row[0][5])) {
+                $outside = true;
+                break;
+            }
+        }
+        if (!$outside) {
+            return null;
+        }
+        $ys = haxcmsSystemGetPdfTextShowYs($commands);
+        if ($ys === null || count($ys) < count($tmData)) {
+            return null;
+        }
+        $positions = array();
+        $index = 0;
+        foreach ($tmData as $key => $row) {
+            $y = $ys[$index];
+            $index++;
+            if (!$onPage($y)) {
+                return null;
+            }
+            $positions[$key] = $y;
+        }
+        return $positions;
     }
 }
 
