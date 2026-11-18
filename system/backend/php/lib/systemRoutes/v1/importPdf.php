@@ -51,6 +51,7 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         foreach ($pages as $page) {
             $tmData = $page->getDataTm();
             $runs   = array();
+            $fontMetrics = array();
             foreach ($tmData as $row) {
                 if (!is_array($row) || count($row) < 4) {
                     continue;
@@ -72,11 +73,31 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                 if ($clean === '') {
                     continue;
                 }
+                // Advance width of the run in page units, from the font's
+                // glyph widths (null when the font has none we can read).
+                // Without it the row builder can only guess where a run ends,
+                // which scatters spaces through words in PDFs that write text
+                // as many short runs (Chrome / Skia). Node parity: pdf.js
+                // item.width in pdfToSemanticHtml.js.
+                $fontId = (string) $row[2];
+                if (!array_key_exists($fontId, $fontMetrics)) {
+                    $font = null;
+                    try {
+                        $font = $page->getFont($fontId);
+                    } catch (\Throwable $e) {
+                        $font = null;
+                    }
+                    $fontMetrics[$fontId] = $font ? haxcmsSystemGetPdfFontMetrics($font) : null;
+                }
+                $units = haxcmsSystemPdfTextWidthUnits($text, $fontMetrics[$fontId]);
                 $runs[] = array(
                     'text'    => $clean,
                     'x'       => $x,
                     'y'       => $y,
                     'effSize' => $effSize,
+                    'width'   => $units === null ? null : ($units / 1000) * $fontSize * abs((float) $matrix[0]),
+                    'spaceBefore' => (bool) preg_match('/^\s/u', $text),
+                    'spaceAfter'  => (bool) preg_match('/\s$/u', $text),
                 );
             }
 
@@ -106,8 +127,17 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                 $prev     = null;
                 foreach ($row['items'] as $it) {
                     if ($prev) {
-                        $gap = $it['x'] - ($prev['x'] + $it['effSize'] * 0.5);
-                        if ($gap > $it['effSize'] * 0.2 && !preg_match('/ $/', $lineText)) {
+                        // A space glyph at the end or start of a run is a word
+                        // break. Otherwise measure the gap from where the
+                        // previous run really ends; without its width, fall
+                        // back to the old estimate.
+                        if ($prev['width'] !== null) {
+                            $gap = $it['x'] - ($prev['x'] + $prev['width']);
+                        } else {
+                            $gap = $it['x'] - ($prev['x'] + $it['effSize'] * 0.5);
+                        }
+                        $wordBreak = $prev['spaceAfter'] || $it['spaceBefore'] || $gap > $it['effSize'] * 0.2;
+                        if ($wordBreak && !preg_match('/ $/', $lineText)) {
                             $lineText .= ' ';
                         }
                     }
@@ -874,6 +904,159 @@ if (!function_exists('haxcmsSystemGetPdfImageFilter')) {
         }
         return null;
     }
+}
+
+if (!function_exists('haxcmsSystemGetPdfFontMetrics')) {
+    /**
+     * Glyph widths of a PDF font, keyed by the text each glyph decodes to.
+     * Simple fonts read /FirstChar + /Widths; Type0 (CID) fonts, which is
+     * what Chrome / Skia embed, read the descendant font's /W array and /DW.
+     * Widths are in glyph space (1/1000 of the font size). Returns
+     * array('widths' => array(text => width), 'maxLength' => int,
+     * 'default' => float|null), or null when the font has no widths.
+     */
+    function haxcmsSystemGetPdfFontMetrics($font)
+    {
+        try {
+            $table = $font->loadTranslateTable();
+            $details = $font->getDetails();
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($table)) {
+            $table = array();
+        }
+        $codeWidths = array();
+        $default = null;
+        $subtype = isset($details['Subtype']) ? (string) $details['Subtype'] : '';
+        if ($subtype === 'Type0') {
+            // The descendant CIDFont's own details: the Type0 font's
+            // flattened details leave its /W array out.
+            $descendant = null;
+            try {
+                $list = $font->get('DescendantFonts');
+                $content = is_object($list) && method_exists($list, 'getContent') ? $list->getContent() : null;
+                $first = is_array($content) ? reset($content) : null;
+                if (is_object($first) && method_exists($first, 'getDetails')) {
+                    $descendant = $first->getDetails();
+                }
+            } catch (\Throwable $e) {
+                $descendant = null;
+            }
+            if (!is_array($descendant)) {
+                return null;
+            }
+            // CIDFonts default to 1000 when /DW is absent (PDF 32000 9.7.4.3).
+            $default = isset($descendant['DW']) && is_numeric($descendant['DW']) ? (float) $descendant['DW'] : 1000.0;
+            $w = isset($descendant['W']) && is_array($descendant['W']) ? array_values($descendant['W']) : array();
+            $count = count($w);
+            $i = 0;
+            // /W is a list of "c [w1 w2 ...]" and "cFirst cLast w" entries.
+            while ($i < $count) {
+                if (!is_numeric($w[$i])) {
+                    break;
+                }
+                $first = (int) $w[$i];
+                if ($i + 1 < $count && is_array($w[$i + 1])) {
+                    foreach (array_values($w[$i + 1]) as $offset => $width) {
+                        if (is_numeric($width)) {
+                            $codeWidths[$first + $offset] = (float) $width;
+                        }
+                    }
+                    $i += 2;
+                } elseif ($i + 2 < $count && is_numeric($w[$i + 1]) && is_numeric($w[$i + 2])) {
+                    $last = (int) $w[$i + 1];
+                    // Bound a range so a malformed entry can't allocate
+                    // millions of codes (CIDs are 16-bit).
+                    $last = min($last, $first + 65535);
+                    for ($code = $first; $code <= $last; $code++) {
+                        $codeWidths[$code] = (float) $w[$i + 2];
+                    }
+                    $i += 3;
+                } else {
+                    break;
+                }
+            }
+        } else {
+            if (!isset($details['Widths']) || !is_array($details['Widths']) || !isset($details['FirstChar'])) {
+                return null;
+            }
+            $first = (int) $details['FirstChar'];
+            foreach (array_values($details['Widths']) as $offset => $width) {
+                if (is_numeric($width)) {
+                    $codeWidths[$first + $offset] = (float) $width;
+                }
+            }
+            if (isset($details['FontDescriptor']['MissingWidth']) && is_numeric($details['FontDescriptor']['MissingWidth'])) {
+                $default = (float) $details['FontDescriptor']['MissingWidth'];
+            }
+        }
+        if (!$codeWidths && $default === null) {
+            return null;
+        }
+        $widths = array();
+        $maxLength = 1;
+        foreach ($codeWidths as $code => $width) {
+            if (isset($table[$code]) && is_string($table[$code]) && $table[$code] !== '') {
+                $text = $table[$code];
+            } elseif ($subtype !== 'Type0' && $code >= 32 && $code < 127) {
+                // a simple font without /ToUnicode: plain ASCII codes
+                $text = chr($code);
+            } else {
+                continue;
+            }
+            // first glyph for a text wins, like a ligature-free layout would
+            if (!isset($widths[$text])) {
+                $widths[$text] = $width;
+                $maxLength = max($maxLength, mb_strlen($text));
+            }
+        }
+        if (!$widths) {
+            return null;
+        }
+        return array('widths' => $widths, 'maxLength' => min($maxLength, 8), 'default' => $default);
+    }
+
+    /**
+     * Width of decoded text in glyph space, matching the longest glyph text
+     * first so ligatures (one glyph that decodes to "ffi") count once.
+     * Returns null when no metrics are known or a character has no width
+     * and the font has no default.
+     */
+    function haxcmsSystemPdfTextWidthUnits($text, $metrics)
+    {
+        if (!is_array($metrics)) {
+            return null;
+        }
+        $chars = preg_split('//u', (string) $text, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($chars)) {
+            return null;
+        }
+        $count = count($chars);
+        $total = 0.0;
+        $i = 0;
+        while ($i < $count) {
+            $matched = false;
+            for ($len = min($metrics['maxLength'], $count - $i); $len >= 1; $len--) {
+                $piece = implode('', array_slice($chars, $i, $len));
+                if (isset($metrics['widths'][$piece])) {
+                    $total += $metrics['widths'][$piece];
+                    $i += $len;
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                if ($metrics['default'] === null) {
+                    return null;
+                }
+                $total += $metrics['default'];
+                $i++;
+            }
+        }
+        return $total;
+    }
+
 }
 
 if (!function_exists('haxcmsSystemNormalizePdfFontSize')) {
