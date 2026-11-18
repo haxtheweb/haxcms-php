@@ -463,8 +463,11 @@ class HAXCMSPluginRoutes
         usort($items, function ($a, $b) {
             return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
         });
-        // choices (spec/07): the importers (and any other contract a person picks one implementer for) offered on admin screens
-        self::send(200, ['status' => 200, 'data' => ['contributions' => $items, 'choices' => (object) $h->contractChoices('admin'), 'contracts' => (object) $h->advertisedContracts()]]);
+        // choices (spec/07): the importers (and any other contract a person picks one implementer for) offered on admin
+        // screens; ?surface=cli or mcp gives what the hax CLI or haxcms-mcp offers
+        $surfaceParam = isset($_GET['surface']) && is_string($_GET['surface']) ? $_GET['surface'] : '';
+        $choiceSurface = in_array($surfaceParam, ['admin', 'cli', 'mcp'], true) ? $surfaceParam : 'admin';
+        self::send(200, ['status' => 200, 'data' => ['contributions' => $items, 'choices' => (object) $h->contractChoices($choiceSurface), 'contracts' => (object) $h->advertisedContracts()]]);
     }
 
     private static function send($status, $body, array $headers = [])

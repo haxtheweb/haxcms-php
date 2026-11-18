@@ -2770,6 +2770,15 @@ paths:
       description: >-
         Declarative interface contributions from the plugins that are on, and the
         core contracts they advertise by contract and result name, and the importers (choices) a person can pick from.
+      parameters:
+        - name: surface
+          in: query
+          required: false
+          description: Whose choices to return; admin screens (default), the hax CLI or haxcms-mcp.
+          schema:
+            type: string
+            enum: [admin, cli, mcp]
+            default: admin
       security:
         - bearerAuth: []
           siteTokenHeader: []
