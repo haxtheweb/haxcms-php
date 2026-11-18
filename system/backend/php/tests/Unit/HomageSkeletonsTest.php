@@ -39,7 +39,7 @@ class HomageSkeletonsTest extends TestCase
                 'academic',
                 'al-folio-theme',
                 '@haxtheweb/papermod-theme/lib/al-folio-theme.js',
-                array('about', 'publications', 'projects', 'teaching', 'people'),
+                array('about', 'publications', 'projects', 'teaching', 'people', 'contact', 'privacy'),
                 'projects',
             ),
             'landing-page' => array(
@@ -47,7 +47,7 @@ class HomageSkeletonsTest extends TestCase
                 'landing-page',
                 'astrowind-theme',
                 '@haxtheweb/papermod-theme/lib/astrowind-theme.js',
-                array('home', 'services', 'pricing', 'about', 'contact'),
+                array('home', 'services', 'pricing', 'about', 'contact', 'privacy'),
                 'services',
             ),
         );
@@ -78,6 +78,17 @@ class HomageSkeletonsTest extends TestCase
             return $a['order'] <=> $b['order'];
         });
         $this->assertSame($top, array_column($topItems, 'slug'));
+    }
+
+    // haxtheweb/issues#3368: Privacy stays out of the menu; Contact links to it
+    #[DataProvider('cases')]
+    public function testPrivacyIsOutOfTheMenuAndLinkedFromContact(string $file): void
+    {
+        $items = self::skeleton($file)['build']['items'];
+        $this->assertTrue(self::bySlug($items, 'privacy')['metadata']['hideInMenu']);
+        $this->assertFalse(self::bySlug($items, 'contact')['metadata']['hideInMenu']);
+        $this->assertStringContainsString('href="privacy"', self::bySlug($items, 'contact')['content']);
+        $this->assertStringContainsString('href="contact"', self::bySlug($items, 'privacy')['content']);
     }
 
     #[DataProvider('cases')]

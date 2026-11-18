@@ -3,12 +3,12 @@
     "name": "portfolio",
     "machineName": "portfolio",
     "priority": 0,
-    "description": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, and education and certifications.",
+    "description": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, education and certifications, and contact.",
     "version": "1.0.0",
     "created": "2026-03-05T20:54:02.636Z",
     "type": "skeleton",
     "useCaseTitle": "Portfolio",
-    "useCaseDescription": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, and education and certifications.",
+    "useCaseDescription": "A professional portfolio on the Glossy Portfolio theme: summary, projects, experience, education and certifications, and contact.",
     "useCaseImage": "@haxtheweb/haxcms-elements/lib/theme-screenshots/theme-glossy-portfolio-theme-thumb.jpg",
     "category": ["Website"],
     "tags": ["portfolio", "career", "professional"],
@@ -109,6 +109,20 @@
         "parent": null,
         "indent": 0,
         "content": "<h3 data-style-guide=\"sectionDivider\" data-design-treatment=\"horz-md\" data-primary=\"2\" data-padding=\"xs\">B.S. in Finance · Class of 2025</h3><p><strong>GPA:</strong> 3.8/4.0 · <strong>Honors:</strong> Dean’s List, Beta Gamma Sigma, Investment Club Sector Lead</p><ul><li><strong>Investment Analysis:</strong> Applied Modern Portfolio Theory and CAPM to optimize a mock $1M portfolio.</li><li><strong>Corporate Finance:</strong> Capital structure optimization, WACC calculation, and dividend policy analysis.</li><li><strong>Econometrics:</strong> Multiple regression on market volatility drivers in R and Python.</li></ul><h3 data-style-guide=\"sectionDivider\" data-design-treatment=\"horz-md\" data-primary=\"2\" data-padding=\"xs\">Professional Certifications</h3><ul><li><strong>Bloomberg Market Concepts (BMC):</strong> 8+ hours of interactive training on the Terminal across Economics, Currencies, Fixed Income, and Equities.</li><li><strong>CFA Investment Foundations:</strong> The investment chain, asset classes, regulation, and fiduciary responsibility.</li><li><strong>Wall Street Prep, Financial Modeling &amp; Valuation:</strong> 3-statement, DCF, and M&amp;A accretion/dilution models built from real case studies.</li></ul>",
+        "metadata": {
+          "published": true,
+          "hideInMenu": false,
+          "tags": []
+        }
+      },
+      {
+        "id": "cf3de87a-336b-5e8e-bbff-f327c5f52bd0",
+        "title": "Contact",
+        "slug": "contact",
+        "order": 5,
+        "parent": null,
+        "indent": 0,
+        "content": "<p>I am open to new projects and full-time roles. The fastest way to reach me is email; I answer within two working days.</p><simple-cta label=\"Email Jordan\" link=\"mailto:jordan@example.com\"></simple-cta>",
         "metadata": {
           "published": true,
           "hideInMenu": false,
