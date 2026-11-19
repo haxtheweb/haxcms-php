@@ -574,6 +574,45 @@ class HAXCMSSiteMetadataTest extends TestCase
     // Event dispatch
     // =========================================================================
 
+    public function testGetSiteMetadataPreloadsDDDRobotoOnlyForSitesOnDDDFonts(): void
+    {
+        $font = $this->tmpRoot . '/roboto-latin-wght-normal.woff2';
+        $registry = $this->tmpRoot . '/designSystems.json';
+        file_put_contents($font, '');
+        file_put_contents($registry, json_encode(array(
+            'carbon' => array('name' => 'carbon', 'theme' => 'carbon-theme'),
+        )));
+        $this->site->buildFiles = array(
+            HAXCMSSite::DDD_FONT_PRELOAD => $font,
+            '@haxtheweb/haxcms-elements/lib/designSystems.json' => $registry,
+        );
+        $preload = function ($base) {
+            return '<link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/d-d-d/lib/fonts/roboto/roboto-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin="anonymous" />';
+        };
+        $theme = $this->site->manifest->metadata->theme;
+        $theme->element = 'clean-one';
+        $theme->designSystem = '';
+        $this->assertStringContainsString($preload('./'), $this->site->getSiteMetadata($this->homePage()));
+        // served from the CDN: the font comes from there too
+        $this->assertStringContainsString(
+            $preload('https://cdn.example/'),
+            $this->site->getSiteMetadata($this->homePage(), NULL, 'https://cdn.example/')
+        );
+        $theme->designSystem = 'ddd';
+        $this->assertStringContainsString($preload('./'), $this->site->getSiteMetadata($this->homePage()));
+        // another design system brings its own fonts
+        $theme->designSystem = 'carbon';
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+        // so does a bridged theme
+        $theme->designSystem = '';
+        $theme->element = 'carbon-theme';
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+        // a build without the font gets no preload (no 404)
+        $theme->element = 'clean-one';
+        unset($this->site->buildFiles[HAXCMSSite::DDD_FONT_PRELOAD]);
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+    }
+
     public function testGetSiteMetadataDispatchesEventWithResult(): void
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
@@ -584,11 +623,22 @@ class HAXCMSSiteMetadataTest extends TestCase
 }
 
 /**
- * HAXCMSSite test subclass with no overrides: metadata rendering is exercised
- * through the real implementation against the temp fixture.
+ * HAXCMSSite test subclass: metadata rendering is exercised through the real
+ * implementation against the temp fixture; only local build lookups can be
+ * pointed at fixture files.
  */
 class HAXCMSSiteMetadataTestSite extends HAXCMSSite
 {
+    // build-relative path => absolute fixture path; NULL uses the real lookup
+    public $buildFiles = NULL;
+
+    public function localBuildFile($rel)
+    {
+        if (is_array($this->buildFiles)) {
+            return array_key_exists($rel, $this->buildFiles) ? $this->buildFiles[$rel] : NULL;
+        }
+        return parent::localBuildFile($rel);
+    }
 }
 
 /**

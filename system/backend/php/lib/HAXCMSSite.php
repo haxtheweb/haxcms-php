@@ -15,6 +15,9 @@ class HAXCMSSite
     // Full HAX agent skill catalog (agentskills.io index) maintained in PRAW.
     // Linked from every site's llms.txt for skills the site does not ship.
     const HAX_SKILL_CATALOG_URL = 'https://raw.githubusercontent.com/haxtheweb/praw/stable/skills/index.json';
+    // DDD's Latin Roboto face, under build/es6/node_modules; preloaded by
+    // getSiteMetadata for sites that render on DDD's fonts
+    const DDD_FONT_PRELOAD = '@haxtheweb/d-d-d/lib/fonts/roboto/roboto-latin-wght-normal.woff2';
     public $name;
     public $manifest;
     public $directory;
@@ -2821,6 +2824,82 @@ class HAXCMSSite
       }
       return $location;
     }
+    /**
+     * Absolute path of a file in the local build (build/es6/node_modules),
+     * looked up for the site first, then the HAXcms root; NULL when absent.
+     * Read from disk whatever the site's base is: the CDN serves the same
+     * release. Mirrors localBuildFile in haxcms-nodejs src/lib/HAXCMS.js.
+     * @param string $rel path under build/es6/node_modules
+     */
+    public function localBuildFile($rel) {
+      $buildRel = 'build/es6/node_modules/' . $rel;
+      $candidates = array();
+      if (isset($this->directory) && isset($this->manifest->metadata->site->name)) {
+        $candidates[] = $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $buildRel;
+      }
+      if (defined('HAXCMS_ROOT')) {
+        $candidates[] = HAXCMS_ROOT . '/' . $buildRel;
+      }
+      foreach ($candidates as $candidate) {
+        if (is_file($candidate)) {
+          return $candidate;
+        }
+      }
+      return NULL;
+    }
+    /**
+     * designSystems.json (the design system bridge registry shipped in
+     * @haxtheweb/haxcms-elements/lib) from the local build; an empty array
+     * when the build has none (older builds).
+     */
+    public function getDesignSystemsJson() {
+      $registryPath = $this->localBuildFile('@haxtheweb/haxcms-elements/lib/designSystems.json');
+      if ($registryPath) {
+        $raw = @file_get_contents($registryPath);
+        if ($raw !== FALSE) {
+          $data = json_decode($raw, TRUE);
+          if (is_array($data)) {
+            return $data;
+          }
+        }
+      }
+      return array();
+    }
+    /**
+     * Whether this site renders on DDD's own fonts (Roboto), so its pages can
+     * preload DDD's Latin Roboto. FALSE when the site picked another design
+     * system or its theme is a bridged one (the bridge brings its own fonts),
+     * and when the local build has no design system registry to check against
+     * or doesn't ship the font (builds before d-d-d vendored its fonts).
+     */
+    public function usesDDDFonts() {
+      if (!isset($this->manifest->metadata->theme) || !is_object($this->manifest->metadata->theme)) {
+        return FALSE;
+      }
+      $theme = $this->manifest->metadata->theme;
+      if (
+        isset($theme->designSystem) &&
+        is_string($theme->designSystem) &&
+        $theme->designSystem !== '' &&
+        $theme->designSystem !== 'ddd'
+      ) {
+        return FALSE;
+      }
+      if (!$this->localBuildFile(self::DDD_FONT_PRELOAD)) {
+        return FALSE;
+      }
+      $systems = $this->getDesignSystemsJson();
+      if (count($systems) === 0) {
+        return FALSE;
+      }
+      $element = isset($theme->element) ? (string) $theme->element : '';
+      foreach ($systems as $system) {
+        if (is_array($system) && isset($system['theme']) && $system['theme'] === $element) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
     public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
       $preloadTags = array();
       if (is_null($page)) {
@@ -3001,6 +3080,14 @@ class HAXCMSSite
       if ($pageLocation !== '') {
         $pageDataPreload = "\n" . '  <link rel="preload" href="./' . SanitizeContent::escapeHTMLAttribute($pageLocation) . '" as="fetch" crossorigin="anonymous" fetchpriority="high" />';
       }
+      // DDD sets body text in Roboto, which @haxtheweb/d-d-d ships under
+      // lib/fonts; preload its Latin face so text doesn't wait on the boot
+      // JavaScript to discover it. Fonts are always fetched in CORS mode, so
+      // crossorigin is required for the preload to be reused.
+      $fontPreload = '';
+      if ($this->usesDDDFonts()) {
+        $fontPreload = "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . self::DDD_FONT_PRELOAD . '" as="font" type="font/woff2" crossorigin="anonymous" />';
+      }
       $safeSocialImage = SanitizeContent::escapeHTMLAttribute($socialImageUrl);
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
@@ -3011,7 +3098,7 @@ class HAXCMSSite
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
 ' . $shellModulepreload . '
 ' . $themePreload . $contentPreload . $pageDataPreload . '
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />' . $fontPreload . '
   <link rel="llms" href="llms.txt" title="LLM Content Map" />
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
   <link rel="alternate" type="text/markdown" href="llms-full.txt" title="Full Site as Markdown" />
