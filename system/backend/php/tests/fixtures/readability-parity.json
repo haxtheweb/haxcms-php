@@ -1,0 +1,213 @@
+{
+  "description": "Readability contract shared by haxcms-nodejs (test/fixtures/readability-parity.json) and haxcms-php (system/backend/php/tests/fixtures/readability-parity.json). Generated from text-readability 1.1.1 in haxcms-nodejs; both backends must answer these exact values. Keep the two copies identical.",
+  "cases": [
+    {
+      "name": "no pages",
+      "pages": [],
+      "text": "",
+      "daleChallScore": 0,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 0,
+        "lexiconCount": 0,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "empty page",
+      "pages": [""],
+      "text": "",
+      "daleChallScore": 0,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 0,
+        "lexiconCount": 0,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "one short paragraph",
+      "pages": [
+        "<p>The cat sat on the mat. It was a good day for reading.</p>"
+      ],
+      "text": "The cat sat on the mat. It was a good day for reading.",
+      "daleChallScore": 0.32,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 14,
+        "lexiconCount": 13,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "neighbouring blocks keep words apart",
+      "pages": [
+        "<h2>Getting started</h2><p>Open the editor.</p><p>Add a block.</p><ul><li>Save</li><li>Publish</li></ul>"
+      ],
+      "text": "Getting started Open the editor. Add a block. Save Publish",
+      "daleChallScore": 8.62,
+      "readability": {
+        "gradeLevel": "11th / 12th grade",
+        "difficultWords": 3,
+        "syllableCount": 16,
+        "lexiconCount": 10,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "entities decode once",
+      "pages": [
+        "<p>Fish &amp; chips&nbsp;cost&nbsp;less. It&#x27;s caf&eacute; time&rsquo;s end. &Alpha; and &#937; stay letters. &amp;lt;b&amp;gt; stays text. &#0; &#xD800; &bogus; stay as written.</p>"
+      ],
+      "text": "Fish & chips cost less. It's café time’s end. Α and Ω stay letters. &lt;b&gt; stays text. &#0; &#xD800; &bogus; stay as written.",
+      "daleChallScore": 1.26,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 1,
+        "syllableCount": 23,
+        "lexiconCount": 22,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "comments, script, style and template are not prose",
+      "pages": [
+        "<!-- an editor note that is long enough to count --><style>p { color: red; }</style><script>var shouldNotCount = \"many many words here\";</script><template><p>Template words never render here.</p></template><p>Only this sentence is read.</p>"
+      ],
+      "text": "Only this sentence is read.",
+      "daleChallScore": 0.25,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 7,
+        "lexiconCount": 5,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "pages join with a space",
+      "pages": [
+        "<p>First page ends here.</p>",
+        "<p>Second page starts here. It continues.</p>",
+        "<p>Third.</p>"
+      ],
+      "text": "First page ends here. Second page starts here. It continues. Third.",
+      "daleChallScore": 5.34,
+      "readability": {
+        "gradeLevel": "5th / 6th grade",
+        "difficultWords": 1,
+        "syllableCount": 14,
+        "lexiconCount": 11,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "accents fold for syllables",
+      "pages": [
+        "<p>The naïve café served crème brûlée. Ærøskøbing is a Danish town. Résumé writing is hard.</p>"
+      ],
+      "text": "The naïve café served crème brûlée. Ærøskøbing is a Danish town. Résumé writing is hard.",
+      "daleChallScore": 5.06,
+      "readability": {
+        "gradeLevel": "5th / 6th grade",
+        "difficultWords": 1,
+        "syllableCount": 23,
+        "lexiconCount": 15,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "college vocabulary",
+      "pages": [
+        "<p>Institutional accreditation necessitates comprehensive documentation. Interdisciplinary collaboration substantially complicates organizational decision making.</p>"
+      ],
+      "text": "Institutional accreditation necessitates comprehensive documentation. Interdisciplinary collaboration substantially complicates organizational decision making.",
+      "daleChallScore": 18.41,
+      "readability": {
+        "gradeLevel": "college level reading",
+        "difficultWords": 11,
+        "syllableCount": 53,
+        "lexiconCount": 12,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "custom elements and attributes",
+      "pages": [
+        "<video-player source=\"https://example.com/v.mp4\" accent-color=\"blue\"></video-player><grid-plate layout=\"1-1\"><div slot=\"col-1\"><p>Watch the video, then answer the questions below.</p></div><div slot=\"col-2\"><multiple-choice question=\"Which colour is the sky?\"><input correct value=\"Blue\"><input value=\"Green\"></multiple-choice></div></grid-plate>"
+      ],
+      "text": "Watch the video, then answer the questions below.",
+      "daleChallScore": 6.01,
+      "readability": {
+        "gradeLevel": "7th / 8th grade",
+        "difficultWords": 1,
+        "syllableCount": 13,
+        "lexiconCount": 8,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "unicode spaces collapse",
+      "pages": ["<p>Tabs\tand em spaces　collapse.\r\nNew lines too.</p>"],
+      "text": "Tabs and em spaces collapse. New lines too.",
+      "daleChallScore": 5.81,
+      "readability": {
+        "gradeLevel": "5th / 6th grade",
+        "difficultWords": 1,
+        "syllableCount": 11,
+        "lexiconCount": 8,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "markup never closed runs to the end of the page",
+      "pages": [
+        "<p>Kept words.</p><!-- open comment hides this",
+        "<p>Second page.</p><SCRIPT type=\"module\">hidden()",
+        "<p>Third page a < b stays out</p>"
+      ],
+      "text": "Kept words. Second page. Third page a",
+      "daleChallScore": 0.35,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 8,
+        "lexiconCount": 7,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "only exact raw text tags are skipped",
+      "pages": [
+        "<scripts>These words count.</scripts> <Style>.x{}</STYLE> <templates>So do these.</templates> <script/>gone</script> back."
+      ],
+      "text": "These words count. So do these. back.",
+      "daleChallScore": 0.17,
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 7,
+        "lexiconCount": 7,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "a real HAX demo page",
+      "pages": [
+        "<h2>Two ways to use it</h2>\n<ddd-steps-list>\n<ddd-steps-list-item title=\"As a theme\"><p>Choose Fluent 2 from the theme list in site settings. The layout and the blocks both take on Fluent.</p></ddd-steps-list-item>\n<ddd-steps-list-item title=\"As a design system\"><p>Keep a theme such as Clean One and pick Fluent 2 as the design system. Blocks take on Fluent colors, type and corners inside your layout.</p></ddd-steps-list-item>\n<ddd-steps-list-item title=\"Author as usual\"><p>Blocks read DDD tokens and the bridge answers with Fluent values, so nothing in your content changes.</p></ddd-steps-list-item>\n</ddd-steps-list>\n<h2>Set it in site.json</h2>\n<code-sample type=\"json\"><template preserve-content=\"preserve-content\">{\n  \"metadata\": {\n    \"theme\": {\n      \"element\": \"fluent-theme\",\n      \"path\": \"@haxtheweb/fluent-theme/fluent-theme.js\"\n    }\n  }\n}</template></code-sample>\n"
+      ],
+      "text": "Two ways to use it Choose Fluent 2 from the theme list in site settings. The layout and the blocks both take on Fluent. Keep a theme such as Clean One and pick Fluent 2 as the design system. Blocks take on Fluent colors, type and corners inside your layout. Blocks read DDD tokens and the bridge answers with Fluent values, so nothing in your content changes. Set it in site.json",
+      "daleChallScore": 6,
+      "readability": {
+        "gradeLevel": "7th / 8th grade",
+        "difficultWords": 8,
+        "syllableCount": 90,
+        "lexiconCount": 71,
+        "sentenceCount": 6
+      }
+    }
+  ]
+}
