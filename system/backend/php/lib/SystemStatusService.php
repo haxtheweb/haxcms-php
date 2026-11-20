@@ -282,11 +282,7 @@ class HAXCMSSystemStatusService
         if (!function_exists('apache_get_modules')) {
             return null;
         }
-        $modules = @apache_get_modules();
-        if (!is_array($modules)) {
-            return null;
-        }
-        return in_array('mod_headers', $modules, true);
+        return in_array('mod_headers', apache_get_modules(), true);
     }
 
     /**

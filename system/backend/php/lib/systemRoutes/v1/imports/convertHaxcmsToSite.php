@@ -113,7 +113,8 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
                     $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $filePath);
                     $text = trim((string) $resp->getBody());
                     if ($text !== '') {
-                        if ($filePath === 'custom/build/custom.es6.js' && $text === $boilerplateEs6) { continue; }
+                        // the untouched boilerplate custom build carries nothing over
+                        if ($text === $boilerplateEs6) { continue; }
                         $siteFiles[$filePath] = $base . '/' . $filePath;
                     }
                 } catch (\Exception $e) {}
