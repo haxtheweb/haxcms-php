@@ -42,7 +42,7 @@ class Operations {
   // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
   // asp/aspx/jsp/exe/etc. from being written into the web-served site tree
   // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
-  // .svg is not accepted: it is browser-renderable markup (script-capable)
+  // .svg, .html and .htm are not accepted: they are browser-renderable markup (script-capable)
   // fetched from a remote URL into a web-served directory. Raster formats
   // cover theme imagery.
   /**
@@ -61,7 +61,7 @@ class Operations {
     }
     return $GLOBALS['HAXCMS']->getActiveUserName();
   }
-  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
+  private $safeSiteFileExtensionPattern = '/\.(css|js|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
   private $imageScalePresets = array(
     'xs' => array('width' => 150, 'height' => 150),
     'sm' => array('width' => 480, 'height' => 480),
