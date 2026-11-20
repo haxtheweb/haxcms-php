@@ -80,7 +80,7 @@ class SystemRoutesImportXlsxTest extends TestCase
         ));
         $this->assertSame(400, $result['code']);
         $this->assertSame(
-            'Invalid file type. Expected .xlsx or .xls, got: notes.csv',
+            'Invalid file type. Expected .xlsx, .xls or .ods, got: notes.csv',
             $result['data']['data']['error']
         );
     }

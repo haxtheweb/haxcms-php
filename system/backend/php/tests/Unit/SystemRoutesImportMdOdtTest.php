@@ -300,4 +300,125 @@ XML;
         $this->assertSame($this->expectedHtml(), $result['data']['data']['contents']);
         $this->assertSame('a.odt', $result['data']['data']['filename']);
     }
+
+    // ---- OpenDocument Presentation (.odp) ----
+    // Same fixture and expected HTML as the Node test.
+
+    const ODP_SLIDES = <<<'XML'
+<draw:page><draw:frame presentation:class="title"><draw:text-box><text:p>Course Intro</text:p></draw:text-box></draw:frame><draw:frame presentation:class="subtitle"><draw:text-box><text:p>Welcome</text:p></draw:text-box></draw:frame><presentation:notes><draw:frame presentation:class="notes"><draw:text-box><text:p>Speaker notes</text:p></draw:text-box></draw:frame></presentation:notes></draw:page><draw:page><draw:frame presentation:class="title"><draw:text-box><text:p>Unit One</text:p></draw:text-box></draw:frame><draw:frame presentation:class="outline"><draw:text-box><text:list text:style-name="L2"><text:list-item><text:p>First</text:p></text:list-item></text:list><text:list text:style-name="L2"><text:list-item><text:list><text:list-item><text:p>Nested</text:p></text:list-item></text:list></text:list-item></text:list></draw:text-box></draw:frame><draw:frame presentation:class="page-number"><draw:text-box><text:p>2</text:p></draw:text-box></draw:frame></draw:page><draw:page><draw:frame presentation:class="title"><draw:text-box><text:p>Table slide</text:p></draw:text-box></draw:frame><draw:frame><table:table><table:table-row><table:table-cell><text:p>A</text:p></table:table-cell><table:table-cell><text:p>1</text:p></table:table-cell></table:table-row></table:table><draw:image xlink:href="Pictures/preview.svm"/></draw:frame></draw:page><draw:page><draw:g><draw:custom-shape><text:p>Grouped heading</text:p><text:p><text:span text:style-name="T2"><text:a xlink:href="https://hax.psu.edu">a link</text:a></text:span></text:p></draw:custom-shape></draw:g></draw:page><draw:page><draw:frame><draw:image xlink:href="Pictures/a.png"/><svg:desc>A dot</svg:desc></draw:frame></draw:page><draw:page/>
+XML;
+
+    private function odpExpected()
+    {
+        return "<h1>Course Intro</h1>\n"
+            . "<p>Welcome</p>\n"
+            . "<h1>Unit One</h1>\n"
+            . "<ul><li>First<ul><li>Nested</li></ul></li></ul>\n"
+            . "<h1>Table slide</h1>\n"
+            . "<table><tbody><tr><td>A</td><td>1</td></tr></tbody></table>\n"
+            . "<h1>Grouped heading</h1>\n"
+            . "<p><a href=\"https://hax.psu.edu\">a link</a></p>\n"
+            . "<h1>Slide 5</h1>\n"
+            . "<p><img src=\"data:image/png;base64," . self::PNG_BASE64 . "\" alt=\"A dot\"></p>";
+    }
+
+    private function buildOdp($mimetype = 'application/vnd.oasis.opendocument.presentation')
+    {
+        $path = tempnam(sys_get_temp_dir(), 'hax-odp-');
+        $this->tmpFiles[] = $path;
+        $zip = new ZipArchive();
+        $zip->open($path, ZipArchive::OVERWRITE);
+        $zip->addFromString('mimetype', $mimetype);
+        $zip->addFromString(
+            'content.xml',
+            '<?xml version="1.0" encoding="UTF-8"?><office:document-content ' . self::NS
+                . ' xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0">' . self::AUTO_STYLES
+                . '<office:body><office:presentation>' . trim(self::ODP_SLIDES) . '</office:presentation></office:body></office:document-content>'
+        );
+        $zip->addFromString('styles.xml', str_replace('__NS__', self::NS, self::STYLES_XML));
+        $zip->addFromString('Pictures/a.png', base64_decode(self::PNG_BASE64));
+        $zip->addFromString('Pictures/preview.svm', 'not an image');
+        $zip->close();
+        return $path;
+    }
+
+    public function testOdpOneH1PerSlideNotesAndEmptySlidesLeftOut()
+    {
+        $this->assertSame($this->odpExpected(), OdtToHtml::convertOdpFile($this->buildOdp()));
+    }
+
+    public function testOdpRefusesAnOdt()
+    {
+        $this->expectExceptionMessageMatches('/not an OpenDocument presentation file/');
+        OdtToHtml::convertOdpFile($this->buildOdp('application/vnd.oasis.opendocument.text'));
+    }
+
+    public function testOdpRefusesNonZip()
+    {
+        $this->expectExceptionMessageMatches('/valid \\.odp file/');
+        OdtToHtml::convertOdpFile($this->tmpFile('nope'));
+    }
+
+    public function testImportOdpEachSlideIsAPage()
+    {
+        $result = $this->runRoute('importOdp', $this->buildOdp(), 'deck.odp');
+        $this->assertSame(200, $result['code']);
+        $titles = array_map(function ($item) { return $item['title']; }, $result['data']['data']['items']);
+        $this->assertSame(array('Course Intro', 'Unit One', 'Table slide', 'Grouped heading', 'Slide 5'), $titles);
+        $wrong = $this->runRoute('importOdp', $this->tmpFile('x'), 'deck.pptx');
+        $this->assertSame(400, $wrong['code']);
+        $this->assertMatchesRegularExpression('/Expected \\.odp/', $wrong['data']['data']['error']);
+    }
+
+    public function testConvertOdpToHtmlReturnsTheDeckAsOneHtmlString()
+    {
+        $result = $this->runRoute('convertOdpToHtml', $this->buildOdp(), 'deck.odp');
+        $this->assertSame(200, $result['code']);
+        $this->assertSame($this->odpExpected(), $result['data']['data']['contents']);
+    }
+
+    // ---- OpenDocument Spreadsheet (.ods) through the spreadsheet importer ----
+
+    private function buildOds()
+    {
+        $cell = function ($text) {
+            return '<table:table-cell office:value-type="string"><text:p>' . $text . '</text:p></table:table-cell>';
+        };
+        $row = function ($cells) use ($cell) {
+            return '<table:table-row>' . implode('', array_map($cell, $cells)) . '</table:table-row>';
+        };
+        $path = tempnam(sys_get_temp_dir(), 'hax-ods-');
+        $this->tmpFiles[] = $path;
+        $zip = new ZipArchive();
+        $zip->open($path, ZipArchive::OVERWRITE);
+        $zip->addFromString('mimetype', 'application/vnd.oasis.opendocument.spreadsheet');
+        $zip->addFromString(
+            'content.xml',
+            '<?xml version="1.0" encoding="UTF-8"?><office:document-content ' . self::NS . '><office:body><office:spreadsheet><table:table table:name="Outline">'
+                . $row(array('Title', 'Slug', 'Parent', 'Content'))
+                . $row(array('Unit One', 'unit-one', '', '&lt;p&gt;One&lt;/p&gt;'))
+                . $row(array('Lesson A', 'lesson-a', 'unit-one', '&lt;p&gt;A&lt;/p&gt;'))
+                . '</table:table></office:spreadsheet></office:body></office:document-content>'
+        );
+        $zip->addFromString('styles.xml', '<?xml version="1.0" encoding="UTF-8"?><office:document-styles ' . self::NS . '/>');
+        $zip->addFromString('meta.xml', '<?xml version="1.0" encoding="UTF-8"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" office:version="1.2"><office:meta/></office:document-meta>');
+        $zip->addFromString(
+            'META-INF/manifest.xml',
+            '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/></manifest:manifest>'
+        );
+        $zip->close();
+        return $path;
+    }
+
+    public function testImportXlsxReadsAnOdsOutlineLikeAnXlsxOne()
+    {
+        $result = $this->runRoute('importXlsx', $this->buildOds(), 'outline.ods');
+        $this->assertSame(200, $result['code']);
+        $items = $result['data']['data']['items'];
+        $shape = array_map(function ($item) {
+            return array($item['title'], $item['slug'], $item['indent'], $item['contents']);
+        }, $items);
+        $this->assertSame(array(array('Unit One', 'unit-one', 0, '<p>One</p>'), array('Lesson A', 'lesson-a', 1, '<p>A</p>')), $shape);
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+    }
 }

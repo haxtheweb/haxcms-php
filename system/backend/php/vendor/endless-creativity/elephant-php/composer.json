@@ -1,0 +1,55 @@
+{
+    "name": "endless-creativity/elephant-php",
+    "description": "Convert .docx to Markdown or semantic HTML — no external dependencies.",
+    "type": "library",
+    "license": "BSD-2-Clause",
+    "keywords": ["docx", "word", "markdown", "html", "converter", "office", "ooxml", "document"],
+    "homepage": "https://github.com/endless-creativity/elephant-php",
+    "support": {
+        "issues": "https://github.com/endless-creativity/elephant-php/issues",
+        "source": "https://github.com/endless-creativity/elephant-php"
+    },
+    "authors": [
+        {
+            "name": "Endless Creativity",
+            "email": "mm@endlesscreativity.it"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*",
+        "ext-xmlreader": "*",
+        "ext-zip": "*"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.5",
+        "phpstan/phpstan": "^2.0",
+        "laravel/pint": "^1.18"
+    },
+    "bin": ["bin/elephant-php"],
+    "autoload": {
+        "psr-4": {
+            "EndlessCreativity\\ElephantPhp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "EndlessCreativity\\ElephantPhp\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "stan": "phpstan analyse",
+        "format": "pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

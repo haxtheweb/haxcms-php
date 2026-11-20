@@ -214,7 +214,13 @@ class SystemRoutesConvertDocxToHtmlTest extends TestCase
         $tmp = $this->buildDocx(
             $this->tempFile(),
             $this->docXml(
-                '<w:p><w:r><w:drawing><a:blip r:embed="rId7"/></w:drawing></w:r></w:p>'
+                '<w:p><w:r><w:drawing><wp:inline'
+                . ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">'
+                . '<wp:docPr id="1" name="Picture 1" descr="A red square"/><a:graphic>'
+                . '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                . '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                . '<pic:blipFill><a:blip r:embed="rId7"/></pic:blipFill></pic:pic>'
+                . '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
             ),
             array(
                 'word/_rels/document.xml.rels' => '<?xml version="1.0" encoding="UTF-8"?>'
@@ -226,10 +232,10 @@ class SystemRoutesConvertDocxToHtmlTest extends TestCase
         );
         $result = $this->runRoute($this->upload($tmp, 'pictures.docx'));
         $this->assertSame(200, $result['code']);
-        // processDocxHtml's loadHTML/saveHTML round-trip normalizes the
-        // converter's XHTML-style ' />' to '>'
+        // Same bytes haxcms-nodejs gives (mammoth, then node-html-parser
+        // rebuilding the void tag without its closing slash)
         $this->assertSame(
-            '<p><img src="data:image/png;base64,' . base64_encode('PNGDATA') . '" alt=""></p>',
+            '<p><img alt="A red square" src="data:image/png;base64,' . base64_encode('PNGDATA') . '" ></p>',
             $result['data']['data']['contents']
         );
     }

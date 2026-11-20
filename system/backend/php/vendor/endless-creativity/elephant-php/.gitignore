@@ -1,0 +1,10 @@
+/.claude/settings.local.json
+/.idea/
+/vendor/
+/reference/
+/build/
+/.phpunit.cache/
+.env
+.phpunit.result.cache
+composer.lock
+.DS_Store

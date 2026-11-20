@@ -1,0 +1,9 @@
+---
+desc: Text tokens processing
+---
+
+.
+fooo _bar foo_ bar foo beer
+.
+<p>baro <em>bar bar</em> bar bar beer</p>
+.

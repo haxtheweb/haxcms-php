@@ -1944,7 +1944,7 @@ paths:
       tags:
         - actions
       operationId: importXlsx
-      summary: Convert an uploaded Excel file into a HAXcms site schema
+      summary: Convert an uploaded Excel or OpenDocument spreadsheet into a HAXcms site schema
       security:
         - bearerAuth: []
           userTokenHeader: []
@@ -1958,7 +1958,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Excel file (.xlsx or .xls) to convert
+                  description: Spreadsheet (.xlsx, .xls or .ods) to convert
                 method:
                   type: string
                   description: Import method (site, branch, or page)
@@ -2147,6 +2147,83 @@ paths:
                   type: string
                   format: binary
                   description: OpenDocument Text file (.odt) to convert
+      responses:
+        "200":
+          description: Converted HTML content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/import-odp:
+    post:
+      tags:
+        - actions
+      operationId: importOdp
+      summary: Convert an uploaded OpenDocument Presentation (.odp) file into a HAXcms site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: OpenDocument Presentation file (.odp) to convert
+                method:
+                  type: string
+                  description: Import method (site, branch, or page)
+                type:
+                  type: string
+                  description: Fallback content type (course, portfolio, or empty)
+                parentId:
+                  type: string
+                  description: Optional parent ID for imported items
+      responses:
+        "200":
+          description: Site schema items, one page per slide, from the converted OpenDocument Presentation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/odp-to-html:
+    post:
+      tags:
+        - actions
+      operationId: odpToHtml
+      summary: Convert an uploaded OpenDocument Presentation (.odp) file to HTML, one h1 per slide
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: OpenDocument Presentation file (.odp) to convert
       responses:
         "200":
           description: Converted HTML content
@@ -4004,7 +4081,7 @@ components:
       type: object
       description: >
         Import result returned by importDocx, importPdf, importPptx, importXlsx,
-        importMd, importOdt,
+        importMd, importOdt, importOdp,
         htmlToSite, gitbookToSite, haxcmsToSite, notionToSite, pressbooksToSite,
         wordpressToSite, drupalToSite, ploneToSite, openstaxToSite, vitepressToSite,
         quartoToSite. The front-end

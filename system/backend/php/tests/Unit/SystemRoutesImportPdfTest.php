@@ -358,13 +358,30 @@ class SystemRoutesImportPdfTest extends TestCase
         $this->assertFalse(haxcmsSystemShouldMergePdfParagraph('Hello.', 'World'));
     }
 
-    public function testEscapePdfHtmlHealsSplitTokensAndEscapes(): void
+    public function testEscapePdfHtmlEscapesLikeNodeAndKeepsWords(): void
     {
         $this->loadFile();
-        $this->assertSame('Action Items', haxcmsSystemEscapePdfHtml('Action Item s'));
-        $this->assertSame('a &lt; b &amp; c', haxcmsSystemEscapePdfHtml('a < b & c'));
-        // A missing space (as opposed to an extra one) is left untouched.
-        $this->assertSame('w ill', haxcmsSystemEscapePdfHtml('w ill'));
+        // Node's escapeHtml: & < > only
+        $this->assertSame('a &lt; b &amp; c &gt; "d" \'e\'', haxcmsSystemEscapePdfHtml('a < b & c > "d" \'e\''));
+        // a lone letter after a word is a word ("Lesson A", "and a"), not a
+        // split to join
+        $this->assertSame('Lesson A and a Value A', haxcmsSystemEscapePdfHtml('Lesson A and a Value A'));
+    }
+
+    public function testConvertPdfGroupsListLinesLikeNode(): void
+    {
+        $this->loadFile();
+        $path = $this->tempFile($this->buildPdf(array(
+            array('text' => 'Steps:', 'size' => 12, 'x' => 72, 'y' => 700),
+            array('text' => '1. First', 'size' => 12, 'x' => 72, 'y' => 680),
+            array('text' => '2. Second', 'size' => 12, 'x' => 72, 'y' => 660),
+            array('text' => '- Bullet', 'size' => 12, 'x' => 72, 'y' => 640),
+            array('text' => 'After.', 'size' => 12, 'x' => 72, 'y' => 620),
+        )));
+        $this->assertSame(
+            "<p>Steps:</p>\n<ol>\n<li>First</li>\n<li>Second</li>\n</ol>\n<ul>\n<li>Bullet</li>\n</ul>\n<p>After.</p>",
+            haxcmsSystemConvertPdfToSemanticHtml($path)
+        );
     }
 
     public function testConvertPdfMergesContinuationLinesIntoOneParagraph(): void

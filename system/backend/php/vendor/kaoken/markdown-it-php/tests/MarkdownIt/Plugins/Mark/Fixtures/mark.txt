@@ -1,0 +1,142 @@
+.
+==Mark==
+.
+<p><mark>Mark</mark></p>
+.
+
+.
+x ====foo== bar==
+.
+<p>x <mark><mark>foo</mark> bar</mark></p>
+.
+
+.
+x ==foo ==bar====
+.
+<p>x <mark>foo <mark>bar</mark></mark></p>
+.
+
+.
+x ====foo====
+.
+<p>x <mark><mark>foo</mark></mark></p>
+.
+
+.
+x ===foo===
+.
+<p>x =<mark>foo</mark>=</p>
+.
+
+Marks have the same priority as emphases:
+
+.
+**==test**==
+
+==**test==**
+.
+<p><strong>==test</strong>==</p>
+<p><mark>**test</mark>**</p>
+.
+
+
+Marks have the same priority as emphases with respect to links
+.
+[==link]()==
+
+==[link==]()
+.
+<p><a href="">==link</a>==</p>
+<p>==<a href="">link==</a></p>
+.
+
+
+Marks have the same priority as emphases with respect to backticks
+.
+==`code==`
+
+`==code`==
+.
+<p>==<code>code==</code></p>
+<p><code>==code</code>==</p>
+.
+
+
+Nested marks
+.
+==foo ==bar== baz==
+.
+<p><mark>foo <mark>bar</mark> baz</mark></p>
+.
+
+
+Nested marks with emphasis
+.
+==f **o ==o b== a** r==
+.
+<p><mark>f <strong>o <mark>o b</mark> a</strong> r</mark></p>
+.
+
+
+Should not have a whitespace between text and "==":
+.
+foo == bar == baz
+.
+<p>foo == bar == baz</p>
+.
+
+
+Newline should be considered a whitespace:
+.
+==test
+== a
+
+==
+test==
+
+==
+test
+==
+.
+<p>==test
+== a</p>
+<p>==
+test==</p>
+<h1>==
+test</h1>
+.
+
+
+.
+x ==a ==foo===========bar== b==
+
+x ==a ==foo============bar== b==
+.
+<p>x <mark>a <mark>foo</mark></mark>===<mark><mark>bar</mark> b</mark></p>
+<p>x <mark>a <mark>foo</mark></mark>====<mark><mark>bar</mark> b</mark></p>
+.
+
+
+From CommonMark test suite, replacing `**` with our marker:
+
+.
+a=="foo"==
+.
+<p>a==&quot;foo&quot;==</p>
+.
+
+
+Should parse delimiters inside links:
+.
+[==foo==]()
+.
+<p><a href=""><mark>foo</mark></a></p>
+.
+
+
+Regression test for markdown-it/markdown-it#742:
+.
+-====;======
+.
+<p>-<mark><mark>;</mark></mark>==</p>
+.
