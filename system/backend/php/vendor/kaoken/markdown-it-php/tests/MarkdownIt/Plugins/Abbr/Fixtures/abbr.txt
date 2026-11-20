@@ -1,0 +1,174 @@
+An example from php markdown readme:
+.
+*[HTML]: Hyper Text Markup Language
+*[W3C]:  World Wide Web Consortium
+The HTML specification
+is maintained by the W3C.
+.
+<p>The <abbr title="Hyper Text Markup Language">HTML</abbr> specification
+is maintained by the <abbr title="World Wide Web Consortium">W3C</abbr>.</p>
+.
+
+
+No empty abbreviations:
+.
+*[foo]:
+foo
+.
+<p>*[foo]:
+foo</p>
+.
+
+
+Intersecting abbreviations (first should match):
+.
+*[Bar Foo]: 123
+*[Foo Bar]: 456
+
+Foo Bar Foo
+
+Bar Foo Bar
+.
+<p><abbr title="456">Foo Bar</abbr> Foo</p>
+<p><abbr title="123">Bar Foo</abbr> Bar</p>
+.
+
+
+Don't bother with nested abbreviations (yet?):
+.
+*[JS]: javascript
+*[HTTP]: hyper text blah blah
+*[JS HTTP]: is awesome
+JS HTTP is a collection of low-level javascript HTTP-related modules
+.
+<p><abbr title="is awesome">JS HTTP</abbr> is a collection of low-level javascript <abbr title="hyper text blah blah">HTTP</abbr>-related modules</p>
+.
+
+
+Mixing up abbreviations and references:
+.
+*[foo]: 123
+[bar]: 456
+*[baz]: 789
+[quux]: 012
+and a paragraph continuation
+
+foo [bar] baz [quux]
+.
+<p>and a paragraph continuation</p>
+<p><abbr title="123">foo</abbr> <a href="456">bar</a> <abbr title="789">baz</abbr> <a href="012">quux</a></p>
+.
+
+
+Don't match the middle of the string:
+.
+*[foo]: blah
+*[bar]: blah
+foobar
+.
+<p>foobar</p>
+.
+
+
+Prefer earlier abbr definitions
+.
+foo
+
+*[foo]: bar
+*[foo]: baz
+.
+<p><abbr title="bar">foo</abbr></p>
+.
+
+
+Interaction with linkifier:
+.
+http://example.com/foo/
+
+*[foo]: something
+.
+<p><a href="http://example.com/foo/">http://example.com/<abbr title="something">foo</abbr>/</a></p>
+.
+
+
+Punctuation as a part of abbr
+.
+"foo" "bar"
+
+*["foo"]: 123
+*["bar"]: 456
+.
+<p><abbr title="123">&quot;foo&quot;</abbr> <abbr title="456">&quot;bar&quot;</abbr></p>
+.
+
+
+Trailing spaces inside abbreviation
+.
+*[ test ]: foo bar
+
+test test test
+test  test  test
+.
+<p>test test test
+test <abbr title="foo bar"> test </abbr> test</p>
+.
+
+
+Abbreviation that consists of only spaces
+.
+*[ ]: foo bar
+
+test test test
+test  test  test
+test   test   test
+.
+<p>test test test
+test  test  test
+test <abbr title="foo bar"> </abbr> test <abbr title="foo bar"> </abbr> test</p>
+.
+
+
+Empty abbreviations should not be processed as such
+.
+*[]: test
+
+(foo bar)
+.
+<p>*[]: test</p>
+<p>(foo bar)</p>
+.
+
+
+Security
+.
+*[hasOwnProperty]: blah
+
+hasOwnProperty
+.
+<p><abbr title="blah">hasOwnProperty</abbr></p>
+.
+
+
+Coverage 1
+.
+*[
+
+*[test
+
+*<test>
+.
+<p>*[</p>
+<p>*[test</p>
+<p>*&lt;test&gt;</p>
+.
+
+
+Coverage 2
+.
+[] \[\]
+
+*[[]]: test
+.
+<p>[] []</p>
+<p>*[[]]: test</p>
+.

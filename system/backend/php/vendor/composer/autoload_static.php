@@ -62,6 +62,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         array (
             'League\\HTMLToMarkdown\\' => 22,
         ),
+        'K' => 
+        array (
+            'Kaoken\\' => 7,
+        ),
         'I' => 
         array (
             'Icamys\\SitemapGenerator\\' => 24,
@@ -76,6 +80,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         'F' => 
         array (
             'FontLib\\' => 8,
+        ),
+        'E' => 
+        array (
+            'EndlessCreativity\\ElephantPhp\\' => 30,
         ),
         'D' => 
         array (
@@ -171,6 +179,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         array (
             0 => __DIR__ . '/..' . '/league/html-to-markdown/src',
         ),
+        'Kaoken\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/kaoken/markdown-it-php/src',
+        ),
         'Icamys\\SitemapGenerator\\' => 
         array (
             0 => __DIR__ . '/..' . '/icamys/php-sitemap-generator/src',
@@ -194,6 +206,10 @@ class ComposerStaticInitd1c4562e2e273567c52622f42bbd5b78
         'FontLib\\' => 
         array (
             0 => __DIR__ . '/..' . '/dompdf/php-font-lib/src/FontLib',
+        ),
+        'EndlessCreativity\\ElephantPhp\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/endless-creativity/elephant-php/src',
         ),
         'Dompdf\\' => 
         array (

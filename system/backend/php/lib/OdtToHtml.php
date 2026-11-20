@@ -23,6 +23,7 @@
 class OdtToHtml
 {
     const ODT_MIMETYPE = 'application/vnd.oasis.opendocument.text';
+    const ODP_MIMETYPE = 'application/vnd.oasis.opendocument.presentation';
     // Security (SEC-UPLOAD): the zip directory states each entry's
     // uncompressed size; refuse to inflate past these, so a small upload
     // can't expand into a huge string (zip bomb).
@@ -99,11 +100,35 @@ class OdtToHtml
     private $styles;
     private $imageBytes = 0;
     private $images = array();
+    // nodes already used elsewhere (a slide's fallback title)
+    private $skipNodes;
+
+    // presentation:class values that are not slide content
+    private static $SKIP_SLIDE_CLASSES = array(
+        'notes' => true,
+        'page-number' => true,
+        'date-time' => true,
+        'footer' => true,
+        'header' => true,
+        'handout' => true,
+        'page' => true,
+    );
+    // drawn shapes that can hold text
+    private static $TEXT_SHAPES = array(
+        'draw:custom-shape' => true,
+        'draw:rect' => true,
+        'draw:ellipse' => true,
+        'draw:circle' => true,
+        'draw:polygon' => true,
+        'draw:path' => true,
+        'draw:caption' => true,
+    );
 
     private function __construct($zip, $styles)
     {
         $this->zip = $zip;
         $this->styles = $styles;
+        $this->skipNodes = new \SplObjectStorage();
     }
 
     // ---- JavaScript-compatible helpers (parity with odtToHtml.js) ----
@@ -516,12 +541,22 @@ class OdtToHtml
                     break;
                 case 'text:span':
                     $spanFormat = array_merge($format, $this->resolveFormat(self::attr($child, 'text:style-name')));
+                    // underline is how links look, not emphasis: a span that
+                    // only wraps a link does not add it
+                    if (self::onlyWrapsLinks($child)) {
+                        if (isset($format['underline'])) {
+                            $spanFormat['underline'] = $format['underline'];
+                        } else {
+                            unset($spanFormat['underline']);
+                        }
+                    }
                     $out .= self::wrapFormat($this->inline($child, $spanFormat), self::diffFormat($format, $spanFormat));
                     break;
                 case 'text:a':
                 case 'draw:a':
                     $href = self::safeHref(self::attr($child, 'xlink:href'));
-                    $inner = $this->inline($child, $format);
+                    // link text is underlined already; that is not emphasis
+                    $inner = $this->inline($child, array_merge($format, array('underline' => true)));
                     $out .= $href !== '' ? '<a href="' . self::escapeAttr($href) . '">' . $inner . '</a>' : $inner;
                     break;
                 case 'draw:frame':
@@ -542,6 +577,25 @@ class OdtToHtml
             }
         }
         return $out;
+    }
+
+    /** a span whose content is only links (and whitespace) */
+    private static function onlyWrapsLinks($span)
+    {
+        $links = 0;
+        foreach ($span->childNodes as $child) {
+            if ($child->nodeType === XML_TEXT_NODE) {
+                if (self::jsTrim($child->nodeValue) !== '') {
+                    return false;
+                }
+            } elseif ($child->nodeType === XML_ELEMENT_NODE) {
+                if ($child->nodeName !== 'text:a') {
+                    return false;
+                }
+                $links++;
+            }
+        }
+        return $links > 0;
     }
 
     private function paragraphInline($node)
@@ -582,7 +636,7 @@ class OdtToHtml
 
     private function block($node)
     {
-        if (isset(self::$SKIP_BLOCKS[$node->nodeName])) {
+        if (isset(self::$SKIP_BLOCKS[$node->nodeName]) || $this->skipNodes->contains($node)) {
             return '';
         }
         switch ($node->nodeName) {
@@ -662,7 +716,7 @@ class OdtToHtml
             }
             $children = array();
             foreach (self::elementChildren($item) as $child) {
-                if (!isset(self::$SKIP_BLOCKS[$child->nodeName])) {
+                if (!isset(self::$SKIP_BLOCKS[$child->nodeName]) && !$this->skipNodes->contains($child)) {
                     $children[] = $child;
                 }
             }
@@ -753,6 +807,118 @@ class OdtToHtml
         return false;
     }
 
+    /**
+     * One presentation slide (draw:page) as `<h1>title</h1>` plus its
+     * content, the shape the .pptx importer gives, so each slide becomes a
+     * page. The title comes from the title frame, else the slide's first line
+     * of text (taken out of the body), else "Slide N". Speaker notes, page
+     * numbers, dates, headers and footers are left out.
+     */
+    private function slide($page, $number)
+    {
+        $shapes = array();
+        self::collectSlideShapes($page, $shapes);
+        $title = '';
+        foreach ($shapes as $shape) {
+            if (self::attr($shape, 'presentation:class') === 'title') {
+                $lines = array();
+                foreach (self::textParagraphs($shape) as $para) {
+                    $inner = self::jsTrim($this->inline($para, array()));
+                    if (self::hasContent($inner)) {
+                        $lines[] = $inner;
+                    }
+                }
+                if (count($lines)) {
+                    $title = implode(' ', $lines);
+                    break;
+                }
+            }
+        }
+        if ($title === '') {
+            foreach ($shapes as $shape) {
+                if (self::attr($shape, 'presentation:class') === 'title') {
+                    continue;
+                }
+                foreach (self::textParagraphs($shape) as $para) {
+                    $inner = self::jsTrim($this->inline($para, array()));
+                    if (self::hasContent($inner)) {
+                        $title = $inner;
+                        $this->skipNodes->attach($para);
+                        break;
+                    }
+                }
+                if ($title !== '') {
+                    break;
+                }
+            }
+        }
+        $body = '';
+        foreach ($shapes as $shape) {
+            if (self::attr($shape, 'presentation:class') === 'title') {
+                continue;
+            }
+            $body .= $this->shapeHtml($shape);
+        }
+        if ($title === '' && $body === '') {
+            return '';
+        }
+        if ($title === '') {
+            $title = 'Slide ' . $number;
+        }
+        return '<h1>' . $title . "</h1>\n" . $body;
+    }
+
+    private function shapeHtml($shape)
+    {
+        if ($shape->nodeName !== 'draw:frame') {
+            // text in a drawn shape (draw:custom-shape, draw:rect, ...)
+            return $this->blocks($shape);
+        }
+        $table = self::findChild($shape, 'table:table');
+        if ($table) {
+            // a table frame also carries a preview image of the table
+            return $this->table($table);
+        }
+        $box = self::findChild($shape, 'draw:text-box');
+        if ($box) {
+            return $this->blocks($box);
+        }
+        $inner = $this->frameHtml($shape);
+        return self::hasContent($inner) ? '<p>' . $inner . "</p>\n" : '';
+    }
+
+    /** a slide's content shapes in document order, groups opened */
+    private static function collectSlideShapes($node, &$shapes)
+    {
+        foreach (self::elementChildren($node) as $child) {
+            if ($child->nodeName === 'draw:g') {
+                self::collectSlideShapes($child, $shapes);
+            } elseif (($child->nodeName === 'draw:frame' || isset(self::$TEXT_SHAPES[$child->nodeName]))
+                && !isset(self::$SKIP_SLIDE_CLASSES[self::attr($child, 'presentation:class')])) {
+                $shapes[] = $child;
+            }
+        }
+    }
+
+    /** text:p / text:h below a shape, in document order */
+    private static function textParagraphs($node)
+    {
+        $found = array();
+        self::collectParagraphs($node, $found);
+        return $found;
+    }
+
+    private static function collectParagraphs($parent, &$found)
+    {
+        foreach (self::elementChildren($parent) as $child) {
+            if ($child->nodeName === 'text:p' || $child->nodeName === 'text:h') {
+                $found[] = $child;
+            } elseif (!isset(self::$SKIP_BLOCKS[$child->nodeName])) {
+                self::collectParagraphs($child, $found);
+            }
+        }
+    }
+
     private function table($node)
     {
         $head = array();
@@ -837,25 +1003,25 @@ class OdtToHtml
         return $bytes !== false && strlen($bytes) === 4 && $bytes === "PK\x03\x04";
     }
 
-    private static function readXml($zip, $path, $required)
+    private static function readXml($zip, $path, $required, $ext)
     {
         $stat = $zip->statName($path);
         if ($stat === false) {
             if ($required) {
-                throw new \Exception('The .odt file has no ' . $path . '.');
+                throw new \Exception('The .' . $ext . ' file has no ' . $path . '.');
             }
             return null;
         }
         if ((int) $stat['size'] > self::MAX_XML_BYTES) {
-            throw new \Exception('The .odt file\'s ' . $path . ' is too large to import.');
+            throw new \Exception('The .' . $ext . ' file\'s ' . $path . ' is too large to import.');
         }
         $xml = $zip->getFromName($path);
         if ($xml === false || strlen($xml) > self::MAX_XML_BYTES) {
-            throw new \Exception('The .odt file\'s ' . $path . ' is too large to import.');
+            throw new \Exception('The .' . $ext . ' file\'s ' . $path . ' is too large to import.');
         }
         // Security: no DTD / entity declarations (billion laughs); ODF never needs them
         if (preg_match('/<!DOCTYPE|<!ENTITY/i', $xml)) {
-            throw new \Exception('The .odt file\'s ' . $path . ' is not valid OpenDocument XML.');
+            throw new \Exception('The .' . $ext . ' file\'s ' . $path . ' is not valid OpenDocument XML.');
         }
         $dom = new \DOMDocument();
         $dom->preserveWhiteSpace = true;
@@ -867,38 +1033,37 @@ class OdtToHtml
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
         if (!$loaded) {
-            throw new \Exception('The .odt file\'s ' . $path . ' is not valid OpenDocument XML.');
+            throw new \Exception('The .' . $ext . ' file\'s ' . $path . ' is not valid OpenDocument XML.');
         }
         return $dom;
     }
 
     /**
-     * Convert an .odt file to HTML.
-     * @param string $path path to the uploaded file
-     * @return string
-     * @throws \Exception with a client-safe message
+     * Open an OpenDocument zip: checks the signature and mimetype, then reads
+     * content.xml and the styles of styles.xml and content.xml. The caller
+     * closes the returned zip.
+     * @return array array('zip' => ZipArchive, 'content' => DOMDocument, 'styles' => array)
      */
-    public static function convertFile($path)
+    private static function openOdf($path, $ext, $mimetype, $kind)
     {
         if (!self::hasZipSignature($path)) {
-            throw new \Exception('Uploaded file is not a valid .odt file (missing ZIP signature).');
+            throw new \Exception('Uploaded file is not a valid .' . $ext . ' file (missing ZIP signature).');
         }
         $zip = new \ZipArchive();
         if ($zip->open($path) !== true) {
-            throw new \Exception('Uploaded file is not a valid .odt file (unreadable ZIP).');
+            throw new \Exception('Uploaded file is not a valid .' . $ext . ' file (unreadable ZIP).');
         }
         try {
             $mimeStat = $zip->statName('mimetype');
             if ($mimeStat !== false && (int) $mimeStat['size'] <= 256) {
                 $mime = self::jsTrim((string) $zip->getFromName('mimetype'));
-                // .odt, plus Writer's web / master / template variants, all
-                // keep their body in office:text
-                if ($mime !== self::ODT_MIMETYPE && strpos($mime, self::ODT_MIMETYPE . '-') !== 0) {
-                    throw new \Exception('Uploaded file is not an OpenDocument text file (' . ($mime !== '' ? $mime : 'unknown type') . ').');
+                // the type, plus its web / master / template variants
+                if ($mime !== $mimetype && strpos($mime, $mimetype . '-') !== 0) {
+                    throw new \Exception('Uploaded file is not an OpenDocument ' . $kind . ' file (' . ($mime !== '' ? $mime : 'unknown type') . ').');
                 }
             }
-            $content = self::readXml($zip, 'content.xml', true);
-            $stylesDoc = self::readXml($zip, 'styles.xml', false);
+            $content = self::readXml($zip, 'content.xml', true, $ext);
+            $stylesDoc = self::readXml($zip, 'styles.xml', false, $ext);
             $styles = array('text' => array(), 'lists' => array());
             if ($stylesDoc) {
                 $named = self::findFirst($stylesDoc, 'office:styles');
@@ -914,15 +1079,63 @@ class OdtToHtml
             if ($contentAuto) {
                 self::collectStyles($contentAuto, $styles);
             }
-            $body = self::findFirst($content, 'office:text');
+        } catch (\Throwable $e) {
+            $zip->close();
+            throw $e;
+        }
+        return array('zip' => $zip, 'content' => $content, 'styles' => $styles);
+    }
+
+    /**
+     * Convert an .odt file to HTML.
+     * @param string $path path to the uploaded file
+     * @return string
+     * @throws \Exception with a client-safe message
+     */
+    public static function convertFile($path)
+    {
+        $doc = self::openOdf($path, 'odt', self::ODT_MIMETYPE, 'text');
+        try {
+            $body = self::findFirst($doc['content'], 'office:text');
             if (!$body) {
                 throw new \Exception('The .odt file has no text body.');
             }
-            $converter = new OdtToHtml($zip, $styles);
+            $converter = new OdtToHtml($doc['zip'], $doc['styles']);
             $converter->loadImages($body);
             return self::jsTrim($converter->blocks($body));
         } finally {
-            $zip->close();
+            $doc['zip']->close();
+        }
+    }
+
+    /**
+     * Convert an .odp file to HTML: one `<h1>` per slide, then its content.
+     * @param string $path path to the uploaded file
+     * @return string
+     * @throws \Exception with a client-safe message
+     */
+    public static function convertOdpFile($path)
+    {
+        $doc = self::openOdf($path, 'odp', self::ODP_MIMETYPE, 'presentation');
+        try {
+            $body = self::findFirst($doc['content'], 'office:presentation');
+            if (!$body) {
+                throw new \Exception('The .odp file has no slides.');
+            }
+            $converter = new OdtToHtml($doc['zip'], $doc['styles']);
+            $converter->loadImages($body);
+            $html = '';
+            $number = 0;
+            foreach (self::elementChildren($body) as $page) {
+                if ($page->nodeName !== 'draw:page') {
+                    continue;
+                }
+                $number++;
+                $html .= $converter->slide($page, $number);
+            }
+            return self::jsTrim($html);
+        } finally {
+            $doc['zip']->close();
         }
     }
 }

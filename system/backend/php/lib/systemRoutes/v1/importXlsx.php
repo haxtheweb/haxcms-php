@@ -31,9 +31,9 @@ return function ($context) {
     $file     = $_FILES[$fileKey];
     $filename = isset($file['name']) ? (string) $file['name'] : 'file.xlsx';
 
-    if (!preg_match('/\.(xlsx|xls)$/i', $filename)) {
+    if (!preg_match('/\.(xlsx|xls|ods)$/i', $filename)) {
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 400, 'data' => array('error' => 'Invalid file type. Expected .xlsx or .xls, got: ' . $filename, 'items' => array(), 'filename' => $filename)),
+            array('status' => 400, 'data' => array('error' => 'Invalid file type. Expected .xlsx, .xls or .ods, got: ' . $filename, 'items' => array(), 'filename' => $filename)),
             array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
             $apiBasePath

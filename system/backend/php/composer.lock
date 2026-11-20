@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5f863dd280e6f52985d7e4be681ecdd1",
+    "content-hash": "fd84d037bd06a0914d43c0f06a7409c9",
     "packages": [
         {
             "name": "composer/pcre",
@@ -236,6 +236,70 @@
                 "source": "https://github.com/dompdf/php-svg-lib/tree/1.0.2"
             },
             "time": "2026-01-02T16:01:13+00:00"
+        },
+        {
+            "name": "endless-creativity/elephant-php",
+            "version": "v0.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/endless-creativity/elephant-php.git",
+                "reference": "7085eaa0161a03460c1372fd5461bea434224974"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/endless-creativity/elephant-php/zipball/7085eaa0161a03460c1372fd5461bea434224974",
+                "reference": "7085eaa0161a03460c1372fd5461bea434224974",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-libxml": "*",
+                "ext-mbstring": "*",
+                "ext-xmlreader": "*",
+                "ext-zip": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.5",
+                "phpstan/phpstan": "^2.0"
+            },
+            "bin": [
+                "bin/elephant-php"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "EndlessCreativity\\ElephantPhp\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-2-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Endless Creativity",
+                    "email": "mm@endlesscreativity.it"
+                }
+            ],
+            "description": "Convert .docx to Markdown or semantic HTML — no external dependencies.",
+            "homepage": "https://github.com/endless-creativity/elephant-php",
+            "keywords": [
+                "OOXML",
+                "converter",
+                "document",
+                "docx",
+                "html",
+                "markdown",
+                "office",
+                "word"
+            ],
+            "support": {
+                "issues": "https://github.com/endless-creativity/elephant-php/issues",
+                "source": "https://github.com/endless-creativity/elephant-php"
+            },
+            "time": "2026-10-15T08:28:44+00:00"
         },
         {
             "name": "gumlet/php-image-resize",
@@ -679,6 +743,56 @@
                 "php"
             ],
             "time": "2019-06-02T16:39:54+00:00"
+        },
+        {
+            "name": "kaoken/markdown-it-php",
+            "version": "14.3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/yasuken2013/markdown-it-php.git",
+                "reference": "e85739a35944cba0f90e354e3d209a42c99758c3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/yasuken2013/markdown-it-php/zipball/e85739a35944cba0f90e354e3d209a42c99758c3",
+                "reference": "e85739a35944cba0f90e354e3d209a42c99758c3",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "php": ">=7.4.0"
+            },
+            "require-dev": {
+                "ext-pthreads": "*",
+                "symfony/yaml": "5.0.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Kaoken\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "kaoken",
+                    "homepage": "https://github.com/kaoken/markdown-it-php"
+                }
+            ],
+            "description": "PHP version makdown-it",
+            "keywords": [
+                "markdown",
+                "markdown-it"
+            ],
+            "support": {
+                "issues": "https://github.com/yasuken2013/markdown-it-php/issues",
+                "source": "https://github.com/yasuken2013/markdown-it-php/tree/14.3.0.0"
+            },
+            "time": "2026-07-23T04:21:59+00:00"
         },
         {
             "name": "league/html-to-markdown",

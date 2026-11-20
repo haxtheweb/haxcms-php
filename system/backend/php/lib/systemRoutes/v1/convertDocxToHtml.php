@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
+include_once dirname(__FILE__) . '/../../DocxToHtml.php';
 
 /**
  * Convert DOCX word/document.xml into a simplified HTML string using DOMDocument.
@@ -298,21 +299,21 @@ return function ($context) {
             $xmlIndex = $zip->locateName('word/document.xml');
             if ($xmlIndex !== false) {
                 $xmlString = $zip->getFromIndex($xmlIndex);
-                if ($xmlString !== false) {
-                    // Load package images so convert emits data: URIs (mammoth parity).
-                    $mediaMap = function_exists('haxcmsImportLoadDocxMediaMapFromZip')
-                        ? haxcmsImportLoadDocxMediaMapFromZip($zip)
-                        : array();
-                    $html = haxcmsSystemProcessDocxHtml(
-                        haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap)
-                    );
-                } else {
+                if ($xmlString === false) {
                     $error = 'Unable to read word/document.xml from uploaded DOCX';
                 }
             } else {
                 $error = 'Uploaded file does not contain a valid Word document structure';
             }
             $zip->close();
+            if ($error === '') {
+                // Same converter and clean-up as haxcms-nodejs (mammoth port).
+                try {
+                    $html = DocxToHtml::convertFile($tmpPath);
+                } catch (\Throwable $e) {
+                    $error = 'Error converting DOCX: ' . $e->getMessage();
+                }
+            }
         } else {
             $error = 'Unable to open uploaded file as a ZIP archive (invalid DOCX)';
         }

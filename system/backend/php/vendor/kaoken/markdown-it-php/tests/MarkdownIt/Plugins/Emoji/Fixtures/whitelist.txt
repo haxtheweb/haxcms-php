@@ -1,0 +1,10 @@
+---
+desc: Whitelisting defaults
+---
+
+Show only allowed emojies
+.
+:smile: :grin: :wink:
+.
+<p>😄 😁 :wink:</p>
+.

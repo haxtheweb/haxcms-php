@@ -218,14 +218,14 @@ function runSystemRoutesMapTests()
     }
 
     // Group B: import routes (all under v1/actions/import-*)
-    $groupB = array('v1/actions/import-html', 'v1/actions/import-pptx', 'v1/actions/import-xlsx', 'v1/actions/import-pdf', 'v1/actions/import-md', 'v1/actions/import-odt');
+    $groupB = array('v1/actions/import-html', 'v1/actions/import-pptx', 'v1/actions/import-xlsx', 'v1/actions/import-pdf', 'v1/actions/import-md', 'v1/actions/import-odt', 'v1/actions/import-odp');
     foreach ($groupB as $route) {
         $runner->assert(isset($routes['POST'][$route]), "POST $route exists in SystemRoutesMap");
         $runner->assert(file_exists($routes['POST'][$route]), "Handler file exists: $route");
     }
 
     // Group C: binary conversions (all under v1/actions/)
-    $groupC = array('v1/actions/pptx-to-html', 'v1/actions/xlsx-to-csv', 'v1/actions/pdf-to-html', 'v1/actions/odt-to-html', 'v1/actions/html-to-docx', 'v1/actions/html-to-pdf', 'v1/actions/docx-to-pdf');
+    $groupC = array('v1/actions/pptx-to-html', 'v1/actions/xlsx-to-csv', 'v1/actions/pdf-to-html', 'v1/actions/odt-to-html', 'v1/actions/odp-to-html', 'v1/actions/html-to-docx', 'v1/actions/html-to-pdf', 'v1/actions/docx-to-pdf');
     foreach ($groupC as $route) {
         $runner->assert(isset($routes['POST'][$route]), "POST $route exists in SystemRoutesMap");
         $runner->assert(file_exists($routes['POST'][$route]), "Handler file exists: $route");

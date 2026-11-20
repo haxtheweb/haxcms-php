@@ -139,7 +139,9 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                     return $a['x'] <=> $b['x'];
                 });
                 $lineText = '';
-                $maxEff   = 0.0;
+                // Node starts a line's size at the default (12) and takes the
+                // largest run, so no line measures smaller than that
+                $maxEff   = $DEFAULT_FONT_SIZE;
                 $prev     = null;
                 foreach ($row['items'] as $it) {
                     if ($prev) {
@@ -230,24 +232,49 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             if (count($after) > 0) {
                 $pageLines[] = array('text' => '', 'effSize' => 0, 'images' => $after);
             }
+            // Node builds each page's HTML on its own: a paragraph or list
+            // never runs on into the next page
+            $pageLines[] = array('pageEnd' => true);
         }
 
-        if (count($pageLines) === 0) {
+        $hasContent = false;
+        foreach ($pageLines as $line) {
+            if (!isset($line['pageEnd'])) {
+                $hasContent = true;
+                break;
+            }
+        }
+        if (!$hasContent) {
             return '<p></p>';
         }
 
         // Stage 2: font stats → body size → heading candidates (Node parity).
         $stats = array();
         foreach ($pageLines as $line) {
-            if (isset($line['images'])) {
+            if (isset($line['images']) || isset($line['pageEnd'])) {
                 continue;
             }
             $size = haxcmsSystemNormalizePdfFontSize($line['effSize']);
-            $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, strlen($line['text']));
+            $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, haxcmsSystemPdfJsLength($line['text']));
         }
         $bodySize   = $DEFAULT_FONT_SIZE;
         $maxWeight  = 0;
+        // Node keeps these in a JS object, which lists whole-number keys
+        // first (ascending) and the rest in insertion order; walk them in
+        // that order so a tie picks the same body size.
+        $wholeSizes = array();
+        $otherSizes = array();
         foreach ($stats as $size => $weight) {
+            if (fmod((float) $size, 1.0) == 0.0) {
+                $wholeSizes[$size] = $weight;
+            } else {
+                $otherSizes[$size] = $weight;
+            }
+        }
+        uksort($wholeSizes, function ($a, $b) {
+            return (float) $a <=> (float) $b;
+        });
+        foreach ($wholeSizes + $otherSizes as $size => $weight) {
             if ($weight > $maxWeight) {
                 $maxWeight = $weight;
                 $bodySize  = (float) $size;
@@ -271,17 +298,36 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             $headingSizes['h3'] = $candidates[2];
         }
 
-        // Stage 3: emit semantic HTML. Paragraphs merge across consecutive lines
-        // that don't end a sentence (Node's shouldMergeParagraph). Headings only
-        // emit when the size matches AND looksLikeHeading passes.
+        // Stage 3: emit semantic HTML, as Node's linesToSemanticHtml does.
+        // Paragraphs merge across consecutive lines that don't end a sentence
+        // (shouldMergeParagraph); list lines group into <ul>/<ol>; headings
+        // only emit when the size matches AND looksLikeHeading passes.
         $htmlParts = array();
+        /** @var string $paragraphBuffer */
         $paragraphBuffer = '';
+        /** @var string|null $activeListType */
+        $activeListType = null;
+        $flushParagraph = function () use (&$htmlParts, &$paragraphBuffer) {
+            if ($paragraphBuffer !== '') {
+                $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                $paragraphBuffer = '';
+            }
+        };
+        $closeList = function () use (&$htmlParts, &$activeListType) {
+            if ($activeListType !== null) {
+                $htmlParts[] = '</' . $activeListType . '>';
+                $activeListType = null;
+            }
+        };
         foreach ($pageLines as $line) {
+            if (isset($line['pageEnd'])) {
+                $flushParagraph();
+                $closeList();
+                continue;
+            }
             if (isset($line['images'])) {
-                if ($paragraphBuffer !== '') {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-                    $paragraphBuffer = '';
-                }
+                $flushParagraph();
+                $closeList();
                 foreach ($line['images'] as $imgTag) {
                     $htmlParts[] = $imgTag;
                 }
@@ -289,25 +335,32 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             }
             $info = haxcmsSystemGetPdfLineInfo($line, $headingSizes, $HEADING_TOLERANCE, $MAX_HEADING_WORDS, $MAX_HEADING_LENGTH);
             if ($info['type'] === 'paragraph') {
+                $closeList();
                 if ($paragraphBuffer === '') {
                     $paragraphBuffer = $info['content'];
                 } elseif (haxcmsSystemShouldMergePdfParagraph($paragraphBuffer, $info['content'])) {
                     $paragraphBuffer .= ' ' . $info['content'];
                 } else {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                    $flushParagraph();
                     $paragraphBuffer = $info['content'];
                 }
             } else {
-                if ($paragraphBuffer !== '') {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-                    $paragraphBuffer = '';
+                $flushParagraph();
+                if ($info['type'] === 'list') {
+                    if ($activeListType !== $info['listType']) {
+                        $closeList();
+                        $activeListType = $info['listType'];
+                        $htmlParts[] = '<' . $activeListType . '>';
+                    }
+                    $htmlParts[] = '<li>' . haxcmsSystemEscapePdfHtml($info['content']) . '</li>';
+                } else {
+                    $closeList();
+                    $htmlParts[] = '<' . $info['type'] . '>' . haxcmsSystemEscapePdfHtml($info['content']) . '</' . $info['type'] . '>';
                 }
-                $htmlParts[] = '<' . $info['type'] . '>' . haxcmsSystemEscapePdfHtml($info['content']) . '</' . $info['type'] . '>';
             }
         }
-        if ($paragraphBuffer !== '') {
-            $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-        }
+        $flushParagraph();
+        $closeList();
         $html = implode("\n", $htmlParts);
         if ($html === '') {
             $html = '<p></p>';
@@ -1245,6 +1298,15 @@ if (!function_exists('haxcmsSystemNormalizePdfFontSize')) {
     }
 }
 
+if (!function_exists('haxcmsSystemPdfJsLength')) {
+    /** JavaScript's string length (UTF-16 code units), as Node measures text */
+    function haxcmsSystemPdfJsLength($text)
+    {
+        $utf16 = mb_convert_encoding((string) $text, 'UTF-16LE', 'UTF-8');
+        return intdiv(strlen($utf16), 2);
+    }
+}
+
 if (!function_exists('haxcmsSystemGetPdfLineInfo')) {
     function haxcmsSystemGetPdfLineInfo($line, $headingSizes, $tolerance, $maxWords, $maxLength)
     {
@@ -1285,7 +1347,7 @@ if (!function_exists('haxcmsSystemPdfLooksLikeHeading')) {
         if (count($words) > $maxWords) {
             return false;
         }
-        if (mb_strlen($text) > $maxLength) {
+        if (haxcmsSystemPdfJsLength($text) > $maxLength) {
             return false;
         }
         if (preg_match('/[.!?]$/u', $text)) {
@@ -1332,16 +1394,11 @@ if (!function_exists('haxcmsSystemShouldMergePdfParagraph')) {
 if (!function_exists('haxcmsSystemEscapePdfHtml')) {
     function haxcmsSystemEscapePdfHtml($value)
     {
-        // Smalot splits words on character-positioning gaps, producing artifacts
-        // like "Action Item s" or "OptionalStudy Resources". The most visible
-        // and safest to fix is a space immediately before a single trailing
-        // letter at the end of a token ("Item s" -> "Items"). Collapse that
-        // pattern repeatedly so mid-word splits heal too ("w illlearn" is left
-        // alone — that is a missing space, not an extra one, and we can't safely
-        // guess word boundaries there). Legitimate single-letter words ("a",
-        // "I") are not at risk because the pattern requires a preceding token.
-        $cleaned = preg_replace('/(\p{L}) (\p{L})(?=\s|$)/u', '$1$2', $value);
-        return htmlspecialchars($cleaned, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        // Node's escapeHtml: & < > only. (Runs now carry glyph widths, so
+        // the row builder places word breaks itself; the old pass that joined
+        // a lone trailing letter onto the word before it turned real words
+        // like "Lesson A" and "and a" into "LessonA" and "anda".)
+        return str_replace(array('&', '<', '>'), array('&amp;', '&lt;', '&gt;'), (string) $value);
     }
 }
 

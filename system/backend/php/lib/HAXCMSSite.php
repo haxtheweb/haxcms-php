@@ -206,7 +206,7 @@ class HAXCMSSite
           $this->addPage(null, 'Welcome', 'init', 'welcome');
         }
         else {
-          switch ($build->structure) {
+          switch (isset($build->structure) ? $build->structure : null) {
             case 'from-skeleton':
             case 'import':
               $pageSchema = array();
@@ -255,7 +255,7 @@ class HAXCMSSite
                   "slug" => "welcome"
                 )
               );
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 case 'docx import':
                     // ensure we have items
                   if ($build->items) {
@@ -334,7 +334,7 @@ class HAXCMSSite
               $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
             break;
             case 'website':
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 default:
                   $this->addPage(null, 'Home', 'init', 'home');
                 break;
@@ -347,7 +347,7 @@ class HAXCMSSite
               $this->addPage(null, 'Start', 'init', 'start');
               break;
             case 'portfolio':
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 case 'art':
                   $this->addPage(null, 'Gallery 1', 'init', 'gallery-1');
                   $this->addPage(null, 'Gallery 2', 'init', 'gallery-2');

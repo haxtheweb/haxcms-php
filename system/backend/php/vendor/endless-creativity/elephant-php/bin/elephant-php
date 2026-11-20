@@ -1,0 +1,87 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// CLI wrapper for EndlessCreativity\ElephantPhp\Converter.
+// Usage: elephant-php [--markdown] <input.docx> [<output>]
+
+$autoload = null;
+foreach ([
+    __DIR__.'/../vendor/autoload.php',         // local checkout
+    __DIR__.'/../../../autoload.php',          // installed in vendor/
+    __DIR__.'/../../autoload.php',             // installed in vendor/composer/...
+] as $candidate) {
+    if (file_exists($candidate)) {
+        $autoload = $candidate;
+        break;
+    }
+}
+if ($autoload === null) {
+    fwrite(STDERR, "elephant-php: could not find composer autoload (looked relative to {$argv[0]})\n");
+    exit(1);
+}
+require $autoload;
+
+use EndlessCreativity\ElephantPhp\Converter;
+
+$args = array_slice($argv, 1);
+$format = 'html';
+$positional = [];
+foreach ($args as $arg) {
+    if ($arg === '--markdown' || $arg === '-m') {
+        $format = 'markdown';
+        continue;
+    }
+    if ($arg === '--help' || $arg === '-h') {
+        fwrite(STDOUT, <<<USAGE
+elephant-php — convert .docx to HTML or Markdown.
+
+Usage:
+  elephant-php [--markdown|-m] <input.docx> [<output>]
+
+Options:
+  --markdown, -m   Emit markdown instead of HTML.
+  --help, -h       Show this message and exit.
+
+If <output> is omitted, the result is written to stdout. Conversion
+warnings (unrecognised styles, unknown elements, etc.) are written to
+stderr in either case.
+
+USAGE);
+        exit(0);
+    }
+    $positional[] = $arg;
+}
+
+if (count($positional) < 1 || count($positional) > 2) {
+    fwrite(STDERR, "elephant-php: expected 1 or 2 positional arguments, got ".count($positional)."\n");
+    fwrite(STDERR, "Try 'elephant-php --help' for usage.\n");
+    exit(2);
+}
+
+[$input] = $positional;
+$output = $positional[1] ?? null;
+
+try {
+    $converter = new Converter();
+    $result = $format === 'markdown'
+        ? $converter->convertToMarkdown($input)
+        : $converter->convertToHtml($input);
+} catch (\Throwable $error) {
+    fwrite(STDERR, 'elephant-php: '.$error->getMessage()."\n");
+    exit(1);
+}
+
+foreach ($result->messages as $message) {
+    fwrite(STDERR, '['.$message->type->value.'] '.$message->message."\n");
+}
+
+if ($output === null) {
+    fwrite(STDOUT, $result->value);
+} else {
+    if (file_put_contents($output, $result->value) === false) {
+        fwrite(STDERR, "elephant-php: could not write to {$output}\n");
+        exit(1);
+    }
+}
