@@ -7,9 +7,9 @@
  * easy_words.js). A word NOT in this list is considered "difficult" for
  * the Dale-Chall readability formula.
  *
- * Formula: score = 0.1579 * (difficultWords / words * 100)
- *                      + 0.0496 * (words / sentences)
- *          + 3.6365 when words/sentences > 0 and difficultWords == 0
+ * The same list, in the same order, is haxcms-nodejs
+ * src/lib/daleChallWordList.js: keep the two identical so both backends
+ * score readability the same. The formula is in Readability.php.
  */
 class DaleChallWordList
 {

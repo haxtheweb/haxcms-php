@@ -64,8 +64,18 @@ class SiteRoutesReportsTest extends TestCase
         $result = invokeSiteRouteHandler('reports.php', $context);
         $data = $result['data']['data'];
         $this->assertSame('overview', $data['id']);
-        $this->assertArrayHasKey('readability', $data['data']);
-        $this->assertArrayHasKey('gradeLevel', $data['data']['readability']);
+        // page 'a' only: unpublished 'b' is left out (lib/Readability.php,
+        // the same numbers haxcms-nodejs answers for these pages)
+        $this->assertSame(
+            array(
+                'gradeLevel' => '9th / 10th grade',
+                'difficultWords' => 4,
+                'syllableCount' => 26,
+                'lexiconCount' => 18,
+                'sentenceCount' => 2,
+            ),
+            $data['data']['readability']
+        );
         // published item counted, unpublished item ('b') excluded from
         // getSelectedItems() default (no activeId) filter.
         $this->assertGreaterThanOrEqual(1, $data['data']['pages']);

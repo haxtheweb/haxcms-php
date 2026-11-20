@@ -1,0 +1,144 @@
+{
+  "description": "Shared readability vectors: haxcms-nodejs test/fixtures/readability-vectors.json and haxcms-php system/backend/php/tests/fixtures/readability-vectors.json must stay identical. Each case lists the HTML of the published pages, in outline order, and the overview report readability both backends must answer (haxcms-nodejs src/lib/readability.js, haxcms-php lib/Readability.php).",
+  "cases": [
+    {
+      "name": "short familiar sentences",
+      "pages": [
+        "<p>The cat sat on the mat. It was a good day for reading.</p>"
+      ],
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 14,
+        "lexiconCount": 13,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "blocks stay apart, entities decode, no-break space is a space",
+      "pages": [
+        "<h2>Big&nbsp;dog</h2><p>The dog ran home!</p>",
+        "<p>Tom&amp;Jerry ate cake</p>"
+      ],
+      "readability": {
+        "gradeLevel": "5th / 6th grade",
+        "difficultWords": 1,
+        "syllableCount": 14,
+        "lexiconCount": 9,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "words with no sentence mark are one sentence",
+      "pages": [
+        "<p>we went to the park</p>"
+      ],
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 5,
+        "lexiconCount": 5,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "mostly difficult words",
+      "pages": [
+        "<p>Photosynthesis transforms electromagnetic radiation into biochemical energy. Chlorophyll molecules absorb wavelengths selectively.</p>"
+      ],
+      "readability": {
+        "gradeLevel": "college level reading",
+        "difficultWords": 11,
+        "syllableCount": 42,
+        "lexiconCount": 12,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "accents, curly quotes and an ellipsis character",
+      "pages": [
+        "<p>Café naïve résumé — “quoted” words… done?! Yes.</p>"
+      ],
+      "readability": {
+        "gradeLevel": "college level reading",
+        "difficultWords": 5,
+        "syllableCount": 10,
+        "lexiconCount": 7,
+        "sentenceCount": 2
+      }
+    },
+    {
+      "name": "tags with attributes and empty pages",
+      "pages": [
+        "<a href=\"x.html\" title=\"Not counted\">Go</a><img alt=\"not counted\" src=\"y.png\">now.",
+        "",
+        "<p>   </p>"
+      ],
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 2,
+        "lexiconCount": 2,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "only references ending in a semicolon decode",
+      "pages": [
+        "<p>AT&T &copy 2026 &copy; &amp;&lt;b&gt; &#65;&#x42; &bogus; x&nbsp;y.</p>"
+      ],
+      "readability": {
+        "gradeLevel": "college level reading",
+        "difficultWords": 6,
+        "syllableCount": 9,
+        "lexiconCount": 7,
+        "sentenceCount": 1
+      }
+    },
+    {
+      "name": "no pages",
+      "pages": [],
+      "readability": {
+        "gradeLevel": "4th grade or lower",
+        "difficultWords": 0,
+        "syllableCount": 0,
+        "lexiconCount": 0,
+        "sentenceCount": 0
+      }
+    }
+  ],
+  "gradeLevels": [
+    {
+      "score": 0,
+      "gradeLevel": "4th grade or lower"
+    },
+    {
+      "score": 4.9,
+      "gradeLevel": "4th grade or lower"
+    },
+    {
+      "score": 4.95,
+      "gradeLevel": "5th / 6th grade"
+    },
+    {
+      "score": 5.9,
+      "gradeLevel": "5th / 6th grade"
+    },
+    {
+      "score": 6.5,
+      "gradeLevel": "7th / 8th grade"
+    },
+    {
+      "score": 7.9,
+      "gradeLevel": "9th / 10th grade"
+    },
+    {
+      "score": 8.9,
+      "gradeLevel": "11th / 12th grade"
+    },
+    {
+      "score": 9,
+      "gradeLevel": "college level reading"
+    }
+  ]
+}
