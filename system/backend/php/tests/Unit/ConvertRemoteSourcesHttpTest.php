@@ -252,7 +252,9 @@ class ConvertRemoteSourcesHttpTest extends TestCase
         $staged = $res['data']['files']['files/pic.png'];
         $this->assertFileExists($staged);
         $this->assertSame('PNGDATA', file_get_contents($staged));
-        $this->assertSame(array('theme/theme.css' => $this->base() . '/course/theme/theme.css'), $res['data']['siteFiles']);
+        // theme/ is not carried over (haxtheweb/issues#3337) and the
+        // boilerplate custom build is skipped, so nothing is listed
+        $this->assertSame(array(), $res['data']['siteFiles']);
     }
 
     public function testHaxcmsFilenameFallsBackToPathBasename(): void

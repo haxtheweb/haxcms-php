@@ -77,7 +77,9 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         // fails part-way, remove what was staged instead of leaking it.
         try {
             $siteFiles  = array();
-            $siteFileKeys = array('theme/theme.css', 'theme/theme.html', 'custom/build/custom.es6.js');
+            // theme/ left the site boilerplate (haxtheweb/issues#3337) and is not a
+            // createSite siteFiles target; only the custom build carries over.
+            $siteFileKeys = array('custom/build/custom.es6.js');
             $boilerplateEs6 = '// custom comment script here';
 
             foreach ($siteJson['items'] as &$item) {
@@ -111,7 +113,8 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
                     $resp = SsrfGuard::safeGuzzleRequest($client, 'GET', $base . '/' . $filePath);
                     $text = trim((string) $resp->getBody());
                     if ($text !== '') {
-                        if ($filePath === 'custom/build/custom.es6.js' && $text === $boilerplateEs6) { continue; }
+                        // the untouched boilerplate custom build carries nothing over
+                        if ($text === $boilerplateEs6) { continue; }
                         $siteFiles[$filePath] = $base . '/' . $filePath;
                     }
                 } catch (\Exception $e) {}

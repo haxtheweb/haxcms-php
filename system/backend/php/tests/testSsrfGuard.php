@@ -11,7 +11,7 @@ include_once dirname(__DIR__) . '/lib/SsrfGuard.php';
  */
 function ssrfGuardTestNormalizeSiteFilePath($relativePath)
 {
-    $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|svg|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf)$/i';
+    $safeSiteFileExtensionPattern = '/\.(css|js|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf)$/i';
     if (!is_string($relativePath)) {
         return false;
     }
@@ -21,7 +21,7 @@ function ssrfGuardTestNormalizeSiteFilePath($relativePath)
         strpos($normalized, "\0") !== false ||
         strpos($normalized, '..') !== false ||
         substr($normalized, 0, 1) === '/' ||
-        !(strpos($normalized, 'theme/') === 0 || strpos($normalized, 'custom/') === 0)
+        strpos($normalized, 'custom/') !== 0
     ) {
         return false;
     }
@@ -132,14 +132,13 @@ function runSsrfGuardTests()
     $runner->assert($threw, 'validateUrlNotSSRF rejects malformed URL');
 
     // --- normalizeSiteFilePath extension allow-list (CWE-434) ---
-    // Allowed theme/custom asset extensions pass
+    // Allowed custom asset extensions pass
     $allowedPaths = array(
-        'theme/theme.css',
-        'theme/theme.html',
+        'custom/build/custom.css',
         'custom/build/custom.es6.js',
-        'theme/site.json',
+        'custom/site.json',
         'custom/page.md',
-        'theme/banner.png',
+        'custom/banner.png',
         'custom/fonts.woff2',
     );
     foreach ($allowedPaths as $p) {
@@ -159,18 +158,22 @@ function runSsrfGuardTests()
         'custom/x.aspx' => 'aspx',
         'custom/x.jsp' => 'jsp',
         'custom/x.exe' => 'exe',
-        'theme/x.bat' => 'bat',
+        'custom/x.bat' => 'bat',
+        'custom/x.html' => 'html markup',
+        'custom/x.svg' => 'svg markup',
+        'custom/x.xml' => 'xml markup',
     );
     foreach ($rejectedPaths as $p => $label) {
         $result = ssrfGuardTestNormalizeSiteFilePath($p);
         $runner->assert($result === false, "executable extension rejected (CWE-434): $label ($p)");
     }
 
-    // --- normalizeSiteFilePath still rejects traversal / non theme|custom ---
+    // --- normalizeSiteFilePath still rejects traversal / anything but custom/ ---
     $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('../etc/passwd'), 'traversal rejected');
     $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('/etc/passwd'), 'absolute rejected');
-    $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('files/x.png'), 'non-theme/custom prefix rejected');
-    $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath("theme/x\0.png"), 'null byte rejected');
+    $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('files/x.png'), 'non-custom prefix rejected');
+    $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath('theme/theme.css'), 'theme/ prefix rejected');
+    $runner->assertEquals(false, ssrfGuardTestNormalizeSiteFilePath("custom/x\0.png"), 'null byte rejected');
 
     // --- Workstream A: redirect walk + IP pinning (parity with safeFetch.js) ---
     // Stub fetcher returning a scripted sequence of [status, location, body]
