@@ -375,9 +375,35 @@ class OdtToHtml
         if (preg_match('/<img\s/i', $html)) {
             return true;
         }
-        $text = preg_replace('/<[^>]*>/', '', $html);
-        $text = str_replace(array('&nbsp;', "\xC2\xA0"), ' ', $text);
+        $text = str_replace(array('&nbsp;', "\xC2\xA0"), ' ', self::textOutsideTags($html));
         return self::jsTrim($text) !== '';
+    }
+
+    /**
+     * The text between tags, for the emptiness check only (never output):
+     * a "<" with no ">" after it is kept as text. Mirrors textOutsideTags
+     * in odtToHtml.js.
+     */
+    private static function textOutsideTags($html)
+    {
+        $text = '';
+        $at = 0;
+        $length = strlen($html);
+        while ($at < $length) {
+            $open = strpos($html, '<', $at);
+            if ($open === false) {
+                $text .= substr($html, $at);
+                break;
+            }
+            $close = strpos($html, '>', $open);
+            if ($close === false) {
+                $text .= substr($html, $at);
+                break;
+            }
+            $text .= substr($html, $at, $open - $at);
+            $at = $close + 1;
+        }
+        return $text;
     }
 
     // ---- images ----
