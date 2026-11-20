@@ -1394,7 +1394,8 @@ paths:
       tags:
         - settings
       operationId: saveEnabledSkeletonsPatch
-      summary: Update enabled skeleton configuration using the skeletons collection
+      summary:
+        Update enabled skeleton configuration using the skeletons collection
         endpoint
       description: >
         Write operation — updates enabled skeleton configuration. Single-user
@@ -2026,6 +2027,133 @@ paths:
                   data:
                     $ref: "#/components/schemas/ImportData"
                 additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/import-md:
+    post:
+      tags:
+        - actions
+      operationId: importMd
+      summary: Convert an uploaded Markdown or plain text file into a HAXcms site schema
+      description: >
+        Accepts .md, .markdown and .txt. Plain text is read as Markdown, so
+        `#` headings in a .txt become pages. A leading YAML front matter block
+        is removed; its `title` names a single-page import.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Markdown (.md, .markdown) or plain text (.txt) file to convert
+                method:
+                  type: string
+                  description: Import method (site, branch, or page)
+                type:
+                  type: string
+                  description: Fallback content type (course, portfolio, or empty)
+                parentId:
+                  type: string
+                  description: Optional parent ID for imported items
+      responses:
+        "200":
+          description: Site schema items from the converted Markdown or text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/import-odt:
+    post:
+      tags:
+        - actions
+      operationId: importOdt
+      summary: Convert an uploaded OpenDocument Text (.odt) file into a HAXcms site schema
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: OpenDocument Text file (.odt) to convert
+                method:
+                  type: string
+                  description: Import method (site, branch, or page)
+                type:
+                  type: string
+                  description: Fallback content type (course, portfolio, or empty)
+                parentId:
+                  type: string
+                  description: Optional parent ID for imported items
+      responses:
+        "200":
+          description: Site schema items from the converted OpenDocument Text file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    $ref: "#/components/schemas/ImportData"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/odt-to-html:
+    post:
+      tags:
+        - actions
+      operationId: odtToHtml
+      summary: Convert an uploaded OpenDocument Text (.odt) file to clean HTML
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: OpenDocument Text file (.odt) to convert
+      responses:
+        "200":
+          description: Converted HTML content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
         "400":
           $ref: "#/components/responses/BadRequest"
         "403":
@@ -3293,7 +3421,7 @@ components:
               description: English text of the message.
             code:
               type: string
-              pattern: '^[A-Z][A-Z0-9_]*$'
+              pattern: "^[A-Z][A-Z0-9_]*$"
               description: >
                 Stable message code from the shared HAXcms API code list
                 (@haxtheweb/haxcms-elements/lib/haxcms-api-codes.json). Clients
@@ -3876,6 +4004,7 @@ components:
       type: object
       description: >
         Import result returned by importDocx, importPdf, importPptx, importXlsx,
+        importMd, importOdt,
         htmlToSite, gitbookToSite, haxcmsToSite, notionToSite, pressbooksToSite,
         wordpressToSite, drupalToSite, ploneToSite, openstaxToSite, vitepressToSite,
         quartoToSite. The front-end

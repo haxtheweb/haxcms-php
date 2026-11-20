@@ -177,10 +177,13 @@ class SystemRoutesMap
                 'v1/actions/import-pptx' => dirname(__FILE__) . '/v1/importPptx.php',
                 'v1/actions/import-xlsx' => dirname(__FILE__) . '/v1/importXlsx.php',
                 'v1/actions/import-pdf' => dirname(__FILE__) . '/v1/importPdf.php',
+                'v1/actions/import-md' => dirname(__FILE__) . '/v1/importMd.php',
+                'v1/actions/import-odt' => dirname(__FILE__) . '/v1/importOdt.php',
                 // Group C: binary document conversions
                 'v1/actions/pptx-to-html' => dirname(__FILE__) . '/v1/convertPptxToHtml.php',
                 'v1/actions/xlsx-to-csv' => dirname(__FILE__) . '/v1/convertXlsxToCsv.php',
                 'v1/actions/pdf-to-html' => dirname(__FILE__) . '/v1/convertPdfToHtml.php',
+                'v1/actions/odt-to-html' => dirname(__FILE__) . '/v1/convertOdtToHtml.php',
                 'v1/actions/html-to-docx' => dirname(__FILE__) . '/v1/convertHtmlToDocx.php',
                 'v1/actions/html-to-pdf' => dirname(__FILE__) . '/v1/convertHtmlToPdf.php',
                 'v1/actions/docx-to-pdf' => dirname(__FILE__) . '/v1/convertDocxToPdf.php',
