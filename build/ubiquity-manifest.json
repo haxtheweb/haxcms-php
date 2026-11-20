@@ -8812,7 +8812,7 @@
         "lib/DDDViewport.js": ["b8b7dc287b80565ca6e7024913fe4e9b", "ff66d76a90e148e87ce0770b5a1336ba"],
         "lib/DDDVocabulary.js": ["988ee73552ab3e5e1a4be5516d13fcae", "ee1406a8b544d25917f02ed4f80348ae"],
         "lib/DesignSystemManager.js": ["2e85fd6f92f908ad9ee8bbde860efab0", "0e0ba75ad77c96fe12a00de0a588c0e0"],
-        "lib/HaxUiAdminControls.js": ["98b9205fd21323fc7e9091d00964fd7d", "c387f29da07f8080b4d105f306335771"],
+        "lib/HaxUiAdminControls.js": ["fe38f4ffeeadf07843a58e85baa6c32c", "cdcd8cbee6f8ee211431d92daa163534"],
         "lib/HaxUiAdminIcons.js": ["58aa63dafe6eaf6f51b541177cc9cf8a", "64a98288cc48c2066e37edc5d18e7057"],
         "lib/HaxUiAdminShell.js": ["6a057fe4c9f7d69be7565e24079deb2a", "d8618b05eca51d379a1c23925329b7b7"],
         "lib/HaxUiAdminStyles.js": ["2c0ea3ebf91bef4719e1b2fa423db2e5", "94c36f47db5aec69653beee9b5079b03"],
@@ -10655,7 +10655,7 @@
     "@haxtheweb/documentation-player": {
       "files": {
         "documentation-player.js": ["878b6b5759b827ef4a5b38a12535c941", "91b0cfa93b09578d6270d6d444ec9513"],
-        "lib/documentation-player.docs.json": ["a545f188622d1ea633b20825f23d882a", "a545f188622d1ea633b20825f23d882a"],
+        "lib/documentation-player.docs.json": ["105891947682aea14f101136de2e1f00", "105891947682aea14f101136de2e1f00"],
         "lib/documentation-player.haxProperties.json": ["edb5c339b149e126405e03f0d4fc5225", "edb5c339b149e126405e03f0d4fc5225"],
         "lib/motion-core.js": ["0219eb1837876f29375379b221eb92df", "0112fe34fe59d2adfd7d8b8b6f6864a7"],
         "locales/documentation-player.af.json": ["f92e8d4cb4dce7d6bbb07503b91a86a5", "f92e8d4cb4dce7d6bbb07503b91a86a5"],
@@ -10798,7 +10798,7 @@
       "files": {
         "ecosystem-web.js": ["25f74a679b7b00682f3762ffc1f791fd", "12ae22481f1e66c128ee6318cfb7a3fd"],
         "lib/ecosystem-model.js": ["21abf847b9e1949528b8225da62a14c8", "399a4501ae6375165e79854cb261d3d4"],
-        "lib/ecosystem-web.docs.json": ["40ee893bf41e25ad138ac6201c33ed8c", "40ee893bf41e25ad138ac6201c33ed8c"],
+        "lib/ecosystem-web.docs.json": ["fd133a62ad053caf767e98f479a20f38", "fd133a62ad053caf767e98f479a20f38"],
         "lib/ecosystem-web.haxProperties.json": ["f471bfa5e2187b01fc5617e3681becb6", "f471bfa5e2187b01fc5617e3681becb6"]
       },
       "source": "elements/ecosystem-web",
@@ -19860,7 +19860,7 @@
         "lib/hax-feature-row.haxProperties.json": ["7e74eed4dfbaba38221e4e022f12616f", "7e74eed4dfbaba38221e4e022f12616f"],
         "lib/hax-marketing-blocks.js": ["7bedda0ac91622f124efb83a6afcb2b2", "8bf8f393f46a416c952873a7570a68b7"],
         "lib/hax-marketing-palette.js": ["48272e00e04e7de5078ee50ba7588970", "65cdb9f05bbdeec1d98a3a59b3a8400f"],
-        "lib/hax-marketing-theme.docs.json": ["7e46a8046b2cb98ee120127c3f16f63c", "7e46a8046b2cb98ee120127c3f16f63c"],
+        "lib/hax-marketing-theme.docs.json": ["26ca05af25d1299f13b1f0d5e0e2a95c", "26ca05af25d1299f13b1f0d5e0e2a95c"],
         "lib/hax-pillar-strip.haxProperties.json": ["c86884c17cabb236eb115ddc0d6237aa", "c86884c17cabb236eb115ddc0d6237aa"],
         "lib/hax-pillar.haxProperties.json": ["0ee85be281420832051a20e95e4754d6", "0ee85be281420832051a20e95e4754d6"],
         "lib/hax-platform-compare.haxProperties.json": ["171c38f0532978949713cff7bffd400b", "171c38f0532978949713cff7bffd400b"],
@@ -19887,11 +19887,11 @@
     },
     "@haxtheweb/hax-network-bar": {
       "files": {
-        "hax-network-bar.js": ["7eee06393b24d648f647608da9d5f52b", "c3e44630b7c0de620412720388aa84a4"],
+        "hax-network-bar.js": ["7aab0513069b006ec063a8ea3b473770", "c17dba8f71e31a767b6966f350c63187"],
         "lib/hax-future-traveler.js": ["edd00a43ff7a95af789c4a572a4f40cb", "21c80e58fe4c2a41cbde24736493ed4b"],
         "lib/hax-network-bar.docs.json": ["795afd8f12eb2e6dceba99f0052f350e", "795afd8f12eb2e6dceba99f0052f350e"],
-        "lib/hax-network.js": ["9165bedd3447b142a60c91a7f0a41171", "799a5bfcbd676f8f0d73a97d8036691c"],
-        "locales/hax-network-bar.en.json": ["6dfe8e2446cb9b0552ee741e703d86bc", "6dfe8e2446cb9b0552ee741e703d86bc"]
+        "lib/hax-network.js": ["3697df647b98b1c529c8e9cb94e4c3e1", "60f5fdcb02fb88807fb55d7a32a53136"],
+        "locales/hax-network-bar.en.json": ["b997621f3d2dd593ae49aff367f73d3d", "b997621f3d2dd593ae49aff367f73d3d"]
       },
       "source": "elements/hax-network-bar",
       "version": "26.8.0"
@@ -26180,7 +26180,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["87695d8bb001a38e9f7c6126aa623a97", "87695d8bb001a38e9f7c6126aa623a97"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["fbbf2c06530553adaa5fafccd5021883", "1c5a497dd6301b4d542bc14792ee6d1b"]
+        "lib/translation-manifest.json": ["a1fe31d47673d4ac09b3b9b4a2bb0d5f", "1c5a497dd6301b4d542bc14792ee6d1b"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -30122,7 +30122,7 @@
         "lib/map-menu-progress.js": ["aa2c47194da45318d8b6ee6b69bc2621", "8d7e8f6cd2b374bdbe8455629ad9ec59"],
         "lib/map-menu-submenu.js": ["95e7712cf24b7102139742cd5370dd52", "0a07710a514039d6767bb07e0c772ce4"],
         "lib/map-menu-tree.js": ["b60cb4901e7bb156b3dd7ae0af08238b", "495dd3f145ce2d609fe83d5397efcb43"],
-        "lib/map-menu.docs.json": ["648ea5c6362623e6187a6ddcdccd933d", "648ea5c6362623e6187a6ddcdccd933d"],
+        "lib/map-menu.docs.json": ["20b7d054c2cfc5a17eb3ae95ddff8c25", "20b7d054c2cfc5a17eb3ae95ddff8c25"],
         "lib/map-menu.motion.json": ["e07056ef1679aa75fba3dab97959214d", "e07056ef1679aa75fba3dab97959214d"],
         "locales/map-menu.af.json": ["eb01a3faab212e4fdc01b60a86d07237", "eb01a3faab212e4fdc01b60a86d07237"],
         "locales/map-menu.am.json": ["3f90a13ad9b4f3c876aea2519ef0a4d1", "3f90a13ad9b4f3c876aea2519ef0a4d1"],
@@ -33716,7 +33716,7 @@
     },
     "@haxtheweb/music-player": {
       "files": {
-        "lib/html-midi-player.js": ["7dbdfe7b1397627c2c0d35ccd59cadf9", "abbc78c5e3af4b9a67276ae639c00cf2"],
+        "lib/html-midi-player.js": ["7dbdfe7b1397627c2c0d35ccd59cadf9", "21545565b7e44366f621fc82a95a41ac"],
         "lib/music-player.docs.json": ["146bf03b091adb02b127cba4d76ac16c", "146bf03b091adb02b127cba4d76ac16c"],
         "lib/music-player.haxProperties.json": ["f02a48f2ccaa03def7516c6e23e68776", "f02a48f2ccaa03def7516c6e23e68776"],
         "lib/music-player.motion.json": ["447843b6634de8830057d6217adffdc4", "447843b6634de8830057d6217adffdc4"],
@@ -48263,7 +48263,7 @@
     }
   },
   "source": {
-    "commit": "11b35943ffb404fe8ab89c373c73fbfd2e788c20",
+    "commit": "d4128cbc7814321d0c1c69e40d948b3df5595a2a",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
