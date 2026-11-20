@@ -14,7 +14,7 @@ Options -ExecCGI
 # Security (SEC-UPLOAD): uploaded browser-renderable markup (html, htm, xhtml,
 # xml, svg; case-insensitive, same list as the HAXcms root .htaccess and
 # haxcms-nodejs) is always downloaded, never rendered inline in the site
-# origin. FilesMatch tests the name of the file actually being served from
+# origin, and carries Content-Security-Policy: sandbox. FilesMatch tests the name of the file actually being served from
 # this directory tree, so URL encodings (x%2ehtml, %66iles/) cannot bypass it,
 # and it still applies when the site is served from its own vhost/docroot
 # where the HAXcms root .htaccess is not a parent directory.
@@ -22,6 +22,9 @@ Options -ExecCGI
   <FilesMatch "(?i)\.(html?|xhtml|xml|svg)$">
     Header always set Content-Disposition "attachment"
     Header always set X-Content-Type-Options nosniff
+    # if it is ever rendered inline anyway, it runs in an opaque origin with
+    # scripts off and no access to the site's sessions or data
+    Header always append Content-Security-Policy "sandbox"
   </FilesMatch>
 </IfModule>
 # Uploaded content encoding is not guaranteed; don't inherit the UTF-8
