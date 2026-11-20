@@ -52,7 +52,7 @@ Inline comments name the invariant they enforce as `// Security (<TAG>): <rule>`
 | `SEC-HEADERS` | CSP / `frame-ancestors`, CORS, `Referrer-Policy`, trusted Host / `X-Forwarded-*` / proxy handling | Headers |
 | `SEC-RATELIMIT` | login / Basic-auth throttles, request and file-op limiters | Rate limiting |
 | `SEC-INSTALL` | installer, secret/key generation, default credentials, install token, file modes on secrets | Install |
-| `SEC-EXPORT` | download/export artifacts (random names, TTL sweep, `_published/`), CSPRNG identifiers | Randomness |
+| `SEC-EXPORT` | download/export artifacts (random names, TTL sweep, `_published/`), CSPRNG identifiers, html export `magic` CDN (ignored for anonymous callers, otherwise an absolute http(s) base URL only) | Randomness |
 | `SEC-DOS` | size caps, ReDoS-safe regexes, decompression / YAML alias amplification limits | Egress, Uploads (caps) |
 | `SEC-MAGICLINK` | one-time sign-in links: minting, storage, redemption, HAXiam gating | Magic links |
 | `SEC-DEPLOY` | `.htaccess` / nginx denies, Docker image, deployment config, CLI-only scripts | Deployment |
