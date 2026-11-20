@@ -1,7 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/../../ReportHelpers.php';
-include_once dirname(__FILE__) . '/../../DaleChallWordList.php';
+include_once dirname(__FILE__) . '/../../ReadabilityScore.php';
 return function ($context) {
     $site = isset($context->site) ? $context->site : null;
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/x/api';
@@ -153,7 +153,7 @@ return function ($context) {
                 $items = $branchItems;
             }
         }
-        $textParts = array();
+        $pages = array();
         foreach ($items as $item) {
             if (
                 isset($item->metadata) &&
@@ -163,62 +163,10 @@ return function ($context) {
             ) {
                 continue;
             }
-            $textParts[] = trim(strip_tags(SiteRouteUtils::getItemContent($site, $item)));
+            $pages[] = SiteRouteUtils::getItemContent($site, $item);
         }
-        $readabilityText = trim(preg_replace('/\\s+/', ' ', implode(' ', $textParts)));
-        $tokens = $readabilityText == '' ? array() : preg_split('/\\s+/', $readabilityText);
-        $lexiconCount = 0;
-        $difficultWords = 0;
-        $syllableCount = 0;
-        if (is_array($tokens)) {
-            foreach ($tokens as $token) {
-                $word = strtolower(trim(preg_replace('/^[^a-z\']+|[^a-z\']+$/i', '', (string) $token)));
-                if ($word == '') {
-                    continue;
-                }
-                $lexiconCount++;
-                if (!DaleChallWordList::isFamiliarWord($word)) {
-                    $difficultWords++;
-                }
-                $wordSyllables = preg_match_all('/[aeiouy]+/i', $word, $matches);
-                $syllableCount += is_numeric($wordSyllables) && intval($wordSyllables) > 0 ? intval($wordSyllables) : 1;
-            }
-        }
-        $sentenceCount = preg_match_all('/[.!?]+/', $readabilityText, $sentenceMatches);
-        if (!is_numeric($sentenceCount)) {
-            $sentenceCount = 0;
-        }
-        $daleChallScore = 0.0;
-        if ($lexiconCount > 0 && $sentenceCount > 0) {
-            $difficultPercent = ($difficultWords / $lexiconCount) * 100;
-            $daleChallScore = (0.1579 * $difficultPercent) + (0.0496 * ($lexiconCount / $sentenceCount));
-            if ($difficultWords == 0) {
-                $daleChallScore += 3.6365;
-            }
-        }
-        $gradeLevel = 'college level reading';
-        if ($daleChallScore <= 4.9) {
-            $gradeLevel = '4th grade or lower';
-        }
-        else if ($daleChallScore <= 5.9) {
-            $gradeLevel = '5th / 6th grade';
-        }
-        else if ($daleChallScore <= 6.9) {
-            $gradeLevel = '7th / 8th grade';
-        }
-        else if ($daleChallScore <= 7.9) {
-            $gradeLevel = '9th / 10th grade';
-        }
-        else if ($daleChallScore <= 8.9) {
-            $gradeLevel = '11th / 12th grade';
-        }
-        $data['readability'] = array(
-            'gradeLevel' => $gradeLevel,
-            'difficultWords' => intval($difficultWords),
-            'syllableCount' => intval($syllableCount),
-            'lexiconCount' => intval($lexiconCount),
-            'sentenceCount' => intval($sentenceCount),
-        );
+        // same text and metrics as haxcms-nodejs (text-readability)
+        $data['readability'] = ReadabilityScore::metrics(ReadabilityScore::textFromHTML($pages));
     }
     $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
     if (isset($data['contentData']) && is_array($data['contentData'])) {
