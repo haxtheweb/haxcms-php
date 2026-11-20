@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/BoundedZip.php';
 /**
  * PPTX deck manifest builder helpers.
  *
@@ -120,6 +121,9 @@ function haxcmsSystemBuildPptxDeckManifest($filePath)
     if (!class_exists('ZipArchive')) {
         throw new \RuntimeException('ZipArchive extension is not available');
     }
+    // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte limits
+    // before any entry is read (BoundedZip.php)
+    BoundedZip::assertWithinLimits($filePath, 'pptx');
     $zip = new ZipArchive();
     if ($zip->open($filePath) !== true) {
         throw new \RuntimeException('Unable to open PPTX as ZIP archive');

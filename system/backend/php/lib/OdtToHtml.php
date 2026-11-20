@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/BoundedZip.php';
 /**
  * OpenDocument Text (.odt) to semantic HTML.
  *
@@ -1048,6 +1049,16 @@ class OdtToHtml
     {
         if (!self::hasZipSignature($path)) {
             throw new \Exception('Uploaded file is not a valid .' . $ext . ' file (missing ZIP signature).');
+        }
+        // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte
+        // limits first, so the per-entry size checks below read true sizes
+        try {
+            BoundedZip::assertWithinLimits($path, $ext);
+        } catch (BoundedZipException $e) {
+            if ($e->reason === 'ZIP_BUDGET') {
+                throw $e;
+            }
+            throw new \Exception('Uploaded file is not a valid .' . $ext . ' file (unreadable ZIP).');
         }
         $zip = new \ZipArchive();
         if ($zip->open($path) !== true) {

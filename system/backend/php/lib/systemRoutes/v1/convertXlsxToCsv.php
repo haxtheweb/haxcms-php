@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../BoundedZip.php';
 
 $__vendorAutoload = dirname(__FILE__) . '/../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
@@ -53,6 +54,15 @@ return function ($context) {
     $tmpPath = $file['tmp_name'];
 
     try {
+        // Security (SEC-DOS, SEC-UPLOAD): xlsx and ods are zips; PhpSpreadsheet
+        // reads some entries through zip://, which ignores declared sizes, so
+        // the zip is measured under real byte limits first (BoundedZip.php)
+        if (BoundedZip::hasZipSignature($tmpPath)) {
+            BoundedZip::assertWithinLimits(
+                $tmpPath,
+                preg_match('/\.([a-z]+)$/i', (string) $filename, $extMatch) ? strtolower($extMatch[1]) : 'xlsx'
+            );
+        }
         $spreadsheet  = \PhpOffice\PhpSpreadsheet\IOFactory::load($tmpPath);
         $sheetNames   = $spreadsheet->getSheetNames();
         if (empty($sheetNames)) {

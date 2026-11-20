@@ -22,6 +22,7 @@
  * deck.
  */
 require_once __DIR__ . '/OdtToHtml.php';
+require_once __DIR__ . '/BoundedZip.php';
 
 class PptxToHtml
 {
@@ -635,6 +636,16 @@ class PptxToHtml
     {
         if (!self::hasZipSignature($path)) {
             throw new \Exception('Uploaded file is not a valid .pptx file (missing ZIP signature).');
+        }
+        // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte
+        // limits first, so the per-entry size checks below read true sizes
+        try {
+            BoundedZip::assertWithinLimits($path, 'pptx');
+        } catch (BoundedZipException $e) {
+            if ($e->reason === 'ZIP_BUDGET') {
+                throw $e;
+            }
+            throw new \Exception('Uploaded file is not a valid .pptx file (unreadable ZIP).');
         }
         $zip = new \ZipArchive();
         if ($zip->open($path) !== true) {

@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
 include_once dirname(__FILE__) . '/../../DocxToHtml.php';
+include_once dirname(__FILE__) . '/../../BoundedZip.php';
 include_once dirname(__FILE__) . '/../../OdtToHtml.php';
 
 /**
@@ -354,7 +355,20 @@ return function ($context) {
         return;
     }
 
-    if (class_exists('ZipArchive')) {
+    // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte limits
+    // before any reader inflates it (BoundedZip.php)
+    try {
+        BoundedZip::assertWithinLimits($tmpPath, 'docx');
+    } catch (BoundedZipException $e) {
+        // an unreadable zip keeps the message below; only size refusals stop here
+        if ($e->reason === 'ZIP_BUDGET') {
+            $error = 'Error converting DOCX: ' . $e->getMessage();
+        }
+    }
+
+    if ($error !== '') {
+        // refused above
+    } elseif (class_exists('ZipArchive')) {
         $zip = new ZipArchive();
         if ($zip->open($tmpPath) === true) {
             $xmlIndex = $zip->locateName('word/document.xml');
