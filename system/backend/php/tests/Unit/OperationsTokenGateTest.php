@@ -86,7 +86,31 @@ class OperationsTokenGateTest extends TestCase
         $this->ops->params = array('user_token' => 'good-token');
         $result = $this->ops->getUserData();
         $this->assertSame(200, $result['status']);
-        $this->assertEquals($this->haxcms->userData, $result['data']);
+        $this->assertSame('alice', $result['data']->name);
+        $this->assertSame('x.png', $result['data']->picture);
+    }
+
+    public function testGetUserDataFillsAnEmptyUserNameWithTheSignedInUser(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->activeUserName = 'alice';
+        $this->haxcms->userData = (object)array('userName' => '', 'userPicture' => '');
+        $this->ops->params = array('user_token' => 'good-token');
+        $result = $this->ops->getUserData();
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('alice', $result['data']->userName);
+        // the shared userData itself is not rewritten
+        $this->assertSame('', $this->haxcms->userData->userName);
+    }
+
+    public function testGetUserDataKeepsAStoredUserName(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->activeUserName = 'alice';
+        $this->haxcms->userData = (object)array('userName' => 'stored');
+        $this->ops->params = array('user_token' => 'good-token');
+        $result = $this->ops->getUserData();
+        $this->assertSame('stored', $result['data']->userName);
     }
 
     public function testGetUserDataFailsWithMissingToken(): void
