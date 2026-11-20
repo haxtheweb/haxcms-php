@@ -10,6 +10,8 @@ require_once __DIR__ . '/SiteRoutesTestHelpers.php';
  *  - anonymous pdf / docx / epub site exports are refused with 401
  *  - anonymous pdf / docx / epub item exports are refused with 401
  *  - logged-in html site export still includes every page
+ *  - the html export's magic CDN is ignored for anonymous callers and is
+ *    otherwise only an absolute http(s) base URL (mirrors haxcms-nodejs)
  */
 class SiteRoutesExportsVisibilityTest extends TestCase
 {
@@ -62,6 +64,48 @@ class SiteRoutesExportsVisibilityTest extends TestCase
         $this->assertStringContainsString('visible-content-a', $result['raw']);
         $this->assertStringContainsString('secret-draft-b', $result['raw']);
         $this->assertStringContainsString('secret-hidden-c', $result['raw']);
+    }
+
+    public function testAnonymousMagicHtmlSiteExportIgnoresCallerCdn(): void
+    {
+        $_GET['magic'] = 'https://evil.example.com/';
+        $result = $this->siteExport('html', false);
+        $this->assertStringNotContainsString('evil.example.com', $result['raw']);
+        $this->assertStringNotContainsString('<haxcms-print-theme>', $result['raw']);
+    }
+
+    public function testAuthenticatedMagicHtmlSiteExportWrapsWithCdn(): void
+    {
+        $_GET['magic'] = 'https://cdn.example.com/';
+        $result = $this->siteExport('html', true);
+        $this->assertStringContainsString('<haxcms-print-theme>', $result['raw']);
+        $this->assertStringContainsString('window.__appCDN="https://cdn.example.com/"', $result['raw']);
+    }
+
+    public static function magicCdnProvider(): array
+    {
+        return array(
+            'cdn base' => array('https://cdn.hax.cloud/cdn/', 'https://cdn.hax.cloud/cdn/'),
+            'adds the slash' => array('https://cdn.example.com/cdn', 'https://cdn.example.com/cdn/'),
+            'http with port' => array('http://localhost:8080/', 'http://localhost:8080/'),
+            'empty' => array('', ''),
+            'relative' => array('./', ''),
+            'scheme relative' => array('//evil.example.com/', ''),
+            'javascript' => array('javascript:alert(1)//', ''),
+            'data' => array('data:text/javascript,alert(1)//', ''),
+            'credentials' => array('https://user:pass@cdn.example.com/', ''),
+            'query' => array('https://cdn.example.com/?x=1', ''),
+            'fragment' => array('https://cdn.example.com/#x', ''),
+            'quote' => array('https://cdn.example.com/"><script>', ''),
+            'space' => array('https://cdn.example.com/a b/', ''),
+            'trailing newline' => array("https://cdn.example.com/\n<script>", ''),
+        );
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('magicCdnProvider')]
+    public function testExportMagicCdnOnlyAllowsPlainHttpBase($raw, $expected): void
+    {
+        $this->assertSame($expected, ExportConverters::exportMagicCdn($raw));
     }
 
     public static function binarySiteFormats(): array

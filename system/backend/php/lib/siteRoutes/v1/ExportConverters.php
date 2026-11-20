@@ -88,6 +88,28 @@ class ExportConverters
         return 'Item export';
     }
 
+    /**
+     * The CDN base an html export may load its build from: an absolute
+     * http(s) URL of a host, optional port and plain path (no credentials,
+     * query, fragment, quotes or other markup characters), answered ending
+     * in "/". Anything else answers '' (no wrapping). haxcms-nodejs keeps
+     * the same rule (exportMagicCdn in src/siteRoutes/v1/exports.js).
+     */
+    public static function exportMagicCdn($raw = '')
+    {
+        if (!is_string($raw)) {
+            return '';
+        }
+        $value = trim($raw);
+        if (
+            strlen($value) > 2048 ||
+            !preg_match('#^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~%/-]*)?$#D', $value)
+        ) {
+            return '';
+        }
+        return substr($value, -1) === '/' ? $value : $value . '/';
+    }
+
     public static function escapeHtmlValue($value = '')
     {
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
