@@ -22,9 +22,13 @@ class HAXCMSFile
         'gif' => array('image/gif'),
         'webp' => array('image/webp'),
         'webm' => array('video/webm', 'audio/webm'),
-        'mp4' => array('video/mp4'),
+        // .mp4 and .mov are the same ISO media container: phones, screen
+        // recorders and editors routinely write a QuickTime brand into a .mp4
+        // (and an mp4 brand into a .mov), and audio-only files carry an M4A
+        // brand. Browsers play all of them, so each accepts the whole family
+        'mp4' => array('video/mp4', 'video/quicktime', 'audio/mp4', 'audio/x-m4a'),
         'mp3' => array('audio/mpeg', 'audio/mp3'),
-        'mov' => array('video/quicktime'),
+        'mov' => array('video/quicktime', 'video/mp4'),
         'csv' => array('text/csv', 'text/plain', 'application/vnd.ms-excel'),
         'ppt' => array('application/vnd.ms-powerpoint', 'application/x-ole-storage', 'application/octet-stream'),
         'pptx' => array('application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'),
@@ -216,6 +220,61 @@ class HAXCMSFile
         return strtolower(trim($mimeType));
     }
 
+    /**
+     * Byte-level media read, the same rules as detectIsoMediaType and
+     * startsWithMpegAudioFrame in haxcms-nodejs lib/HAXCMSFile.js.
+     * Returns a MIME type or false.
+     */
+    public static function sniffMediaType($tmpPath)
+    {
+        $sample = @file_get_contents($tmpPath, false, null, 0, 8192);
+        if (!is_string($sample) || $sample === '') {
+            return false;
+        }
+        $length = strlen($sample);
+        // ISO base media: walk the leading boxes (4 byte size, 4 byte type)
+        $leading = array('free', 'wide', 'skip', 'pnot', 'junk');
+        $offset = 0;
+        for ($i = 0; $i < 8 && $offset + 8 <= $length; $i++) {
+            $parts = unpack('N', substr($sample, $offset, 4));
+            $size = $parts[1];
+            $type = substr($sample, $offset + 4, 4);
+            if ($type === 'ftyp') {
+                $brand = $offset + 12 <= $length ? substr($sample, $offset + 8, 4) : '';
+                if ($brand === 'qt  ') {
+                    return 'video/quicktime';
+                }
+                if ($brand === 'M4A ' || $brand === 'M4B ') {
+                    return 'audio/mp4';
+                }
+                return 'video/mp4';
+            }
+            if ($offset === 0 && ($type === 'moov' || $type === 'mdat')) {
+                return 'video/quicktime';
+            }
+            if (!in_array($type, $leading, true) || $size < 8) {
+                break;
+            }
+            $offset += $size;
+        }
+        if (substr($sample, 0, 3) === 'ID3') {
+            return 'audio/mpeg';
+        }
+        // MPEG audio frame header, after an optional run of zero bytes
+        $offset = 0;
+        while ($offset < $length && $offset < 4096 && $sample[$offset] === "\0") {
+            $offset++;
+        }
+        if ($offset + 1 < $length) {
+            $b0 = ord($sample[$offset]);
+            $b1 = ord($sample[$offset + 1]);
+            if ($b0 === 0xff && ($b1 & 0xe0) === 0xe0) {
+                return 'audio/mpeg';
+            }
+        }
+        return false;
+    }
+
     private function mimeMatchesAllowed($actualMime, $allowedMimes)
     {
         foreach ($allowedMimes as $allowedMime) {
@@ -316,8 +375,18 @@ class HAXCMSFile
             return false;
         }
         if (!$this->mimeMatchesAllowed($detectedMime, $this->allowedMimeByExtension[$extension])) {
-            $errorMessage = 'Detected MIME type ' . $detectedMime . ' does not match allowed type for .' . $extension;
-            return false;
+            // libmagic misses some valid media layouts the node sniffer
+            // reads (a free box ahead of ftyp, zero padding ahead of the
+            // first MPEG audio frame), so media extensions get the same
+            // byte-level read before the upload is refused
+            $mediaMime = in_array($extension, array('mp4', 'mov', 'mp3'), true)
+                ? self::sniffMediaType($tmpPath)
+                : false;
+            if ($mediaMime === false || !$this->mimeMatchesAllowed($mediaMime, $this->allowedMimeByExtension[$extension])) {
+                $errorMessage = 'Detected MIME type ' . $detectedMime . ' does not match allowed type for .' . $extension;
+                return false;
+            }
+            $detectedMime = $mediaMime;
         }
         if (in_array($extension, $this->imageExtensions, true) && @getimagesize($tmpPath) === false) {
             $errorMessage = 'Invalid image file content';
