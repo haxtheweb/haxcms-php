@@ -333,12 +333,13 @@ The open-source license and copyright notices for every package in this build of
 | marked | MIT | License text 80 |
 | mathjax | Apache-2.0 | License text 2 |
 | mobx | MIT | License text 81 |
-| monaco-editor | MIT | License text 82 |
-| msr | MIT | License text 83 |
-| scrollable-component | MIT | License text 84 |
-| tslib | 0BSD | License text 85 |
+| modern-screenshot | MIT | License text 82 |
+| monaco-editor | MIT | License text 83 |
+| msr | MIT | License text 84 |
+| scrollable-component | MIT | License text 85 |
+| tslib | 0BSD | License text 86 |
 | web-dialog | MIT | no license file found in source package |
-| web-social-share | MIT | License text 86 |
+| web-social-share | MIT | License text 87 |
 
 ## License texts
 
@@ -11619,6 +11620,25 @@ SOFTWARE.
 
 ### License text 82: MIT
 
+Used by modern-screenshot.
+
+Source files: LICENSE
+
+```text
+---- LICENSE ----
+The MIT License (MIT)
+
+Copyright (c) 2021-present wxm
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### License text 83: MIT
+
 Used by monaco-editor.
 
 Source files: LICENSE
@@ -11648,7 +11668,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 83: MIT
+### License text 84: MIT
 
 Used by msr.
 
@@ -11678,7 +11698,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### License text 84: MIT
+### License text 85: MIT
 
 Used by scrollable-component.
 
@@ -11709,7 +11729,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 85: 0BSD
+### License text 86: 0BSD
 
 Used by tslib.
 
@@ -11731,7 +11751,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### License text 86: MIT
+### License text 87: MIT
 
 Used by web-social-share.
 
