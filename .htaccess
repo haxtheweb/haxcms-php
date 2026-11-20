@@ -117,6 +117,11 @@ DirectoryIndex index.php index.html
   # (SetEnvIf Request_URI in server context runs before decoding). The site's
   # files/.htaccess (managed boilerplate) adds the same rule keyed on the
   # on-disk filename for sites served from their own vhost/docroot.
+  # Content-Security-Policy: sandbox is the second wall: if a browser or proxy
+  # ever renders one of these files inline anyway, it runs in an opaque
+  # origin with scripts, forms and same-origin access off, so it cannot reach
+  # HAXcms sessions or site data. "append" keeps any server-level CSP; each
+  # policy is enforced.
   # Requires AllowOverride FileInfo (or All) for this directory.
   <IfModule mod_authz_core.c>
     # Apache 2.4+ (<If> is 2.4-only; mod_authz_core is the existing 2.4 marker
@@ -124,14 +129,16 @@ DirectoryIndex index.php index.html
     <If "%{REQUEST_URI} =~ m#/files/.*\.(?:html?|xhtml|xml|svg)$#i">
       Header always set Content-Disposition "attachment"
       Header always set X-Content-Type-Options nosniff
+      Header always append Content-Security-Policy "sandbox"
     </If>
-    # Security: siteFiles (theme/custom assets fetched from a URL at site
-    # creation) can also land markup under a site's custom/ and theme/
-    # directories. .html is NOT included there: theme/theme.html and
-    # theme/style-guide.html are rendered on purpose (sanitised on save).
+    # Security: markup under a site's custom/ and (legacy) theme/ directories
+    # is never rendered inline either. .html is not listed: sites created
+    # before theme/ left the boilerplate may still render theme/theme.html on
+    # purpose. createSite build.siteFiles writes no markup there.
     <If "%{REQUEST_URI} =~ m#/(?:custom|theme)/.*\.(?:xhtml|xml|svg)$#i">
       Header always set Content-Disposition "attachment"
       Header always set X-Content-Type-Options nosniff
+      Header always append Content-Security-Policy "sandbox"
     </If>
   </IfModule>
   <IfModule !mod_authz_core.c>
@@ -140,6 +147,7 @@ DirectoryIndex index.php index.html
     SetEnvIfNoCase Request_URI "/files/.*\.(html?|xhtml|xml|svg)$" force_html_download=1
     SetEnvIfNoCase Request_URI "/(custom|theme)/.*\.(xhtml|xml|svg)$" force_html_download=1
     Header always set Content-Disposition "attachment" env=force_html_download
+    Header always append Content-Security-Policy "sandbox" env=force_html_download
   </IfModule>
 </IfModule>
 # Browser cache policy, the same as haxcms-nodejs. Build modules

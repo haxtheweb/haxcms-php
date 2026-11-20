@@ -272,6 +272,73 @@ class HAXCMSSystemStatusService
         return $row;
     }
 
+    /**
+     * Whether Apache's mod_headers is loaded: true/false when PHP runs as an
+     * Apache module (apache_get_modules exists), null when it cannot be told
+     * (php-fpm, CGI, CLI).
+     */
+    private static function detectApacheHeadersModule()
+    {
+        if (!function_exists('apache_get_modules')) {
+            return null;
+        }
+        $modules = @apache_get_modules();
+        if (!is_array($modules)) {
+            return null;
+        }
+        return in_array('mod_headers', $modules, true);
+    }
+
+    /**
+     * Security (SEC-UPLOAD, SEC-DEPLOY): uploaded markup (html, htm, xhtml,
+     * xml, svg) under any files/ directory is served as a download with
+     * Content-Security-Policy: sandbox, never rendered inline in the site
+     * origin. On PHP that rule lives in web-server config, not in PHP: the
+     * shipped .htaccess files cover Apache and LiteSpeed (with mod_headers),
+     * scripts/nginx/haxcms-nginx.conf covers nginx, and nothing covers any
+     * other server. Returns a status row whenever the rule may not be in
+     * force, or null when it is (Apache/LiteSpeed with mod_headers present or
+     * not detectable). The key stays nginx-files-html-xss so the admin UI
+     * keeps it in its Security group.
+     *
+     * @param string    $serverVersion       SERVER_SOFTWARE label
+     * @param bool|null $headersModuleLoaded mod_headers state, null = unknown
+     * @return array|null
+     */
+    public static function buildUploadMarkupGuardRow($serverVersion, $headersModuleLoaded = null)
+    {
+        $server = strtolower((string) $serverVersion);
+        $rule = 'uploaded .html/.htm/.xhtml/.xml/.svg under /files/ must be sent with Content-Disposition: attachment, X-Content-Type-Options: nosniff and Content-Security-Policy: sandbox';
+        if (strpos($server, 'apache') !== false || strpos($server, 'httpd') !== false || strpos($server, 'litespeed') !== false) {
+            if ($headersModuleLoaded === false) {
+                return array(
+                    'key' => 'nginx-files-html-xss',
+                    'tone' => 'error',
+                    'title' => 'Uploaded HTML protection',
+                    'value' => 'mod_headers missing',
+                    'description' => 'The HAXcms .htaccess rules need mod_headers: without it, ' . $rule . ' is not enforced and an uploaded .html file renders inline in the site origin. Enable mod_headers (a2enmod headers) and allow .htaccess overrides (AllowOverride FileInfo or All).',
+                );
+            }
+            return null;
+        }
+        if (strpos($server, 'nginx') !== false) {
+            return array(
+                'key' => 'nginx-files-html-xss',
+                'tone' => 'warning',
+                'title' => 'Uploaded HTML protection (nginx)',
+                'value' => 'Verify required',
+                'description' => 'nginx has no .htaccess; apply the reference location block from scripts/nginx/haxcms-nginx.conf: ' . $rule . '. Place it before any other regex location matching these extensions: `location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$ { add_header Content-Disposition attachment always; add_header X-Content-Type-Options nosniff always; add_header Content-Security-Policy sandbox always; }`.',
+            );
+        }
+        return array(
+            'key' => 'nginx-files-html-xss',
+            'tone' => 'warning',
+            'title' => 'Uploaded HTML protection',
+            'value' => 'Not enforced by this server',
+            'description' => 'This web server does not read the HAXcms .htaccess files, so ' . $rule . ' is up to its own configuration. Serve HAXcms with Apache, or add that rule to this server (scripts/nginx/haxcms-nginx.conf shows it for nginx).',
+        );
+    }
+
     public static function buildStatusReport($options = array())
     {
         $summary = array(
@@ -343,21 +410,14 @@ class HAXCMSSystemStatusService
                 ),
             ),
         );
-        // Security (SEC-UPLOAD, SEC-DEPLOY): nginx has no .htaccess equivalent, so the
-        // uploaded-markup forced-download mitigation (Apache root .htaccess <If>
-        // + site files/.htaccess FilesMatch / NodeJS
-        // app.js middleware / DDEV .ddev/nginx-site.conf) must be hand-applied
-        // via the reference location block in scripts/nginx/haxcms-nginx.conf.
-        // Without it, an uploaded .html under any /files/ tree renders inline as
-        // stored XSS. Warn when nginx is detected so operators don't miss this.
-        if (stripos($summary['serverVersion'], 'nginx') !== false) {
-            $rows[] = array(
-                'key' => 'nginx-files-html-xss',
-                'tone' => 'warning',
-                'title' => 'Uploaded HTML XSS protection (nginx)',
-                'value' => 'Verify required',
-                'description' => 'nginx has no .htaccess; apply the reference location block from scripts/nginx/haxcms-nginx.conf so uploaded .html/.htm/.xhtml/.xml/.svg under /files/ is downloaded, not rendered inline. Place it before any other regex location matching these extensions: `location ~* /files/.*\\.(?:html?|xhtml|xml|svg)$ { add_header Content-Disposition attachment always; add_header X-Content-Type-Options nosniff always; }`.',
-            );
+        $uploadMarkupRow = self::buildUploadMarkupGuardRow(
+            $summary['serverVersion'],
+            array_key_exists('headersModuleLoaded', $options)
+                ? $options['headersModuleLoaded']
+                : self::detectApacheHeadersModule()
+        );
+        if ($uploadMarkupRow !== null) {
+            $rows[] = $uploadMarkupRow;
         }
         $gitVersion = isset($options['gitVersion']) && is_string($options['gitVersion'])
             ? trim($options['gitVersion'])

@@ -180,8 +180,46 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringNotContainsString("'.svg'  => 'image/svg+xml'", $src);
         $ops = new Operations();
         $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
-        $this->assertFalse($m->invoke($ops, 'theme/logo.svg'));
-        $this->assertSame('theme/logo.png', $m->invoke($ops, 'theme/logo.png'));
+        $this->assertFalse($m->invoke($ops, 'custom/logo.svg'));
+        $this->assertSame('custom/logo.png', $m->invoke($ops, 'custom/logo.png'));
+    }
+
+    public function testSiteFilesOnlyWriteCustomAssetsAndNoMarkup(): void
+    {
+        $ops = new Operations();
+        $m = new ReflectionMethod(Operations::class, 'normalizeSiteFilePath');
+        // theme/ left the boilerplate (haxtheweb/issues#3337): never a target
+        $this->assertFalse($m->invoke($ops, 'theme/theme.css'));
+        $this->assertFalse($m->invoke($ops, 'theme/theme.html'));
+        // browser-renderable markup is never fetched into the site tree
+        foreach (array('x.html', 'x.htm', 'x.HTML', 'x.xhtml', 'x.xml', 'x.svg') as $name) {
+            $this->assertFalse($m->invoke($ops, 'custom/' . $name), $name);
+            $this->assertFalse($m->invoke($ops, 'custom/build/' . $name), $name);
+        }
+        // the custom build and its ordinary assets still import
+        $this->assertSame('custom/build/custom.es6.js', $m->invoke($ops, 'custom/build/custom.es6.js'));
+        $this->assertSame('custom/build/custom.css', $m->invoke($ops, 'custom/build/custom.css'));
+        $this->assertSame('custom/assets/a.woff2', $m->invoke($ops, 'custom/assets/a.woff2'));
+        // a bare custom/ prefix lookalike is not the custom directory
+        $this->assertFalse($m->invoke($ops, 'customx/a.js'));
+    }
+
+    public function testDownloadGuardsAlsoSandboxTheResponse(): void
+    {
+        $htaccess = (string) file_get_contents($this->repoRoot . '/.htaccess');
+        $this->assertSame(2, substr_count($htaccess, 'Header always append Content-Security-Policy "sandbox"' . "\n"));
+        $this->assertStringContainsString('Header always append Content-Security-Policy "sandbox" env=force_html_download', $htaccess);
+        $files = (string) file_get_contents($this->repoRoot . '/system/boilerplate/site/files/.htaccess');
+        $this->assertStringContainsString('Header always append Content-Security-Policy "sandbox"', $files);
+        foreach (array('/scripts/nginx/haxcms-nginx.conf', '/.ddev/nginx-site.conf') as $conf) {
+            $body = (string) file_get_contents($this->repoRoot . $conf);
+            // every markup download location (they all end in "xml|svg)$ {")
+            $this->assertSame(
+                substr_count($body, 'xml|svg)$ {'),
+                substr_count($body, 'add_header Content-Security-Policy sandbox always;'),
+                $conf . ': every forced markup download is sandboxed'
+            );
+        }
     }
 
     public function testForceDownloadRulesCoverCustomAndThemeMarkup(): void

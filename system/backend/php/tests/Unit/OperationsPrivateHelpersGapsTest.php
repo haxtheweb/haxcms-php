@@ -162,8 +162,8 @@ class OperationsPrivateHelpersGapsTest extends TestCase
         $this->assertFalse($this->call('normalizeBulkImportName', 'a//b.png'));
         $this->assertSame('a/b.png', $this->call('normalizeBulkImportName', 'files/a/b.png'));
         $this->assertFalse($this->call('normalizeSiteFilePath', array()));
-        $this->assertFalse($this->call('normalizeSiteFilePath', 'theme//x.css'));
-        $this->assertFalse($this->call('normalizeSiteFilePath', 'theme/evil.php'));
+        $this->assertFalse($this->call('normalizeSiteFilePath', 'custom//x.css'));
+        $this->assertFalse($this->call('normalizeSiteFilePath', 'custom/evil.php'));
     }
 
     public function testSiteFileContentMimeAcceptable(): void
