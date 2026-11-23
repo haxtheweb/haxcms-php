@@ -37,9 +37,10 @@ class StructureHistory
         if (!is_string($gitBin) || $gitBin === '') {
             $gitBin = 'git';
         }
-        $command = escapeshellarg($gitBin) . ' --no-pager cat-file --batch';
+        // Security (SEC-EXEC): argv array, so no shell ever parses the arguments
+        $command = array($gitBin, '--no-pager', 'cat-file', '--batch');
         $pipes = array();
-        $process = proc_open(
+        $process = @proc_open(
             $command,
             array(0 => array('pipe', 'r'), 1 => array('pipe', 'w'), 2 => array('pipe', 'w')),
             $pipes,
@@ -103,7 +104,8 @@ class StructureHistory
         if (!is_string($gitBin) || $gitBin === '') {
             $gitBin = 'git';
         }
-        $command = escapeshellarg($gitBin) . ' --no-pager cat-file --batch';
+        // Security (SEC-EXEC): argv array, so no shell ever parses the arguments
+        $command = array($gitBin, '--no-pager', 'cat-file', '--batch');
         $pipes = array();
         // a site directory git cannot start in reads as all-null below
         $process = @proc_open(

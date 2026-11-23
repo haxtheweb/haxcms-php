@@ -261,6 +261,9 @@ trait OperationsRouteAppStoreSearch
     // pin protocols to http/https so a 302 cannot pivot to file:// / gopher://
     // or to an internal address via redirect-rebinding.
     curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+    // Security (SEC-DOS): a slow upstream must not hold a PHP worker
+    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($curl, CURLOPT_TIMEOUT, 15);
     if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
       curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
       curl_setopt($curl, CURLOPT_REDIR_PROTOCOLS, 0);
@@ -272,8 +275,9 @@ trait OperationsRouteAppStoreSearch
     }
     $upstreamBody = curl_exec($curl);
     if ($upstreamBody === false) {
-      $curlError = curl_error($curl);
-      return $this->appStoreSearchFail(502, 'Unable to reach upstream provider: ' . $curlError);
+      // Security (SEC-ROUTE): curl's error text is logged, not returned
+      error_log('HAXcms: app store search upstream request failed: ' . curl_error($curl));
+      return $this->appStoreSearchFail(502, 'Unable to reach upstream provider');
     }
     $upstreamStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
     $trimmedBody = trim((string) $upstreamBody);

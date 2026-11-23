@@ -4,7 +4,7 @@ function haxGlobalDebug()
 {
     if ($err = error_get_last()) {
       if ($err['type'] === E_ERROR) {
-        // Security (SEC-23): avoid leaking paths/stack to clients via print_r
+        // Security (SEC-ROUTE): avoid leaking paths/stack to clients via print_r
         // in production. Log server-side and emit a generic 500 unless the
         // deployment is in developerMode.
         $devMode = isset($GLOBALS['HAXCMS']) && is_object($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->developerMode) && $GLOBALS['HAXCMS']->developerMode;
@@ -38,25 +38,26 @@ $here = str_replace('/system/backend/php/bootstrapHAX.php', '', __FILE__);
 // this is needed because of how PHP resolves paths when in symlinked patterns
 // @todo need to support HAXiam in the CLI
 if (file_exists($here . '/_config/IAM')) {
+  include_once __DIR__ . '/lib/IamTenant.php';
+  // Security (SEC-PATH): the tenant name becomes users/<name> in HAXCMS_ROOT,
+  // so only a plain name is used. Anything else resolves to the empty tenant
+  // (the users/ directory itself, which has no _config), the same place a
+  // bare "/" always resolved to, so it is answered like an unprovisioned user
   if (isset($_SERVER['REQUEST_URI'])) {
-    $pieces = explode('/', $_SERVER['REQUEST_URI']);
-    array_shift($pieces);
-    $userDir = $pieces[0];
+    $userDir = (string) IamTenant::fromRequestUri($_SERVER['REQUEST_URI']);
   }
   // account for CLI
-  else if (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0)) {
-    if (file_exists($here . '/_config/IAM')) {
-      $cliOpts = getopt('', array('op:', 'siteName::', 'iamUser::', 'theme:')) + array('args' => $GLOBALS['argv']);
-      if (isset($cliOpts['iamUser'])) {
-        $userDir = $cliOpts['iamUser'];
-      }
+  // Security (SEC-SESSION): CLI is decided from the SAPI, never from argc
+  else if (IamTenant::isCli()) {
+    $cliOpts = getopt('', array('op:', 'siteName::', 'iamUser::', 'theme:')) + array('args' => $GLOBALS['argv']);
+    if (isset($cliOpts['iamUser'])) {
+      $userDir = IamTenant::isValidName($cliOpts['iamUser']) ? $cliOpts['iamUser'] : '';
     }
   }
 
   // account for vanity domains
   if (isset($_SERVER['HAXSITE_BASE_URL']) && isset($_SERVER['DOCUMENT_ROOT'])) {
-    $pieces2 = explode('/', $_SERVER['DOCUMENT_ROOT']);
-    $userDir = $pieces2[count($pieces2)-4];
+    $userDir = (string) IamTenant::fromDocumentRoot($_SERVER['DOCUMENT_ROOT']);
   }
 
   // leverage BRANCH in order to calculate the correct directory name here

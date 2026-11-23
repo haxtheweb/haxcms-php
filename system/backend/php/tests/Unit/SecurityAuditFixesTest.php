@@ -236,6 +236,15 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertStringContainsString('php.ini-production" "$PHP_INI_DIR/php.ini"', $dockerfile);
     }
 
+    public function testDockerBuildContextExcludesLocalReportsAndDevTooling(): void
+    {
+        $lines = array_map('trim', file($this->repoRoot . '/.dockerignore'));
+        foreach (array('security_best_practices_report*', 'security_jwt_refresh_review.md',
+            'file_operations_security_report.md', 'tests', 'test', '.github', '.ddev', 'Dockerfile*') as $pattern) {
+            $this->assertContains($pattern, $lines, $pattern);
+        }
+    }
+
     public function testLegacyOpsBindSiteTokenToRequestTokenUser(): void
     {
         $ops = array('saveNode', 'deleteNode', 'createNode', 'saveManifest', 'saveNodeDetails', 'fileOperation',
@@ -295,6 +304,29 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertFalse($h->validateRequestToken(true, 'alice'), 'boolean must not loosely match');
         $this->assertFalse($h->validateRequestToken(0, 'alice'));
         $this->assertFalse($h->validateRequestToken(array($token), 'alice'));
+    }
+
+    public function testAuthenticatedUserNeedsAJwtIdThatIsTheExactRequestToken(): void
+    {
+        $_SERVER['SERVER_SOFTWARE'] = 'phpunit-test';
+        unset($_COOKIE['haxcms_refresh_token']);
+        $h = (new ReflectionClass(get_class(new class extends HAXCMS {
+            public function __construct() {}
+            public function validateUser($name) { return $name === 'alice'; }
+        })))->newInstanceWithoutConstructor();
+        $h->privateKey = 'pk';
+        $h->refreshPrivateKey = 'rpk';
+        $h->salt = 's';
+        $h->config = new stdClass();
+        $sign = function ($id) use ($h) {
+            return JWT::encode(array('id' => $id, 'user' => 'alice', 'iat' => time(), 'exp' => time() + 600), $h->privateKey . $h->salt);
+        };
+        $h->sessionJwt = $sign($h->getRequestToken('user'));
+        $this->assertSame('alice', $h->getAuthenticatedUserName());
+        foreach (array(true, 0, array('x')) as $looseId) {
+            $h->sessionJwt = $sign($looseId);
+            $this->assertNull($h->getAuthenticatedUserName(), 'id ' . json_encode($looseId) . ' must not loosely match');
+        }
     }
 
     // ---- SEC-EXEC: git argument guards -----------------------------------
@@ -387,6 +419,99 @@ class SecurityAuditFixesTest extends TestCase
             }
         }
         $this->assertSame(array(), $found, 'SEC-EXEC: use proc_open with an argv array, and plain array constants instead of serialize/unserialize');
+    }
+
+    public function testProcOpenIsOnlyGivenArgvArrays(): void
+    {
+        $libDir = dirname(__DIR__, 2) . '/lib';
+        $stringCommands = array();
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($libDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (substr($file->getFilename(), -4) !== '.php') {
+                continue;
+            }
+            $src = file_get_contents($file->getPathname());
+            $name = str_replace($libDir . '/', '', $file->getPathname());
+            if (preg_match('/escapeshell(arg|cmd)\s*\(/', $src)) {
+                $stringCommands[] = $name . ': escapeshellarg (a shell string is being built)';
+            }
+            // the first argument of each proc_open( must be an array literal or
+            // a variable last assigned an array
+            if (preg_match_all('/proc_open\(\s*([^,]+),/', $src, $m)) {
+                foreach ($m[1] as $first) {
+                    $first = trim($first);
+                    if (strpos($first, 'array(') === 0) {
+                        continue;
+                    }
+                    // a variable built as an array, or guarded as one, in the same file
+                    if (preg_match('/^\$\w+$/', $first) &&
+                        (strpos($src, $first . ' = array(') !== false || strpos($src, '!is_array(' . $first . ')') !== false)) {
+                        continue;
+                    }
+                    $stringCommands[] = $name . ': proc_open(' . $first . ', ...)';
+                }
+            }
+        }
+        $this->assertSame(array(), $stringCommands, 'SEC-EXEC: pass proc_open an argv array so no shell is involved');
+    }
+
+    public function testNoNonCryptographicRandomnessInLibOrInstaller(): void
+    {
+        $banned = array('mt_rand', 'rand', 'shuffle', 'str_shuffle', 'array_rand', 'uniqid', 'lcg_value', 'mt_srand', 'srand');
+        $libDir = dirname(__DIR__, 2) . '/lib';
+        $paths = array($this->repoRoot . '/install.php');
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($libDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (substr($file->getFilename(), -4) === '.php') {
+                $paths[] = $file->getPathname();
+            }
+        }
+        $found = array();
+        foreach ($paths as $path) {
+            $tokens = token_get_all(file_get_contents($path));
+            foreach ($tokens as $i => $token) {
+                if (!is_array($token) || $token[0] !== T_STRING || !in_array(strtolower($token[1]), $banned, true)) {
+                    continue;
+                }
+                $prev = isset($tokens[$i - 1]) ? $tokens[$i - 1] : null;
+                if (is_array($prev) && in_array($prev[0], array(T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION), true)) {
+                    continue;
+                }
+                $next = isset($tokens[$i + 1]) ? $tokens[$i + 1] : null;
+                if ($next === '(') {
+                    $found[] = basename($path) . ':' . $token[2] . ' ' . $token[1] . '()';
+                }
+            }
+        }
+        $this->assertSame(array(), $found, 'use random_int / random_bytes');
+    }
+
+    public function testAppStoreUpstreamCallIsBoundedAndKeepsCurlErrorsServerSide(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/lib/operations/appStoreSearch.php');
+        $this->assertStringContainsString('CURLOPT_CONNECTTIMEOUT', $src);
+        $this->assertStringContainsString('CURLOPT_TIMEOUT,', $src);
+        $this->assertDoesNotMatchRegularExpression('/appStoreSearchFail\([^;]*curl_error/', $src);
+    }
+
+    public function testInlineImagesAreStagedExclusivelyAndPrivately(): void
+    {
+        $src = (string) file_get_contents(dirname(__DIR__, 2) . '/lib/MaterializeInlineImages.php');
+        $this->assertStringNotContainsString('file_put_contents($tmpPath', $src);
+        $this->assertStringContainsString("@fopen(\$tmpPath, 'xb')", $src);
+        $this->assertStringContainsString('@chmod($tmpPath, 0600)', $src);
+    }
+
+    public function testGitAvailabilityProbeReportsAMissingBinaryAsNoGit(): void
+    {
+        $saved = Git::get_bin();
+        try {
+            Git::set_bin('/nonexistent/haxcms-git-' . uniqid());
+            $repo = (new ReflectionClass(GitRepo::class))->newInstanceWithoutConstructor();
+            $this->assertFalse($repo->test_git());
+        } finally {
+            Git::set_bin($saved);
+        }
     }
 
     // ---- SEC-SANITIZE: site shell output encoding ------------------------

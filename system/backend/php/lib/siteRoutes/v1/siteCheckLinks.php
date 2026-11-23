@@ -61,7 +61,8 @@ return function ($context) {
         ? (string) $context->auth['userName']
         : '';
     $rateSettings = $GLOBALS['HAXCMS']->getLinkCheckRateLimitSettings();
-    $cache = (isset($GLOBALS['HAXCMS']->cache) && $GLOBALS['HAXCMS']->cache) ? $GLOBALS['HAXCMS']->cache : null;
+    // Security (SEC-RATELIMIT): read through the accessor; the property is not visible here
+    $cache = ((isset($GLOBALS['HAXCMS']) && method_exists($GLOBALS['HAXCMS'], 'getCacheStore')) ? $GLOBALS['HAXCMS']->getCacheStore() : null);
     $outcome = LinkChecker::checkSiteLinks(array(
         'siteHtml' => $siteHtml,
         'links' => $links,

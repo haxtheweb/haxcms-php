@@ -289,8 +289,19 @@ class MaterializeInlineImages
             }
             $stagingRoot = $resolved;
         }
+        // Security (SEC-UPLOAD): staged like every other import file
+        // (stageRemoteFile.php): created exclusively ('x' never follows or
+        // reuses an existing path) and readable by the server user only
         $tmpPath = $stagingRoot . '/inline-image-' . self::randomId();
-        if (@file_put_contents($tmpPath, $bytes) === false) {
+        $handle = @fopen($tmpPath, 'xb');
+        if ($handle === false) {
+            return null;
+        }
+        @chmod($tmpPath, 0600);
+        $written = @fwrite($handle, $bytes);
+        $closed = @fclose($handle);
+        if ($written !== strlen($bytes) || !$closed) {
+            @unlink($tmpPath);
             return null;
         }
         try {
@@ -380,9 +391,7 @@ class MaterializeInlineImages
      */
     private static function randomId()
     {
-        if (function_exists('random_bytes')) {
-            return bin2hex(random_bytes(8));
-        }
-        return uniqid('', true);
+        // Security (SEC-UPLOAD): staged names come from a CSPRNG, never uniqid()
+        return bin2hex(random_bytes(16));
     }
 }

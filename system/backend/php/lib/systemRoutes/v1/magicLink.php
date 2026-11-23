@@ -214,9 +214,12 @@ return function ($context) {
     }
     $settings = $GLOBALS['HAXCMS']->getLoginRateLimitSettings();
     $nowMs = intval(round(microtime(true) * 1000));
-    $cache = (isset($GLOBALS['HAXCMS']->cache) && $GLOBALS['HAXCMS']->cache) ? $GLOBALS['HAXCMS']->cache : null;
+    // Security (SEC-RATELIMIT): the same store as the login throttle (HAXcms
+    // cache, else APCu); with neither, each failed redemption waits the login
+    // throttle's fixed delay instead of going unthrottled
+    $throttleBackend = $GLOBALS['HAXCMS']->loginThrottleBackend();
     $rateKey = haxcmsMagicLinkRateKey($token);
-    $entry = $cache ? $cache->retrieve($rateKey) : null;
+    $entry = $throttleBackend !== 'none' ? $GLOBALS['HAXCMS']->loginThrottleRead($rateKey) : null;
     if (!is_array($entry) || ($nowMs - intval($entry['firstAttempt'])) > intval($settings->windowMs)) {
         $entry = array(
             'firstAttempt' => $nowMs,
@@ -239,22 +242,24 @@ return function ($context) {
         return haxcmsMagicLinkFailure($context, 503, $generic);
     }
     if (!$result['ok']) {
-        if ($settings->enabled && $cache) {
+        if ($settings->enabled && $throttleBackend === 'none') {
+            if (intval(HAXCMS::$loginThrottleFallbackSleepUs) > 0) {
+                usleep(intval(HAXCMS::$loginThrottleFallbackSleepUs));
+            }
+        }
+        else if ($settings->enabled) {
             $entry['failedAttempts'] = intval($entry['failedAttempts']) + 1;
             if ($entry['failedAttempts'] >= intval($settings->maxAttempts)) {
                 $entry['blockedUntil'] = $nowMs + intval($settings->blockMs);
                 $entry['failedAttempts'] = 0;
                 $entry['firstAttempt'] = $nowMs;
             }
-            $cache->store($rateKey, $entry, intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60);
+            $GLOBALS['HAXCMS']->loginThrottleWrite($rateKey, $entry, intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60);
         }
         return haxcmsMagicLinkFailure($context, 401, $generic);
     }
-    if ($cache) {
-        try {
-            $cache->erase($rateKey);
-        }
-        catch (Exception $e) {}
+    if ($throttleBackend !== 'none') {
+        $GLOBALS['HAXCMS']->loginThrottleDelete($rateKey);
     }
     $GLOBALS['HAXCMS']->setRefreshTokenCookie($GLOBALS['HAXCMS']->getRefreshToken($result['user']));
     if (haxcmsMagicLinkWantsJson()) {

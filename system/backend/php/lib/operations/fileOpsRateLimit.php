@@ -18,6 +18,22 @@
  */
 trait OperationsRouteFileOpsRateLimit {
   /**
+   * Security (SEC-RATELIMIT): the shared store, read through
+   * HAXCMS::getCacheStore(). The property itself is not visible from here, so
+   * reading it directly always looked like "no cache" and the limiter never
+   * engaged. Objects without the accessor (test doubles) are read directly.
+   */
+  private function fileOpsRateLimitStore() {
+    $haxcms = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
+    if (!is_object($haxcms)) {
+      return null;
+    }
+    if (method_exists($haxcms, 'getCacheStore')) {
+      return $haxcms->getCacheStore();
+    }
+    return (isset($haxcms->cache) && $haxcms->cache) ? $haxcms->cache : null;
+  }
+  /**
    * @param string $userName validated active user name
    * @param string $siteName resolved site name
    * @return array|null null = allow; __failed 429 array = block
@@ -27,7 +43,8 @@ trait OperationsRouteFileOpsRateLimit {
     if (!$settings->enabled) {
       return null;
     }
-    if (!isset($GLOBALS['HAXCMS']->cache) || !$GLOBALS['HAXCMS']->cache) {
+    $store = $this->fileOpsRateLimitStore();
+    if (!$store) {
       // No shared cache available -> do not block operations (fail open),
       // but never silently: operators need to know the limiter is off.
       static $warned = false;
@@ -41,7 +58,7 @@ trait OperationsRouteFileOpsRateLimit {
     $key = 'fileops-rate:' . sha1(strval($userName) . '::' . strval($siteName));
     $entry = null;
     try {
-      $entry = $GLOBALS['HAXCMS']->cache->retrieve($key);
+      $entry = $store->retrieve($key);
     }
     catch (Exception $e) {
       $entry = null;
@@ -82,7 +99,7 @@ trait OperationsRouteFileOpsRateLimit {
     }
     $ttlSeconds = intval(ceil((intval($settings->windowMs) + intval($settings->blockMs)) / 1000)) + 60;
     try {
-      $GLOBALS['HAXCMS']->cache->store($key, $entry, $ttlSeconds);
+      $store->store($key, $entry, $ttlSeconds);
     }
     catch (Exception $e) {}
     if ($blockedNow) {
