@@ -386,6 +386,18 @@ class HAXCMSSiteMutationsTest extends TestCase
         $this->assertFileExists($this->siteDir() . '/pages/x/index.html');
     }
 
+    public function testAddPageKeepsImportedTimes(): void
+    {
+        $before = time();
+        $imported = $this->site->addPage(null, 'Old letter', 'init', 'old-letter', null, 0, '<p>x</p>', 1,
+            array('created' => 1700000000, 'updated' => 1710000000));
+        $this->assertSame(1700000000, $imported->metadata->created);
+        $this->assertSame(1710000000, $imported->metadata->updated);
+        $fresh = $this->site->addPage(null, 'New letter', 'init', 'new-letter');
+        $this->assertGreaterThanOrEqual($before, $fresh->metadata->created);
+        $this->assertSame($fresh->metadata->created, $fresh->metadata->updated);
+    }
+
     // ---- bulk addPage (haxtheweb/issues#3248) ----
 
     public function testBulkAddPageWritesSiteJsonOnceAtFinish(): void

@@ -870,6 +870,14 @@ paths:
                         type: object
                         additionalProperties: true
                         nullable: true
+                        description: Page metadata. An imported page keeps its created and updated times (whole seconds since 1970, not in the future; updated never earlier than created); otherwise both are the time the page is added.
+                        properties:
+                          created:
+                            type: integer
+                            description: When the page was first made, for a page brought in from another site.
+                          updated:
+                            type: integer
+                            description: When the page was last changed, for a page brought in from another site.
                       delete:
                         type: boolean
                         nullable: true

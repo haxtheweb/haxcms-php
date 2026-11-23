@@ -314,6 +314,16 @@ trait OperationsRouteCreateSite {
       ) {
           $schema->description = strip_tags($trustedSkeleton['site']['description']);
       }
+      // site title: the machine name unless the request names one. Plain
+      // text only; a title that is blank once markup is stripped keeps the name.
+      $requestedTitle = (
+        isset($this->params['site']['title']) &&
+        is_string($this->params['site']['title'])
+      ) ? SanitizeContent::trimTitle(SanitizeContent::plainText($this->params['site']['title'])) : '';
+      if (!SanitizeContent::isBlankPageTitle($requestedTitle)) {
+        $schema->title = $requestedTitle;
+        $site->manifest->title = $requestedTitle;
+      }
       // background image / banner (request does not control this)
       if (
         $useTrustedSkeleton &&

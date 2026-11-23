@@ -275,6 +275,31 @@ class OperationsCreateSiteTest extends TestCase
         $this->assertInstanceOf(stdClass::class, $persisted->metadata->node->fields);
     }
 
+    public function testSiteTitleSetsTitleWithMarkupRemoved(): void
+    {
+        $result = $this->runCreateSite(array(
+            'name' => 'night-draft',
+            'theme' => 'my-theme',
+            'title' => 'Night <b>Draft</b>',
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Night Draft', $result['data']->title);
+        $this->assertSame('Night Draft', $this->persistedSite()->title);
+    }
+
+    public function testBlankOrNonTextSiteTitleKeepsName(): void
+    {
+        foreach (array('  <i></i> ', 'null', array('text' => 'x')) as $title) {
+            $result = $this->runCreateSite(array(
+                'name' => 'New Site',
+                'theme' => 'my-theme',
+                'title' => $title,
+            ));
+            $this->assertSame(200, $result['status']);
+            $this->assertSame($this->siteName, $result['data']->title);
+        }
+    }
+
     // =========================================================================
     // Build object passthrough + domain
     // =========================================================================

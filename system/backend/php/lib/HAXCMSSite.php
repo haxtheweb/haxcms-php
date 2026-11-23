@@ -1048,8 +1048,10 @@ class HAXCMSSite
             $GLOBALS['HAXCMS']->getThemes()
           );
         }
-        $page->metadata->created = time();
-        $page->metadata->updated = time();
+        // an imported page keeps its own created / updated times
+        $times = SanitizeContent::pageTimestamps($metadata, time());
+        $page->metadata->created = $times['created'];
+        $page->metadata->updated = $times['updated'];
         $location = $this->directory . '/' .
             $this->manifest->metadata->site->name .
             '/pages' . '/' . $page->id;
