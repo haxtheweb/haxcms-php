@@ -61,7 +61,7 @@ yarn run dev
 
 ## Quick Install
 ```bash
-$ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms/master/scripts/haxcmsme.sh -o haxcmsme.sh && sh haxcmsme.sh
+$ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms-php/master/scripts/haxcmsme.sh -o haxcmsme.sh && bash haxcmsme.sh
 ```
 ## Installation Guides
 - There are full installation instructions available at https://haxtheweb.org/installation which details many different install routines.
@@ -73,20 +73,19 @@ $ curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms/master/scripts/h
 - This also works from the lightweight `github.dev` editor: `github.dev` itself has no compute, but its `Code → Codespaces` menu launches the same devcontainer described here.
 
 ### Containers
-- Clone this repo: `git clone https://github.com/haxtheweb/haxcms.git`
+- Clone this repo: `git clone https://github.com/haxtheweb/haxcms-php.git`
 - Install a server container (recommended). Here are some options (We support 'em all!):  
   - [docker](https://store.docker.com/search?type=edition&offering=community)
   - [ddev](https://ddev.readthedocs.io/en/latest/#installation)
-  - [docksal](https://docksal.io/installation/)
   - [lando](https://docs.devwithlando.io/installation/installing.html)
   - [vagrant](https://www.vagrantup.com/downloads.html)
-- Open a terminal window, go to the directory where you downloaded your container app and type `ddev start` (for ddev) or `fin init` (for docksal) or `lando start && lando magic` (for lando) or `vagrant up` (for vagrant).
+- Open a terminal window, go to the directory where you downloaded your container app and type `ddev start` (for ddev) or `lando start && lando magic` (for lando) or `vagrant up` (for vagrant).
 - Go to the link any of them give you in a browser.
 - Username/password is `admin`/`admin` to get building out static sites locally that you can push up anywhere!
 - Click the icon in the top-right and you're off and running!
 ### MAMP
 - Download [MAMP](https://www.mamp.info/)
-- Download this repo https://github.com/haxtheweb/haxcms/archive/master.zip
+- Download this repo https://github.com/haxtheweb/haxcms-php/archive/master.zip
 - Place HAXcms files in the htdocs folder of MAMP.
 - Turn MAMP on and click "My website"
 - Copy the password it gives you, click to access HAX and then HAX YOUR WEB!

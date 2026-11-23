@@ -1,4 +1,6 @@
 #!/bin/bash
+# Quick install: clone haxcms-php and start it with DDEV.
+#   curl -fsSL https://raw.githubusercontent.com/haxtheweb/haxcms-php/master/scripts/haxcmsme.sh -o haxcmsme.sh && bash haxcmsme.sh
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)     machine=Linux;;
@@ -8,53 +10,45 @@ case "${unameOut}" in
     *)          machine="UNKNOWN:${unameOut}"
 esac
 
-# make sure node is installed
-if ! command -v node;then
-	echo "Install node and npm first then re-run script"
-	echo "Go to https://nodejs.org/en/download/ to download and install"
-	exit
-fi
-
-# if yarn isn't installed install it
-if ! command -v yarn;then
-	npm -g install yarn@1.22.22
-fi
-
-git clone https://github.com/haxtheweb/haxcms.git
-cd HAXcms/
-
-# install docker if not installed
-if ! command -v docker;then
-	curl -fsSL https://get.docker.com -o get-docker.sh
-	sudo sh get-docker.sh
-fi
-
+# DDEV runs PHP, Node and Composer inside its containers, so nothing else
+# (node, yarn, docker-compose) needs installing on the host.
 windows_ddev() {
 	# make sure chocolatey is installed
 	if ! command -v choco;then
-		echo "Please install Chocolatey then run again script again"
+		echo "Please install Chocolatey then run this script again"
 		echo "(https://chocolatey.org/install)"
-	else
-		choco install ddev git
+		exit 1
 	fi
+	# --requirechecksums refuses any download the package does not checksum
+	choco install ddev git --requirechecksums -y
 }
 
-linux_ddev() {
+unix_ddev() {
+	# install docker if not installed
+	if ! command -v docker;then
+		curl -fsSL https://get.docker.com -o get-docker.sh
+		sudo sh get-docker.sh
+	fi
 	if ! command -v ddev;then
 		# pinned to ddev v1.25.4 (script from that tag commit, installing that version)
 		curl -LO https://raw.githubusercontent.com/ddev/ddev/5da91aeb9ebab0b0e66171c450b72099308d332c/scripts/install_ddev.sh && bash install_ddev.sh v1.25.4
 	fi
 }
 
-if [ "${machine}" == "Cygwin" ]; then
-	windows_ddev
-elif [ "${machine}" == "MinGw" ]; then
+if [ "${machine}" == "Cygwin" ] || [ "${machine}" == "MinGw" ]; then
 	windows_ddev
 else
-	if ! command -v docker-compose;then
-		sudo curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-		sudo chmod +x /usr/local/bin/docker-compose
-		sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-	fi
-	linux_ddev
+	unix_ddev
 fi
+
+if ! command -v git;then
+	echo "Install git then run this script again"
+	exit 1
+fi
+
+git clone https://github.com/haxtheweb/haxcms-php.git
+cd haxcms-php/ || exit 1
+
+# ddev start runs the .ddev post-start hooks, which seed the admin / admin user
+ddev start
+echo "HAXcms is running at https://haxcms.ddev.site (admin / admin; change this after first login)"

@@ -27,7 +27,6 @@
 const fs = require('fs-extra')
 const path = require('path')
 const axios = require('axios')
-const https = require('https')
 const { execFileSync } = require('child_process')
 const vm = require('node:vm')
 
@@ -40,10 +39,12 @@ const SITES_DIR = '_sites'
 const ARCHIVED_DIR = '_archived'
 const PUBLISHED_DIR = '_published'
 
-// axios instance that ignores DDEV's self-signed TLS certificate (the dashboard
-// is served over https://haxcms.ddev.site with a router-managed cert).
-const insecureAxios = axios.create({
-  httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+// axios instance for harness requests. Status codes are asserted by the tests,
+// so none are treated as errors. Certificates are always verified: the harness
+// talks to DDEV over HTTP (see resolveBaseUrl), and an https
+// HAXCMS_E2E_BASE_URL with a local CA works by exporting
+// NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem".
+const e2eAxios = axios.create({
   validateStatus: () => true,
 })
 
@@ -98,7 +99,7 @@ async function waitForHealthy(baseUrl, timeoutMs) {
   let lastErr = null
   while (Date.now() - start < timeout) {
     try {
-      const resp = await insecureAxios({
+      const resp = await e2eAxios({
         method: 'GET',
         url: baseUrl + '/system/api/v1/system/version',
         headers: { accept: 'application/json' },
@@ -125,7 +126,7 @@ async function waitForHealthy(baseUrl, timeoutMs) {
 }
 
 async function loginForJwt(baseUrl, username, password) {
-  const resp = await insecureAxios({
+  const resp = await e2eAxios({
     method: 'POST',
     url: baseUrl + '/system/api/v1/session/login',
     headers: {
@@ -177,7 +178,7 @@ async function requestConnectionSettings(baseUrl, jwt) {
   if (jwt) {
     headers.Authorization = 'Bearer ' + jwt
   }
-  const resp = await insecureAxios({
+  const resp = await e2eAxios({
     method: 'GET',
     url: baseUrl + '/system/api/v1/session/connection-settings',
     headers: headers,
