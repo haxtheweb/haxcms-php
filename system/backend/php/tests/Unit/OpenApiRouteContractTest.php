@@ -248,4 +248,14 @@ class OpenApiRouteContractTest extends TestCase
         $this->assertSame('authenticated', SiteRouteUtils::getSiteApiRouteAuthPolicy('v1/not-in-the-spec', 'GET'));
         $this->assertSame('authenticated', SiteRouteUtils::getSystemApiRouteAuthPolicy('v1/not-in-the-spec', 'GET'));
     }
+
+    public function testDiscoveryRootReadsItsPolicyFromTheSpec(): void
+    {
+        // /x/api itself is the route '': the spec declares it without a
+        // security requirement, so it is public as in haxcms-nodejs
+        $this->assertSame('public', SiteRouteUtils::getSiteApiRouteAuthPolicy('', 'GET'));
+        // only what the spec declares: any other method on it fails closed
+        $this->assertSame('authenticated', SiteRouteUtils::getSiteApiRouteAuthPolicy('', 'POST'));
+        $this->assertSame('authenticated', SiteRouteUtils::getSiteApiRouteAuthPolicy('', 'DELETE'));
+    }
 }

@@ -1290,7 +1290,11 @@ class SiteRouteUtils
                 continue;
             }
             $routeKey = self::convertOpenApiPathToSiteRoute($openApiPath);
-            if ($routeKey === '') {
+            // Security (SEC-ROUTE): '' is the discovery root (/x/api itself).
+            // The spec declares it like any other path, so its policy is read
+            // from the spec too, as in haxcms-nodejs; skipping it left this
+            // one route on a rule the spec does not state.
+            if ($routeKey === '' && rtrim((string) $openApiPath, '/') !== '/x/api') {
                 continue;
             }
             if (!is_array($pathConfig)) {
