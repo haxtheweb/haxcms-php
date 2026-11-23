@@ -27,7 +27,6 @@ test
 .ddev
 .github
 .devcontainer
-.docksal
 .vscode
 .lando.yml
 .travis.yml
