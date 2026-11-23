@@ -311,7 +311,7 @@ class OperationsSaveFileUploadResolutionTest extends TestCase
         $_FILES = array('file' => $this->single('copy-me.txt', $this->serverFile('do not copy')));
         $this->ops->params = array('site_token' => 'accepted-by-double', 'site' => array('name' => $this->siteName));
         $result = $this->ops->saveFile();
-        $this->assertSame(500, $result['__failed']['status']);
+        $this->assertSame(400, $result['__failed']['status']);
         $this->assertSame('Invalid upload source', $result['__failed']['message']);
         $this->assertSame(array(), $this->filesDirEntries());
         $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits);

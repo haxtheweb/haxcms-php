@@ -40,7 +40,10 @@ class HAXCMSFile
         'rtf' => array('application/rtf', 'text/rtf', 'text/plain'),
         'txt' => array('text/plain'),
         'vtt' => array('text/vtt', 'text/plain'),
-        'html' => array('text/html', 'application/xhtml+xml'),
+        // an .html file is stored and only ever served as a download
+        // (attachment, sandboxed: files/.htaccess), so a fragment that reads
+        // as plain text is accepted too, as in haxcms-nodejs
+        'html' => array('text/html', 'application/xhtml+xml', 'text/plain'),
         'md' => array('text/markdown', 'text/x-markdown', 'text/plain'),
         'xml' => array('application/xml', 'text/xml'),
         // calendars and contact cards are plain text, so libmagic
@@ -68,6 +71,33 @@ class HAXCMSFile
      * siteFiles content-type check can reuse the same table without exposing
      * the private property. Returns the MIME array for an extension or null.
      */
+    /**
+     * The HTTP status for a save() failure, from its message. A file the
+     * caller sent that is refused for what it is (its type, its content, its
+     * size, where it was asked to go) is the caller's to fix: 400. Anything
+     * else (a write that failed, a source that could not be checked) stays a
+     * 500. Mirrors haxcms-nodejs HAXCMSFile.uploadRejectionStatus.
+     */
+    public static function uploadRejectionStatus($message)
+    {
+        $text = is_string($message) ? $message : '';
+        $patterns = array(
+            '/^File type not allowed$/',
+            '/^Detected MIME type .+ does not match allowed type for \\..+$/',
+            '/^Unable to determine uploaded file MIME type$/',
+            '/^Invalid image file content$/',
+            '/^Invalid subfolder$/',
+            '/^Invalid upload source$/',
+            '/^File exceeds the maximum upload size of .+$/',
+        );
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text) === 1) {
+                return 400;
+            }
+        }
+        return 500;
+    }
+
     public static function getAllowedMimeByExtension($ext) {
         static $map = null;
         if ($map === null) {
