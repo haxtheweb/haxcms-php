@@ -16,9 +16,6 @@ class BoilerplateLayoutStabilityTest extends TestCase
             array('site/index.html'),
             array('site/ghpages.html'),
             array('site/index.php'),
-            array('cdns/cdn.hax.cloud.html'),
-            array('cdns/cdn.webcomponents.psu.edu.html'),
-            array('cdns/custom.html'),
         );
     }
 

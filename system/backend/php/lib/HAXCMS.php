@@ -875,11 +875,6 @@ class HAXCMS
                 'description' =>
                     'Only use this if you want to automate SSH key setup. This is not stored',
                 'value' => ''
-            ),
-            'cdn' => array(
-                'name' => 'CDN',
-                'description' => 'A CDN address that supports HAXCMS',
-                'value' => 'cdn.webcomponents.psu.edu'
             )
         );
         // publishing

@@ -2,7 +2,7 @@ name: backend parity
 # haxcms-nodejs and haxcms-php are kept in parity. These must stay
 # byte-identical between the two backends (haxcms-nodejs is the source of
 # truth for all of them):
-#   boilerplate        system/boilerplate (site, page, systemsetup, cdns)
+#   boilerplate        system/boilerplate (site, page, systemsetup)
 #                      src/boilerplate (haxcms-nodejs)
 #   site API spec      system/backend/php/lib/siteRoutes/openapi/site-spec.yaml
 #                      src/openapi/site-spec.yaml (haxcms-nodejs)
