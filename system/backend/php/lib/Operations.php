@@ -1547,7 +1547,8 @@ class Operations {
       $sourceWidth,
       $sourceHeight
     );
-    $temporaryPath = $sourcePath . '.scale-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.scale-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($targetImage, $temporaryPath, $resolvedQuality);
@@ -1638,7 +1639,8 @@ class Operations {
       @imagealphablending($sourceImage, false);
       @imagesavealpha($sourceImage, true);
     }
-    $temporaryPath = $sourcePath . '.compress-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.compress-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
@@ -1740,7 +1742,8 @@ class Operations {
       @imagealphablending($sourceImage, false);
       @imagesavealpha($sourceImage, true);
     }
-    $temporaryPath = $sourcePath . '.transform-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.transform-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
@@ -1854,7 +1857,8 @@ class Operations {
       @imagealphablending($uploadImage, false);
       @imagesavealpha($uploadImage, true);
     }
-    $temporaryPath = $sourcePath . '.replace-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.replace-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension === 'jpg') {
       $saved = @imagejpeg($uploadImage, $temporaryPath, $resolvedQuality);
@@ -1939,7 +1943,8 @@ class Operations {
       @imagealphablending($rotatedImage, false);
       @imagesavealpha($rotatedImage, true);
     }
-    $temporaryPath = $sourcePath . '.rotate-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.rotate-' . bin2hex(random_bytes(8));
     $saved = $this->saveImageResourceByExtension(
       $rotatedImage,
       $temporaryPath,

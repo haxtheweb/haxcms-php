@@ -742,11 +742,11 @@ class SystemRoutesSessionTest extends TestCase
     public function testUserRouteFeedsClientHeaderIntoTokenCheck(): void
     {
         $_SERVER['HTTP_X_HAXCMS_USER_TOKEN'] = 'client-user-token';
-        $this->haxcms()->userData = (object) array('name' => 'testuser', 'roles' => array('editor'));
+        $this->haxcms()->userData = (object) array('name' => 'testuser', 'roles' => array('editor'), 'userName' => 'testuser');
         $result = $this->runHandler('v1/session/user', 'GET');
         $this->assertSame(200, $result['code']);
         $this->assertSame(
-            array('name' => 'testuser', 'roles' => array('editor')),
+            array('name' => 'testuser', 'roles' => array('editor'), 'userName' => 'testuser'),
             $result['data']['data']
         );
         // The X-HAXCMS-User-Token header value reached the token check.

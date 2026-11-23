@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../BoundedZip.php';
 
 $__vendorAutoload = dirname(__FILE__) . '/../../../vendor/autoload.php';
 if (file_exists($__vendorAutoload)) {
@@ -47,6 +48,9 @@ return function ($context) {
         if (!class_exists('ZipArchive')) {
             throw new \RuntimeException('ZipArchive extension is not available');
         }
+        // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte
+        // limits before any reader inflates it (BoundedZip.php)
+        BoundedZip::assertWithinLimits($tmpPath, 'docx');
         $zip = new ZipArchive();
         if ($zip->open($tmpPath) !== true) {
             throw new \RuntimeException('Unable to open DOCX as ZIP archive');
