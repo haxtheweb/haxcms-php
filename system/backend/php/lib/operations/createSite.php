@@ -428,6 +428,16 @@ trait OperationsRouteCreateSite {
       $site->manifest->description = $schema->description;
       // save the outline into the new site
       $site->manifest->save(false);
+      // newSite wrote index.html, manifest.json and the other managed files
+      // before the title and description above were set; render them again
+      // so they carry this site's own title and description
+      if (method_exists($site, 'rebuildManagedFiles')) {
+        try {
+          $site->rebuildManagedFiles();
+        } catch (Throwable $e) {
+          // intentionally ignored: the next save rebuilds them
+        }
+      }
       // walk through files if any came across and save each of them. build.files
       // is best-effort: a single bad/undownloadable entry must not fail the
       // whole site, so skipped entries are collected into $buildFileWarnings
