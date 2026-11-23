@@ -1774,35 +1774,50 @@ class HAXCMSSite
       return $data;
     }
     /**
-     * Create Lunr.js style search index
+     * Create Lunr.js style search index: one entry per published page, the
+     * same entries haxcms-nodejs writes (HAXCMSSite.lunrSearchIndex).
      */
     public function lunrSearchIndex($items) {
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
       $data = array();
       foreach ($items as $item) {
+        if (!is_object($item)) {
+          continue;
+        }
+        // Security: this file is served without a login, so it follows the
+        // anonymous rule of the shell and page variants: an unpublished page
+        // gives nothing about itself here.
+        if (!SiteRouteUtils::isItemPublished($item)) {
+          continue;
+        }
         $created = time();
         if (isset($item->metadata) && isset($item->metadata->created)) {
           $created = $item->metadata->created;
         }
-        // slug is now the URL canonical
-        $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
-        // if the item has a slug, use that instead of the location
+        $location = isset($item->location) ? (string) $item->location : '';
+        // slug is the URL canonical; older items only have a location
+        $slug = str_replace('pages/', '', str_replace('/index.html', '', $location));
         if (isset($item->slug)) {
           $slug = $item->slug;
         }
         // may seem silly but IDs in lunr have a size limit for some reason in our context..
         $lunrSearchItem = array(
-          "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
-          "title" => $item->title,
+          "id" => substr(str_replace('-', '', str_replace('item-', '', isset($item->id) ? (string) $item->id : '')), 0, 29),
+          "title" => isset($item->title) ? $item->title : null,
           "created" => $created,
           "location" => $slug,
-          "description" => strip_tags($item->description),
+          "description" => (isset($item->description) && is_string($item->description)) ? self::stripAngleTags($item->description, '') : '',
           "text" => '',
         );
         // test location is valid prior to adding it
         // Security (SEC-PATH): read via containment-checked resolver.
-        $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
+        $resolvedLocation = $this->resolvePageLocationRealPath($location);
         if ($resolvedLocation !== false) {
-          $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($resolvedLocation));
+          $contents = @file_get_contents($resolvedLocation);
+          // a page whose file cannot be read is still found by its title
+          if (is_string($contents)) {
+            $lunrSearchItem['text'] = $this->cleanSearchData($contents);
+          }
         }
 
         $data[] = $lunrSearchItem;
@@ -1810,21 +1825,75 @@ class HAXCMSSite
       return $data;
     }
     /**
-     * Clean up data from a file and make it easy for us to index on the front end
+     * Remove every "<...>" (a "<", one or more characters that are not ">",
+     * then ">"), putting $replacement where each one was. One pass over the
+     * text. Same result as haxcms-nodejs linearText.stripAngleTags.
      */
-    private function cleanSearchData($text) {
-      // clean up initial, small, trim, replace end lines, utf8 no tags
-      $text = trim(strtolower(str_replace("\n", ' ', strip_tags((string) $text))));
-      // all weird chars
-      $text = preg_replace('/[^a-z0-9\']/', ' ', $text);
-      $text = str_replace("'", '', $text);
-      // all words 1 to 4 letters long
-      $text = preg_replace('~\b[a-z]{1,4}\b\s*~', '', $text);
-      // all excess white space
-      $text = preg_replace('/\s+/', ' ', $text);
-      // crush string to array and back to make an unique index
-      $text = implode(' ', array_unique(explode(' ', $text)));
-      return $text;
+    public static function stripAngleTags($value, $replacement = '') {
+      $text = (string) $value;
+      $out = '';
+      $pos = 0;
+      $open = strpos($text, '<');
+      while ($open !== false) {
+        $close = strpos($text, '>', $open + 1);
+        if ($close === false) {
+          // no ">" left, so no later "<" can close either
+          break;
+        }
+        if ($close === $open + 1) {
+          // "<>" is not a tag; try the next "<"
+          $open = strpos($text, '<', $open + 1);
+          continue;
+        }
+        $out .= substr($text, $pos, $open - $pos) . $replacement;
+        $pos = $close + 1;
+        $open = strpos($text, '<', $pos);
+      }
+      return $pos === 0 ? $text : $out . substr($text, $pos);
+    }
+    /**
+     * Turn a page's HTML into the words the front end search indexes: tags
+     * out, lower case, punctuation out, each word once in first-seen order.
+     * Words of one or two letters are dropped (nobody searches for "am" or
+     * "of"); numbers and words in scripts written without spaces are kept
+     * whatever their length. Works on any language's letters.
+     * Same output as haxcms-nodejs HAXCMSSite.cleanSearchData; both are held
+     * to tests/fixtures/search-index-vectors.json.
+     */
+    public function cleanSearchData($text) {
+      if (!is_string($text) || $text === '') {
+        return '';
+      }
+      // bytes that are not UTF-8 separate words, as any other non-letter does
+      if (!mb_check_encoding($text, 'UTF-8')) {
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+      }
+      // a tag becomes a space so the words either side of it stay two words
+      $text = mb_strtolower(self::stripAngleTags($text, ' '), 'UTF-8');
+      // apostrophes close up (aren't -> arent), anything else that is not a
+      // letter or a number separates words
+      $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', str_replace("'", '', $text));
+      if (!is_string($text)) {
+        return '';
+      }
+      $seen = array();
+      $words = array();
+      foreach (explode(' ', $text) as $word) {
+        if ($word === '' || isset($seen[$word])) {
+          continue;
+        }
+        // short words go, unless they have a digit or are written in a
+        // script that does not put spaces between words
+        if (
+          mb_strlen($word, 'UTF-8') < 3 &&
+          preg_match('/[\p{N}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Thai}]/u', $word) !== 1
+        ) {
+          continue;
+        }
+        $seen[$word] = true;
+        $words[] = $word;
+      }
+      return implode(' ', $words);
     }
     /**
      * Sort items by a certain key value. Must be in the included list for safety of the sort
