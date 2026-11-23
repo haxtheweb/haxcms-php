@@ -9161,6 +9161,36 @@
       "name": "iframe default sandbox: explicit author sandbox kept",
       "html": "<iframe src=\"https://a.example/x\" sandbox=\"allow-scripts\"></iframe>",
       "expect": "<iframe src=\"https://a.example/x\" sandbox=\"allow-scripts\" loading=\"lazy\" referrerpolicy=\"no-referrer\"></iframe>"
+    },
+    {
+      "name": "platform element: site builder pointing at another site",
+      "html": "<p>a</p><haxcms-site-builder file=\"https://other.example/site.json\"></haxcms-site-builder><p>b</p>",
+      "expect": "<p>a</p><p>b</p>"
+    },
+    {
+      "name": "platform element: site builder wrapping a page keeps the page",
+      "html": "<haxcms-site-builder id=\"site\" file=\"site.json\"><h2>Title</h2><p>Body <a href=\"https://ok.example/\">link</a></p></haxcms-site-builder>",
+      "expect": "<h2>Title</h2><p>Body <a href=\"https://ok.example/\">link</a></p>"
+    },
+    {
+      "name": "platform element: login element",
+      "html": "<p>a</p><jwt-login auto url=\"https://other.example/login\" refresh-url=\"https://other.example/refresh\"></jwt-login><p>b</p>",
+      "expect": "<p>a</p><p>b</p>"
+    },
+    {
+      "name": "platform element: editor and backend elements",
+      "html": "<haxcms-site-editor></haxcms-site-editor><haxcms-site-editor-ui></haxcms-site-editor-ui><haxcms-editor-builder></haxcms-editor-builder><haxcms-backend-php></haxcms-backend-php><haxcms-backend-nodejs></haxcms-backend-nodejs><haxcms-backend-demo></haxcms-backend-demo><haxcms-backend-userfs></haxcms-backend-userfs><haxcms-backend-beaker></haxcms-backend-beaker><p>kept</p>",
+      "expect": "<p>kept</p>"
+    },
+    {
+      "name": "platform element: upper case and nested",
+      "html": "<HAXCMS-SITE-BUILDER file=\"//other.example/site.json\"><div><Jwt-Login url=\"//other.example\"></Jwt-Login><video-player source=\"https://e.x/v.mp4\"></video-player></div></HAXCMS-SITE-BUILDER>",
+      "expect": "<div><video-player source=\"https://e.x/v.mp4\"></video-player></div>"
+    },
+    {
+      "name": "platform element: authorable elements with similar names are kept",
+      "html": "<site-remote-content></site-remote-content><md-block source=\"https://ok.example/x.md\"></md-block><haxcms-custom-thing>x</haxcms-custom-thing>",
+      "expect": "<site-remote-content></site-remote-content><md-block source=\"https://ok.example/x.md\"></md-block><haxcms-custom-thing>x</haxcms-custom-thing>"
     }
   ]
 }
