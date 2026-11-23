@@ -46,7 +46,7 @@ Fade one step at a time: example → example → completion → completion → p
 
 | Setting | HAX control |
 |---|---|
-| High (orienting) | `lrndesign-imagemap` hotspots on the parts that matter (needs an SVG whose shape ids match each hotspot's `hotspot-id`); `stop-note` with "what to look for"; labeled `media-image`; `lrn-vocab` for key terms |
+| High (orienting) | `lrndesign-imagemap` hotspots on the parts that matter (needs an SVG whose shape ids match each hotspot's `hotspot-id`); `stop-note` with "what to look for"; labeled `media-image`; `vocab-term` for key terms |
 | Medium (on request) | `a11y-collapse` with `heading-button` titled "Show me how" / "Need a refresher?". The `hint` slot is not on request: it appears only after a wrong answer |
 | Low (strategic) | `hint` slot (shown after a wrong answer) that names a strategy or a cue to check, never the answer; set `max-attempts` to 2 or more so a retry is left |
 | None | No `hint` slot; debrief in an `a11y-collapse` placed after the task |

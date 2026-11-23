@@ -13,7 +13,7 @@
       "type": "skill-md",
       "description": "Author HAX page HTML with valid HAX-capable web components and DDD attributes. Use when writing or editing pages/, choosing input, icon, button or media components, or creating pages via the hax CLI. Keeps content portable and editable in the HAX editor.",
       "url": "hax-content-authoring/SKILL.md",
-      "digest": "sha256:ca74968daaafc832d36d4d055a63f3417df9aeefebd7e32f7c2e6c86ce19f008"
+      "digest": "sha256:afd29a8081377dc38bf58f6f312ccb63d96a9b2aa5a800df63c2ea207f473a0b"
     },
     {
       "name": "hax-managed-files",
@@ -48,7 +48,7 @@
       "files": [
         {
           "path": "evals/evals.json",
-          "digest": "sha256:98f9c92f599f4946467587529d7d30d760835fd2dcdda3f4b3cf878170091de9"
+          "digest": "sha256:dd256715aa861a7e9cd05696c4f17ec1291aa56741b41113cbce42f92c03f251"
         },
         {
           "path": "references/a11y-element-map.md",

@@ -74,7 +74,7 @@ names that are not in the registry. When a page needs something the registry lac
 - **Guidance:** `lrndesign-imagemap` with `lrndesign-imagemap-hotspot` children to point at the
   parts of an image that matter (it needs an SVG, inline or via `src`, whose shape ids match each
   hotspot's `hotspot-id`); `lrndesign-sidenote` (with `label`) for a set-apart note;
-  `lrn-vocab` for inline term definitions; `video-player` `start-time` / `end-time` to show one
+  `vocab-term` (`term`, `information`) for inline term definitions; `video-player` `start-time` / `end-time` to show one
   segment.
 - **Design for the learner, not just the page:** see `hax-proficiency-scaffolding` (support level
   by learner stage), `hax-feedback-design`, `hax-practice-and-retrieval` and
