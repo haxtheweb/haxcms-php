@@ -9773,7 +9773,7 @@
     },
     "@haxtheweb/course-model": {
       "files": {
-        "course-model.js": ["8406b8820564bee84848dd2151c4b5bf", "03de65c2e4098cb2634aab27d64a881d"],
+        "course-model.js": ["b03f428c11715df4663203bb86ac88d9", "5f852ba1a2c9ec843ea62c7c52a060be"],
         "lib/course-model.docs.json": ["e26a6b9fc92a6f7135764bd93956d5e6", "e26a6b9fc92a6f7135764bd93956d5e6"],
         "lib/course-model.haxProperties.json": ["b1c4fd4ae0a4c67bddf426fa24ef14bf", "b1c4fd4ae0a4c67bddf426fa24ef14bf"],
         "lib/course-model.motion.json": ["f1bc338e1a75e1a3b35e49bd3cdd5390", "f1bc338e1a75e1a3b35e49bd3cdd5390"],
@@ -17389,7 +17389,7 @@
         "lib/hax-map.js": ["1d53a2e2b3e19bc71940dc0fe9e1318c", "790fc4733fb0d1f898a24c731a60b3d9"],
         "lib/hax-outline-marks.js": ["e62fa952e1c86434a3c325db4ed62a9f", "6eb0f638702f98e856183274ca7c6775"],
         "lib/hax-picker.js": ["358047855a2a65cda34532bd6e8c0a34", "64fed8b380ff708704db095b3d6babe7"],
-        "lib/hax-plate-context.js": ["d6682192eee3d3a1580bdfae3fdca947", "a7177b790426798653ee2742d3e0ef8d"],
+        "lib/hax-plate-context.js": ["322870d37cd88161718a5361d33e261d", "a7f91f23918e675bbde12869cc592f52"],
         "lib/hax-stax-browser.js": ["53dc6b9105ae5f789552f3d172c54c91", "46f2c13f6ded77dd1ed6e02dbdff9af3"],
         "lib/hax-store.js": ["ab4e7c27348057a37a78d1704e87179f", "6a4962907e6706b72882447808488a95"],
         "lib/hax-text-editor-button.js": ["f87b41664287213d5408fd18207c6f00", "3684ebd3110f89ed1a5b3ad745a8bd01"],
@@ -25049,6 +25049,8 @@
         "lib/theme-screenshots/theme-minima-theme.jpg": ["489b2ffb83ac9a34fdc1cbd097f8ae4e", "489b2ffb83ac9a34fdc1cbd097f8ae4e"],
         "lib/theme-screenshots/theme-minimal-mistakes-theme-thumb.jpg": ["6b523b258c8580fa80e577d65cabe4bd", "6b523b258c8580fa80e577d65cabe4bd"],
         "lib/theme-screenshots/theme-minimal-mistakes-theme.jpg": ["377383263fa4c110cac64216777a998f", "377383263fa4c110cac64216777a998f"],
+        "lib/theme-screenshots/theme-night-draft-theme-thumb.jpg": ["67ac8741f81867c45511eb514da2e864", "67ac8741f81867c45511eb514da2e864"],
+        "lib/theme-screenshots/theme-night-draft-theme.jpg": ["5110627da3e7df2e8c0eb277a28ebe2c", "5110627da3e7df2e8c0eb277a28ebe2c"],
         "lib/theme-screenshots/theme-outline-player-thumb.jpg": ["dc03fb5cf48556d767d8fac9ebb517d8", "dc03fb5cf48556d767d8fac9ebb517d8"],
         "lib/theme-screenshots/theme-outline-player.jpg": ["95a9f1327792e76d15a0fc05d528c779", "95a9f1327792e76d15a0fc05d528c779"],
         "lib/theme-screenshots/theme-papermod-theme-thumb.jpg": ["83ca107470d03f9fc47b07a676e2590e", "83ca107470d03f9fc47b07a676e2590e"],
@@ -25103,7 +25105,7 @@
         "lib/theme-screenshots/theme-writing-theme.jpg": ["e269fcac8f6f6e7f8f52c9fa03f26898", "e269fcac8f6f6e7f8f52c9fa03f26898"],
         "lib/theme-screenshots/theme-wysiwyg96-theme-thumb.jpg": ["9c8204c6966d0ae91703f4b4c155f8f6", "9c8204c6966d0ae91703f4b4c155f8f6"],
         "lib/theme-screenshots/theme-wysiwyg96-theme.jpg": ["cd438057366a9a33f627082209f9ed9e", "cd438057366a9a33f627082209f9ed9e"],
-        "lib/themes.json": ["b3466d3bdd43fa9e5cb4170449980ebc", "32b7c2b5deb1843704a00f51df2ff24b"],
+        "lib/themes.json": ["949c6b17a8600057a14b57e5c50358c3", "ffb70d5c1ab7b5d857ea2fb182f25d5f"],
         "lib/ui-components/active-item/site-active-fields.js": ["a9034f6b665bf120a3a0050d1d8356fa", "1ee20b8004778af80a19b4d244c44814"],
         "lib/ui-components/active-item/site-active-media-banner.js": ["a45b2dabcaf081b76cbe21652ae965a5", "d4c7093b0dc7f09c9006882c56966415"],
         "lib/ui-components/active-item/site-active-tags.js": ["0f384ac356a19dd9cf507457a0f3708d", "f55486683d1f51babdfe78793a6d1cef"],
@@ -25153,7 +25155,7 @@
         "lib/ui-components/site/site-citation.js": ["184acd715f9159e3cba6a0cb8ff12397", "f5e860a368cbd77c940450fb3023614d"],
         "lib/ui-components/site/site-print-button.js": ["ca4e01961972cf186bb3b265cfec6fa9", "a9c22290e110249f0cff8b27863cd9b7"],
         "lib/ui-components/site/site-random-content.haxProperties.json": ["e3680b3ddcc2917a0b164bfeff178aea", "e3680b3ddcc2917a0b164bfeff178aea"],
-        "lib/ui-components/site/site-random-content.js": ["007784ab77ed8fa35620349431bdfc21", "3e4a5da24a1c2e56889240117501e52f"],
+        "lib/ui-components/site/site-random-content.js": ["a1fb960e19c562c084a5e39324c2e1b0", "61f1b32351d9d009fe8671e12fba351e"],
         "lib/ui-components/site/site-remote-content.haxProperties.json": ["84cf424ec8d4685553ac1744d26fbc86", "84cf424ec8d4685553ac1744d26fbc86"],
         "lib/ui-components/site/site-remote-content.js": ["22bb29db290f84b62751c7237f0f7b3b", "5264b7545925b29b1d837c4c759986e9"],
         "lib/ui-components/site/site-rss-button.js": ["7d4e247e94c74c67df3b10cdfe917f08", "4eaf8c5f1bb0814ab56e1aaa296c649e"],
@@ -31292,7 +31294,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["99f7770c16451a1fa21d6dae006a5a52", "99f7770c16451a1fa21d6dae006a5a52"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["29ec079380156297b815a48c000cf517", "ff7ce838897a16c971448ae73972f0ab"]
+        "lib/translation-manifest.json": ["29ec079380156297b815a48c000cf517", "2459b6865117884bb8c8e5b0806a49db"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -55014,7 +55016,7 @@
         "locales/web-baseline-status.haxProperties.yo.json": ["398a3e982333faa9d847372d7348bb85", "398a3e982333faa9d847372d7348bb85"],
         "locales/web-baseline-status.haxProperties.zh.json": ["07a4cd7b9388c0198ba151c4b5b17c46", "07a4cd7b9388c0198ba151c4b5b17c46"],
         "locales/web-baseline-status.haxProperties.zu.json": ["b8c8ae1af33b977e65a0475b966d8ec1", "b8c8ae1af33b977e65a0475b966d8ec1"],
-        "web-baseline-status.js": ["d0cc75152311cfcbd2652dda859490e9", "d881a4316af3e0bc5d60b01763017432"]
+        "web-baseline-status.js": ["fa7b80ae64359cb25b35d60b845a3479", "b3fab69bdb0ab6f1c931a6185c2e7f20"]
       },
       "source": "elements/web-baseline-status",
       "version": "26.8.0"
@@ -55154,7 +55156,7 @@
         "locales/wikipedia-query.da.json": ["1b618eb79fceeff2528dd66ae31df5fd", "1b618eb79fceeff2528dd66ae31df5fd"],
         "locales/wikipedia-query.de.json": ["b979b5a77323db3a901305e68e5484ac", "b979b5a77323db3a901305e68e5484ac"],
         "locales/wikipedia-query.el.json": ["bf9757a92dd475aba1fe8919b63efa8f", "bf9757a92dd475aba1fe8919b63efa8f"],
-        "locales/wikipedia-query.en.json": ["d15ab24fba812ca53650ad9fb069c93b", "d15ab24fba812ca53650ad9fb069c93b"],
+        "locales/wikipedia-query.en.json": ["78ee623f3ed5ff0fd01b51c6389acd87", "78ee623f3ed5ff0fd01b51c6389acd87"],
         "locales/wikipedia-query.eo.json": ["7c06e30cab7088104273b7252d5f4af0", "7c06e30cab7088104273b7252d5f4af0"],
         "locales/wikipedia-query.es.json": ["753ca494517506f36b98f920ed8f827e", "753ca494517506f36b98f920ed8f827e"],
         "locales/wikipedia-query.et.json": ["5a9f3d9e3f00429ebddc62a8e3ca056f", "5a9f3d9e3f00429ebddc62a8e3ca056f"],
@@ -55344,7 +55346,7 @@
         "locales/wikipedia-query.yo.json": ["44dddb70c9bf20d8d00a730612055936", "44dddb70c9bf20d8d00a730612055936"],
         "locales/wikipedia-query.zh.json": ["b053548f0d0dcf4e614b470683cc1f28", "b053548f0d0dcf4e614b470683cc1f28"],
         "locales/wikipedia-query.zu.json": ["f46ce528c048f5317209dd1029de0480", "f46ce528c048f5317209dd1029de0480"],
-        "wikipedia-query.js": ["dfd6191f4392073c2e075028cf90e902", "aa3058827a5a9b55b066c98a4c1f7265"]
+        "wikipedia-query.js": ["a0a9b83d49ff5d93649659590b60e1ee", "0305a12de062651b76b50560222c99f4"]
       },
       "source": "elements/wikipedia-query",
       "version": "26.8.0"
@@ -56505,7 +56507,7 @@
     }
   },
   "source": {
-    "commit": "84bd95212de43bfbffdee41b0aa03565cf99ff44",
+    "commit": "468b904d6fb15d2793817966fd3e159c8ba98eba",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
