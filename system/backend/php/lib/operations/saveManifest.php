@@ -106,10 +106,13 @@ trait OperationsRouteSaveManifest {
             // support updating the domain CNAME value
             if ($site->manifest->metadata->site->domain != $domain) {
                 $site->manifest->metadata->site->domain = $domain;
+                // the site's own folder, as haxcms-nodejs writes it
+                // (<site>/CNAME); this read manifest->site->name, which does
+                // not exist, so the file went to the shared sites folder
                 @file_put_contents(
                     $site->directory .
                         '/' .
-                        $site->manifest->site->name .
+                        $site->manifest->metadata->site->name .
                         '/CNAME',
                     $domain
                 );

@@ -289,6 +289,102 @@ class OperationsSaveManifestMutationTest extends TestCase
         $this->assertSame('Test Author', $persisted->metadata->author->name);
     }
 
+    // the legacy form payload, with the given changes merged in per block
+    private function legacyPayload(array $changes): array
+    {
+        $manifest = array(
+            'site' => array(
+                'manifest-title' => 'Legacy Form Title',
+                'manifest-description' => 'Legacy description',
+                'manifest-metadata-site-domain' => '',
+                'manifest-metadata-site-logo' => '',
+                'manifest-metadata-site-tags' => '',
+                'manifest-metadata-site-homePageId' => 'item-uuid-1',
+            ),
+            'theme' => array(
+                'manifest-metadata-theme-variables-cssVariable' => 'grey',
+                'manifest-metadata-theme-variables-icon' => 'icons:save',
+            ),
+            'author' => array(
+                'manifest-license' => 'by-sa',
+                'manifest-metadata-author-name' => '',
+                'manifest-metadata-author-email' => '',
+                'manifest-metadata-author-image' => '',
+                'manifest-metadata-author-socialLink' => '',
+            ),
+            'seo' => array(),
+        );
+        foreach ($changes as $block => $fields) {
+            $manifest[$block] = array_merge($manifest[$block], $fields);
+        }
+        return array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'haxcms_form_id' => 'site-manifest',
+            'haxcms_form_token' => 'form-token',
+            'manifest' => $manifest,
+        );
+    }
+
+    // a new domain goes in the site's own CNAME, as haxcms-nodejs writes it;
+    // it used to land in the shared sites folder
+    public function testSaveManifestWritesANewDomainToTheSitesOwnCname(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = $this->legacyPayload(array(
+            'site' => array('manifest-domain' => 'https://course.example.org'),
+        ));
+        $result = $this->ops->saveManifest();
+        $this->assertSame('https://course.example.org', $result->metadata->site->domain);
+        $this->assertSame(
+            'https://course.example.org',
+            file_get_contents($this->tmpRoot . '/' . $this->siteName . '/CNAME')
+        );
+        $this->assertFileDoesNotExist($this->tmpRoot . '/CNAME');
+        $this->assertFileDoesNotExist($this->tmpRoot . '//CNAME');
+    }
+
+    public function testSaveManifestKeepsTheOptionalAuthorFields(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = $this->legacyPayload(array(
+            'author' => array(
+                'manifest-metadata-author-socialLink2' => 'https://social.example.org/me',
+                'manifest-metadata-author-phone' => '555-0100',
+                'manifest-metadata-author-location' => 'State College, PA',
+                'manifest-metadata-author-website' => 'https://example.org',
+                'manifest-metadata-author-website2' => 'javascript:alert(1)',
+            ),
+        ));
+        $result = $this->ops->saveManifest();
+        $author = $result->metadata->author;
+        $this->assertSame('https://social.example.org/me', $author->socialLink2);
+        $this->assertSame('555-0100', $author->phone);
+        $this->assertSame('State College, PA', $author->location);
+        $this->assertSame('https://example.org', $author->website);
+        // a script URL is never kept
+        $this->assertSame('', $author->website2);
+    }
+
+    // a home page that is not a page of the site clears the setting, in both
+    // places older saves wrote it
+    public function testSaveManifestClearsAHomePageThatIsNotAPage(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $site = $this->haxcms->loadedSite;
+        $site->manifest->metadata->site->homePageId = 'item-uuid-1';
+        $site->manifest->metadata->site->settings = (object) array('homePageId' => 'item-uuid-1');
+        $site->manifest->save(false);
+        $this->ops->params = $this->legacyPayload(array(
+            'site' => array('manifest-metadata-site-homePageId' => 'no-such-page'),
+        ));
+        $result = $this->ops->saveManifest();
+        $this->assertFalse(property_exists($result->metadata->site, 'homePageId'));
+        $this->assertFalse(property_exists($result->metadata->site->settings, 'homePageId'));
+        $persisted = json_decode(file_get_contents($this->siteJsonPath()));
+        $this->assertFalse(property_exists($persisted->metadata->site, 'homePageId'));
+    }
+
     public function testStripPublicVersionRemovesVersionsOlderSavesWrote(): void
     {
         $manifest = json_decode('{"metadata":{"site":{"name":"s","version":"26.8.1"},"build":{"structure":"course","type":"docx import","version":"26.8.1"}}}');

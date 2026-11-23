@@ -710,22 +710,28 @@ class HAXCMSFile
             $path = HAXCMS_ROOT . '/' . $pathPart;
             // ensure this path exists
             $fileSystem->mkdir($path);
-            // account for name possibly matching on file system already
             $actual_name = pathinfo($name, PATHINFO_FILENAME);
-            $original_name = $actual_name;
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            $i = 1;
-            while (file_exists($path . $actual_name . "." . $extension)) {           
-                $actual_name = (string)$original_name . $i;
-                $i++;
-            }
-            // sanitization for the file name
-            // Keeps the characters mbregex's Unicode \w \s \d kept (Alphabetic,
-            // marks, decimal digits, connector punctuation, white space) plus
-            // - _ ~ , ; [ ] ( ) . ; mb_ereg_replace is deprecated in PHP 8.6.
-            $actual_name = (string) preg_replace('/[^\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\s\-_~,;\[\]\(\).]/u', '', (string) $actual_name);
+            // sanitization for the file name, the same rule as haxcms-nodejs:
+            // path and shell characters (/ \ ? % * : | " < >) and runs of white
+            // space become "-", so a file URL never needs escaping. Then keep
+            // the characters mbregex's Unicode \w \d kept (Alphabetic, marks,
+            // decimal digits, connector punctuation) plus - _ ~ , ; [ ] ( ) . ;
+            // mb_ereg_replace is deprecated in PHP 8.6.
+            $actual_name = (string) preg_replace('/[\/\\\\?%*:|"<>]/u', '-', (string) $actual_name);
+            $actual_name = (string) preg_replace('/\s+/u', '-', $actual_name);
+            $actual_name = (string) preg_replace('/[^\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\-_~,;\[\]\(\).]/u', '', $actual_name);
             // Remove any runs of periods (thanks falstro!)
             $actual_name = (string) preg_replace('/\.{2,}/', '', $actual_name);
+            // account for the sanitized name matching a file already there
+            // (checked after sanitizing, so two names that clean up the same
+            // never overwrite each other); the suffix matches haxcms-nodejs
+            $original_name = $actual_name;
+            $i = 1;
+            while (file_exists($path . $actual_name . "." . $extension)) {
+                $actual_name = (string) $original_name . '_' . $i;
+                $i++;
+            }
             $name = $actual_name . "." . $extension;
             // on bulk import we keep directory tree and apply changes to the name itself
             if (isset($upload['bulk-import'])) {

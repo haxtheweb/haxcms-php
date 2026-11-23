@@ -527,6 +527,62 @@ class OperationsNodeOpsTest extends TestCase
         $this->assertSame('Page deleted: Item A (item-a)', $site->gitCommits[0], 'commit message names deleted item');
     }
 
+    // deleteNode — refusals and failures change nothing (the plugin platform
+    // fires page.after.delete only for a delete that happened)
+    public function testDeleteNodeOfAnUnknownPageIs500AndChangesNothing(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $before = $this->readPersistedItems();
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'no-such-page'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(500, $result['__failed']['status']);
+        $this->assertSame('failed to delete', $result['__failed']['message']);
+        $this->assertEquals($before, $this->readPersistedItems());
+        $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits, 'nothing committed');
+    }
+
+    public function testDeleteNodeWhoseDeleteFailsIs500AndCommitsNothing(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->loadedSite->failDeleteNode = true;
+        $before = $this->readPersistedItems();
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(500, $result['__failed']['status']);
+        $this->assertSame('failed to delete', $result['__failed']['message']);
+        $this->assertEquals($before, $this->readPersistedItems());
+        $this->assertSame(array(), $this->haxcms->loadedSite->gitCommits, 'nothing committed');
+    }
+
+    // a page whose parent is already gone (left by an older save) goes to
+    // the end of the top level when any page is deleted, and is saved so
+    public function testDeleteNodeMovesPagesWithAMissingParentToTheTopLevel(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->loadedSite->loadNode('item-b')->parent = 'ghost-parent';
+        $this->ops->params = array(
+            'site_token' => 'good',
+            'site' => array('name' => $this->siteName),
+            'node' => array('id' => 'item-a'),
+        );
+        $result = $this->ops->deleteNode();
+        $this->assertSame(200, $result['status']);
+        $persisted = $this->readPersistedItems();
+        $this->assertCount(1, $persisted);
+        $this->assertSame('item-b', $persisted[0]->id);
+        $this->assertNull($persisted[0]->parent);
+        $this->assertSame(0, (int) $persisted[0]->order);
+        $this->assertSame(0, (int) $persisted[0]->indent);
+    }
+
     // =========================================================================
     // saveNodeDetails — site_token gate
     // =========================================================================
@@ -1671,6 +1727,16 @@ class OperationsNodeTestHaxcms extends OperationsTestHaxcms
 class OperationsNodeTestSite extends HAXCMSSite
 {
     public $gitCommits = array();
+    // set to make the page delete itself fail, as a failed write would
+    public $failDeleteNode = false;
+
+    public function deleteNode($page)
+    {
+        if ($this->failDeleteNode) {
+            return false;
+        }
+        return parent::deleteNode($page);
+    }
 
     public function gitCommit($msg = 'Committed changes')
     {
