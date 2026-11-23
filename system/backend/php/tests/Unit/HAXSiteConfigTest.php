@@ -33,10 +33,25 @@ class HAXSiteConfigTestSite
         $this->alternateHeadersFor = $page;
     }
 
+    public $published = true;
+
+    public function isPagePublished($page = null)
+    {
+        return $this->published;
+    }
+
     public function __call($name, $args)
     {
         $this->calls[] = array($name, $args);
         return 'site:' . $name;
+    }
+}
+
+class HAXSiteConfigRobotsSite extends HAXSiteConfigTestSite
+{
+    public function getSiteMetadata($page = null)
+    {
+        return '<meta name="robots" content="index, follow">';
     }
 }
 
@@ -97,6 +112,36 @@ class HAXSiteConfigTest extends TestCase
         $config = new HAXSiteConfig($site);
         $this->assertTrue($config->isPageNotFound());
         $this->assertSame(404, http_response_code());
+    }
+
+    public function testUnpublishedPageIsKeptOutOfTheShell(): void
+    {
+        $site = new HAXSiteConfigTestSite();
+        $site->published = false;
+        $config = new HAXSiteConfig($site);
+        // the shell answers 200 without the page: nothing to inline, no
+        // alternate-format headers, and robots is noindex
+        $this->assertNull($config->page);
+        $this->assertTrue($config->pageUnpublished);
+        $this->assertFalse($config->isPageNotFound());
+        $this->assertSame(200, http_response_code());
+        $this->assertNull($site->alternateHeadersFor);
+    }
+
+    public function testUnpublishedPageShellIsNoindex(): void
+    {
+        $config = new HAXSiteConfig(new HAXSiteConfigRobotsSite());
+        $this->assertStringContainsString(
+            '<meta name="robots" content="index, follow',
+            $config->getSiteMetadata($config->page)
+        );
+        $site = new HAXSiteConfigRobotsSite();
+        $site->published = false;
+        $config = new HAXSiteConfig($site);
+        $this->assertStringContainsString(
+            '<meta name="robots" content="noindex, follow',
+            $config->getSiteMetadata($config->page)
+        );
     }
 
     public function testDelegatesToSiteAndHaxcms(): void
