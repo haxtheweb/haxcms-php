@@ -100,15 +100,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'icamys/php-sitemap-generator' => array(
-            'pretty_version' => '1.1.0',
-            'version' => '1.1.0.0',
-            'reference' => '6916c240a307489e5e0a0ef7a5db8fd4c86d750f',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../icamys/php-sitemap-generator',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'kaoken/markdown-it-php' => array(
             'pretty_version' => '14.3.0.0',
             'version' => '14.3.0.0',

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fd84d037bd06a0914d43c0f06a7409c9",
+    "content-hash": "be4db22ca3634fc848f8288940bbdf7c",
     "packages": [
         {
             "name": "composer/pcre",
@@ -691,58 +691,6 @@
                 }
             ],
             "time": "2026-07-16T22:23:49+00:00"
-        },
-        {
-            "name": "icamys/php-sitemap-generator",
-            "version": "1.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/icamys/php-sitemap-generator.git",
-                "reference": "6916c240a307489e5e0a0ef7a5db8fd4c86d750f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/icamys/php-sitemap-generator/zipball/6916c240a307489e5e0a0ef7a5db8fd4c86d750f",
-                "reference": "6916c240a307489e5e0a0ef7a5db8fd4c86d750f",
-                "shasum": ""
-            },
-            "require": {
-                "ext-curl": "*",
-                "ext-dom": "*",
-                "ext-mbstring": "*",
-                "ext-simplexml": "*",
-                "ext-spl": "*",
-                "ext-zlib": "*",
-                "php": ">=5.5.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Icamys\\SitemapGenerator\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Prisacari Dmitrii",
-                    "email": "prisacari.dmitrii@gmail.com",
-                    "homepage": "http://github.com/icamys/"
-                }
-            ],
-            "description": "Simple PHP sitemap generator.",
-            "homepage": "https://github.com/icamys/php-sitemap-generator",
-            "keywords": [
-                "PSR-1",
-                "PSR-2",
-                "PSR-4",
-                "Sitemap",
-                "generator",
-                "php"
-            ],
-            "time": "2019-06-02T16:39:54+00:00"
         },
         {
             "name": "kaoken/markdown-it-php",

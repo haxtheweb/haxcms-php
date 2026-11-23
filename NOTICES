@@ -100,7 +100,6 @@ its vendor directory. They are listed here for attribution completeness.
   guzzlehttp/guzzle 7.12.1
   guzzlehttp/promises 2.5.1
   guzzlehttp/psr7 2.12.5
-  icamys/php-sitemap-generator 1.1.0
   league/html-to-markdown 5.1.1
   maennchen/zipstream-php 3.2.2
   markbaker/complex 3.0.2
