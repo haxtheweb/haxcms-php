@@ -3,6 +3,7 @@ include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
 include_once dirname(__FILE__) . '/../../DocxToHtml.php';
 include_once dirname(__FILE__) . '/../../BoundedZip.php';
+include_once dirname(__FILE__) . '/../../SafeXml.php';
 
 /**
  * Convert DOCX word/document.xml into a simplified HTML string using DOMDocument.
@@ -16,7 +17,8 @@ function haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap = array())
     }
     $doc = new DOMDocument();
     $doc->preserveWhiteSpace = false;
-    $doc->loadXML($xmlString);
+    // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+    SafeXml::loadInto($doc, $xmlString);
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $html = '';
     $paragraphs = $doc->getElementsByTagNameNS($ns, 'p');

@@ -361,7 +361,12 @@ class GitRepo
             2 => array('pipe', 'w')
         );
         $pipes = array();
-        $resource = proc_open(Git::get_bin(), $descriptorspec, $pipes);
+        // Security (SEC-EXEC): argv array, so no shell ever parses the binary
+        // path; a binary that cannot be started is "no git", as 127 was
+        $resource = @proc_open(array((string) Git::get_bin()), $descriptorspec, $pipes);
+        if (!is_resource($resource)) {
+            return false;
+        }
 
         $stdout = stream_get_contents($pipes[1]);
         $stderr = stream_get_contents($pipes[2]);
@@ -392,6 +397,11 @@ class GitRepo
     // variant should be added to both backends in a coordinated change.
     protected function run_command($command, $skip_fail = true)
     {
+        // Security (SEC-EXEC): argv arrays only (run_args builds them); a
+        // string here would be handed to a shell
+        if (!is_array($command)) {
+            return '';
+        }
         $descriptorspec = array(
             1 => array('pipe', 'w'),
             2 => array('pipe', 'w')

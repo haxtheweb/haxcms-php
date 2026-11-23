@@ -3,6 +3,7 @@ include_once dirname(__FILE__) . '/../../../JSONOutlineSchemaItem.php';
 include_once dirname(__FILE__) . '/../../../siteRoutes/SiteRouteUtils.php';
 // D36: sanitize untrusted HTML in the central import helper so every caller is covered.
 include_once dirname(__FILE__) . '/../../../SanitizeContent.php';
+include_once dirname(__FILE__) . '/../../../SafeXml.php';
 
 /**
  * Generate a slug from a title.
@@ -159,7 +160,8 @@ if (!function_exists('haxcmsImportLoadDocxMediaMapFromZip')) {
             return $map;
         }
         $relsDoc = new DOMDocument();
-        if (!@$relsDoc->loadXML($relsXml)) {
+        // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+        if (!SafeXml::loadInto($relsDoc, $relsXml)) {
             return $map;
         }
         $relNs = 'http://schemas.openxmlformats.org/package/2006/relationships';
@@ -238,7 +240,8 @@ if (!function_exists('haxcmsImportConvertDocxXmlToHtml')) {
         }
         $doc = new DOMDocument();
         $doc->preserveWhiteSpace = false;
-        $doc->loadXML($xmlString);
+        // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+        SafeXml::loadInto($doc, $xmlString);
         $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
         $aNs = 'http://schemas.openxmlformats.org/drawingml/2006/main';
         $rNs = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';

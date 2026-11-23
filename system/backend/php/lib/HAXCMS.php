@@ -33,7 +33,10 @@ class HAXCMS
 {
     private $validArgs;             // list of allowed CLI arguments
     private $events;                // array of events we are listening for globally in PHP
-    private $cache;                 // Cache object
+    // Cache object. Code outside this class reads it through getCacheStore():
+    // a private property is invisible to isset() from outside, which silently
+    // turned every throttle reading $GLOBALS['HAXCMS']->cache into a no-op.
+    protected $cache;
     public $cdn;                    // optional cdn for all paths even while developing sites
     public $appStoreFile;           // location of the HAX appstore API call which powers the editor
     public $salt;                   // salt to mix into all calls
@@ -2330,7 +2333,8 @@ class HAXCMS
       if (
         $request != FALSE &&
         isset($request->id) &&
-        $request->id == $this->getRequestToken('user') &&
+        // Security (SEC-SESSION): constant-time, type-strict compare.
+        $this->safeStringCompare($this->getRequestToken('user'), is_string($request->id) ? $request->id : '') &&
         isset($request->user) &&
         $request->user != '' &&
         $this->validateUser($request->user)
@@ -2671,7 +2675,7 @@ class HAXCMS
         }
         return 'none';
     }
-    private function loginThrottleRead($key)
+    public function loginThrottleRead($key)
     {
         $backend = $this->loginThrottleBackend();
         try {
@@ -2687,7 +2691,7 @@ class HAXCMS
         catch (Exception $e) {}
         return null;
     }
-    private function loginThrottleWrite($key, $entry, $ttlSeconds)
+    public function loginThrottleWrite($key, $entry, $ttlSeconds)
     {
         $backend = $this->loginThrottleBackend();
         try {
@@ -2700,7 +2704,7 @@ class HAXCMS
         }
         catch (Exception $e) {}
     }
-    private function loginThrottleDelete($key)
+    public function loginThrottleDelete($key)
     {
         $backend = $this->loginThrottleBackend();
         try {
@@ -4268,6 +4272,13 @@ class HAXCMS
         }
         $cachedPaths = $operationPaths;
         return $cachedPaths;
+    }
+    /**
+     * Security (SEC-RATELIMIT): the shared store throttles and budgets keep
+     * their counters in, or null when it could not be set up.
+     */
+    public function getCacheStore() {
+      return $this->cache ? $this->cache : null;
     }
     /**
      * Get cache data from file system

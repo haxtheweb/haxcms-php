@@ -15,6 +15,52 @@ class SiteRoutesContentBlocksTest extends TestCase
 {
     const PAGE = '<h2>Media</h2><p>See <img src="/i.png" alt="old"> and <a href="https://media.aanda.psu.edu/v.mp4">video</a></p><video-player source="https://media.aanda.psu.edu/v.mp4" media-title="Lecture"></video-player>';
 
+    private $savedHaxcms;
+    private $configDir;
+
+    protected function setUp(): void
+    {
+        $this->savedHaxcms = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
+        $this->configDir = sys_get_temp_dir() . '/haxcms_blocks_config_' . bin2hex(random_bytes(6));
+        mkdir($this->configDir, 0700, true);
+        $GLOBALS['HAXCMS'] = new SiteRoutesContentBlocksHaxcmsStub(1000, $this->configDir);
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->savedHaxcms === null) {
+            unset($GLOBALS['HAXCMS']);
+        }
+        else {
+            $GLOBALS['HAXCMS'] = $this->savedHaxcms;
+        }
+        exec('rm -rf ' . escapeshellarg($this->configDir));
+    }
+
+    public function testPageLockLivesUnderTheConfigDirectoryNotSharedTemp(): void
+    {
+        $this->invoke($this->makeSite(), 'GET'); // loads ContentBlocksRoute
+        $this->assertTrue(ContentBlocksRoute::withPageLock('site::item-1', function () {}));
+        $dir = $this->configDir . '/tmp/locks';
+        $this->assertDirectoryExists($dir);
+        $this->assertSame(0700, fileperms($dir) & 0777);
+        $this->assertCount(1, glob($dir . '/haxcms-blocks-*.lock'));
+    }
+
+    public function testBlockWriteIsRefusedWhenThePageLockCannotBeTaken(): void
+    {
+        $this->invoke($this->makeSite(), 'GET'); // loads ContentBlocksRoute
+        $GLOBALS['HAXCMS'] = new SiteRoutesContentBlocksHaxcmsStub(1000, '');
+        $ran = false;
+        $this->assertFalse(ContentBlocksRoute::withPageLock('site::item-1', function () use (&$ran) { $ran = true; }));
+        $this->assertFalse($ran, 'nothing runs unlocked');
+        $site = $this->makeSite();
+        $result = $this->invoke($site, 'PATCH', array('ops' => array($this->op($site, 'img', 0, array('alt' => 'new')))));
+        $this->assertSame(500, $result['data']['status']);
+        $this->assertSame(0, count($site->commits));
+        $this->assertStringContainsString('alt="old"', $site->pageContentMap['item-1']);
+    }
+
     private function makeSite($metadata = array())
     {
         $site = new SiteRoutesContentBlocksFakeSite();
@@ -184,7 +230,7 @@ class SiteRoutesContentBlocksTest extends TestCase
         require_once dirname(__DIR__, 2) . '/lib/LinkChecker.php';
         LinkChecker::resetForTesting();
         $saved = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
-        $GLOBALS['HAXCMS'] = new SiteRoutesContentBlocksHaxcmsStub(2);
+        $GLOBALS['HAXCMS'] = new SiteRoutesContentBlocksHaxcmsStub(2, $this->configDir);
         try {
             $site = $this->makeSite();
             $stale = $this->op($site, 'img', 0, array('alt' => 'x'));
@@ -326,11 +372,13 @@ class SiteRoutesContentBlocksFakeManifest extends SiteRoutesFakeManifest
 class SiteRoutesContentBlocksHaxcmsStub
 {
     public $cache = null;
+    public $configDirectory;
     private $max;
 
-    public function __construct($max)
+    public function __construct($max, $configDirectory = '')
     {
         $this->max = $max;
+        $this->configDirectory = $configDirectory;
     }
 
     public function getBlockOperationsRateLimitSettings()
