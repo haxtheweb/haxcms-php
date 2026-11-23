@@ -341,6 +341,78 @@ class OperationsCreateNodeContentTest extends TestCase
         $this->assertCount(1, $this->haxcms->loadedSite->gitCommits);
     }
 
+    // =========================================================================
+    // an id the site already has: a page's id is its folder, so a second page
+    // under the same id would share the first page's file and replace its
+    // content. Refused before anything is written (mirrors haxcms-nodejs).
+    // =========================================================================
+
+    private function itemsNamed(string $id): array
+    {
+        $decoded = json_decode(file_get_contents($this->siteDir() . '/site.json'));
+        return array_values(array_filter($decoded->items, function ($item) use ($id) {
+            return $item->id === $id;
+        }));
+    }
+
+    public function testSingleNodeUnderATakenIdIsRefusedAndKeepsTheFirstPage(): void
+    {
+        $first = $this->create(array('id' => 'dup-check', 'title' => 'First', 'contents' => '<p>first-body</p>'));
+        $this->assertSame(200, $first['status']);
+        $firstBody = $this->pageBody('dup-check');
+        $commits = count($this->haxcms->loadedSite->gitCommits);
+        $second = $this->create(array('id' => 'dup-check', 'title' => 'Second', 'contents' => '<p>second-body</p>'));
+        $this->assertSame(400, $second['__failed']['status']);
+        $this->assertSame('Each new outline item requires its own id', $second['__failed']['message']);
+        // another spelling of the same stored id
+        $respelled = $this->create(array('id' => '../dup-check', 'title' => 'Third', 'contents' => '<p>third</p>'));
+        $this->assertSame(400, $respelled['__failed']['status']);
+        $this->assertCount(1, $this->itemsNamed('dup-check'));
+        $this->assertSame('First', $this->itemsNamed('dup-check')[0]->title);
+        $this->assertSame($firstBody, $this->pageBody('dup-check'));
+        $this->assertCount($commits, $this->haxcms->loadedSite->gitCommits);
+    }
+
+    public function testBulkItemsUnderATakenIdCreateNothing(): void
+    {
+        $this->assertSame(200, $this->create(array('id' => 'dup-check', 'title' => 'First', 'contents' => '<p>first-body</p>'))['status']);
+        $firstBody = $this->pageBody('dup-check');
+        $before = file_get_contents($this->siteDir() . '/site.json');
+        // an id the site has: no page of that request is made
+        $existing = $this->createWith(array('items' => array(
+            array('id' => 'dup-bulk-new', 'title' => 'Bulk new', 'contents' => '<p>x</p>'),
+            array('id' => 'dup-check', 'title' => 'Bulk clash', 'contents' => '<p>bulk-body</p>'),
+        )));
+        $this->assertSame(400, $existing['__failed']['status']);
+        $this->assertSame('Each new outline item requires its own id', $existing['__failed']['message']);
+        // one id twice within a single request
+        $twice = $this->createWith(array('items' => array(
+            array('id' => 'dup-twice', 'title' => 'One', 'contents' => '<p>one</p>'),
+            array('id' => 'dup-twice', 'title' => 'Two', 'contents' => '<p>two</p>'),
+        )));
+        $this->assertSame(400, $twice['__failed']['status']);
+        $this->assertSame($before, file_get_contents($this->siteDir() . '/site.json'));
+        $this->assertSame($firstBody, $this->pageBody('dup-check'));
+        $this->assertFalse(is_dir($this->siteDir() . '/pages/dup-bulk-new'));
+        $this->assertFalse(is_dir($this->siteDir() . '/pages/dup-twice'));
+    }
+
+    public function testFreeIdsAndRequestsWithoutIdsStillCreatePages(): void
+    {
+        $result = $this->createWith(array('items' => array(
+            array('id' => 'dup-free-a', 'title' => 'A', 'contents' => '<p>a</p>'),
+            array('title' => 'No id one', 'contents' => '<p>b</p>'),
+            array('title' => 'No id two', 'contents' => '<p>c</p>'),
+            // an entry marked delete is not created, so its id is not a clash
+            array('id' => 'dup-free-a', 'title' => 'Dropped', 'delete' => true),
+        )));
+        $this->assertSame(200, $result['status']);
+        $this->assertCount(1, $this->itemsNamed('dup-free-a'));
+        $titles = array_map(function ($item) { return $item->title; }, array_values($this->persistedById()));
+        $this->assertContains('No id one', $titles);
+        $this->assertContains('No id two', $titles);
+    }
+
     public function testCommitMessageNamesTheNewPage(): void
     {
         $result = $this->create(array('title' => 'Committed page', 'contents' => '<p>x</p>'));

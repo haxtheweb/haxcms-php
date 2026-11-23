@@ -7,6 +7,11 @@
  *
  *   php scripts/mutation-summary.php system/backend/php/reports/mutation/infection.json
  */
+// Security: CLI only.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
 $file = $argv[1] ?? '';
 if ($file === '' || !is_file($file)) {
     echo "## Mutation testing (saveOutline write path)\n\nNo report at `" . $file . "`: the run did not finish. See the job log.\n";

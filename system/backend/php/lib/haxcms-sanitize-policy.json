@@ -156,7 +156,17 @@
     "font-face-name",
     "font-face-src",
     "font-face-uri",
-    "missing-glyph"
+    "missing-glyph",
+    "haxcms-backend-beaker",
+    "haxcms-backend-demo",
+    "haxcms-backend-nodejs",
+    "haxcms-backend-php",
+    "haxcms-backend-userfs",
+    "haxcms-editor-builder",
+    "haxcms-site-builder",
+    "haxcms-site-editor",
+    "haxcms-site-editor-ui",
+    "jwt-login"
   ],
   "attributeName": "^[a-z_:][a-z0-9_.:-]*$",
   "forbiddenAttributes": ["srcdoc", "style", "is", "attributename", "xmlns"],

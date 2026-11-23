@@ -150,17 +150,21 @@ class SiteApiRouterCoverageTest extends PHPUnit\Framework\TestCase
         $this->assertSame(200, $code);
     }
 
-    public function testDispatchRequiresAuthenticationForDiscovery()
+    public function testDispatchServesDiscoveryWithoutALogin()
     {
-        // The '' discovery route is not declared in site-spec.yaml, so it
-        // fail-closes to 'authenticated' and never leaks the link map.
+        // /x/api is declared in site-spec.yaml with no security requirement,
+        // and each site's robots.txt and .well-known/api-catalog point agents
+        // at it: it answers the link map to anyone, as in haxcms-nodejs.
+        // Every address in that map is itself a public route.
         list($result, $out, $code, $data) = $this->runRouter('GET', '/x/api/');
         $this->assertTrue($result);
-        $this->assertSame(401, $code);
-        $this->assertSame(
-            'Authorization bearer token or basic credentials are required for this endpoint',
-            $data['data']['message']
-        );
+        $this->assertSame(200, $code);
+        $this->assertSame('HAXcms Site API', $data['data']['name']);
+        $this->assertSame('/x/api', $data['data']['links']['self']);
+        // only GET is declared: nothing else is opened on that address
+        list($result, $out, $code) = $this->runRouter('POST', '/x/api/');
+        $this->assertTrue($result);
+        $this->assertContains($code, array(401, 403, 405));
     }
 
     public function testDispatchRunsDiscoveryHandlerForApiRoot()
