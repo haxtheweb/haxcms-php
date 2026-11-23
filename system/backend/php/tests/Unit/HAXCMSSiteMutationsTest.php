@@ -892,10 +892,64 @@ class HAXCMSSiteMutationsTest extends TestCase
     public function testLunrSearchIndexTextIsCleanedPageContent(): void
     {
         // Page content '<p>Content for Home Page</p>' is stripped, lowercased,
-        // and short words (1-4 chars) removed. 'content' (7 chars) survives.
+        // and words of one or two letters are removed.
         $docs = $this->site->lunrSearchIndex($this->site->manifest->items);
-        $this->assertNotSame('', $docs[0]['text']);
-        $this->assertStringContainsString('content', $docs[0]['text']);
+        $this->assertSame('content for home page', $docs[0]['text']);
+    }
+
+    public function testCleanSearchDataMatchesTheVectorsSharedWithNodejs(): void
+    {
+        $vectors = json_decode(file_get_contents(__DIR__ . '/../fixtures/search-index-vectors.json'), true);
+        $this->assertGreaterThan(10, count($vectors['cases']));
+        foreach ($vectors['cases'] as $vector) {
+            $this->assertSame($vector['expected'], $this->site->cleanSearchData($vector['input']), $vector['name']);
+        }
+        // not text: nothing to index
+        $this->assertSame('', $this->site->cleanSearchData(null));
+        $this->assertSame('', $this->site->cleanSearchData(42));
+        // bytes that are not UTF-8 separate words and never fail the index
+        $this->assertSame('alpha bravo', $this->site->cleanSearchData("alpha\xC3\x28bravo"));
+    }
+
+    public function testStripAngleTagsMatchesTheNodejsHelper(): void
+    {
+        $this->assertSame('a b', HAXCMSSite::stripAngleTags('a<b>b', ' '));
+        $this->assertSame('ab', HAXCMSSite::stripAngleTags('a<b>b'));
+        $this->assertSame('a<>b', HAXCMSSite::stripAngleTags('a<>b'));
+        $this->assertSame('a< b', HAXCMSSite::stripAngleTags('a< b'));
+        $this->assertSame('ab', HAXCMSSite::stripAngleTags('a<<x>b'));
+        $this->assertSame('plain', HAXCMSSite::stripAngleTags('plain'));
+    }
+
+    public function testLunrSearchIndexLeavesOutUnpublishedPagesAndMatchesNodejsShape(): void
+    {
+        $first = $this->site->manifest->items[0];
+        $draft = clone $first;
+        $draft->id = 'item-aaaa-bbbb-cccc-dddd-eeee-ffff-0000-1111';
+        $draft->title = 'Draft page';
+        $draft->slug = 'draft-page';
+        $draft->metadata = clone $first->metadata;
+        $draft->metadata->published = false;
+        $noFile = clone $first;
+        $noFile->id = 'item-aaaa-bbbb-cccc-dddd-eeee-ffff-0000-2222';
+        $noFile->title = 'No file';
+        $noFile->slug = 'no-file';
+        $noFile->description = '<b>Bold</b> summary';
+        $noFile->location = 'pages/does-not-exist/index.html';
+        $noFile->metadata = new stdClass();
+        $noFile->metadata->created = 1234;
+        $docs = $this->site->lunrSearchIndex(array($first, $draft, $noFile));
+        // the unpublished page is not in the public index at all
+        $this->assertSame(2, count($docs));
+        $this->assertStringNotContainsString('Draft page', json_encode($docs));
+        $this->assertSame(array('id', 'title', 'created', 'location', 'description', 'text'), array_keys($docs[0]));
+        // "item-" and every dash removed, 29 characters at most
+        $this->assertSame('aaaabbbbccccddddeeeeffff00002', $docs[1]['id']);
+        $this->assertSame(1234, $docs[1]['created']);
+        $this->assertSame('no-file', $docs[1]['location']);
+        $this->assertSame('Bold summary', $docs[1]['description']);
+        // a page whose file cannot be read is still listed, found by its title
+        $this->assertSame('', $docs[1]['text']);
     }
 
     // ---- sortItems ----
