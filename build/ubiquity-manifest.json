@@ -2264,7 +2264,7 @@
         "app-hax.js": ["d65e2adcd08b6d0f9870c4d94301b05b", "35c0beb610bbe280f7e011b562556d71"],
         "lib/app-hax-theme.js": ["b6928d0827b7053aa15da6a1acfa1d26", "8d4ef45e781444400ac662cb7c5d8dfb"],
         "lib/app-hax.create-site.motion.json": ["06372ed8d62f08a2066da0bc1f5c7723", "06372ed8d62f08a2066da0bc1f5c7723"],
-        "lib/app-hax.docs.json": ["2ddcb80b62476ea1d5728e4496de3661", "2ddcb80b62476ea1d5728e4496de3661"],
+        "lib/app-hax.docs.json": ["9fb11509f23a6b6347463715734b6b68", "9fb11509f23a6b6347463715734b6b68"],
         "lib/app-hax.motion.json": ["022142e7755e2b292a8ce3b8e93850f8", "022142e7755e2b292a8ce3b8e93850f8"],
         "lib/app-hax.settings.motion.json": ["611050e57064bc19ec5412c0537cabd1", "611050e57064bc19ec5412c0537cabd1"],
         "lib/app-hax.site-actions.motion.json": ["3e5a5a90ebaa8ab0d8ca93c112cee84f", "3e5a5a90ebaa8ab0d8ca93c112cee84f"],
@@ -49913,7 +49913,7 @@
       "files": {
         "lib/simple-popover-manager.js": ["6e108811aff97982ae3ca2feca4399c8", "435f9a6bff4ba53dedbf32919bcc4538"],
         "lib/simple-popover-selection.js": ["c710e348618586ef5532765d830c7ed1", "886ef8318863fd77b7792086085edda8"],
-        "lib/simple-popover.docs.json": ["3db96ef4c50cada433d74c92ff2afcc2", "3db96ef4c50cada433d74c92ff2afcc2"],
+        "lib/simple-popover.docs.json": ["57c34bf51226c429e94cde8d9c860d84", "57c34bf51226c429e94cde8d9c860d84"],
         "lib/simple-popover.motion.json": ["b3ab9a55a25537daceb72b627367f9c3", "b3ab9a55a25537daceb72b627367f9c3"],
         "lib/simple-tour.js": ["c926f5d548f722e0a802e527b75aedd1", "31a77406ef19a1922bfe277d899dc4ad"],
         "locales/simple-tour.af.json": ["1d348b603ea5a71801a5630ecedb8708", "1d348b603ea5a71801a5630ecedb8708"],
@@ -56499,7 +56499,7 @@
     }
   },
   "source": {
-    "commit": "f7649e8294092b48986f87445481bcc7a639d953",
+    "commit": "41c6aabb18a361414bb85dca546b63d11d82b0b2",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
