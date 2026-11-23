@@ -10335,7 +10335,7 @@
         "lib/DDDReading.js": ["e75e4e8f4e52294e247a1c646d822fdf", "44b121db0132926a4270a09ae1a917d0"],
         "lib/DDDReducedMotion.js": ["bc3f2e8ad296544ecae26949501bafcb", "a82a5ec9e3597f2562622e0deb25dd38"],
         "lib/DDDStatusTokens.js": ["5031b18926bb3cffea2dc3fa4eadde99", "b3e7849da992f76db945c74fed59f604"],
-        "lib/DDDStyleGuideAuthoring.js": ["6a751db82e5d5cc56a88f3f8d580bbfd", "29ca58b2059c2ad63049e5e3f1d43a0f"],
+        "lib/DDDStyleGuideAuthoring.js": ["18b9d4ed8e5bb000e055adbd9426be9c", "32d93d19fbbcaf61c0d1ae6bc308b90d"],
         "lib/DDDStyleGuidePresets.js": ["8ab2b15fd64776cd1fbad8cbf0b2bf20", "f85dcea01cdcd440e2bc570b2c267c77"],
         "lib/DDDStyles.js": ["03cb4f0ff45670b9c508694d3240fe1d", "654c75b3f40340c41a0e8df90b31e58f"],
         "lib/DDDTable.js": ["41f12def306a77dfa5faa63f03f5211e", "c58091ef69735bafadf7d71c9b8bee7f"],
@@ -24908,7 +24908,7 @@
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleL.svg": ["91291da26e0e27a3524133adc8861803", "91291da26e0e27a3524133adc8861803"],
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleMiddle.svg": ["669944e3851e705a773b738a0e4f4820", "669944e3851e705a773b738a0e4f4820"],
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleR.svg": ["0b22f75e4fd5f591a9dc63aec5ff10ed", "0b22f75e4fd5f591a9dc63aec5ff10ed"],
-        "lib/core/ui/rpg-character-toast/rpg-character-toast.js": ["bb904a1081df37563a33d8f7b1e60ed8", "0afca3e74610ad01a520a60b733c6039"],
+        "lib/core/ui/rpg-character-toast/rpg-character-toast.js": ["2784eb065ebe3b2ce62471024af2df7e", "eb856007cb2daf773e42cba61ac44173"],
         "lib/core/utils/EditDescriptionProgram.js": ["f0b06edb4668fe21c3f94482494dc013", "9ef0cbc763a0fa9dcb86f587b62a8a61"],
         "lib/core/utils/EditIconProgram.js": ["091f2084ad713fa3ef2119ec15608ffc", "8d99433acb278ac00650a3ef62213ec7"],
         "lib/core/utils/EditSlugProgram.js": ["7effe06ba2aee59b50b070d986882653", "b844204dbb0f821e94bb822037e42251"],
@@ -50058,7 +50058,7 @@
     },
     "@haxtheweb/simple-toast": {
       "files": {
-        "lib/simple-toast-el.js": ["413441aa19d9d71ffda55323cafe0248", "3852023c128d81cf4ac990b1f9a84975"],
+        "lib/simple-toast-el.js": ["45ee2929e69280c85e7742fe082572db", "0bcd1b824bb1992141e754d60da418f7"],
         "lib/simple-toast.docs.json": ["6f2dfc4afc392d21d90f448e280a8544", "6f2dfc4afc392d21d90f448e280a8544"],
         "lib/simple-toast.motion.json": ["5923b4bc27f46548ae71b8b4b4ac0986", "5923b4bc27f46548ae71b8b4b4ac0986"],
         "simple-toast.js": ["0d0f9a8977cc64257ada7f792be488ac", "7e00c87ad7ffa6fede131b09f475880b"]
@@ -52054,7 +52054,7 @@
         "lib/super-daemon-hax-ui.js": ["399142628ee45f722dbb5ff434a68772", "c16800602abcf91dee86b8b4bf268360"],
         "lib/super-daemon-row.js": ["8ad0c7bd7f8a759f658440fb2568e624", "e950840e4bc223e0158d301fc84133d1"],
         "lib/super-daemon-search.js": ["a2b26024d85aceffbc362bfdff19396c", "824fbe56b697882afec4fe5421a2521b"],
-        "lib/super-daemon-toast.js": ["73fea962f10e456249223f3e64ba5bef", "64449d7a4497e95b3ddafdc36fffa3cd"],
+        "lib/super-daemon-toast.js": ["349b27e3075a0ad8909881977ded7053", "14460cdce9ec73af9d0ca8a37d5fa91c"],
         "lib/super-daemon-ui.js": ["12a3d38f127e251b8263f0697c9e2773", "c5ecd2a34099ad6ac1f9f991a36876ef"],
         "lib/super-daemon.docs.json": ["65d12b6c53b3c1f6fa23747270032860", "65d12b6c53b3c1f6fa23747270032860"],
         "lib/super-daemon.motion.json": ["85be796a9a97eeb1d885f74d84aff006", "85be796a9a97eeb1d885f74d84aff006"],
@@ -56502,7 +56502,7 @@
     }
   },
   "source": {
-    "commit": "6b3671c46dd4d2ad49fe64d86ae5a11626789361",
+    "commit": "d853df85c836373d5f44e56a467a8221a024807a",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
