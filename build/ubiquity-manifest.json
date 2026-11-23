@@ -19887,7 +19887,7 @@
     },
     "@haxtheweb/hax-network-bar": {
       "files": {
-        "hax-network-bar.js": ["7aab0513069b006ec063a8ea3b473770", "c17dba8f71e31a767b6966f350c63187"],
+        "hax-network-bar.js": ["5bb0f7615ee2fb5bc6c1da822783ba2e", "f1f8b1baa404a190216e0d85c08b7897"],
         "lib/hax-future-traveler.js": ["edd00a43ff7a95af789c4a572a4f40cb", "21c80e58fe4c2a41cbde24736493ed4b"],
         "lib/hax-network-bar.docs.json": ["795afd8f12eb2e6dceba99f0052f350e", "795afd8f12eb2e6dceba99f0052f350e"],
         "lib/hax-network.js": ["3697df647b98b1c529c8e9cb94e4c3e1", "60f5fdcb02fb88807fb55d7a32a53136"],
@@ -48263,7 +48263,7 @@
     }
   },
   "source": {
-    "commit": "9d75858186563037f84fdc69476ee8cf113dcd6e",
+    "commit": "c4ef3bf50bb3ed02c48998722e8e5dfbf9c243c8",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
