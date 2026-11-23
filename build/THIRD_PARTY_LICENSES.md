@@ -307,7 +307,6 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/voice-recorder | Apache-2.0 | License text 6 |
 | @haxtheweb/wc-autoload | Apache-2.0 | License text 4 |
 | @haxtheweb/web-baseline-status | Apache-2.0 | License text 5 |
-| @haxtheweb/web-container | Apache-2.0 | License text 58 |
 | @haxtheweb/webawesome-theme | Apache-2.0 | License text 76 |
 | @haxtheweb/wikipedia-query | Apache-2.0 | License text 3 |
 | @haxtheweb/word-count | Apache-2.0 | License text 3 |
@@ -325,28 +324,25 @@ The open-source license and copyright notices for every package in this build of
 | @mathjax/mathjax-dsfont-font-extension | Apache-2.0 | no license file found in source package |
 | @mathjax/mathjax-mhchem-font-extension | Apache-2.0 | no license file found in source package |
 | @mathjax/mathjax-newcm-font | Apache-2.0 | no license file found in source package |
-| @webcontainer/api | MIT | License text 79 |
-| @xterm/addon-fit | MIT | License text 80 |
-| @xterm/xterm | MIT | License text 81 |
 | baseline-status | Apache-2.0 | License text 2 |
-| bootstrap | MIT | License text 82 |
-| fflate | MIT | License text 83 |
-| h5p-standalone | MIT | License text 84 |
-| idb-keyval | Apache-2.0 | License text 85 |
+| bootstrap | MIT | License text 79 |
+| fflate | MIT | License text 80 |
+| h5p-standalone | MIT | License text 81 |
+| idb-keyval | Apache-2.0 | License text 82 |
 | lit | BSD-3-Clause | License text 77 |
 | lit-element | BSD-3-Clause | License text 77 |
 | lit-html | BSD-3-Clause | License text 77 |
-| lunr | MIT | License text 86 |
-| marked | MIT | License text 87 |
+| lunr | MIT | License text 83 |
+| marked | MIT | License text 84 |
 | mathjax | Apache-2.0 | License text 2 |
-| mobx | MIT | License text 88 |
-| modern-screenshot | MIT | License text 89 |
-| monaco-editor | MIT | License text 90 |
-| msr | MIT | License text 91 |
-| scrollable-component | MIT | License text 92 |
-| tslib | 0BSD | License text 93 |
+| mobx | MIT | License text 85 |
+| modern-screenshot | MIT | License text 86 |
+| monaco-editor | MIT | License text 87 |
+| msr | MIT | License text 88 |
+| scrollable-component | MIT | License text 89 |
+| tslib | 0BSD | License text 90 |
 | web-dialog | MIT | no license file found in source package |
-| web-social-share | MIT | License text 94 |
+| web-social-share | MIT | License text 91 |
 
 ## License texts
 
@@ -8258,7 +8254,7 @@ Source files: LICENSE
 
 ### License text 58: Apache-2.0
 
-Used by @haxtheweb/d-d-docs, @haxtheweb/un-sdg, @haxtheweb/web-container.
+Used by @haxtheweb/d-d-docs, @haxtheweb/un-sdg.
 
 Source files: LICENSE
 
@@ -12554,83 +12550,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### License text 79: MIT
 
-Used by @webcontainer/api.
-
-Source files: LICENSE
-
-```text
----- LICENSE ----
-Copyright (c) 2022-25 StackBlitz Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-### License text 80: MIT
-
-Used by @xterm/addon-fit.
-
-Source files: LICENSE
-
-```text
----- LICENSE ----
-Copyright (c) 2019, The xterm.js authors (https://github.com/xtermjs/xterm.js)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-```
-
-### License text 81: MIT
-
-Used by @xterm/xterm.
-
-Source files: LICENSE
-
-```text
----- LICENSE ----
-Copyright (c) 2017-2019, The xterm.js authors (https://github.com/xtermjs/xterm.js)
-Copyright (c) 2014-2016, SourceLair Private Company (https://www.sourcelair.com)
-Copyright (c) 2012-2013, Christopher Jeffrey (https://github.com/chjj/)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-```
-
-### License text 82: MIT
-
 Used by bootstrap.
 
 Source files: LICENSE
@@ -12660,7 +12579,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### License text 83: MIT
+### License text 80: MIT
 
 Used by fflate.
 
@@ -12691,7 +12610,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 84: MIT
+### License text 81: MIT
 
 Used by h5p-standalone.
 
@@ -12723,7 +12642,7 @@ SOFTWARE.
 
 ```
 
-### License text 85: Apache-2.0
+### License text 82: Apache-2.0
 
 Used by idb-keyval.
 
@@ -12746,7 +12665,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### License text 86: MIT
+### License text 83: MIT
 
 Used by lunr.
 
@@ -12775,7 +12694,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### License text 87: MIT
+### License text 84: MIT
 
 Used by marked.
 
@@ -12829,7 +12748,7 @@ Redistribution and use in source and binary forms, with or without modification,
 This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 ```
 
-### License text 88: MIT
+### License text 85: MIT
 
 Used by mobx.
 
@@ -12860,7 +12779,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 89: MIT
+### License text 86: MIT
 
 Used by modern-screenshot.
 
@@ -12879,7 +12798,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### License text 90: MIT
+### License text 87: MIT
 
 Used by monaco-editor.
 
@@ -12910,7 +12829,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 91: MIT
+### License text 88: MIT
 
 Used by msr.
 
@@ -12940,7 +12859,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### License text 92: MIT
+### License text 89: MIT
 
 Used by scrollable-component.
 
@@ -12971,7 +12890,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 93: 0BSD
+### License text 90: 0BSD
 
 Used by tslib.
 
@@ -12993,7 +12912,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### License text 94: MIT
+### License text 91: MIT
 
 Used by web-social-share.
 
