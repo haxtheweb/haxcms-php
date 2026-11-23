@@ -51,6 +51,20 @@ if ($indexUserConfigPhpPath === '' || !file_exists($indexUserConfigPhpPath)) {
     exit;
 }
 include_once $indexUserConfigPhpPath;
+// The .htaccess rewrites every path that is not a file to this page. The
+// dashboard shell still renders its own "not found" view, but a path it has
+// no page for answers 404 (haxcms-nodejs does the same, lib/dashboardRoutes.js).
+include_once __DIR__ . '/system/backend/php/lib/HAXCMSDashboardRoutes.php';
+if (
+    isset($_SERVER['REQUEST_URI']) &&
+    !HAXCMSDashboardRoutes::isDashboardRoute(
+        (string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH),
+        isset($HAXCMS->basePath) ? $HAXCMS->basePath : '/'
+    ) &&
+    !headers_sent()
+) {
+    http_response_code(404);
+}
 $appSettings = $HAXCMS->appJWTConnectionSettings('');
 ?>
 <!DOCTYPE html>

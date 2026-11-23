@@ -43,7 +43,7 @@
     },
     "@haxtheweb/a11y-carousel": {
       "files": {
-        "a11y-carousel.js": ["918517bc18b4716155f496e64f6b2571", "fd13647f7648ca4336872bbcf1d9954b"],
+        "a11y-carousel.js": ["58c8ee2624ab9590ef044b1e776b3f49", "a777f9d16b164399e04c00bf59dd5583"],
         "lib/a11y-carousel-button.js": ["3e845f2efc2d273899926c4376f424f1", "c0a6dec399fe70fcffd3dcba53f3bc69"],
         "lib/a11y-carousel.docs.json": ["2b0914e19a6be86405ccd02eb8f41e97", "2b0914e19a6be86405ccd02eb8f41e97"],
         "lib/a11y-carousel.motion.json": ["22be22d328eb30a8fc11c47a59e90e9c", "22be22d328eb30a8fc11c47a59e90e9c"]
@@ -381,7 +381,7 @@
     },
     "@haxtheweb/a11y-details": {
       "files": {
-        "a11y-details.js": ["9208db93dba704c7ec3d835ba3b41ec6", "7d7013bd8496e3f088d55400f4dc3fce"],
+        "a11y-details.js": ["6476ac91c9f6b77fd3195e50f26cb13e", "5f39398fbac7a5d600cbc367f53819b4"],
         "lib/a11y-details.docs.json": ["a50cdf71e308ad9b1382b4b6d33ac2dc", "a50cdf71e308ad9b1382b4b6d33ac2dc"],
         "lib/a11y-details.haxProperties.json": ["79d0482624fbd2676297cee0f27c5f7d", "79d0482624fbd2676297cee0f27c5f7d"],
         "lib/a11y-details.motion.json": ["597ada7a367cd22f108fe2d7735bd1c5", "597ada7a367cd22f108fe2d7735bd1c5"],
@@ -1243,8 +1243,8 @@
     },
     "@haxtheweb/a11y-media-player": {
       "files": {
-        "a11y-media-player.js": ["858adbdc63b92f5205e1c107dfe8f9f9", "f787c5440ac4bc0ac758ffec8ba6d1d1"],
-        "lib/a11y-media-button.js": ["0998134f6920ca2dfebc80eff6b6346d", "57e2f66a642e050919cb791f54be9436"],
+        "a11y-media-player.js": ["b8ad5d64b7c1ed45ddd7e6a1a0505902", "03863e81bd15322cb6f14544d8ed2ff3"],
+        "lib/a11y-media-button.js": ["b65199725790aa023383b227f1322785", "3a8e088c130d0c9aec654fee0f67fcad"],
         "lib/a11y-media-fallback.js": ["520124865e947d4f17b37e3c33838932", "ae10b1bf084ea27b315aabc5dd129644"],
         "lib/a11y-media-play-button.js": ["9803e5f0887ca4a38ee8e9547722d115", "973d8fabecaf5586fd55fe6e645824c4"],
         "lib/a11y-media-player.docs.json": ["f93aa669a1d4b5ee5edd8294b14b27c9", "f93aa669a1d4b5ee5edd8294b14b27c9"],
@@ -1690,7 +1690,7 @@
     },
     "@haxtheweb/absolute-position-behavior": {
       "files": {
-        "absolute-position-behavior.js": ["54069ff5b95609ae43269f21b55819f3", "26eb02b1d9dc755ad18c81c57db1f989"],
+        "absolute-position-behavior.js": ["ade6c6b3cba5814956e6a633ff75277b", "b78541d9dea9cadf7988f6a322d2fe68"],
         "lib/absolute-position-behavior.docs.json": ["6294d97b7af70fef7c3f2b1e570f1ca8", "6294d97b7af70fef7c3f2b1e570f1ca8"],
         "lib/absolute-position-state-manager.js": ["7b7ce2663245e9eaab2e13a7e3521e17", "7b4cb465a6c91a2b25bcbd716ef7044c"]
       },
@@ -2299,19 +2299,19 @@
         "lib/v2/app-hax-confirmation-modal.js": ["ea41aa4a6c20154c49c2b94899e1a16c", "40d166d5be19039a24507fad833fb6ed"],
         "lib/v2/app-hax-darkmode-toggle.js": ["31ce1e04ec3644287e81ce274e89cb01", "037814cf2cabe241156f493115fb9e24"],
         "lib/v2/app-hax-dashboard-programs.js": ["2044fcb45e6740369697ce8827f25a68", "10857f8737ddfed2ccbae2a53b2394a0"],
-        "lib/v2/app-hax-design-browser.js": ["9be4982606d77ae042f948a66eabad75", "d4b30323631b361385e7a9ec7482bb01"],
+        "lib/v2/app-hax-design-browser.js": ["6b6ae418e1a260a63a17367a4e0654ca", "f34033b4de7f68623215627801eded4f"],
         "lib/v2/app-hax-filter-tag.js": ["96a52ea826a6b2eb483db8c1d81847a3", "aa57b882ba824077d0ac74e9e7012072"],
         "lib/v2/app-hax-import-url-dialog.js": ["b9d302a2d8864b6100f7f6c6a0d38a69", "3c28583ed9b7829cf039f9cd39772c42"],
         "lib/v2/app-hax-scroll-button.js": ["efadc42807794026e98a3cb3326aa4df", "f321571764db74ccd04e7687e1967c64"],
         "lib/v2/app-hax-search-results.js": ["1bb2e334b7aaf67ad46fa8a94de067b0", "11a445c23dda8456131ebebe62ef942e"],
         "lib/v2/app-hax-simple-hat-progress.js": ["970650540e53201509753b6b934de73d", "e71d96e8a8b426db42047cc5544a13c9"],
         "lib/v2/app-hax-site-bar.js": ["4440f6f3d42966ac7736735de0ebea3d", "e0640ee1f618fc20eb57ef8cd474f38b"],
-        "lib/v2/app-hax-site-creation-modal.js": ["7c313b06ae6abb46494b8d1f8b020812", "e94fa9d7707abd770e6820f2c5850bd0"],
+        "lib/v2/app-hax-site-creation-modal.js": ["dc82b599ef2eded217030a71ef2059a5", "43fab2d7965da45f90f5223214a31cb1"],
         "lib/v2/app-hax-site-details.js": ["719d1e8c525cc3bceb13a68c26474e5d", "289d0ca0f06f419843c985281e5917d8"],
         "lib/v2/app-hax-site-login.js": ["9ee7fb461c217b7753e22a4930718163", "48b277d791fb6be2629bb79fadc224de"],
         "lib/v2/app-hax-system-api-registry.js": ["03fee1a2ad4009531bdbec8be9204771", "4141518c42a2b6e7f5feb3ad167f13a8"],
         "lib/v2/app-hax-toast.js": ["4b21ee3d6954ca8a8fb8812296092f32", "96c14f6447e4f7b549ab432a9456acad"],
-        "lib/v2/app-hax-use-case-filter.js": ["a814d5b869e9013b90c8f001b9c6dc58", "86045842f462938d74c254c88eb64cb5"],
+        "lib/v2/app-hax-use-case-filter.js": ["a9a0415303c22c8f430153f19d83e065", "ead79628c5ab6cbb59911b0168713456"],
         "lib/v2/app-hax-use-case.js": ["73ed7e57b5cd2ba270a10685cc9aa85c", "cd414dbc098b8beef4fea81850dde640"],
         "lib/v2/app-hax-user-access-modal.js": ["3cf1297511277c6cb5851b488b465f53", "f1916cac302d1c8ec78a9ae7572974b7"],
         "locales/app-hax-confirmation-modal.af.json": ["84ae3463bb668c2ee3a6e1a3ecc18dcb", "84ae3463bb668c2ee3a6e1a3ecc18dcb"],
@@ -4865,7 +4865,7 @@
     },
     "@haxtheweb/book-theme": {
       "files": {
-        "book-theme.js": ["a7c3a221ce940b50e6e27e6b38497f46", "8b1a1d3f1146d806bb2043c437001c1d"],
+        "book-theme.js": ["fc14febf6814c781c081471c177e90b6", "d02f2b4f984f846b197f882bf496e7b9"],
         "lib/book-theme.docs.json": ["68d934f2f629562428044660682f937b", "68d934f2f629562428044660682f937b"],
         "lib/guidebook-theme.js": ["5ead230536d50c6201d818bf0ebbb55e", "e2783f6d4d1b45d307a9416ca171d48e"],
         "lib/handbook-theme.js": ["b8fce03709b0433d99da6b3335653bc6", "66a7c48f51a49b299574808613e3b5f1"],
@@ -6946,7 +6946,7 @@
     },
     "@haxtheweb/chamfer-theme": {
       "files": {
-        "chamfer-theme.js": ["9eb03c4a7b5b23433d8d9c14d86ed5da", "08dbbfe52ce8d55243384900ad3dd674"],
+        "chamfer-theme.js": ["7860264cb7047b7b880cf26ee7847756", "b5f8b10e130137b2f5b25fb5d95e4f87"],
         "lib/chamfer-theme.docs.json": ["161c80186ad585b713fb26447876c51e", "161c80186ad585b713fb26447876c51e"],
         "locales/chamfer-theme.af.json": ["59d2f5080ed2a846bf1240372484de8a", "59d2f5080ed2a846bf1240372484de8a"],
         "locales/chamfer-theme.am.json": ["6829252ba601379715793fbb8c7fd1b3", "6829252ba601379715793fbb8c7fd1b3"],
@@ -7299,7 +7299,7 @@
     },
     "@haxtheweb/clean-one": {
       "files": {
-        "clean-one.js": ["772da5a27633663654172dea604d1548", "a38166f171e5aabda400f94b156152b1"],
+        "clean-one.js": ["4b25630a5b1c39d6d13e77b15670b795", "7ab9a5516284e759bfa9d3e272a201dc"],
         "lib/clean-one-search-box.js": ["aed89aa175fb0a53b1774d2a48b607e7", "60a45b2e10bcf969ba686ee75957ce93"],
         "lib/clean-one.docs.json": ["0ef3a1c038caf5a20f89a02eb8a21169", "0ef3a1c038caf5a20f89a02eb8a21169"],
         "locales/clean-one.af.json": ["f1dc63df1c5dea22159179151071e523", "f1dc63df1c5dea22159179151071e523"],
@@ -7539,7 +7539,7 @@
     },
     "@haxtheweb/code-editor": {
       "files": {
-        "code-editor.js": ["dd221e705887e6f2e08a6fa7cde141c0", "844003e2727bedcbd54fe1812e7d776f"],
+        "code-editor.js": ["3c6fcc824298d442ac7b62b13a5978dc", "a68bef630cca6a22b31924c0789fba6b"],
         "lib/code-editor.docs.json": ["314c8a541420d6da232985a34b346813", "314c8a541420d6da232985a34b346813"],
         "lib/code-editor.motion.json": ["3b7d016327eccbee564b9e120684b4af", "3b7d016327eccbee564b9e120684b4af"],
         "lib/code-pen-button.js": ["3d672bfb8392627b04be0ad067694c67", "edb9ecf558012b7afb21a51a505e9323"],
@@ -9772,7 +9772,7 @@
     },
     "@haxtheweb/course-model": {
       "files": {
-        "course-model.js": ["54122323a4b648b0c5fedd7030682b2a", "d20265c0e1ca824f4078b3f9a931b50a"],
+        "course-model.js": ["8406b8820564bee84848dd2151c4b5bf", "03de65c2e4098cb2634aab27d64a881d"],
         "lib/course-model.docs.json": ["e26a6b9fc92a6f7135764bd93956d5e6", "e26a6b9fc92a6f7135764bd93956d5e6"],
         "lib/course-model.haxProperties.json": ["b1c4fd4ae0a4c67bddf426fa24ef14bf", "b1c4fd4ae0a4c67bddf426fa24ef14bf"],
         "lib/course-model.motion.json": ["f1bc338e1a75e1a3b35e49bd3cdd5390", "f1bc338e1a75e1a3b35e49bd3cdd5390"],
@@ -10336,7 +10336,7 @@
         "lib/DDDStatusTokens.js": ["5031b18926bb3cffea2dc3fa4eadde99", "b3e7849da992f76db945c74fed59f604"],
         "lib/DDDStyleGuideAuthoring.js": ["6a751db82e5d5cc56a88f3f8d580bbfd", "29ca58b2059c2ad63049e5e3f1d43a0f"],
         "lib/DDDStyleGuidePresets.js": ["8ab2b15fd64776cd1fbad8cbf0b2bf20", "f85dcea01cdcd440e2bc570b2c267c77"],
-        "lib/DDDStyles.js": ["7a912a8feda61e7f4cd4e69e416f1a05", "98db3408a5edde51ca31b9c280ea1ce0"],
+        "lib/DDDStyles.js": ["7a912a8feda61e7f4cd4e69e416f1a05", "8dbe301f4b4851a52c922bb84d667f1c"],
         "lib/DDDTable.js": ["41f12def306a77dfa5faa63f03f5211e", "c58091ef69735bafadf7d71c9b8bee7f"],
         "lib/DDDUtilityClasses.js": ["622b6c339c59ac96ebb627a5bd957ad6", "a0d4b8f11856b79db79ffd4c28e0e43e"],
         "lib/DDDViewport.js": ["b8b7dc287b80565ca6e7024913fe4e9b", "ff66d76a90e148e87ce0770b5a1336ba"],
@@ -10351,9 +10351,9 @@
         "lib/ImageFraming.js": ["36f0d4453b4b4c305f91322ffdd6ca13", "52812dd36169243670c1d709761ce5b7"],
         "lib/d-d-d-sample.js": ["404e599ac1339e30a141997367980e1f", "b4cb5ee9963cf0fc7bb8dad80ba5b931"],
         "lib/d-d-d.docs.json": ["822b6f74c4dc6c7f68735b33b3de1b57", "822b6f74c4dc6c7f68735b33b3de1b57"],
-        "lib/ddd-brochure-theme.js": ["3c9950bc33dbd13f4b4a5076f76e4d16", "22051f97f55f91ff8c3a6d6072573b09"],
+        "lib/ddd-brochure-theme.js": ["4143a963a001b42fad2a805c2ebda10a", "fbd7305812bc23dee7e8c43a35308c89"],
         "lib/ddd-card.haxProperties.json": ["901f3963ee393bf9a80d9ecba191985b", "901f3963ee393bf9a80d9ecba191985b"],
-        "lib/ddd-card.js": ["5332c0be7b4e92aed2ef2a96435ca058", "dcdaa9611cb4862894de82a8f9bf043c"],
+        "lib/ddd-card.js": ["525475b0a9dd374dc8fa9b1ff108f115", "d300932ca28899fdbcec7f055238f319"],
         "lib/ddd-hero-demo.svg": ["77ba582685e76904495750a5b7e60909", "77ba582685e76904495750a5b7e60909"],
         "lib/ddd-hero.haxProperties.json": ["b8eade526e1fb491a4f221c7b668be0b", "b8eade526e1fb491a4f221c7b668be0b"],
         "lib/ddd-hero.js": ["ce614131a786c27273e7b0ab01cedf09", "7f15fff1dfc848644fe64980bc7e73dc"],
@@ -10682,7 +10682,7 @@
         "lib/fonts/work-sans/work-sans-vietnamese-wght-normal.woff2": ["b36b1cc3005352fac514c5703c55bc87", "b36b1cc3005352fac514c5703c55bc87"],
         "lib/fonts/work-sans/work-sans.css": ["2ffb08e92737406fca2050c2fcd26ec8", "2ffb08e92737406fca2050c2fcd26ec8"],
         "lib/hax-confirm-dialog.js": ["1ebb681245ad446d8fcb66e0ca3ed12a", "fc87bf3bb827bfe823c41396047179f2"],
-        "lib/hax-palette-picker.js": ["619b0d83a24e927eb56b3b6610356d39", "bb72daddafca85259a914eb4cb25d0bd"],
+        "lib/hax-palette-picker.js": ["e6e371504dc6d02525e60f5e0d9c39b8", "94c5df16e22b60de4b98e2d7ac309dee"],
         "lib/mini-map.js": ["9a5cbec9e58ae4c793b0992d5b051622", "7537368f349844fb5aa4db1f17e351f3"],
         "locales/ddd-card.af.json": ["8bb12ba45542fce5a04a39bda6ad35f8", "8bb12ba45542fce5a04a39bda6ad35f8"],
         "locales/ddd-card.am.json": ["c1c9cc2feef2d9eb81082938a1599ab4", "c1c9cc2feef2d9eb81082938a1599ab4"],
@@ -13032,7 +13032,7 @@
     },
     "@haxtheweb/ecosystem-theme": {
       "files": {
-        "ecosystem-theme.js": ["47c92c2b04bc5bd48330d48f7582ca02", "df52210e4dd792a4c2e39df0f9cd5138"],
+        "ecosystem-theme.js": ["7b12bf558c53ac85cb9b78c8fa1a093f", "8c01df85577be2f474b60d6b30f4ceba"],
         "lib/ecosystem-theme.docs.json": ["616eaf7d0f13713b4f122757ad45e47a", "616eaf7d0f13713b4f122757ad45e47a"]
       },
       "source": "elements/ecosystem-theme",
@@ -13040,7 +13040,7 @@
     },
     "@haxtheweb/ecosystem-web": {
       "files": {
-        "ecosystem-web.js": ["25f74a679b7b00682f3762ffc1f791fd", "12ae22481f1e66c128ee6318cfb7a3fd"],
+        "ecosystem-web.js": ["7f28d6e6ac23a5f24e7bed0a7f92a5c1", "791d703cf615df716be3bcc8235a91e8"],
         "lib/ecosystem-model.js": ["21abf847b9e1949528b8225da62a14c8", "399a4501ae6375165e79854cb261d3d4"],
         "lib/ecosystem-web.docs.json": ["fd133a62ad053caf767e98f479a20f38", "fd133a62ad053caf767e98f479a20f38"],
         "lib/ecosystem-web.haxProperties.json": ["f471bfa5e2187b01fc5617e3681becb6", "f471bfa5e2187b01fc5617e3681becb6"],
@@ -13155,7 +13155,7 @@
         "editable-table.js": ["023832cb82aa854d105b2f31b580dfd5", "71bca88f4816d44588531739b2d402a4"],
         "lib/editable-table-behaviors.js": ["eca015aed828aaccf66ba37b09101c85", "f227133b1076c555e8b5f2e3a620febd"],
         "lib/editable-table-display.js": ["e0b0b59a1ab59506a8457f6952e09d58", "065b87d4d2d68295816ae93ed8bd3cfd"],
-        "lib/editable-table-edit.js": ["40c9bd6ecc9e8ccb5ac0cb44285ab0ee", "542187ef318f0e192e7d7e04c1e07b7f"],
+        "lib/editable-table-edit.js": ["628ffdd15ef2becc548d4ec77528b091", "50da0307bd2480e400f4743dd31be0c7"],
         "lib/editable-table-editor-rowcol.js": ["4512e6e1947107ca0d9199e39d894d6f", "844f1ce83e4739966d3d7afff398758e"],
         "lib/editable-table-filter.js": ["0ed9b7a2e903b3b4b96d9483170378f9", "8f3d49d7835168726c8f4b05d75880ae"],
         "lib/editable-table-sort.js": ["bea234868da5f06804e944e7e1b06886", "c08b0f8c0206a613bfb3ad1038dc45f2"],
@@ -15827,7 +15827,12 @@
     },
     "@haxtheweb/glossy-portfolio-theme": {
       "files": {
-        "glossy-portfolio-theme.js": ["6396f4d45978f4bfe40ad54cea57de0e", "2b55935148a188a65c29e4f98cdb4165"],
+        "glossy-portfolio-theme.js": ["3721e9e60698653f9c9f2985e1e4023d", "6e856527a5d38bb4ee6908330470d97f"],
+        "lib/GlossyContentStyles.js": ["f1ad841ef7b45e52a602738f1eb6b340", "e8799c527dc874accb5e1ecd45d2d203"],
+        "lib/GlossyDDDMap.js": ["5b4e58e07dda4e3f97c5cbf639723ba2", "1e284ab111da540788c6d826ce8ddd43"],
+        "lib/GlossyDesignSystem.js": ["4c0bc1fac3572fd089807989caa32d2a", "bf7791f87db94d9955535b51d3dca450"],
+        "lib/GlossyPageStyles.js": ["985a85e73380d6d5378f30f0cea6a799", "1a416acd02f4b62d11a8aa78f2f08ba8"],
+        "lib/GlossyTokens.js": ["52ba2161eef41426a4bd17d22cc26b25", "a91c628cece8279f2576b384681844f6"],
         "lib/data.json": ["ca9365a53cc871cd86361de1b116e029", "ca9365a53cc871cd86361de1b116e029"],
         "lib/glossy-portfolio-about.js": ["4b9281828d7c128909ce1d90d804b75c", "76f4779be1d03575a62a3077a26861d0"],
         "lib/glossy-portfolio-breadcrumb.js": ["a8494df0ce1d7dbc5d668e67662c72dd", "e5c1790d9e3487bf253fcff3ac4d3217"],
@@ -15835,8 +15840,9 @@
         "lib/glossy-portfolio-footer.js": ["5ce71e6453def9535cfe83e75f233f17", "7edd219581ea2385ba29a767e9d498dd"],
         "lib/glossy-portfolio-grid.js": ["afcf8b4bf52f58b7833d7222a4717410", "ea84b551f1f282d8bc0881fe08e4f5f4"],
         "lib/glossy-portfolio-header.js": ["939d528e714b21efe48ef683dfb330cb", "30dbd56320e5273af3b97e7bf019e72b"],
-        "lib/glossy-portfolio-home.js": ["85245c40eff5bd9eda6be40b23b96c12", "19070b61fae1c87da72c75d9302f44bf"],
+        "lib/glossy-portfolio-home.js": ["db481dfe0f92720435585f5b1e5bc39f", "2a73669161ec4ab548731b8b963a2c07"],
         "lib/glossy-portfolio-theme.docs.json": ["3b366718d96b2d0ad3399c2bd31ac61d", "3b366718d96b2d0ad3399c2bd31ac61d"],
+        "lib/glossy.ddd-map.json": ["0a2c7a8498a8654f94c2e59be384366a", "0a2c7a8498a8654f94c2e59be384366a"],
         "locales/glossy-portfolio-breadcrumb.af.json": ["461d74fd00dd421907c3bc6116f3e425", "461d74fd00dd421907c3bc6116f3e425"],
         "locales/glossy-portfolio-breadcrumb.am.json": ["086956e7f32e79f4c7a28f3d89ee98ce", "086956e7f32e79f4c7a28f3d89ee98ce"],
         "locales/glossy-portfolio-breadcrumb.ar.json": ["12363e023bec201925b0c35c266e92db", "12363e023bec201925b0c35c266e92db"],
@@ -16362,7 +16368,7 @@
         "grade-book.js": ["df2415aa87fa60b41f5d95cb5123993f", "3bb6a8e773d03bf41d53de62fabaceb3"],
         "lib/GradeBookHelpers.js": ["b62a86623472835d561b66cd7b2e84c0", "3ec09702dd0c7d9c1394f5d36775abb2"],
         "lib/GradeBookShared.js": ["76fafeae2063f5258cc33e1ba2ec7340", "19103f42e46af53338f92a0180c00aa2"],
-        "lib/GradeBookUIPieces.js": ["bee42c076103e7ab84203a6de3d1a2e2", "47bad66971e686e82e23f2659d8e4f77"],
+        "lib/GradeBookUIPieces.js": ["0dd10b865582a65a7a2c42756f691b3a", "bfce5050bcb9abd59206c48b75e3ea12"],
         "lib/grade-book-lite.js": ["a54d60dce341c291836194abcceffe3b", "292cf779145a9d6a7f5742315c65d455"],
         "lib/grade-book-pop-up.js": ["ca0fb2e39841fe88d96ea87ffa898ba2", "98c443b9d45fd2ad526f40385ab7e2db"],
         "lib/grade-book-store.js": ["c72083c1de0a80b5760e4be539d2f6db", "379cb3768ddf4bec0e07bac39fb82df7"],
@@ -17245,7 +17251,7 @@
     },
     "@haxtheweb/hax-app-installer": {
       "files": {
-        "hax-app-installer.js": ["afa011f546e2f248ceac682f547ac831", "b11d9cde3052bcb4626991c2c2915fd6"],
+        "hax-app-installer.js": ["d656596adc20209dc6dd0d497766147e", "b88e1a1bc54bb1e715911d69f6f1ac33"],
         "lib/hax-app-installer.docs.json": ["35b8e989820d277a33bbdd65cef04f5d", "35b8e989820d277a33bbdd65cef04f5d"],
         "lib/hax.png": ["637067727757056ee799c70cc909c495", "637067727757056ee799c70cc909c495"],
         "locales/hax-app-installer.af.json": ["d9cb8371f54c898816f231542a8ee216", "d9cb8371f54c898816f231542a8ee216"],
@@ -17379,7 +17385,7 @@
         "lib/hax-map.js": ["1d53a2e2b3e19bc71940dc0fe9e1318c", "790fc4733fb0d1f898a24c731a60b3d9"],
         "lib/hax-outline-marks.js": ["e62fa952e1c86434a3c325db4ed62a9f", "6eb0f638702f98e856183274ca7c6775"],
         "lib/hax-picker.js": ["358047855a2a65cda34532bd6e8c0a34", "64fed8b380ff708704db095b3d6babe7"],
-        "lib/hax-plate-context.js": ["c0fd9b82e8bf06436c52e094cc385483", "2ad842784257834b6fc76d288e01085a"],
+        "lib/hax-plate-context.js": ["b7517b3a971d0f2680657535f67274fd", "60df91e62a6a085ae15b4f5dabcff6af"],
         "lib/hax-stax-browser.js": ["53dc6b9105ae5f789552f3d172c54c91", "46f2c13f6ded77dd1ed6e02dbdff9af3"],
         "lib/hax-store.js": ["ab4e7c27348057a37a78d1704e87179f", "6a4962907e6706b72882447808488a95"],
         "lib/hax-text-editor-button.js": ["f87b41664287213d5408fd18207c6f00", "3684ebd3110f89ed1a5b3ad745a8bd01"],
@@ -17392,10 +17398,10 @@
         "lib/hax-tray-browser-styles.js": ["6f9b9ccdca859a90043a177aa2841729", "23639c2547d048a8f41fe02795fba1cc"],
         "lib/hax-tray-button.js": ["0e56c9b6a619ff6e4e28bd9e317d88eb", "59b291a233c24b5d381971b695a84f99"],
         "lib/hax-tray-upload.js": ["b89ff3d0d3bcdc79d76fe7652ea3172d", "eb682e4393e4ab08f1bdaa8848004cc6"],
-        "lib/hax-tray.js": ["336b83942c6917d59b736dbd789b715c", "1fdcc29d5bd5b072350fded15e0e8fdb"],
+        "lib/hax-tray.js": ["45e3caef1f0eb424a322c2a3328c8897", "253b8165caa8f40c1c72bea966888b7e"],
         "lib/hax-ui-styles.js": ["c14ca9b3e0a9ddf9433e48fcdb3acde4", "8377a0336b97592715aff20298d3560e"],
         "lib/hax-upload-field.js": ["8657ec3de00653efae17c1452b967b50", "342f0ac5a7502bd7138b42ea0688821c"],
-        "lib/hax-view-source.js": ["6d4ba7c5186561d8aeccd13ad6fa61f2", "a05459277b1b732225d96f68137c0d59"],
+        "lib/hax-view-source.js": ["bece5cbe0536d6622f27d180609caccc", "1b762669e38365386aea04985d4a234f"],
         "lib/image-framing-dialog.js": ["0a61a4bcec85a665575f17d2d6218eb2", "4ab66f1297ea4a8f0e56a55c98613b93"],
         "lib/simple-fields-image-framing.js": ["7c91b75ff0f7b698d7099f1e01e48546", "44a335b4e20d7a32c6efa1f7974008be"],
         "lib/simple-fields-srcset.js": ["be21c511a97b1587a6f36d9c61d0cfea", "278b68af1c0563b0ba0d4d7ed7a729b2"],
@@ -22622,8 +22628,8 @@
         "lib/hax-reel.js": ["8ff805bf65e6862cb7a71887b2cf312c", "ed7cc4bf2dec2250ae94ea39fde6b39d"],
         "lib/hax-stat-strip.haxProperties.json": ["920bbc5d4fe795bcf2364a1e1fe243fe", "920bbc5d4fe795bcf2364a1e1fe243fe"],
         "lib/hax-stat.haxProperties.json": ["946ec13a39395c34831358cc632d1c04", "946ec13a39395c34831358cc632d1c04"],
-        "lib/hax-story-link.haxProperties.json": ["117256faeec1797fcf02f37514b6aaf5", "117256faeec1797fcf02f37514b6aaf5"],
-        "lib/hax-story-link.js": ["4594683238861dcdb112929c5d5f2363", "01520f56c35d565ddc5456aac6e4f8b2"],
+        "lib/hax-story-link.haxProperties.json": ["05accac17ad0431f8c403306ce9e06a2", "05accac17ad0431f8c403306ce9e06a2"],
+        "lib/hax-story-link.js": ["184d5c989b4e00936fdce9af0ea2b915", "b2a5496ab1fecf3d652363ff47245f3b"],
         "lib/hax-style-switcher.js": ["57e641be34a474ad69907b9fd4918cf0", "5e26b875a11220023ffead978e00a017"],
         "lib/hax-use-case-picker.haxProperties.json": ["7aad30f3476639c2dc1d3c72df0cca06", "7aad30f3476639c2dc1d3c72df0cca06"],
         "lib/hax-use-case-picker.js": ["f9fbbfd84fd01d42d2549e66e2252be3", "3c141e4df9682dae30b4495c5e774e0b"],
@@ -24075,7 +24081,7 @@
         "locales/hax-story-link.da.json": ["254641689586456930b6331c055963d1", "254641689586456930b6331c055963d1"],
         "locales/hax-story-link.de.json": ["6ea21b8c63662f84b45c01300a7e8a46", "6ea21b8c63662f84b45c01300a7e8a46"],
         "locales/hax-story-link.el.json": ["a9ee3f4ebae8fc513ee564bbfee2f188", "a9ee3f4ebae8fc513ee564bbfee2f188"],
-        "locales/hax-story-link.en.json": ["f4ad561f40d9d5ff04433d404fbda49e", "f4ad561f40d9d5ff04433d404fbda49e"],
+        "locales/hax-story-link.en.json": ["0c7ee0e9ee7da476cac687c11eef234c", "0c7ee0e9ee7da476cac687c11eef234c"],
         "locales/hax-story-link.eo.json": ["7032c4e5317be9da8b4a83085a7c5539", "7032c4e5317be9da8b4a83085a7c5539"],
         "locales/hax-story-link.es.json": ["da6ae545406e25bb7c94bf57ae08e5e9", "da6ae545406e25bb7c94bf57ae08e5e9"],
         "locales/hax-story-link.et.json": ["efdf6779e3266505042073158b4fb5c2", "efdf6779e3266505042073158b4fb5c2"],
@@ -24681,10 +24687,10 @@
     },
     "@haxtheweb/hax-network-bar": {
       "files": {
-        "hax-network-bar.js": ["0cb2963f8d829939487e8d927e3fa388", "622b7be35b6173b927cb0d31ab12539b"],
+        "hax-network-bar.js": ["791ee5b2c55ccbe82424e797b316725d", "df3ccf46c32968669ad48a96829d697f"],
         "lib/hax-future-traveler.js": ["edd00a43ff7a95af789c4a572a4f40cb", "21c80e58fe4c2a41cbde24736493ed4b"],
         "lib/hax-network-bar.docs.json": ["795afd8f12eb2e6dceba99f0052f350e", "795afd8f12eb2e6dceba99f0052f350e"],
-        "lib/hax-network.js": ["e9f37d29bf5bcda307391755378e7960", "74d37d00494e5ec372eec0541ca36aa5"],
+        "lib/hax-network.js": ["1faf5132daf4bbfe69007a998f712ddc", "0e6899a703a5759728dc418cd226c3fa"],
         "locales/hax-network-bar.af.json": ["ae99a5db006a7e993ba844fbd77e5628", "ae99a5db006a7e993ba844fbd77e5628"],
         "locales/hax-network-bar.am.json": ["895626d4d9aa3dead180ae4f292590f7", "895626d4d9aa3dead180ae4f292590f7"],
         "locales/hax-network-bar.ar.json": ["09bd85ac99bf01ef1988734821e691f1", "09bd85ac99bf01ef1988734821e691f1"],
@@ -24700,7 +24706,7 @@
         "locales/hax-network-bar.da.json": ["ba4fa5fd89df0a6d5144df70ab1f367b", "ba4fa5fd89df0a6d5144df70ab1f367b"],
         "locales/hax-network-bar.de.json": ["121fa9a2d4094ae428c46b3a3cb291c6", "121fa9a2d4094ae428c46b3a3cb291c6"],
         "locales/hax-network-bar.el.json": ["b5fece1da49315b5c533d10494b2ebce", "b5fece1da49315b5c533d10494b2ebce"],
-        "locales/hax-network-bar.en.json": ["b997621f3d2dd593ae49aff367f73d3d", "b997621f3d2dd593ae49aff367f73d3d"],
+        "locales/hax-network-bar.en.json": ["60e126c340a3d3b3660bef0c682e1203", "60e126c340a3d3b3660bef0c682e1203"],
         "locales/hax-network-bar.eo.json": ["923a0214ef7d33ce6a7728ab162a728e", "923a0214ef7d33ce6a7728ab162a728e"],
         "locales/hax-network-bar.es.json": ["d6f5a5ce0b9cd45da7fdf3ed56625ca8", "d6f5a5ce0b9cd45da7fdf3ed56625ca8"],
         "locales/hax-network-bar.et.json": ["9588dc9e6fc298b9ad8993f2fd301a6d", "9588dc9e6fc298b9ad8993f2fd301a6d"],
@@ -24806,7 +24812,7 @@
         "lib/core/admin/docked-admin.js": ["6d50d4d5b4bbb4ea5018cc9ea5b9c5c3", "c2035958ee4585e65ae087550a38bb16"],
         "lib/core/admin/haxcms-admin-add-area.js": ["c6cf2ae1e631b2e5aaf6c4da09d7ee84", "94b6283a99e745cae4c6e550dd638fcd"],
         "lib/core/admin/haxcms-admin-confirm.js": ["f511ef03eee564225b3a0b1f3f43bb11", "7001980be13457d01068baad664dba7d"],
-        "lib/core/admin/haxcms-site-admin.js": ["ed190ae0ad023cf4a4771647bb3716fb", "cf00c0e2dedbc620f496e3cd5d5f1a42"],
+        "lib/core/admin/haxcms-site-admin.js": ["820723e53ce4ed33652f5d4c701fb797", "28cf7370103a9083fd60e1ae950e9919"],
         "lib/core/admin/site-admin-sections.js": ["d14dd675eebee0c5079a80fb5a30ec28", "2ea1bd36d3c7db71ee9de5ae0df64417"],
         "lib/core/backends/haxcms-backend-beaker.js": ["016afa8ef22c575bd93a31a4c9f159eb", "46f4b3de54ec68c9e6f053e5e81d4f94"],
         "lib/core/backends/haxcms-backend-demo.js": ["4a6b1070b5ecbb86203a7fecaa6c749e", "ad5f9661c2f2fd06e0b17baf5f676885"],
@@ -24815,11 +24821,11 @@
         "lib/core/backends/haxcms-backend-userfs.js": ["15ff9b7ae4d279386d4a40d34d19b850", "bbb00038e3341317e50be95a47e57687"],
         "lib/core/hax-router.js": ["1a19f2fa264962015aa8210fe32f21f6", "477bfa5577713a275d97e72fa9f25cea"],
         "lib/core/haxcms-appearance-admin-dialog.js": ["595bc318c685887ccbfc5614ac071548", "49d43b1a9723a1213449e924d2ec2853"],
-        "lib/core/haxcms-cheat-codes.js": ["866d897052740bda6884d289fa672c07", "d3cc9bdc5ccea94a55148ddd040ce621"],
+        "lib/core/haxcms-cheat-codes.js": ["f913cbdb731ec414cb7e25240771dbbe", "e36e5cec5d4bf1d01a233333f359cac6"],
         "lib/core/haxcms-content-admin-dialog.js": ["b3ca05e2bac29a64bea02b1c1eb5feef", "32d7af6274fbecc9497d5b0bd1bed68d"],
         "lib/core/haxcms-darkmode-toggle.js": ["cd92d50cc73e4e25d2174e36123cf900", "155eb1dbb4deeb329009f290d676cfb6"],
         "lib/core/haxcms-editor-builder.js": ["008e390752216ded5fcd37217deb70e1", "dbe4134f85d020fb5d9c7c64bc2062ec"],
-        "lib/core/haxcms-files-admin-dialog.js": ["974bf5e6859386c27ddbde330c7e90ec", "9206fcab6fe8ce721eaa3e4873856dbb"],
+        "lib/core/haxcms-files-admin-dialog.js": ["7495baae8f30813713dfffce67fe9ea2", "1900267c5b13c5d34177c74412f62a1c"],
         "lib/core/haxcms-language-picker.js": ["af152806f023bf9447c1a8ec796e64a3", "254f7bb3713777219aac61dbb093c7b5"],
         "lib/core/haxcms-learner-progress.js": ["6c7d94186a913aafd7e08ebed1ce3b23", "279cb0c52cde572b808b684b6a0b9436"],
         "lib/core/haxcms-outline-editor-dialog.js": ["214d865aacc5540063ab3794f24f0b6e", "a5999609afe81b96e27e155d54b5eb37"],
@@ -24830,7 +24836,7 @@
         "lib/core/haxcms-site-builder.js": ["5eddabf7fc0294b4b152bad6ebc66817", "623f3d1197cf454bf62c0d7e74f1eda3"],
         "lib/core/haxcms-site-dashboard.js": ["823ee050275d3ed120ba91e9a360cfbf", "4edf9f07e54d9b4dc037b3b5cfc36b86"],
         "lib/core/haxcms-site-details-dialog.js": ["95e20968ebdfde036027f881c3c37f0a", "6c62980c9ee9ee62dcaab6512ac25902"],
-        "lib/core/haxcms-site-editor-ui.js": ["4f18adfcfb5e7e4d651e46aef3e099a7", "255bf91a5668d7b1d4c11f6842cbd2c1"],
+        "lib/core/haxcms-site-editor-ui.js": ["17199dfc089c145531d31aef548a902a", "f78f164eb5a5032be0ecc1dc075e7a56"],
         "lib/core/haxcms-site-editor.js": ["194d943ff463b749ad47768fd0a6dc44", "ea4df46e82eeff19ac9a4c02fbcac253"],
         "lib/core/haxcms-site-import-export-dashboard.js": ["ad155515fe2bb26ff544d313d0fa211a", "dcd5645bdc9b5d748281debd4b06d0a1"],
         "lib/core/haxcms-site-router.js": ["ef48f8333f63656246f1a45b5ad0481c", "b81e3d53bff45aebc4ab21a142c2bbc6"],
@@ -24867,16 +24873,16 @@
         "lib/core/micros/haxcms-button-add.js": ["1e1422345c4e392dad682070e4e728c4", "df8449b0fc759f0968bf32e5d69f8867"],
         "lib/core/micros/haxcms-page-operations.js": ["375fdfdfddf445cfe7e042c01e3236d7", "744c1572cfb2e4f906fdeec6a43f1449"],
         "lib/core/revisions/revision-model.js": ["84f29dd4aa9ea727d9227d2b88c17032", "b3a3cf6d35b555028d6556cfac996527"],
-        "lib/core/themes/haxcms-basic-theme.js": ["959e24bf02e2f5f2d7965a9997aa1ee0", "7abde520bbd80c561eb1a20d7660ceeb"],
+        "lib/core/themes/haxcms-basic-theme.js": ["318496b9186ecf1b14b520bdb515735a", "727b511744bf8444d7192d1dcabc0c60"],
         "lib/core/themes/haxcms-blank-theme.js": ["329db371ee3fe514ba5e472eeb4d140b", "39d9988343efec3314abec0335198a05"],
         "lib/core/themes/haxcms-custom-theme.js": ["4593d95de9d3fe88fbcacb6bb1355164", "9c67e97d50ab009e3cd81f84ef1ae98c"],
-        "lib/core/themes/haxcms-json-theme.js": ["a6f921de884d3b2824f11d63f300708f", "7751ee1fb9f9dd327ecdc10ce26e48f1"],
+        "lib/core/themes/haxcms-json-theme.js": ["272ab1aa29775566e92e4fbc6794f6bf", "e6efa359073375fe20c917647dbcc031"],
         "lib/core/themes/haxcms-print-theme.js": ["00182ae08c0870e10da17e9c63473e1f", "e58536dcd1279e1654e7d441bed3c29f"],
         "lib/core/themes/haxcms-slide-theme.js": ["976ce36aa4f90f4e97e1db1ff96e67d6", "cb08dc5e536b2f9efbab4a0912cc5e08"],
         "lib/core/ui/app-hax-top-bar.js": ["22957025651ad82e90f5f398b05977d7", "722deda143d14f86bf4a977d69435261"],
         "lib/core/ui/app-hax-user-menu-button.js": ["4eaf8b4d4906ef7969c56b80d804aa9c", "22ddad6c2bf5a85ccd619ef0108c01be"],
         "lib/core/ui/app-hax-user-menu-toggle.js": ["14ecffcdcd053d0f98adcf1c23ef88b0", "5d7bef111de2141024debd92cb47477c"],
-        "lib/core/ui/app-hax-user-menu.js": ["33edb0ddd660a17db18a890c219d5439", "a2269423b55b3f9f4912e5efbe65e382"],
+        "lib/core/ui/app-hax-user-menu.js": ["8c32d29672113091c2cfdc4e764d24b1", "314f796b9e6afa9a2c1ae0c5566ac3e6"],
         "lib/core/ui/assets/expert.png": ["f4b25b99d79bf786d380f29672570f07", "f4b25b99d79bf786d380f29672570f07"],
         "lib/core/ui/assets/novice.png": ["016c4e547d41ff6c265f76db78f3facc", "016c4e547d41ff6c265f76db78f3facc"],
         "lib/core/ui/darkmode-toggle/darkmode-toggle.js": ["cf12a8d590fc61a162771b18e8e1c8c1", "f36e0bfb2d354cca175285821b53013d"],
@@ -24887,15 +24893,15 @@
         "lib/core/ui/hax-confirm-dialog.js": ["e774c0833174da23b221721d8a3e3c58", "34260a93a20ba7e6838a1ecdfed41705"],
         "lib/core/ui/hax-future-traveler-mark.js": ["80dada93bccb8c8518857de23a36cbb9", "4906a2403e01b67216d1f0887faec704"],
         "lib/core/ui/haxcms-about-dialog-ui.js": ["c85c7cda546da29a7a76e5ca85dea859", "81fb70f96a0f7c6d1133f31a5f4f5aef"],
-        "lib/core/ui/haxcms-allowed-blocks-ui.js": ["5dd907775b8814c1c7126aaa320ff021", "b262400e970074d9f0c0e318d591e65d"],
+        "lib/core/ui/haxcms-allowed-blocks-ui.js": ["b15e2e2c1ecb0c8d2c1ab612fd4fbc16", "0c2c91485b7b5b4bd0217ca16655b021"],
         "lib/core/ui/haxcms-appearance-switcher.js": ["00c0d7d94321a5df9352be44a33b26b3", "0db65fa2f59e6b527dcd042250e2d0d4"],
         "lib/core/ui/haxcms-editor-settings-dialog-ui.js": ["784ed6984d08e914ae03c4fc8b1c7a79", "f615cf3d7dce5d86d3c911c4c286116f"],
         "lib/core/ui/haxcms-goggles-credits.json": ["a599ce97e450b0d432eb52ee9b69cde3", "a599ce97e450b0d432eb52ee9b69cde3"],
         "lib/core/ui/haxcms-goggles-makers.json": ["a581692c5beca9e0b50477566e3b470a", "a581692c5beca9e0b50477566e3b470a"],
         "lib/core/ui/haxcms-goggles-screenshot.js": ["65caa43b8ab68eec27ae041813e90166", "68e9673142843f55481bec1bb496e1b2"],
-        "lib/core/ui/haxcms-goggles.js": ["218f61e478b8db217aa7a4ad0ec23911", "717c591aab1d4cc654258b4a796af95f"],
-        "lib/core/ui/haxcms-site-platform-ui.js": ["7b7a94b1452c9748fd1ef6601547a275", "e9a4ad1cbe9795feaa31963c33b8294f"],
-        "lib/core/ui/haxcms-theme-preview-panel.js": ["d2c117adc9dc12cbbe7abb8269e3cbff", "90f732d9624e1efba419b7d93a016e24"],
+        "lib/core/ui/haxcms-goggles.js": ["e811ddd72e13ce75acc1321ad3345107", "4384ecbe0910b59c538ad253c20d8922"],
+        "lib/core/ui/haxcms-site-platform-ui.js": ["94f9f16a21501b7c6dbc3b0cb2ef644c", "c5a46aed07a011747745d27cfda0e37f"],
+        "lib/core/ui/haxcms-theme-preview-panel.js": ["1e7919e6ebd8ff3a2e76f925cdc0027c", "f0325e7af81a91f807be5bbf0ac4e043"],
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleL.svg": ["91291da26e0e27a3524133adc8861803", "91291da26e0e27a3524133adc8861803"],
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleMiddle.svg": ["669944e3851e705a773b738a0e4f4820", "669944e3851e705a773b738a0e4f4820"],
         "lib/core/ui/rpg-character-toast/images/SpeechBubbleR.svg": ["0b22f75e4fd5f591a9dc63aec5ff10ed", "0b22f75e4fd5f591a9dc63aec5ff10ed"],
@@ -24920,14 +24926,14 @@
         "lib/core/utils/HAXCMSRememberRoute.js": ["7a85920db24f3cff685b9c07944fb927", "bf399b5d7b81316a564ac46ee4775b74"],
         "lib/core/utils/HAXCMSThemeA11yTestHelpers.js": ["7ca9453401b3a16ec3b625f7f4c6ac7d", "8198b21bd5814b8ce8da4175f43d656a"],
         "lib/core/utils/HAXCMSThemeParts.js": ["d2b23418214ec2192f8e05063821b53c", "fd2e8af3075dc745846638a5e48d917d"],
-        "lib/core/utils/HAXCMSUserStylesMenu.js": ["7052cfcac7d619d17ee8017b1d1c90cf", "a0a28f9f3974d1e7ff4483630ecc2598"],
+        "lib/core/utils/HAXCMSUserStylesMenu.js": ["bc176f5f5b9042bc3aa2aa54fcd95d0f", "328bc8696ffd9785a86baf10acd250a6"],
         "lib/core/utils/HAXCMSWebMCP.js": ["7044b6796dead10147e79ae791ccddf6", "4510c4d250ae88c00dad8c30dce30b82"],
         "lib/core/utils/LTIResizingMixin.js": ["64d7c4aa33993e09b1b296cc7bea6188", "63a07af905741c3f5eb3ab9ff11839a5"],
         "lib/core/utils/PDFPageMixin.js": ["985d1ad9d45176c1ab00f3c9ccf747e0", "ca6025a987d8b71571069ca0a036a391"],
         "lib/core/utils/PageAsDataProgram.js": ["11bfadc3a1c54c1da55c693115b4a37b", "c9bbd9e8b0292a55e056e96e1070b212"],
         "lib/core/utils/PrintBranchMixin.js": ["f2c64b326e3054935e89a20cb2b53fe1", "187afd9f5a5d4ab900c4d0beccf4c787"],
         "lib/core/utils/PrintProgram.js": ["9bddd995777a2afdb06145027426e5e4", "ed7f25aeaac6b8b90d2e3bfacebd36bf"],
-        "lib/core/utils/QRCodeMixin.js": ["29b538a06a9b90c4c9fef88085935d46", "fc1c6796c87bded0d2a161f5573aeb57"],
+        "lib/core/utils/QRCodeMixin.js": ["c2d1c33b76c2e31834a3354dd0e6c27f", "2a88aee267fd057a40f6cccddfc0c393"],
         "lib/core/utils/SharePageProgram.js": ["8b2b8292422215c67a169aaf7f21718e", "1686cfc9473213985487f49280de2f50"],
         "lib/core/utils/UXStudyAnalyzer.js": ["8155939df113b3b8b86d62a8db6a3a9d", "bba75114a81aa93840f0dad7c853a4cb"],
         "lib/core/utils/UXStudyRecorder.js": ["4f1240e98799ac437a49b44445350d8a", "246cdbd916e0a44df5a2b1826898a86e"],
@@ -25100,9 +25106,9 @@
         "lib/ui-components/active-item/site-share-widget.js": ["4cd9d8df3813fd928b4ee24c074e4faa", "c5be201880f361efb7514db3325e6af1"],
         "lib/ui-components/blocks/site-children-block.haxProperties.json": ["b8ef83dfd0a7534225da556b558c35bc", "b8ef83dfd0a7534225da556b558c35bc"],
         "lib/ui-components/blocks/site-children-block.js": ["106c480ae1291e8d08ce407a79affc6a", "a7a6d50b3a942401c415feeb981ce72c"],
-        "lib/ui-components/blocks/site-outline-block.js": ["fb17a80727bc744d374bc0500585d2c7", "9561c4ccec9452622aad9d0026bcbfa3"],
+        "lib/ui-components/blocks/site-outline-block.js": ["999bc2a9994aba38df734d02e475ddad", "10309f60fb384aa5122ccc79244da828"],
         "lib/ui-components/blocks/site-recent-content-block.js": ["ebb666ecb419a4095b37920685f0b0b2", "7abdbfcf34e0be0001c5304eb9c67237"],
-        "lib/ui-components/layout/site-drawer.js": ["ed880a4a0484e08bd54a8ea0d0c44308", "0976ba8420c899f42f499d7b086b5c8c"],
+        "lib/ui-components/layout/site-drawer.js": ["c41eee23ecc854843745ee7b90d61470", "6cce6a9ab6049d75f02ed17847929715"],
         "lib/ui-components/layout/site-footer.js": ["999bf00fe8d3ee5d4494988bb636ec3a", "e96de931694c72706b6b0191c548b465"],
         "lib/ui-components/layout/site-modal.js": ["5dfaf6f6f119813a44f0832c76dbfa1a", "0a91d22df44f7d34e57d89ab778e7436"],
         "lib/ui-components/layout/site-region.js": ["b088f1d110bedebf19bd3b2e7ae9e3cf", "799eb47013acfc0e26abf52f4fbfd0b8"],
@@ -25115,14 +25121,14 @@
         "lib/ui-components/magic/site-collection-list.js": ["44c096f337cc987790c00b4ad8caffb4", "01b04843686f6a2b08c311b3ffa0bfd0"],
         "lib/ui-components/magic/site-view.js": ["4862f67b90315930facfa3840e8b8ba9", "47750bbd172991cece354de2db92427e"],
         "lib/ui-components/navigation/site-breadcrumb.js": ["9c6183367dce2324b248ee8e7c3aa355", "c022c52cf6521aae056d69fc057fa477"],
-        "lib/ui-components/navigation/site-dot-indicator.js": ["167d0b473a8d43f365a896c8c95a4228", "9a982ffd811d085f1c9e6bae56ed78c6"],
+        "lib/ui-components/navigation/site-dot-indicator.js": ["b6da474dbd4211d76eca636237d2a137", "31d3e214dff52f3c456a346c2172a0ee"],
         "lib/ui-components/navigation/site-menu-button.js": ["5cf144e6d126024bfc38a0ca7455568c", "ae3938fdc16cacdf660f3a278c095117"],
         "lib/ui-components/navigation/site-menu-content.js": ["716ccf7e6ed96c0f41703562b7ea008e", "231612dab21c1f8b6a7cac309f58681b"],
         "lib/ui-components/navigation/site-menu.js": ["d240c084b523799aff335bd07d4489d3", "ceb0140853cfc09f73e748282a66a369"],
-        "lib/ui-components/navigation/site-top-menu.js": ["ef03fa1be93ac1c6894f7ac101692a30", "21e060ba9d59d4d14d201e14c3f907ac"],
+        "lib/ui-components/navigation/site-top-menu.js": ["a7c7696d682d27c26311ae93e3bdaf65", "18a323758126c945b5e0fb1a32fd27f9"],
         "lib/ui-components/progress/haxcms-tracking-lens.js": ["25a500dd7160dcccc69e49b6d09b1b9f", "476c80346b7e1a8e3d6d9baa578f9878"],
         "lib/ui-components/progress/learner-outline-progress.js": ["4ca4a82ebcb57a6b44a5571028f5c97a", "cec82092c80606ed3c73cacf899d07d9"],
-        "lib/ui-components/progress/my-learning-button.js": ["ac7a85bd961d3cc0d6e40e197590cdf0", "00527cd5dd7bf609ff5e6c9a038680d3"],
+        "lib/ui-components/progress/my-learning-button.js": ["b1def35838be88ac7a3aee4eba11aeae", "c754e3dc424b78861868d75d68332b45"],
         "lib/ui-components/progress/my-learning-panel.js": ["e204714994fc1109c643306ab7790f9c", "e22db2ef8ce8a0a861cc616b40015597"],
         "lib/ui-components/progress/my-learning.haxProperties.json": ["5e0d8b9864caba8f082a77be8f10b11d", "5e0d8b9864caba8f082a77be8f10b11d"],
         "lib/ui-components/progress/my-learning.js": ["be91b9a1e714ca1a642301d9932ccbb9", "b0fbf26d150add1580d18a2e571bd795"],
@@ -31280,7 +31286,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["99f7770c16451a1fa21d6dae006a5a52", "99f7770c16451a1fa21d6dae006a5a52"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["ff74307713d7e88819320fa57416b310", "af12357a1451b9f5f0349e26974571c2"]
+        "lib/translation-manifest.json": ["9e5298908bd7fcaa9c392a47655ea642", "af12357a1451b9f5f0349e26974571c2"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -32946,12 +32952,12 @@
     },
     "@haxtheweb/journey-theme": {
       "files": {
-        "journey-theme.js": ["a94a536030d65f45c447570a8f5b53d5", "b6f14814cecb8266d6565bd3f0ea5e27"],
-        "lib/journey-menu.js": ["8b5ec33a0ba6932b3da3decda542f67c", "177aa23274c22644d532fd75578f9c5e"],
-        "lib/journey-sidebar-theme-styles.js": ["fe2c62885aeda3a10f1de580470936b6", "5392c4ac2fdadc8f168b7387dc0dd9b6"],
+        "journey-theme.js": ["79f77993b91920f9162ec7ac1920aa3b", "71f1ac160bc5dd27ab9a0039871e3305"],
+        "lib/journey-menu.js": ["d977ade29ef967acdf8dee2290cfbd0b", "8263568846e6b9f8615e7efd378b76e8"],
+        "lib/journey-sidebar-theme-styles.js": ["372f85258e0b1d166d6ceed8f9bc3102", "cd2a8a83bae672198a6084c83cd2c3c2"],
         "lib/journey-sidebar-theme.js": ["adcd74240de136df687654973a66470e", "4b6af18e2d40311fc855bdc49a1ed2e8"],
         "lib/journey-theme.docs.json": ["c215405a57a376dfe50078830ef53417", "c215405a57a376dfe50078830ef53417"],
-        "lib/journey-topbar-theme-styles.js": ["d587bba6e7da31755e209d0a4e96d8bb", "a7166a7bc2be068327c66382e4959346"],
+        "lib/journey-topbar-theme-styles.js": ["4d11655ee44d07489806194fa6fa77c6", "638bf544f59dd0fa6f0cbd9df7c6bf44"],
         "lib/journey-topbar-theme.js": ["90cbe007c88de81530d17d405327c63a", "3f939a8bbed647e86b11bcd7e990b7a7"],
         "locales/journey-menu.af.json": ["e5d290cc085140a2159003e7f5ddbbae", "e5d290cc085140a2159003e7f5ddbbae"],
         "locales/journey-menu.am.json": ["cc32e1f878522f91aa1af0f7d028fa86", "cc32e1f878522f91aa1af0f7d028fa86"],
@@ -33622,7 +33628,7 @@
     },
     "@haxtheweb/learn-two-theme": {
       "files": {
-        "learn-two-theme.js": ["4de56b4f91de027f8f0fa53b6ca933b2", "79fe3cbe1dea9512082c471ee61316f7"],
+        "learn-two-theme.js": ["c1f5df12df9860a1004754f0fc6797e4", "74642881c4dbcbbebf30e33ff7adbcc3"],
         "lib/learn-two-theme.docs.json": ["6bab615c96fed65f69e84d1ad3289a08", "6bab615c96fed65f69e84d1ad3289a08"],
         "locales/learn-two-theme.af.json": ["c20f3f476b48a2053091eafb31f6be44", "c20f3f476b48a2053091eafb31f6be44"],
         "locales/learn-two-theme.am.json": ["0e58d21b63b12e13a75f623fd1e315a0", "0e58d21b63b12e13a75f623fd1e315a0"],
@@ -35258,7 +35264,7 @@
         "locales/lrndesign-imagemap.yo.json": ["3865a14903fa774d18d6e886dfcad267", "3865a14903fa774d18d6e886dfcad267"],
         "locales/lrndesign-imagemap.zh.json": ["c836c33d1f23a8401fda1d07e8f4e209", "c836c33d1f23a8401fda1d07e8f4e209"],
         "locales/lrndesign-imagemap.zu.json": ["57a7102dfddf6593d086ea6edcbb65c3", "57a7102dfddf6593d086ea6edcbb65c3"],
-        "lrndesign-imagemap.js": ["0b0102b03826a12ab28ee1002b08df20", "e0f19d40c508cb14b771cedd196cc405"]
+        "lrndesign-imagemap.js": ["625ec791c92ff09deb5bd779cad33fa7", "765624a5e441164811bf38377dc38fed"]
       },
       "source": "elements/lrndesign-imagemap",
       "version": "26.8.0"
@@ -35931,8 +35937,8 @@
       "files": {
         "lib/map-menu-builder.js": ["7940e59f2ec1eb9f9db1da456f8d6732", "5d2d7df21032f37c7a85c88a7630cc4d"],
         "lib/map-menu-container.js": ["32aacbfc0a8f85afef6efba464ecdbd5", "f018f46e39ea4bea42605d8d5e981bb0"],
-        "lib/map-menu-header.js": ["5dd140e1358ca70d2acce9abb915a5f6", "ff57848272d5fa8ed03685a258ad7d48"],
-        "lib/map-menu-item.js": ["1adb38a9a1b2add8ce839a0a2b51e133", "371421572cb97fc09887aff62bcfbad2"],
+        "lib/map-menu-header.js": ["773455ea7c517be6a012fb5e3a01d375", "7ca2fb41c3f1442e9f9ce7d78fe64fee"],
+        "lib/map-menu-item.js": ["017787ef3abbe622416a08233a2998a5", "a22b927b18ac70bf515852821f486131"],
         "lib/map-menu-progress.js": ["aa2c47194da45318d8b6ee6b69bc2621", "8d7e8f6cd2b374bdbe8455629ad9ec59"],
         "lib/map-menu-submenu.js": ["95e7712cf24b7102139742cd5370dd52", "0a07710a514039d6767bb07e0c772ce4"],
         "lib/map-menu-tree.js": ["b60cb4901e7bb156b3dd7ae0af08238b", "495dd3f145ce2d609fe83d5397efcb43"],
@@ -38557,10 +38563,10 @@
         "lib/concept-map-game.haxProperties.json": ["2ef5d816452bbd4d1bb91ff33a9a9589", "2ef5d816452bbd4d1bb91ff33a9a9589"],
         "lib/concept-map-game.js": ["5c8ce394ca87894f118fe9e04ee36d34", "b859c62139acdf1d3d35c1664fde145e"],
         "lib/concept-quest-game.haxProperties.json": ["19790ae55ab9519bd33e36770f51e43a", "19790ae55ab9519bd33e36770f51e43a"],
-        "lib/concept-quest-game.js": ["4cd2686e109782abc1f6a68a2e41e456", "fe9f139d7b4dc3575d1996f2975012eb"],
+        "lib/concept-quest-game.js": ["8058b091b1132deb86e13b945f21618e", "ef066e9f443ca7f584dfcf4f420311af"],
         "lib/concept-runner-game.haxProperties.json": ["6e4549bbc49920ed86db17e58148e39f", "6e4549bbc49920ed86db17e58148e39f"],
         "lib/concept-runner-game.js": ["128076c9b1183153e64e8b599f38cfe3", "9789100509a151fe62c6f172a55e6ae4"],
-        "lib/game-chrome.js": ["130e67ada6a2e061a241c6eec1d8b54f", "37b2b26b20f2f40b942afc6c88ef4c0e"],
+        "lib/game-chrome.js": ["248ccc756780ba45cf27af17f59afbca", "98e7ef3ee00edce037257a7ddf8024de"],
         "lib/micro-game-base.docs.json": ["82d443ed3b7d8a0a4db55990ec48d776", "82d443ed3b7d8a0a4db55990ec48d776"],
         "locales/concept-map-game.af.json": ["0ba4a005e6b0d72dbdb47d9b246ecb3a", "0ba4a005e6b0d72dbdb47d9b246ecb3a"],
         "locales/concept-map-game.am.json": ["7df5da6710fb31c0ec2065eb54c86248", "7df5da6710fb31c0ec2065eb54c86248"],
@@ -39177,7 +39183,7 @@
         "locales/concept-runner-game.yo.json": ["a5fc8148267c680ebf9db0eb42eccf59", "a5fc8148267c680ebf9db0eb42eccf59"],
         "locales/concept-runner-game.zh.json": ["f65087f7da040f73e3324d506c9e5d08", "f65087f7da040f73e3324d506c9e5d08"],
         "locales/concept-runner-game.zu.json": ["e073184c753c3ec6ae11136bb9082258", "e073184c753c3ec6ae11136bb9082258"],
-        "micro-game-base.js": ["599c4d51f421f30170490695357c740d", "6e21522cca04c1097e7c45c923cdd7a9"]
+        "micro-game-base.js": ["bc6b940777387924a4392724f7f850b9", "1b869018e6d9dec4e58dc942dc587dba"]
       },
       "source": "elements/micro-game-base",
       "version": "26.8.0"
@@ -40599,7 +40605,7 @@
         "locales/outline-designer.yo.json": ["1b4a27957f1bb58e573ad7274f9141db", "1b4a27957f1bb58e573ad7274f9141db"],
         "locales/outline-designer.zh.json": ["f56517d942199e126dd034d9fbd983fa", "f56517d942199e126dd034d9fbd983fa"],
         "locales/outline-designer.zu.json": ["0278d918c306bb20d6d0e217859dc2e9", "0278d918c306bb20d6d0e217859dc2e9"],
-        "outline-designer.js": ["4668dcd0fc28408747342b0274d3a2e7", "07e3a6d015a45186980cb567a964aabf"]
+        "outline-designer.js": ["6e9f697e7c6ed02fd64ede46c5f4f841", "b360092710e6699286d5054cd3077682"]
       },
       "source": "elements/outline-designer",
       "version": "26.8.0"
@@ -40710,7 +40716,7 @@
         "locales/outline-player.yo.json": ["41cfc85ec814229a21de2cbdc325ed74", "41cfc85ec814229a21de2cbdc325ed74"],
         "locales/outline-player.zh.json": ["368d28dd37c7f87fe0c834bbad73c80d", "368d28dd37c7f87fe0c834bbad73c80d"],
         "locales/outline-player.zu.json": ["97661df12ee402cc4b999a3763be2da6", "97661df12ee402cc4b999a3763be2da6"],
-        "outline-player.js": ["40cf08d82583f9631f60c52965d11ef6", "b976429e4cb5d2f58866354283f41374"]
+        "outline-player.js": ["bf3aa6354c5a27caa25a7043097a76cc", "814b4d630f43030b2e2a3f74fbae268b"]
       },
       "source": "elements/outline-player",
       "version": "26.8.0"
@@ -41144,7 +41150,7 @@
       "files": {
         "lib/page-contents-menu.docs.json": ["02bfd98a94470d13f881bc9bf9ff7cc6", "02bfd98a94470d13f881bc9bf9ff7cc6"],
         "lib/page-contents-menu.motion.json": ["b0048008d73d01aa0cf0cef27cd80565", "b0048008d73d01aa0cf0cef27cd80565"],
-        "page-contents-menu.js": ["cf3823a6127fff4a8c69c92fc15af89d", "662e4a596cdc787cbb58ca8d904a2fdf"]
+        "page-contents-menu.js": ["f2abe236d57ee153d89e1c54ba350592", "36a74f7adaf675a1f7cdf9f12d529241"]
       },
       "source": "elements/page-contents-menu",
       "version": "26.8.0"
@@ -41595,7 +41601,7 @@
       "files": {
         "lib/HomageColumnTheme.js": ["5f62a8cfea333622ed214e2238554b2b", "9e9f3da5c6467a6cc3b78f0c102c1089"],
         "lib/HomageSidebarTheme.js": ["32d5232b640b90ff6f639858a19122f5", "db97853fc159ea351c5e0ab87ef3f838"],
-        "lib/HomageThemeBase.js": ["1b5d84bf05fa67960c71ee28741099ef", "43e2be072bc68882c59afb855193705b"],
+        "lib/HomageThemeBase.js": ["bf4c596f06c67e9407f458838cb25e1e", "5bdad210cf5647cb57f604a0b09c2eb5"],
         "lib/al-folio-theme.js": ["25e4735eeec7ead3a63ef7e55e4351cc", "de06f2c56ccb0787aff75a20c17f69bc"],
         "lib/astro-cactus-theme.js": ["8432bf2e9d16e713434d78fd83f2828a", "48302c85c55391fda55aa3e070107efb"],
         "lib/astrofy-theme.js": ["debf11f11ab71a39193369d17c2929ca", "352ce7aa0582e4d4f465677db60e72e8"],
@@ -42707,8 +42713,8 @@
         "lib/polaris-cta.haxProperties.json": ["feae7685c50f03e1b50a9845afaee1e0", "feae7685c50f03e1b50a9845afaee1e0"],
         "lib/polaris-cta.js": ["504a51cb106be4007a5df483e553619c", "8678a189827c34a864198901974aff9a"],
         "lib/polaris-flex-sidebar.js": ["cbbf1bade39b3fd4d9741bf98c3703a7", "6bc9cb669a86966603985a8387fa0505"],
-        "lib/polaris-flex-theme.js": ["efbc0117a218c3ea638f2bff3e61303a", "73cab7db623f79addc1ac0b4699eb328"],
-        "lib/polaris-invent-theme.js": ["7da3695d007c28eb8cf971c32af84fd3", "92e447bc3e82148d24adc5be0c4db20f"],
+        "lib/polaris-flex-theme.js": ["879f737e9d47a10122f3edc5866ed018", "89d4fdae20a2c82aa2f1ff0bdc3922f8"],
+        "lib/polaris-invent-theme.js": ["61fc40bb5858d17d7657a2865339c8a9", "55f9796e616e553c1dd897b4c1b0e42b"],
         "lib/polaris-mark.haxProperties.json": ["9383087ee9952e034ab393d0784e520c", "9383087ee9952e034ab393d0784e520c"],
         "lib/polaris-mark.js": ["51a2f7d023d49843353790e736538a50", "298c6ec8fb240eb05ae7cda2284ebdaa"],
         "lib/polaris-story-card.haxProperties.json": ["5c198d1f32572a05385ff941b3c80e47", "5c198d1f32572a05385ff941b3c80e47"],
@@ -43433,7 +43439,7 @@
         "locales/polaris-tile.yo.json": ["ea81467ffcb833c3019097d46f438f8b", "ea81467ffcb833c3019097d46f438f8b"],
         "locales/polaris-tile.zh.json": ["9b9fb81849b0835dbfe5c9d9dc7a3af5", "9b9fb81849b0835dbfe5c9d9dc7a3af5"],
         "locales/polaris-tile.zu.json": ["9004a74b93712f166bfee2eef95c64c8", "9004a74b93712f166bfee2eef95c64c8"],
-        "polaris-theme.js": ["743e29e5781c3eb1b3ca2fe1e1692982", "e31775154a361b1365c9b03a61bf3084"]
+        "polaris-theme.js": ["cab6bea80831ce699da83c5854458c5f", "2f623c3a06aad3a36ce446c1c24d59b3"]
       },
       "source": "elements/polaris-theme",
       "version": "26.8.0"
@@ -44789,7 +44795,7 @@
         "locales/reading-analysis.yo.json": ["6aadf9fbdd552cf53f0edb0902152dd2", "6aadf9fbdd552cf53f0edb0902152dd2"],
         "locales/reading-analysis.zh.json": ["8c1f806ff6c304eb4bc0665fa84207eb", "8c1f806ff6c304eb4bc0665fa84207eb"],
         "locales/reading-analysis.zu.json": ["12245087582b0c09945e6aaaea19299d", "12245087582b0c09945e6aaaea19299d"],
-        "reading-analysis.js": ["ebbe4b58b3e33492c902b157c26071ad", "e70eb78df4e5384bba32fd1c12020889"]
+        "reading-analysis.js": ["61a2d151876ee9dfe49e531c5a018cef", "97809596c614e8fc01cddd70e4870654"]
       },
       "source": "elements/reading-analysis",
       "version": "26.8.0"
@@ -45419,7 +45425,7 @@
         "lib/rich-text-editor.motion.json": ["be62496626d54602b16b534b7977fc1f", "be62496626d54602b16b534b7977fc1f"],
         "lib/singletons/rich-text-editor-clipboard.js": ["4a84bb487eda2cb18dd2fe625ace5bdf", "37ff47b866ee08a7a5fe43324b55b829"],
         "lib/singletons/rich-text-editor-highlight.js": ["80cfd931952024b543db3cc95cc94277", "e3971fbbc872eaea4f3265a207a517dc"],
-        "lib/singletons/rich-text-editor-prompt.js": ["3fa9704f0de289907d97ade6c82eea1b", "9e4d8e2e4e8cc4b8c0a802ac63911021"],
+        "lib/singletons/rich-text-editor-prompt.js": ["5ddc7873cf609774d65b9809c909740d", "83d460a82caf3845fa48d7a495595436"],
         "lib/singletons/rich-text-editor-range-behaviors.js": ["0bda446db9c619592bfb8a540b961de0", "1e312a7d7e9c6ecd9dcb809b59de751c"],
         "lib/singletons/rich-text-editor-source.js": ["b40dd6541de481c884f876c39915658a", "23374d1439c085316e85accc753ab163"],
         "lib/stripHtmlComments.js": ["7f69f9c1163c7d3d85ca5464f03d2ebe", "e3a18452bb606e454d18c0ddfe4f506c"],
@@ -45442,7 +45448,7 @@
         "locales/rich-text-editor-prompt.da.json": ["03d774d661f2c9355544d46a6d4825f1", "03d774d661f2c9355544d46a6d4825f1"],
         "locales/rich-text-editor-prompt.de.json": ["df14f5f06bfbc932ac97ca7013a0168b", "df14f5f06bfbc932ac97ca7013a0168b"],
         "locales/rich-text-editor-prompt.el.json": ["5dc584c6b8f05570d7ffb277d314ee88", "5dc584c6b8f05570d7ffb277d314ee88"],
-        "locales/rich-text-editor-prompt.en.json": ["2514113a7891201585be358b54b7977b", "2514113a7891201585be358b54b7977b"],
+        "locales/rich-text-editor-prompt.en.json": ["21318b5c5003293a71a5f88b3a5db4ea", "21318b5c5003293a71a5f88b3a5db4ea"],
         "locales/rich-text-editor-prompt.eo.json": ["7623e9235c70810880000debc258cf0b", "7623e9235c70810880000debc258cf0b"],
         "locales/rich-text-editor-prompt.es.json": ["af13e34bcd6c7b71a377b2dcbeecad7f", "af13e34bcd6c7b71a377b2dcbeecad7f"],
         "locales/rich-text-editor-prompt.et.json": ["b848e9ae6c16ddf0e8f61bc887d28255", "b848e9ae6c16ddf0e8f61bc887d28255"],
@@ -45845,7 +45851,7 @@
         "lib/pet/slime.svg": ["34704069c3f19ad845cee4315ed6cbe4", "34704069c3f19ad845cee4315ed6cbe4"],
         "lib/pet/squirrel.svg": ["1139cd802d3f74ad8787ce433b1f10ca", "1139cd802d3f74ad8787ce433b1f10ca"],
         "lib/rpg-character-avatar.js": ["d020d9a205d79e351f96e62a2a3f9cd3", "5af69a6accfe8cf9a638196e652b51e0"],
-        "lib/rpg-character-builder.js": ["4629d7eac7ded9af302188e03af0ddf0", "04a3b61c0904d163159b7b39f0da07c5"],
+        "lib/rpg-character-builder.js": ["0c1b0fc3b464a7405318af2c9537170d", "f6a41cb8b236b64ca8f407ed546ee77b"],
         "lib/rpg-character-code.js": ["df3f81b70413dd6dbc3c1aa0731c3f70", "01419b021c6e1642828802143aa4ba04"],
         "lib/rpg-character-overlays.js": ["b83d1ed004bab8c68a11e0830ed76c1f", "1dd81919b48d302aa8b8d71cdb9136ed"],
         "lib/rpg-character-seasons.js": ["772b223b9c5eb19dd00f4bd0b606a41d", "25fc812a5dcf2d293a2295d68e1742d2"],
@@ -47412,14 +47418,14 @@
         "locales/simple-autocomplete.yo.json": ["3aac74733e2d496f3dd30b99cdf233dd", "3aac74733e2d496f3dd30b99cdf233dd"],
         "locales/simple-autocomplete.zh.json": ["b9b0851d7b9c30faa5958340af420d8d", "b9b0851d7b9c30faa5958340af420d8d"],
         "locales/simple-autocomplete.zu.json": ["758b9d80bee50a69d3cfd78b210b06e0", "758b9d80bee50a69d3cfd78b210b06e0"],
-        "simple-autocomplete.js": ["0e657257210f21983b427498183b7cce", "e66158c737a9ea81843f75e27152825e"]
+        "simple-autocomplete.js": ["55567113edf9bdc1851aeb7f646d3e10", "b097c76a0b4d6a4e8fbf61f38d4b4fec"]
       },
       "source": "elements/simple-autocomplete",
       "version": "26.8.0"
     },
     "@haxtheweb/simple-blog": {
       "files": {
-        "lib/simple-blog-footer.js": ["67b00c6b3b03b7bab6890425196aa419", "b202e66772fef6e4265ab61679931e50"],
+        "lib/simple-blog-footer.js": ["fd3ee23ee01f4469d1015957bd0168bd", "ea2b729684d7d4fd9c35fcea480bef54"],
         "lib/simple-blog-header.js": ["6c15ddfcad89657621f2d8cfb265770c", "6863d8ea7834c8bae3dc174359fcbf63"],
         "lib/simple-blog-listing.js": ["e53def4f1c8f81d1e4b95448c4087c64", "eeff727d31f1f0f99fc53c60d9061239"],
         "lib/simple-blog-overview.js": ["3284c15ed3eb45c5bc2307a01a75a5a7", "e28e471c0f5fcb187d6ac2a1f7bce0e0"],
@@ -47631,7 +47637,7 @@
         "locales/simple-blog.yo.json": ["569b2e34f850f46c82b469927d6fdecf", "569b2e34f850f46c82b469927d6fdecf"],
         "locales/simple-blog.zh.json": ["5de3414c05b46741cab62d1ef0b4109c", "5de3414c05b46741cab62d1ef0b4109c"],
         "locales/simple-blog.zu.json": ["253030d08457fdafc418eb5e658fc8f3", "253030d08457fdafc418eb5e658fc8f3"],
-        "simple-blog.js": ["b426d5220c4706b8349c9bd9f5f41ff5", "31aad42a39c4d4f27c4623fe73a02729"]
+        "simple-blog.js": ["10df2b90beef2aa2d9e9de99c312e673", "38e8175a1f816f974a13c67e5042612f"]
       },
       "source": "elements/simple-blog",
       "version": "26.8.0"
@@ -47792,10 +47798,10 @@
       "files": {
         "lib/simple-camera-snap.js": ["408b252532b73c4b3666cb3989a9c10d", "a0526881b24ca29d1157e3edd47b20e4"],
         "lib/simple-context-menu.js": ["54b862b77d49d1d42be6b83dc1cfebd7", "00db382cb8c7a6586c2d0e5130b08069"],
-        "lib/simple-fields-array-item.js": ["b61bb6d63e597ba9b24da4fabe9876b8", "42adcb89b009359d0ae4dd3d529745b6"],
+        "lib/simple-fields-array-item.js": ["5c557dc017b48dac47f8eb1af421ddd2", "b1d2b6e27eceac3ca102011f7c5ee136"],
         "lib/simple-fields-array.js": ["3841588df8596d858b197396a82aaf00", "2f4cb6e4c1026282157499d8278f7b32"],
         "lib/simple-fields-code.js": ["bc0cc2590678e47cfe42416cac70acfe", "dcfb04f4f32d30f3925691110ca52ea2"],
-        "lib/simple-fields-combo.js": ["a2e43c4e55e91fd77d8c006446483920", "36742ea25d72d097d6196b04d2f95362"],
+        "lib/simple-fields-combo.js": ["ed767efe0ca7bdeca451f831e8c5e7ce", "8922d098d8a3b489a2d14e51b45ca13c"],
         "lib/simple-fields-container.js": ["7f0973dd0fda7202ce48a047afe3ded0", "ae707f83a08d5df2b1f947d422b75514"],
         "lib/simple-fields-field.js": ["5cd0e47c950385bc3e22ac918c71c95f", "1c57e398cb842ad12e67de9e1f3e6a2e"],
         "lib/simple-fields-fieldset.js": ["5aa041341aeca87788253415afdc0693", "190797fb4498318fc3d614bd9d73ca45"],
@@ -49905,7 +49911,7 @@
     },
     "@haxtheweb/simple-popover": {
       "files": {
-        "lib/simple-popover-manager.js": ["f85b8f362717a56beb0c5ebb4c12d519", "5bddd1902a62921fd8857eca6a22a187"],
+        "lib/simple-popover-manager.js": ["6e108811aff97982ae3ca2feca4399c8", "435f9a6bff4ba53dedbf32919bcc4538"],
         "lib/simple-popover-selection.js": ["c710e348618586ef5532765d830c7ed1", "886ef8318863fd77b7792086085edda8"],
         "lib/simple-popover.docs.json": ["3db96ef4c50cada433d74c92ff2afcc2", "3db96ef4c50cada433d74c92ff2afcc2"],
         "lib/simple-popover.motion.json": ["b3ab9a55a25537daceb72b627367f9c3", "b3ab9a55a25537daceb72b627367f9c3"],
@@ -50013,7 +50019,7 @@
         "locales/simple-tour.yo.json": ["9c28a20f72d565db0d03806f56dc1e02", "9c28a20f72d565db0d03806f56dc1e02"],
         "locales/simple-tour.zh.json": ["142bff4d800eac97e3ac2798ebca104a", "142bff4d800eac97e3ac2798ebca104a"],
         "locales/simple-tour.zu.json": ["2345b7f01e042f8c1a1a1237e2e577dd", "2345b7f01e042f8c1a1a1237e2e577dd"],
-        "simple-popover.js": ["fbe3e4258e337b3dfb5fbb4f7f1d899b", "1c708e59f81b18e3aa99bf086d23690b"]
+        "simple-popover.js": ["c472de9c044ae35c08d288edd861df6f", "3cf85b9349df430b9a4e1fd98330258d"]
       },
       "source": "elements/simple-popover",
       "version": "26.8.0"
@@ -50077,7 +50083,7 @@
       "files": {
         "lib/simple-tooltip.docs.json": ["e050b693654bcbddafc22169ffa4e96d", "e050b693654bcbddafc22169ffa4e96d"],
         "lib/simple-tooltip.motion.json": ["936e3786fb018e241150008f9a30d4bd", "936e3786fb018e241150008f9a30d4bd"],
-        "simple-tooltip.js": ["89be0d05800593d1e19228ef6e968632", "b76a258f5bd08a7e1644e1c25705a4cc"]
+        "simple-tooltip.js": ["97eb231350329ccd96ef168ae75139cb", "09f327288cf6af8488f1d898934ac16b"]
       },
       "source": "elements/simple-tooltip",
       "version": "26.8.0"
@@ -52152,7 +52158,7 @@
         "locales/super-daemon.yo.json": ["64f1f71bd713ea302604d55a6bb3715a", "64f1f71bd713ea302604d55a6bb3715a"],
         "locales/super-daemon.zh.json": ["675d1c2052adb22aba5d925af03226ab", "675d1c2052adb22aba5d925af03226ab"],
         "locales/super-daemon.zu.json": ["ab8b1741bde5d0f3ad953ace4ee6af64", "ab8b1741bde5d0f3ad953ace4ee6af64"],
-        "super-daemon.js": ["ac70f485e02f199c2a6733b0a258c55b", "a3ce0f2266d06f1905731d8ba204299a"]
+        "super-daemon.js": ["27548db3df81d1e2008c09a0dccb98e5", "b1112a2bfebaaac8dbde94ec15c0495c"]
       },
       "source": "elements/super-daemon",
       "version": "26.8.0"
@@ -52800,7 +52806,7 @@
         "locales/tailwind-theme.yo.json": ["cf8cbe46af5bfd026cc17b13a85cf5b2", "cf8cbe46af5bfd026cc17b13a85cf5b2"],
         "locales/tailwind-theme.zh.json": ["9ce11563861a647731f7ed812d6282d8", "9ce11563861a647731f7ed812d6282d8"],
         "locales/tailwind-theme.zu.json": ["ad6119afd85252bef5945f959491c7ca", "ad6119afd85252bef5945f959491c7ca"],
-        "tailwind-theme.js": ["0af4591bcc0739aa09bcc4ae8961bbc6", "2a24378537f55eb7b832c55b5bfc1878"]
+        "tailwind-theme.js": ["fe8e9fffc75204dd244ef9db88379f91", "515873c89b5436777b7eee7589878c47"]
       },
       "source": "elements/tailwind-theme",
       "version": "26.8.0"
@@ -52830,7 +52836,7 @@
     },
     "@haxtheweb/training-theme": {
       "files": {
-        "lib/training-button.js": ["b4184ae882456ec09276767ea93419b4", "e87a1e3ee974da9d32cd1d77f5012632"],
+        "lib/training-button.js": ["566845d65199f2efca5c6cd75af97198", "ea9aa5d2c9b28cc452e2327d830e2503"],
         "lib/training-theme.docs.json": ["81938e5df24a527e2664f16824866699", "81938e5df24a527e2664f16824866699"],
         "training-theme.js": ["99f89cb8b86967f6a0ff4a35dbe1bff6", "4c161603ac0651d9d98c531536c6a442"]
       },
@@ -54233,7 +54239,7 @@
         "locales/vhs-blog-theme.yo.json": ["8382814057450739d67abe9851b80057", "8382814057450739d67abe9851b80057"],
         "locales/vhs-blog-theme.zh.json": ["9d25a90828e402e4c6e68a8066f776aa", "9d25a90828e402e4c6e68a8066f776aa"],
         "locales/vhs-blog-theme.zu.json": ["f3e828c9d15cdde3ddd5b78eb82b1406", "f3e828c9d15cdde3ddd5b78eb82b1406"],
-        "vhs-blog-theme.js": ["8d67028c51f3f2b2e24e271cfd73646f", "44553744f485097743268db78ec0341a"]
+        "vhs-blog-theme.js": ["4df1e7db7d00ba2d2b33b0254809effa", "da4b66546462666c99917869c2c4c251"]
       },
       "source": "elements/vhs-blog-theme",
       "version": "26.8.1"
@@ -54871,7 +54877,7 @@
         "locales/vocab-term.yo.json": ["699bfabd03793a98bca4b5fca6d1657b", "699bfabd03793a98bca4b5fca6d1657b"],
         "locales/vocab-term.zh.json": ["82ea49eeff8836070f75c58ac505c135", "82ea49eeff8836070f75c58ac505c135"],
         "locales/vocab-term.zu.json": ["e4dce5e8344233d9eb1fa4c478c07555", "e4dce5e8344233d9eb1fa4c478c07555"],
-        "vocab-term.js": ["b6700928fa4fe02262131d5809577f3b", "9968905351954ee698c0d172804da0f5"]
+        "vocab-term.js": ["f21b621435ece3a03a2f0fd22eaa105f", "22672e0653eededa2ccc61b338d3bab9"]
       },
       "source": "elements/vocab-term",
       "version": "26.8.0"
@@ -56493,7 +56499,7 @@
     }
   },
   "source": {
-    "commit": "fb0214cc3825a3464e2fa8d13273b90e4180b0e4",
+    "commit": "f7649e8294092b48986f87445481bcc7a639d953",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
