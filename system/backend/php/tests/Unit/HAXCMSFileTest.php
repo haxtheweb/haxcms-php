@@ -45,8 +45,8 @@ class HAXCMSFileTest extends TestCase
             'case-insensitive JPG' => ['JPG', ['image/jpeg']],
             'jpeg' => ['jpeg', ['image/jpeg']],
             'png' => ['png', ['image/png']],
-            'htm folded into html' => ['htm', ['text/html', 'application/xhtml+xml']],
-            'html' => ['html', ['text/html', 'application/xhtml+xml']],
+            'htm folded into html' => ['htm', ['text/html', 'application/xhtml+xml', 'text/plain']],
+            'html' => ['html', ['text/html', 'application/xhtml+xml', 'text/plain']],
             'mp3 has two allowed mimes' => ['mp3', ['audio/mpeg', 'audio/mp3']],
             'svg' => ['svg', ['image/svg+xml']],
             'php executable never allowed' => ['php', null],
@@ -60,5 +60,21 @@ class HAXCMSFileTest extends TestCase
     public function testGetAllowedMimeByExtension(string $ext, ?array $expected): void
     {
         $this->assertSame($expected, HAXCMSFile::getAllowedMimeByExtension($ext));
+    }
+
+    public function testUploadRejectionStatusRefusedFilesAre400FailedWritesStay500(): void
+    {
+        // same rule as haxcms-nodejs HAXCMSFile.uploadRejectionStatus
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('File type not allowed'));
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('Detected MIME type text/plain does not match allowed type for .png'));
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('Invalid image file content'));
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('Invalid subfolder'));
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('Invalid upload source'));
+        $this->assertSame(400, HAXCMSFile::uploadRejectionStatus('File exceeds the maximum upload size of 20MB'));
+        $this->assertSame(500, HAXCMSFile::uploadRejectionStatus('Unable to save file to target location'));
+        $this->assertSame(500, HAXCMSFile::uploadRejectionStatus('Failed to download remote file source'));
+        $this->assertSame(500, HAXCMSFile::uploadRejectionStatus('Unable to save file'));
+        $this->assertSame(500, HAXCMSFile::uploadRejectionStatus('Uploaded file is missing'));
+        $this->assertSame(500, HAXCMSFile::uploadRejectionStatus(null));
     }
 }
