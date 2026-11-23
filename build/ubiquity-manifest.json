@@ -14042,7 +14042,7 @@
     },
     "@haxtheweb/example-haxcms-theme": {
       "files": {
-        "example-haxcms-theme.js": ["d6b416fd82f5847752b291cc8bef97a6", "f0797d55d94680b072dfb2c95a4fd3cd"],
+        "example-haxcms-theme.js": ["1d447fb531e4fd03acd77c31e1bdbe26", "e5ce29940d2794ee2cad888015e82d43"],
         "lib/example-haxcms-theme.docs.json": ["cf14512ea8154399d4323a93c0214e77", "cf14512ea8154399d4323a93c0214e77"],
         "lib/example-haxcms-theme.haxProperties.json": ["b6ce3c58546c0af866f6d9340266d144", "b6ce3c58546c0af866f6d9340266d144"],
         "locales/example-haxcms-theme.haxProperties.af.json": ["7a00e4a80df7bfd7ecc2ac08085724b8", "7a00e4a80df7bfd7ecc2ac08085724b8"],
@@ -31292,7 +31292,7 @@
         "lib/LanguageRegistry.js": ["006e1442b4cc51740a212d7a526ff160", "4e57be5c0cc885060fca139af50a6087"],
         "lib/i18n-manager.docs.json": ["99f7770c16451a1fa21d6dae006a5a52", "99f7770c16451a1fa21d6dae006a5a52"],
         "lib/languages.json": ["a822d83983b7338a83dcd23c42cf350c", "a822d83983b7338a83dcd23c42cf350c"],
-        "lib/translation-manifest.json": ["9e5298908bd7fcaa9c392a47655ea642", "ff7ce838897a16c971448ae73972f0ab"]
+        "lib/translation-manifest.json": ["29ec079380156297b815a48c000cf517", "ff7ce838897a16c971448ae73972f0ab"]
       },
       "source": "elements/i18n-manager",
       "version": "26.8.0"
@@ -48465,7 +48465,7 @@
       "files": {
         "lib/build.sh": ["f2778ffb9cd4a293f8541c5c2da3fec2", "f2778ffb9cd4a293f8541c5c2da3fec2"],
         "lib/simple-clipboard-copy-button.js": ["a4aaeecabc12282cf4151c65c7ede423", "995ef07624764d53c02f2d7de267d5e8"],
-        "lib/simple-icon-button-lite.js": ["f227b8c8f251fa9108043c27e55af7ad", "5f50aba391f8932557862c1243f729f2"],
+        "lib/simple-icon-button-lite.js": ["02d12f6e8e27f85db9bb41e4bed95003", "8331d37e69c1ac39adb512126c04d0a9"],
         "lib/simple-icon-button.js": ["01d3c32b42ce324bff53a2c5114016cf", "813e9e341f1df03cb8e0567df69dfb89"],
         "lib/simple-icon-lite.js": ["ad759ad8f59ee03b4d7a130a0cd20be5", "920e9f81a976dbca595d6032301f05a9"],
         "lib/simple-icon.docs.json": ["62c1a4d986d46c9e4ddd3d7216b671f9", "62c1a4d986d46c9e4ddd3d7216b671f9"],
@@ -56505,7 +56505,7 @@
     }
   },
   "source": {
-    "commit": "45db317fca956d59c8782f088a8841a639f7be12",
+    "commit": "84bd95212de43bfbffdee41b0aa03565cf99ff44",
     "repository": "haxtheweb/webcomponents",
     "version": "26.8.0"
   },
