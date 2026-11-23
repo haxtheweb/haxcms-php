@@ -9,6 +9,7 @@ class HAXSiteConfig {
   public $color;    // color, leveraged for a primary site color to use in loading / accents
   public $name;     // name of the site
   public $pageNotFound = false; // request resolved to shell but not a known page
+  public $pageUnpublished = false; // request resolved to a page that is not published
   
   public function __construct($site = null) {
     $this->site = $site;
@@ -35,6 +36,21 @@ class HAXSiteConfig {
     ) {
       $this->pageNotFound = true;
       http_response_code(404);
+    }
+    // Security: the shell is served without a login, so it follows the
+    // anonymous rule of the site API: an unpublished page gives nothing about
+    // itself here (no body, title, description or alternate formats). The
+    // shell still answers 200 so an editor reloading the page gets the app,
+    // which loads the page once they are signed in.
+    // Mirrors haxcms-nodejs tryServePageVariantRequest.
+    if (
+      !$this->pageNotFound &&
+      isset($this->site) &&
+      method_exists($this->site, 'isPagePublished') &&
+      !$this->site->isPagePublished($this->page)
+    ) {
+      $this->pageUnpublished = true;
+      $this->page = null;
     }
     if (
       isset($this->site) &&
@@ -125,10 +141,10 @@ class HAXSiteConfig {
   }
   public function getSiteMetadata($page = null) {
     $metadata = $this->site->getSiteMetadata($page);
-    // a page miss answers 404 with the site shell; keep it out of search
-    // results. Private sites already send "none"; only the public value
+    // a page miss answers 404 with the site shell, and an unpublished page
+    // answers the shell without the page; keep both out of search results. Private sites already send "none"; only the public value
     // changes, and any noai directives after it are kept.
-    if ($this->pageNotFound) {
+    if ($this->pageNotFound || $this->pageUnpublished) {
       $metadata = str_replace(
         '<meta name="robots" content="index, follow',
         '<meta name="robots" content="noindex, follow',

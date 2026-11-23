@@ -53,6 +53,7 @@ Inline comments name the invariant they enforce as `// Security (<TAG>): <rule>`
 | `SEC-RATELIMIT` | login / Basic-auth throttles, request and file-op limiters | Rate limiting |
 | `SEC-INSTALL` | installer, secret/key generation, default credentials, install token, file modes on secrets | Install |
 | `SEC-EXPORT` | download/export artifacts (random names, TTL sweep, `_published/`), CSPRNG identifiers, html export `magic` CDN (ignored for anonymous callers, otherwise an absolute http(s) base URL only) | Randomness |
+| `SEC-UNPUBLISHED` | what is served without a login follows the anonymous rule of the site API: for an unpublished page the site shell inlines no body, title or description and is `noindex`, and its alternate formats (`<slug>.md`, `.json`, `.yaml`, `.xml`, `Accept` negotiation) answer 404 (`HAXSiteConfig`, `respondWithRequestedPageVariant`). `site.json` and the files under `pages/` are static files the editor itself loads, so they stay readable by address: unpublished hides a page from the site, it is not access control | Route policy |
 | `SEC-DOS` | size caps, ReDoS-safe regexes, decompression / YAML alias amplification limits | Egress, Uploads (caps) |
 | `SEC-MAGICLINK` | one-time sign-in links: minting, storage, redemption, HAXiam gating | Magic links |
 | `SEC-DEPLOY` | `.htaccess` / nginx denies, Docker image, deployment config, CLI-only scripts | Deployment |

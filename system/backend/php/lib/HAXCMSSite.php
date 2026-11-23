@@ -2599,6 +2599,18 @@ class HAXCMSSite
         }
         return false;
       }
+      // Security: variants are served without a login, so an unpublished page
+      // has none (same rule as the shell, see HAXSiteConfig). Mirrors
+      // haxcms-nodejs tryServePageVariantRequest.
+      if (!$this->isPagePublished($page)) {
+        if ($variantInfo['format']) {
+          http_response_code(404);
+          header('Content-Type: text/plain; charset=utf-8');
+          print 'Not found';
+          return true;
+        }
+        return false;
+      }
       $canonicalPath = $this->getCanonicalPagePathForSlug($slug);
       if ($variantInfo['format']) {
         $filePath = $this->getAlternateFilePathForPageFormat($page, $variantInfo['format']);
@@ -2625,6 +2637,15 @@ class HAXCMSSite
         }
       }
       return false;
+    }
+    /**
+     * Whether a page is published: what the shell and the page variants,
+     * served without a login, may show (SiteRouteUtils::isItemPublished).
+     */
+    public function isPagePublished($page = null)
+    {
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
+      return SiteRouteUtils::isItemPublished($page);
     }
     /**
      * Send Link headers advertising available alternate page formats.
