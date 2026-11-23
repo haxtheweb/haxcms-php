@@ -1255,9 +1255,10 @@ class HAXCMSSite
       return '';
     }
     /**
-     * Fallback sitemap XML writer when absolute-domain sitemap generation is unavailable.
+     * Build sitemap.xml: one <url> per page with loc, lastmod, changefreq and
+     * priority, the same fields haxcms-nodejs writes.
      */
-    private function buildSitemapFallbackXml($domain = '')
+    private function buildSitemapXml($domain = '')
     {
       $base = is_string($domain) ? $domain : '';
       if ($base == '') {
@@ -1272,24 +1273,30 @@ class HAXCMSSite
           continue;
         }
         $loc = rtrim($base, '/') . '/' . ltrim($item->slug, '/');
-        $lastmod = '';
+        $priority = '0.5';
+        if (!isset($item->parent) || $item->parent == null) {
+          $priority = '1.0';
+        } elseif (isset($item->indent) && $item->indent == 2) {
+          $priority = '0.7';
+        }
+        $updated = time();
         if (isset($item->metadata->updated) && is_numeric($item->metadata->updated)) {
-          $lastmod = gmdate('c', intval($item->metadata->updated));
+          $updated = intval($item->metadata->updated);
         }
         $xml[] = '  <url>';
         $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
-        if ($lastmod != '') {
-          $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue($lastmod) . '</lastmod>';
-        }
+        $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue(gmdate('c', $updated)) . '</lastmod>';
+        $xml[] = '    <changefreq>daily</changefreq>';
+        $xml[] = '    <priority>' . $priority . '</priority>';
         $xml[] = '  </url>';
       }
       $xml[] = '</urlset>';
       return implode("\n", $xml) . "\n";
     }
     /**
-     * Fallback sitemap-index XML writer when absolute-domain sitemap generation is unavailable.
+     * Build sitemap-index.xml, which points at sitemap.xml.
      */
-    private function buildSitemapIndexFallbackXml($domain = '')
+    private function buildSitemapIndexXml($domain = '')
     {
       $base = is_string($domain) ? $domain : '';
       if ($base == '') {
@@ -1351,59 +1358,31 @@ class HAXCMSSite
               // some of these XML parsers are a bit unstable
           }
       }
-      // build a sitemap if we have a domain, kinda required...
+      // The sitemap is always two plain files, sitemap.xml and sitemap-index.xml,
+      // the names haxcms-nodejs writes and the site API links to. Page addresses
+      // are absolute whenever an absolute domain can be worked out.
       if (is_null($format) || $format == 'sitemap') {
           try {
               $sitemapDomain = $this->getAbsoluteSiteDomainForSitemap($domain);
-              if (!empty($sitemapDomain) && preg_match('/^https?:\\/\\//i', $sitemapDomain)) {
-                  $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                      $sitemapDomain,
-                      $siteDirectory
-                  );
-                  // will create also compressed (gzipped) sitemap
-                  $generator->enableCompression();
-                  // determine how many urls should be put into one file
-                  // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-                  $generator->setMaxUrlsPerSitemap(50000);
-                  // sitemap file name
-                  $generator->setSitemapFilename("sitemap.xml");
-                  // sitemap index file name
-                  $generator->setSitemapIndexFilename("sitemap-index.xml");
-                  // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-                  foreach ($this->manifest->items as $key => $item) {
-                      if ($item->parent == null) {
-                          $priority = '1.0';
-                      } elseif ($item->indent == 2) {
-                          $priority = '0.7';
-                      } else {
-                          $priority = '0.5';
-                      }
-                      $updatedTime = new DateTime();
-                      $updatedTime->setTimestamp($item->metadata->updated);
-                      $updatedTime->format(DateTime::ATOM);
-                      @$generator->addUrl(
-                          rtrim($sitemapDomain, '/') . '/' . ltrim($item->slug, '/'),
-                          $updatedTime,
-                          'daily',
-                          $priority
-                      );
-                  }
-                  // writing early generated sitemap to file
-                  @$generator->flush();
-                  @$generator->finalize();
+              if (empty($sitemapDomain) || !preg_match('/^https?:\\/\\//i', $sitemapDomain)) {
+                  $sitemapDomain = $domain;
               }
-              else if (!empty($domain)) {
+              if (!empty($sitemapDomain)) {
                   @file_put_contents(
                       $siteDirectory . 'sitemap.xml',
-                      $this->buildSitemapFallbackXml($domain)
+                      $this->buildSitemapXml($sitemapDomain)
                   );
                   @file_put_contents(
                       $siteDirectory . 'sitemap-index.xml',
-                      $this->buildSitemapIndexFallbackXml($domain)
+                      $this->buildSitemapIndexXml($sitemapDomain)
                   );
+                  // a compressed copy from an earlier version would now be out of date
+                  if (is_file($siteDirectory . 'sitemap.xml.gz')) {
+                      @unlink($siteDirectory . 'sitemap.xml.gz');
+                  }
               }
           } catch (Exception $e) {
-              // some of these XML parsers are a bit unstable
+              // never fail a save on sitemap serialization
           }
       }
       if (is_null($format) || $format == 'search') {
