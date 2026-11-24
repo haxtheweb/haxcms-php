@@ -44,10 +44,7 @@ return function ($context) {
         }
         $record = SiteRouteUtils::itemToSummary($item, $apiBasePath);
         if (isset($record['id']) && array_key_exists((string) $record['id'], $navigationMap)) {
-            $record['links']['previous'] = $navigationMap[(string) $record['id']]['previous'];
-            $record['links']['next'] = $navigationMap[(string) $record['id']]['next'];
-            $record['links']['parent'] = $navigationMap[(string) $record['id']]['parent'];
-            $record['links']['children'] = $navigationMap[(string) $record['id']]['children'];
+            SiteRouteUtils::applyItemNavigationLinks($record, $navigationMap[(string) $record['id']]);
         }
         $lookupValue = SiteRouteUtils::getItemLookupValue($item);
         $exportBase = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export';
@@ -88,10 +85,7 @@ return function ($context) {
     foreach ($filteredItems as $item) {
         $record = SiteRouteUtils::itemToSummary($item, $apiBasePath);
         if (isset($record['id']) && array_key_exists((string) $record['id'], $navigationMap)) {
-            $record['links']['previous'] = $navigationMap[(string) $record['id']]['previous'];
-            $record['links']['next'] = $navigationMap[(string) $record['id']]['next'];
-            $record['links']['parent'] = $navigationMap[(string) $record['id']]['parent'];
-            $record['links']['children'] = $navigationMap[(string) $record['id']]['children'];
+            SiteRouteUtils::applyItemNavigationLinks($record, $navigationMap[(string) $record['id']]);
         }
         $lookupValue = SiteRouteUtils::getItemLookupValue($item);
         $exportBase = $apiBasePath . '/v1/items/' . rawurlencode($lookupValue) . '/export';

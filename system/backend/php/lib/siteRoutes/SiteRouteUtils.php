@@ -359,11 +359,17 @@ class SiteRouteUtils
         if (!is_numeric($value)) {
             return null;
         }
-        $unixTime = intval($value);
-        if ($unixTime <= 0) {
+        $seconds = floatval($value);
+        if ($seconds <= 0) {
             return null;
         }
-        return gmdate('c', $unixTime);
+        // the format of JavaScript's Date.toISOString(), the same as
+        // haxcms-nodejs and site-spec.yaml: 2025-10-09T08:53:20.000Z
+        // (milliseconds always written, UTC as Z, fractions of a millisecond
+        // dropped)
+        $milliseconds = (int) floor($seconds * 1000);
+        $wholeSeconds = intdiv($milliseconds, 1000);
+        return gmdate('Y-m-d\\TH:i:s', $wholeSeconds) . '.' . sprintf('%03d', $milliseconds % 1000) . 'Z';
     }
     public static function getVersion()
     {
@@ -563,9 +569,28 @@ class SiteRouteUtils
         }
         return $items;
     }
+    /**
+     * JavaScript's decodeURIComponent: %XX sequences are decoded and a + stays
+     * a +. A value that is not a valid encoding (a % not followed by two hex
+     * digits, bytes that are not UTF-8) is kept as it is, where
+     * decodeURIComponent would throw. haxcms-nodejs decodeUriComponentOrKeep
+     * follows the same rule.
+     */
+    public static function decodeUriComponentOrKeep($value)
+    {
+        $text = (string) $value;
+        if (preg_match('/%(?![0-9a-fA-F]{2})/', $text) === 1) {
+            return $text;
+        }
+        $decoded = rawurldecode($text);
+        if (!mb_check_encoding($decoded, 'UTF-8')) {
+            return $text;
+        }
+        return $decoded;
+    }
     public static function findItemByIdOrSlug($site, $idOrSlug = '')
     {
-        $value = urldecode(trim((string) $idOrSlug));
+        $value = self::decodeUriComponentOrKeep(trim((string) $idOrSlug));
         if ($value == '' || !isset($site) || !isset($site->manifest)) {
             return null;
         }
@@ -749,12 +774,68 @@ class SiteRouteUtils
         }
         $output = array();
         foreach ($fields as $field) {
-            $value = self::getValueByPath($record, $field);
-            if (!is_null($value)) {
+            // a field that is there with a null value is kept, a missing one
+            // is left out (the same as haxcms-nodejs projectRecord)
+            $found = false;
+            $value = self::lookupValueByPath($record, $field, $found);
+            if ($found) {
                 self::setValueByPath($output, $field, $value);
             }
         }
+        // a record is a JSON object even when no field matched: {} not []
+        if (count($output) === 0) {
+            return new stdClass();
+        }
         return $output;
+    }
+    /**
+     * getValueByPath, also telling whether the path exists ($found), so a
+     * value that is null can be told apart from a missing one.
+     */
+    public static function lookupValueByPath($record, $pathExpression, &$found)
+    {
+        $found = false;
+        $parts = explode('.', (string) $pathExpression);
+        $parts = array_values(array_filter($parts, function ($part) {
+            return $part !== '';
+        }));
+        if (count($parts) == 0) {
+            return null;
+        }
+        $active = $record;
+        foreach ($parts as $part) {
+            if (is_array($active) && array_key_exists($part, $active)) {
+                $active = $active[$part];
+                continue;
+            }
+            if (is_object($active) && property_exists($active, $part)) {
+                $active = $active->{$part};
+                continue;
+            }
+            return null;
+        }
+        $found = true;
+        return $active;
+    }
+    /**
+     * Put an item's previous / next / parent / children links on a record.
+     * A link the page does not have (no previous page, a top-level page) is
+     * left out of links, not sent as null: the same as haxcms-nodejs
+     * appendItemNavigationLinks and the ItemRecord example in site-spec.yaml.
+     */
+    public static function applyItemNavigationLinks(&$record, $navigation)
+    {
+        if (!isset($record['links']) || !is_array($record['links'])) {
+            $record['links'] = array();
+        }
+        foreach (array('previous', 'next', 'parent', 'children') as $rel) {
+            if (isset($navigation[$rel]) && is_string($navigation[$rel]) && $navigation[$rel] !== '') {
+                $record['links'][$rel] = $navigation[$rel];
+            }
+            else {
+                unset($record['links'][$rel]);
+            }
+        }
     }
     public static function projectCollection($records = array(), $fields = array())
     {

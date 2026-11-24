@@ -144,6 +144,16 @@ return function ($context) {
     $include = SiteRouteUtils::getCsvQuery('include');
     $fields = SiteRouteUtils::getCsvQuery('fields');
     $webcomponentName = isset($context->params['webcomponentName']) ? trim((string) $context->params['webcomponentName']) : '';
+    // a blank name asks for an element, not the list: 404, as haxcms-nodejs does
+    if (isset($context->params['webcomponentName']) && $webcomponentName === '') {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Custom element not found'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     if ($webcomponentName != '') {
         $records = $buildCustomElementRecords($include);
         $target = null;

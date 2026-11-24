@@ -151,18 +151,38 @@ return function ($context) {
             $siteToken = '';
         }
         $body['site_token'] = $siteToken;
+        // whether file operations are allowed is checked first, before the
+        // uuid or the file, as haxcms-nodejs does (haxtheweb/issues#3394)
+        if (isset($context->site) && !$operations->platformAllows($context->site, 'uploadMedia')) {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'File operations are disabled for this site',
+                ),
+                array(
+                    'statusCode' => 403,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        $patchOperation = '';
         if ($method === 'DELETE') {
-            if (!isset($body['operation']) || $body['operation'] === '') {
-                $body['operation'] = 'delete';
-            }
+            // DELETE deletes: an operation in the body never turns it into
+            // another operation (haxcms-nodejs forces delete the same way)
+            $body['operation'] = 'delete';
         }
         else if ($method === 'PATCH') {
-            // D1: reject {operation:'delete'} on PATCH mirroring Node files.js
-            // (1148-1153). File deletion must use DELETE /v1/files/{fileUuid}.
-            $patchOperation = '';
+            // an operation is a string, trimmed and lowercased as in
+            // haxcms-nodejs; any other type counts as none
             if (isset($body['operation']) && is_string($body['operation'])) {
                 $patchOperation = strtolower(trim($body['operation']));
             }
+            $body['operation'] = $patchOperation;
+            // D1: reject {operation:'delete'} on PATCH mirroring Node files.js
+            // (1148-1153). File deletion must use DELETE /v1/files/{fileUuid}.
             if ($patchOperation === 'delete') {
                 SiteRouteUtils::sendFormattedResponse(
                     array(
@@ -188,7 +208,7 @@ return function ($context) {
         if ($fileUuid === '') {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'message' => 'File uuid is required',
+                    'message' => 'File uuid is required and must be a valid UUID',
                 ),
                 array(
                     'statusCode' => 400,
@@ -222,10 +242,26 @@ return function ($context) {
         if ($entity === null) {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'message' => 'File not found for fileUuid',
+                    'message' => 'Requested file was not found',
                 ),
                 array(
                     'statusCode' => 404,
+                    'allowedFormats' => array('json'),
+                    'defaultFormat' => 'json',
+                ),
+                $context->routeSuffix,
+                $context->apiBasePath
+            );
+            return;
+        }
+        // the file first, then the operation on it (haxcms-nodejs order)
+        if ($method === 'PATCH' && $patchOperation === '') {
+            SiteRouteUtils::sendFormattedResponse(
+                array(
+                    'message' => 'Operation is required',
+                ),
+                array(
+                    'statusCode' => 400,
                     'allowedFormats' => array('json'),
                     'defaultFormat' => 'json',
                 ),

@@ -59,6 +59,11 @@ return function ($context) {
         ),
     );
     $reportName = isset($context->params['report']) ? trim((string) $context->params['report']) : '';
+    // a blank name asks for a report, not the list: 404, as haxcms-nodejs does
+    if (isset($context->params['report']) && $reportName === '') {
+        $sendTopLevelError(404, 'Unknown report');
+        return;
+    }
     if ($reportName == '') {
         $reports = array();
         foreach ($REPORT_DEFINITIONS as $id => $definition) {

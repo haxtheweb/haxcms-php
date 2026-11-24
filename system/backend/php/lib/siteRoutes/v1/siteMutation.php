@@ -53,6 +53,32 @@ return function ($context) {
         $operations->rawParams = $body;
         $result = $operations->saveSeoSettings();
     } else if (substr($routeSuffix, -8) === '/outline') {
+        // getBody() decodes JSON objects as associative arrays, so an empty
+        // item {} and an empty list [] both arrive as array(). Keep an empty
+        // object an object, so it is answered "Each outline item requires an
+        // id" like haxcms-nodejs; a list stays "must be an object". Only the
+        // error message depends on this: neither one is ever saved.
+        if (isset($body['items']) && is_array($body['items'])) {
+            $rawPayload = json_decode($context->getRawBody());
+            // items sent as a JSON object ({}) is not a list: refused with
+            // "Outline payload requires an items array", as in haxcms-nodejs.
+            // getBody() made it an array, which would read as an empty list.
+            if (is_object($rawPayload) && isset($rawPayload->items) && is_object($rawPayload->items)) {
+                $body['items'] = null;
+            }
+            if (is_object($rawPayload) && isset($rawPayload->items) && is_array($rawPayload->items)) {
+                foreach ($rawPayload->items as $rawIndex => $rawItem) {
+                    if (
+                        $rawItem instanceof stdClass &&
+                        count(get_object_vars($rawItem)) === 0 &&
+                        array_key_exists($rawIndex, $body['items']) &&
+                        $body['items'][$rawIndex] === array()
+                    ) {
+                        $body['items'][$rawIndex] = new stdClass();
+                    }
+                }
+            }
+        }
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->saveOutline();

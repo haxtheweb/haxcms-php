@@ -242,7 +242,7 @@ class SiteApiRouter
                 if (!isset($matched[$index])) {
                     continue;
                 }
-                $params[$name] = urldecode((string) $matched[$index]);
+                $params[$name] = rawurldecode((string) $matched[$index]);
             }
             return array(
                 'file' => $routes[$case['route']],
@@ -273,7 +273,14 @@ class SiteApiRouter
                 if ($paramName == '') {
                     return false;
                 }
-                $params[$paramName] = urldecode($routePart);
+                // an empty segment (/blocks//usage) is no value: the route
+                // does not match, as with haxcms-nodejs (Express), and the
+                // request gets the "Unknown site API route" 404
+                if ($routePart === '') {
+                    return false;
+                }
+                // rawurldecode: a + in a path is a plus, not a space (decodeURIComponent)
+                $params[$paramName] = rawurldecode($routePart);
                 continue;
             }
             if ($patternPart !== $routePart) {

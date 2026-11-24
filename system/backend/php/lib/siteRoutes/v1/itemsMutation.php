@@ -84,9 +84,10 @@ return function ($context) {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $resolvedItemId;
-        }
+        // the page is the one the URL names: a node.id in the body never
+        // points the change at another page (haxcms-nodejs uses the path
+        // the same way; haxtheweb/issues#3394)
+        $body['node']['id'] = $resolvedItemId;
         // D51: read top-level body.operation only (Node canonical).
         // The previous fallback to body.node.details.operation has been removed.
         $operation = '';
@@ -138,8 +139,10 @@ return function ($context) {
                 $body['node']['details'][$detailKey] = $body[$detailKey];
             }
         }
+        // setImage and setMedia both take image, else media, as in
+        // haxcms-nodejs nodeDetailOperations (haxtheweb/issues#3394)
         if (
-            $operation === 'setMedia' &&
+            ($operation === 'setMedia' || $operation === 'setImage') &&
             !array_key_exists('image', $body['node']['details']) &&
             array_key_exists('media', $body['node']['details'])
         ) {
@@ -165,7 +168,18 @@ return function ($context) {
             // Build navigation map from ordered items and append links,
             // mirroring items.php read route and Node's buildItemNavigationMap +
             // appendItemNavigationLinks.
-            $orderedItems = SiteRouteUtils::getOrderedItems($context->site);
+            // from the outline as saved: $context->site was loaded before
+            // saveNodeDetails moved or indented the page, so its order is
+            // the old one (haxtheweb/issues#3394; haxcms-nodejs builds the
+            // links after the change)
+            $navSite = $context->site;
+            if (isset($context->site->manifest->metadata->site->name)) {
+                $reloaded = $GLOBALS['HAXCMS']->loadSite((string) $context->site->manifest->metadata->site->name);
+                if ($reloaded && isset($reloaded->manifest)) {
+                    $navSite = $reloaded;
+                }
+            }
+            $orderedItems = SiteRouteUtils::getOrderedItems($navSite);
             $itemById = array();
             foreach ($orderedItems as $navItem) {
                 if (isset($navItem->id)) {
@@ -199,10 +213,7 @@ return function ($context) {
             }
             $recordId = isset($record['id']) ? (string) $record['id'] : '';
             if ($recordId !== '' && isset($navMap[$recordId])) {
-                $record['links']['previous'] = $navMap[$recordId]['previous'];
-                $record['links']['next'] = $navMap[$recordId]['next'];
-                $record['links']['parent'] = $navMap[$recordId]['parent'];
-                $record['links']['children'] = $navMap[$recordId]['children'];
+                SiteRouteUtils::applyItemNavigationLinks($record, $navMap[$recordId]);
             }
             $result = array('status' => 200, 'data' => $record);
         }
@@ -210,9 +221,10 @@ return function ($context) {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $resolvedItemId;
-        }
+        // the page is the one the URL names: a node.id in the body never
+        // points the change at another page (haxcms-nodejs uses the path
+        // the same way; haxtheweb/issues#3394)
+        $body['node']['id'] = $resolvedItemId;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->deleteNode();
