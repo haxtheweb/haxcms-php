@@ -82,5 +82,5 @@ return function ($context) {
     }
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
-    print json_encode($openapi, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    print CanonicalFormat::json($openapi);
 };

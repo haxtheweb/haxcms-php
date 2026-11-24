@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../CanonicalFormat.php';
 include_once dirname(__FILE__) . '/../HAXCMSApiMessageCodes.php';
 include_once dirname(__FILE__) . '/../OpenApiSpecCache.php';
 class SiteRouteUtils
@@ -365,11 +366,7 @@ class SiteRouteUtils
         }
         // the format of JavaScript's Date.toISOString(), the same as
         // haxcms-nodejs and site-spec.yaml: 2025-10-09T08:53:20.000Z
-        // (milliseconds always written, UTC as Z, fractions of a millisecond
-        // dropped)
-        $milliseconds = (int) floor($seconds * 1000);
-        $wholeSeconds = intdiv($milliseconds, 1000);
-        return gmdate('Y-m-d\\TH:i:s', $wholeSeconds) . '.' . sprintf('%03d', $milliseconds % 1000) . 'Z';
+        return CanonicalFormat::isoDate($seconds);
     }
     public static function getVersion()
     {
@@ -1006,8 +1003,9 @@ class SiteRouteUtils
     }
     public static function serializePayload($payload, $format = 'json')
     {
+        // the canonical formats both backends write (lib/CanonicalFormat.php)
         if ($format == 'json') {
-            return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return CanonicalFormat::json($payload);
         }
         if ($format == 'yaml') {
             return self::toYaml($payload);
@@ -1019,13 +1017,13 @@ class SiteRouteUtils
             if (is_string($payload)) {
                 return $payload;
             }
-            return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return CanonicalFormat::prettyJson($payload);
         }
         if ($format == 'html') {
             if (is_string($payload)) {
                 return $payload;
             }
-            return '<pre>' . self::escapeHtmlValue(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) . '</pre>';
+            return '<pre>' . self::escapeHtmlValue(CanonicalFormat::prettyJson($payload)) . '</pre>';
         }
         return (string) $payload;
     }
@@ -1067,14 +1065,13 @@ class SiteRouteUtils
             }
             return '<' . $tag . '>' . $children . '</' . $tag . '>';
         }
-        return '<' . $tag . '>' . self::escapeXmlValue($value) . '</' . $tag . '>';
+        // true / false and JavaScript number text, as haxcms-nodejs writes them
+        return '<' . $tag . '>' . self::escapeXmlValue(CanonicalFormat::scalarString($value)) . '</' . $tag . '>';
     }
     public static function toYaml($value)
     {
-        if (class_exists('\\Symfony\\Component\\Yaml\\Yaml')) {
-            return \Symfony\Component\Yaml\Yaml::dump($value, 8, 2, \Symfony\Component\Yaml\Yaml::DUMP_OBJECT_AS_MAP);
-        }
-        return self::simpleYamlSerialize($value, 0);
+        // the canonical YAML both backends write (lib/CanonicalFormat.php)
+        return CanonicalFormat::yaml($value);
     }
     public static function parseYaml($yamlText = '')
     {
@@ -2212,51 +2209,5 @@ class SiteRouteUtils
             }
         }
         return $usage;
-    }
-    private static function simpleYamlSerialize($value, $level = 0)
-    {
-        $indent = str_repeat('  ', $level);
-        if (is_null($value)) {
-            return "null\n";
-        }
-        if (is_bool($value)) {
-            return ($value ? 'true' : 'false') . "\n";
-        }
-        if (is_numeric($value)) {
-            return (string) $value . "\n";
-        }
-        if (is_string($value)) {
-            $escaped = str_replace('"', '\"', $value);
-            return '"' . $escaped . "\"\n";
-        }
-        if (is_object($value)) {
-            $value = (array) $value;
-        }
-        if (is_array($value)) {
-            $isAssociative = array_keys($value) !== range(0, count($value) - 1);
-            $output = '';
-            if ($isAssociative) {
-                foreach ($value as $key => $item) {
-                    if (is_array($item) || is_object($item)) {
-                        $output .= $indent . $key . ":\n" . self::simpleYamlSerialize($item, $level + 1);
-                    }
-                    else {
-                        $output .= $indent . $key . ': ' . rtrim(self::simpleYamlSerialize($item, 0)) . "\n";
-                    }
-                }
-            }
-            else {
-                foreach ($value as $item) {
-                    if (is_array($item) || is_object($item)) {
-                        $output .= $indent . "-\n" . self::simpleYamlSerialize($item, $level + 1);
-                    }
-                    else {
-                        $output .= $indent . '- ' . rtrim(self::simpleYamlSerialize($item, 0)) . "\n";
-                    }
-                }
-            }
-            return $output;
-        }
-        return "\n";
     }
 }

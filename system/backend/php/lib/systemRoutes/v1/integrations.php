@@ -97,13 +97,13 @@ return function ($context) {
         $failedStatus = isset($response['__failed']['status']) ? (int) $response['__failed']['status'] : 500;
         http_response_code($failedStatus);
         if (isset($response['__failed']['message'])) {
-            print json_encode($response['__failed']['message']);
+            print CanonicalFormat::json($response['__failed']['message']);
         }
         else {
-            print json_encode(HAXCMSApiMessageCodes::annotate($response['__failed'], $failedStatus));
+            print CanonicalFormat::json(HAXCMSApiMessageCodes::annotate($response['__failed'], $failedStatus));
         }
     }
     else {
-        print json_encode(HAXCMSApiMessageCodes::annotate($response, $status));
+        print CanonicalFormat::json(HAXCMSApiMessageCodes::annotate($response, $status));
     }
 };

@@ -15,7 +15,7 @@
 'use strict';
 
 // [path, content hash] for the shell files; the hashes version the shell cache
-var shellFiles = {{ swhash|json_encode(constant('JSON_PRETTY_PRINT'))|raw }};
+var shellFiles = {{ swhashJson|raw }};
 
 function hashString(value) {
   var hash = 5381;

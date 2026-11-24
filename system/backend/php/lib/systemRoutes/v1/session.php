@@ -155,7 +155,7 @@ return function ($context) {
         // If login returns a flat {status, jwt} envelope, emit it directly
         if (is_array($response) && isset($response['status']) && isset($response['jwt']) && !isset($response['__failed'])) {
             header('Content-Type: application/json');
-            print json_encode($response);
+            print CanonicalFormat::json($response);
             exit;
         }
     }
@@ -249,7 +249,7 @@ return function ($context) {
         // response.jwt extraction).
         if (is_array($response) && isset($response['status']) && isset($response['jwt']) && !isset($response['__failed'])) {
             header('Content-Type: application/json');
-            print json_encode($response);
+            print CanonicalFormat::json($response);
             exit;
         }
     }

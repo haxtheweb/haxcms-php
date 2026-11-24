@@ -472,8 +472,8 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertSame('Home', $webPage['name']);
         $this->assertSame('Home page', $webPage['description']);
         $this->assertSame('en', $webPage['inLanguage']);
-        $this->assertSame('1970-01-01T00:16:40+00:00', $webPage['datePublished']);
-        $this->assertSame('1970-01-01T00:33:20+00:00', $webPage['dateModified']);
+        $this->assertSame('1970-01-01T00:16:40.000Z', $webPage['datePublished']);
+        $this->assertSame('1970-01-01T00:33:20.000Z', $webPage['dateModified']);
         $this->assertSame('item-page-1', $webPage['identifier']);
         $this->assertSame('https://meta.example.com#website', $webPage['isPartOf']['@id']);
     }

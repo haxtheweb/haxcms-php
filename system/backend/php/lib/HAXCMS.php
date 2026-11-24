@@ -4,6 +4,7 @@
  * Simply a tremendous CMS. The greatest.
  */
 // system constants
+include_once dirname(__FILE__) . '/CanonicalFormat.php';
 include_once 'Variables.php';
 // service creation / HAX app store service abstraction
 include_once 'HAXAppStoreService.php';

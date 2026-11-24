@@ -189,7 +189,7 @@ class RSSFeedTest extends TestCase
         $this->assertStringContainsString('<link>https://example.com/</link>', $xml);
         $this->assertStringContainsString('<description>A test site for RSS generation</description>', $xml);
         $this->assertStringContainsString('<language>en-US</language>', $xml);
-        $this->assertStringContainsString('<generator>HAXcms PHP</generator>', $xml);
+        $this->assertStringContainsString('<generator>HAXcms</generator>', $xml);
         $this->assertStringContainsString('</channel>', $xml);
         $this->assertStringContainsString('</rss>', $xml);
     }

@@ -214,7 +214,8 @@ return function ($context) {
         'icon' => $definition['icon'],
         'title' => $definition['title'],
         'description' => $definition['description'],
-        'generatedAt' => gmdate('c'),
+        // toISOString's format (milliseconds, Z), as haxcms-nodejs writes it
+        'generatedAt' => SiteRouteUtils::toIsoDateFromUnixTime(microtime(true)),
         'data' => $data,
         'links' => array(
             'self' => $apiBasePath . '/v1/reports/' . rawurlencode($definition['id']),

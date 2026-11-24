@@ -1339,7 +1339,7 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
         $publisher = isset($bookMeta['publisher']) ? (string) $bookMeta['publisher'] : 'HAX The Web';
         $description = isset($bookMeta['description']) ? (string) $bookMeta['description'] : '';
         $lang = isset($bookMeta['lang']) ? (string) $bookMeta['lang'] : 'en';
-        $date = isset($bookMeta['date']) ? (string) $bookMeta['date'] : gmdate('c');
+        $date = isset($bookMeta['date']) ? (string) $bookMeta['date'] : CanonicalFormat::isoDate(microtime(true));
         $identifier = isset($bookMeta['identifier']) ? (string) $bookMeta['identifier'] : 'urn:uuid:' . self::generateUUID();
         $coverPath = isset($bookMeta['coverPath']) ? (string) $bookMeta['coverPath'] : '';
         $basePath = isset($bookMeta['basePath']) ? (string) $bookMeta['basePath'] : '/';
@@ -1630,10 +1630,11 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
         ) {
             $unix = intval($site->manifest->metadata->site->updated);
             if ($unix > 0) {
-                return gmdate('c', $unix);
+                // toISOString's format, as haxcms-nodejs exports write it
+                return CanonicalFormat::isoDate($unix);
             }
         }
-        return gmdate('c');
+        return CanonicalFormat::isoDate(microtime(true));
     }
 
     public static function buildSiteEpubString($site, $basePath = '/', $ancestor = '')

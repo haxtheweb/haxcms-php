@@ -302,6 +302,6 @@ class SiteApiRouter
         http_response_code(200);
         header('Allow: ' . implode(', ', $normalized));
         header('Content-Type: application/json; charset=utf-8');
-        print json_encode(array('status' => 200, 'data' => array('methods' => $normalized)));
+        print CanonicalFormat::json(array('status' => 200, 'data' => array('methods' => $normalized)));
     }
 }
