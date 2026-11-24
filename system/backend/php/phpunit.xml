@@ -16,6 +16,7 @@
              Its scenarios still run, blocking, in the normal PHPUnit job. -->
         <testsuite name="saveOutline">
             <file>tests/Unit/JSONOutlineSchemaAtomicWriteTest.php</file>
+            <file>tests/Unit/JSONOutlineSchemaItemReadLocationTest.php</file>
             <file>tests/Unit/JSONOutlineSchemaItemWriteLocationTest.php</file>
             <file>tests/Unit/JSONOutlineSchemaOrderTreeCharacterizationTest.php</file>
             <file>tests/Unit/JSONOutlineSchemaTest.php</file>
