@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [26.11.0](https://github.com/haxtheweb/haxcms-php/compare/v26.8.1...v26.11.0) (2026-11-24)
+
+
+### Features
+
+* **api:** publish the MCP policy in system discovery ([ec98099](https://github.com/haxtheweb/haxcms-php/commit/ec9809980da3692a02d37063fe125d3de9833718)), closes [haxtheweb/issues#3140](https://github.com/haxtheweb/issues/issues/3140)
+* **auth:** HAXCMS_MAGIC_LINK_DISABLED as a hard system-level off switch ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([cb908a1](https://github.com/haxtheweb/haxcms-php/commit/cb908a1c23ff7dbc40e1cf1a26d84965d96851a9))
+* **auth:** magic links honour the HAXiam IAM marker; SEC-MAGICLINK invariant ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([67a5bdb](https://github.com/haxtheweb/haxcms-php/commit/67a5bdb521cea6f6cf5aea444da9ee2240cc8e49))
+* **auth:** one-time sign-in links for account recovery ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([cf88146](https://github.com/haxtheweb/haxcms-php/commit/cf88146fa41e08276b12ec5954b0d0d7bc768f98)), closes [haxcms-nodejs#67](https://github.com/haxtheweb/haxcms-nodejs/issues/67)
+* **auth:** one-time sign-in links off by default on HAXiam ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([274295b](https://github.com/haxtheweb/haxcms-php/commit/274295b77f66d88fef3bfd14960bd101b34fd77c))
+* group licenses and add CC0, public domain and software licenses ([9c1276f](https://github.com/haxtheweb/haxcms-php/commit/9c1276f0e4a2449db7602b8464fcd2eced39b592))
+* **import:** make sites and pages from .md, .txt and .odt files ([0aee2e3](https://github.com/haxtheweb/haxcms-php/commit/0aee2e3a7d6f0e61b08a594bf477029cf4d5f55d))
+* **import:** materialize docx inline images via FileEntity ([aeaabd7](https://github.com/haxtheweb/haxcms-php/commit/aeaabd71c8371f86eec59416b4f497164bb2f5d9))
+* Quarto importer (@system/quartoToSite) for [#2189](https://github.com/haxtheweb/haxcms-php/issues/2189) ([f93e433](https://github.com/haxtheweb/haxcms-php/commit/f93e4330db9a417d25f4ca4dca070f68e3ed4b95))
+* Quarto importer reads the source license and reports notices ([b06fa3a](https://github.com/haxtheweb/haxcms-php/commit/b06fa3a4b62faf5a28207f6962efaf5dec34b84d))
+
+
+### Bug Fixes
+
+* **api:** createNode with metadata no longer 500s (itemFromParams) ([65588a0](https://github.com/haxtheweb/haxcms-php/commit/65588a06b7ccc9c09ff7ff45d5ccf4b4af333dc8)), closes [haxtheweb/issues#3139](https://github.com/haxtheweb/issues/issues/3139)
+* **auth:** a switched-off magic-link endpoint looks like a route that doesn't exist ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([0e95c7f](https://github.com/haxtheweb/haxcms-php/commit/0e95c7f3481781cc846dc94950adf1e79e95ce43))
+* **auth:** align magic-link route with current master ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([99c07bb](https://github.com/haxtheweb/haxcms-php/commit/99c07bb90311aae1f29e06eeeefafefec8ef104c))
+* **auth:** clear PHPStan findings in the magic-link code ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([73e6a68](https://github.com/haxtheweb/haxcms-php/commit/73e6a684026d3f232074613166581e217b3d1189))
+* **auth:** magic links work in real browsers; review hardening ([#2854](https://github.com/haxtheweb/haxcms-php/issues/2854)) ([c8b7e5c](https://github.com/haxtheweb/haxcms-php/commit/c8b7e5cbd5f2b448f5ef3ece4558f86fb45338c4))
+* cache failures skip caching; createNode 400 when items create nothing; drop dead itemSelectorList ([eb28b61](https://github.com/haxtheweb/haxcms-php/commit/eb28b613b2b10fa21d0bf1a1663f6a5c5c22312e)), closes [haxtheweb/issues#3285](https://github.com/haxtheweb/issues/issues/3285)
+* **config:** default MCP to disabled on every deployment profile ([1fe453c](https://github.com/haxtheweb/haxcms-php/commit/1fe453c561075862b880819412acabb6a06a673d)), closes [haxtheweb/issues#3140](https://github.com/haxtheweb/issues/issues/3140)
+* **createSite:** accept remote URLs in build.files again ([03bb795](https://github.com/haxtheweb/haxcms-php/commit/03bb79529537ce7eb038d96712145c93b5506e64)), closes [haxtheweb/issues#3060](https://github.com/haxtheweb/issues/issues/3060) [#3043](https://github.com/haxtheweb/haxcms-php/issues/3043)
+* **createSite:** return build.files warnings as data.warnings (parity with Node) ([e351d86](https://github.com/haxtheweb/haxcms-php/commit/e351d86a122e0896488e97dfcaabdd4eb599294a)), closes [haxtheweb/issues#3168](https://github.com/haxtheweb/issues/issues/3168)
+* **docker:** mirror standalone site Dockerfile fixes and publish platform image ([#2814](https://github.com/haxtheweb/haxcms-php/issues/2814)) ([9cb9aca](https://github.com/haxtheweb/haxcms-php/commit/9cb9acaf2f9cc1ddb2d5438251ffed08e308602f))
+* **downloadSite:** leave symlinks out of the site zip ([4c7a400](https://github.com/haxtheweb/haxcms-php/commit/4c7a400a6aabbeb4d2bd1780ad57eb285eeed399))
+* **import:** emit docx images as data URIs for materialize ([c06a2a6](https://github.com/haxtheweb/haxcms-php/commit/c06a2a617f948e78ffd009fa59397c428667c2c2))
+* **import:** odt emptiness check mirrors Node's text-between-tags scan ([0836b97](https://github.com/haxtheweb/haxcms-php/commit/0836b9762f086a31fc29a1e35c5f9988dc15fa2e))
+* slugs never start with "/"; writeLocation creates missing page files, refuses directories ([052e3f7](https://github.com/haxtheweb/haxcms-php/commit/052e3f7c90f34e6ee435af7b94b980eedf6566d9))
+* **system-api:** make GET/POST /skeletons bearer-only per spec (NodeJS parity) ([6974e55](https://github.com/haxtheweb/haxcms-php/commit/6974e5504ca4b0fd26e5f3233bcd0eef00eccf8a)), closes [haxtheweb/issues#3168](https://github.com/haxtheweb/issues/issues/3168)
+
 ## [26.8.1](https://github.com/haxtheweb/haxcms-php/compare/v26.0.1...v26.8.1) (2026-08-14)
 
 ## [26.0.1](https://github.com/haxtheweb/haxcms-php/compare/v26.0.0...v26.0.1) (2026-08-14)
