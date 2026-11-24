@@ -135,6 +135,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/hax-app-installer | Apache-2.0 | License text 5 |
 | @haxtheweb/hax-body | Apache-2.0 | License text 3 |
 | @haxtheweb/hax-body-behaviors | Apache-2.0 | License text 3 |
+| @haxtheweb/hax-consent-gate | Apache-2.0 | License text 5 |
 | @haxtheweb/hax-iconset | Apache-2.0 | License text 6 |
 | @haxtheweb/hax-logo | Apache-2.0 | License text 6 |
 | @haxtheweb/hax-marketing-theme | Apache-2.0 | License text 5 |
@@ -203,6 +204,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/music-player > Tone.js (script) | MIT | License text 65 |
 | @haxtheweb/music-player > html-midi-player (script) | BSD-2-Clause | License text 63 |
 | @haxtheweb/mutation-observer-import-mixin | Apache-2.0 | License text 4 |
+| @haxtheweb/night-draft-theme | Apache-2.0 | License text 5 |
 | @haxtheweb/numeric-question | Apache-2.0 | License text 5 |
 | @haxtheweb/oer-schema | Apache-2.0 | License text 3 |
 | @haxtheweb/outline-designer | Apache-2.0 | License text 3 |
@@ -224,6 +226,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/post-card | Apache-2.0 | License text 10 |
 | @haxtheweb/pouch-db | Apache-2.0 | License text 6 |
 | @haxtheweb/primer-theme | Apache-2.0 | License text 68 |
+| @haxtheweb/privacy-choices | Apache-2.0 | License text 5 |
 | @haxtheweb/product-glance | Apache-2.0 | License text 10 |
 | @haxtheweb/product-offering | Apache-2.0 | License text 10 |
 | @haxtheweb/progress-donut | Apache-2.0 | License text 3 |
@@ -1012,7 +1015,7 @@ Source files: LICENSE
 
 ### License text 5: Apache-2.0
 
-Used by @haxtheweb/a11y-footnote, @haxtheweb/ai-usage-license, @haxtheweb/arithmetic-drill, @haxtheweb/branching-scenario, @haxtheweb/chamfer-theme, @haxtheweb/crossword-puzzle, @haxtheweb/doodle-board, @haxtheweb/ecosystem-theme, @haxtheweb/ecosystem-web, @haxtheweb/hax-app-installer, @haxtheweb/hax-marketing-theme, @haxtheweb/hax-network-bar, @haxtheweb/ics-render, @haxtheweb/identify-hotspots, @haxtheweb/image-dropzone, @haxtheweb/instructional-cadence, @haxtheweb/lrndesign-sidenote, @haxtheweb/lti-launch, @haxtheweb/media-playlist, @haxtheweb/memory-match, @haxtheweb/mermaid-diagram, @haxtheweb/micro-game-base, @haxtheweb/numeric-question, @haxtheweb/radar-chart, @haxtheweb/reading-analysis, @haxtheweb/resume-theme, @haxtheweb/retro-tv, @haxtheweb/self-reflective-nudge, @haxtheweb/sheet-music, @haxtheweb/simple-pager, @haxtheweb/slide-deck, @haxtheweb/stat-tile, @haxtheweb/tableau-embed, @haxtheweb/vcf-render, @haxtheweb/vhs-blog-theme, @haxtheweb/web-baseline-status, @haxtheweb/word-search, @haxtheweb/writing-theme, @haxtheweb/wysiwyg96-theme.
+Used by @haxtheweb/a11y-footnote, @haxtheweb/ai-usage-license, @haxtheweb/arithmetic-drill, @haxtheweb/branching-scenario, @haxtheweb/chamfer-theme, @haxtheweb/crossword-puzzle, @haxtheweb/doodle-board, @haxtheweb/ecosystem-theme, @haxtheweb/ecosystem-web, @haxtheweb/hax-app-installer, @haxtheweb/hax-consent-gate, @haxtheweb/hax-marketing-theme, @haxtheweb/hax-network-bar, @haxtheweb/ics-render, @haxtheweb/identify-hotspots, @haxtheweb/image-dropzone, @haxtheweb/instructional-cadence, @haxtheweb/lrndesign-sidenote, @haxtheweb/lti-launch, @haxtheweb/media-playlist, @haxtheweb/memory-match, @haxtheweb/mermaid-diagram, @haxtheweb/micro-game-base, @haxtheweb/night-draft-theme, @haxtheweb/numeric-question, @haxtheweb/privacy-choices, @haxtheweb/radar-chart, @haxtheweb/reading-analysis, @haxtheweb/resume-theme, @haxtheweb/retro-tv, @haxtheweb/self-reflective-nudge, @haxtheweb/sheet-music, @haxtheweb/simple-pager, @haxtheweb/slide-deck, @haxtheweb/stat-tile, @haxtheweb/tableau-embed, @haxtheweb/vcf-render, @haxtheweb/vhs-blog-theme, @haxtheweb/web-baseline-status, @haxtheweb/word-search, @haxtheweb/writing-theme, @haxtheweb/wysiwyg96-theme.
 
 Source files: LICENSE
 
