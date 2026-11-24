@@ -70,6 +70,21 @@
       "name": "a page break and a custom element",
       "input": "<page-break title=\"Welcome\" item-id=\"item-123\" published=\"published\"></page-break>\n<video-player source=\"https://example.com/v.mp4\"><track kind=\"subtitles\"></video-player>\n<p>Watch the introduction video</p>",
       "expected": "watch the introduction video"
+    },
+    {
+      "name": "letters newer than the runtime's own Unicode tables are still letters (fixed tables, haxtheweb/issues#3394)",
+      "input": "<p>New 𝼥𝼥𝼥 and Ol Onal 𞗐𞗑𞗒 letters</p>",
+      "expected": "new 𝼥𝼥𝼥 and onal 𞗐𞗑𞗒 letters"
+    },
+    {
+      "name": "a capital sigma ending a word lowers to final sigma, anywhere else to σ",
+      "input": "<p>ΣΟΦΟΣ ΟΔΟΣ ΣΑΣ­Σ</p>",
+      "expected": "σοφος οδος σασ"
+    },
+    {
+      "name": "a capital I with a dot lowers to i plus a combining dot, which separates words",
+      "input": "<p>İSTANBUL Ǆemal</p>",
+      "expected": "stanbul ǆemal"
     }
   ]
 }

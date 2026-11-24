@@ -354,6 +354,42 @@
       "cleanTitle": "café/été",
       "cleanTitleKeepPage": "café/été",
       "generateSlugName": "café/été"
+    },
+    {
+      "input": "New 𝼥 letter",
+      "cleanTitle": "new-𝼥-letter",
+      "cleanTitleKeepPage": "new-𝼥-letter",
+      "generateSlugName": "new-𝼥-letter"
+    },
+    {
+      "input": "Ol Onal 𞗐𞗑 page",
+      "cleanTitle": "ol-onal-𞗐𞗑-page",
+      "cleanTitleKeepPage": "ol-onal-𞗐𞗑-page",
+      "generateSlugName": "ol-onal-𞗐𞗑-page"
+    },
+    {
+      "input": "ΣΟΦΟΣ wisdom ΣΑ",
+      "cleanTitle": "σοφος-wisdom-σα",
+      "cleanTitleKeepPage": "σοφος-wisdom-σα",
+      "generateSlugName": "σοφος-wisdom-σα"
+    },
+    {
+      "input": "İstanbul trip",
+      "cleanTitle": "i̇stanbul-trip",
+      "cleanTitleKeepPage": "i̇stanbul-trip",
+      "generateSlugName": "i̇stanbul-trip"
+    },
+    {
+      "input": "ǅemal Ⅻ chapter",
+      "cleanTitle": "ǆemal-ⅻ-chapter",
+      "cleanTitleKeepPage": "ǆemal-ⅻ-chapter",
+      "generateSlugName": "ǆemal-ⅻ-chapter"
+    },
+    {
+      "input": "𐵐𐵑 Garay",
+      "cleanTitle": "𐵰𐵱-garay",
+      "cleanTitleKeepPage": "𐵰𐵱-garay",
+      "generateSlugName": "𐵰𐵱-garay"
     }
   ]
 }

@@ -67,6 +67,11 @@ class HAXCMSReportHelpers
     else {
       $data = array(
         'pages' => count($items),
+        'pageType' => 0,
+        'selfChecks' => 0,
+        'images' => 0,
+        'placeholders' => 0,
+        'siteremotecontent' => 0,
         'objectives' => 0,
         'authorNotes' => 0,
         'specialTags' => 0,
@@ -108,6 +113,18 @@ class HAXCMSReportHelpers
         }
       }
       else {
+        // One definition of every overview statistic, shared with
+        // haxcms-nodejs courseStatsFromOutline (haxtheweb/issues#3394):
+        // counted in each published page's own content (titles not
+        // included) and summed. pageType counts pages with a page type set.
+        $pageType = self::getItemMetaValue($item, 'pageType', '');
+        if (is_string($pageType) && $pageType !== '') {
+          $data['pageType']++;
+        }
+        $data['selfChecks'] += $pageAnalysis['selfChecks'];
+        $data['images'] += $pageAnalysis['images'];
+        $data['placeholders'] += $pageAnalysis['placeholders'];
+        $data['siteremotecontent'] += $pageAnalysis['siteremotecontent'];
         $data['objectives'] += $pageAnalysis['objectives'];
         $data['authorNotes'] += $pageAnalysis['authorNotes'];
         $data['specialTags'] += $pageAnalysis['specialTags'];
@@ -448,11 +465,14 @@ class HAXCMSReportHelpers
     if (!is_string($value)) {
       return 0;
     }
-    $text = trim(preg_replace('/\s+/u', ' ', $value));
-    if ($text == '') {
+    // JavaScript's \s spelled out, so words split on exactly the characters
+    // haxcms-nodejs splits them on
+    $space = '[\t\n\x{0B}\f\r \x{A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}]+';
+    $text = preg_replace('/^' . $space . '|' . $space . '$/u', '', $value);
+    if (!is_string($text) || $text === '') {
       return 0;
     }
-    $parts = preg_split('/\s+/u', $text);
+    $parts = preg_split('/' . $space . '/u', $text);
     if (!is_array($parts)) {
       return 0;
     }

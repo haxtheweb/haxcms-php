@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../UnicodeTables.php';
 include_once dirname(__FILE__) . '/../CanonicalFormat.php';
 include_once dirname(__FILE__) . '/../HAXCMSApiMessageCodes.php';
 include_once dirname(__FILE__) . '/../OpenApiSpecCache.php';
@@ -432,8 +433,8 @@ class SiteRouteUtils
         $clean = trim((string) $value);
         $clean = str_replace(array('./', '../'), '', $clean);
         $clean = strtolower(str_replace(' ', '-', $clean));
-        $clean = preg_replace('/[^\p{L}\p{N}_\-\/]+/u', '-', $clean);
-        $clean = mb_strtolower(preg_replace('/--+/u', '-', $clean), 'UTF-8');
+        $clean = preg_replace(UnicodeTables::notLetterOrNumberRun('_\-\/'), '-', $clean);
+        $clean = UnicodeTables::lowerCase(preg_replace('/--+/u', '-', (string) $clean));
         // strip leading/trailing dots, hyphens and slashes left behind by the
         // single-pass traversal strip above so a slug never starts or ends
         // with separators (e.g. "../etc" -> "etc", not "-etc").
