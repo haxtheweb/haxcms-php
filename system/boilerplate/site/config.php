@@ -1175,13 +1175,46 @@ if (!isset($GLOBALS['HAXCMS'])) {
       if (!is_null($gaID) && $gaID !== '' && preg_match('/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/', $gaID)) {
         $attrID = htmlspecialchars($gaID, ENT_QUOTES, 'UTF-8');
         $jsID = addcslashes($gaID, "'\\\n\r");
-        return "<script async src=\"https://www.googletagmanager.com/gtag/js?id=" . $attrID . "\"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-      
-          gtag('config', '" . $jsID . "');
+        // Google Analytics waits for the visitor: nothing is fetched from
+        // Google until the one HAX consent store (HaxConsent: localStorage
+        // "hax-consent", service "google-analytics") says "allow". No setting
+        // skips this; the hax-consent-gate bar asks whenever a gaID is set.
+        return "<script data-hax-ga=\"" . $attrID . "\">
+          (function () {
+            var gaid = '" . $jsID . "';
+            var loaded = false;
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = window.gtag || function () { dataLayer.push(arguments); };
+            function consent() {
+              try {
+                var choices = JSON.parse(localStorage.getItem('hax-consent') || '{}');
+                return (choices && choices['google-analytics']) || null;
+              } catch (e) {
+                return null;
+              }
+            }
+            function load() {
+              if (loaded || consent() !== 'allow') {
+                return;
+              }
+              loaded = true;
+              window['ga-disable-' + gaid] = false;
+              gtag('js', new Date());
+              gtag('config', gaid);
+              var script = document.createElement('script');
+              script.async = true;
+              script.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaid;
+              document.body.appendChild(script);
+            }
+            window.addEventListener('hax-consent-changed', function (e) {
+              if (!e.detail || e.detail.service !== 'google-analytics') {
+                return;
+              }
+              window['ga-disable-' + gaid] = e.detail.value !== 'allow';
+              load();
+            });
+            load();
+          })();
         </script>";
       }
       return '';

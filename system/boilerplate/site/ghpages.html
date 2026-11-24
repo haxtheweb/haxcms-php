@@ -362,28 +362,62 @@
     (function () {
       var loadingDismissed = false;
       var analyticsLoaded = false;
+      // Google Analytics waits for the visitor: it loads only once the one
+      // HAX consent store (HaxConsent: localStorage "hax-consent", service
+      // "google-analytics") says "allow". No site setting skips this; the
+      // hax-consent-gate bar asks whenever a gaID is set.
+      var analyticsListening = false;
+      function analyticsConsent() {
+        try {
+          var choices = JSON.parse(
+            localStorage.getItem('hax-consent') || '{}'
+          );
+          return (choices && choices['google-analytics']) || null;
+        } catch (e) {
+          return null;
+        }
+      }
       function loadAnalyticsFromManifest() {
         if (analyticsLoaded) {
           return;
         }
-        analyticsLoaded = true;
-        var script = document.createElement('script');
-        script.async = true;
-        document.body.appendChild(script);
+        var gaid = null;
         if (
           globalThis.HAXCMS &&
           globalThis.HAXCMS.requestAvailability &&
           globalThis.HAXCMS.requestAvailability().store.getManifest()
         ) {
-          var gaid =
+          gaid =
             globalThis.HAXCMS.requestAvailability().store.getManifest()
               .metadata.site.settings.gaID || null;
-          if (gaid) {
-            gtag('config', gaid);
-            script.src =
-              'https://www.googletagmanager.com/gtag/js?id=' + gaid;
-          }
         }
+        // same format check the server applies before printing an ID
+        if (!gaid || !/^(UA-\d+-\d+|G-[A-Za-z0-9_-]+)$/.test(gaid)) {
+          return;
+        }
+        if (!analyticsListening) {
+          analyticsListening = true;
+          globalThis.addEventListener('hax-consent-changed', function (e) {
+            if (!e.detail || e.detail.service !== 'google-analytics') {
+              return;
+            }
+            // withdrawing stops measurement without a reload
+            globalThis['ga-disable-' + gaid] = e.detail.value !== 'allow';
+            if (e.detail.value === 'allow') {
+              loadAnalyticsFromManifest();
+            }
+          });
+        }
+        if (analyticsConsent() !== 'allow') {
+          return;
+        }
+        analyticsLoaded = true;
+        globalThis['ga-disable-' + gaid] = false;
+        gtag('config', gaid);
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaid;
+        document.body.appendChild(script);
       }
       // The loading figure is a page that builds itself, on a loop of CSS
       // animations (the ld* keyframes in #loadingstyles) while the site loads.
