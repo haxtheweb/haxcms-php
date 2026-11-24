@@ -46,11 +46,20 @@ class HAXCMSPluginRoutes
         ['get', '/{plugin}/assets/{assetPath}', false],
     ];
 
+    /**
+     * Whether an API route suffix is the plugins registry (v1/plugins) or under it (v1/plugins/<id>/...), at either
+     * scope. Both routers ask this before handing a request over, so neither can miss the registry itself.
+     */
+    public static function isPluginPath($suffix)
+    {
+        return is_string($suffix) && ($suffix === 'v1/plugins' || strpos($suffix, 'v1/plugins/') === 0);
+    }
+
     /** @return bool true when the request was a plugin route and has been answered */
     public static function dispatchSite($context, $site)
     {
         $suffix = (string) $context->routeSuffix;
-        if (!HAXCMSPluginSystem::enabled() || ($suffix !== 'v1/plugins' && strpos($suffix, 'v1/plugins/') !== 0)) {
+        if (!HAXCMSPluginSystem::enabled() || !self::isPluginPath($suffix)) {
             return false;
         }
         if ($suffix === 'v1/plugins') {
@@ -73,7 +82,7 @@ class HAXCMSPluginRoutes
     public static function dispatchSystem($context)
     {
         $suffix = (string) $context->routeSuffix;
-        if (!HAXCMSPluginSystem::enabled() || ($suffix !== 'v1/plugins' && strpos($suffix, 'v1/plugins/') !== 0)) {
+        if (!HAXCMSPluginSystem::enabled() || !self::isPluginPath($suffix)) {
             return false;
         }
         // system-scope work runs on the system engine, never on some site's (spec/13 section 8b)

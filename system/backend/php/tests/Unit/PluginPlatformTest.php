@@ -284,6 +284,21 @@ class PluginPlatformTest extends TestCase
         $this->assertSame('https://cms.example.edu', $body['issuer'] ?? null, json_encode($body));
     }
 
+    /**
+     * Both API routers hand a request to the plugin routes when this says so. The site router used to look only
+     * for v1/plugins/, so the registry itself (GET x/api/v1/plugins) answered 404 on PHP and 200 on haxcms-nodejs.
+     */
+    public function testThePluginsRegistryAndEverythingUnderItArePluginPaths(): void
+    {
+        include_once dirname(__DIR__, 2) . '/lib/plugins/HAXCMSPluginRoutes.php';
+        foreach (['v1/plugins', 'v1/plugins/', 'v1/plugins/example/enable', 'v1/plugins/example/notes/1'] as $p) {
+            $this->assertTrue(HAXCMSPluginRoutes::isPluginPath($p), $p);
+        }
+        foreach (['v1/pluginsx', 'v1/plugin', 'v1/items', '', 'x/api/v1/plugins', null, 7] as $p) {
+            $this->assertFalse(HAXCMSPluginRoutes::isPluginPath($p), var_export($p, true));
+        }
+    }
+
     public function testRoutesMatchPathTemplatesAndScope(): void
     {
         $p = new HAXCMSPluginRecord();
