@@ -1,0 +1,347 @@
+{
+  "about": "Expected canonical output for each input (JSON text). Shared by haxcms-nodejs test/fixtures/canonical-format-vectors.json and haxcms-php tests/Unit/fixtures/canonical-format-vectors.json: keep the two files identical (haxtheweb/issues#3394).",
+  "vectors": [
+    {
+      "input": "null",
+      "json": "null",
+      "prettyJson": "null",
+      "yaml": "null\n"
+    },
+    {
+      "input": "true",
+      "json": "true",
+      "prettyJson": "true",
+      "yaml": "true\n"
+    },
+    {
+      "input": "0",
+      "json": "0",
+      "prettyJson": "0",
+      "yaml": "0\n"
+    },
+    {
+      "input": "-1",
+      "json": "-1",
+      "prettyJson": "-1",
+      "yaml": "-1\n"
+    },
+    {
+      "input": "1.5",
+      "json": "1.5",
+      "prettyJson": "1.5",
+      "yaml": "1.5\n"
+    },
+    {
+      "input": "0.1",
+      "json": "0.1",
+      "prettyJson": "0.1",
+      "yaml": "0.1\n"
+    },
+    {
+      "input": "0.00001",
+      "json": "0.00001",
+      "prettyJson": "0.00001",
+      "yaml": "0.00001\n"
+    },
+    {
+      "input": "0.000001",
+      "json": "0.000001",
+      "prettyJson": "0.000001",
+      "yaml": "0.000001\n"
+    },
+    {
+      "input": "1e-7",
+      "json": "1e-7",
+      "prettyJson": "1e-7",
+      "yaml": "1e-7\n"
+    },
+    {
+      "input": "1.5e-7",
+      "json": "1.5e-7",
+      "prettyJson": "1.5e-7",
+      "yaml": "1.5e-7\n"
+    },
+    {
+      "input": "123456789012345680000",
+      "json": "123456789012345680000",
+      "prettyJson": "123456789012345680000",
+      "yaml": "123456789012345680000\n"
+    },
+    {
+      "input": "1e21",
+      "json": "1e+21",
+      "prettyJson": "1e+21",
+      "yaml": "1e+21\n"
+    },
+    {
+      "input": "1.25e+300",
+      "json": "1.25e+300",
+      "prettyJson": "1.25e+300",
+      "yaml": "1.25e+300\n"
+    },
+    {
+      "input": "-0.5",
+      "json": "-0.5",
+      "prettyJson": "-0.5",
+      "yaml": "-0.5\n"
+    },
+    {
+      "input": "2.0",
+      "json": "2",
+      "prettyJson": "2",
+      "yaml": "2\n"
+    },
+    {
+      "input": "1e3",
+      "json": "1000",
+      "prettyJson": "1000",
+      "yaml": "1000\n"
+    },
+    {
+      "input": "\"\"",
+      "json": "\"\"",
+      "prettyJson": "\"\"",
+      "yaml": "\"\"\n"
+    },
+    {
+      "input": "\"hello\"",
+      "json": "\"hello\"",
+      "prettyJson": "\"hello\"",
+      "yaml": "hello\n"
+    },
+    {
+      "input": "\"Hello World\"",
+      "json": "\"Hello World\"",
+      "prettyJson": "\"Hello World\"",
+      "yaml": "Hello World\n"
+    },
+    {
+      "input": "\"a b \"",
+      "json": "\"a b \"",
+      "prettyJson": "\"a b \"",
+      "yaml": "\"a b \"\n"
+    },
+    {
+      "input": "\" lead\"",
+      "json": "\" lead\"",
+      "prettyJson": "\" lead\"",
+      "yaml": "\" lead\"\n"
+    },
+    {
+      "input": "\"yes\"",
+      "json": "\"yes\"",
+      "prettyJson": "\"yes\"",
+      "yaml": "\"yes\"\n"
+    },
+    {
+      "input": "\"No\"",
+      "json": "\"No\"",
+      "prettyJson": "\"No\"",
+      "yaml": "\"No\"\n"
+    },
+    {
+      "input": "\"NULL\"",
+      "json": "\"NULL\"",
+      "prettyJson": "\"NULL\"",
+      "yaml": "\"NULL\"\n"
+    },
+    {
+      "input": "\"y\"",
+      "json": "\"y\"",
+      "prettyJson": "\"y\"",
+      "yaml": "\"y\"\n"
+    },
+    {
+      "input": "\"Inf\"",
+      "json": "\"Inf\"",
+      "prettyJson": "\"Inf\"",
+      "yaml": "\"Inf\"\n"
+    },
+    {
+      "input": "\"1.0\"",
+      "json": "\"1.0\"",
+      "prettyJson": "\"1.0\"",
+      "yaml": "\"1.0\"\n"
+    },
+    {
+      "input": "\"-dash\"",
+      "json": "\"-dash\"",
+      "prettyJson": "\"-dash\"",
+      "yaml": "\"-dash\"\n"
+    },
+    {
+      "input": "\"_under\"",
+      "json": "\"_under\"",
+      "prettyJson": "\"_under\"",
+      "yaml": "_under\n"
+    },
+    {
+      "input": "\"a: b\"",
+      "json": "\"a: b\"",
+      "prettyJson": "\"a: b\"",
+      "yaml": "\"a: b\"\n"
+    },
+    {
+      "input": "\"a #b\"",
+      "json": "\"a #b\"",
+      "prettyJson": "\"a #b\"",
+      "yaml": "\"a #b\"\n"
+    },
+    {
+      "input": "\"path/to/x.html\"",
+      "json": "\"path/to/x.html\"",
+      "prettyJson": "\"path/to/x.html\"",
+      "yaml": "path/to/x.html\n"
+    },
+    {
+      "input": "\"https://example.com/a?b=c\"",
+      "json": "\"https://example.com/a?b=c\"",
+      "prettyJson": "\"https://example.com/a?b=c\"",
+      "yaml": "\"https://example.com/a?b=c\"\n"
+    },
+    {
+      "input": "\"quote \\\" and \\\\ back\"",
+      "json": "\"quote \\\" and \\\\ back\"",
+      "prettyJson": "\"quote \\\" and \\\\ back\"",
+      "yaml": "\"quote \\\" and \\\\ back\"\n"
+    },
+    {
+      "input": "\"line1\\nline2\"",
+      "json": "\"line1\\nline2\"",
+      "prettyJson": "\"line1\\nline2\"",
+      "yaml": "\"line1\\nline2\"\n"
+    },
+    {
+      "input": "\"tab\\there\"",
+      "json": "\"tab\\there\"",
+      "prettyJson": "\"tab\\there\"",
+      "yaml": "\"tab\\there\"\n"
+    },
+    {
+      "input": "\"ctl\\u0001\\u001f\"",
+      "json": "\"ctl\\u0001\\u001f\"",
+      "prettyJson": "\"ctl\\u0001\\u001f\"",
+      "yaml": "\"ctl\\u0001\\u001f\"\n"
+    },
+    {
+      "input": "\"del\\u007f\"",
+      "json": "\"del\"",
+      "prettyJson": "\"del\"",
+      "yaml": "\"del\"\n"
+    },
+    {
+      "input": "\"sep\\u2028\\u2029\"",
+      "json": "\"sep  \"",
+      "prettyJson": "\"sep  \"",
+      "yaml": "\"sep  \"\n"
+    },
+    {
+      "input": "\"é ü 中文 🎉\"",
+      "json": "\"é ü 中文 🎉\"",
+      "prettyJson": "\"é ü 中文 🎉\"",
+      "yaml": "\"é ü 中文 🎉\"\n"
+    },
+    {
+      "input": "\"<p>Edit this page</p>\"",
+      "json": "\"<p>Edit this page</p>\"",
+      "prettyJson": "\"<p>Edit this page</p>\"",
+      "yaml": "\"<p>Edit this page</p>\"\n"
+    },
+    {
+      "input": "\"~\"",
+      "json": "\"~\"",
+      "prettyJson": "\"~\"",
+      "yaml": "\"~\"\n"
+    },
+    {
+      "input": "\"@at\"",
+      "json": "\"@at\"",
+      "prettyJson": "\"@at\"",
+      "yaml": "\"@at\"\n"
+    },
+    {
+      "input": "[]",
+      "json": "[]",
+      "prettyJson": "[]",
+      "yaml": "[]\n"
+    },
+    {
+      "input": "{}",
+      "json": "{}",
+      "prettyJson": "{}",
+      "yaml": "{}\n"
+    },
+    {
+      "input": "[1,\"two\",null,true]",
+      "json": "[1,\"two\",null,true]",
+      "prettyJson": "[\n    1,\n    \"two\",\n    null,\n    true\n]",
+      "yaml": "- 1\n- two\n- null\n- true\n"
+    },
+    {
+      "input": "{\"a\":1,\"b\":\"x\"}",
+      "json": "{\"a\":1,\"b\":\"x\"}",
+      "prettyJson": "{\n    \"a\": 1,\n    \"b\": \"x\"\n}",
+      "yaml": "a: 1\nb: x\n"
+    },
+    {
+      "input": "{\"b\":1,\"a\":2}",
+      "json": "{\"b\":1,\"a\":2}",
+      "prettyJson": "{\n    \"b\": 1,\n    \"a\": 2\n}",
+      "yaml": "b: 1\na: 2\n"
+    },
+    {
+      "input": "{\"10\":\"ten\",\"2\":\"two\",\"x\":\"ex\",\"0\":\"zero\"}",
+      "json": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"x\":\"ex\"}",
+      "prettyJson": "{\n    \"0\": \"zero\",\n    \"2\": \"two\",\n    \"10\": \"ten\",\n    \"x\": \"ex\"\n}",
+      "yaml": "\"0\": zero\n\"2\": two\n\"10\": ten\nx: ex\n"
+    },
+    {
+      "input": "{\"4294967295\":\"big\",\"4294967294\":\"max\"}",
+      "json": "{\"4294967294\":\"max\",\"4294967295\":\"big\"}",
+      "prettyJson": "{\n    \"4294967294\": \"max\",\n    \"4294967295\": \"big\"\n}",
+      "yaml": "\"4294967294\": max\n\"4294967295\": big\n"
+    },
+    {
+      "input": "{\"a\":[],\"b\":{},\"c\":[{}],\"d\":[[]]}",
+      "json": "{\"a\":[],\"b\":{},\"c\":[{}],\"d\":[[]]}",
+      "prettyJson": "{\n    \"a\": [],\n    \"b\": {},\n    \"c\": [\n        {}\n    ],\n    \"d\": [\n        []\n    ]\n}",
+      "yaml": "a: []\nb: {}\nc:\n  - {}\nd:\n  - []\n"
+    },
+    {
+      "input": "[[1,2],[3,[4]],[]]",
+      "json": "[[1,2],[3,[4]],[]]",
+      "prettyJson": "[\n    [\n        1,\n        2\n    ],\n    [\n        3,\n        [\n            4\n        ]\n    ],\n    []\n]",
+      "yaml": "-\n  - 1\n  - 2\n-\n  - 3\n  -\n    - 4\n- []\n"
+    },
+    {
+      "input": "[{\"id\":\"L0\",\"title\":\"Home\",\"tags\":[]},{\"id\":\"L1\",\"metadata\":{\"created\":1760000000,\"images\":[]}}]",
+      "json": "[{\"id\":\"L0\",\"title\":\"Home\",\"tags\":[]},{\"id\":\"L1\",\"metadata\":{\"created\":1760000000,\"images\":[]}}]",
+      "prettyJson": "[\n    {\n        \"id\": \"L0\",\n        \"title\": \"Home\",\n        \"tags\": []\n    },\n    {\n        \"id\": \"L1\",\n        \"metadata\": {\n            \"created\": 1760000000,\n            \"images\": []\n        }\n    }\n]",
+      "yaml": "- id: L0\n  title: Home\n  tags: []\n- id: L1\n  metadata:\n    created: 1760000000\n    images: []\n"
+    },
+    {
+      "input": "{\"status\":200,\"data\":{\"count\":1,\"items\":[{\"id\":\"item-1\",\"slug\":\"unit-one/lesson-one\",\"parent\":null,\"order\":0,\"links\":{\"self\":\"/x/api/v1/items/home\"}}]}}",
+      "json": "{\"status\":200,\"data\":{\"count\":1,\"items\":[{\"id\":\"item-1\",\"slug\":\"unit-one/lesson-one\",\"parent\":null,\"order\":0,\"links\":{\"self\":\"/x/api/v1/items/home\"}}]}}",
+      "prettyJson": "{\n    \"status\": 200,\n    \"data\": {\n        \"count\": 1,\n        \"items\": [\n            {\n                \"id\": \"item-1\",\n                \"slug\": \"unit-one/lesson-one\",\n                \"parent\": null,\n                \"order\": 0,\n                \"links\": {\n                    \"self\": \"/x/api/v1/items/home\"\n                }\n            }\n        ]\n    }\n}",
+      "yaml": "status: 200\ndata:\n  count: 1\n  items:\n    - id: item-1\n      slug: unit-one/lesson-one\n      parent: null\n      order: 0\n      links:\n        self: \"/x/api/v1/items/home\"\n"
+    },
+    {
+      "input": "{\"key with space\":1,\"key:colon\":2,\"\":3,\"yes\":4,\"1abc\":5,\"é\":6}",
+      "json": "{\"key with space\":1,\"key:colon\":2,\"\":3,\"yes\":4,\"1abc\":5,\"é\":6}",
+      "prettyJson": "{\n    \"key with space\": 1,\n    \"key:colon\": 2,\n    \"\": 3,\n    \"yes\": 4,\n    \"1abc\": 5,\n    \"é\": 6\n}",
+      "yaml": "key with space: 1\n\"key:colon\": 2\n\"\": 3\n\"yes\": 4\n\"1abc\": 5\n\"é\": 6\n"
+    },
+    {
+      "input": "{\"nested\":{\"deep\":{\"deeper\":{\"list\":[1,{\"k\":\"v\"}]}}}}",
+      "json": "{\"nested\":{\"deep\":{\"deeper\":{\"list\":[1,{\"k\":\"v\"}]}}}}",
+      "prettyJson": "{\n    \"nested\": {\n        \"deep\": {\n            \"deeper\": {\n                \"list\": [\n                    1,\n                    {\n                        \"k\": \"v\"\n                    }\n                ]\n            }\n        }\n    }\n}",
+      "yaml": "nested:\n  deep:\n    deeper:\n      list:\n        - 1\n        - k: v\n"
+    },
+    {
+      "input": "[{\"a\":{\"b\":[1]}}]",
+      "json": "[{\"a\":{\"b\":[1]}}]",
+      "prettyJson": "[\n    {\n        \"a\": {\n            \"b\": [\n                1\n            ]\n        }\n    }\n]",
+      "yaml": "- a:\n    b:\n      - 1\n"
+    }
+  ]
+}

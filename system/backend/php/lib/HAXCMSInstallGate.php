@@ -96,7 +96,8 @@ class HAXCMSInstallGate
             header('Content-Type: application/json; charset=utf-8');
             header('Cache-Control: no-store');
         }
-        print json_encode(array(
+        include_once dirname(__FILE__) . '/CanonicalFormat.php';
+        print CanonicalFormat::json(array(
             'status' => 503,
             'message' => 'HAXcms is not installed',
             'code' => 'NOT_INSTALLED',

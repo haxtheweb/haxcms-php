@@ -127,7 +127,7 @@ class SitemapFilesTest extends TestCase
         $this->assertSame('https://example.com/course/home', (string) $xml->url[0]->loc);
         // a character XML reserves is escaped in the file and reads back whole
         $this->assertSame('https://example.com/course/home/fish&chips', (string) $xml->url[1]->loc);
-        $this->assertSame('1970-01-02T00:00:00+00:00', (string) $xml->url[0]->lastmod);
+        $this->assertSame('1970-01-02T00:00:00.000Z', (string) $xml->url[0]->lastmod);
         foreach ($xml->url as $url) {
             $this->assertSame('daily', (string) $url->changefreq);
         }

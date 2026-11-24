@@ -1,6 +1,7 @@
 <?php
 // working with RSS
 include_once 'RSS.php';
+include_once dirname(__FILE__) . '/CanonicalFormat.php';
 include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
 include_once 'HAXCMSSameAs.php';
@@ -670,12 +671,14 @@ class HAXCMSSite
               continue;
           }
           $contentHash = hash_file('sha256', $filePath);
+          // the revision haxcms-nodejs writes: an HMAC-SHA256 in base64url
+          // with "-" and "=" left out (haxtheweb/issues#3394)
           $templateVars['swhash'][] = array(
               $location,
               strtr(
                   base64_encode(
                       hash_hmac(
-                          'md5',
+                          'sha256',
                           (string) $location . $contentHash,
                           (string) 'haxcmsswhash',
                           true
@@ -683,13 +686,15 @@ class HAXCMSSite
                   ),
                   array(
                       '+' => '',
-                      '/' => '',
-                      '=' => '',
-                      '-' => ''
+                      '/' => '_',
+                      '=' => ''
                   )
               )
           );
       }
+      // the shell file list as the canonical pretty JSON both backends write
+      // into service-worker.js (lib/CanonicalFormat.php)
+      $templateVars['swhashJson'] = CanonicalFormat::prettyJson($templateVars['swhash']);
       if (isset($this->manifest->metadata->theme->variables->hexCode)) {
           $templateVars['hexCode'] =
               $this->manifest->metadata->theme->variables->hexCode;
@@ -1323,7 +1328,8 @@ class HAXCMSSite
         }
         $xml[] = '  <url>';
         $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
-        $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue(gmdate('c', $updated)) . '</lastmod>';
+        // toISOString's format, as haxcms-nodejs writes the sitemap
+        $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue(CanonicalFormat::isoDate($updated)) . '</lastmod>';
         $xml[] = '    <changefreq>daily</changefreq>';
         $xml[] = '    <priority>' . $priority . '</priority>';
         $xml[] = '  </url>';
@@ -1347,7 +1353,7 @@ class HAXCMSSite
       $xml[] = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
       $xml[] = '  <sitemap>';
       $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
-      $xml[] = '    <lastmod>' . gmdate('c') . '</lastmod>';
+      $xml[] = '    <lastmod>' . CanonicalFormat::isoDate(microtime(true)) . '</lastmod>';
       $xml[] = '  </sitemap>';
       $xml[] = '</sitemapindex>';
       return implode("\n", $xml) . "\n";
@@ -1427,7 +1433,8 @@ class HAXCMSSite
           // now generate the search index
           @file_put_contents(
               $siteDirectory . 'lunrSearchIndex.json',
-                  json_encode($this->lunrSearchIndex($this->manifest->items))
+                  // canonical compact JSON, the same file haxcms-nodejs writes
+                  CanonicalFormat::json($this->lunrSearchIndex($this->manifest->items))
           );
       }
       if (is_null($format) || $format == 'llms') {
@@ -2388,7 +2395,8 @@ class HAXCMSSite
         $jsonPayload = $this->getPageAlternatePayload($page, $content, 'json');
         @file_put_contents(
           $siteDirectory . $jsonPayload['location'],
-          json_encode($jsonPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+          // canonical pretty JSON (4 spaces), the same file haxcms-nodejs writes
+          CanonicalFormat::prettyJson($jsonPayload)
         );
       }
       catch (Exception $e) {}
@@ -2824,17 +2832,12 @@ class HAXCMSSite
       return trim($markdown);
     }
     /**
-     * Encode payload as YAML. Falls back to JSON (valid YAML 1.2) if ext-yaml is unavailable.
+     * Encode payload as YAML: the canonical YAML haxcms-nodejs writes too
+     * (lib/CanonicalFormat.php), whether or not ext-yaml is installed.
      */
     private function encodePageAlternateYaml($payload)
     {
-      if (function_exists('yaml_emit')) {
-        $yamlOutput = @yaml_emit($payload);
-        if (is_string($yamlOutput) && $yamlOutput != '') {
-          return $yamlOutput;
-        }
-      }
-      return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+      return CanonicalFormat::yaml($payload);
     }
     /**
      * Build XML output from structured payload.
@@ -2878,7 +2881,8 @@ class HAXCMSSite
       if (is_null($value)) {
         return "\n<" . $tagName . "></" . $tagName . ">";
       }
-      return "\n<" . $tagName . ">" . SanitizeContent::escapeXMLValue((string) $value) . "</" . $tagName . ">";
+      // true / false and JavaScript number text, as haxcms-nodejs writes them
+      return "\n<" . $tagName . ">" . SanitizeContent::escapeXMLValue(CanonicalFormat::scalarString($value)) . "</" . $tagName . ">";
     }
     /**
      * Ensure generated XML tags are valid.
@@ -3285,14 +3289,14 @@ class HAXCMSSite
       if (isset($page->metadata) && isset($page->metadata->updated) && is_numeric($page->metadata->updated)) {
         $updatedTimestamp = intval($page->metadata->updated);
         if ($updatedTimestamp > 0) {
-          $pageUpdatedISO = gmdate('c', $updatedTimestamp);
+          $pageUpdatedISO = CanonicalFormat::isoDate($updatedTimestamp);
         }
       }
       $pageCreatedISO = '';
       if (isset($page->metadata) && isset($page->metadata->created) && is_numeric($page->metadata->created)) {
         $createdTimestamp = intval($page->metadata->created);
         if ($createdTimestamp > 0) {
-          $pageCreatedISO = gmdate('c', $createdTimestamp);
+          $pageCreatedISO = CanonicalFormat::isoDate($createdTimestamp);
         }
       }
       $authorName = '';

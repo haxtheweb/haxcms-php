@@ -26,8 +26,8 @@ return function ($context) {
     header('Content-Type: application/json; charset=utf-8');
     if (is_array($response) && isset($response['__failed'])) {
         http_response_code($response['__failed']['status']);
-        print json_encode(HAXCMSApiMessageCodes::annotate($response['__failed'], $response['__failed']['status']));
+        print CanonicalFormat::json(HAXCMSApiMessageCodes::annotate($response['__failed'], $response['__failed']['status']));
     } else {
-        print json_encode(HAXCMSApiMessageCodes::annotate($response, 200));
+        print CanonicalFormat::json(HAXCMSApiMessageCodes::annotate($response, 200));
     }
 };

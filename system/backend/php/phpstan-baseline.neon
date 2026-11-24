@@ -541,12 +541,6 @@ parameters:
 			path: lib/HAXCMSFile.php
 
 		-
-			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: lib/HAXCMSSite.php
-
-		-
 			message: '#^Loose comparison using \=\= between ''html'' and ''html'' will always evaluate to true\.$#'
 			identifier: equal.alwaysTrue
 			count: 1

@@ -1,5 +1,6 @@
 <?php
 include_once 'SanitizeContent.php';
+include_once dirname(__FILE__) . '/CanonicalFormat.php';
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
@@ -77,7 +78,8 @@ class FeedMe
             $copyright = "\n    <copyright>Copyright (C) " . date('Y') . ' ' . $this->xmlEscape(rtrim($domain, '/')) . "</copyright>";
         }
         // Add generator element per RSS spec
-        $generator = "\n    <generator>HAXcms PHP</generator>";
+        // the same generator on both backends (haxtheweb/issues#3394)
+        $generator = "\n    <generator>HAXcms</generator>";
         return '<?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
   <channel>
@@ -87,7 +89,7 @@ class FeedMe
             $copyright .
             "\n    <language>" . $this->xmlEscape($site->getLanguage()) . "</language>
     <lastBuildDate>" .
-            date(\DateTime::RSS, $this->normalizeTimestamp($site->manifest->metadata->site->updated ?? null)) .
+            $this->rfc822Date($site->manifest->metadata->site->updated ?? null) .
             '</lastBuildDate>' .
             $generator .
             $categories .
@@ -163,7 +165,7 @@ class FeedMe
                     "\n      <description>" . $this->xmlEscape($content) . "</description>" .
                     $categoryElements .
                     "\n      <guid>" . $this->xmlEscape($guid) . "</guid>" .
-                    "\n      <pubDate>" . date(\DateTime::RSS, $this->normalizeTimestamp($item->metadata->created ?? null)) . "</pubDate>" .
+                    "\n      <pubDate>" . $this->rfc822Date($item->metadata->created ?? null) . "</pubDate>" .
                     "\n    </item>";
             }
             $count++;
@@ -194,7 +196,7 @@ class FeedMe
   <title>' . $title . '</title>
   <link href="' . $safeDomain . '" rel="self" />
   <subtitle>' . $subtitle . '</subtitle>
-  <updated>' . date(\DateTime::ATOM, $updated) . '</updated>
+  <updated>' . CanonicalFormat::isoDate($updated) . '</updated>
   <author>
       <name>' . $authorName . '</name>
   </author>
@@ -251,18 +253,18 @@ class FeedMe
                     $itemContent = str_replace(']]>', ']]]]><![CDATA[>', (string) $itemContent);
                 }
                 $output .=
-                    '\n  <entry>
-    <title>' .
+                    "\n  <entry>
+    <title>" .
                     $this->xmlEscape($item->title ?? '') .
                     '</title>
     <id>' .
                     $this->xmlEscape($item->id ?? $itemLink) .
                     '</id>
     <updated>' .
-                    date(\DateTime::ATOM, $this->normalizeTimestamp($item->metadata->updated ?? null)) .
+                    $this->isoDate($item->metadata->updated ?? null) .
                     '</updated>
     <published>' .
-                    date(\DateTime::ATOM, $this->normalizeTimestamp($item->metadata->created ?? null)) .
+                    $this->isoDate($item->metadata->created ?? null) .
                     '</published>
     <summary>' .
                     $this->xmlEscape($item->description ?? '') .
@@ -272,8 +274,8 @@ class FeedMe
                     '"/>
     ' .
                     $tags .
-                    '\n    <content type="html">
-      <![CDATA[ ' .
+                    "\n    <content type=\"html\">
+      <![CDATA[ " .
                     $itemContent .
                     ' ]]>
     </content>
@@ -282,6 +284,21 @@ class FeedMe
             $count++;
         }
         return $output;
+    }
+    /**
+     * RSS dates in the format of JavaScript's Date#toUTCString
+     * ("Tue, 24 Nov 2026 15:42:54 GMT"), as haxcms-nodejs writes them.
+     */
+    private function rfc822Date($value)
+    {
+        return gmdate('D, d M Y H:i:s', $this->normalizeTimestamp($value)) . ' GMT';
+    }
+    /**
+     * Atom dates in the format of JavaScript's Date#toISOString.
+     */
+    private function isoDate($value)
+    {
+        return CanonicalFormat::isoDate($this->normalizeTimestamp($value));
     }
     /**
      * Security (SEC-PATH): resolve an item location to a containment-proven

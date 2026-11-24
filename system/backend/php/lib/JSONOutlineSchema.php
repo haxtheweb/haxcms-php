@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/CanonicalFormat.php';
 /**
  * JSONOutlineSchema - An object for interfacing with the JSON Outline schema
  * specification. @see https://github.com/haxtheweb/json-outline-schema
@@ -235,8 +236,10 @@ class JSONOutlineSchema
         // Invariant: an outline that cannot be encoded (invalid UTF-8, INF /
         // NAN, nesting too deep) is an error, never a silent no-op: save()
         // throws and site.json is left as it was. Mirrors
-        // JSONOutlineSchema.save in haxcms-nodejs.
-        $output = json_encode($schema, JSON_PRETTY_PRINT);
+        // JSONOutlineSchema.save in haxcms-nodejs. The bytes are the
+        // canonical pretty JSON haxcms-nodejs writes too (lib/CanonicalFormat.php,
+        // haxtheweb/issues#3394).
+        $output = CanonicalFormat::prettyJsonOrFalse($schema);
         if (!is_string($output)) {
             throw new RuntimeException('JSONOutlineSchema: unable to encode ' . basename((string) $file) . ': ' . json_last_error_msg());
         }

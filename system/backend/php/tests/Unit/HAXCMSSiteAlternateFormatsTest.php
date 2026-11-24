@@ -264,15 +264,12 @@ class HAXCMSSiteAlternateFormatsTest extends TestCase
         $this->assertFileExists($yamlPath);
         $yaml = file_get_contents($yamlPath);
         $this->assertNotSame('', $yaml);
-        $decoded = json_decode($yaml, true);
-        if ($decoded !== null) {
-            // JSON fallback encoding (valid YAML 1.2) used when ext-yaml is absent.
-            $this->assertSame('pages/item-page-1/index.yaml', $decoded['location']);
-            $this->assertSame('<p>Home content</p>', $decoded['content']);
-        } else {
-            // Native yaml_emit encoding.
-            $this->assertStringStartsWith('---', $yaml);
-        }
+        // the canonical YAML haxcms-nodejs writes too, with or without
+        // ext-yaml (haxtheweb/issues#3394)
+        $this->assertStringStartsWith("id: item-page-1\n", $yaml);
+        $decoded = \Symfony\Component\Yaml\Yaml::parse($yaml);
+        $this->assertSame('pages/item-page-1/index.yaml', $decoded['location']);
+        $this->assertSame('<p>Home content</p>', $decoded['content']);
     }
 
     public function testWritePageAlternateFormatsXmlSidecarParses(): void
@@ -525,13 +522,10 @@ class HAXCMSSiteAlternateFormatsTest extends TestCase
         $result = $this->invokePrivate('encodePageAlternateYaml', [$payload]);
         $this->assertIsString($result);
         $this->assertNotSame('', $result);
-        if (str_starts_with($result, '---')) {
-            // native ext-yaml encoding
-            $this->assertStringContainsString('title', $result);
-        } else {
-            // JSON fallback (valid YAML 1.2)
-            $this->assertSame($payload, json_decode($result, true));
-        }
+        // the canonical YAML (lib/CanonicalFormat.php), the same with or
+        // without ext-yaml
+        $this->assertSame("title: Home\ncontent: \"<p>Home content</p>\"\n", $result);
+        $this->assertSame($payload, \Symfony\Component\Yaml\Yaml::parse($result));
     }
 
     // =========================================================================

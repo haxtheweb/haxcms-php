@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/CanonicalFormat.php';
 include_once dirname(__FILE__) . '/EntityRegistry.php';
 /**
  * Low-level files.json I/O for the file entity datastore (Phase 2, #3043).
@@ -215,7 +216,9 @@ class FilesDataStore
             @mkdir($dir, 0777, true);
         }
         $this->envelope['generated'] = time();
-        $json = json_encode($this->envelope, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        // canonical pretty JSON, the same file haxcms-nodejs writes
+        // (lib/CanonicalFormat.php); false when it cannot be encoded
+        $json = CanonicalFormat::prettyJsonOrFalse($this->envelope);
         if ($json === false) {
             return false;
         }

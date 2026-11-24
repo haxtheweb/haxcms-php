@@ -250,6 +250,6 @@ class SystemApiRouter
         http_response_code(200);
         header('Allow: GET, POST, PATCH, PUT, DELETE, OPTIONS');
         header('Content-Type: application/json; charset=utf-8');
-        print json_encode(array('status' => 200, 'data' => array('methods' => array('GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'))));
+        print CanonicalFormat::json(array('status' => 200, 'data' => array('methods' => array('GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'))));
     }
 }
