@@ -518,7 +518,7 @@
     {
       "code": "REPORT_UNKNOWN",
       "en": "Unknown report.",
-      "match": ["unknown report \"(?<name>.+)\"", "unknown report"]
+      "match": ["unknown report \"(?<name>.+)\""]
     },
     {
       "code": "FILE_UUID_INVALID",

@@ -201,6 +201,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/multiple-choice > confetti-element (script) | MIT | License text 62 |
 | @haxtheweb/music-player | Apache-2.0 | License text 4 |
 | @haxtheweb/music-player > @magenta/music (script) | Apache-2.0 | License text 64 |
+| @haxtheweb/music-player > FluidR3 GM SoundFont (sound) | MIT | License text 66 |
 | @haxtheweb/music-player > Tone.js (script) | MIT | License text 65 |
 | @haxtheweb/music-player > html-midi-player (script) | BSD-2-Clause | License text 63 |
 | @haxtheweb/mutation-observer-import-mixin | Apache-2.0 | License text 4 |
@@ -214,9 +215,9 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/page-flag | Apache-2.0 | License text 8 |
 | @haxtheweb/page-section | Apache-2.0 | License text 8 |
 | @haxtheweb/paper-input-flagged | Apache-2.0 | License text 3 |
-| @haxtheweb/papermod-theme | Apache-2.0 | License text 66 |
+| @haxtheweb/papermod-theme | Apache-2.0 | License text 67 |
 | @haxtheweb/parallax-image | Apache-2.0 | License text 3 |
-| @haxtheweb/patternfly-theme | Apache-2.0 | License text 67 |
+| @haxtheweb/patternfly-theme | Apache-2.0 | License text 68 |
 | @haxtheweb/pdf-browser-viewer | Apache-2.0 | License text 3 |
 | @haxtheweb/person-testimonial | Apache-2.0 | License text 3 |
 | @haxtheweb/place-holder | Apache-2.0 | License text 3 |
@@ -225,7 +226,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/portal-launcher | Apache-2.0 | License text 6 |
 | @haxtheweb/post-card | Apache-2.0 | License text 10 |
 | @haxtheweb/pouch-db | Apache-2.0 | License text 6 |
-| @haxtheweb/primer-theme | Apache-2.0 | License text 68 |
+| @haxtheweb/primer-theme | Apache-2.0 | License text 69 |
 | @haxtheweb/privacy-choices | Apache-2.0 | License text 5 |
 | @haxtheweb/product-glance | Apache-2.0 | License text 10 |
 | @haxtheweb/product-offering | Apache-2.0 | License text 10 |
@@ -249,7 +250,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/scroll-button | Apache-2.0 | License text 6 |
 | @haxtheweb/self-check | Apache-2.0 | License text 3 |
 | @haxtheweb/self-reflective-nudge | Apache-2.0 | License text 5 |
-| @haxtheweb/shadcn-theme | Apache-2.0 | License text 69 |
+| @haxtheweb/shadcn-theme | Apache-2.0 | License text 70 |
 | @haxtheweb/shadow-style | Apache-2.0 | License text 10 |
 | @haxtheweb/sheet-music | Apache-2.0 | License text 5 |
 | @haxtheweb/simple-autocomplete | Apache-2.0 | License text 4 |
@@ -276,13 +277,13 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/simple-toolbar | Apache-2.0 | License text 10 |
 | @haxtheweb/simple-tooltip | Apache-2.0 | License text 4 |
 | @haxtheweb/slide-deck | Apache-2.0 | License text 5 |
-| @haxtheweb/slide-deck > @aiden0z/pptx-renderer (script) | Apache-2.0 | License text 70 |
-| @haxtheweb/slide-deck > JSZip (script) | MIT | License text 71 |
-| @haxtheweb/slide-deck > pako (script) | MIT | License text 72 |
+| @haxtheweb/slide-deck > @aiden0z/pptx-renderer (script) | Apache-2.0 | License text 71 |
+| @haxtheweb/slide-deck > JSZip (script) | MIT | License text 72 |
+| @haxtheweb/slide-deck > pako (script) | MIT | License text 73 |
 | @haxtheweb/social-share-link | Apache-2.0 | License text 6 |
 | @haxtheweb/sorting-question | Apache-2.0 | License text 10 |
 | @haxtheweb/spacebook-theme | Apache-2.0 | License text 9 |
-| @haxtheweb/spectrum-theme | Apache-2.0 | License text 73 |
+| @haxtheweb/spectrum-theme | Apache-2.0 | License text 74 |
 | @haxtheweb/spotify-embed | Apache-2.0 | License text 8 |
 | @haxtheweb/star-rating | Apache-2.0 | License text 10 |
 | @haxtheweb/stat-tile | Apache-2.0 | License text 5 |
@@ -290,7 +291,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/super-daemon | Apache-2.0 | License text 8 |
 | @haxtheweb/tableau-embed | Apache-2.0 | License text 5 |
 | @haxtheweb/tagging-question | Apache-2.0 | License text 57 |
-| @haxtheweb/tailwind-theme | Apache-2.0 | License text 74 |
+| @haxtheweb/tailwind-theme | Apache-2.0 | License text 75 |
 | @haxtheweb/terrible-themes | Apache-2.0 | License text 8 |
 | @haxtheweb/training-theme | Apache-2.0 | License text 8 |
 | @haxtheweb/twenty-six-theme | Apache-2.0 | License text 9 |
@@ -301,7 +302,7 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/unity-webgl | Apache-2.0 | License text 10 |
 | @haxtheweb/user-action | Apache-2.0 | License text 6 |
 | @haxtheweb/user-scaffold | Apache-2.0 | License text 8 |
-| @haxtheweb/uswds-theme | Apache-2.0 | License text 75 |
+| @haxtheweb/uswds-theme | Apache-2.0 | License text 76 |
 | @haxtheweb/utils | Apache-2.0 | License text 3 |
 | @haxtheweb/vcf-render | Apache-2.0 | License text 5 |
 | @haxtheweb/vhs-blog-theme | Apache-2.0 | License text 5 |
@@ -310,16 +311,16 @@ The open-source license and copyright notices for every package in this build of
 | @haxtheweb/voice-recorder | Apache-2.0 | License text 6 |
 | @haxtheweb/wc-autoload | Apache-2.0 | License text 4 |
 | @haxtheweb/web-baseline-status | Apache-2.0 | License text 5 |
-| @haxtheweb/webawesome-theme | Apache-2.0 | License text 76 |
+| @haxtheweb/webawesome-theme | Apache-2.0 | License text 77 |
 | @haxtheweb/wikipedia-query | Apache-2.0 | License text 3 |
 | @haxtheweb/word-count | Apache-2.0 | License text 3 |
 | @haxtheweb/word-search | Apache-2.0 | License text 5 |
 | @haxtheweb/writing-theme | Apache-2.0 | License text 5 |
 | @haxtheweb/wysiwyg-hax | Apache-2.0 | License text 3 |
 | @haxtheweb/wysiwyg96-theme | Apache-2.0 | License text 5 |
-| @lit-labs/virtualizer | BSD-3-Clause | License text 78 |
-| @lit/reactive-element | BSD-3-Clause | License text 77 |
-| @lit/task | BSD-3-Clause | License text 77 |
+| @lit-labs/virtualizer | BSD-3-Clause | License text 79 |
+| @lit/reactive-element | BSD-3-Clause | License text 78 |
+| @lit/task | BSD-3-Clause | License text 78 |
 | @lrnwebcomponents/dynamic-import-registry | Apache-2.0 | License text 4 |
 | @lrnwebcomponents/wc-autoload | Apache-2.0 | License text 4 |
 | @mathjax/mathjax-bbm-font-extension | Apache-2.0 | no license file found in source package |
@@ -328,24 +329,24 @@ The open-source license and copyright notices for every package in this build of
 | @mathjax/mathjax-mhchem-font-extension | Apache-2.0 | no license file found in source package |
 | @mathjax/mathjax-newcm-font | Apache-2.0 | no license file found in source package |
 | baseline-status | Apache-2.0 | License text 2 |
-| bootstrap | MIT | License text 79 |
-| fflate | MIT | License text 80 |
-| h5p-standalone | MIT | License text 81 |
-| idb-keyval | Apache-2.0 | License text 82 |
-| lit | BSD-3-Clause | License text 77 |
-| lit-element | BSD-3-Clause | License text 77 |
-| lit-html | BSD-3-Clause | License text 77 |
-| lunr | MIT | License text 83 |
-| marked | MIT | License text 84 |
+| bootstrap | MIT | License text 80 |
+| fflate | MIT | License text 81 |
+| h5p-standalone | MIT | License text 82 |
+| idb-keyval | Apache-2.0 | License text 83 |
+| lit | BSD-3-Clause | License text 78 |
+| lit-element | BSD-3-Clause | License text 78 |
+| lit-html | BSD-3-Clause | License text 78 |
+| lunr | MIT | License text 84 |
+| marked | MIT | License text 85 |
 | mathjax | Apache-2.0 | License text 2 |
-| mobx | MIT | License text 85 |
-| modern-screenshot | MIT | License text 86 |
-| monaco-editor | MIT | License text 87 |
-| msr | MIT | License text 88 |
-| scrollable-component | MIT | License text 89 |
-| tslib | 0BSD | License text 90 |
+| mobx | MIT | License text 86 |
+| modern-screenshot | MIT | License text 87 |
+| monaco-editor | MIT | License text 88 |
+| msr | MIT | License text 89 |
+| scrollable-component | MIT | License text 90 |
+| tslib | 0BSD | License text 91 |
 | web-dialog | MIT | no license file found in source package |
-| web-social-share | MIT | License text 91 |
+| web-social-share | MIT | License text 92 |
 
 ## License texts
 
@@ -9488,7 +9489,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 66: Apache-2.0
+### License text 66: MIT
+
+Used by @haxtheweb/music-player > FluidR3 GM SoundFont (sound).
+
+Source files: lib/licenses/fluidr3-gm-LICENSE
+
+```text
+Copyright (c) 2000-2002, 2008 Frank Wen
+Version: 3
+Source: https://packages.debian.org/sid/fluid-soundfont-gm
+
+---- lib/licenses/fluidr3-gm-LICENSE ----
+Fluid (R3) SoundFont
+Copyright (c) 2000-2002, 2008 Frank Wen <getfrank@gmail.com>
+
+"I hereby release Fluid under the MIT license, as described in COPYING."
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+```
+
+### License text 67: Apache-2.0
 
 Used by @haxtheweb/papermod-theme.
 
@@ -9759,7 +9799,7 @@ affiliated with or endorsed by the authors of the theme it honors.
                           Copyright (c) 2022 Manuel Ernesto Garcia
 ```
 
-### License text 67: Apache-2.0
+### License text 68: Apache-2.0
 
 Used by @haxtheweb/patternfly-theme.
 
@@ -10004,7 +10044,7 @@ PatternFly and Red Hat are trademarks of Red Hat, Inc. This package is an
 independent integration and is not affiliated with or endorsed by Red Hat.
 ```
 
-### License text 68: Apache-2.0
+### License text 69: Apache-2.0
 
 Used by @haxtheweb/primer-theme.
 
@@ -10257,7 +10297,7 @@ GitHub and Primer are trademarks of GitHub, Inc. This package is an
 independent integration and is not affiliated with or endorsed by GitHub.
 ```
 
-### License text 69: Apache-2.0
+### License text 70: Apache-2.0
 
 Used by @haxtheweb/shadcn-theme.
 
@@ -10560,7 +10600,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 70: Apache-2.0
+### License text 71: Apache-2.0
 
 Used by @haxtheweb/slide-deck > @aiden0z/pptx-renderer (script).
 
@@ -10774,7 +10814,7 @@ Source: https://www.npmjs.com/package/@aiden0z/pptx-renderer
    limitations under the License.
 ```
 
-### License text 71: MIT
+### License text 72: MIT
 
 Used by @haxtheweb/slide-deck > JSZip (script).
 
@@ -11439,7 +11479,7 @@ copy of the Program in return for a fee.
                      END OF TERMS AND CONDITIONS
 ```
 
-### License text 72: MIT
+### License text 73: MIT
 
 Used by @haxtheweb/slide-deck > pako (script).
 
@@ -11474,7 +11514,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### License text 73: Apache-2.0
+### License text 74: Apache-2.0
 
 Used by @haxtheweb/spectrum-theme.
 
@@ -11708,7 +11748,7 @@ Adobe and Spectrum are trademarks of Adobe Inc. This package is an independent i
 with or endorsed by Adobe.
 ```
 
-### License text 74: Apache-2.0
+### License text 75: Apache-2.0
 
 Used by @haxtheweb/tailwind-theme.
 
@@ -11986,7 +12026,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 75: Apache-2.0
+### License text 76: Apache-2.0
 
 Used by @haxtheweb/uswds-theme.
 
@@ -12223,7 +12263,7 @@ It does not include the official U.S. government website banner, agency seals,
 the identifier component or any other element reserved for federal websites.
 ```
 
-### License text 76: Apache-2.0
+### License text 77: Apache-2.0
 
 Used by @haxtheweb/webawesome-theme.
 
@@ -12475,7 +12515,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 77: BSD-3-Clause
+### License text 78: BSD-3-Clause
 
 Used by @lit/reactive-element, @lit/task, lit, lit-element, lit-html.
 
@@ -12513,7 +12553,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### License text 78: BSD-3-Clause
+### License text 79: BSD-3-Clause
 
 Used by @lit-labs/virtualizer.
 
@@ -12551,7 +12591,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### License text 79: MIT
+### License text 80: MIT
 
 Used by bootstrap.
 
@@ -12582,7 +12622,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### License text 80: MIT
+### License text 81: MIT
 
 Used by fflate.
 
@@ -12613,7 +12653,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 81: MIT
+### License text 82: MIT
 
 Used by h5p-standalone.
 
@@ -12645,7 +12685,7 @@ SOFTWARE.
 
 ```
 
-### License text 82: Apache-2.0
+### License text 83: Apache-2.0
 
 Used by idb-keyval.
 
@@ -12668,7 +12708,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### License text 83: MIT
+### License text 84: MIT
 
 Used by lunr.
 
@@ -12697,7 +12737,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### License text 84: MIT
+### License text 85: MIT
 
 Used by marked.
 
@@ -12751,7 +12791,7 @@ Redistribution and use in source and binary forms, with or without modification,
 This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 ```
 
-### License text 85: MIT
+### License text 86: MIT
 
 Used by mobx.
 
@@ -12782,7 +12822,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 86: MIT
+### License text 87: MIT
 
 Used by modern-screenshot.
 
@@ -12801,7 +12841,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### License text 87: MIT
+### License text 88: MIT
 
 Used by monaco-editor.
 
@@ -12832,7 +12872,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 88: MIT
+### License text 89: MIT
 
 Used by msr.
 
@@ -12862,7 +12902,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### License text 89: MIT
+### License text 90: MIT
 
 Used by scrollable-component.
 
@@ -12893,7 +12933,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### License text 90: 0BSD
+### License text 91: 0BSD
 
 Used by tslib.
 
@@ -12915,7 +12955,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### License text 91: MIT
+### License text 92: MIT
 
 Used by web-social-share.
 
