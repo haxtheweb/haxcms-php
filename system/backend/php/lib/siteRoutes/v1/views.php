@@ -245,7 +245,7 @@ return function ($context) {
     $isResultsRoute = preg_match('/\/results$/', $routeSuffix) === 1;
     $fields = SiteRouteUtils::getCsvQuery('fields');
     $views = $normalizeStoredViews();
-    if (!$isResultsRoute && $viewId == '') {
+    if (!$isResultsRoute && $viewId == '' && !isset($context->params['viewId'])) {
         $records = SiteRouteUtils::sortRecords($views, SiteRouteUtils::getQueryValue('sort', ''), 'id');
         $paged = SiteRouteUtils::paginateRecords($records, 50, 500);
         $outputRecords = SiteRouteUtils::projectCollection($paged['records'], $fields);

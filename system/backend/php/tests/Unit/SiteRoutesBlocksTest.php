@@ -229,7 +229,7 @@ class SiteRoutesBlocksTest extends TestCase
         $this->assertSame(404, $result['data']['status']);
     }
 
-    public function testInvalidWebcomponentNameFormatIsIgnoredAndTreatedAsList(): void
+    public function testInvalidWebcomponentNameFormatIsNotFoundBeforeAnyLookup(): void
     {
         $site = $this->buildSiteWithBlockUsage();
         $context = makeSiteRouteContext(
@@ -238,11 +238,13 @@ class SiteRoutesBlocksTest extends TestCase
             'v1/blocks/bad%22name'
         );
         $result = invokeSiteRouteHandler('blocks.php', $context);
-        $data = $result['data']['data'];
-        // The malformed tag fails the security regex guard and is reset to
-        // '', so this falls through to the list route rather than a detail
-        // lookup or a crash.
-        $this->assertArrayHasKey('blocks', $data);
+        // The malformed tag fails the security regex guard, so it never
+        // reaches the XPath lookup: it is a 404 for that name, as on
+        // haxcms-nodejs (haxtheweb/issues#3394), not a detail lookup, the
+        // list, or a crash.
+        $this->assertSame(404, $result['data']['status']);
+        $this->assertSame('Block "bad"name" not found', $result['data']['data']['message']);
+        $this->assertArrayNotHasKey('blocks', $result['data']['data']);
     }
 
     // ------------------------------------------------------------------

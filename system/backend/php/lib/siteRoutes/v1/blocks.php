@@ -351,14 +351,35 @@ return function ($context) {
     };
     $routeSuffix = isset($context->routeSuffix) ? (string) $context->routeSuffix : '';
     $isUsageRoute = preg_match('/\/usage$/', $routeSuffix) === 1;
-    $webcomponentName = isset($context->params['webcomponentName'])
-        ? strtolower(trim((string) $context->params['webcomponentName']))
+    $hasNameParam = isset($context->params['webcomponentName']);
+    $webcomponentName = $hasNameParam
+        // mb_strtolower: lowercased like JavaScript's toLowerCase, so a
+        // non-ASCII name reads back the same on both (haxtheweb/issues#3394)
+        ? mb_strtolower(trim((string) $context->params['webcomponentName']), 'UTF-8')
         : '';
+    // a blank name (/blocks/%20) asks for a block, not the list: 404, the
+    // same as haxcms-nodejs
+    if ($hasNameParam && $webcomponentName === '') {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Block not found'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     // Security (SEC-SANITIZE): validate the webcomponent name before XPath
     // interpolation so a value containing " cannot break out of the string
-    // literal and match arbitrary nodes.
+    // literal and match arbitrary nodes. A name that cannot be a tag is no
+    // block: 404 with the name, as haxcms-nodejs answers it.
     if ($webcomponentName !== '' && !preg_match('/^[a-z][a-z0-9-]*$/', $webcomponentName)) {
-        $webcomponentName = '';
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Block "' . $webcomponentName . '" not found'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $routeSuffix,
+            $apiBasePath
+        );
+        return;
     }
     $include = SiteRouteUtils::getCsvQuery('include');
     $fields = SiteRouteUtils::getCsvQuery('fields');

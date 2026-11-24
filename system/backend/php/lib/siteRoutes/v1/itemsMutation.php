@@ -138,8 +138,10 @@ return function ($context) {
                 $body['node']['details'][$detailKey] = $body[$detailKey];
             }
         }
+        // setImage and setMedia both take image, else media, as in
+        // haxcms-nodejs nodeDetailOperations (haxtheweb/issues#3394)
         if (
-            $operation === 'setMedia' &&
+            ($operation === 'setMedia' || $operation === 'setImage') &&
             !array_key_exists('image', $body['node']['details']) &&
             array_key_exists('media', $body['node']['details'])
         ) {
@@ -165,7 +167,18 @@ return function ($context) {
             // Build navigation map from ordered items and append links,
             // mirroring items.php read route and Node's buildItemNavigationMap +
             // appendItemNavigationLinks.
-            $orderedItems = SiteRouteUtils::getOrderedItems($context->site);
+            // from the outline as saved: $context->site was loaded before
+            // saveNodeDetails moved or indented the page, so its order is
+            // the old one (haxtheweb/issues#3394; haxcms-nodejs builds the
+            // links after the change)
+            $navSite = $context->site;
+            if (isset($context->site->manifest->metadata->site->name)) {
+                $reloaded = $GLOBALS['HAXCMS']->loadSite((string) $context->site->manifest->metadata->site->name);
+                if ($reloaded && isset($reloaded->manifest)) {
+                    $navSite = $reloaded;
+                }
+            }
+            $orderedItems = SiteRouteUtils::getOrderedItems($navSite);
             $itemById = array();
             foreach ($orderedItems as $navItem) {
                 if (isset($navItem->id)) {

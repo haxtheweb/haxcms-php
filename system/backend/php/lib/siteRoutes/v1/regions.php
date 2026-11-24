@@ -24,6 +24,16 @@ return function ($context) {
         return 'default';
     };
     $regionName = isset($context->params['regionName']) ? trim((string) $context->params['regionName']) : '';
+    // a blank name asks for a region, not the list: 404, as haxcms-nodejs does
+    if (isset($context->params['regionName']) && $regionName === '') {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Region not found'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $context->routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     if ($regionName != '') {
         $filteredItems = SiteRouteUtils::applyItemFilters(SiteRouteUtils::getOrderedItems($site), $site, $context);
         $regionItems = array_values(array_filter($filteredItems, function ($item) use ($regionName, $getRegionName) {

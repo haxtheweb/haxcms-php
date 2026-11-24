@@ -1034,8 +1034,11 @@ class HAXCMSSite
         // location is the html file we just copied and renamed
         $page->location = 'pages/' . $page->id . '/index.html';
         // sanitize slug but dont trust it was anything
-        if ($slug == '') {
-          $slug = $title;
+        // no slug: make one from the page's title as saved (sanitized, or the
+        // default title), as haxcms-nodejs does, not from the raw $title
+        // (haxtheweb/issues#3394)
+        if ($slug === null || (is_string($slug) && trim($slug) === '')) {
+          $slug = $page->title;
         }
         $page->slug = $this->getUniqueSlugName($GLOBALS['HAXCMS']->cleanTitle($slug));
         // support presetting multiple metadata attributes like tags, pageType, etc
@@ -2263,12 +2266,16 @@ class HAXCMSSite
         if (isset($params['order']) && $params['order'] != '' && $params['order'] != null) {
             $item->order = $params['order'];
         }
-        if (isset($params['parent']) && $params['parent'] != '' && $params['parent'] != null) {
+        // a parent is a page id: a non-blank string. Anything else (an
+        // object, a list, a number) is no parent, so it can never be written
+        // to site.json; the same rule as haxcms-nodejs (haxtheweb/issues#3394)
+        if (isset($params['parent']) && is_string($params['parent']) && trim($params['parent']) !== '') {
             $item->parent = $params['parent'];
         } else {
             $item->parent = null;
         }
-        if (isset($params['description']) && $params['description'] != '' && $params['description'] != null) {
+        // a string, or it is ignored, as in haxcms-nodejs (haxtheweb/issues#3394)
+        if (isset($params['description']) && is_string($params['description']) && $params['description'] != '') {
             $item->description = str_replace("\n", '', $params['description']);
         }
         if (isset($params['metadata']) && $params['metadata'] != '' && $params['metadata'] != null) {

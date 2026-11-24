@@ -63,10 +63,18 @@ return function ($context) {
         $body = array();
     }
     $format = null;
+    // format is a string or null: blank or null means every format; any
+    // other type (a list, a number, an object) is refused below instead of
+    // being cast, as haxcms-nodejs does (haxtheweb/issues#3394)
     if (isset($body['format'])) {
-        $requestedFormat = trim((string) $body['format']);
-        if ($requestedFormat !== '') {
-            $format = $requestedFormat;
+        if (!is_string($body['format'])) {
+            $format = false;
+        }
+        else {
+            $requestedFormat = trim($body['format']);
+            if ($requestedFormat !== '') {
+                $format = $requestedFormat;
+            }
         }
     }
     if ($format !== null) {

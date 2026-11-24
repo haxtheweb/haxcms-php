@@ -313,11 +313,17 @@ trait OperationsRouteSaveNodeDetails {
             $page->metadata = new stdClass();
           }
           if (array_key_exists('image', $this->params['node']['details'])) {
+            // a value that is blank once cleaned removes the image instead
+            // of saving '' (haxcms-nodejs does the same, haxtheweb/issues#3394)
+            $cleanImage = '';
             if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
-              $page->metadata->image = SanitizeContent::sanitizeURLValue(
+              $cleanImage = SanitizeContent::sanitizeURLValue(
                 $this->params['node']['details']['image'],
                 ''
               );
+            }
+            if (is_string($cleanImage) && trim($cleanImage) !== '') {
+              $page->metadata->image = $cleanImage;
             } else {
               unset($page->metadata->image);
             }

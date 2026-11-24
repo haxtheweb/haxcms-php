@@ -60,6 +60,12 @@ return function ($context) {
         // error message depends on this: neither one is ever saved.
         if (isset($body['items']) && is_array($body['items'])) {
             $rawPayload = json_decode($context->getRawBody());
+            // items sent as a JSON object ({}) is not a list: refused with
+            // "Outline payload requires an items array", as in haxcms-nodejs.
+            // getBody() made it an array, which would read as an empty list.
+            if (is_object($rawPayload) && isset($rawPayload->items) && is_object($rawPayload->items)) {
+                $body['items'] = null;
+            }
             if (is_object($rawPayload) && isset($rawPayload->items) && is_array($rawPayload->items)) {
                 foreach ($rawPayload->items as $rawIndex => $rawItem) {
                     if (

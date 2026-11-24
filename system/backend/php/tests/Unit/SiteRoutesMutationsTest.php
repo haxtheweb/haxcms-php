@@ -1001,7 +1001,7 @@ class SiteRoutesMutationsTest extends TestCase
             'files/00000000-0000-4000-8000-000000000000',
             $this->siteTokenHeader()
         ));
-        $this->assertSame('File not found for fileUuid', $res['data']['data']['message']);
+        $this->assertSame('Requested file was not found', $res['data']['data']['message']);
     }
 
     public function testFilesMutationDeleteUnknownUuidReturns404(): void
@@ -1013,7 +1013,7 @@ class SiteRoutesMutationsTest extends TestCase
             'files/00000000-0000-4000-8000-000000000000',
             $this->siteTokenHeader()
         ));
-        $this->assertSame('File not found for fileUuid', $res['data']['data']['message']);
+        $this->assertSame('Requested file was not found', $res['data']['data']['message']);
     }
 
     public function testFilesMutationDeleteRemovesFileAndDataStoreRecord(): void

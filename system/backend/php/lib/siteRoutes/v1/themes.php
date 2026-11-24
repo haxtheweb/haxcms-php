@@ -179,6 +179,16 @@ return function ($context) {
         return;
     }
     $themeName = isset($context->params['themeName']) ? trim((string) $context->params['themeName']) : '';
+    // a blank name asks for a theme, not the list: 404, as haxcms-nodejs does
+    if (isset($context->params['themeName']) && $themeName === '') {
+        SiteRouteUtils::sendFormattedResponse(
+            array('message' => 'Theme not found'),
+            array('statusCode' => 404, 'allowedFormats' => array('json'), 'defaultFormat' => 'json'),
+            $routeSuffix,
+            $apiBasePath
+        );
+        return;
+    }
     if ($themeName != '') {
         $target = null;
         foreach ($records as $record) {

@@ -569,9 +569,28 @@ class SiteRouteUtils
         }
         return $items;
     }
+    /**
+     * JavaScript's decodeURIComponent: %XX sequences are decoded and a + stays
+     * a +. A value that is not a valid encoding (a % not followed by two hex
+     * digits, bytes that are not UTF-8) is kept as it is, where
+     * decodeURIComponent would throw. haxcms-nodejs decodeUriComponentOrKeep
+     * follows the same rule.
+     */
+    public static function decodeUriComponentOrKeep($value)
+    {
+        $text = (string) $value;
+        if (preg_match('/%(?![0-9a-fA-F]{2})/', $text) === 1) {
+            return $text;
+        }
+        $decoded = rawurldecode($text);
+        if (!mb_check_encoding($decoded, 'UTF-8')) {
+            return $text;
+        }
+        return $decoded;
+    }
     public static function findItemByIdOrSlug($site, $idOrSlug = '')
     {
-        $value = urldecode(trim((string) $idOrSlug));
+        $value = self::decodeUriComponentOrKeep(trim((string) $idOrSlug));
         if ($value == '' || !isset($site) || !isset($site->manifest)) {
             return null;
         }
