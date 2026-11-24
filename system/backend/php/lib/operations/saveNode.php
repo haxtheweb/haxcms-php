@@ -114,6 +114,27 @@ trait OperationsRouteSaveNode {
             // now this should exist if it didn't a minute ago
             $page = $site->loadNode($data["attributes"]["item-id"]);
             $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage($data['content']);
+            // DRAFT plugin platform (haxtheweb/issues#3356, mirrors haxcms-nodejs#138): page.before.save
+            // (entity.before.update on page) may change the content or the plugin's own metadata.plugins.<id>
+            // fields, or veto the save before anything is written
+            $pluginPrevious = null;
+            $pluginRecord = null;
+            if (getenv('HAXCMS_PLUGINS') !== 'off') {
+              include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+              $pageRecord = json_decode(json_encode($page), true);
+              $pluginPrevious = $pageRecord;
+              $pluginPrevious['content'] = (string) $site->getPageContent($page);
+              $proposed = $pageRecord;
+              $proposed['title'] = isset($data["attributes"]["title"]) && $data["attributes"]["title"] ? SanitizeContent::plainText($data["attributes"]["title"]) : $page->title;
+              $proposed['content'] = $sanitizedContent;
+              $pre = HAXCMSPluginSystem::before($site, 'page', $proposed, $pluginPrevious, array('user' => HAXCMSPluginSystem::userRecord($this->getSiteTokenUserName())));
+              if (!empty($pre['veto'])) {
+                return HAXCMSPluginSystem::vetoFailure($pre['veto']);
+              }
+              $pluginRecord = $pre['record'];
+              // core sanitizes whatever plugins hand back, as it does for authors
+              $sanitizedContent = SanitizeContent::sanitizeHTMLForStorage((string) ($pluginRecord['content'] ?? $sanitizedContent));
+            }
             // @todo make sure that we stripped off page-break
             // and now save WITHOUT the top level page-break
             // to avoid duplication issues
@@ -419,6 +440,10 @@ trait OperationsRouteSaveNode {
                 // array from a content path-scan. A file removed from the
                 // content drops out of the set automatically.
                 FileContentScanner::rebuildPageFilesUuids($site, $page, $sanitizedContent);
+                // DRAFT plugin platform: keep the plugin-owned fields the before hooks set (core drops undeclared ones)
+                if ($pluginRecord && isset($pluginRecord['metadata']['plugins'])) {
+                  $page->metadata->plugins = json_decode(json_encode($pluginRecord['metadata']['plugins'] ?: new stdClass()));
+                }
                 $site->updateNode($page);
                 $site->writePageAlternateFormats($page, $sanitizedContent);
                 // stamp the site as updated and save site.json in tree order
@@ -431,6 +456,11 @@ trait OperationsRouteSaveNode {
                 $site->gitCommit(
                   'Page updated: ' . $page->title . ' (' . $page->id . ')'
                 );
+                if (getenv('HAXCMS_PLUGINS') !== 'off') {
+                  $afterRecord = json_decode(json_encode($page), true);
+                  $afterRecord['content'] = $sanitizedContent;
+                  HAXCMSPluginSystem::after($site, 'page', $afterRecord, $pluginPrevious);
+                }
             }
           }
           return array(

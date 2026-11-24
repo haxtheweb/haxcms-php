@@ -52,6 +52,13 @@ tags:
     description: Saved view definitions and resolved results endpoints.
   - name: integrations
     description: Third-party integration and provider broker endpoints.
+  - name: plugins
+    description: >-
+      Plugin registry, enablement, settings, front-end files and the contract of
+      what plugins add (draft plugin platform). Each plugin's own operations are
+      served under `/x/api/v1/plugins/{plugin}/` and are documented by
+      `/x/api/v1/plugins/openapi.json`, not in this document. With plugins switched off
+      for the deployment every path here is 404.
 security: []
 paths:
   /x/api:
@@ -2733,6 +2740,348 @@ paths:
                         $ref: "#/components/schemas/BlockUsageCollection"
         "404":
           $ref: "#/components/responses/NotFound"
+  /x/api/v1/plugins:
+    get:
+      tags:
+        - plugins
+      operationId: listSitePlugins
+      summary: List installed plugins and whether each is on for this site
+      description: >-
+        The plugin registry: every installed plugin with its status, what it
+        needs from the backend, how it fits each deployment target (server,
+        desktop, browser) and whether the deployment locks or blocks it. A plugin
+        that is installed and not enabled is `available`; none of its code is loaded.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      responses:
+        "200":
+          description: Plugin registry
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PluginRegistryEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /x/api/v1/plugins/contributions:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginContributions
+      summary: Get what enabled plugins add to this site's admin screens
+      description: >-
+        Declarative interface contributions from the plugins that are on, and the
+        core contracts they advertise by contract and result name, and the importers (choices) a person can pick from.
+      parameters:
+        - name: surface
+          in: query
+          required: false
+          description: Whose choices to return; admin screens (default), the hax CLI or haxcms-mcp.
+          schema:
+            type: string
+            enum: [admin, cli, mcp]
+            default: admin
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      responses:
+        "200":
+          description: Contributions and advertised contracts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PluginContributions"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /x/api/v1/plugins/openapi.json:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginsOpenApiJson
+      summary: OpenAPI JSON document for the operations plugins add at site scope
+      description: >-
+        The operations the plugins that are on add at site scope, each at the path it is
+        served from under `/x/api/v1/plugins/{plugin}/`, with its declared security. Server-side
+        details (a proxied upstream and its keys) are never part of it.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      responses:
+        "200":
+          description: OpenAPI JSON document
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /x/api/v1/plugins/openapi.yaml:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginsOpenApiYaml
+      summary: OpenAPI YAML document for the operations plugins add at site scope
+      description: >-
+        The operations the plugins that are on add at site scope, each at the path it is
+        served from under `/x/api/v1/plugins/{plugin}/`, with its declared security. Server-side
+        details (a proxied upstream and its keys) are never part of it.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      responses:
+        "200":
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /x/api/v1/plugins/{plugin}/enable:
+    post:
+      tags:
+        - plugins
+      operationId: enableSitePlugin
+      summary: Enable a plugin for this site
+      description: >-
+        Turns the plugin on for this site and records it in
+        `_config/plugins/plugins.yaml`. Answers with the plugin's status afterwards.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      responses:
+        "200":
+          description: The plugin was enabled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PluginToggleResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: "Refused by a deployment block, a dependency that is not on, or an entry file that fails to load"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /x/api/v1/plugins/{plugin}/disable:
+    post:
+      tags:
+        - plugins
+      operationId: disableSitePlugin
+      summary: Disable a plugin for this site
+      description: >-
+        Turns the plugin off; its data is kept for this site and records it in
+        `_config/plugins/plugins.yaml`. Answers with the plugin's status afterwards.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      responses:
+        "200":
+          description: The plugin was disabled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PluginToggleResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: "Refused by a deployment lock, a plugin that is on that depends on it, or a plugin enabled for the whole system"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /x/api/v1/plugins/{plugin}/settings:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginSettings
+      summary: Get a plugin's settings form and saved values
+      description: >-
+        The form fields the plugin declares and the values in effect. A secret
+        field is never sent back; in its place is an object with `secret` true and
+        `set` true or false.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      responses:
+        "200":
+          description: Settings form and values
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PluginSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - plugins
+      operationId: saveSitePluginSettings
+      summary: Save a plugin's settings
+      description: >-
+        Saves the submitted values and recalculates the plugin's status. A secret
+        field left empty keeps the value already saved. Secrets are stored
+        outside every site folder.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                values:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Settings as saved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiEnvelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/PluginSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: "The plugin does not keep its settings in this scope, or a plugin vetoed the save"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /x/api/v1/plugins/{plugin}/openapi.json:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginOpenApiJson
+      summary: OpenAPI JSON document for one plugin's operations
+      description: >-
+        The operations this plugin adds at site scope, each at the path it is
+        served from under `/x/api/v1/plugins/{plugin}/`, with its declared security. Server-side
+        details (a proxied upstream and its keys) are never part of it. 404 when the plugin is not on or has no operation at this scope.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      responses:
+        "200":
+          description: OpenAPI JSON document
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/plugins/{plugin}/openapi.yaml:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginOpenApiYaml
+      summary: OpenAPI YAML document for one plugin's operations
+      description: >-
+        The operations this plugin adds at site scope, each at the path it is
+        served from under `/x/api/v1/plugins/{plugin}/`, with its declared security. Server-side
+        details (a proxied upstream and its keys) are never part of it. 404 when the plugin is not on or has no operation at this scope.
+      security:
+        - bearerAuth: []
+          siteTokenHeader: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+      responses:
+        "200":
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /x/api/v1/plugins/{plugin}/assets/{assetPath}:
+    get:
+      tags:
+        - plugins
+      operationId: getSitePluginAsset
+      summary: Get one of a plugin's front-end files
+      description: >-
+        A file from the plugin's `frontend/dist` that its asset manifest lists,
+        while the plugin is on. `assetPath` may contain slashes. Anything else,
+        and any plugin that is not on, is 404. No credentials: pages load
+        these for every visitor.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PluginId"
+        - name: assetPath
+          in: path
+          required: true
+          description: Path of the file under the plugin's `frontend/dist`
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The file, with the content type of its extension
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   securitySchemes:
     bearerAuth:
@@ -2760,6 +3109,14 @@ components:
         type: string
         example: </x/api/v1/items.yaml>; rel="alternate"; type="application/yaml"
   parameters:
+    PluginId:
+      name: plugin
+      in: path
+      required: true
+      description: Plugin id (the plugin's folder name)
+      schema:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
     IdOrSlug:
       name: idOrSlug
       in: path
@@ -4488,3 +4845,155 @@ components:
           items:
             type: object
             additionalProperties: true
+    PluginRegistryEntry:
+      type: object
+      description: One installed plugin as the registry reports it.
+      required:
+        - id
+        - status
+        - enabled
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        version:
+          type: string
+          nullable: true
+        tier:
+          type: string
+          description: Where the copy in use is installed (core, system-contrib, site-contrib)
+        kind:
+          type: string
+        status:
+          type: string
+          description: >-
+            available (installed, not enabled), active, inactive (enabled, a
+            requirement is unmet), failed, or refused (invalid or blocked)
+        reason:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        required:
+          type: boolean
+        unmet:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        limited:
+          type: array
+          description: What does not work on this deployment target while the plugin stays on
+          items:
+            type: object
+            additionalProperties: true
+        needs:
+          type: array
+          description: What the plugin needs from the backend, derived from its manifest
+          items:
+            type: string
+        targets:
+          type: object
+          description: How the plugin fits each deployment target (server, desktop, browser)
+          additionalProperties: true
+        staticCapable:
+          type: boolean
+        dependencies:
+          type: array
+          items:
+            type: string
+        dependents:
+          type: array
+          items:
+            type: string
+        locked:
+          type: boolean
+          description: The deployment keeps this plugin on
+        blocked:
+          type: boolean
+          description: The deployment refuses this plugin
+        scope:
+          type: string
+          nullable: true
+          description: Where it is enabled (system or site), or null when it is not
+        sites:
+          type: array
+          description: System registry only; the sites that enable this plugin themselves
+          items:
+            type: string
+      additionalProperties: true
+    PluginToggleResult:
+      type: object
+      description: The plugin's state after it was enabled or disabled.
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+      additionalProperties: true
+    PluginSettings:
+      type: object
+      properties:
+        id:
+          type: string
+        scope:
+          type: string
+          description: Where this plugin's settings are saved (system or site)
+        fields:
+          type: array
+          description: The settings form the plugin declares
+          items:
+            type: object
+            additionalProperties: true
+        values:
+          type: object
+          description: Values in effect. A secret field is an object with secret true and set true or false, never the value
+          additionalProperties: true
+        status:
+          type: string
+        unmet:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    PluginContributions:
+      type: object
+      properties:
+        contributions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        choices:
+          type: object
+          description: >-
+            For each core contract a person picks one implementer for (import.platform), the
+            implementers offered on admin screens, with what each asks for.
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/PluginChoice"
+        contracts:
+          type: object
+          additionalProperties: true
+    PluginChoice:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          description: The plugin to name in the import call; screens build their form from input and uploads.
+        title:
+          type: string
+        description:
+          type: string
+        input:
+          type: array
+          items:
+            type: string
+            enum: [url, upload, html, xml]
+        uploads:
+          type: array
+          items:
+            type: string

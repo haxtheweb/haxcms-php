@@ -148,6 +148,11 @@ class HAXCMSApiMessageCodesTest extends TestCase
             if (substr($file->getFilename(), -4) !== '.php') {
                 continue;
             }
+            // DRAFT plugin platform (haxtheweb/issues#3356): what the engine answers (`'error'`) and what its routes
+            // send get codes like any API message; its log lines (`'message'` in log entries) stay English, as the
+            // spec's conformance cases assert them, and text a plugin writes (vetoes, its own errors) is the plugin's
+            $pluginEngine = strpos($file->getPathname(), DIRECTORY_SEPARATOR . 'plugins' . DIRECTORY_SEPARATOR) !== false
+                && substr($file->getFilename(), 0, strlen('HAXCMSPluginRoutes')) !== 'HAXCMSPluginRoutes';
             $tokens = token_get_all(file_get_contents($file->getPathname()));
             $count = count($tokens);
             for ($i = 0; $i < $count; $i++) {
@@ -156,6 +161,9 @@ class HAXCMSApiMessageCodesTest extends TestCase
                 }
                 $key = substr($tokens[$i][1], 1, -1);
                 if ($key !== 'message' && $key !== 'error') {
+                    continue;
+                }
+                if ($pluginEngine && $key !== 'error') {
                     continue;
                 }
                 $j = $i + 1;

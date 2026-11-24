@@ -292,6 +292,26 @@ return function ($context) {
             }
             $results[$k]['previous'] = $previous;
         }
+        // DRAFT plugin platform: a block edit rewrites the page's content, so it is a page save with the new
+        // content as the subject; a veto refuses it before anything is written
+        include_once dirname(__FILE__) . '/../../plugins/HAXCMSPluginSystem.php';
+        $pluginSave = array('veto' => null, 'state' => null);
+        if (getenv('HAXCMS_PLUGINS') !== 'off' && HAXCMSPluginSystem::listening($site)) {
+            $pluginPage = json_decode(json_encode($page), true);
+            $pluginSave = HAXCMSPluginSystem::pageSave(
+                $site,
+                is_array($pluginPage) ? array_merge($pluginPage, array('content' => $outcome['content'])) : $pluginPage,
+                is_array($pluginPage) ? array_merge($pluginPage, array('content' => $html)) : $pluginPage,
+                array('user' => HAXCMSPluginSystem::activeUser())
+            );
+        }
+        if (!empty($pluginSave['veto'])) {
+            $send((int) ($pluginSave['veto']['status'] ?: 409), array(
+                'message' => (string) $pluginSave['veto']['message'],
+                'plugin' => isset($pluginSave['veto']['plugin']) ? $pluginSave['veto']['plugin'] : null,
+            ));
+            return;
+        }
         $bytes = $page->writeLocation($outcome['content'], $siteDirectory);
         if ($bytes === false) {
             $send(500, array('message' => 'failed to write'));
@@ -312,6 +332,7 @@ return function ($context) {
             $site->manifest->metadata->site->updated = $now;
         }
         $site->manifest->save(false);
+        HAXCMSPluginSystem::saved($site, $pluginSave['state']);
         $site->gitCommit(
             'Block operations: ' . ContentBlocksRoute::summarize($ops) . ' on ' .
             (isset($page->title) && $page->title !== '' ? $page->title : 'Untitled') .

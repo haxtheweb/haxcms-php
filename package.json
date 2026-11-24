@@ -53,6 +53,7 @@
     "test": "cd system/backend/php && ./vendor/bin/phpunit",
     "lint:php": "bash scripts/phpstan.sh",
     "lint:php:baseline": "bash scripts/phpstan.sh --generate-baseline phpstan-baseline.neon",
+    "test:plugins": "node test/plugins/run-all.mjs",
     "test:fuzz": "cd system/backend/php && HAX_FUZZ_SEED=${HAX_FUZZ_SEED:-random} HAX_FUZZ_RUNS=${HAX_FUZZ_RUNS:-2000} ./vendor/bin/phpunit --filter BlockOperationsFuzzTest",
     "test:mutation": "bash scripts/infection.sh",
     "test:e2e": "node --test --test-concurrency=1 test/e2e/*.e2e.test.cjs",

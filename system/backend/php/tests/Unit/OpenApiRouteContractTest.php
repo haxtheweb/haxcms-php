@@ -132,10 +132,49 @@ class OpenApiRouteContractTest extends TestCase
         $this->assertSame(array(), $undeclared, 'routed but missing from the ' . $which . ' spec');
     }
 
+    /**
+     * The plugin platform's routes are answered by HAXCMSPluginRoutes before
+     * the route maps are read; its PLATFORM_ROUTES list is their registry.
+     */
+    private static function pluginOperations(): array
+    {
+        require_once self::libDir() . '/plugins/HAXCMSPluginRoutes.php';
+        $out = array();
+        foreach (HAXCMSPluginRoutes::PLATFORM_ROUTES as $r) {
+            $out[] = strtoupper($r[0]) . ' v1/plugins' . preg_replace('/\{([A-Za-z0-9_]+)\}/', ':$1', $r[1]);
+        }
+        return $out;
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('backends')]
+    public function testThePluginRoutesAreDeclaredExactlyAndAskForCredentialsWhereTheyShould(string $which): void
+    {
+        $declared = array_values(array_filter(self::specOperations($which), function ($op) {
+            return (bool) preg_match('#^[A-Z]+ v1/plugins(/|$)#', $op);
+        }));
+        $listed = self::pluginOperations();
+        sort($declared);
+        sort($listed);
+        $this->assertSame($listed, $declared);
+        $paths = self::spec($which)['paths'];
+        $token = $which === 'site' ? 'siteTokenHeader' : 'userTokenHeader';
+        foreach (HAXCMSPluginRoutes::PLATFORM_ROUTES as $r) {
+            $op = $paths[self::prefix($which) . '/v1/plugins' . $r[1]][$r[0]];
+            $label = $r[0] . ' ' . $r[1];
+            if ($r[2]) {
+                $this->assertCount(1, $op['security'], $label);
+                $this->assertArrayHasKey('bearerAuth', $op['security'][0], $label);
+                $this->assertArrayHasKey($token, $op['security'][0], $label);
+            } else {
+                $this->assertSame(array(), $op['security'], $label);
+            }
+        }
+    }
+
     #[\PHPUnit\Framework\Attributes\DataProvider('backends')]
     public function testEverySpecOperationIsRouted(string $which): void
     {
-        $routed = self::routedOperations($which);
+        $routed = array_merge(self::routedOperations($which), self::pluginOperations());
         $unrouted = array();
         foreach (self::specOperations($which) as $specOp) {
             $served = false;
@@ -217,6 +256,9 @@ class OpenApiRouteContractTest extends TestCase
             // redeems a token minted with filesystem access (SEC-MAGICLINK)
             'get:v1/session/magic-link',
             'get:v1/session/refresh',
+            // a plugin's listed front-end files, while it is on: pages load
+            // them for every visitor (answered by HAXCMSPluginRoutes)
+            'get:v1/plugins/:plugin/assets/:assetPath',
             'post:v1/session',
             'post:v1/session/connection-settings',
             'post:v1/session/connection-test',

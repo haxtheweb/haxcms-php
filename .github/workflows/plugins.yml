@@ -1,0 +1,63 @@
+name: plugins
+# DRAFT plugin platform (haxtheweb/issues#3356). haxcms-php's native plugin engine against the plugin spec
+# (haxtheweb/haxcms-plugins): the spec's conformance cases and every plugin's own executable cases on real
+# HAXcms storage, a case-by-case comparison with the spec's reference engine, and the PHPUnit tests that need the
+# spec on disk. haxcms-nodejs#138 runs the same cases against its engine.
+on:
+  push:
+    branches: [main, master]
+  # No branch filter: stacked PRs (base is another feature branch) must run too.
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  # The plugin spec's base branch: spec, harness, conformance and examples, no catalog plugins
+  # (https://github.com/haxtheweb/haxcms-plugins/pull/15). Point this at the spec's default branch once it merges.
+  PLUGIN_SPEC_REF: foundation/spec-harness-checks
+jobs:
+  plugins:
+    name: "Plugin spec (PHP ${{ matrix.php-version }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.4", "8.5", "8.6"]
+    runs-on: ubuntu-latest
+    # 8.6 is a release candidate until 2026-11-19 (same rule as tests.yml)
+    continue-on-error: ${{ matrix.php-version == '8.6' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout the plugin spec
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: haxtheweb/haxcms-plugins
+          ref: ${{ env.PLUGIN_SPEC_REF }}
+          path: .plugin-spec
+          persist-credentials: false
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, dom, simplexml, gd, zip, curl, intl, fileinfo, iconv, xmlreader, xmlwriter, zlib
+          ini-values: "error_reporting=E_ALL & ~E_NOTICE & ~E_DEPRECATED"
+          coverage: none
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install the spec's runners (no install scripts)
+        working-directory: .plugin-spec
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install PHP dependencies
+        working-directory: system/backend/php
+        run: composer install --prefer-dist --no-interaction --no-progress ${{ matrix.php-version == '8.6' && '--ignore-platform-req=php+' || '' }}
+      - name: PHPUnit (plugin platform)
+        working-directory: system/backend/php
+        env:
+          HAXCMS_PLUGIN_SPEC_DIR: ${{ github.workspace }}/.plugin-spec
+        run: vendor/bin/phpunit --filter 'PluginPlatform|testSaveNodePlugin' --fail-on-skipped
+      - name: Conformance, every plugin's cases, and parity with the reference engine
+        env:
+          HAXCMS_PLUGIN_SPEC_DIR: ${{ github.workspace }}/.plugin-spec
+        run: node test/plugins/run-all.mjs

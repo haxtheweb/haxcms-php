@@ -154,6 +154,21 @@ trait OperationsRouteCreateSite {
         is_array($trustedSkeleton);
       // sanitize name
       $name = $GLOBALS['HAXCMS']->generateMachineName($this->params['site']['name']);
+      // DRAFT plugin platform: site.before.create on the system engine (the site does not exist yet); a veto
+      // refuses the request before a folder is made
+      include_once __DIR__ . '/../plugins/HAXCMSPluginSystem.php';
+      $pluginOpts = array('user' => HAXCMSPluginSystem::userRecord($GLOBALS['HAXCMS']->getActiveUserName()));
+      $pluginPre = HAXCMSPluginSystem::event(null, 'site.before.create', array(
+        'id' => null,
+        'name' => strtolower($name),
+        'title' => isset($this->params['site']['title']) && is_string($this->params['site']['title']) ? $this->params['site']['title'] : $name,
+        'path' => null,
+        'theme' => null,
+        'owner' => $GLOBALS['HAXCMS']->getActiveUserName() ?: null,
+      ), $pluginOpts);
+      if (!empty($pluginPre['veto'])) {
+        return HAXCMSPluginSystem::vetoFailure($pluginPre['veto']);
+      }
       $site = $GLOBALS['HAXCMS']->loadSite(
           strtolower($name),
           true,
@@ -526,6 +541,7 @@ trait OperationsRouteCreateSite {
         "status" => 200,
         "data" => $data
       );
+      HAXCMSPluginSystem::event(null, 'site.after.create', HAXCMSPluginSystem::siteSummary($site), $pluginOpts);
       return $response;
     }
     else {

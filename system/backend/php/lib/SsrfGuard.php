@@ -631,6 +631,76 @@ class SsrfGuard
      * failure (caller decides how to handle). Throws SsrfGuardException on
      * SSRF rejection, hop cap (SSRF_REDIRECTS), or bad Location (SSRF_REDIRECT).
      */
+    /**
+     * One request with no redirect followed: the URL is resolved and validated
+     * (private, reserved and metadata targets rejected) and the connection is
+     * pinned to the validated IP, like every hop of safeCurlExec. Returns
+     * ['status' => int, 'headers' => [lower-case name => value], 'body' => string].
+     * For callers that check their own policy on every hop before following a
+     * redirect (the plugin engine checks a plugin's egress list per hop,
+     * spec/13 of the plugin spec).
+     */
+    public static function safeFetchOnce($url, $method = 'GET', array $headers = array(), $body = null, $maxBytes = null)
+    {
+        $limit = self::resolveMaxBytes($maxBytes);
+        $resolved = self::resolveAndValidate($url);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, self::$SAFE_TIMEOUT);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper((string) $method));
+        if (defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+            curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+            curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, 0);
+        }
+        if (defined('CURLOPT_RESOLVE')) {
+            $entries = self::buildPinnedResolveEntries($resolved['parsed'], $resolved['pinnedIp']);
+            if (count($entries) > 0) {
+                curl_setopt($ch, CURLOPT_RESOLVE, $entries);
+            }
+        }
+        $lines = array();
+        foreach ($headers as $k => $v) {
+            $lines[] = $k . ': ' . $v;
+        }
+        if ($lines) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $lines);
+        }
+        if ($body !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, (string) $body);
+        }
+        curl_setopt($ch, CURLOPT_MAXFILESIZE, $limit);
+        curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+        curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $dlTotal, $dlNow, $ulTotal, $ulNow) use ($limit) {
+            return ($dlTotal > $limit || $dlNow > $limit) ? 1 : 0;
+        });
+        $raw = curl_exec($ch);
+        if ($raw === false) {
+            $errno = curl_errno($ch);
+            if ($errno === 63 || $errno === 42) {
+                throw self::tooLarge($limit);
+            }
+            throw new SsrfGuardException('request failed: ' . curl_error($ch), 'SSRF_FETCH');
+        }
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $out = array();
+        foreach (preg_split('/\r\n|\r|\n/', substr($raw, 0, $headerSize)) as $line) {
+            $pos = strpos($line, ':');
+            if ($pos !== false) {
+                $out[strtolower(trim(substr($line, 0, $pos)))] = trim(substr($line, $pos + 1));
+            }
+        }
+        $responseBody = (string) substr($raw, $headerSize);
+        if (strlen($responseBody) > $limit) {
+            throw self::tooLarge($limit);
+        }
+        return array('status' => $status, 'headers' => $out, 'body' => $responseBody);
+    }
+
     public static function safeCurlExec($url, array $extraOptions = array(), $maxBytes = null)
     {
         $limit = self::resolveMaxBytes($maxBytes);
