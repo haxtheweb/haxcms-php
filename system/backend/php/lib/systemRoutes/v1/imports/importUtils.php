@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../../../UnicodeTables.php';
 include_once dirname(__FILE__) . '/../../../JSONOutlineSchemaItem.php';
 include_once dirname(__FILE__) . '/../../../siteRoutes/SiteRouteUtils.php';
 // D36: sanitize untrusted HTML in the central import helper so every caller is covered.
@@ -19,8 +20,8 @@ if (!function_exists('haxcmsImportCleanTitle')) {
         $clean = trim($title);
         $clean = str_replace(array('./', '../'), '', $clean);
         $clean = strtolower(str_replace(' ', '-', $clean));
-        $clean = preg_replace('/[^\w\-\/]+/u', '-', $clean);
-        $clean = mb_strtolower(preg_replace('/--+/u', '-', $clean), 'UTF-8');
+        $clean = preg_replace(UnicodeTables::notLetterOrNumberRun('_\-\/'), '-', $clean);
+        $clean = UnicodeTables::lowerCase(preg_replace('/--+/u', '-', (string) $clean));
         return $clean !== '' ? $clean : 'blank';
     }
 }

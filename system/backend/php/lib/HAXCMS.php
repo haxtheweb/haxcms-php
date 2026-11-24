@@ -5,6 +5,7 @@
  */
 // system constants
 include_once dirname(__FILE__) . '/CanonicalFormat.php';
+include_once dirname(__FILE__) . '/UnicodeTables.php';
 include_once 'Variables.php';
 // service creation / HAX app store service abstraction
 include_once 'HAXAppStoreService.php';
@@ -1158,9 +1159,14 @@ class HAXCMS
      * Return the active domain if it exists
      */
     public function getDomain() {
-      if (isset($_SERVER['SERVER_NAME'])) {
-        return 'https://' . $_SERVER['SERVER_NAME'];
+      // The request's host as resolved at bootstrap (resolveTrustedHost when
+      // trustedProxies / allowedHosts are configured, else the Host header),
+      // port included; null outside a web request. haxcms-nodejs
+      // HAXCMS.getDomain resolves the same host (haxtheweb/issues#3394).
+      if (is_string($this->domain) && $this->domain !== '') {
+        return 'https://' . $this->domain;
       }
+      return null;
     }
     /**
      * Load wc-registry.json relative to the site in question
@@ -1609,16 +1615,16 @@ class HAXCMS
       return $this->finishSlug($name, true);
     }
     /**
-     * Shared tail of cleanTitle / generateSlugName: anything but Unicode
-     * letters, Unicode digits, "_", "-" and "/" becomes "-", repeated hyphens
-     * collapse, Unicode-aware lowercase, "-./" trimmed from both ends and an
-     * empty result becomes "blank". The class is spelled out instead of \w
-     * because PCRE2's \w under /u differs between versions (10.43+ adds
-     * combining marks and connector punctuation) and JS \w is ASCII-only.
+     * Shared tail of cleanTitle / generateSlugName: anything but letters,
+     * digits, "_", "-" and "/" becomes "-", repeated hyphens collapse,
+     * lowercase, "-./" trimmed from both ends and an empty result becomes
+     * "blank". Letters, digits and lowercase come from the fixed Unicode
+     * tables (lib/UnicodeTables.php), not \p{L}/\p{N}/\w or mb_strtolower,
+     * which follow the PCRE2 / mbstring build (haxtheweb/issues#3394).
      */
     private function finishSlug($value, $collapseSlashes)
     {
-        $slug = preg_replace('/[^\p{L}\p{N}_\-\/]+/u', '-', $value);
+        $slug = preg_replace(UnicodeTables::notLetterOrNumberRun('_\-\/'), '-', $value);
         if (!is_string($slug)) {
             $slug = '';
         }
@@ -1626,7 +1632,7 @@ class HAXCMS
         if ($collapseSlashes) {
             $slug = preg_replace('/\/{2,}/', '/', $slug);
         }
-        $slug = trim(mb_strtolower($slug, 'UTF-8'), '-./');
+        $slug = trim(UnicodeTables::lowerCase($slug), '-./');
         // ensure we don't return an empty slug or it could break downstream things
         if ($slug === '') {
             $slug = 'blank';

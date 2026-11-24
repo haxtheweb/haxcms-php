@@ -651,13 +651,19 @@ class HAXCMSConfigCoverageTest extends TestCase
     public function testGetUriAndGetDomain()
     {
         $backup = $_SERVER;
+        $domainBackup = $this->haxcms->domain;
         unset($_SERVER['SCRIPT_URI'], $_SERVER['SERVER_NAME']);
+        $this->haxcms->domain = null;
         $this->assertNull($this->haxcms->getURI());
         $this->assertNull($this->haxcms->getDomain());
         $_SERVER['SCRIPT_URI'] = 'https://example.com/x';
-        $_SERVER['SERVER_NAME'] = 'example.com';
         $this->assertSame('https://example.com/x', $this->haxcms->getURI());
-        $this->assertSame('https://example.com', $this->haxcms->getDomain());
+        // the request host, port included, whatever SERVER_NAME says (the
+        // same host haxcms-nodejs uses)
+        $_SERVER['SERVER_NAME'] = 'other.example';
+        $this->haxcms->domain = 'example.com:8443';
+        $this->assertSame('https://example.com:8443', $this->haxcms->getDomain());
+        $this->haxcms->domain = $domainBackup;
         $_SERVER = $backup;
     }
 

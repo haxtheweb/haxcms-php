@@ -1,4 +1,5 @@
 <?php
+include_once dirname(__FILE__) . '/../../UnicodeTables.php';
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
 include_once dirname(__FILE__) . '/../../DocxToHtml.php';
@@ -438,8 +439,8 @@ return function ($context) {
         $clean = str_replace('./', '', $clean);
         $clean = str_replace('../', '', $clean);
         $clean = strtolower(str_replace(' ', '-', $clean));
-        $clean = preg_replace('/[^\w\-\/]+/u', '-', $clean);
-        $clean = mb_strtolower(preg_replace('/--+/u', '-', $clean), 'UTF-8');
+        $clean = preg_replace(UnicodeTables::notLetterOrNumberRun('_\-\/'), '-', $clean);
+        $clean = UnicodeTables::lowerCase(preg_replace('/--+/u', '-', (string) $clean));
         return $clean !== '' ? $clean : 'blank';
     };
 

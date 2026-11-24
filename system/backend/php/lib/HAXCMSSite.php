@@ -2,6 +2,7 @@
 // working with RSS
 include_once 'RSS.php';
 include_once dirname(__FILE__) . '/CanonicalFormat.php';
+include_once dirname(__FILE__) . '/UnicodeTables.php';
 include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
 include_once 'HAXCMSSameAs.php';
@@ -1914,10 +1915,11 @@ class HAXCMSSite
         $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
       }
       // a tag becomes a space so the words either side of it stay two words
-      $text = mb_strtolower(self::stripAngleTags($text, ' '), 'UTF-8');
+      $text = UnicodeTables::lowerCase(self::stripAngleTags($text, ' '));
       // apostrophes close up (aren't -> arent), anything else that is not a
-      // letter or a number separates words
-      $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', str_replace("'", '', $text));
+      // letter or a number (fixed Unicode tables, haxtheweb/issues#3394)
+      // separates words
+      $text = preg_replace(UnicodeTables::notLetterOrNumberRun(), ' ', str_replace("'", '', $text));
       if (!is_string($text)) {
         return '';
       }
@@ -1931,7 +1933,7 @@ class HAXCMSSite
         // script that does not put spaces between words
         if (
           mb_strlen($word, 'UTF-8') < 3 &&
-          preg_match('/[\p{N}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Thai}]/u', $word) !== 1
+          preg_match(UnicodeTables::searchKeepShort(), $word) !== 1
         ) {
           continue;
         }
