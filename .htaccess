@@ -58,6 +58,11 @@ DirectoryIndex index.php index.html
   # server for HAXcms tooling and site zip downloads; only direct HTTP access
   # is refused. /.well-known/ stays reachable (agent-skills, security.txt).
   RewriteRule "(^|/)\.(?!well-known(/|$))" - [F]
+  # Security (SEC-DEPLOY): the running HAXcms version never reaches
+  # unauthenticated users. The install root's release files state it and
+  # nothing in a browser reads them, so direct HTTP access is refused. Site
+  # folders (_sites/<name>/package.json) are not affected.
+  RewriteRule "^(package\.json|CHANGELOG\.md|system/platform-manifest\.json)$" - [F]
   # Set "protossl" to "s" if we were accessed via https://.  This is used later
   # if you enable "www." stripping or enforcement, in order to ensure that
   # you don't bounce between http and https.

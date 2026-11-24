@@ -3,7 +3,7 @@
         'name' => 'haxtheweb/haxcms',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'e382e30d09c9c233c690d1136e449d1b5ba20ea6',
+        'reference' => 'f34496b1c003e00f4b5a4472d3f2bb5ce2ebb32f',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -94,7 +94,7 @@
         'haxtheweb/haxcms' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'e382e30d09c9c233c690d1136e449d1b5ba20ea6',
+            'reference' => 'f34496b1c003e00f4b5a4472d3f2bb5ce2ebb32f',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

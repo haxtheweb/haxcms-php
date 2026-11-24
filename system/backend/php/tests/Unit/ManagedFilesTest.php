@@ -30,6 +30,16 @@ class ManagedFilesTest extends TestCase
         $this->assertSame('replace', ManagedFiles::getPolicy('fileshtaccess')['policy']);
     }
 
+    public function testBoilerplatePackageJsonNamesNoAuthorAndTheLegacyOneIsDropped(): void
+    {
+        $pkg = json_decode((string) file_get_contents(dirname(__DIR__, 5) . '/system/boilerplate/site/package.json'));
+        $this->assertFalse(property_exists($pkg, 'author'));
+        $this->assertSame(array('{"name":"btopro"}'), ManagedFiles::LEGACY_JSON_KEYS['author']);
+        $this->assertTrue(ManagedFiles::isLegacyJsonValue('author', json_decode('{"name":"btopro"}')));
+        $this->assertFalse(ManagedFiles::isLegacyJsonValue('author', json_decode('{"name":"Ada"}')));
+        $this->assertFalse(ManagedFiles::isLegacyJsonValue('license', json_decode('{"name":"btopro"}')));
+    }
+
     public function testMarkersAreVersionNeutralAndInTheBoilerplate(): void
     {
         foreach (ManagedFiles::MARKERS as $pair) {

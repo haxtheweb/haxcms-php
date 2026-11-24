@@ -97,6 +97,36 @@ class SecurityAuditFixesTest extends TestCase
         }
     }
 
+    // ---- SEC-DEPLOY: the HAXcms version is never served ------------------
+
+    public function testRootManifestStatesNoVersion(): void
+    {
+        $manifest = json_decode((string) file_get_contents($this->repoRoot . '/manifest.json'));
+        $this->assertInstanceOf(\stdClass::class, $manifest);
+        $this->assertFalse(property_exists($manifest, 'version'), 'manifest.json is public: no HAXcms version');
+    }
+
+    public function testReleaseFilesThatStateTheVersionAreRefused(): void
+    {
+        $rule = 'RewriteRule "^(package\.json|CHANGELOG\.md|system/platform-manifest\.json)$" - [F]';
+        $conf = (string) file_get_contents($this->repoRoot . '/.htaccess');
+        $rulePos = strpos($conf, $rule);
+        $this->assertNotFalse($rulePos, '.htaccess must refuse the release files');
+        $this->assertGreaterThan(strpos($conf, 'RewriteEngine on'), $rulePos);
+        // the root .htaccess sees paths relative to the install root
+        $pattern = '#^(package\.json|CHANGELOG\.md|system/platform-manifest\.json)$#';
+        foreach (array('package.json', 'CHANGELOG.md', 'system/platform-manifest.json') as $denied) {
+            $this->assertSame(1, preg_match($pattern, $denied), $denied . ' must be refused');
+        }
+        foreach (array('_sites/blog/package.json', 'manifest.json', 'build/es6/node_modules/lit/package.json', 'system/api/v1/index.php') as $allowed) {
+            $this->assertSame(0, preg_match($pattern, $allowed), $allowed . ' must stay reachable');
+        }
+        $nginx = (string) file_get_contents($this->repoRoot . '/scripts/nginx/haxcms-nginx.conf');
+        foreach (array('/package.json', '/CHANGELOG.md', '/system/platform-manifest.json') as $location) {
+            $this->assertStringContainsString('location = ' . $location . ' { deny all; return 404; }', $nginx);
+        }
+    }
+
     // ---- SEC-INSTALL: exact install gate ----------------------------------
 
     public function testBoilerplateConfigSourceIsNotTemplated(): void

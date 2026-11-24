@@ -112,6 +112,30 @@
       "existing": "{\"name\":\"old\",\"scripts\":{\"build\":\"old\",\"lint\":\"eslint .\"},\"publishConfig\":{},\"homepage\":\"https://example.org/a/b\",\"author\":\"Zoë   x\",\"files\":[],\"numericKeys\":{\"0\":\"a\",\"1\":\"b\"}}",
       "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
       "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\",\n    \"lint\": \"eslint .\"\n  },\n  \"publishConfig\": {},\n  \"homepage\": \"https://example.org/a/b\",\n  \"author\": \"Zoë   x\",\n  \"files\": [],\n  \"numericKeys\": {\n    \"0\": \"a\",\n    \"1\": \"b\"\n  }\n}\n"
+    },
+    {
+      "name": "the legacy hard-coded author is dropped, leaving the rendered text verbatim",
+      "existing": "{\"name\":\"site\",\"version\":\"0.0.0\",\"author\":{\"name\":\"btopro\"},\"scripts\":{\"build\":\"hax build\"}}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n"
+    },
+    {
+      "name": "the legacy hard-coded author is dropped and owner keys are kept",
+      "existing": "{\"name\":\"site\",\"author\":{\"name\":\"btopro\"},\"keywords\":[\"course\"]}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  },\n  \"keywords\": [\n    \"course\"\n  ]\n}\n"
+    },
+    {
+      "name": "an author the owner set is kept",
+      "existing": "{\"name\":\"site\",\"author\":{\"name\":\"Ada Lovelace\",\"email\":\"ada@example.com\"}}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  },\n  \"author\": {\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\"\n  }\n}\n"
+    },
+    {
+      "name": "a btopro author with anything else in it is the owner's and is kept",
+      "existing": "{\"name\":\"site\",\"author\":{\"name\":\"btopro\",\"url\":\"https://btopro.com\"}}",
+      "rendered": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  }\n}\n",
+      "expected": "{\n  \"name\": \"site\",\n  \"version\": \"0.0.0\",\n  \"scripts\": {\n    \"build\": \"hax build\"\n  },\n  \"author\": {\n    \"name\": \"btopro\",\n    \"url\": \"https://btopro.com\"\n  }\n}\n"
     }
   ],
   "securityTxt": [
