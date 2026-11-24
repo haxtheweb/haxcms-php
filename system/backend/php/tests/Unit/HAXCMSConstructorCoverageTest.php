@@ -177,6 +177,25 @@ class HAXCMSConstructorCoverageTest extends TestCase
         $this->assertSame('example.test:8080', $haxcms->domain);
     }
 
+    /**
+     * haxtheweb/issues#3401: the "Local files" upload connection points at
+     * the host and port the request came in on, so a site served on
+     * 127.0.0.1:3000 never uploads to http://localhost/. Same guard as
+     * haxcms-nodejs test/unit/haxcms-core.test.cjs.
+     */
+    public function testSiteConnectionKeepsRequestHostAndPort()
+    {
+        $this->clearProtocolSuperglobals();
+        $_SERVER['HTTP_HOST'] = '127.0.0.1:3000';
+        $haxcms = $this->newHaxcms();
+        $decoded = json_decode($haxcms->siteConnectionJSON('site-tok', ''));
+        $this->assertSame('http', $decoded->connection->protocol);
+        $this->assertSame(
+            '127.0.0.1:3000' . $haxcms->basePath,
+            $decoded->connection->url
+        );
+    }
+
     public function testConstructorDiscoversUnderscoreDirectories()
     {
         mkdir(HAXCMS_ROOT . '/_sites');
