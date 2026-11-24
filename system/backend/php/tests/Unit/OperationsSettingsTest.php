@@ -1,5 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 require_once __DIR__ . '/OperationsTestHaxcms.php';
 
 /**
@@ -243,6 +244,73 @@ class OperationsSettingsTest extends TestCase
         $this->assertTrue(property_exists($result, 'metadata'));
         // HTML primitives 'p' and 'a' pass the tag validation; unique + sort.
         $this->assertSame(array('a', 'p'), $result->metadata->platform->allowedBlocks);
+    }
+
+    // ===== refused site settings saves write nothing =====
+    // The plugin platform wraps these saves in manifest hooks; a refused save
+    // must answer its status and leave site.json exactly as it was, so the
+    // after-save hooks have nothing to report. Same statuses in haxcms-nodejs
+    // (test/unit/save-settings-routes.test.cjs).
+
+    public static function refusedSettingsSaveProvider(): array
+    {
+        return array(
+            'editor: no platform' => array('saveEditorSettings', null, 400),
+            'editor: audience missing' => array('saveEditorSettings', array(), 400),
+            'editor: audience not a string' => array('saveEditorSettings', array('audience' => 7), 400),
+            'editor: unknown audience' => array('saveEditorSettings', array('audience' => 'wizard'), 400),
+            'platform: no platform' => array('savePlatformSettings', null, 400),
+            'platform: no features' => array('savePlatformSettings', array('audience' => 'expert'), 400),
+            'platform: non-boolean value' => array('savePlatformSettings', array('features' => array('insights' => 'sometimes')), 400),
+            'platform: unknown feature' => array('savePlatformSettings', array('features' => array('teleport' => true)), 400),
+            'blocks: no platform' => array('saveAllowedBlocks', null, 400),
+            'blocks: allowedBlocks missing' => array('saveAllowedBlocks', array('audience' => 'expert'), 400),
+            'blocks: allowedBlocks not a list' => array('saveAllowedBlocks', array('allowedBlocks' => 'p'), 400),
+            'blocks: entry not a string' => array('saveAllowedBlocks', array('allowedBlocks' => array('p', 3)), 400),
+            'blocks: empty tag' => array('saveAllowedBlocks', array('allowedBlocks' => array('  ')), 400),
+            'blocks: unknown element' => array('saveAllowedBlocks', array('allowedBlocks' => array('not-a-real-element')), 400),
+        );
+    }
+
+    #[DataProvider('refusedSettingsSaveProvider')]
+    public function testRefusedSettingsSaveAnswersItsStatusAndWritesNothing(string $method, ?array $platform, int $status): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array('site_token' => 'good', 'site' => array('name' => $this->siteName));
+        $this->ops->rawParams = is_null($platform) ? array() : array('platform' => json_decode(json_encode((object) $platform)));
+        $before = file_get_contents($this->siteJsonPath());
+        $result = $this->ops->$method();
+        $this->assertIsArray($result);
+        $this->assertSame($status, $result['__failed']['status'], json_encode($result));
+        $this->assertSame($before, file_get_contents($this->siteJsonPath()), 'site.json unchanged');
+    }
+
+    public static function featureGatedSettingsSaveProvider(): array
+    {
+        return array(
+            'editor' => array('saveEditorSettings', array('audience' => 'expert'), 'Editor settings are disabled for this site'),
+            'platform' => array('savePlatformSettings', array('features' => array('insights' => false)), 'Platform settings are disabled for this site'),
+            'blocks' => array('saveAllowedBlocks', array('allowedBlocks' => array('p')), 'Allowed blocks settings are disabled for this site'),
+        );
+    }
+
+    // a site whose siteManifest feature is off refuses all three with 403
+    #[DataProvider('featureGatedSettingsSaveProvider')]
+    public function testSettingsSaveIsRefusedWhenSiteManifestIsOff(string $method, array $platform, string $message): void
+    {
+        $site = $this->haxcms->loadedSite;
+        $site->manifest->metadata->platform = (object) array(
+            'features' => (object) array('siteManifest' => false),
+        );
+        $site->manifest->save(false);
+        $before = file_get_contents($this->siteJsonPath());
+        $this->haxcms->validRequestToken = true;
+        $this->ops->params = array('site_token' => 'good', 'site' => array('name' => $this->siteName));
+        $this->ops->rawParams = array('platform' => json_decode(json_encode((object) $platform)));
+        $result = $this->ops->$method();
+        $this->assertSame(403, $result['__failed']['status']);
+        $this->assertSame($message, $result['__failed']['message']);
+        $this->assertSame($before, file_get_contents($this->siteJsonPath()), 'site.json unchanged');
     }
 
     // ===== saveEnabledBlocks =====

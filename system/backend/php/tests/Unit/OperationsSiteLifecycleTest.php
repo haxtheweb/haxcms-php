@@ -355,6 +355,46 @@ class OperationsSiteLifecycleTest extends TestCase
         $this->assertSame('pre-existing archive', file_get_contents($existingArchive . '/marker.txt'));
     }
 
+    public function testArchiveSiteFindsTheNextFreeSlotPastSeveralCopies(): void
+    {
+        $this->buildMinimalSiteFixture($this->siteName);
+        foreach (array('', '-1') as $suffix) {
+            @mkdir(HAXCMS_ROOT . '/_archived/' . $this->siteName . $suffix, 0777, true);
+        }
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+
+        $result = $this->ops->archiveSite();
+
+        $this->assertSame(200, $result['status']);
+        $this->assertSame($this->siteName . '-2', $result['data']['archivedName']);
+        $this->assertTrue(is_dir(HAXCMS_ROOT . '/_archived/' . $this->siteName . '-2'));
+    }
+
+    // same status and message as haxcms-nodejs archiveSite.js, with no PHP
+    // warning on the way (the site lookup answered false)
+    public function testArchiveSiteOfASiteThatIsGoneIs500(): void
+    {
+        $this->haxcms->validRequestToken = true;
+        $this->haxcms->canAccessSite = true;
+        $this->haxcms->siteMissing = true;
+        $this->ops->params = array('user_token' => 'good', 'site' => array('name' => $this->siteName));
+        $warnings = array();
+        set_error_handler(function ($errno, $errstr) use (&$warnings) {
+            $warnings[] = $errstr;
+            return true;
+        });
+        try {
+            $result = $this->ops->archiveSite();
+        } finally {
+            restore_error_handler();
+        }
+        $this->assertSame(500, $result['__failed']['status']);
+        $this->assertSame('Site does not exist', $result['__failed']['message']);
+        $this->assertSame(array(), $warnings);
+    }
+
     // =========================================================================
     // downloadSite
     // =========================================================================

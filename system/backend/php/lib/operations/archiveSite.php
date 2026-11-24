@@ -12,7 +12,9 @@ trait OperationsRouteArchiveSite {
         );
       }
       $site = $GLOBALS['HAXCMS']->loadSite($this->params['site']['name']);
-      if ($site->manifest->metadata->site->name) {
+      // a site that is gone answers the same 500 as haxcms-nodejs, without
+      // reading properties off the false the lookup returns
+      if ($site && isset($site->manifest->metadata->site->name) && $site->manifest->metadata->site->name) {
         $siteName = $site->manifest->metadata->site->name;
         $archivedRoot = HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->archivedDirectory;
         // ensure archived directory exists
