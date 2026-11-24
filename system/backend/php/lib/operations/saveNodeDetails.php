@@ -316,7 +316,9 @@ trait OperationsRouteSaveNodeDetails {
             // a value that is blank once cleaned removes the image instead
             // of saving '' (haxcms-nodejs does the same, haxtheweb/issues#3394)
             $cleanImage = '';
-            if ($this->params['node']['details']['image'] !== '' && $this->params['node']['details']['image'] !== null) {
+            // a string, or it counts as blank ((string) of a list was
+            // saved as "Array")
+            if (is_string($this->params['node']['details']['image']) && $this->params['node']['details']['image'] !== '') {
               $cleanImage = SanitizeContent::sanitizeURLValue(
                 $this->params['node']['details']['image'],
                 ''

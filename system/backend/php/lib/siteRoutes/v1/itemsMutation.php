@@ -84,9 +84,10 @@ return function ($context) {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $resolvedItemId;
-        }
+        // the page is the one the URL names: a node.id in the body never
+        // points the change at another page (haxcms-nodejs uses the path
+        // the same way; haxtheweb/issues#3394)
+        $body['node']['id'] = $resolvedItemId;
         // D51: read top-level body.operation only (Node canonical).
         // The previous fallback to body.node.details.operation has been removed.
         $operation = '';
@@ -220,9 +221,10 @@ return function ($context) {
         if (!isset($body['node']) || !is_array($body['node'])) {
             $body['node'] = array();
         }
-        if (!isset($body['node']['id']) || $body['node']['id'] === '') {
-            $body['node']['id'] = $resolvedItemId;
-        }
+        // the page is the one the URL names: a node.id in the body never
+        // points the change at another page (haxcms-nodejs uses the path
+        // the same way; haxtheweb/issues#3394)
+        $body['node']['id'] = $resolvedItemId;
         $operations->params = $body;
         $operations->rawParams = $body;
         $result = $operations->deleteNode();

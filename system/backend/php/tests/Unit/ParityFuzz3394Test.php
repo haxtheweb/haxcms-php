@@ -584,4 +584,52 @@ class ParityFuzz3394Test extends TestCase
         $res = $this->send('blocks.php', 'GET', 'v1/blocks/%EA%9D%96', '', array('webcomponentName' => 'Ꝗ'));
         $this->assertError($res, 404, 'Block "ꝗ" not found', 'BLOCK_NOT_FOUND', array('name' => 'ꝗ'));
     }
+
+    public function test31UpdateAndDeleteActOnThePageTheUrlNames(): void
+    {
+        $patched = $this->send(
+            'itemsMutation.php',
+            'PATCH',
+            'v1/items/item-b',
+            json_encode(array('site' => array('name' => $this->siteName), 'node' => array('id' => 'item-a'), 'operation' => 'setTitle', 'title' => 'Renamed')),
+            array('idOrSlug' => 'item-b')
+        );
+        $this->assertSame(200, $patched['json']['status'], $patched['raw']);
+        $this->assertSame('item-b', $patched['json']['data']['id']);
+        $deleted = $this->send(
+            'itemsMutation.php',
+            'DELETE',
+            'v1/items/item-b',
+            json_encode(array('site' => array('name' => $this->siteName), 'node' => array('id' => 'item-a'))),
+            array('idOrSlug' => 'item-b')
+        );
+        $this->assertSame(200, $deleted['json']['status'], $deleted['raw']);
+        $saved = json_decode($this->siteJson());
+        $ids = array_map(function ($item) {
+            return $item->id;
+        }, (array) $saved->items);
+        $this->assertContains('item-a', $ids, 'the page in the body is not deleted');
+        $this->assertNotContains('item-b', $ids);
+        foreach ((array) $saved->items as $item) {
+            if ($item->id === 'item-a') {
+                $this->assertSame('Item A', $item->title, 'the page in the body is not renamed');
+            }
+        }
+    }
+
+    public function test32SetMediaImageThatIsNotAStringIsNoImage(): void
+    {
+        foreach (array(array(), array('https://example.com/a.png'), array('u' => 1)) as $image) {
+            $res = $this->send(
+                'itemsMutation.php',
+                'PATCH',
+                'v1/items/item-a',
+                json_encode(array('site' => array('name' => $this->siteName), 'operation' => 'setMedia', 'media' => '  ', 'image' => $image)),
+                array('idOrSlug' => 'item-a')
+            );
+            $this->assertSame(200, $res['json']['status'], $res['raw']);
+            $this->assertArrayNotHasKey('image', $res['json']['data']['metadata'], json_encode($image));
+        }
+        $this->assertStringNotContainsString('"Array"', $this->siteJson());
+    }
 }
