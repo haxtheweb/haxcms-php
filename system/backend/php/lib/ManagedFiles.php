@@ -63,6 +63,15 @@ class ManagedFiles
     // package.json objects merged one level deep (HAXcms entries win, owner
     // entries the boilerplate does not define are kept)
     const JSON_MERGE_NESTED_KEYS = array('scripts', 'dependencies', 'devDependencies');
+    // json-merge keys an earlier boilerplate rendered and HAXcms no longer
+    // owns, with the exact values (JSON-encoded) it wrote into every site. An
+    // existing file still holding one of those values has the key removed,
+    // since the site owner never set it; any other value is the owner's and is
+    // kept. package.json shipped a hard-coded "author" naming a HAX
+    // maintainer in every site. Mirrors NodeJS LEGACY_JSON_KEYS.
+    const LEGACY_JSON_KEYS = array(
+        'author' => array('{"name":"btopro"}'),
+    );
     // security.txt Expires: keep the existing value while more than this many
     // days remain, so the file does not change on every save
     const SECURITY_TXT_REFRESH_DAYS = 90;
@@ -166,11 +175,18 @@ class ManagedFiles
 
     /**
      * HAXcms owns the keys it renders; any other keys in the existing file are
-     * kept. When the existing file adds nothing, the rendered text is returned
-     * verbatim so formatting stays exactly as the boilerplate defines it.
+     * kept, except a LEGACY_JSON_KEYS value HAXcms itself once wrote. When the
+     * existing file adds nothing, the rendered text is returned verbatim so
+     * formatting stays exactly as the boilerplate defines it.
      * Decoded as objects (not assoc arrays) so {} stays {} and numeric-string
      * keys stay object keys, matching NodeJS JSON.parse.
      */
+    public static function isLegacyJsonValue($key, $value)
+    {
+        return isset(self::LEGACY_JSON_KEYS[$key]) &&
+            in_array(json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), self::LEGACY_JSON_KEYS[$key], true);
+    }
+
     public static function mergeJson($existing, $rendered)
     {
         if ($existing === null) {
@@ -203,7 +219,7 @@ class ManagedFiles
             }
         }
         foreach (get_object_vars($current) as $key => $value) {
-            if (!property_exists($next, $key)) {
+            if (!property_exists($next, $key) && !self::isLegacyJsonValue($key, $value)) {
                 $merged->{$key} = $value;
                 $hasOwnerKeys = true;
             }

@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "description": "{{ description }}",
   "main": "index.html",
-  "author": {
-    "name": "btopro"
-  },
   "license": "Apache-2.0",
   "private": false,
   "publishConfig": {
