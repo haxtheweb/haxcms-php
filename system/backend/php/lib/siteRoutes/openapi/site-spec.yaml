@@ -877,6 +877,14 @@ paths:
                         type: object
                         additionalProperties: true
                         nullable: true
+                        description: Page metadata. An imported page keeps its created and updated times (whole seconds since 1970, not in the future; updated never earlier than created); otherwise both are the time the page is added.
+                        properties:
+                          created:
+                            type: integer
+                            description: When the page was first made, for a page brought in from another site.
+                          updated:
+                            type: integer
+                            description: When the page was last changed, for a page brought in from another site.
                       delete:
                         type: boolean
                         nullable: true
@@ -1623,6 +1631,7 @@ paths:
         - content
       operationId: updateContentByIdOrSlug
       summary: Update one item content payload by id or slug
+      description: Saves the page body and the details its leading page-break carries (title, slug, tags and the rest). The page's place in the outline never changes here; the page-break's parent, order and depth are ignored. Move pages with the item operations.
       security:
         - bearerAuth: []
           siteTokenHeader: []

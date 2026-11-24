@@ -493,9 +493,11 @@ class HAXCMSPluginHost extends HAXCMSPluginEngine
                 file_put_contents("$tmp/$name", (string) ($f['content'] ?? ''));
                 chmod("$tmp/$name", isset($f['mode']) && is_int($f['mode']) ? $f['mode'] : 0600);
             }
-            $argv = array_merge([$cmd], array_map(function ($a) use ($tmp) {
-                return str_replace('{tmp}', $tmp, $a);
-            }, $args));
+            // an argv array (Security SEC-EXEC: no shell); {tmp} names the private folder
+            $argv = array($cmd);
+            foreach ($args as $a) {
+                $argv[] = str_replace('{tmp}', $tmp, $a);
+            }
             $env = ['PATH' => getenv('PATH') ?: '/usr/bin:/bin', 'HOME' => $tmp, 'LANG' => 'C.UTF-8'];
             $proc = @proc_open($argv, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $cwd, $env);
             if (!is_resource($proc)) {

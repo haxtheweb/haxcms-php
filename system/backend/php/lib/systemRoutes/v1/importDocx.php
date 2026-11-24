@@ -1,6 +1,10 @@
 <?php
 include_once dirname(__FILE__) . '/../../Operations.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
+include_once dirname(__FILE__) . '/../../DocxToHtml.php';
+include_once dirname(__FILE__) . '/../../BoundedZip.php';
+include_once dirname(__FILE__) . '/../../SafeXml.php';
+include_once dirname(__FILE__) . '/../../OdtToHtml.php';
 
 /**
  * Convert DOCX word/document.xml into a simplified HTML string using DOMDocument.
@@ -13,7 +17,8 @@ function haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap = array())
     }
     $doc = new DOMDocument();
     $doc->preserveWhiteSpace = false;
-    $doc->loadXML($xmlString);
+    // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+    SafeXml::loadInto($doc, $xmlString);
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $html = '';
     $paragraphs = $doc->getElementsByTagNameNS($ns, 'p');
@@ -352,24 +357,40 @@ return function ($context) {
         return;
     }
 
-    if (class_exists('ZipArchive')) {
+    // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte limits
+    // before any reader inflates it (BoundedZip.php)
+    try {
+        BoundedZip::assertWithinLimits($tmpPath, 'docx');
+    } catch (BoundedZipException $e) {
+        // an unreadable zip keeps the message below; only size refusals stop here
+        if ($e->reason === 'ZIP_BUDGET') {
+            $error = 'Error converting DOCX: ' . $e->getMessage();
+        }
+    }
+
+    if ($error !== '') {
+        // refused above
+    } elseif (class_exists('ZipArchive')) {
         $zip = new ZipArchive();
         if ($zip->open($tmpPath) === true) {
             $xmlIndex = $zip->locateName('word/document.xml');
             if ($xmlIndex !== false) {
                 $xmlString = $zip->getFromIndex($xmlIndex);
-                if ($xmlString !== false) {
-                    $mediaMap = function_exists('haxcmsImportLoadDocxMediaMapFromZip')
-                        ? haxcmsImportLoadDocxMediaMapFromZip($zip)
-                        : array();
-                    $html = haxcmsSystemConvertDocxXmlToHtml($xmlString, $mediaMap);
-                } else {
+                if ($xmlString === false) {
                     $error = 'Unable to read word/document.xml from uploaded DOCX';
                 }
             } else {
                 $error = 'Uploaded file does not contain a valid Word document structure';
             }
             $zip->close();
+            if ($error === '') {
+                // Same converter and clean-up as haxcms-nodejs (mammoth port).
+                try {
+                    $html = DocxToHtml::convertFile($tmpPath);
+                } catch (\Throwable $e) {
+                    $error = 'Error converting DOCX: ' . $e->getMessage();
+                }
+            }
         } else {
             $error = 'Unable to open uploaded file as a ZIP archive (invalid DOCX)';
         }
@@ -388,7 +409,23 @@ return function ($context) {
     }
 
     $titleValue = preg_replace('/\.docx$/i', '', $filename);
-    $elements = haxcmsSystemSimpleHtmlToElements($html);
+    // Top-level elements as node-html-parser gives them in haxcms-nodejs.
+    $elements = array();
+    foreach (DocxToHtml::topLevelElements($html) as $el) {
+        $el['text'] = OdtToHtml::jsTrim($el['text']);
+        $elements[] = $el;
+    }
+    // Node: heading.text.trim().replace("  ", " ").replace("  ", " ")
+    $titleOf = function ($el) {
+        $title = $el['text'];
+        for ($i = 0; $i < 2; $i++) {
+            $at = strpos($title, '  ');
+            if ($at !== false) {
+                $title = substr_replace($title, ' ', $at, 2);
+            }
+        }
+        return $title;
+    };
     $items = array();
 
     $haxcms = isset($GLOBALS['HAXCMS']) && is_object($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
@@ -447,7 +484,7 @@ return function ($context) {
                 foreach ($rootHeadings as $rootData) {
                     $rootHeading = $rootData['el'];
                     $idx = $rootData['index'];
-                    $rootTitle = $rootHeading['text'];
+                    $rootTitle = $titleOf($rootHeading);
                     $rootSlug = $makeSlug($rootTitle);
                     $rootSiblings = haxcmsSystemCollectSiblingsUntil($elements, $idx, array($rootTagName));
                     $rootContents = '';
@@ -474,7 +511,7 @@ return function ($context) {
                                 $currentChildIdx++;
                                 continue;
                             }
-                            $childTitle = $elements[$currentChildIdx]['text'];
+                            $childTitle = $titleOf($elements[$currentChildIdx]);
                             $childSlug = $rootSlug . '/' . $makeSlug($childTitle);
                             $childSiblings = haxcmsSystemCollectSiblingsUntil($elements, $currentChildIdx, array($rootTagName, $childTagName));
                             $childContents = '';
@@ -513,7 +550,7 @@ return function ($context) {
                 foreach ($rootHeadings as $rootData) {
                     $rootHeading = $rootData['el'];
                     $idx = $rootData['index'];
-                    $rootTitle = $rootHeading['text'];
+                    $rootTitle = $titleOf($rootHeading);
                     $rootSlug = $makeSlug($rootTitle);
                     $rootSiblings = haxcmsSystemCollectSiblingsUntil($elements, $idx, array($rootTagName));
                     $rootContents = '';

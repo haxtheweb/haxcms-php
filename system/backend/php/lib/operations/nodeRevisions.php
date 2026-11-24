@@ -78,18 +78,17 @@ trait OperationsRouteNodeRevisions {
     if (!is_string($gitBin) || $gitBin === '') {
       $gitBin = 'git';
     }
-    $parts = array_merge(array($gitBin, '--no-pager'), $args);
-    $escapedParts = array();
-    foreach ($parts as $part) {
-      $escapedParts[] = escapeshellarg((string) $part);
+    // Security (SEC-EXEC): argv array, so no shell ever parses the arguments
+    $command = array();
+    foreach (array_merge(array($gitBin, '--no-pager'), $args) as $part) {
+      $command[] = (string) $part;
     }
-    $command = implode(' ', $escapedParts);
     $descriptorSpec = array(
       1 => array('pipe', 'w'),
       2 => array('pipe', 'w'),
     );
     $pipes = array();
-    $process = proc_open($command, $descriptorSpec, $pipes, $siteDirectory);
+    $process = @proc_open($command, $descriptorSpec, $pipes, $siteDirectory);
     if (!is_resource($process)) {
       throw new Exception('Unable to execute git command');
     }
@@ -541,7 +540,10 @@ trait OperationsRouteNodeRevisions {
       ) {
         return $this->nodeRevisionFailed(404, 'Revision content for this page was not found');
       }
-      return $this->nodeRevisionFailed(500, $message !== '' ? $message : 'Unable to compare node revisions');
+      // Security (SEC-ROUTE): git's stderr can name server paths; log it and
+      // give the client the generic message
+      error_log('HAXcms: compare node revisions failed: ' . $message);
+      return $this->nodeRevisionFailed(500, 'Unable to compare node revisions');
     }
   }
   public function getNodeRevisions() {
@@ -692,10 +694,10 @@ trait OperationsRouteNodeRevisions {
       );
     }
     catch (Exception $e) {
-      return $this->nodeRevisionFailed(
-        500,
-        $e->getMessage() ? $e->getMessage() : 'Unable to load node revisions'
-      );
+      // Security (SEC-ROUTE): git's stderr can name server paths; log it and
+      // give the client the generic message
+      error_log('HAXcms: load node revisions failed: ' . $e->getMessage());
+      return $this->nodeRevisionFailed(500, 'Unable to load node revisions');
     }
   }
   public function getNodeRevision() {
@@ -806,10 +808,10 @@ trait OperationsRouteNodeRevisions {
       ) {
         return $this->nodeRevisionFailed(404, 'Revision content for this page was not found');
       }
-      return $this->nodeRevisionFailed(
-        500,
-        $message !== '' ? $message : 'Unable to load node revision'
-      );
+      // Security (SEC-ROUTE): git's stderr can name server paths; log it and
+      // give the client the generic message
+      error_log('HAXcms: load node revision failed: ' . $message);
+      return $this->nodeRevisionFailed(500, 'Unable to load node revision');
     }
   }
   public function restoreNodeRevision() {

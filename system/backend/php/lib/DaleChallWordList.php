@@ -7,9 +7,8 @@
  * easy_words.js). A word NOT in this list is considered "difficult" for
  * the Dale-Chall readability formula.
  *
- * Formula: score = 0.1579 * (difficultWords / words * 100)
- *                      + 0.0496 * (words / sentences)
- *          + 3.6365 when words/sentences > 0 and difficultWords == 0
+ * Used by ReadabilityScore.php (the Dale-Chall score there adds 3.6365
+ * when more than 5% of the words are difficult, as text-readability does).
  */
 class DaleChallWordList
 {

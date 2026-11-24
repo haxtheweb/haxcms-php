@@ -457,6 +457,39 @@ class SanitizeContent
         return $trimmed === null ? trim($text) : $trimmed;
     }
 
+    /**
+     * created / updated for a page being added. A page brought in from
+     * somewhere else (an import, a migration) keeps the times it already had
+     * when they are whole seconds since 1970 and not in the future; anything
+     * else, and every page made from scratch, gets $now. updated is never
+     * earlier than created. Same rule as haxcms-nodejs pageTimestamps.
+     */
+    public static function pageTimestamps($metadata, $now)
+    {
+        $valid = function ($value) use ($now) {
+            if (is_int($value)) {
+                $n = $value;
+            } elseif (is_float($value) && floor($value) === $value) {
+                $n = (int)$value;
+            } elseif (is_string($value) && preg_match('/^[0-9]{1,12}$/', $value)) {
+                $n = (int)$value;
+            } else {
+                return null;
+            }
+            return ($n > 0 && $n <= $now) ? $n : null;
+        };
+        $given = is_object($metadata) ? (array)$metadata : (is_array($metadata) ? $metadata : array());
+        $created = $valid(isset($given['created']) ? $given['created'] : null);
+        $updated = $valid(isset($given['updated']) ? $given['updated'] : null);
+        if ($created === null) {
+            return array('created' => $now, 'updated' => $now);
+        }
+        return array(
+            'created' => $created,
+            'updated' => ($updated !== null && $updated >= $created) ? $updated : $created,
+        );
+    }
+
     public static function plainText($value)
     {
         if ($value === null || is_array($value) || is_object($value)) {

@@ -134,8 +134,19 @@ if (!function_exists('haxcms_import_stage_remote_file')) {
         // path, so only an allowlisted extension is kept.
         $ext      = haxcms_import_staged_extension($relPath);
         $extPart  = ($ext !== '') ? '.' . $ext : '';
-        $staged   = $root . '/haxbi_' . uniqid() . $extPart;
-        if (@file_put_contents($staged, $body) === false) {
+        // Security (SEC-UPLOAD, SEC-EXPORT): an unguessable name from a CSPRNG,
+        // created exclusively ('x' never follows or reuses an existing path)
+        // and readable by the server user only, like haxcms-nodejs
+        // stageRemoteFile.js (crypto.randomUUID, flag 'wx', mode 0600)
+        $staged   = $root . '/haxbi_' . bin2hex(random_bytes(16)) . $extPart;
+        $handle   = @fopen($staged, 'xb');
+        if ($handle === false) {
+            return false;
+        }
+        @chmod($staged, 0600);
+        $written = @fwrite($handle, $body);
+        $closed  = @fclose($handle);
+        if ($written !== strlen($body) || !$closed) {
             @unlink($staged);
             return false;
         }

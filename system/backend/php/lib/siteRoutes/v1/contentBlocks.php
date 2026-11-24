@@ -89,23 +89,51 @@ if (!class_exists('ContentBlocksRoute')) {
         }
 
         /**
-         * One block write per page at a time, across PHP processes.
+         * One block write per page at a time, across PHP processes. Returns
+         * false, without running $fn, when the lock cannot be taken.
+         *
+         * Security (SEC-PATH): the lock file lives under the install's own
+         * _config/tmp/locks (0700), never in a shared temp directory where
+         * another local user could pre-create or hold the predictable name,
+         * and a write never runs unlocked (haxcms-nodejs serialises the same
+         * writes in-process, so it never runs one unlocked either).
          */
         public static function withPageLock($key, $fn)
         {
-            $path = rtrim(sys_get_temp_dir(), '/') . '/haxcms-blocks-' . sha1($key) . '.lock';
-            $handle = @fopen($path, 'c');
+            $dir = self::lockDirectory();
+            if ($dir === null) {
+                return false;
+            }
+            $handle = @fopen($dir . '/haxcms-blocks-' . sha1($key) . '.lock', 'c');
             if ($handle === false) {
-                return $fn();
+                return false;
             }
             try {
-                flock($handle, LOCK_EX);
-                return $fn();
+                if (!flock($handle, LOCK_EX)) {
+                    return false;
+                }
+                $fn();
+                return true;
             }
             finally {
                 flock($handle, LOCK_UN);
                 fclose($handle);
             }
+        }
+
+        public static function lockDirectory()
+        {
+            if (!isset($GLOBALS['HAXCMS']) || !is_object($GLOBALS['HAXCMS']) ||
+                !isset($GLOBALS['HAXCMS']->configDirectory) ||
+                !is_string($GLOBALS['HAXCMS']->configDirectory) ||
+                $GLOBALS['HAXCMS']->configDirectory === '') {
+                return null;
+            }
+            $dir = rtrim($GLOBALS['HAXCMS']->configDirectory, '/') . '/tmp/locks';
+            if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
+                return null;
+            }
+            return $dir;
         }
 
         // the HAXCMS settings, or the defaults when HAXCMS is not loaded
@@ -200,7 +228,7 @@ return function ($context) {
     $note = ContentBlocksRoute::normalizeNote(isset($body['note']) ? $body['note'] : '');
     $siteName = isset($site->manifest->metadata->site->name) ? $site->manifest->metadata->site->name : '';
     $siteDirectory = $site->directory . '/' . $siteName . '/';
-    ContentBlocksRoute::withPageLock($siteDirectory . '::' . $page->id, function () use ($site, $page, $item, $ops, $note, $siteDirectory, $send, $apiBasePath) {
+    $locked = ContentBlocksRoute::withPageLock($siteDirectory . '::' . $page->id, function () use ($site, $page, $item, $ops, $note, $siteDirectory, $send, $apiBasePath) {
         $html = (string) $site->getPageContent($page);
         $outcome = BlockOperations::runBlockOperations($html, $ops);
         if (!$outcome['ok']) {
@@ -227,7 +255,8 @@ return function ($context) {
         // script or AI agent cannot flood the site with commits while refused
         // and stale requests cost nothing (Node contentBlocks.js).
         $rateSettings = ContentBlocksRoute::rateSettings();
-        $cache = (isset($GLOBALS['HAXCMS']) && isset($GLOBALS['HAXCMS']->cache) && $GLOBALS['HAXCMS']->cache) ? $GLOBALS['HAXCMS']->cache : null;
+        // Security (SEC-RATELIMIT): read through the accessor; the property is not visible here
+        $cache = ((isset($GLOBALS['HAXCMS']) && method_exists($GLOBALS['HAXCMS'], 'getCacheStore')) ? $GLOBALS['HAXCMS']->getCacheStore() : null);
         $budget = LinkChecker::changeBudget($cache, 'blocks::' . $siteDirectory, count($ops), intval(round(microtime(true) * 1000)), $rateSettings);
         if (!$budget['allowed']) {
             $retryAfter = intval($budget['retryAfterSeconds']);
@@ -331,4 +360,8 @@ return function ($context) {
             ),
         ));
     });
+    if ($locked === false) {
+        // the page lock could not be taken, so nothing was written
+        $send(500, array('message' => 'failed to write'));
+    }
 };

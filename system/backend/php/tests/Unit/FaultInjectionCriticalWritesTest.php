@@ -123,6 +123,76 @@ class FaultInjectionCriticalWritesTest extends FaultInjectionTestCase
         $this->assertStillServing();
     }
 
+    // FI-HTTP-02 PATCH /x/api/v1/content/{id} whose declared body PHP could
+    // not read in full. PHP keeps a request body over 16 KiB in a temporary
+    // file; when that file cannot be created (full disk, unwritable temp
+    // folder) PHP keeps only the first part of it, silently (8 KiB of a 16 KiB
+    // body on PHP 8.3). The route must answer the 500 ApiError envelope, not a
+    // 400 "Content body is required" that blames the editor, and change
+    // nothing. PHP only: haxcms-nodejs streams the body and has no such state.
+    public function testFiHttp02LostRequestBodyIs500AndChangesNothing(): void
+    {
+        $pageBefore = file_get_contents($this->pageFile('b'));
+        $siteBefore = $this->siteJsonBytes();
+        $saved = array();
+        foreach (array('CONTENT_LENGTH', 'CONTENT_TYPE') as $key) {
+            $saved[$key] = array_key_exists($key, $_SERVER) ? $_SERVER[$key] : null;
+        }
+        // php://input is empty under the CLI: shorter than the declared length,
+        // as it is after PHP dropped the rest of the body
+        $_SERVER['CONTENT_LENGTH'] = '38759';
+        $_SERVER['CONTENT_TYPE'] = 'application/json';
+        $savedLog = ini_set('error_log', '/dev/null');
+        try {
+            $res = $this->request('contentMutation.php', $this->context(
+                array('body' => '<page-break title="Edited" item-id="b" slug="b"></page-break><p>edited</p>'),
+                'PATCH',
+                'content',
+                array('idOrSlug' => 'b')
+            ));
+        } finally {
+            ini_set('error_log', $savedLog === false ? '' : $savedLog);
+            foreach ($saved as $key => $value) {
+                if ($value === null) {
+                    unset($_SERVER[$key]);
+                } else {
+                    $_SERVER[$key] = $value;
+                }
+            }
+        }
+        $this->assertErrorEnvelope($res, 500, 'Server error');
+        $this->assertSame($pageBefore, file_get_contents($this->pageFile('b')));
+        $this->assertSame($siteBefore, $this->siteJsonBytes(), 'site.json unchanged');
+        $this->assertStillServing();
+    }
+
+    // FI-HTTP-02 counterpart: a multipart upload has an empty php://input by
+    // design and is still handed to the route
+    public function testFiHttp02MultipartBodyIsNotTreatedAsLost(): void
+    {
+        $saved = array();
+        foreach (array('CONTENT_LENGTH', 'CONTENT_TYPE') as $key) {
+            $saved[$key] = array_key_exists($key, $_SERVER) ? $_SERVER[$key] : null;
+        }
+        $_SERVER['CONTENT_LENGTH'] = '38759';
+        $_SERVER['CONTENT_TYPE'] = 'multipart/form-data; boundary=x';
+        try {
+            $this->assertFalse(SiteRouteUtils::requestBodyWasLost());
+            $_SERVER['CONTENT_TYPE'] = 'application/json';
+            $this->assertTrue(SiteRouteUtils::requestBodyWasLost());
+            $_SERVER['CONTENT_LENGTH'] = '0';
+            $this->assertFalse(SiteRouteUtils::requestBodyWasLost());
+        } finally {
+            foreach ($saved as $key => $value) {
+                if ($value === null) {
+                    unset($_SERVER[$key]);
+                } else {
+                    $_SERVER[$key] = $value;
+                }
+            }
+        }
+    }
+
     // FI-HTTP-01 an IO error thrown inside a site write route
     public function testFiHttp01ThrownIoErrorIsA5xxEnvelope(): void
     {

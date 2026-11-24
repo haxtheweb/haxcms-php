@@ -69,7 +69,7 @@ Diagnoses and recommends only. Never edit `pages/*.html` or `site.json`. Hand fi
 | 2 | Inform of the objective | A stated outcome ("you will be able to…") or `has-learning-objective` / OER Schema objective near the top | `stop-note` with the objective; `oer-schema` learning objective |
 | 3 | Stimulate recall of prior learning | A reference back to earlier content, a recap, or a warm-up question | `self-check` or `flash-card` warm-up on the prerequisite; link to the earlier page |
 | 4 | Present the content | Explanation, examples, media (almost always present) | — (check chunking instead) |
-| 5 | Provide learning guidance | Worked examples, annotated media, cues on what to notice, mnemonics | `lrndesign-imagemap` hotspots, `lrndesign-sidenote`, worked-example steps, `lrn-vocab` |
+| 5 | Provide learning guidance | Worked examples, annotated media, cues on what to notice, mnemonics | `lrndesign-imagemap` hotspots, `lrndesign-sidenote`, worked-example steps, `vocab-term` |
 | 6 | Elicit performance | At least one question or task the learner does | question elements, `self-check`, `h5p-element`, a `worksheet-download` task |
 | 7 | Provide feedback | Non-empty feedback slots, or a revealed answer | Fill `feedbackIncorrect` / `feedbackCorrect` / `hint` (see `hax-feedback-design`) |
 | 8 | Assess performance | An end-of-lesson check distinct from practice | A short question set at the end; `max-attempts` set |

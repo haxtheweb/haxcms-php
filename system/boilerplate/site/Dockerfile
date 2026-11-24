@@ -7,7 +7,7 @@
 ARG HAXCMS_IMAGE=ghcr.io/haxtheweb/haxcms-php:latest
 FROM ${HAXCMS_IMAGE} AS haxcms
 
-FROM php:8.3-apache
+FROM php:8.3-apache@sha256:e520186957084dc0a5baaea83b2ef0c20b16e78c1de31b6fdb21dc1240cce42e
 
 # gd (image handling) + curl are required by the HAXcms PHP backend
 RUN apt-get update && apt-get install -y --no-install-recommends \

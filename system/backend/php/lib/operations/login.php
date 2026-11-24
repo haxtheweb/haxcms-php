@@ -78,7 +78,8 @@ trait OperationsRouteLogin {
       return;
     }
     try {
-      $run = (mt_rand(1, 20) === 1);
+      // Security (SEC-EXPORT): random_int, never mt_rand, for any random draw
+      $run = (random_int(1, 20) === 1);
       if (!$run && method_exists($GLOBALS['HAXCMS']->cache, 'getCacheDir')) {
         $cacheFile = $GLOBALS['HAXCMS']->cache->getCacheDir();
         clearstatcache(true, $cacheFile);

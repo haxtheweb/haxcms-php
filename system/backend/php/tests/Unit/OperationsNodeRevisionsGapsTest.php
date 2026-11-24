@@ -533,6 +533,33 @@ class OperationsNodeRevisionsGapsTest extends TestCase
         }
     }
 
+    public function testGitFailuresAnswerWithTheGenericMessageNotGitOutput(): void
+    {
+        // point the site's .git at a missing directory: git then fails with
+        // "fatal: not a git repository: <server path>"
+        $secret = sys_get_temp_dir() . '/haxcms-secret-path-' . bin2hex(random_bytes(6));
+        rename($this->siteRoot . '/.git', $this->siteRoot . '/.git-moved');
+        file_put_contents($this->siteRoot . '/.git', 'gitdir: ' . $secret . "\n");
+        $savedLog = ini_set('error_log', sys_get_temp_dir() . '/haxcms_revisions_log_' . getmypid());
+        try {
+            $cases = array(
+                array('getNodeRevisions', array(), 'Unable to load node revisions'),
+                array('getNodeRevision', array('hash' => $this->commitHashes[0]), 'Unable to load node revision'),
+                array('compareNodeRevisions', array('hash' => $this->commitHashes[0], 'compareHash' => $this->commitHashes[1]), 'Unable to compare node revisions'),
+            );
+            foreach ($cases as $case) {
+                $result = $this->runRevisions($case[0], 'item-a', $case[1]);
+                $this->assertSame(500, $result['__failed']['status'], $case[0]);
+                $this->assertSame($case[2], $result['__failed']['message'], $case[0]);
+                $this->assertStringNotContainsString($secret, json_encode($result), $case[0]);
+            }
+        } finally {
+            unlink($this->siteRoot . '/.git');
+            rename($this->siteRoot . '/.git-moved', $this->siteRoot . '/.git');
+            ini_set('error_log', $savedLog === false ? '' : $savedLog);
+        }
+    }
+
     // =========================================================================
     // trimmed-empty body fields
     // =========================================================================

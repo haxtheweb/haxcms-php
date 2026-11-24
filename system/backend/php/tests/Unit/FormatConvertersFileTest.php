@@ -536,12 +536,12 @@ class FormatConvertersFileTest extends TestCase
         list($status, $json) = $this->invokeConverter('convertPptxToHtml', 'v1/actions/pptx-to-html');
         $this->assertSame(200, $status);
         $html = $json['data']['contents'];
-        // Title placeholder → <h2>, content → <p>
-        $this->assertStringContainsString('<h2>Slide Title</h2>', $html);
+        // Title placeholder → <h1> (one per slide)
+        $this->assertStringContainsString('<h1>Slide Title</h1>', $html);
         $this->assertStringContainsString('<p>Slide content text</p>', $html);
     }
 
-    public function testPptxToHtmlExtractsImageFiles(): void
+    public function testPptxToHtmlInlinesImages(): void
     {
         if (!class_exists('ZipArchive')) {
             $this->markTestSkipped('ZipArchive extension not available');
@@ -550,23 +550,11 @@ class FormatConvertersFileTest extends TestCase
         $this->setUpload($tmpPath, 'with-image.pptx');
         list($status, $json) = $this->invokeConverter('convertPptxToHtml', 'v1/actions/pptx-to-html');
         $this->assertSame(200, $status);
-        $files = $json['data']['files'];
-        $this->assertIsArray($files);
-        $this->assertNotEmpty($files);
-        // The extracted file key follows files/pptx-media/slide-{N}-image-{M}{ext}
-        $keys = array_keys($files);
-        $this->assertTrue(
-            strpos($keys[0], 'files/pptx-media/') === 0,
-            'Extracted file key must start with files/pptx-media/'
-        );
-        $entry = $files[$keys[0]];
-        $this->assertSame('image/png', $entry['mimeType']);
-        $this->assertStringContainsString('ppt/media/', $entry['originalPath']);
-        // buffer is base64-encoded image data
-        $decoded = base64_decode($entry['buffer'], true);
-        $this->assertNotFalse($decoded);
-        // PNG magic bytes
-        $this->assertSame(0, strncmp($decoded, "\x89PNG", 4));
+        // pictures are inline data URIs (createNode / addPage turn them into
+        // files); files stays in the response as an empty object
+        $this->assertSame(array(), $json['data']['files']);
+        $this->assertSame(1, preg_match('/<img src="data:image\/png;base64,([^"]+)"/', $json['data']['contents'], $m));
+        $this->assertSame(0, strncmp(base64_decode($m[1], true), "\x89PNG", 4));
     }
 
     // ------------------------------------------------------------------

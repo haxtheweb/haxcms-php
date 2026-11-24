@@ -377,9 +377,10 @@ class HAXCMSSiteMetadataTest extends TestCase
         // twitter:site is an @handle, never a URL; HAXcms has none to give
         $this->assertStringNotContainsString('twitter:site', $metadata);
         $this->assertStringContainsString('<meta name="og:type" property="og:type" content="website" />', $metadata);
-        // the font CSS host (no CORS) and the font file host (CORS) only
-        $this->assertStringContainsString('<link rel="preconnect" href="https://fonts.googleapis.com">', $metadata);
-        $this->assertStringContainsString('<link rel="preconnect" crossorigin href="https://fonts.gstatic.com">', $metadata);
+        // HAX serves its own fonts (webcomponents d-d-d/lib/fonts): a site
+        // never opens a connection to Google Fonts
+        $this->assertStringNotContainsString('fonts.googleapis.com', $metadata);
+        $this->assertStringNotContainsString('fonts.gstatic.com', $metadata);
         $this->assertStringNotContainsString('cdnjs.cloudflare.com', $metadata);
     }
 
@@ -522,6 +523,34 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertSame('https://example.com/author.png', $author['image']['url']);
     }
 
+    public function testGetSiteMetadataJsonLdSameAsOnOrganizationAndPerson(): void
+    {
+        // haxtheweb/issues#3367: the site's profiles elsewhere go on the
+        // Organization node; both author social links go on the Person
+        $this->site->manifest->metadata->site->sameAs = array(
+            'https://github.com/haxtheweb',
+            'javascript:alert(1)',
+            'https://www.linkedin.com/company/haxtheweb',
+        );
+        $this->site->manifest->metadata->author = (object) array(
+            'name' => 'Author',
+            'socialLink' => 'https://mastodon.social/@author',
+            'socialLink2' => 'https://github.com/author',
+        );
+        $graph = $this->extractJsonLd($this->site->getSiteMetadata($this->homePage()));
+        $this->assertSame(
+            array('https://github.com/haxtheweb', 'https://www.linkedin.com/company/haxtheweb'),
+            $this->graphNodeByType($graph, 'Organization')['sameAs']
+        );
+        $this->assertSame(
+            array('https://mastodon.social/@author', 'https://github.com/author'),
+            $this->graphNodeByType($graph, 'Person')['sameAs']
+        );
+        unset($this->site->manifest->metadata->site->sameAs);
+        $plain = $this->extractJsonLd($this->site->getSiteMetadata($this->homePage()));
+        $this->assertArrayNotHasKey('sameAs', $this->graphNodeByType($plain, 'Organization'));
+    }
+
     public function testGetSiteMetadataJsonLdOmitsPersonWithoutAuthor(): void
     {
         $this->site->manifest->author = '';
@@ -545,6 +574,45 @@ class HAXCMSSiteMetadataTest extends TestCase
     // Event dispatch
     // =========================================================================
 
+    public function testGetSiteMetadataPreloadsDDDRobotoOnlyForSitesOnDDDFonts(): void
+    {
+        $font = $this->tmpRoot . '/roboto-latin-wght-normal.woff2';
+        $registry = $this->tmpRoot . '/designSystems.json';
+        file_put_contents($font, '');
+        file_put_contents($registry, json_encode(array(
+            'carbon' => array('name' => 'carbon', 'theme' => 'carbon-theme'),
+        )));
+        $this->site->buildFiles = array(
+            HAXCMSSite::DDD_FONT_PRELOAD => $font,
+            '@haxtheweb/haxcms-elements/lib/designSystems.json' => $registry,
+        );
+        $preload = function ($base) {
+            return '<link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/d-d-d/lib/fonts/roboto/roboto-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin="anonymous" />';
+        };
+        $theme = $this->site->manifest->metadata->theme;
+        $theme->element = 'clean-one';
+        $theme->designSystem = '';
+        $this->assertStringContainsString($preload('./'), $this->site->getSiteMetadata($this->homePage()));
+        // served from the CDN: the font comes from there too
+        $this->assertStringContainsString(
+            $preload('https://cdn.example/'),
+            $this->site->getSiteMetadata($this->homePage(), NULL, 'https://cdn.example/')
+        );
+        $theme->designSystem = 'ddd';
+        $this->assertStringContainsString($preload('./'), $this->site->getSiteMetadata($this->homePage()));
+        // another design system brings its own fonts
+        $theme->designSystem = 'carbon';
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+        // so does a bridged theme
+        $theme->designSystem = '';
+        $theme->element = 'carbon-theme';
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+        // a build without the font gets no preload (no 404)
+        $theme->element = 'clean-one';
+        unset($this->site->buildFiles[HAXCMSSite::DDD_FONT_PRELOAD]);
+        $this->assertStringNotContainsString('as="font"', $this->site->getSiteMetadata($this->homePage()));
+    }
+
     public function testGetSiteMetadataDispatchesEventWithResult(): void
     {
         $metadata = $this->site->getSiteMetadata($this->homePage());
@@ -555,11 +623,22 @@ class HAXCMSSiteMetadataTest extends TestCase
 }
 
 /**
- * HAXCMSSite test subclass with no overrides: metadata rendering is exercised
- * through the real implementation against the temp fixture.
+ * HAXCMSSite test subclass: metadata rendering is exercised through the real
+ * implementation against the temp fixture; only local build lookups can be
+ * pointed at fixture files.
  */
 class HAXCMSSiteMetadataTestSite extends HAXCMSSite
 {
+    // build-relative path => absolute fixture path; NULL uses the real lookup
+    public $buildFiles = NULL;
+
+    public function localBuildFile($rel)
+    {
+        if (is_array($this->buildFiles)) {
+            return array_key_exists($rel, $this->buildFiles) ? $this->buildFiles[$rel] : NULL;
+        }
+        return parent::localBuildFile($rel);
+    }
 }
 
 /**

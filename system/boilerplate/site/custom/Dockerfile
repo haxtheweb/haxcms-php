@@ -6,7 +6,7 @@
 ARG HAXCMS_IMAGE=ghcr.io/haxtheweb/haxcms-php:latest
 FROM ${HAXCMS_IMAGE} AS haxcms
 
-FROM node:22-slim
+FROM node:22-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee
 
 COPY --from=haxcms /var/www/html/build /haxcms/build
 COPY --from=haxcms /var/www/html/package.json /haxcms/package.json

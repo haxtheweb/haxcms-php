@@ -108,10 +108,15 @@ return function ($context) {
             return;
         }
         $ancestor = SiteRouteUtils::getQueryValue('filter.ancestor', '');
-        $magic = SiteRouteUtils::getQueryValue('magic', '');
         $siteBasePath = SiteRouteUtils::getSiteBasePath($site);
         $siteFileBaseName = ExportConverters::getSiteExportFileBaseName($site);
         $isAnonymousRequest = SiteRouteUtils::isAnonymousSiteApiRequest($context);
+        // Security: the magic CDN becomes a <script src> in the wrapped
+        // document, so anonymous callers can't choose it and it is only ever
+        // an absolute http(s) base URL (see ExportConverters::exportMagicCdn)
+        $magic = $isAnonymousRequest
+            ? ''
+            : ExportConverters::exportMagicCdn(SiteRouteUtils::getQueryValue('magic', ''));
         if ($format == 'pdf' || $format == 'docx' || $format == 'epub') {
             // Binary whole-site exports render the entire site on every request
             // (500+ page sites are common), so they are reserved for logged-in
@@ -227,7 +232,7 @@ return function ($context) {
         }
         try {
             $content = SiteRouteUtils::getItemContent($site, $item);
-            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content, $site);
         }
             catch (Exception $e) {
                 @error_log('haxcms item export HTML failed: ' . $e->getMessage());
@@ -257,7 +262,7 @@ return function ($context) {
     if ($format == 'html') {
         try {
             $content = SiteRouteUtils::getItemContent($site, $item);
-            $itemHtml = ExportConverters::buildItemExportHtml($item, $content);
+            $itemHtml = ExportConverters::buildItemExportHtml($item, $content, $site);
         }
         catch (Exception $e) {
             $sendTopLevelError(500, 'Unable to build item export HTML: ' . $e->getMessage());

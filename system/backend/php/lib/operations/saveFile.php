@@ -187,9 +187,10 @@ trait OperationsRouteSaveFile {
       $file = new HAXCMSFile();
       $fileResult = $file->save($upload, $site, $page);
       if ($fileResult['status'] == 500) {
+        // a file refused for what it is answers 400; a failed write stays 500
         return array(
           '__failed' => array(
-            'status' => 500,
+            'status' => HAXCMSFile::uploadRejectionStatus($fileResult['data']),
             'message' => $fileResult['data'],
           )
         );

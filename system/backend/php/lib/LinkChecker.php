@@ -49,6 +49,11 @@ class LinkChecker
     // per-process fallbacks when no shared cache is configured
     private static $memoryResults = array();
     private static $memoryBudgets = array();
+    // What a budget does when neither the HAXcms cache nor APCu is there:
+    // 'refuse' in production. The PHPUnit bootstrap sets 'memory' so route
+    // tests can count within one process, the way a single request does.
+    public static $noStoreBudgetMode = 'refuse';
+    private static $noStoreWarned = false;
 
     /**
      * The URL to fetch for an href as written in page HTML, or '' when it is
@@ -315,7 +320,36 @@ class LinkChecker
             return array('allowed' => true, 'remaining' => $max, 'retryAfterSeconds' => 0);
         }
         $cacheKey = 'linkcheck-rate:' . sha1(strval($key));
-        $entry = $cache ? self::cacheRetrieve($cache, $cacheKey) : (isset(self::$memoryBudgets[$cacheKey]) ? self::$memoryBudgets[$cacheKey] : null);
+        // Security (SEC-RATELIMIT): a budget needs a store that outlives the
+        // request. PHP statics reset every request, so with no HAXcms cache the
+        // budget moves to APCu, and with neither it fails closed: nothing is
+        // spent, the caller is refused and the reason is logged once.
+        $store = $cache ? 'cache' : (self::apcuAvailable() ? 'apcu' : self::$noStoreBudgetMode);
+        if ($store === 'refuse') {
+            if ($n < 0) {
+                return array('allowed' => true, 'remaining' => 0, 'retryAfterSeconds' => 0);
+            }
+            if (!self::$noStoreWarned) {
+                self::$noStoreWarned = true;
+                error_log('HAXcms: no shared store for link-check and block-change budgets (cache unavailable, APCu missing); refusing those requests until the _config/cache directory is writable');
+            }
+            return array(
+                'allowed' => false,
+                'remaining' => 0,
+                'retryAfterSeconds' => max(1, intval(ceil(intval($settings->windowMs) / 1000))),
+            );
+        }
+        if ($store === 'cache') {
+            $entry = self::cacheRetrieve($cache, $cacheKey);
+        }
+        else if ($store === 'apcu') {
+            $ok = false;
+            $entry = apcu_fetch($cacheKey, $ok);
+            $entry = $ok ? $entry : null;
+        }
+        else {
+            $entry = isset(self::$memoryBudgets[$cacheKey]) ? self::$memoryBudgets[$cacheKey] : null;
+        }
         $windowMs = intval($settings->windowMs);
         if (!is_array($entry) || ($nowMs - intval($entry['windowStart'])) >= $windowMs) {
             if ($n < 0) {
@@ -332,13 +366,24 @@ class LinkChecker
             );
         }
         $entry['used'] = max(0, intval($entry['used']) + $n);
-        if ($cache) {
-            self::cacheStore($cache, $cacheKey, $entry, intval(ceil($windowMs / 1000)) + 60);
+        $ttl = intval(ceil($windowMs / 1000)) + 60;
+        if ($store === 'cache') {
+            self::cacheStore($cache, $cacheKey, $entry, $ttl);
+        }
+        else if ($store === 'apcu') {
+            apcu_store($cacheKey, $entry, $ttl);
         }
         else {
             self::$memoryBudgets[$cacheKey] = $entry;
         }
         return array('allowed' => true, 'remaining' => $max - intval($entry['used']), 'retryAfterSeconds' => 0);
+    }
+
+    // Same availability rule as the login throttle (HAXCMS::loginThrottleApcuAvailable).
+    private static function apcuAvailable()
+    {
+        return function_exists('apcu_fetch') && function_exists('apcu_store') &&
+            (PHP_SAPI !== 'cli' || ini_get('apc.enable_cli'));
     }
 
     /**

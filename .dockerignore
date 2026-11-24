@@ -14,3 +14,21 @@ docker-compose.yml
 .git
 .env
 .env.*
+# Security (SEC-DEPLOY): the image serves this tree, so keep local working
+# notes and dev/CI-only tooling out of the build context; none of it is read
+# at runtime
+security_best_practices_report*
+security_jwt_refresh_review.md
+security_post_fix_reaudit.md
+file_operations_security_report.md
+PR_BODY.md
+tests
+test
+.ddev
+.github
+.devcontainer
+.vscode
+.lando.yml
+.travis.yml
+Vagrantfile
+Dockerfile*

@@ -3,6 +3,55 @@ include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 include_once dirname(__FILE__) . '/../MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteCreateNode {
+  /**
+   * The id a create request asks for that is already taken, or '' when none
+   * is. A page's id is also its folder (pages/<id>/index.html), so creating a
+   * page under an id the site already has would leave two outline items on
+   * one file and replace the first page's content. Checked for the whole
+   * request before anything is written: against the pages the site has, and
+   * against the other new pages in the same request. Ids are compared as they
+   * are stored (generateMachineName), so two spellings of one id count as the
+   * same. Mirrors haxcms-nodejs createNode.
+   */
+  private function findRequestedPageIdConflict($site, $nodeParams) {
+    $taken = array();
+    if (isset($site->manifest->items) && is_array($site->manifest->items)) {
+      foreach ($site->manifest->items as $existing) {
+        if (isset($existing->id)) {
+          $taken[(string) $existing->id] = true;
+        }
+      }
+    }
+    $requested = array();
+    if (isset($nodeParams['items']) && is_array($nodeParams['items']) && count($nodeParams['items']) > 0) {
+      foreach ($nodeParams['items'] as $entry) {
+        if (!is_array($entry)) {
+          continue;
+        }
+        // entries marked delete are skipped by the create loop
+        if (isset($entry['delete']) && $entry['delete'] == TRUE) {
+          continue;
+        }
+        // same reading of the id as addPage: a whole number is its string
+        $requested[] = JSONOutlineSchema::normalizeOutlineId(isset($entry['id']) ? $entry['id'] : null);
+      }
+    }
+    else if (isset($nodeParams['node']) && is_array($nodeParams['node'])) {
+      $requested[] = isset($nodeParams['node']['id']) ? $nodeParams['node']['id'] : null;
+    }
+    foreach ($requested as $raw) {
+      // no id asked for: the server makes a new one
+      if ($raw === null || $raw === '' || $raw === false || !is_scalar($raw)) {
+        continue;
+      }
+      $id = $GLOBALS['HAXCMS']->generateMachineName((string) $raw);
+      if (isset($taken[$id])) {
+        return $id;
+      }
+      $taken[$id] = true;
+    }
+    return '';
+  }
   public function createNode() {
     $nodeParams = $this->params;
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $nodeParams['site']['name'])) {
@@ -26,6 +75,16 @@ trait OperationsRouteCreateNode {
           '__failed' => array(
             'status' => 400,
             'message' => 'Node payload is required',
+          )
+        );
+      }
+      // a page id that is already taken is refused before anything is written
+      // (the same answer saveOutline gives a new id sent twice)
+      if ($this->findRequestedPageIdConflict($site, $nodeParams) !== '') {
+        return array(
+          '__failed' => array(
+            'status' => 400,
+            'message' => 'Each new outline item requires its own id',
           )
         );
       }
@@ -139,12 +198,16 @@ trait OperationsRouteCreateNode {
         // two siblings share an order; indent is the page's depth
         if ($placed = $site->loadNode($item->id)) {
           $requestedOrder = is_array($nodeParams) && array_key_exists('order', $nodeParams) ? $nodeParams['order'] : null;
+          // the client counts orders as positions among the other pages, so
+          // number those 0..n-1 before reading the order it sent
+          OutlineUpkeep::compactSiblingOrders($site->manifest->items, $placed);
           if (is_int($requestedOrder) || is_float($requestedOrder) || (is_string($requestedOrder) && preg_match('/^\s*-?\d+/', $requestedOrder))) {
             $placed->order = (int) $requestedOrder;
             OutlineUpkeep::makeRoomFor($site->manifest->items, $placed);
           } else {
             $placed->order = OutlineUpkeep::lastSiblingOrder($site->manifest->items, OutlineUpkeep::parentOf($placed), $placed) + 1;
           }
+          OutlineUpkeep::compactSiblingOrders($site->manifest->items);
           OutlineUpkeep::syncIndentToDepth($site->manifest->items);
           $item->order = $placed->order;
           $item->indent = $placed->indent;

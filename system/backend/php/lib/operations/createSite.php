@@ -47,10 +47,18 @@ trait OperationsRouteCreateSite {
         // the platform version is intentionally not recorded: site.json is
         // public and the running version must not be shown to visitors
         // course, website, portfolio, etc
-        $build->structure = $this->params['build']['structure'];
+        // a key the request leaves out stays out of site.json (as on
+        // haxcms-nodejs), rather than being stored as null
+        $buildStructure = isset($this->params['build']['structure']) ? $this->params['build']['structure'] : null;
+        if (array_key_exists('structure', $this->params['build'])) {
+          $build->structure = $buildStructure;
+        }
         // TYPE of structure we are creating
-        $build->type = $this->params['build']['type'];
-        if ($build->type == 'docx import' || $build->structure == "import" || $build->structure == "from-skeleton") {
+        $buildType = isset($this->params['build']['type']) ? $this->params['build']['type'] : null;
+        if (array_key_exists('type', $this->params['build'])) {
+          $build->type = $buildType;
+        }
+        if ($buildType == 'docx import' || $buildStructure == "import" || $buildStructure == "from-skeleton") {
           // JSONOutlineSchemaItem Array
           $build->items = $this->params['build']['items'];
         }
@@ -320,6 +328,16 @@ trait OperationsRouteCreateSite {
         is_string($trustedSkeleton['site']['description'])
       ) {
           $schema->description = strip_tags($trustedSkeleton['site']['description']);
+      }
+      // site title: the machine name unless the request names one. Plain
+      // text only; a title that is blank once markup is stripped keeps the name.
+      $requestedTitle = (
+        isset($this->params['site']['title']) &&
+        is_string($this->params['site']['title'])
+      ) ? SanitizeContent::trimTitle(SanitizeContent::plainText($this->params['site']['title'])) : '';
+      if (!SanitizeContent::isBlankPageTitle($requestedTitle)) {
+        $schema->title = $requestedTitle;
+        $site->manifest->title = $requestedTitle;
       }
       // background image / banner (request does not control this)
       if (

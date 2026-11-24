@@ -164,6 +164,26 @@ class HAXCMSSkeletonSettingsService
     return self::normalizeEnabledSkeletonMap($haxcms, $decoded);
   }
 
+  /**
+   * Listing skeletons fills newly detected skeletons into the enabled map and
+   * saves it. That save is housekeeping: when the settings folder cannot be
+   * written (full disk, read-only or wrongly owned config folder) the list is
+   * still answered from the map in memory and the failure is logged, never a
+   * 500. The saveEnabledSkeletons route still reports a failed write.
+   * Mirrors haxcms-nodejs persistDetectedSkeletonDefaults.
+   */
+  public static function persistDetectedSkeletonDefaults($haxcms, $enabledSkeletons = array())
+  {
+    try {
+      self::writeEnabledSkeletonMap($haxcms, $enabledSkeletons);
+      return true;
+    }
+    catch (Exception $e) {
+      @error_log('HAXcms: could not save ' . self::getEnabledSkeletonsFilePath($haxcms) . ' (' . $e->getMessage() . '); listing skeletons from memory');
+      return false;
+    }
+  }
+
   public static function writeEnabledSkeletonMap($haxcms, $enabledSkeletons = array())
   {
     $filePath = self::getEnabledSkeletonsFilePath($haxcms);

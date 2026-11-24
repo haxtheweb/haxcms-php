@@ -49,9 +49,23 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
         // Stage 1: per page, normalize text runs into visual lines (grouped by y).
         $pageLines = array();
         foreach ($pages as $page) {
-            $tmData = $page->getDataTm();
+            $dataCommands = array();
+            try {
+                $dataCommands = $page->getDataCommands();
+            } catch (\Throwable $e) {
+                $dataCommands = array();
+            }
+            $tmData = $page->getDataTm($dataCommands ? $dataCommands : null);
+            // getDataTm() composes a cm with the earlier one in the wrong
+            // order, so a page that starts with a flip (Chrome / Skia:
+            // "0.24 0 0 -0.24 0 792 cm") reports y values far outside the
+            // page. Where that happens and our own walk of the same commands
+            // puts every line on the page, use its y instead, so lines and
+            // images share one space and images interleave (#3181).
+            $truePositions = haxcmsSystemPdfTruePositionsWhenNeeded($page, $tmData, $dataCommands);
             $runs   = array();
-            foreach ($tmData as $row) {
+            $fontMetrics = array();
+            foreach ($tmData as $rowIndex => $row) {
                 if (!is_array($row) || count($row) < 4) {
                     continue;
                 }
@@ -63,6 +77,9 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                 }
                 $x       = (float) $matrix[4];
                 $y       = (float) $matrix[5];
+                if ($truePositions !== null && isset($truePositions[$rowIndex])) {
+                    $y = $truePositions[$rowIndex];
+                }
                 $vScale  = (float) $matrix[3];
                 // Effective rendered size = declared font size × vertical scale
                 // (the text matrix already folds in the CTM). Mirrors Node's
@@ -72,11 +89,31 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                 if ($clean === '') {
                     continue;
                 }
+                // Advance width of the run in page units, from the font's
+                // glyph widths (null when the font has none we can read).
+                // Without it the row builder can only guess where a run ends,
+                // which scatters spaces through words in PDFs that write text
+                // as many short runs (Chrome / Skia). Node parity: pdf.js
+                // item.width in pdfToSemanticHtml.js.
+                $fontId = (string) $row[2];
+                if (!array_key_exists($fontId, $fontMetrics)) {
+                    $font = null;
+                    try {
+                        $font = $page->getFont($fontId);
+                    } catch (\Throwable $e) {
+                        $font = null;
+                    }
+                    $fontMetrics[$fontId] = $font ? haxcmsSystemGetPdfFontMetrics($font) : null;
+                }
+                $units = haxcmsSystemPdfTextWidthUnits($text, $fontMetrics[$fontId]);
                 $runs[] = array(
                     'text'    => $clean,
                     'x'       => $x,
                     'y'       => $y,
                     'effSize' => $effSize,
+                    'width'   => $units === null ? null : ($units / 1000) * $fontSize * abs((float) $matrix[0]),
+                    'spaceBefore' => (bool) preg_match('/^\s/u', $text),
+                    'spaceAfter'  => (bool) preg_match('/\s$/u', $text),
                 );
             }
 
@@ -102,12 +139,23 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
                     return $a['x'] <=> $b['x'];
                 });
                 $lineText = '';
-                $maxEff   = 0.0;
+                // Node starts a line's size at the default (12) and takes the
+                // largest run, so no line measures smaller than that
+                $maxEff   = $DEFAULT_FONT_SIZE;
                 $prev     = null;
                 foreach ($row['items'] as $it) {
                     if ($prev) {
-                        $gap = $it['x'] - ($prev['x'] + $it['effSize'] * 0.5);
-                        if ($gap > $it['effSize'] * 0.2 && !preg_match('/ $/', $lineText)) {
+                        // A space glyph at the end or start of a run is a word
+                        // break. Otherwise measure the gap from where the
+                        // previous run really ends; without its width, fall
+                        // back to the old estimate.
+                        if ($prev['width'] !== null) {
+                            $gap = $it['x'] - ($prev['x'] + $prev['width']);
+                        } else {
+                            $gap = $it['x'] - ($prev['x'] + $it['effSize'] * 0.5);
+                        }
+                        $wordBreak = $prev['spaceAfter'] || $it['spaceBefore'] || $gap > $it['effSize'] * 0.2;
+                        if ($wordBreak && !preg_match('/ $/', $lineText)) {
                             $lineText .= ' ';
                         }
                     }
@@ -184,24 +232,49 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             if (count($after) > 0) {
                 $pageLines[] = array('text' => '', 'effSize' => 0, 'images' => $after);
             }
+            // Node builds each page's HTML on its own: a paragraph or list
+            // never runs on into the next page
+            $pageLines[] = array('pageEnd' => true);
         }
 
-        if (count($pageLines) === 0) {
+        $hasContent = false;
+        foreach ($pageLines as $line) {
+            if (!isset($line['pageEnd'])) {
+                $hasContent = true;
+                break;
+            }
+        }
+        if (!$hasContent) {
             return '<p></p>';
         }
 
         // Stage 2: font stats → body size → heading candidates (Node parity).
         $stats = array();
         foreach ($pageLines as $line) {
-            if (isset($line['images'])) {
+            if (isset($line['images']) || isset($line['pageEnd'])) {
                 continue;
             }
             $size = haxcmsSystemNormalizePdfFontSize($line['effSize']);
-            $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, strlen($line['text']));
+            $stats[$size] = (isset($stats[$size]) ? $stats[$size] : 0) + max(1, haxcmsSystemPdfJsLength($line['text']));
         }
         $bodySize   = $DEFAULT_FONT_SIZE;
         $maxWeight  = 0;
+        // Node keeps these in a JS object, which lists whole-number keys
+        // first (ascending) and the rest in insertion order; walk them in
+        // that order so a tie picks the same body size.
+        $wholeSizes = array();
+        $otherSizes = array();
         foreach ($stats as $size => $weight) {
+            if (fmod((float) $size, 1.0) == 0.0) {
+                $wholeSizes[$size] = $weight;
+            } else {
+                $otherSizes[$size] = $weight;
+            }
+        }
+        uksort($wholeSizes, function ($a, $b) {
+            return (float) $a <=> (float) $b;
+        });
+        foreach ($wholeSizes + $otherSizes as $size => $weight) {
             if ($weight > $maxWeight) {
                 $maxWeight = $weight;
                 $bodySize  = (float) $size;
@@ -225,17 +298,36 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             $headingSizes['h3'] = $candidates[2];
         }
 
-        // Stage 3: emit semantic HTML. Paragraphs merge across consecutive lines
-        // that don't end a sentence (Node's shouldMergeParagraph). Headings only
-        // emit when the size matches AND looksLikeHeading passes.
+        // Stage 3: emit semantic HTML, as Node's linesToSemanticHtml does.
+        // Paragraphs merge across consecutive lines that don't end a sentence
+        // (shouldMergeParagraph); list lines group into <ul>/<ol>; headings
+        // only emit when the size matches AND looksLikeHeading passes.
         $htmlParts = array();
+        /** @var string $paragraphBuffer */
         $paragraphBuffer = '';
+        /** @var string|null $activeListType */
+        $activeListType = null;
+        $flushParagraph = function () use (&$htmlParts, &$paragraphBuffer) {
+            if ($paragraphBuffer !== '') {
+                $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                $paragraphBuffer = '';
+            }
+        };
+        $closeList = function () use (&$htmlParts, &$activeListType) {
+            if ($activeListType !== null) {
+                $htmlParts[] = '</' . $activeListType . '>';
+                $activeListType = null;
+            }
+        };
         foreach ($pageLines as $line) {
+            if (isset($line['pageEnd'])) {
+                $flushParagraph();
+                $closeList();
+                continue;
+            }
             if (isset($line['images'])) {
-                if ($paragraphBuffer !== '') {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-                    $paragraphBuffer = '';
-                }
+                $flushParagraph();
+                $closeList();
                 foreach ($line['images'] as $imgTag) {
                     $htmlParts[] = $imgTag;
                 }
@@ -243,25 +335,32 @@ if (!function_exists('haxcmsSystemConvertPdfToSemanticHtml')) {
             }
             $info = haxcmsSystemGetPdfLineInfo($line, $headingSizes, $HEADING_TOLERANCE, $MAX_HEADING_WORDS, $MAX_HEADING_LENGTH);
             if ($info['type'] === 'paragraph') {
+                $closeList();
                 if ($paragraphBuffer === '') {
                     $paragraphBuffer = $info['content'];
                 } elseif (haxcmsSystemShouldMergePdfParagraph($paragraphBuffer, $info['content'])) {
                     $paragraphBuffer .= ' ' . $info['content'];
                 } else {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
+                    $flushParagraph();
                     $paragraphBuffer = $info['content'];
                 }
             } else {
-                if ($paragraphBuffer !== '') {
-                    $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-                    $paragraphBuffer = '';
+                $flushParagraph();
+                if ($info['type'] === 'list') {
+                    if ($activeListType !== $info['listType']) {
+                        $closeList();
+                        $activeListType = $info['listType'];
+                        $htmlParts[] = '<' . $activeListType . '>';
+                    }
+                    $htmlParts[] = '<li>' . haxcmsSystemEscapePdfHtml($info['content']) . '</li>';
+                } else {
+                    $closeList();
+                    $htmlParts[] = '<' . $info['type'] . '>' . haxcmsSystemEscapePdfHtml($info['content']) . '</' . $info['type'] . '>';
                 }
-                $htmlParts[] = '<' . $info['type'] . '>' . haxcmsSystemEscapePdfHtml($info['content']) . '</' . $info['type'] . '>';
             }
         }
-        if ($paragraphBuffer !== '') {
-            $htmlParts[] = '<p>' . haxcmsSystemEscapePdfHtml($paragraphBuffer) . '</p>';
-        }
+        $flushParagraph();
+        $closeList();
         $html = implode("\n", $htmlParts);
         if ($html === '') {
             $html = '<p></p>';
@@ -480,6 +579,161 @@ if (!function_exists('haxcmsSystemGetPdfPageTop')) {
             $node = $parent;
         }
         return null;
+    }
+}
+
+if (!function_exists('haxcmsSystemGetPdfTextShowYs')) {
+    /**
+     * Walk the text commands getDataTm() reads (Page::getDataCommands) with
+     * the transform math done in the right order (operand matrix applied
+     * first, PDF 32000 8.3.4) and return the page-space y of the origin of
+     * every text show (Tj, TJ, ' and "), in the order getDataTm() emits its
+     * rows. Returns null when the commands cannot be read.
+     *
+     * @return float[]|null
+     */
+    function haxcmsSystemGetPdfTextShowYs($commands)
+    {
+        if (!is_array($commands)) {
+            return null;
+        }
+        $multiply = function ($n, $m) {
+            // n x m: n applied first, then m
+            return array(
+                $n[0] * $m[0] + $n[1] * $m[2],
+                $n[0] * $m[1] + $n[1] * $m[3],
+                $n[2] * $m[0] + $n[3] * $m[2],
+                $n[2] * $m[1] + $n[3] * $m[3],
+                $n[4] * $m[0] + $n[5] * $m[2] + $m[4],
+                $n[4] * $m[1] + $n[5] * $m[3] + $m[5],
+            );
+        };
+        $numbers = function ($args, $count) {
+            $parts = preg_split('/\s+/', trim(is_array($args) ? implode(' ', $args) : (string) $args));
+            if (!is_array($parts) || count($parts) < $count) {
+                return null;
+            }
+            $values = array();
+            for ($i = 0; $i < $count; $i++) {
+                if (!is_numeric($parts[$i])) {
+                    return null;
+                }
+                $values[] = (float) $parts[$i];
+            }
+            return $values;
+        };
+        $identity = array(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        $ctm = $identity;
+        $stack = array();
+        $tm = $identity;
+        $tlm = $identity;
+        $leading = 0.0;
+        $ys = array();
+        $nextLine = function () use (&$tm, &$tlm, &$leading, $multiply) {
+            $tlm = $multiply(array(1.0, 0.0, 0.0, 1.0, 0.0, -$leading), $tlm);
+            $tm = $tlm;
+        };
+        foreach ($commands as $command) {
+            if (!is_array($command) || !isset($command['o'])) {
+                continue;
+            }
+            $op = $command['o'];
+            $args = isset($command['c']) ? $command['c'] : '';
+            if ($op === 'q') {
+                $stack[] = $ctm;
+            } elseif ($op === 'Q') {
+                if (count($stack) > 0) {
+                    $ctm = array_pop($stack);
+                }
+            } elseif ($op === 'cm') {
+                $n = $numbers($args, 6);
+                if ($n !== null) {
+                    $ctm = $multiply($n, $ctm);
+                }
+            } elseif ($op === 'BT') {
+                $tm = $identity;
+                $tlm = $identity;
+            } elseif ($op === 'Tm') {
+                $n = $numbers($args, 6);
+                if ($n !== null) {
+                    $tm = $n;
+                    $tlm = $n;
+                }
+            } elseif ($op === 'Td' || $op === 'TD') {
+                $n = $numbers($args, 2);
+                if ($n !== null) {
+                    if ($op === 'TD') {
+                        $leading = -$n[1];
+                    }
+                    $tlm = $multiply(array(1.0, 0.0, 0.0, 1.0, $n[0], $n[1]), $tlm);
+                    $tm = $tlm;
+                }
+            } elseif ($op === 'TL') {
+                $n = $numbers($args, 1);
+                if ($n !== null) {
+                    $leading = $n[0];
+                }
+            } elseif ($op === 'T*') {
+                $nextLine();
+            } elseif ($op === 'Tj' || $op === 'TJ' || $op === "'" || $op === '"') {
+                if ($op === "'" || $op === '"') {
+                    $nextLine();
+                }
+                $ys[] = $tm[4] * $ctm[1] + $tm[5] * $ctm[3] + $ctm[5];
+            }
+        }
+        return $ys;
+    }
+}
+
+if (!function_exists('haxcmsSystemPdfTruePositionsWhenNeeded')) {
+    /**
+     * The y of each getDataTm() row from haxcmsSystemGetPdfTextShowYs(),
+     * keyed like $tmData, but only when getDataTm() put a row outside the
+     * page box, our walk found a y for every row, and every one of those is
+     * on the page. Otherwise null, and getDataTm()'s own values are used
+     * (Dompdf and other PDFs that position text without a flip are
+     * unchanged).
+     *
+     * @return array<int, float>|null
+     */
+    function haxcmsSystemPdfTruePositionsWhenNeeded($page, $tmData, $commands)
+    {
+        if (!is_array($tmData) || !$tmData || !$commands) {
+            return null;
+        }
+        $pageTop = haxcmsSystemGetPdfPageTop($page);
+        if ($pageTop === null) {
+            return null;
+        }
+        $onPage = function ($y) use ($pageTop) {
+            return $y >= -1 && $y <= $pageTop + 1;
+        };
+        $outside = false;
+        foreach ($tmData as $row) {
+            if (is_array($row) && isset($row[0][5]) && !$onPage((float) $row[0][5])) {
+                $outside = true;
+                break;
+            }
+        }
+        if (!$outside) {
+            return null;
+        }
+        $ys = haxcmsSystemGetPdfTextShowYs($commands);
+        if ($ys === null || count($ys) < count($tmData)) {
+            return null;
+        }
+        $positions = array();
+        $index = 0;
+        foreach ($tmData as $key => $row) {
+            $y = $ys[$index];
+            $index++;
+            if (!$onPage($y)) {
+                return null;
+            }
+            $positions[$key] = $y;
+        }
+        return $positions;
     }
 }
 
@@ -876,6 +1130,159 @@ if (!function_exists('haxcmsSystemGetPdfImageFilter')) {
     }
 }
 
+if (!function_exists('haxcmsSystemGetPdfFontMetrics')) {
+    /**
+     * Glyph widths of a PDF font, keyed by the text each glyph decodes to.
+     * Simple fonts read /FirstChar + /Widths; Type0 (CID) fonts, which is
+     * what Chrome / Skia embed, read the descendant font's /W array and /DW.
+     * Widths are in glyph space (1/1000 of the font size). Returns
+     * array('widths' => array(text => width), 'maxLength' => int,
+     * 'default' => float|null), or null when the font has no widths.
+     */
+    function haxcmsSystemGetPdfFontMetrics($font)
+    {
+        try {
+            $table = $font->loadTranslateTable();
+            $details = $font->getDetails();
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($table)) {
+            $table = array();
+        }
+        $codeWidths = array();
+        $default = null;
+        $subtype = isset($details['Subtype']) ? (string) $details['Subtype'] : '';
+        if ($subtype === 'Type0') {
+            // The descendant CIDFont's own details: the Type0 font's
+            // flattened details leave its /W array out.
+            $descendant = null;
+            try {
+                $list = $font->get('DescendantFonts');
+                $content = is_object($list) && method_exists($list, 'getContent') ? $list->getContent() : null;
+                $first = is_array($content) ? reset($content) : null;
+                if (is_object($first) && method_exists($first, 'getDetails')) {
+                    $descendant = $first->getDetails();
+                }
+            } catch (\Throwable $e) {
+                $descendant = null;
+            }
+            if (!is_array($descendant)) {
+                return null;
+            }
+            // CIDFonts default to 1000 when /DW is absent (PDF 32000 9.7.4.3).
+            $default = isset($descendant['DW']) && is_numeric($descendant['DW']) ? (float) $descendant['DW'] : 1000.0;
+            $w = isset($descendant['W']) && is_array($descendant['W']) ? array_values($descendant['W']) : array();
+            $count = count($w);
+            $i = 0;
+            // /W is a list of "c [w1 w2 ...]" and "cFirst cLast w" entries.
+            while ($i < $count) {
+                if (!is_numeric($w[$i])) {
+                    break;
+                }
+                $first = (int) $w[$i];
+                if ($i + 1 < $count && is_array($w[$i + 1])) {
+                    foreach (array_values($w[$i + 1]) as $offset => $width) {
+                        if (is_numeric($width)) {
+                            $codeWidths[$first + $offset] = (float) $width;
+                        }
+                    }
+                    $i += 2;
+                } elseif ($i + 2 < $count && is_numeric($w[$i + 1]) && is_numeric($w[$i + 2])) {
+                    $last = (int) $w[$i + 1];
+                    // Bound a range so a malformed entry can't allocate
+                    // millions of codes (CIDs are 16-bit).
+                    $last = min($last, $first + 65535);
+                    for ($code = $first; $code <= $last; $code++) {
+                        $codeWidths[$code] = (float) $w[$i + 2];
+                    }
+                    $i += 3;
+                } else {
+                    break;
+                }
+            }
+        } else {
+            if (!isset($details['Widths']) || !is_array($details['Widths']) || !isset($details['FirstChar'])) {
+                return null;
+            }
+            $first = (int) $details['FirstChar'];
+            foreach (array_values($details['Widths']) as $offset => $width) {
+                if (is_numeric($width)) {
+                    $codeWidths[$first + $offset] = (float) $width;
+                }
+            }
+            if (isset($details['FontDescriptor']['MissingWidth']) && is_numeric($details['FontDescriptor']['MissingWidth'])) {
+                $default = (float) $details['FontDescriptor']['MissingWidth'];
+            }
+        }
+        if (!$codeWidths && $default === null) {
+            return null;
+        }
+        $widths = array();
+        $maxLength = 1;
+        foreach ($codeWidths as $code => $width) {
+            if (isset($table[$code]) && is_string($table[$code]) && $table[$code] !== '') {
+                $text = $table[$code];
+            } elseif ($subtype !== 'Type0' && $code >= 32 && $code < 127) {
+                // a simple font without /ToUnicode: plain ASCII codes
+                $text = chr($code);
+            } else {
+                continue;
+            }
+            // first glyph for a text wins, like a ligature-free layout would
+            if (!isset($widths[$text])) {
+                $widths[$text] = $width;
+                $maxLength = max($maxLength, mb_strlen($text));
+            }
+        }
+        if (!$widths) {
+            return null;
+        }
+        return array('widths' => $widths, 'maxLength' => min($maxLength, 8), 'default' => $default);
+    }
+
+    /**
+     * Width of decoded text in glyph space, matching the longest glyph text
+     * first so ligatures (one glyph that decodes to "ffi") count once.
+     * Returns null when no metrics are known or a character has no width
+     * and the font has no default.
+     */
+    function haxcmsSystemPdfTextWidthUnits($text, $metrics)
+    {
+        if (!is_array($metrics)) {
+            return null;
+        }
+        $chars = preg_split('//u', (string) $text, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($chars)) {
+            return null;
+        }
+        $count = count($chars);
+        $total = 0.0;
+        $i = 0;
+        while ($i < $count) {
+            $matched = false;
+            for ($len = min($metrics['maxLength'], $count - $i); $len >= 1; $len--) {
+                $piece = implode('', array_slice($chars, $i, $len));
+                if (isset($metrics['widths'][$piece])) {
+                    $total += $metrics['widths'][$piece];
+                    $i += $len;
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                if ($metrics['default'] === null) {
+                    return null;
+                }
+                $total += $metrics['default'];
+                $i++;
+            }
+        }
+        return $total;
+    }
+
+}
+
 if (!function_exists('haxcmsSystemNormalizePdfFontSize')) {
     function haxcmsSystemNormalizePdfFontSize($size)
     {
@@ -888,6 +1295,15 @@ if (!function_exists('haxcmsSystemNormalizePdfFontSize')) {
         // comparisons in getHeadingLevel/body-size selection. Mirrors Node's
         // Math.round(x*10)/10 which is naturally string-keyed in JS objects.
         return number_format((float) $size, 1, '.', '');
+    }
+}
+
+if (!function_exists('haxcmsSystemPdfJsLength')) {
+    /** JavaScript's string length (UTF-16 code units), as Node measures text */
+    function haxcmsSystemPdfJsLength($text)
+    {
+        $utf16 = mb_convert_encoding((string) $text, 'UTF-16LE', 'UTF-8');
+        return intdiv(strlen($utf16), 2);
     }
 }
 
@@ -931,7 +1347,7 @@ if (!function_exists('haxcmsSystemPdfLooksLikeHeading')) {
         if (count($words) > $maxWords) {
             return false;
         }
-        if (mb_strlen($text) > $maxLength) {
+        if (haxcmsSystemPdfJsLength($text) > $maxLength) {
             return false;
         }
         if (preg_match('/[.!?]$/u', $text)) {
@@ -978,16 +1394,11 @@ if (!function_exists('haxcmsSystemShouldMergePdfParagraph')) {
 if (!function_exists('haxcmsSystemEscapePdfHtml')) {
     function haxcmsSystemEscapePdfHtml($value)
     {
-        // Smalot splits words on character-positioning gaps, producing artifacts
-        // like "Action Item s" or "OptionalStudy Resources". The most visible
-        // and safest to fix is a space immediately before a single trailing
-        // letter at the end of a token ("Item s" -> "Items"). Collapse that
-        // pattern repeatedly so mid-word splits heal too ("w illlearn" is left
-        // alone — that is a missing space, not an extra one, and we can't safely
-        // guess word boundaries there). Legitimate single-letter words ("a",
-        // "I") are not at risk because the pattern requires a preceding token.
-        $cleaned = preg_replace('/(\p{L}) (\p{L})(?=\s|$)/u', '$1$2', $value);
-        return htmlspecialchars($cleaned, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        // Node's escapeHtml: & < > only. (Runs now carry glyph widths, so
+        // the row builder places word breaks itself; the old pass that joined
+        // a lone trailing letter onto the word before it turned real words
+        // like "Lesson A" and "and a" into "LessonA" and "anda".)
+        return str_replace(array('&', '<', '>'), array('&amp;', '&lt;', '&gt;'), (string) $value);
     }
 }
 

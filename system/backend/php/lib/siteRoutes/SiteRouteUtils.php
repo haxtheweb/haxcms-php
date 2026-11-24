@@ -20,12 +20,65 @@ class SiteRouteUtils
      */
     public static function invokeRouteHandler($handler, $context)
     {
+        if (self::requestBodyWasLost()) {
+            self::sendLostRequestBodyError($context);
+            return null;
+        }
         try {
             return call_user_func($handler, $context);
         } catch (Throwable $e) {
             self::sendRouteHandlerError($e, $context);
             return null;
         }
+    }
+
+    /**
+     * Invariant: a request whose body PHP could not read in full is answered
+     * with the 500 ApiError envelope, never handed to the route as a shorter
+     * or empty body. PHP keeps a request body over 16 KiB in a temporary file;
+     * when that file cannot be created (full disk, unwritable temp folder) PHP
+     * keeps only the first part of the body and raises no error, so routes
+     * would answer a 400 such as "Content body is required" that blames the
+     * client. multipart/form-data is excluded: PHP moves it into $_POST /
+     * $_FILES and php://input is empty by design.
+     */
+    public static function requestBodyWasLost()
+    {
+        if (!isset($_SERVER['CONTENT_LENGTH'])) {
+            return false;
+        }
+        $declared = (string) $_SERVER['CONTENT_LENGTH'];
+        if (!ctype_digit($declared) || (int) $declared <= 0) {
+            return false;
+        }
+        $contentType = isset($_SERVER['CONTENT_TYPE']) ? strtolower((string) $_SERVER['CONTENT_TYPE']) : '';
+        if (strpos($contentType, 'multipart/form-data') === 0) {
+            return false;
+        }
+        $raw = @file_get_contents('php://input');
+        return !is_string($raw) || strlen($raw) < (int) $declared;
+    }
+
+    public static function sendLostRequestBodyError($context = null)
+    {
+        @error_log(
+            'haxcms: the request declared a ' . substr((string) $_SERVER['CONTENT_LENGTH'], 0, 20)
+            . ' byte body but PHP could not read all of it; check free disk space and that'
+            . ' PHP can write to its temporary folder (upload_tmp_dir / sys_temp_dir)'
+        );
+        if (PHP_SAPI !== 'cli' && headers_sent()) {
+            return;
+        }
+        self::sendFormattedResponse(
+            array('message' => self::ROUTE_HANDLER_ERROR_MESSAGE),
+            array(
+                'statusCode' => 500,
+                'allowedFormats' => array('json'),
+                'defaultFormat' => 'json',
+            ),
+            is_object($context) && isset($context->routeSuffix) && is_string($context->routeSuffix) ? $context->routeSuffix : '',
+            is_object($context) && isset($context->apiBasePath) ? $context->apiBasePath : '/x/api'
+        );
     }
 
     public static function sendRouteHandlerError($error, $context = null)
@@ -1237,7 +1290,11 @@ class SiteRouteUtils
                 continue;
             }
             $routeKey = self::convertOpenApiPathToSiteRoute($openApiPath);
-            if ($routeKey === '') {
+            // Security (SEC-ROUTE): '' is the discovery root (/x/api itself).
+            // The spec declares it like any other path, so its policy is read
+            // from the spec too, as in haxcms-nodejs; skipping it left this
+            // one route on a rule the spec does not state.
+            if ($routeKey === '' && rtrim((string) $openApiPath, '/') !== '/x/api') {
                 continue;
             }
             if (!is_array($pathConfig)) {

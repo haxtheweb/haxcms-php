@@ -152,7 +152,14 @@ if (!function_exists('haxcmsInstallerGeneratePassword')) {
     for ($i = 0; $i < 10; $i++) {
       $pass[] = $all[random_int(0, $allLen)];
     }
-    shuffle($pass);
+    // Security (SEC-INSTALL): order the characters with random_int too;
+    // shuffle() draws from the non-cryptographic Mt19937 generator
+    for ($i = count($pass) - 1; $i > 0; $i--) {
+      $j = random_int(0, $i);
+      $swap = $pass[$i];
+      $pass[$i] = $pass[$j];
+      $pass[$j] = $swap;
+    }
     return implode($pass);
   }
 }
@@ -955,8 +962,6 @@ if ($installTokenEnabled && !$installTokenCookieValid) {
       is imported by the installer after its first render, so it never
       holds up the page.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <?php
   $installerPreloads = array(
     'lit/index.js',

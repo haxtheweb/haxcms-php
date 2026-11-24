@@ -15,7 +15,7 @@ parameters:
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
-			count: 2
+			count: 1
 			path: bootstrapHAX.php
 
 		-
@@ -547,12 +547,6 @@ parameters:
 			path: lib/HAXCMSSite.php
 
 		-
-			message: '#^Call to method DateTime\:\:format\(\) on a separate line has no effect\.$#'
-			identifier: method.resultUnused
-			count: 1
-			path: lib/HAXCMSSite.php
-
-		-
 			message: '#^Loose comparison using \=\= between ''html'' and ''html'' will always evaluate to true\.$#'
 			identifier: equal.alwaysTrue
 			count: 1
@@ -610,18 +604,6 @@ parameters:
 			message: '#^Method HAXCMSSite\:\:updateNode\(\) should return JSONOutlineSchemaItem but returns false\.$#'
 			identifier: return.type
 			count: 1
-			path: lib/HAXCMSSite.php
-
-		-
-			message: '#^Offset ''@id'' on array\{''@type''\: ''Organization'', ''@id''\: non\-falsy\-string, url\: mixed, name\: string, logo\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}, founder\?\: array\{''@id''\: non\-falsy\-string\}\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 2
-			path: lib/HAXCMSSite.php
-
-		-
-			message: '#^Offset ''@id'' on array\{''@type''\: ''Person'', ''@id''\: non\-falsy\-string, name\?\: non\-empty\-string, sameAs\?\: array\{mixed\}, image\?\: array\{''@type''\: ''ImageObject'', url\: mixed\}\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 3
 			path: lib/HAXCMSSite.php
 
 		-
@@ -705,12 +687,6 @@ parameters:
 		-
 			message: '#^PHPDoc tag @var has invalid value \(\$title title of the new page to create\)\: Unexpected token "\$title", expected type at offset 191 on line 5$#'
 			identifier: phpDoc.parseError
-			count: 1
-			path: lib/HAXCMSSite.php
-
-		-
-			message: '#^Parameter \#4 \$priority of method Icamys\\SitemapGenerator\\SitemapGenerator\:\:addURL\(\) expects float\|null, string given\.$#'
-			identifier: argument.type
 			count: 1
 			path: lib/HAXCMSSite.php
 

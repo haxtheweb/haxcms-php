@@ -82,3 +82,9 @@ foreach ($rit as $file) {
 require_once $base . '/lib/Operations.php';
 // Class-based file that lives under a skipped procedural dir.
 require_once $base . '/lib/siteRoutes/v1/ExportConverters.php';
+
+// Route tests run with no HAXcms cache and count link-check / block-change
+// budgets within this one process (production refuses instead, SEC-RATELIMIT).
+if (class_exists('LinkChecker', false)) {
+    LinkChecker::$noStoreBudgetMode = 'memory';
+}

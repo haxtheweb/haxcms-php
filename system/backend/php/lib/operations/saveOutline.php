@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
+include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 include_once dirname(__FILE__) . '/../SanitizeContent.php';
 trait OperationsRouteSaveOutline {
   /**
@@ -17,6 +18,56 @@ trait OperationsRouteSaveOutline {
    * message as haxcms-nodejs. A parent that does not exist is allowed; the
    * save rescues that page to the top level.
    */
+  /**
+   * Whether an existing page is still locked once this save's metadata for it
+   * is applied: the metadata it sends wins, otherwise what site.json has.
+   */
+  private function lockedAfterSave($page, $item) {
+    if (isset($item->metadata) && is_object($item->metadata) && property_exists($item->metadata, 'locked')) {
+      return OutlineUpkeep::isLocked((object) array(
+        'metadata' => (object) array('locked' => $item->metadata->locked),
+      ));
+    }
+    return OutlineUpkeep::isLocked($page);
+  }
+
+  /**
+   * Whether the ancestor part of a page's address no longer matches its
+   * ancestors: every segment before the last is an ancestor's last segment,
+   * nearest last (how getUniqueSlugName builds a pathauto address).
+   */
+  private function hasStaleAncestorSlug($site, $page) {
+    if (!isset($page->parent) || $page->parent === '') {
+      return false;
+    }
+    if (isset($page->metadata->overridePathauto) && $page->metadata->overridePathauto === true) {
+      return false;
+    }
+    if (!isset($page->slug) || !is_string($page->slug) || $page->slug === '') {
+      return false;
+    }
+    $expected = array();
+    $seen = array((string) $page->id => true);
+    $up = $page;
+    while ($up = $site->loadNode($up->parent)) {
+      if (isset($seen[(string) $up->id])) {
+        break;
+      }
+      $seen[(string) $up->id] = true;
+      $segments = explode('/', isset($up->slug) ? (string) $up->slug : '');
+      $segment = array_pop($segments);
+      if ($segment !== '') {
+        array_unshift($expected, $segment);
+      }
+      if (!isset($up->parent) || $up->parent === '') {
+        break;
+      }
+    }
+    $actual = explode('/', $page->slug);
+    array_pop($actual);
+    return implode('/', $actual) !== implode('/', $expected);
+  }
+
   private function validateOutlineItems($site, $items) {
     $parents = array();
     foreach ($site->manifest->items as $existing) {
@@ -210,6 +261,10 @@ trait OperationsRouteSaveOutline {
       $this->rawParams['items'] = $normalizedItems;
       $items = $this->rawParams['items'];
       $itemMap = array();
+      // pages this save deletes, as they were: (object) id, parent, order
+      $deleted = array();
+      // ids of the pages that were locked and stay locked through this save
+      $keptLocked = array();
       $pageAlternateContentMap = array();
       $normalizeOutlineSlug = function ($slug, $page = null, $pathAuto = false) use ($site) {
         // no segment may be the reserved "x" route (getUniqueSlugName
@@ -281,14 +336,23 @@ trait OperationsRouteSaveOutline {
       try {
         // items from the POST
         foreach ($items as $key => $item) {
+          // a page that was locked and stays locked keeps its title and
+          // content; it can still move (and get a new slug) like any page.
+          // A save that locks or unlocks a page applies the rest of its
+          // changes to it, as the outline designer showed them.
+          $keepTitle = false;
           // get a fake item of the existing
           if (!($page = $site->loadNode($item->id))) {
             $page = $GLOBALS['HAXCMS']->outlineSchema->newItem();
             // we don't trust the front end UUID if it wasn't existing already
             $itemMap[$item->id] = $page->id;
           }
+          else if (OutlineUpkeep::isLocked($page) && $this->lockedAfterSave($page, $item)) {
+            $keepTitle = true;
+            $keptLocked[(string) $page->id] = true;
+          }
           // set a title if we have one
-          if ($item->title != '' && $item->title) {
+          if ($item->title != '' && $item->title && !$keepTitle) {
             // Security (SEC-SANITIZE): titles are plain text, same as saveNode;
             // a title that is nothing but markup keeps the existing title
             $plainTitle = SanitizeContent::plainText($item->title);
@@ -449,6 +513,46 @@ trait OperationsRouteSaveOutline {
               $feedItems = $savedItems;
           }
         }
+        // a page's address is built from its ancestors' as they were when
+        // the page was processed. A save that lists a page before an
+        // ancestor it renames or moves leaves that page under the ancestor's
+        // old address: re-slug those, top-down. outline-designer sends
+        // parents first, so its saves have nothing stale here and are
+        // written as before.
+        if ($site->isPathautoEnabled()) {
+          $sentIds = array();
+          foreach ($items as $sentItem) {
+            $sentId = isset($itemMap[$sentItem->id]) ? $itemMap[$sentItem->id] : $sentItem->id;
+            $sentIds[(string) $sentId] = true;
+          }
+          $live = $site->manifest->items;
+          $entries = array();
+          $position = 0;
+          foreach ($live as $liveItem) {
+            if (!is_object($liveItem) || !isset($sentIds[(string) $liveItem->id])) {
+              continue;
+            }
+            $depth = 0;
+            $seen = array((string) $liveItem->id => true);
+            $up = $liveItem;
+            while (isset($up->parent) && $up->parent !== '' && ($up = $site->loadNode($up->parent)) && !isset($seen[(string) $up->id])) {
+              $seen[(string) $up->id] = true;
+              $depth++;
+            }
+            $entries[] = array('item' => $liveItem, 'position' => $position++, 'depth' => $depth);
+          }
+          usort($entries, function ($x, $y) {
+            if ($x['depth'] !== $y['depth']) {
+              return $x['depth'] - $y['depth'];
+            }
+            return $x['position'] - $y['position'];
+          });
+          foreach ($entries as $entry) {
+            if ($this->hasStaleAncestorSlug($site, $entry['item'])) {
+              OutlineUpkeep::reslugPageAndBranch($site, $entry['item'], $live);
+            }
+          }
+        }
         // siblings that share an order are told apart by their position in
         // the manifest; keep the order the request sent them in (the order
         // the outline showed), so a tie never depends on how the save ran.
@@ -536,12 +640,15 @@ trait OperationsRouteSaveOutline {
             );
           }
           $page->location = $expectedLocation;
+          // a page that was locked before this save and is still locked
+          // after it keeps its content
+          $keepContent = isset($keptLocked[(string) $page->id]);
           $alternateContent = '';
           $shouldWriteAlternate = false;
           if (isset($pageAlternateContentMap[$page->id])) {
             $shouldWriteAlternate = true;
           }
-          if (isset($item->duplicate)) {
+          if (isset($item->duplicate) && !$keepContent) {
             // load the node we are duplicating with support for the same map needed for page loading
             if (!$nodeToDuplicate = $site->loadNode($item->duplicate)) {
               if (isset($itemMap[$item->duplicate])) {
@@ -590,7 +697,7 @@ trait OperationsRouteSaveOutline {
             $shouldWriteAlternate = true;
           }
           // contents that were shipped across, and not null, take priority over a dup request
-          if (isset($item->contents) && $item->contents && $item->contents != '') {
+          if (!$keepContent && isset($item->contents) && $item->contents && $item->contents != '') {
             if (!$this->isLikelyHtmlContent($item->contents)) {
               $flushPending();
               return array(
@@ -650,6 +757,11 @@ trait OperationsRouteSaveOutline {
             if (!$page) {
               continue;
             }
+            $deleted[] = (object) array(
+              'id' => $page->id,
+              'parent' => isset($page->parent) ? $page->parent : null,
+              'order' => isset($page->order) ? $page->order : 0,
+            );
             $site->deleteNode($page);
             $site->gitCommit(
               'Page deleted: ' . $page->title . ' (' . $page->id . ')'
@@ -666,6 +778,57 @@ trait OperationsRouteSaveOutline {
         throw $e;
       }
       $site->manifest->save();
+      // a deleted page's children that this save keeps move up one level,
+      // into its place, with addresses and depths to match. outline-designer
+      // deletes a page's whole branch, so its saves leave no such children
+      // and are written exactly as before. A deleted page inside another
+      // deleted page hands its children on, so they end up under the nearest
+      // page that is kept: innermost first, so each deleted page hands all
+      // of its children on once.
+      $deletedById = array();
+      foreach ($deleted as $d) {
+        $deletedById[(string) $d->id] = $d;
+      }
+      $nesting = array();
+      foreach ($deleted as $position => $d) {
+        $depth = 0;
+        $seen = array((string) $d->id => true);
+        $p = $d->parent;
+        while ($p !== null && $p !== '' && isset($deletedById[(string) $p]) && !isset($seen[(string) $p])) {
+          $seen[(string) $p] = true;
+          $depth++;
+          $p = $deletedById[(string) $p]->parent;
+        }
+        $nesting[] = array('d' => $d, 'position' => $position, 'depth' => $depth);
+      }
+      usort($nesting, function ($x, $y) {
+        if ($x['depth'] !== $y['depth']) {
+          return $y['depth'] - $x['depth'];
+        }
+        return $x['position'] - $y['position'];
+      });
+      $adopted = array();
+      foreach ($nesting as $entry) {
+        foreach (OutlineUpkeep::adoptChildren($site->manifest->items, $entry['d']) as $movedPage) {
+          $adopted[] = $movedPage;
+        }
+      }
+      if (count($adopted) > 0) {
+        $live = $site->manifest->items;
+        $seenAdopted = array();
+        foreach ($adopted as $movedPage) {
+          if (isset($seenAdopted[(string) $movedPage->id])) {
+            continue;
+          }
+          $seenAdopted[(string) $movedPage->id] = true;
+          OutlineUpkeep::reslugPageAndBranch($site, $movedPage, $live);
+        }
+        OutlineUpkeep::syncIndentToDepth($live);
+        $site->manifest->save();
+        // the feeds follow, as the orphan rescue below does, so a failure in
+        // the managed files rebuild leaves feeds that match site.json
+        $site->updateAlternateFormats();
+      }
       // now, we need to look for orphans if we deleted anything
       $orphanCheck = $site->manifest->items;
       $orphansRescued = false;

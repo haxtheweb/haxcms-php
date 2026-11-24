@@ -658,6 +658,37 @@ class ServicesTest extends TestCase
         $this->assertNotNull($row);
         $this->assertSame('warning', $row['tone']);
         $this->assertStringContainsString('Content-Disposition', $row['description']);
+        $this->assertStringContainsString('add_header Content-Security-Policy sandbox always;', $row['description']);
+    }
+
+    public function testSystemStatusUploadMarkupRowWarnsForServersWithoutHtaccess(): void
+    {
+        foreach (array('Caddy', 'Microsoft-IIS/10.0', 'PHP 8.3.6 Development Server', 'php-web-server') as $server) {
+            $report = HAXCMSSystemStatusService::buildStatusReport(array(
+                'serverVersion' => $server,
+                'gitVersion' => 'git version 1.0',
+            ));
+            $row = $this->findRowByKey($report['rows'], 'nginx-files-html-xss');
+            $this->assertNotNull($row, $server);
+            $this->assertSame('warning', $row['tone'], $server);
+            $this->assertStringContainsString('Content-Security-Policy: sandbox', $row['description'], $server);
+        }
+    }
+
+    public function testSystemStatusUploadMarkupRowErrorsWhenApacheLacksModHeaders(): void
+    {
+        $report = HAXCMSSystemStatusService::buildStatusReport(array(
+            'serverVersion' => 'Apache/2.4.58',
+            'gitVersion' => 'git version 1.0',
+            'headersModuleLoaded' => false,
+        ));
+        $row = $this->findRowByKey($report['rows'], 'nginx-files-html-xss');
+        $this->assertNotNull($row);
+        $this->assertSame('error', $row['tone']);
+        $this->assertStringContainsString('mod_headers', $row['description']);
+        // LiteSpeed reads .htaccess too: covered when mod_headers is present
+        $this->assertNull(HAXCMSSystemStatusService::buildUploadMarkupGuardRow('LiteSpeed', true));
+        $this->assertNull(HAXCMSSystemStatusService::buildUploadMarkupGuardRow('Apache', null));
     }
 
     public function testSystemStatusNginxHtmlXssWarningRowAbsentForApache(): void

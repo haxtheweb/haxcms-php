@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/BoundedZip.php';
+require_once __DIR__ . '/SafeXml.php';
 /**
  * PPTX deck manifest builder helpers.
  *
@@ -24,7 +26,8 @@ function haxcmsSystemReadSlideRelsForDeck($zip, $slideNum)
         return $rels;
     }
     $relsDoc = new DOMDocument();
-    @$relsDoc->loadXML($relsContent);
+    // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+    SafeXml::loadInto($relsDoc, $relsContent);
     $relNodes = $relsDoc->getElementsByTagName('Relationship');
     foreach ($relNodes as $rel) {
         $rId = $rel->getAttribute('Id');
@@ -83,7 +86,8 @@ function haxcmsSystemExtractSlideNotesForDeck($zip, $slideNum)
     $nsP = 'http://schemas.openxmlformats.org/presentationml/2006/main';
     $nsA = 'http://schemas.openxmlformats.org/drawingml/2006/main';
     $doc = new DOMDocument();
-    @$doc->loadXML($notesContent);
+    // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+    SafeXml::loadInto($doc, $notesContent);
     $spTree = $doc->getElementsByTagNameNS($nsP, 'spTree')->item(0);
     if (!$spTree) {
         return '';
@@ -120,6 +124,9 @@ function haxcmsSystemBuildPptxDeckManifest($filePath)
     if (!class_exists('ZipArchive')) {
         throw new \RuntimeException('ZipArchive extension is not available');
     }
+    // Security (SEC-DOS, SEC-UPLOAD): measure the zip under real byte limits
+    // before any entry is read (BoundedZip.php)
+    BoundedZip::assertWithinLimits($filePath, 'pptx');
     $zip = new ZipArchive();
     if ($zip->open($filePath) !== true) {
         throw new \RuntimeException('Unable to open PPTX as ZIP archive');
@@ -161,7 +168,8 @@ function haxcmsSystemBuildPptxDeckManifest($filePath)
             continue;
         }
         $doc = new DOMDocument();
-        @$doc->loadXML($slideXml);
+        // Security (SEC-DOS, SEC-UPLOAD): no DOCTYPE/ENTITY, no network (SafeXml)
+        SafeXml::loadInto($doc, $slideXml);
         $spTree = $doc->getElementsByTagNameNS($nsP, 'spTree')->item(0);
 
         $title = 'Slide ' . $slideNum;

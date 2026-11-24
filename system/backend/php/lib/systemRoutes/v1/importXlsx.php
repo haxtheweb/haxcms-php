@@ -1,5 +1,6 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
+include_once dirname(__FILE__) . '/../../BoundedZip.php';
 include_once dirname(__FILE__) . '/../../JSONOutlineSchemaItem.php';
 
 $__vendorAutoload = dirname(__FILE__) . '/../../../vendor/autoload.php';
@@ -31,9 +32,9 @@ return function ($context) {
     $file     = $_FILES[$fileKey];
     $filename = isset($file['name']) ? (string) $file['name'] : 'file.xlsx';
 
-    if (!preg_match('/\.(xlsx|xls)$/i', $filename)) {
+    if (!preg_match('/\.(xlsx|xls|ods)$/i', $filename)) {
         SiteRouteUtils::sendFormattedResponse(
-            array('status' => 400, 'data' => array('error' => 'Invalid file type. Expected .xlsx or .xls, got: ' . $filename, 'items' => array(), 'filename' => $filename)),
+            array('status' => 400, 'data' => array('error' => 'Invalid file type. Expected .xlsx, .xls or .ods, got: ' . $filename, 'items' => array(), 'filename' => $filename)),
             array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix,
             $apiBasePath
@@ -44,6 +45,15 @@ return function ($context) {
     $tmpPath = $file['tmp_name'];
 
     try {
+        // Security (SEC-DOS, SEC-UPLOAD): xlsx and ods are zips; PhpSpreadsheet
+        // reads some entries through zip://, which ignores declared sizes, so
+        // the zip is measured under real byte limits first (BoundedZip.php)
+        if (BoundedZip::hasZipSignature($tmpPath)) {
+            BoundedZip::assertWithinLimits(
+                $tmpPath,
+                preg_match('/\.([a-z]+)$/i', (string) $filename, $extMatch) ? strtolower($extMatch[1]) : 'xlsx'
+            );
+        }
         $spreadsheet  = \PhpOffice\PhpSpreadsheet\IOFactory::load($tmpPath);
         $sheetNames   = $spreadsheet->getSheetNames();
         if (empty($sheetNames)) {

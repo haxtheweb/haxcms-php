@@ -97,7 +97,7 @@ class OperationsFileOpsRateLimitTest extends TestCase
         for ($i = 1; $i <= 3; $i++) {
             $result = $this->saveFileCall();
             $this->assertArrayHasKey('__failed', $result);
-            $this->assertSame(500, $result['__failed']['status']);
+            $this->assertSame(400, $result['__failed']['status']);
             // under-limit calls fall through to 'Invalid upload source', NOT a
             // rate-limit message.
             $this->assertStringNotContainsString('rate limit', $result['__failed']['message']);

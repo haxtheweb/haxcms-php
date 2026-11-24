@@ -106,12 +106,11 @@ class SystemRoutesImportPptxTest extends TestCase
 
     private function slideXml(array $shapes)
     {
-        $xml = '<?xml version="1.0"?><p:sld ' . self::$slideNs . '>';
+        $xml = '<?xml version="1.0"?><p:sld ' . self::$slideNs . '><p:cSld><p:spTree>';
         foreach ($shapes as $shape) {
             $xml .= '<p:sp>';
             if (isset($shape['phType'])) {
-                $attr = ($shape['nsAttr'] ?? false) ? 'p:type' : 'type';
-                $xml .= '<p:nvSpPr><p:nvPr><p:ph ' . $attr . '="' . $shape['phType'] . '"/></p:nvPr></p:nvSpPr>';
+                $xml .= '<p:nvSpPr><p:nvPr><p:ph type="' . $shape['phType'] . '"/></p:nvPr></p:nvSpPr>';
             } else {
                 $xml .= '<p:nvSpPr><p:nvPr></p:nvPr></p:nvSpPr>';
             }
@@ -121,7 +120,7 @@ class SystemRoutesImportPptxTest extends TestCase
             }
             $xml .= '</p:txBody></p:sp>';
         }
-        return $xml . '</p:sld>';
+        return $xml . '</p:spTree></p:cSld></p:sld>';
     }
 
     public function testNoFileUploadReturns400(): void
@@ -173,7 +172,7 @@ class SystemRoutesImportPptxTest extends TestCase
         $result = $this->runRoute($this->upload($tmp, 'deck.pptx'));
         $this->assertSame(400, $result['code']);
         $this->assertSame(
-            'Error processing PPTX import: Unable to open PPTX as ZIP archive',
+            'Error processing PPTX import: Uploaded file is not a valid .pptx file (unreadable ZIP).',
             $result['data']['data']['error']
         );
     }
@@ -183,7 +182,7 @@ class SystemRoutesImportPptxTest extends TestCase
         $slides = array(
             // Deliberately out of numeric order in the archive.
             'slide2.xml' => $this->slideXml(array(
-                array('phType' => 'ctrTitle', 'nsAttr' => true, 'runs' => array('Namespaced Title')),
+                array('phType' => 'ctrTitle', 'runs' => array('Centered Title')),
                 array('runs' => array('Plain paragraph')),
                 array('runs' => array()), // empty shape is skipped
             )),
@@ -200,8 +199,9 @@ class SystemRoutesImportPptxTest extends TestCase
         $items = $result['data']['data']['items'];
         $this->assertCount(2, $items);
         $this->assertSame('Deck & Title', $items[0]['title']);
-        $this->assertSame('<p>Body text</p>', $items[0]['contents']);
-        $this->assertSame('Namespaced Title', $items[1]['title']);
+        // a body placeholder's paragraphs are bullets
+        $this->assertSame('<ul><li>Body text</li></ul>', $items[0]['contents']);
+        $this->assertSame('Centered Title', $items[1]['title']);
         $this->assertSame('<p>Plain paragraph</p>', $items[1]['contents']);
     }
 
@@ -237,9 +237,10 @@ class SystemRoutesImportPptxTest extends TestCase
 
     public function testExtractorProducesHeadingsParagraphsAndEscaping(): void
     {
-        // Direct extractor characterization: h2 for title/ctrTitle (both
-        // attribute serializations), p for plain shapes, htmlspecialchars
-        // escaping, numeric slide ordering, non-slide entries ignored.
+        // One <h1> per slide (the haxcms-nodejs pptxToHtml.js shape): the
+        // title or ctrTitle placeholder, else the slide's first line of text;
+        // escaping; numeric slide order when there is no presentation.xml;
+        // non-slide entries ignored.
         $slides = array(
             'slide10.xml' => $this->slideXml(array(
                 // Runs are inserted verbatim into the slide XML, so the fixture
@@ -247,10 +248,10 @@ class SystemRoutesImportPptxTest extends TestCase
                 array('phType' => 'title', 'runs' => array('Ten &amp; &lt;More&gt;')),
             )),
             'slide2.xml' => $this->slideXml(array(
-                array('runs' => array('two')),
+                array('runs' => array('two', 'second line')),
             )),
             'slide1.xml' => $this->slideXml(array(
-                array('phType' => 'ctrTitle', 'nsAttr' => true, 'runs' => array('One')),
+                array('phType' => 'ctrTitle', 'runs' => array('One')),
             )),
         );
         $tmp = $this->buildPptx($this->tempFile(''), $slides, array(
@@ -259,20 +260,18 @@ class SystemRoutesImportPptxTest extends TestCase
         $this->handler(); // ensure the extractor function is defined
         $html = haxcmsSystemExtractPptxToHtml($tmp);
         $this->assertSame(
-            "<h2>One</h2>\n<p>two</p>\n<h2>Ten &amp; &lt;More&gt;</h2>",
+            "<h1>One</h1>\n<h1>two</h1>\n<p>second line</p>\n<h1>Ten &amp; &lt;More&gt;</h1>",
             $html
         );
     }
 
-    public function testExtractorConcatenatesMultipleRunsPerShape(): void
+    public function testExtractorConcatenatesMultipleRunsPerParagraph(): void
     {
-        $slides = array(
-            'slide1.xml' => $this->slideXml(array(
-                array('runs' => array('Hello ', 'World')),
-            )),
-        );
-        $tmp = $this->buildPptx($this->tempFile(''), $slides);
+        $slide = '<?xml version="1.0"?><p:sld ' . self::$slideNs . '><p:cSld><p:spTree>'
+            . '<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody><a:p><a:r><a:t>Hello </a:t></a:r><a:r><a:rPr b="1"/><a:t>World</a:t></a:r></a:p></p:txBody></p:sp>'
+            . '</p:spTree></p:cSld></p:sld>';
+        $tmp = $this->buildPptx($this->tempFile(''), array('slide1.xml' => $slide));
         $this->handler(); // ensure the extractor function is defined
-        $this->assertSame('<p>Hello World</p>', haxcmsSystemExtractPptxToHtml($tmp));
+        $this->assertSame('<h1>Hello <strong>World</strong></h1>', haxcmsSystemExtractPptxToHtml($tmp));
     }
 }

@@ -78,7 +78,7 @@ trait OperationsRouteThemesList
         ? $withDefaults['enabledThemes']
         : array();
       if (isset($withDefaults['changed']) && $withDefaults['changed']) {
-        HAXCMSThemeSettingsService::writeEnabledThemeMap(
+        HAXCMSThemeSettingsService::persistDetectedThemeDefaults(
           $GLOBALS['HAXCMS'],
           $enabledThemes
         );

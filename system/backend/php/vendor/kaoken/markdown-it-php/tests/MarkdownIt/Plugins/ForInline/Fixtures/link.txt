@@ -1,0 +1,17 @@
+---
+desc: Link tokens processing
+---
+
+
+.
+foo http://google.com bar
+.
+<p>foo <a href="http://google.com">shmugle.com</a> bar</p>
+.
+
+
+.
+https://www.mantana.ru
+.
+<p><a href="https://www.mantana.ru">mantana.ru</a></p>
+.

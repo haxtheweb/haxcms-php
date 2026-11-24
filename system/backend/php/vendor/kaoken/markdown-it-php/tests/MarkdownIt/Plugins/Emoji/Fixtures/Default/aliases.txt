@@ -1,0 +1,45 @@
+---
+desc: Aliases
+---
+
+alias + original
+.
+:) :smiley:
+.
+<p>😃 😃</p>
+.
+
+2 differend aliases
+.
+:D :-D
+.
+<p>😄 😄</p>
+.
+
+Potentially conflicting
+.
+:/ :/. :/
+.
+<p>😕 😕. 😕</p>
+.
+
+should not conflict with URLs
+.
+http://google.com
+.
+<p>http://google.com</p>
+.
+
+should not conflict with win paths
+.
+c:\windows
+.
+<p>c:\windows</p>
+.
+
+should not appear inside words
+.
+User:Preferences :P
+.
+<p>User:Preferences 😛</p>
+.

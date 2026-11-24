@@ -6,8 +6,7 @@
         "php": "^8.3",
         "guzzlehttp/guzzle": "^7.15.2",
         "twig/twig": "^3.27",
-        "icamys/php-sitemap-generator": "^1.0",
-        "symfony/filesystem": "^4.2",
+        "symfony/filesystem": "^7.4",
         "gumlet/php-image-resize": "^3.0.1",
         "michelf/php-markdown": "^2.0",
         "league/html-to-markdown": "^5.1",
@@ -16,7 +15,9 @@
         "phpoffice/phpspreadsheet": "^5.9",
         "phpoffice/phpword": "^1.4",
         "dompdf/dompdf": "^3.1.6",
-        "smalot/pdfparser": "^2.12"
+        "smalot/pdfparser": "^2.12",
+        "kaoken/markdown-it-php": "^14.3",
+        "endless-creativity/elephant-php": "^0.5.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0"

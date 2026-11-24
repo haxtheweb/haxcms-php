@@ -115,7 +115,7 @@ return function ($context) {
                 $enabledThemes = $withDefaults['enabledThemes'];
             }
             if (isset($withDefaults['changed']) && $withDefaults['changed']) {
-                HAXCMSThemeSettingsService::writeEnabledThemeMap($GLOBALS['HAXCMS'], $enabledThemes);
+                HAXCMSThemeSettingsService::persistDetectedThemeDefaults($GLOBALS['HAXCMS'], $enabledThemes);
             }
             foreach ($discovered as $item) {
                 $machineName = isset($item['machineName']) ? (string) $item['machineName'] : '';

@@ -2,12 +2,17 @@
 /**
  * Outline upkeep shared by the single-page operations (create, move, indent,
  * outdent, set parent, delete). saveOutline writes the whole outline as the
- * outline designer sent it and does not use any of this.
+ * outline designer sent it; it uses adoptChildren only, for the pages a
+ * deleted page leaves behind.
  *
  * The rules kept here, the same in haxcms-nodejs (src/lib/outlineUpkeep.js):
- *  - siblings never share an `order` value after a single-page operation
+ *  - after a single-page operation the pages under each parent are numbered
+ *    0..n-1 with no gaps and no repeats, in the sequence a reader sees them.
+ *    The front end numbers siblings by position when it loads the outline,
+ *    so an order it sends ("after this page") means the same spot here.
  *  - `indent` is the page's depth: 0 at the top level, parent's indent + 1 below
  *  - a locked page is changed by nothing but unlocking it
+ *  - a deleted page's children move up one level, into its place
  */
 class OutlineUpkeep {
   public static function parentOf($item) {
@@ -73,6 +78,37 @@ class OutlineUpkeep {
       $sibling->order = $position;
     }
     return true;
+  }
+
+  /**
+   * Number the pages under every parent 0..n-1 in the sequence they are shown
+   * in (by order, then position in the items array), so orders have no gaps
+   * and no repeats. $except is left out and keeps its order: a page that is
+   * about to be placed by an order the client counted without it.
+   * @return bool whether any order changed
+   */
+  public static function compactSiblingOrders($items, $except = null) {
+    $parents = array();
+    foreach ($items as $item) {
+      if (is_object($item) && $item !== $except && !in_array(self::parentOf($item), $parents, true)) {
+        $parents[] = self::parentOf($item);
+      }
+    }
+    $changed = false;
+    foreach ($parents as $parentId) {
+      $position = 0;
+      foreach (self::sortedSiblings($items, $parentId) as $sibling) {
+        if ($sibling === $except) {
+          continue;
+        }
+        if (!isset($sibling->order) || $sibling->order !== $position) {
+          $sibling->order = $position;
+          $changed = true;
+        }
+        $position++;
+      }
+    }
+    return $changed;
   }
 
   /**
@@ -154,6 +190,61 @@ class OutlineUpkeep {
       }
       $item->indent = $depth;
     }
+  }
+
+  /**
+   * A page was deleted: its children (the pages in $items whose parent is its
+   * id) move up one level into the deleted page's place. They go under its
+   * parent, starting at its order and keeping their own order among
+   * themselves; the siblings after that slot move down to make room.
+   * $deleted is (object) array('id', 'parent', 'order') as the page was
+   * before it was removed. Returns the pages that moved, so the caller can
+   * re-slug them and their branches and set indents.
+   */
+  public static function adoptChildren($items, $deleted) {
+    if (!is_object($deleted) || !isset($deleted->id)) {
+      return array();
+    }
+    $id = (string) $deleted->id;
+    $children = array();
+    foreach ($items as $item) {
+      if (is_object($item) && self::parentOf($item) !== null && (string) self::parentOf($item) === $id) {
+        $children[] = $item;
+      }
+    }
+    if (count($children) === 0) {
+      return array();
+    }
+    // stable by order, so equal orders keep the sequence they are listed in
+    $indexed = array();
+    foreach ($children as $i => $child) {
+      $indexed[] = array('item' => $child, 'index' => $i);
+    }
+    usort($indexed, function ($a, $b) {
+      $byOrder = OutlineUpkeep::orderOf($a['item']) - OutlineUpkeep::orderOf($b['item']);
+      return $byOrder !== 0 ? $byOrder : ($a['index'] - $b['index']);
+    });
+    $children = array();
+    foreach ($indexed as $entry) {
+      $children[] = $entry['item'];
+    }
+    $newParent = self::parentOf($deleted);
+    $slot = self::orderOf($deleted);
+    foreach ($items as $item) {
+      if (
+        is_object($item) &&
+        !in_array($item, $children, true) &&
+        self::parentOf($item) === $newParent &&
+        self::orderOf($item) > $slot
+      ) {
+        $item->order = self::orderOf($item) + count($children) - 1;
+      }
+    }
+    foreach ($children as $i => $child) {
+      $child->parent = $newParent;
+      $child->order = $slot + $i;
+    }
+    return $children;
   }
 
   public static function isLocked($page) {

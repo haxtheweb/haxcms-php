@@ -79,6 +79,8 @@
         "ai-usage-license": "@haxtheweb/ai-usage-license/ai-usage-license.js",
         "lrn-math": "@haxtheweb/lrn-math/lrn-math.js",
         "vocab-term": "@haxtheweb/vocab-term/vocab-term.js",
+        "a11y-footnote": "@haxtheweb/a11y-footnote/a11y-footnote.js",
+        "ddd-hero": "@haxtheweb/d-d-d/lib/ddd-hero.js",
         "meme-maker": "@haxtheweb/meme-maker/meme-maker.js",
         "grid-plate": "@haxtheweb/grid-plate/grid-plate.js",
         "lrndesign-timeline": "@haxtheweb/lrndesign-timeline/lrndesign-timeline.js",

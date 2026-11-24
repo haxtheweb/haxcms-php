@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
+include_once dirname(__FILE__) . '/../ImageFraming.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -154,6 +155,16 @@ trait OperationsRouteSaveNode {
                 )
               );
             } else {
+                // framed photos (ddd-hero) are served from cuts made at save
+                // time; a photo that can't be cut falls back to CSS framing
+                try {
+                  ImageFraming::cutFramings(
+                    HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+                    $sanitizedContent
+                  );
+                } catch (\Throwable $e) {
+                  // never fail a save over a cut
+                }
                 // sanity check
                 if (!isset($page->metadata)) {
                   $page->metadata = new stdClass();
@@ -190,16 +201,10 @@ trait OperationsRouteSaveNode {
                     $GLOBALS['HAXCMS']->generateSlugName($data["attributes"]["slug"])
                   );
                 }
-                // where the page sat before this save applies the page-break's
-                // parent / order, to tell whether the save moves it
-                $parentBeforeSave = OutlineUpkeep::parentOf($page);
-                $orderBeforeSave = OutlineUpkeep::orderOf($page);
-                if (isset($data["attributes"]["parent"])) {
-                  $page->parent = $data["attributes"]["parent"];
-                }
-                else {
-                  $page->parent = null;
-                }
+                // a content save never moves the page: the page-break's parent,
+                // order and depth are ignored. The client renumbers sibling
+                // orders when it loads the outline, so those values need not
+                // match the outline; pages move through the item operations.
                 // allow setting theme via page break
                 if (isset($data["attributes"]["developer-theme"]) && $data["attributes"]["developer-theme"] != '') {
                   $themes = $GLOBALS['HAXCMS']->getThemes();
@@ -217,19 +222,6 @@ trait OperationsRouteSaveNode {
                 else if (isset($page->metadata->theme)) {
                   unset($page->metadata->theme);
                 }
-                if (isset($data["attributes"]["depth"])) {
-                  $page->indent = (int)$data["attributes"]["depth"];
-                }
-                if (isset($data["attributes"]["order"])) {
-                  $page->order = (int)$data["attributes"]["order"];
-                }
-                // a save that moves the page keeps the outline rules the item
-                // operations keep: no two siblings share an order, and indent
-                // is the page's depth whatever depth the page-break carried
-                if ($parentBeforeSave !== OutlineUpkeep::parentOf($page) || $orderBeforeSave !== OutlineUpkeep::orderOf($page)) {
-                  OutlineUpkeep::makeRoomFor($site->manifest->items, $page);
-                }
-                OutlineUpkeep::syncIndentToDepth($site->manifest->items);
                 // boolean so these are either there or not
                 // historically we are published if this value is not set
                 // and that will remain true however as we save / update pages
@@ -261,6 +253,15 @@ trait OperationsRouteSaveNode {
                 }
                 else {
                   $page->metadata->hideInMenu = false;
+                }
+                // "Hide page title" (page-break hide-title): the title shows unless
+                // the page hides it, so it is only stored while it is on. Bare
+                // attribute, so array_key_exists as with hide-in-menu.
+                if (array_key_exists("hide-title", $data["attributes"])) {
+                  $page->metadata->hideTitle = true;
+                }
+                else if (property_exists($page->metadata, 'hideTitle')) {
+                  unset($page->metadata->hideTitle);
                 }
                 // support for defining and updating related-items
                 if (isset($data["attributes"]["related-items"]) && $data["attributes"]["related-items"] != '') {

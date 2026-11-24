@@ -88,9 +88,52 @@ class ExportConverters
         return 'Item export';
     }
 
+    /**
+     * The CDN base an html export may load its build from: an absolute
+     * http(s) URL of a host, optional port and plain path (no credentials,
+     * query, fragment, quotes or other markup characters), answered ending
+     * in "/". Anything else answers '' (no wrapping). haxcms-nodejs keeps
+     * the same rule (exportMagicCdn in src/siteRoutes/v1/exports.js).
+     */
+    public static function exportMagicCdn($raw = '')
+    {
+        if (!is_string($raw)) {
+            return '';
+        }
+        $value = trim($raw);
+        if (
+            strlen($value) > 2048 ||
+            !preg_match('#^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~%/-]*)?$#D', $value)
+        ) {
+            return '';
+        }
+        return substr($value, -1) === '/' ? $value : $value . '/';
+    }
+
     public static function escapeHtmlValue($value = '')
     {
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    // Accessibility: every exported HTML document declares the site's language
+    // (WCAG 3.1.1) and its text direction, so screen readers pick the right
+    // voice and right-to-left sites read in order. Only BCP 47 characters are
+    // kept. Mirrors haxcms-nodejs exports.js getSiteExportLang.
+    const RTL_LANGUAGES = array('ar', 'arc', 'ckb', 'dv', 'fa', 'he', 'ks', 'ku', 'ps', 'sd', 'ug', 'ur', 'yi');
+
+    public static function getSiteExportLang($site = null)
+    {
+        $lang = $site !== null ? (string) SiteRouteUtils::getSiteLanguage($site) : '';
+        $lang = substr(preg_replace('/[^A-Za-z0-9-]/', '', $lang), 0, 35);
+        return $lang != '' ? $lang : 'en';
+    }
+
+    public static function getExportLangDirAttributes($lang = 'en')
+    {
+        $parts = explode('-', (string) $lang);
+        $primary = strtolower($parts[0]);
+        $dir = in_array($primary, self::RTL_LANGUAGES, true) ? 'rtl' : 'ltr';
+        return 'lang="' . self::escapeHtmlValue($lang) . '" dir="' . $dir . '"';
     }
 
     public static function sanitizeExportHtml($html = '')
@@ -138,13 +181,13 @@ class ExportConverters
         return;
     }
 
-    public static function buildItemExportHtml($item, $content = '')
+    public static function buildItemExportHtml($item, $content = '', $site = null)
     {
         $itemTitle = self::buildItemExportDocumentTitle($item);
         $itemContent = (string) $content;
         $parts = array();
         $parts[] = '<!doctype html>';
-        $parts[] = '<html>';
+        $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
         $parts[] = '<head>';
         $parts[] = '<meta charset="utf-8" />';
         $parts[] = '<title>' . self::escapeHtmlValue($itemTitle) . '</title>';
@@ -347,11 +390,10 @@ class ExportConverters
             $content = self::buildSiteExportHtmlContent($site, $ancestor, $visibleOnly);
             $parts = array();
             $parts[] = '<!DOCTYPE html>';
-            $parts[] = '<html lang="en">';
+            $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
             $parts[] = '<head>';
             $parts[] = '<meta charset="utf-8">';
             $parts[] = '<link rel="preconnect" crossorigin href="' . self::escapeHtmlValue($magic) . '">';
-            $parts[] = '<link rel="preconnect" crossorigin href="https://fonts.googleapis.com">';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'build.js" as="script" />';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'wc-registry.json" as="fetch" crossorigin="anonymous" />';
             $parts[] = '<link rel="preload" href="' . self::escapeHtmlValue($magic) . 'build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" as="script" crossorigin="anonymous" />';
@@ -374,7 +416,7 @@ class ExportConverters
 
         $parts = array();
         $parts[] = '<!doctype html>';
-        $parts[] = '<html>';
+        $parts[] = '<html ' . self::getExportLangDirAttributes(self::getSiteExportLang($site)) . '>';
         $parts[] = '<head>';
         $parts[] = '<meta charset="utf-8" />';
         $parts[] = '<title>' . self::escapeHtmlValue($siteTitle) . '</title>';
@@ -1179,9 +1221,22 @@ hr { border: 0; border-top: 1px solid #d0d7de; margin: 1.2em 0; }';
                 }
 
                 if ($videoId != '') {
+                    // Accessibility: an embedded frame needs a title (WCAG
+                    // 4.1.2); use the video's own title or caption, else a
+                    // generic "Video" label. Mirrors haxcms-nodejs.
+                    $videoTitle = 'Video';
+                    if ($el instanceof DOMElement) {
+                        foreach (array('title', 'media-title', 'caption', 'aria-label') as $titleAttr) {
+                            $titleValue = $el->getAttribute($titleAttr);
+                            if ($titleValue != '') {
+                                $videoTitle = $titleValue;
+                                break;
+                            }
+                        }
+                    }
                     $embed = $doc->createDocumentFragment();
                     $embed->appendXML(
-                        '<div xmlns="' . $xhtmlNs . '" class="responsive-iframe-container"><iframe class="responsive-iframe" width="100%" height="100%" frameborder="0" src="' . self::escapeHtmlValue($videoId) . '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
+                        '<div xmlns="' . $xhtmlNs . '" class="responsive-iframe-container"><iframe class="responsive-iframe" title="' . self::escapeHtmlValue($videoTitle) . '" width="100%" height="100%" frameborder="0" src="' . self::escapeHtmlValue($videoId) . '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="allowfullscreen"></iframe></div>'
                     );
                     $el->parentNode->replaceChild($embed, $el);
                 }

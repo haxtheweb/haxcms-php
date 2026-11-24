@@ -3,6 +3,7 @@
 include_once 'RSS.php';
 include_once dirname(__FILE__) . '/Licenses.php';
 include_once 'SanitizeContent.php';
+include_once 'HAXCMSSameAs.php';
 include_once dirname(__FILE__) . '/CommitContext.php';
 include_once 'MaterializeInlineImages.php';
 include_once dirname(__FILE__) . '/FilesDataStore.php';
@@ -14,6 +15,9 @@ class HAXCMSSite
     // Full HAX agent skill catalog (agentskills.io index) maintained in PRAW.
     // Linked from every site's llms.txt for skills the site does not ship.
     const HAX_SKILL_CATALOG_URL = 'https://raw.githubusercontent.com/haxtheweb/praw/stable/skills/index.json';
+    // DDD's Latin Roboto face, under build/es6/node_modules; preloaded by
+    // getSiteMetadata for sites that render on DDD's fonts
+    const DDD_FONT_PRELOAD = '@haxtheweb/d-d-d/lib/fonts/roboto/roboto-latin-wght-normal.woff2';
     public $name;
     public $manifest;
     public $directory;
@@ -202,7 +206,7 @@ class HAXCMSSite
           $this->addPage(null, 'Welcome', 'init', 'welcome');
         }
         else {
-          switch ($build->structure) {
+          switch (isset($build->structure) ? $build->structure : null) {
             case 'from-skeleton':
             case 'import':
               $pageSchema = array();
@@ -251,7 +255,7 @@ class HAXCMSSite
                   "slug" => "welcome"
                 )
               );
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 case 'docx import':
                     // ensure we have items
                   if ($build->items) {
@@ -330,7 +334,7 @@ class HAXCMSSite
               $this->addPage(null, 'Meet the author', 'init', 'meet-the-author');
             break;
             case 'website':
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 default:
                   $this->addPage(null, 'Home', 'init', 'home');
                 break;
@@ -343,7 +347,7 @@ class HAXCMSSite
               $this->addPage(null, 'Start', 'init', 'start');
               break;
             case 'portfolio':
-              switch ($build->type) {
+              switch (isset($build->type) ? $build->type : null) {
                 case 'art':
                   $this->addPage(null, 'Gallery 1', 'init', 'gallery-1');
                   $this->addPage(null, 'Gallery 2', 'init', 'gallery-2');
@@ -1063,8 +1067,10 @@ class HAXCMSSite
             $GLOBALS['HAXCMS']->getThemes()
           );
         }
-        $page->metadata->created = time();
-        $page->metadata->updated = time();
+        // an imported page keeps its own created / updated times
+        $times = SanitizeContent::pageTimestamps($metadata, time());
+        $page->metadata->created = $times['created'];
+        $page->metadata->updated = $times['updated'];
         $location = $this->directory . '/' .
             $this->manifest->metadata->site->name .
             '/pages' . '/' . $page->id;
@@ -1270,9 +1276,10 @@ class HAXCMSSite
       return '';
     }
     /**
-     * Fallback sitemap XML writer when absolute-domain sitemap generation is unavailable.
+     * Build sitemap.xml: one <url> per page with loc, lastmod, changefreq and
+     * priority, the same fields haxcms-nodejs writes.
      */
-    private function buildSitemapFallbackXml($domain = '')
+    private function buildSitemapXml($domain = '')
     {
       $base = is_string($domain) ? $domain : '';
       if ($base == '') {
@@ -1287,24 +1294,30 @@ class HAXCMSSite
           continue;
         }
         $loc = rtrim($base, '/') . '/' . ltrim($item->slug, '/');
-        $lastmod = '';
+        $priority = '0.5';
+        if (!isset($item->parent) || $item->parent == null) {
+          $priority = '1.0';
+        } elseif (isset($item->indent) && $item->indent == 2) {
+          $priority = '0.7';
+        }
+        $updated = time();
         if (isset($item->metadata->updated) && is_numeric($item->metadata->updated)) {
-          $lastmod = gmdate('c', intval($item->metadata->updated));
+          $updated = intval($item->metadata->updated);
         }
         $xml[] = '  <url>';
         $xml[] = '    <loc>' . SanitizeContent::escapeXMLValue($loc) . '</loc>';
-        if ($lastmod != '') {
-          $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue($lastmod) . '</lastmod>';
-        }
+        $xml[] = '    <lastmod>' . SanitizeContent::escapeXMLValue(gmdate('c', $updated)) . '</lastmod>';
+        $xml[] = '    <changefreq>daily</changefreq>';
+        $xml[] = '    <priority>' . $priority . '</priority>';
         $xml[] = '  </url>';
       }
       $xml[] = '</urlset>';
       return implode("\n", $xml) . "\n";
     }
     /**
-     * Fallback sitemap-index XML writer when absolute-domain sitemap generation is unavailable.
+     * Build sitemap-index.xml, which points at sitemap.xml.
      */
-    private function buildSitemapIndexFallbackXml($domain = '')
+    private function buildSitemapIndexXml($domain = '')
     {
       $base = is_string($domain) ? $domain : '';
       if ($base == '') {
@@ -1366,59 +1379,31 @@ class HAXCMSSite
               // some of these XML parsers are a bit unstable
           }
       }
-      // build a sitemap if we have a domain, kinda required...
+      // The sitemap is always two plain files, sitemap.xml and sitemap-index.xml,
+      // the names haxcms-nodejs writes and the site API links to. Page addresses
+      // are absolute whenever an absolute domain can be worked out.
       if (is_null($format) || $format == 'sitemap') {
           try {
               $sitemapDomain = $this->getAbsoluteSiteDomainForSitemap($domain);
-              if (!empty($sitemapDomain) && preg_match('/^https?:\\/\\//i', $sitemapDomain)) {
-                  $generator = new \Icamys\SitemapGenerator\SitemapGenerator(
-                      $sitemapDomain,
-                      $siteDirectory
-                  );
-                  // will create also compressed (gzipped) sitemap
-                  $generator->enableCompression();
-                  // determine how many urls should be put into one file
-                  // according to standard protocol 50000 is maximum value (see http://www.sitemaps.org/protocol.html)
-                  $generator->setMaxUrlsPerSitemap(50000);
-                  // sitemap file name
-                  $generator->setSitemapFilename("sitemap.xml");
-                  // sitemap index file name
-                  $generator->setSitemapIndexFilename("sitemap-index.xml");
-                  // adding url `loc`, `lastmodified`, `changefreq`, `priority`
-                  foreach ($this->manifest->items as $key => $item) {
-                      if ($item->parent == null) {
-                          $priority = '1.0';
-                      } elseif ($item->indent == 2) {
-                          $priority = '0.7';
-                      } else {
-                          $priority = '0.5';
-                      }
-                      $updatedTime = new DateTime();
-                      $updatedTime->setTimestamp($item->metadata->updated);
-                      $updatedTime->format(DateTime::ATOM);
-                      @$generator->addUrl(
-                          rtrim($sitemapDomain, '/') . '/' . ltrim($item->slug, '/'),
-                          $updatedTime,
-                          'daily',
-                          $priority
-                      );
-                  }
-                  // writing early generated sitemap to file
-                  @$generator->flush();
-                  @$generator->finalize();
+              if (empty($sitemapDomain) || !preg_match('/^https?:\\/\\//i', $sitemapDomain)) {
+                  $sitemapDomain = $domain;
               }
-              else if (!empty($domain)) {
+              if (!empty($sitemapDomain)) {
                   @file_put_contents(
                       $siteDirectory . 'sitemap.xml',
-                      $this->buildSitemapFallbackXml($domain)
+                      $this->buildSitemapXml($sitemapDomain)
                   );
                   @file_put_contents(
                       $siteDirectory . 'sitemap-index.xml',
-                      $this->buildSitemapIndexFallbackXml($domain)
+                      $this->buildSitemapIndexXml($sitemapDomain)
                   );
+                  // a compressed copy from an earlier version would now be out of date
+                  if (is_file($siteDirectory . 'sitemap.xml.gz')) {
+                      @unlink($siteDirectory . 'sitemap.xml.gz');
+                  }
               }
           } catch (Exception $e) {
-              // some of these XML parsers are a bit unstable
+              // never fail a save on sitemap serialization
           }
       }
       if (is_null($format) || $format == 'search') {
@@ -1816,35 +1801,50 @@ class HAXCMSSite
       return $data;
     }
     /**
-     * Create Lunr.js style search index
+     * Create Lunr.js style search index: one entry per published page, the
+     * same entries haxcms-nodejs writes (HAXCMSSite.lunrSearchIndex).
      */
     public function lunrSearchIndex($items) {
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
       $data = array();
       foreach ($items as $item) {
+        if (!is_object($item)) {
+          continue;
+        }
+        // Security: this file is served without a login, so it follows the
+        // anonymous rule of the shell and page variants: an unpublished page
+        // gives nothing about itself here.
+        if (!SiteRouteUtils::isItemPublished($item)) {
+          continue;
+        }
         $created = time();
         if (isset($item->metadata) && isset($item->metadata->created)) {
           $created = $item->metadata->created;
         }
-        // slug is now the URL canonical
-        $slug = str_replace('pages/', '', str_replace('/index.html', '', $item->location));
-        // if the item has a slug, use that instead of the location
+        $location = isset($item->location) ? (string) $item->location : '';
+        // slug is the URL canonical; older items only have a location
+        $slug = str_replace('pages/', '', str_replace('/index.html', '', $location));
         if (isset($item->slug)) {
           $slug = $item->slug;
         }
         // may seem silly but IDs in lunr have a size limit for some reason in our context..
         $lunrSearchItem = array(
-          "id" => substr(str_replace('-', '', str_replace('item-', '', $item->id)), 0, 29),
-          "title" => $item->title,
+          "id" => substr(str_replace('-', '', str_replace('item-', '', isset($item->id) ? (string) $item->id : '')), 0, 29),
+          "title" => isset($item->title) ? $item->title : null,
           "created" => $created,
           "location" => $slug,
-          "description" => strip_tags($item->description),
+          "description" => (isset($item->description) && is_string($item->description)) ? self::stripAngleTags($item->description, '') : '',
           "text" => '',
         );
         // test location is valid prior to adding it
         // Security (SEC-PATH): read via containment-checked resolver.
-        $resolvedLocation = $this->resolvePageLocationRealPath($item->location);
+        $resolvedLocation = $this->resolvePageLocationRealPath($location);
         if ($resolvedLocation !== false) {
-          $lunrSearchItem['text'] = $this->cleanSearchData(@file_get_contents($resolvedLocation));
+          $contents = @file_get_contents($resolvedLocation);
+          // a page whose file cannot be read is still found by its title
+          if (is_string($contents)) {
+            $lunrSearchItem['text'] = $this->cleanSearchData($contents);
+          }
         }
 
         $data[] = $lunrSearchItem;
@@ -1852,21 +1852,75 @@ class HAXCMSSite
       return $data;
     }
     /**
-     * Clean up data from a file and make it easy for us to index on the front end
+     * Remove every "<...>" (a "<", one or more characters that are not ">",
+     * then ">"), putting $replacement where each one was. One pass over the
+     * text. Same result as haxcms-nodejs linearText.stripAngleTags.
      */
-    private function cleanSearchData($text) {
-      // clean up initial, small, trim, replace end lines, utf8 no tags
-      $text = trim(strtolower(str_replace("\n", ' ', strip_tags((string) $text))));
-      // all weird chars
-      $text = preg_replace('/[^a-z0-9\']/', ' ', $text);
-      $text = str_replace("'", '', $text);
-      // all words 1 to 4 letters long
-      $text = preg_replace('~\b[a-z]{1,4}\b\s*~', '', $text);
-      // all excess white space
-      $text = preg_replace('/\s+/', ' ', $text);
-      // crush string to array and back to make an unique index
-      $text = implode(' ', array_unique(explode(' ', $text)));
-      return $text;
+    public static function stripAngleTags($value, $replacement = '') {
+      $text = (string) $value;
+      $out = '';
+      $pos = 0;
+      $open = strpos($text, '<');
+      while ($open !== false) {
+        $close = strpos($text, '>', $open + 1);
+        if ($close === false) {
+          // no ">" left, so no later "<" can close either
+          break;
+        }
+        if ($close === $open + 1) {
+          // "<>" is not a tag; try the next "<"
+          $open = strpos($text, '<', $open + 1);
+          continue;
+        }
+        $out .= substr($text, $pos, $open - $pos) . $replacement;
+        $pos = $close + 1;
+        $open = strpos($text, '<', $pos);
+      }
+      return $pos === 0 ? $text : $out . substr($text, $pos);
+    }
+    /**
+     * Turn a page's HTML into the words the front end search indexes: tags
+     * out, lower case, punctuation out, each word once in first-seen order.
+     * Words of one or two letters are dropped (nobody searches for "am" or
+     * "of"); numbers and words in scripts written without spaces are kept
+     * whatever their length. Works on any language's letters.
+     * Same output as haxcms-nodejs HAXCMSSite.cleanSearchData; both are held
+     * to tests/fixtures/search-index-vectors.json.
+     */
+    public function cleanSearchData($text) {
+      if (!is_string($text) || $text === '') {
+        return '';
+      }
+      // bytes that are not UTF-8 separate words, as any other non-letter does
+      if (!mb_check_encoding($text, 'UTF-8')) {
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+      }
+      // a tag becomes a space so the words either side of it stay two words
+      $text = mb_strtolower(self::stripAngleTags($text, ' '), 'UTF-8');
+      // apostrophes close up (aren't -> arent), anything else that is not a
+      // letter or a number separates words
+      $text = preg_replace('/[^\p{L}\p{N}]+/u', ' ', str_replace("'", '', $text));
+      if (!is_string($text)) {
+        return '';
+      }
+      $seen = array();
+      $words = array();
+      foreach (explode(' ', $text) as $word) {
+        if ($word === '' || isset($seen[$word])) {
+          continue;
+        }
+        // short words go, unless they have a digit or are written in a
+        // script that does not put spaces between words
+        if (
+          mb_strlen($word, 'UTF-8') < 3 &&
+          preg_match('/[\p{N}\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}\p{Thai}]/u', $word) !== 1
+        ) {
+          continue;
+        }
+        $seen[$word] = true;
+        $words[] = $word;
+      }
+      return implode(' ', $words);
     }
     /**
      * Sort items by a certain key value. Must be in the included list for safety of the sort
@@ -2620,6 +2674,18 @@ class HAXCMSSite
         }
         return false;
       }
+      // Security: variants are served without a login, so an unpublished page
+      // has none (same rule as the shell, see HAXSiteConfig). Mirrors
+      // haxcms-nodejs tryServePageVariantRequest.
+      if (!$this->isPagePublished($page)) {
+        if ($variantInfo['format']) {
+          http_response_code(404);
+          header('Content-Type: text/plain; charset=utf-8');
+          print 'Not found';
+          return true;
+        }
+        return false;
+      }
       $canonicalPath = $this->getCanonicalPagePathForSlug($slug);
       if ($variantInfo['format']) {
         $filePath = $this->getAlternateFilePathForPageFormat($page, $variantInfo['format']);
@@ -2646,6 +2712,15 @@ class HAXCMSSite
         }
       }
       return false;
+    }
+    /**
+     * Whether a page is published: what the shell and the page variants,
+     * served without a login, may show (SiteRouteUtils::isItemPublished).
+     */
+    public function isPagePublished($page = null)
+    {
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
+      return SiteRouteUtils::isItemPublished($page);
     }
     /**
      * Send Link headers advertising available alternate page formats.
@@ -2845,6 +2920,82 @@ class HAXCMSSite
       }
       return $location;
     }
+    /**
+     * Absolute path of a file in the local build (build/es6/node_modules),
+     * looked up for the site first, then the HAXcms root; NULL when absent.
+     * Read from disk whatever the site's base is: the CDN serves the same
+     * release. Mirrors localBuildFile in haxcms-nodejs src/lib/HAXCMS.js.
+     * @param string $rel path under build/es6/node_modules
+     */
+    public function localBuildFile($rel) {
+      $buildRel = 'build/es6/node_modules/' . $rel;
+      $candidates = array();
+      if (isset($this->directory) && isset($this->manifest->metadata->site->name)) {
+        $candidates[] = $this->directory . '/' . $this->manifest->metadata->site->name . '/' . $buildRel;
+      }
+      if (defined('HAXCMS_ROOT')) {
+        $candidates[] = HAXCMS_ROOT . '/' . $buildRel;
+      }
+      foreach ($candidates as $candidate) {
+        if (is_file($candidate)) {
+          return $candidate;
+        }
+      }
+      return NULL;
+    }
+    /**
+     * designSystems.json (the design system bridge registry shipped in
+     * @haxtheweb/haxcms-elements/lib) from the local build; an empty array
+     * when the build has none (older builds).
+     */
+    public function getDesignSystemsJson() {
+      $registryPath = $this->localBuildFile('@haxtheweb/haxcms-elements/lib/designSystems.json');
+      if ($registryPath) {
+        $raw = @file_get_contents($registryPath);
+        if ($raw !== FALSE) {
+          $data = json_decode($raw, TRUE);
+          if (is_array($data)) {
+            return $data;
+          }
+        }
+      }
+      return array();
+    }
+    /**
+     * Whether this site renders on DDD's own fonts (Roboto), so its pages can
+     * preload DDD's Latin Roboto. FALSE when the site picked another design
+     * system or its theme is a bridged one (the bridge brings its own fonts),
+     * and when the local build has no design system registry to check against
+     * or doesn't ship the font (builds before d-d-d vendored its fonts).
+     */
+    public function usesDDDFonts() {
+      if (!isset($this->manifest->metadata->theme) || !is_object($this->manifest->metadata->theme)) {
+        return FALSE;
+      }
+      $theme = $this->manifest->metadata->theme;
+      if (
+        isset($theme->designSystem) &&
+        is_string($theme->designSystem) &&
+        $theme->designSystem !== '' &&
+        $theme->designSystem !== 'ddd'
+      ) {
+        return FALSE;
+      }
+      if (!$this->localBuildFile(self::DDD_FONT_PRELOAD)) {
+        return FALSE;
+      }
+      $systems = $this->getDesignSystemsJson();
+      if (count($systems) === 0) {
+        return FALSE;
+      }
+      $element = isset($theme->element) ? (string) $theme->element : '';
+      foreach ($systems as $system) {
+        if (is_array($system) && isset($system['theme']) && $system['theme'] === $element) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
     public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
       $preloadTags = array();
       if (is_null($page)) {
@@ -3025,19 +3176,25 @@ class HAXCMSSite
       if ($pageLocation !== '') {
         $pageDataPreload = "\n" . '  <link rel="preload" href="./' . SanitizeContent::escapeHTMLAttribute($pageLocation) . '" as="fetch" crossorigin="anonymous" fetchpriority="high" />';
       }
+      // DDD sets body text in Roboto, which @haxtheweb/d-d-d ships under
+      // lib/fonts; preload its Latin face so text doesn't wait on the boot
+      // JavaScript to discover it. Fonts are always fetched in CORS mode, so
+      // crossorigin is required for the preload to be reused.
+      $fontPreload = '';
+      if ($this->usesDDDFonts()) {
+        $fontPreload = "\n" . '  <link rel="preload" href="' . $base . 'build/es6/node_modules/' . self::DDD_FONT_PRELOAD . '" as="font" type="font/woff2" crossorigin="anonymous" />';
+      }
       $safeSocialImage = SanitizeContent::escapeHTMLAttribute($socialImageUrl);
       $alternateLinks = $this->getPageAlternateLinkTags($page);
       $canonical .= $alternateLinks;
       $metadata = '
   <meta charset="utf-8">' . $preconnect . '
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" crossorigin href="https://fonts.gstatic.com">
   <link rel="preload" href="' . $base . 'build.js" as="script" />
   <link rel="preload" href="' . $base . 'build-haxcms.js" as="script" />
   <link rel="preload" href="' . $base . 'wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
 ' . $shellModulepreload . '
 ' . $themePreload . $contentPreload . $pageDataPreload . '
-  <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+  <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />' . $fontPreload . '
   <link rel="llms" href="llms.txt" title="LLM Content Map" />
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary" />
   <link rel="alternate" type="text/markdown" href="llms-full.txt" title="Full Site as Markdown" />
@@ -3142,6 +3299,13 @@ class HAXCMSSite
       else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->socialLink) && trim((string) $this->manifest->author->socialLink) != '') {
         $authorSocialLink = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->author->socialLink), '');
       }
+      $authorSocialLink2 = '';
+      if (isset($this->manifest->metadata->author->socialLink2) && trim((string) $this->manifest->metadata->author->socialLink2) != '') {
+        $authorSocialLink2 = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->metadata->author->socialLink2), '');
+      }
+      else if (isset($this->manifest->author) && is_object($this->manifest->author) && isset($this->manifest->author->socialLink2) && trim((string) $this->manifest->author->socialLink2) != '') {
+        $authorSocialLink2 = SanitizeContent::sanitizeURLValue(trim((string) $this->manifest->author->socialLink2), '');
+      }
       $authorImageForStructuredData = '';
       if (isset($this->manifest->metadata->author->image) && trim((string) $this->manifest->metadata->author->image) != '') {
         $authorImageForStructuredData = $toAbsoluteStructuredDataUrl(trim((string) $this->manifest->metadata->author->image));
@@ -3238,7 +3402,7 @@ class HAXCMSSite
       $jsonLdGraph = array();
       $authorNode = null;
       $publisherNode = null;
-      if ($authorName != '' || $authorSocialLink != '' || $authorImageForStructuredData != '') {
+      if ($authorName != '' || $authorSocialLink != '' || $authorSocialLink2 != '' || $authorImageForStructuredData != '') {
         $authorNode = array(
           '@type' => 'Person',
           '@id' => $authorStructuredDataId,
@@ -3246,8 +3410,10 @@ class HAXCMSSite
         if ($authorName != '') {
           $authorNode['name'] = $authorName;
         }
-        if ($authorSocialLink != '') {
-          $authorNode['sameAs'] = array($authorSocialLink);
+        // both social links the SEO form collects; http(s) only
+        $authorSameAs = HAXCMSSameAs::normalize(array($authorSocialLink, $authorSocialLink2));
+        if (count($authorSameAs) > 0) {
+          $authorNode['sameAs'] = $authorSameAs;
         }
         if ($authorImageForStructuredData != '') {
           $authorNode['image'] = array(
@@ -3270,7 +3436,14 @@ class HAXCMSSite
             'url' => $siteLogoForStructuredData,
           );
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        // the site's profiles elsewhere (metadata.site.sameAs)
+        $siteSameAs = HAXCMSSameAs::normalize(
+          isset($this->manifest->metadata->site->sameAs) ? $this->manifest->metadata->site->sameAs : null
+        );
+        if (count($siteSameAs) > 0) {
+          $publisherNode['sameAs'] = $siteSameAs;
+        }
+        if ($authorNode !== null) {
           $publisherNode['founder'] = array(
             '@id' => $authorNode['@id'],
           );
@@ -3299,12 +3472,12 @@ class HAXCMSSite
             'query-input' => 'required name=search_term_string',
           );
         }
-        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+        if ($publisherNode !== null) {
           $webSiteNode['publisher'] = array(
             '@id' => $publisherNode['@id'],
           );
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        if ($authorNode !== null) {
           $webSiteNode['author'] = array(
             '@id' => $authorNode['@id'],
           );
@@ -3354,12 +3527,12 @@ class HAXCMSSite
         if ($pageUpdatedISO != '') {
           $webPageNode['dateModified'] = $pageUpdatedISO;
         }
-        if ($authorNode !== null && isset($authorNode['@id'])) {
+        if ($authorNode !== null) {
           $webPageNode['author'] = array(
             '@id' => $authorNode['@id'],
           );
         }
-        if ($publisherNode !== null && isset($publisherNode['@id'])) {
+        if ($publisherNode !== null) {
           $webPageNode['publisher'] = array(
             '@id' => $publisherNode['@id'],
           );

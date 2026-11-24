@@ -1,93 +1,24 @@
 <?php
 include_once dirname(__FILE__) . '/../../siteRoutes/SiteRouteUtils.php';
 include_once dirname(__FILE__) . '/imports/importUtils.php';
+include_once dirname(__FILE__) . '/../../PptxToHtml.php';
 
 /**
- * Extract text content from a PPTX file and produce a structured HTML string.
- * Uses ZipArchive to read ppt/slides/slide*.xml files.
+ * PPTX to HTML for the import and pptx-to-html routes.
  *
  * function_exists-guarded so this file can be re-executed (require) to hand
  * back its route closure even after another file (convertPptxToHtml.php
  * include_once's it) has already loaded it in the same process.
  */
 if (!function_exists('haxcmsSystemExtractPptxToHtml')) {
+    /**
+     * One <h1> per slide then its content, pictures as data URIs that
+     * createNode / addPage turn into files (lib/PptxToHtml.php, the twin of
+     * haxcms-nodejs src/lib/pptxToHtml.js).
+     */
     function haxcmsSystemExtractPptxToHtml($tmpPath)
     {
-        if (!class_exists('ZipArchive')) {
-            throw new \RuntimeException('ZipArchive extension is not available');
-        }
-        $zip = new ZipArchive();
-        if ($zip->open($tmpPath) !== true) {
-            throw new \RuntimeException('Unable to open PPTX as ZIP archive');
-        }
-
-        $nsP  = 'http://schemas.openxmlformats.org/presentationml/2006/main';
-        $nsA  = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-        $html = '';
-
-        // Collect and sort slide files
-        $slideFiles = array();
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (preg_match('#^ppt/slides/slide(\d+)\.xml$#i', $name, $m)) {
-                $slideFiles[(int) $m[1]] = $name;
-            }
-        }
-        ksort($slideFiles);
-
-        foreach ($slideFiles as $slideNum => $slideName) {
-            $slideXml = $zip->getFromName($slideName);
-            if ($slideXml === false) {
-                continue;
-            }
-            $doc = new DOMDocument();
-            @$doc->loadXML($slideXml);
-            $spTree = $doc->getElementsByTagNameNS($nsP, 'sp');
-            foreach ($spTree as $sp) {
-                // Determine if this shape is a title placeholder
-                $isTitle = false;
-                $nvSpPr  = $sp->getElementsByTagNameNS($nsP, 'nvSpPr')->item(0);
-                if ($nvSpPr) {
-                    $nvPr = $nvSpPr->getElementsByTagNameNS($nsP, 'nvPr')->item(0);
-                    if ($nvPr) {
-                        $ph = $nvPr->getElementsByTagNameNS($nsP, 'ph')->item(0);
-                        if ($ph) {
-                            // p:ph/@type is schema-defined in the presentationml
-                            // namespace. Most generators serialize it unprefixed
-                            // (getAttribute('type') works), but some write p:type,
-                            // which needs getAttributeNS. Try the namespaced form
-                            // first, then fall back so both serializations detect
-                            // title/ctrTitle placeholders.
-                            $phType = $ph->getAttributeNS($nsP, 'type');
-                            if ($phType === '') {
-                                $phType = $ph->getAttribute('type');
-                            }
-                            if ($phType === 'title' || $phType === 'ctrTitle') {
-                                $isTitle = true;
-                            }
-                        }
-                    }
-                }
-                // Extract all text runs
-                $tEls    = $sp->getElementsByTagNameNS($nsA, 't');
-                $text    = '';
-                foreach ($tEls as $t) {
-                    $text .= $t->nodeValue;
-                }
-                $text = trim($text);
-                if ($text === '') {
-                    continue;
-                }
-                if ($isTitle) {
-                    $html .= '<h2>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</h2>' . "\n";
-                } else {
-                    $html .= '<p>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' . "\n";
-                }
-            }
-        }
-
-        $zip->close();
-        return trim($html);
+        return PptxToHtml::convertFile($tmpPath);
     }
 }
 
@@ -151,6 +82,10 @@ return function ($context) {
             'method'     => $method,
             'type'       => $type,
             'parentId'   => $parentId,
+            // the converter writes only its own escaped tags (like the PDF
+            // and ODT importers); its data URI images reach createNode/addPage,
+            // which materialize them and sanitize before storing
+            'skipSanitize' => true,
         ));
         SiteRouteUtils::sendFormattedResponse(
             array('status' => 200, 'data' => array('items' => $items, 'filename' => $filename)),

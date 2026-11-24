@@ -275,6 +275,31 @@ class OperationsCreateSiteTest extends TestCase
         $this->assertInstanceOf(stdClass::class, $persisted->metadata->node->fields);
     }
 
+    public function testSiteTitleSetsTitleWithMarkupRemoved(): void
+    {
+        $result = $this->runCreateSite(array(
+            'name' => 'night-draft',
+            'theme' => 'my-theme',
+            'title' => 'Night <b>Draft</b>',
+        ));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('Night Draft', $result['data']->title);
+        $this->assertSame('Night Draft', $this->persistedSite()->title);
+    }
+
+    public function testBlankOrNonTextSiteTitleKeepsName(): void
+    {
+        foreach (array('  <i></i> ', 'null', array('text' => 'x')) as $title) {
+            $result = $this->runCreateSite(array(
+                'name' => 'New Site',
+                'theme' => 'my-theme',
+                'title' => $title,
+            ));
+            $this->assertSame(200, $result['status']);
+            $this->assertSame($this->siteName, $result['data']->title);
+        }
+    }
+
     // =========================================================================
     // Build object passthrough + domain
     // =========================================================================
@@ -607,17 +632,23 @@ class OperationsCreateSiteTest extends TestCase
                 'siteFiles' => array(
                     // path traversal -> normalizeSiteFilePath refuses
                     '../evil.txt' => 'http://example.com/x',
-                    // valid theme path but empty URL -> skipped
-                    'theme/style.css' => '',
+                    // valid custom path but empty URL -> skipped
+                    'custom/style.css' => '',
                     // loopback target -> SSRF guard throws, skipped
-                    'theme/loop.css' => 'http://127.0.0.1/evil.css',
+                    'custom/loop.css' => 'http://127.0.0.1/evil.css',
+                    // theme/ is not a siteFiles target -> refused before fetch
+                    'theme/theme.css' => 'http://127.0.0.1/theme.css',
+                    // markup is never fetched into the site tree
+                    'custom/page.html' => 'http://127.0.0.1/page.html',
                 ),
             )
         );
         $this->assertSame(200, $result['status']);
         // nothing was fetched or written into the site tree
         $this->assertFalse(is_dir($this->siteDir() . '/theme'));
-        $this->assertFileDoesNotExist($this->siteDir() . '/theme/style.css');
+        $this->assertFileDoesNotExist($this->siteDir() . '/custom/style.css');
+        $this->assertFileDoesNotExist($this->siteDir() . '/custom/loop.css');
+        $this->assertFileDoesNotExist($this->siteDir() . '/custom/page.html');
     }
 }
 

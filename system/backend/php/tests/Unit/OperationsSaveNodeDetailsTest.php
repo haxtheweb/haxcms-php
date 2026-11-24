@@ -263,6 +263,18 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame(2, (int) $byId['item-b']->order);
     }
 
+    public function testIndentPlacesThePageAfterTheLastChildNotAfterItself(): void
+    {
+        // item-b's own order (5) must not count as one of item-a's children:
+        // it goes right after the last child (item-d, order 1) => 2
+        // (haxtheweb/issues#3360)
+        $this->haxcms->loadedSite->loadNode('item-b')->order = 5;
+        $result = $this->runOperation('item-b', array('operation' => 'indent'));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('item-a', $result['data']->parent);
+        $this->assertSame(2, (int) $result['data']->order);
+    }
+
     public function testOutdentMovesUnderGrandparentAndShiftsSiblings(): void
     {
         // item-c (parent item-a, order 0) outdents: new parent = item-a's
@@ -290,11 +302,13 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame(200, $result['status']);
         $this->assertSame('item-b', $result['data']->parent);
         $this->assertSame(1, (int) $result['data']->indent);
-        $this->assertSame(5, (int) $result['data']->order);
+        // item-b's first and only child: order 5 past the end is the last
+        // spot, and siblings are numbered 0..n-1
+        $this->assertSame(0, (int) $result['data']->order);
 
         $byId = $this->persistedById();
         $this->assertSame('item-b', $byId['item-c']->parent);
-        $this->assertSame(5, (int) $byId['item-c']->order);
+        $this->assertSame(0, (int) $byId['item-c']->order);
     }
 
     public function testSetParentWithoutOrderGoesToTheEndOfItsNewSiblings(): void
@@ -338,15 +352,16 @@ class OperationsSaveNodeDetailsTest extends TestCase
         $this->assertSame(1, (int) $byId['item-a']->order);
     }
 
-    public function testMoveSwapsWithTheVisibleNeighbourAcrossAGap(): void
+    public function testMoveSwapsWithTheVisibleNeighbourAndTheGapCloses(): void
     {
         $site = $this->haxcms->loadedSite;
         $site->loadNode('item-b')->order = 5;
         $result = $this->runOperation('item-b', array('operation' => 'moveUp'));
         $this->assertSame(200, $result['status']);
         $byId = $this->persistedById();
+        // orders 0 and 5 become positions 0 and 1, then b and a trade places
         $this->assertSame(0, (int) $byId['item-b']->order);
-        $this->assertSame(5, (int) $byId['item-a']->order);
+        $this->assertSame(1, (int) $byId['item-a']->order);
     }
 
     public function testIndentFollowsDepthForTheWholeBranch(): void

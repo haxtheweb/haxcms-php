@@ -100,7 +100,6 @@ its vendor directory. They are listed here for attribution completeness.
   guzzlehttp/guzzle 7.12.1
   guzzlehttp/promises 2.5.1
   guzzlehttp/psr7 2.12.5
-  icamys/php-sitemap-generator 1.1.0
   league/html-to-markdown 5.1.1
   maennchen/zipstream-php 3.2.2
   markbaker/complex 3.0.2
@@ -123,6 +122,19 @@ its vendor directory. They are listed here for attribution completeness.
   symfony/polyfill-mbstring v1.38.1
   symfony/polyfill-php80 v1.37.0
   symfony/yaml v7.4.14
+
+MIT licensed code ported into this repository (attribution)
+-----------------------------------------------------------
+
+system/backend/php/lib/ReadabilityScore.php and ReadabilityScoreData.php
+reproduce, in PHP, the readability algorithms and data of the following
+npm packages so that the PHP and Node.js backends report the same numbers.
+The copyright and MIT permission notice are kept in ReadabilityScore.php.
+
+  text-readability 1.1.1 — MIT — Copyright (c) 2019 Utkarsh Raj
+  syllable 5.0.1 — MIT — Copyright (c) 2014 Titus Wormer
+  pluralize 8.0.0 — MIT — Copyright (c) 2013 Blake Embrey
+  normalize-strings 1.1.1 — MIT — Copyright (c) Pablo Terradillos
 
 
 JavaScript dependencies (distributed in the built site)

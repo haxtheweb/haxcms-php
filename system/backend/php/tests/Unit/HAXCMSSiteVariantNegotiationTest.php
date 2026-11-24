@@ -338,6 +338,50 @@ class HAXCMSSiteVariantNegotiationTest extends TestCase
         $this->assertSame('# Home content', $body);
     }
 
+    private function unpublishHome(): void
+    {
+        foreach ($this->site->manifest->items as $item) {
+            if ($item->slug === 'home') {
+                $item->metadata = (object) array('published' => false);
+            }
+        }
+    }
+
+    public function testRespondReturns404ForExplicitFormatOfUnpublishedPage(): void
+    {
+        $this->unpublishHome();
+        $_SERVER['REQUEST_URI'] = '/home.md';
+        unset($_SERVER['SCRIPT_NAME']);
+        list($handled, $body) = $this->callRespond();
+        $this->assertTrue($handled);
+        $this->assertSame(404, http_response_code());
+        $this->assertSame('Not found', $body);
+    }
+
+    public function testRespondDoesNotNegotiateAVariantOfUnpublishedPage(): void
+    {
+        $this->unpublishHome();
+        $_SERVER['REQUEST_URI'] = '/home';
+        unset($_SERVER['SCRIPT_NAME']);
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+        list($handled, $body) = $this->callRespond();
+        $this->assertFalse($handled);
+        $this->assertSame('', $body);
+    }
+
+    public function testIsPagePublishedFollowsTheSiteApiRule(): void
+    {
+        $home = null;
+        foreach ($this->site->manifest->items as $item) {
+            if ($item->slug === 'home') {
+                $home = $item;
+            }
+        }
+        $this->assertTrue($this->site->isPagePublished($home));
+        $this->unpublishHome();
+        $this->assertFalse($this->site->isPagePublished($home));
+    }
+
     public function testRespondReturns404ForExplicitFormatWithNoSidecarFile(): void
     {
         // 'home' exists, but no index.xml sidecar was created in the fixture.

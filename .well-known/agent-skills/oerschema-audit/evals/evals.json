@@ -1,0 +1,26 @@
+{
+  "skill_name": "oerschema-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Audit pages/lesson-3.html on my HAX site for OER schema. It has a 'Lesson 3: Photosynthesis' heading, a sentence saying what students will be able to do, a div.quiz with one question and a rubric table with one criterion and two levels. There is no itemscope anywhere.",
+      "expected_output": "A read-only report in the 📊/🔍/🛠 structure rated Uncovered. Presence findings name the most specific class for each structure: Lesson for the page, LearningObjective related by hasLearningObjective (with skill), Quiz (subClassOf Assessment) for the quiz, and the Rubric family for the table (hasCriterion to RubricCriterion, rubricScale to RubricScale, hasLevel to RubricLevel). Every recommendation gives the exact class, properties and surface: microdata in pages/lesson-3.html, not VitePress directives or JSON-LD. Notes that if a HAX quiz element renders the quiz without microdata, that part goes to oerschema-integration-finder. Ends with an Implementation handoff and edits nothing.",
+      "baseline_behavior": "Without the skill, agents typically recommend schema.org types (Course, Quiz, LearningResource) in a JSON-LD block, invent or misremember OER Schema class and property names, skip the rubric structure, and often insert the markup into the page themselves.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Is this valid OER schema? <div itemscope itemtype=\"http://oerschema.org/Task\"><h3>Week 2 quiz</h3><meta itemprop=\"hasLearningObjective\" content=\"lo-2\"><meta itemprop=\"typeOfAction\" content=\"reading\"><meta itemprop=\"skill\" content=\"identify reactants\"></div>",
+      "expected_output": "Checks each point against references/vocabulary.md, walking the subClassOf chain before flagging. Classification: a quiz is a Quiz (subClassOf Assessment), and Task is a sibling under InstructionalPattern, so the type should be Quiz. hasLearningObjective is not flagged, because its domain InstructionalPattern is inherited by Task and by Quiz. typeOfAction=\"reading\" is flagged: the range is ActionType, whose values are classes such as http://oerschema.org/Reading, not a lowercase string. skill is flagged as a domain violation: its domain is LearningObjective, so it belongs on a nested LearningObjective. Rated Partial, with the corrected microdata named for the same surface.",
+      "baseline_behavior": "Without the skill, agents typically call the markup broadly fine or flag the wrong thing: they accept Task for a quiz, accept the lowercase action string, miss the skill domain error, or wrongly flag hasLearningObjective because they do not apply inheritance.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My course docs are VitePress markdown. One lesson file has a rubric written with ::: rubric and four ::: rubric-level blocks but nothing else, and the page still doesn't show up as having a rubric in our OER export. Can you fix the schema? Also our multiple-choice web component doesn't output any schema at all.",
+      "expected_output": "Reports and does not edit. Rubric family integrity finding: levels with no ::: rubric-scale around them and no ::: rubric-criterion (and no criterionWeight) is a structural gap; the recommendation uses the matching ::: directives because the surface is VitePress, never microdata inside the markdown file. The multiple-choice element emitting no microdata is identified as a component-internal gap and handed to oerschema-integration-finder instead of being reported as a content finding. Gives a rating and an Implementation handoff naming who applies each fix.",
+      "baseline_behavior": "Without the skill, agents typically rewrite the markdown file themselves, paste itemscope/itemtype HTML into the VitePress page, and either try to patch the web component in the same pass or report the component gap as a page problem.",
+      "files": []
+    }
+  ]
+}

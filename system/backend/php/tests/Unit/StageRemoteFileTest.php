@@ -98,6 +98,19 @@ class StageRemoteFileTest extends TestCase
         $this->assertSame(0, $mock->count(), 'the URL was fetched once');
     }
 
+    public function testStagedFileHasAnUnguessableNameAndIsOwnerOnly(): void
+    {
+        $client = $this->mockClient(array(new Response(200, array(), 'PNGBYTES')), $mock);
+        $staged = haxcms_import_stage_remote_file($client, self::REMOTE . '/img/chart.png', 'files/chart.png');
+        $this->assertIsString($staged);
+        // 128 bits from a CSPRNG, not a time-based uniqid()
+        $this->assertMatchesRegularExpression('/^haxbi_[0-9a-f]{32}\.png$/', basename($staged));
+        if (DIRECTORY_SEPARATOR === '/') {
+            clearstatcache(true, $staged);
+            $this->assertSame(0600, fileperms($staged) & 0777);
+        }
+    }
+
     public function testEachDownloadGetsItsOwnStagedFile(): void
     {
         $client = $this->mockClient(array(

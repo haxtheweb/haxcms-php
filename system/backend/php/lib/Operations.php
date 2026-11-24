@@ -37,14 +37,13 @@ class Operations {
   {
     $this->safeBulkImportFilePattern = HAXCMSMediaSettingsService::safeUploadExtensionPattern();
   }
-  // Extensions permitted for build.siteFiles downloads (theme/ and custom/
-  // assets imported from another HAXcms instance). Allow-listing rather than
-  // deny-listing executable extensions blocks php/phtml/phar/cgi/pl/py/rb/sh/
-  // asp/aspx/jsp/exe/etc. from being written into the web-served site tree
-  // (CWE-434). Mirrors the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
-  // .svg is not accepted: it is browser-renderable markup (script-capable)
-  // fetched from a remote URL into a web-served directory. Raster formats
-  // cover theme imagery.
+  // Security (SEC-UPLOAD): build.siteFiles only writes a site's custom/ build
+  // assets (imported from another HAXcms instance), and only extensions on
+  // this allowlist, so nothing executable (php/phtml/phar/cgi/...) and no
+  // browser-renderable markup (html/htm/xhtml/xml/svg) is ever fetched from a
+  // remote URL into the web-served site tree. theme/ is not a siteFiles
+  // target: it left the site boilerplate (haxtheweb/issues#3337). Same list
+  // and path rule as the Node.js SAFE_SITE_FILE_EXTENSION_REGEX.
   /**
    * Security: the identity a site_token is bound to. Prefers the
    * authenticated principal (Bearer / refresh cookie) and only falls back to
@@ -61,7 +60,7 @@ class Operations {
     }
     return $GLOBALS['HAXCMS']->getActiveUserName();
   }
-  private $safeSiteFileExtensionPattern = '/\.(css|js|html?|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf|xml)$/i';
+  private $safeSiteFileExtensionPattern = '/\.(css|js|json|md|txt|png|jpe?g|gif|webp|webm|mp4|mp3|mov|vtt|woff2?|ttf|eot|csv|pdf)$/i';
   private $imageScalePresets = array(
     'xs' => array('width' => 150, 'height' => 150),
     'sm' => array('width' => 480, 'height' => 480),
@@ -411,7 +410,7 @@ class Operations {
     return $normalized;
   }
   /**
-   * Validate and normalize a site file path for theme/custom imports.
+   * Validate and normalize a build.siteFiles path (custom/ only).
    */
   private function normalizeSiteFilePath($relativePath) {
     if (!is_string($relativePath)) {
@@ -423,7 +422,7 @@ class Operations {
       strpos($normalized, "\0") !== false ||
       strpos($normalized, '..') !== false ||
       substr($normalized, 0, 1) === '/' ||
-      !(strpos($normalized, 'theme/') === 0 || strpos($normalized, 'custom/') === 0)
+      strpos($normalized, 'custom/') !== 0
     ) {
       return false;
     }
@@ -445,12 +444,11 @@ class Operations {
    * extension (CWE-434). Mirrors the Node.js siteFileContentTypeAcceptable.
    * Absent finfo returns true (the SSRF IP validation in safeFileGetContents
    * already confirmed a public target); text/plain is accepted for text-type
-   * extensions since misconfigured servers commonly serve css/js/html/json
+   * extensions since misconfigured servers commonly serve css/js/json
    * as text/plain.
    */
   private function siteFileContentMimeAcceptable($content, $normalizedPath) {
     $ext = strtolower(pathinfo($normalizedPath, PATHINFO_EXTENSION));
-    if ($ext === 'htm') { $ext = 'html'; }
     $allowedMimes = HAXCMSFile::getAllowedMimeByExtension($ext);
     if (!is_array($allowedMimes) || count($allowedMimes) === 0) {
       return true;
@@ -485,7 +483,7 @@ class Operations {
         }
       }
     }
-    $textExts = array('css', 'js', 'html', 'json', 'md', 'txt', 'vtt', 'csv', 'xml');
+    $textExts = array('css', 'js', 'json', 'md', 'txt', 'vtt', 'csv');
     if ($detected === 'text/plain' && in_array($ext, $textExts, true)) {
       return true;
     }
@@ -1549,7 +1547,8 @@ class Operations {
       $sourceWidth,
       $sourceHeight
     );
-    $temporaryPath = $sourcePath . '.scale-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.scale-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($targetImage, $temporaryPath, $resolvedQuality);
@@ -1640,7 +1639,8 @@ class Operations {
       @imagealphablending($sourceImage, false);
       @imagesavealpha($sourceImage, true);
     }
-    $temporaryPath = $sourcePath . '.compress-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.compress-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
@@ -1742,7 +1742,8 @@ class Operations {
       @imagealphablending($sourceImage, false);
       @imagesavealpha($sourceImage, true);
     }
-    $temporaryPath = $sourcePath . '.transform-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.transform-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension == 'jpg') {
       $saved = @imagejpeg($sourceImage, $temporaryPath, $resolvedQuality);
@@ -1856,7 +1857,8 @@ class Operations {
       @imagealphablending($uploadImage, false);
       @imagesavealpha($uploadImage, true);
     }
-    $temporaryPath = $sourcePath . '.replace-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.replace-' . bin2hex(random_bytes(8));
     $resolvedQuality = $this->resolveJpegQualityValue($jpgQuality);
     if ($extension === 'jpg') {
       $saved = @imagejpeg($uploadImage, $temporaryPath, $resolvedQuality);
@@ -1941,7 +1943,8 @@ class Operations {
       @imagealphablending($rotatedImage, false);
       @imagesavealpha($rotatedImage, true);
     }
-    $temporaryPath = $sourcePath . '.rotate-' . uniqid('', true);
+    // Security (SEC-UPLOAD): temp file names come from a CSPRNG, never uniqid()
+    $temporaryPath = $sourcePath . '.rotate-' . bin2hex(random_bytes(8));
     $saved = $this->saveImageResourceByExtension(
       $rotatedImage,
       $temporaryPath,
