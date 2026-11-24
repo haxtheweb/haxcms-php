@@ -975,7 +975,7 @@ class SiteRoutesMutationsTest extends TestCase
             'PATCH',
             array('fileUuid' => '')
         ));
-        $this->assertSame('File uuid is required', $res['data']['data']['message']);
+        $this->assertSame('File uuid is required and must be a valid UUID', $res['data']['data']['message']);
     }
 
     public function testFilesMutationPatchRejectsNonUuidToken(): void

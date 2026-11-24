@@ -199,10 +199,7 @@ return function ($context) {
             }
             $recordId = isset($record['id']) ? (string) $record['id'] : '';
             if ($recordId !== '' && isset($navMap[$recordId])) {
-                $record['links']['previous'] = $navMap[$recordId]['previous'];
-                $record['links']['next'] = $navMap[$recordId]['next'];
-                $record['links']['parent'] = $navMap[$recordId]['parent'];
-                $record['links']['children'] = $navMap[$recordId]['children'];
+                SiteRouteUtils::applyItemNavigationLinks($record, $navMap[$recordId]);
             }
             $result = array('status' => 200, 'data' => $record);
         }

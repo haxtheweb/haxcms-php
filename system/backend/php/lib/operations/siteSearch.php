@@ -26,7 +26,12 @@ trait OperationsRouteSiteSearch {
         )
       );
     }
-    $searchTerm = isset($this->params['search']) ? trim((string) $this->params['search']) : '';
+    // search is a string (haxtheweb/issues#3394): any other type counts as
+    // no search, the same as haxcms-nodejs, rather than being cast ((string)
+    // of an object throws). Lengths are counted in characters, not bytes.
+    $searchTerm = (isset($this->params['search']) && is_string($this->params['search']))
+      ? trim($this->params['search'])
+      : '';
     if ($searchTerm == '') {
       return array(
         '__failed' => array(
@@ -35,7 +40,7 @@ trait OperationsRouteSiteSearch {
         )
       );
     }
-    if (strlen($searchTerm) > 256) {
+    if (mb_strlen($searchTerm, 'UTF-8') > 256) {
       return array(
         '__failed' => array(
           'status' => 400,
@@ -46,7 +51,7 @@ trait OperationsRouteSiteSearch {
     $operation = $this->normalizeSiteSearchOperation(
       isset($this->params['operation']) ? $this->params['operation'] : null
     );
-    if ($operation == 'replace' && strlen($searchTerm) <= 1) {
+    if ($operation == 'replace' && mb_strlen($searchTerm, 'UTF-8') <= 1) {
       return array(
         '__failed' => array(
           'status' => 400,
@@ -122,10 +127,10 @@ trait OperationsRouteSiteSearch {
     $items = $site->manifest->orderTree($site->manifest->items);
     if ($operation == 'replace') {
       $replacement = '';
-      if (isset($this->params['replace'])) {
-        $replacement = trim((string) $this->params['replace']);
+      if (isset($this->params['replace']) && is_string($this->params['replace'])) {
+        $replacement = trim($this->params['replace']);
       }
-      if (strlen($replacement) == 1) {
+      if (mb_strlen($replacement, 'UTF-8') == 1) {
         return array(
           '__failed' => array(
             'status' => 400,

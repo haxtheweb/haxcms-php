@@ -81,8 +81,8 @@ return function ($context) {
         }
         $rawByFormat = array();
         if ($mode == 'concat') {
-            $rawByFormat['md'] = isset($record['body']) ? (string) $record['body'] : '';
-            $rawByFormat['html'] = isset($record['body']) ? (string) $record['body'] : '';
+            $rawByFormat['md'] = (is_array($record) && isset($record['body'])) ? (string) $record['body'] : '';
+            $rawByFormat['html'] = (is_array($record) && isset($record['body'])) ? (string) $record['body'] : '';
         }
         SiteRouteUtils::sendFormattedResponse(
             $record,

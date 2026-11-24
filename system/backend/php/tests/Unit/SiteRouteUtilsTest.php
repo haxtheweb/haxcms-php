@@ -64,8 +64,8 @@ class SiteRouteUtilsTest extends TestCase
             'zero is null' => [0, null],
             'negative is null' => [-1, null],
             'non-numeric is null' => ['abc', null],
-            'unix epoch 2021-01-01' => [1609459200, '2021-01-01T00:00:00+00:00'],
-            'numeric string works' => ['1609459200', '2021-01-01T00:00:00+00:00'],
+            'unix epoch 2021-01-01' => [1609459200, '2021-01-01T00:00:00.000Z'],
+            'numeric string works' => ['1609459200', '2021-01-01T00:00:00.000Z'],
         ];
     }
 

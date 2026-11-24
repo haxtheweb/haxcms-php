@@ -188,7 +188,7 @@ return function ($context) {
         if ($fileUuid === '') {
             SiteRouteUtils::sendFormattedResponse(
                 array(
-                    'message' => 'File uuid is required',
+                    'message' => 'File uuid is required and must be a valid UUID',
                 ),
                 array(
                     'statusCode' => 400,

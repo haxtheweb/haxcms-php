@@ -196,8 +196,8 @@ class SiteRouteUtilsItemsSearchHelpersTest extends TestCase
             'metadata' => ['created' => 1609459200, 'updated' => 1609459200],
         ];
         $jsonld = SiteRouteUtils::buildItemJsonLd($record, '/', 'en');
-        $this->assertSame('2021-01-01T00:00:00+00:00', $jsonld['datePublished']);
-        $this->assertSame('2021-01-01T00:00:00+00:00', $jsonld['dateModified']);
+        $this->assertSame('2021-01-01T00:00:00.000Z', $jsonld['datePublished']);
+        $this->assertSame('2021-01-01T00:00:00.000Z', $jsonld['dateModified']);
     }
 
     public function testBuildItemJsonLdNoMetadataDatesAreNull(): void
