@@ -1457,9 +1457,12 @@ class HAXCMSSite
     }
     /**
      * Generate llms.txt content based on site structure and generated markdown pages.
+     * $options['staticHost']: the copy a static host serves, which lists only
+     * files that exist there (no x/api routes). Same as haxcms-nodejs getLLMSTxt.
      */
-    public function getLLMSTxt($domain = '')
+    public function getLLMSTxt($domain = '', $options = array())
     {
+      $staticHost = is_array($options) && isset($options['staticHost']) && $options['staticHost'] === true;
       $title = '';
       if (isset($this->manifest->title)) {
         $title = $this->getLLMSSafeText($this->manifest->title);
@@ -1493,7 +1496,9 @@ class HAXCMSSite
       $lines[] = '- [site.json](' . $this->getLLMSResourceURL($domain, 'site.json') . '): Canonical site manifest and navigation tree in JSON Outline Schema format.';
       $lines[] = '- [llms.txt](' . $this->getLLMSResourceURL($domain, 'llms.txt') . '): LLM-oriented guide to this site and its machine-readable resources.';
       $lines[] = '- [llms-full.txt](' . $this->getLLMSResourceURL($domain, 'llms-full.txt') . '): The whole site as one markdown document, in outline order.';
-      $lines[] = '- [Whole site as HTML](' . $this->getLLMSResourceURL($domain, 'x/api/v1/site/export/html') . '): Every page in one HTML document.';
+      if (!$staticHost) {
+        $lines[] = '- [Whole site as HTML](' . $this->getLLMSResourceURL($domain, 'x/api/v1/site/export/html') . '): Every page in one HTML document.';
+      }
       // haxtheweb/issues#3116: point agents at AGENTS.md (older sites may not have one)
       if (isset($this->directory) && isset($this->manifest->metadata->site->name) && file_exists($this->directory . '/' . $this->manifest->metadata->site->name . '/AGENTS.md')) {
         $lines[] = '- [AGENTS.md](' . $this->getLLMSResourceURL($domain, 'AGENTS.md') . '): Instructions for AI agents working on this site\'s files.';

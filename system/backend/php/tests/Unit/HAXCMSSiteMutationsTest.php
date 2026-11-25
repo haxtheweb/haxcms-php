@@ -722,6 +722,23 @@ class HAXCMSSiteMutationsTest extends TestCase
         );
     }
 
+    public function testGetLLMSTxtStaticHostCopyListsNoApiRoutes(): void
+    {
+        // the live copy links the export route; the static-host copy (what
+        // haxcms-nodejs renderStaticPages publishes) lists only files
+        $live = $this->site->getLLMSTxt('https://unit.example');
+        $this->assertStringContainsString('https://unit.example/x/api/v1/site/export/html', $live);
+        $static = $this->site->getLLMSTxt('https://unit.example', array('staticHost' => true));
+        $this->assertStringNotContainsString('x/api', $static);
+        $this->assertStringContainsString('(https://unit.example/llms-full.txt)', $static);
+        $this->assertSame(
+            str_replace("- [Whole site as HTML](https://unit.example/x/api/v1/site/export/html): Every page in one HTML document.\n", '', $live),
+            $static
+        );
+        // only a real true turns it on
+        $this->assertSame($live, $this->site->getLLMSTxt('https://unit.example', array('staticHost' => 'yes')));
+    }
+
     public function testGetLLMSTxtIncludesDescriptionAndPagesSections(): void
     {
         $txt = $this->site->getLLMSTxt('');
