@@ -59,9 +59,15 @@ jobs:
       # the links (build, wc-registry.json) that only work on a HAX server.
       # Any other link left pointing outside the repo (dist, node_modules)
       # would stop the archive step, so those go too.
+      # The fallback keeps the site publishing, but say so on the run: a site
+      # that silently ships its JavaScript shell looks empty to search engines
+      # and AI agents.
       - name: Prepare HAX site
         if: steps.static.outcome != 'success'
         run: |
+          echo "::warning title=Static build skipped::hax site site:build-static did not run (see the step above), so this deploy publishes the site without its pre-rendered pages. Update @haxtheweb/create or check that step's log."
+          echo "### Static build skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`hax site site:build-static\` did not run, so this deploy published the site without its pre-rendered pages. See the *Build the static site* step's log." >> "$GITHUB_STEP_SUMMARY"
           npm run ghpages:build --if-present
           find . -xtype l -not -path './.git/*' -print -delete
 
