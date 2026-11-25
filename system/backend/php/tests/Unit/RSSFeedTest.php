@@ -108,6 +108,11 @@ class RSSFeedTest extends TestCase
             $this->siteRoot . '/pages/item-b/index.html',
             '<p>Content for item B.</p>'
         );
+        mkdir($this->siteRoot . '/pages/item-draft', 0777, true);
+        file_put_contents(
+            $this->siteRoot . '/pages/item-draft/index.html',
+            '<p>secret draft words</p>'
+        );
 
         $manifest = (object)array(
             'id' => 'site-rss-uuid',
@@ -145,6 +150,21 @@ class RSSFeedTest extends TestCase
                         'created' => 1000000,
                         'updated' => 1100000,
                         'tags' => array('tag1', 'tag2 & special'),
+                    ),
+                ),
+                (object)array(
+                    'id' => 'item-draft',
+                    'indent' => 0,
+                    'location' => 'pages/item-draft/index.html',
+                    'slug' => 'item-draft',
+                    'order' => 2,
+                    'parent' => null,
+                    'title' => 'Draft Item',
+                    'description' => 'Unpublished draft',
+                    'metadata' => (object)array(
+                        'created' => 1500000,
+                        'updated' => 1500000,
+                        'published' => false,
                     ),
                 ),
                 (object)array(
@@ -428,6 +448,26 @@ class RSSFeedTest extends TestCase
 
         @unlink($this->siteRoot . '/pages/escape-link');
         $this->rrmdir($outsideDir);
+    }
+
+    // =========================================================================
+    // unpublished pages
+    // =========================================================================
+
+    public function testRssFeedGivesNothingAboutAnUnpublishedPage(): void
+    {
+        $xml = $this->feed->getRSSFeed($this->site, 'https://example.com');
+        $this->assertStringContainsString('Item A', $xml);
+        $this->assertStringNotContainsString('Draft Item', $xml);
+        $this->assertStringNotContainsString('secret draft words', $xml);
+    }
+
+    public function testAtomFeedGivesNothingAboutAnUnpublishedPage(): void
+    {
+        $xml = $this->feed->getAtomFeed($this->site, 'https://example.com');
+        $this->assertStringContainsString('Item A', $xml);
+        $this->assertStringNotContainsString('Draft Item', $xml);
+        $this->assertStringNotContainsString('secret draft words', $xml);
     }
 }
 

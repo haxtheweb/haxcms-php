@@ -1,6 +1,7 @@
 <?php
 include_once 'SanitizeContent.php';
 include_once dirname(__FILE__) . '/CanonicalFormat.php';
+include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
 // simple RSS / Atom feed generator from a JSON outline schema object
 class FeedMe
 {
@@ -113,6 +114,11 @@ class FeedMe
             $domain .= '/';
         }
         foreach ($items as $key => $item) {
+            // Security: feeds are served without a login, so an unpublished
+            // page gives nothing about itself here (its title or text)
+            if (!SiteRouteUtils::isItemPublished($item)) {
+                continue;
+            }
             // beyond edge but don't want this to error on write
             if (!isset($item->metadata)) {
               $item->metadata = new stdClass();
@@ -218,6 +224,11 @@ class FeedMe
             $domain .= '/';
         }
         foreach ($items as $key => $item) {
+            // Security: feeds are served without a login, so an unpublished
+            // page gives nothing about itself here (its title or text)
+            if (!SiteRouteUtils::isItemPublished($item)) {
+                continue;
+            }
             $tags = '';
             // beyond edge but don't want this to erorr on write
             if (!isset($item->metadata)) {

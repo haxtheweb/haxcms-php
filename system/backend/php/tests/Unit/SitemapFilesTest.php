@@ -71,6 +71,12 @@ class SitemapFilesTest extends TestCase
                     'metadata' => (object) array('created' => 2000, 'updated' => 172800),
                 ),
                 (object) array(
+                    'id' => 'page-draft', 'title' => 'Draft', 'slug' => 'home/draft',
+                    'location' => 'pages/page-draft/index.html', 'order' => 1,
+                    'parent' => 'page-1', 'indent' => 1, 'description' => 'Draft',
+                    'metadata' => (object) array('created' => 2500, 'updated' => 200000, 'published' => false),
+                ),
+                (object) array(
                     'id' => 'page-3', 'title' => 'Deep', 'slug' => 'home/fish/deep',
                     'location' => 'pages/page-3/index.html', 'order' => 0,
                     'parent' => 'page-2', 'indent' => 2, 'description' => 'Deep',
@@ -123,7 +129,9 @@ class SitemapFilesTest extends TestCase
         $xml = simplexml_load_string(file_get_contents($this->sitePath('sitemap.xml')));
         $this->assertNotFalse($xml, 'sitemap.xml is well-formed');
         $this->assertSame('urlset', $xml->getName());
+        // the unpublished page is not listed
         $this->assertCount(3, $xml->url);
+        $this->assertStringNotContainsString('draft', file_get_contents($this->sitePath('sitemap.xml')));
         $this->assertSame('https://example.com/course/home', (string) $xml->url[0]->loc);
         // a character XML reserves is escaped in the file and reads back whole
         $this->assertSame('https://example.com/course/home/fish&chips', (string) $xml->url[1]->loc);
