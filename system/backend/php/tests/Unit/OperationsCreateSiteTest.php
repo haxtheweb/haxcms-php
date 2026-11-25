@@ -696,6 +696,77 @@ class OperationsCreateSiteTest extends TestCase
             putenv($before === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $before);
         }
     }
+
+    // =========================================================================
+    // a theme in the site's custom build (site zip handoff)
+    // =========================================================================
+
+    public function testCustomThemeInWrittenCustomBuildIsSelected(): void
+    {
+        $before = getenv('HAXCMS_SITE_ZIP_IMPORT');
+        try {
+            putenv('HAXCMS_SITE_ZIP_IMPORT=true');
+            $staged = haxcms_import_stage_bytes('export class GeoTheme {}', 'custom.es6.js');
+            $this->assertIsString($staged);
+            $result = $this->runCreateSite(
+                array('name' => 'New Site', 'theme' => 'custom-geocities-theme'),
+                array('structure' => 'course', 'type' => 'test', 'siteFiles' => array('custom/build/custom.es6.js' => $staged))
+            );
+            $this->assertSame(200, $result['status']);
+            $theme = $this->persistedSite()->metadata->theme;
+            // what `hax site --theme custom-geocities-theme` writes
+            $this->assertSame('custom-geocities-theme', $theme->element);
+            $this->assertSame('./custom/build/custom.es6.js', $theme->path);
+            $this->assertSame('CustomGeocitiesTheme', $theme->name);
+            $this->assertIsString($theme->variables->hexCode);
+        } finally {
+            putenv($before === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $before);
+        }
+    }
+
+    public function testCustomThemeWhoseBuildIsNotWrittenFallsBackToDefaultTheme(): void
+    {
+        $this->haxcms->themes['clean-two'] = array(
+            'element' => 'clean-two',
+            'name' => 'Clean Two',
+            'path' => '@haxtheweb/clean-two/clean-two.js',
+            'variables' => array('hexCode' => '#112233'),
+        );
+        $before = getenv('HAXCMS_SITE_ZIP_IMPORT');
+        try {
+            // site zip import off: the staged build is never written
+            putenv('HAXCMS_SITE_ZIP_IMPORT');
+            $staged = haxcms_import_stage_bytes('export class GeoTheme {}', 'custom.es6.js');
+            $this->assertIsString($staged);
+            $result = $this->runCreateSite(
+                array('name' => 'New Site', 'theme' => 'custom-geocities-theme'),
+                array('structure' => 'course', 'type' => 'test', 'siteFiles' => array('custom/build/custom.es6.js' => $staged))
+            );
+            $this->assertSame(200, $result['status']);
+            $theme = $this->persistedSite()->metadata->theme;
+            $this->assertSame('clean-two', $theme->element);
+            $this->assertSame('#112233', $theme->variables->hexCode);
+        } finally {
+            putenv($before === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $before);
+        }
+    }
+
+    public function testUnknownThemeWithoutCustomBuildOrValidElementNameFailsWith400(): void
+    {
+        $cases = array(
+            array('notadash', array('custom/build/custom.es6.js' => 'https://example.com/c.js')),
+            array('"><script>', array('custom/build/custom.es6.js' => 'https://example.com/c.js')),
+            array('geo-theme', array('custom/build/other.js' => 'https://example.com/c.js')),
+        );
+        foreach ($cases as $case) {
+            $result = $this->runCreateSite(
+                array('name' => 'New Site', 'theme' => $case[0]),
+                array('structure' => 'course', 'type' => 'test', 'siteFiles' => $case[1])
+            );
+            $this->assertSame(400, $result['__failed']['status'], $case[0]);
+            $this->assertSame('Invalid theme supplied for site creation', $result['__failed']['message']);
+        }
+    }
 }
 
 /**
