@@ -9,6 +9,8 @@ if (file_exists($__vendorAutoload)) {
 include_once dirname(__FILE__) . '/../../../SsrfGuard.php';
 // files are staged locally so createSite can ingest them as file entities
 include_once dirname(__FILE__) . '/../../../stageRemoteFile.php';
+// an uploaded site zip is read here (haxtheweb/issues#3405)
+include_once dirname(__FILE__) . '/../../../SiteZip.php';
 
 if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
     // $client is an optional Guzzle client (tests inject a handler-backed one)
@@ -17,6 +19,13 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
         $body        = $context->body;
         if (!is_array($body)) { $body = array(); }
+
+        // an uploaded site zip (what Download site gives) instead of an address
+        $upload = haxcmsImportUploadedFile();
+        if ($upload !== null) {
+            haxcmsImportConvertHaxcmsZipToSite($context, $upload);
+            return;
+        }
 
         if (!isset($body['repoUrl']) || $body['repoUrl'] === '') {
             SiteRouteUtils::sendFormattedResponse(
@@ -139,6 +148,65 @@ if (!function_exists('haxcmsImportConvertHaxcmsToSite')) {
                 'filename'  => $filename,
                 'files'     => $downloads,
                 'siteFiles' => $siteFiles,
+            )),
+            array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+            $context->routeSuffix, $apiBasePath
+        );
+    }
+}
+
+if (!function_exists('haxcmsImportUploadedFile')) {
+    // the first uploaded file of the request (any field name, like
+    // haxcms-nodejs's req.files[0]), or null
+    function haxcmsImportUploadedFile()
+    {
+        if (!isset($_FILES) || !is_array($_FILES)) {
+            return null;
+        }
+        foreach ($_FILES as $file) {
+            if (is_array($file) && isset($file['tmp_name']) && is_string($file['tmp_name'])
+                && $file['tmp_name'] !== '' && (!isset($file['error']) || $file['error'] === UPLOAD_ERR_OK)) {
+                return $file;
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('haxcmsImportConvertHaxcmsZipToSite')) {
+    /**
+     * The same import from an uploaded HAXcms site zip. Returns the URL
+     * import's shape plus `site` (title, description, theme); the custom
+     * build is not carried (createSite only takes siteFiles from an address).
+     * Parity: haxcms-nodejs convertHaxcmsZipToSite.
+     */
+    function haxcmsImportConvertHaxcmsZipToSite($context, $file)
+    {
+        $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
+        try {
+            $read = HAXCMSSiteZip::read($file['tmp_name']);
+        } catch (HAXCMSSiteZipException $e) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 400, 'data' => array('error' => $e->getMessage(), 'reason' => $e->reason, 'items' => array(), 'filename' => null)),
+                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        } catch (\Throwable $e) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 400, 'data' => array('error' => 'Uploaded file is not a valid .zip file.', 'reason' => 'NOT_A_ZIP', 'items' => array(), 'filename' => null)),
+                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
+        SiteRouteUtils::sendFormattedResponse(
+            array('status' => 200, 'data' => array(
+                'items'     => $read['items'],
+                'filename'  => $read['filename'],
+                'files'     => (object) $read['files'],
+                'siteFiles' => new \stdClass(),
+                'site'      => $read['site'],
             )),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
             $context->routeSuffix, $apiBasePath
