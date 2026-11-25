@@ -6,8 +6,9 @@ use PHPUnit\Framework\TestCase;
  * convertHaxcmsToSite from an uploaded HAXcms site zip (haxtheweb/issues#3405).
  * PHP twin of haxcms-nodejs test/unit/convert-haxcms-zip-to-site.test.cjs:
  * the zip path gives the URL import's result (items with contents, files
- * staged under the bulk-import root) and never reads outside the folder that
- * holds site.json.
+ * staged under the bulk-import root), refuses anything that is not a HAX
+ * site outline, never reads outside the folder that holds site.json, and
+ * answers only while site zip import is on.
  */
 require_once __DIR__ . '/../../lib/systemRoutes/v1/imports/convertHaxcmsToSite.php';
 
@@ -15,6 +16,7 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
 {
     private $savedHaxcms;
     private $savedFiles;
+    private $savedEnv;
     private $tmpBase;
 
     private const SITE_JSON = array(
@@ -27,17 +29,18 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
         'items' => array(
             array(
                 'id' => 'item-1',
+                'title' => 'Home',
                 'location' => 'pages/home/index.html',
+                'parent' => null,
+                'indent' => 0,
+                'order' => 0,
                 'metadata' => array(
                     'files' => array(
                         array('url' => 'files/guestbook.gif'),
                         array('url' => 'files/missing.png'),
-                        array('url' => '../../etc/passwd'),
-                        array('url' => 'https://example.com/a.png'),
                     ),
                 ),
             ),
-            array('id' => 'item-2', 'location' => '../outside.html'),
         ),
     );
 
@@ -45,6 +48,10 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
     {
         $this->savedHaxcms = isset($GLOBALS['HAXCMS']) ? $GLOBALS['HAXCMS'] : null;
         $this->savedFiles = $_FILES;
+        $this->savedEnv = getenv('HAXCMS_SITE_ZIP_IMPORT');
+        // off unless turned on: these tests turn it on and check the off
+        // answer on its own
+        putenv('HAXCMS_SITE_ZIP_IMPORT=true');
         $this->tmpBase = sys_get_temp_dir() . '/haxcms_zip_test_' . uniqid();
         mkdir($this->tmpBase, 0755, true);
         $mock = new stdClass();
@@ -55,6 +62,7 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
     protected function tearDown(): void
     {
         $_FILES = $this->savedFiles;
+        putenv($this->savedEnv === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $this->savedEnv);
         if ($this->savedHaxcms !== null) {
             $GLOBALS['HAXCMS'] = $this->savedHaxcms;
         } else {
@@ -86,6 +94,7 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
         $zip->addFromString($prefix . 'site.json', json_encode($siteJson === null ? self::SITE_JSON : $siteJson));
         $zip->addFromString($prefix . 'pages/home/index.html', '<p>Welcome to my homepage</p>');
         $zip->addFromString($prefix . 'files/guestbook.gif', 'GIF89a-fake');
+        $zip->addFromString($prefix . 'custom/build/custom.es6.js', '// custom comment script here');
         $zip->addFromString('outside.html', '<p>outside the site folder</p>');
         if ($extra !== null) {
             $extra($zip);
@@ -119,13 +128,49 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
         $data = $response['data'];
         $this->assertSame('my-90s-page', $data['filename']);
         $this->assertSame(array('title' => 'My 90s page', 'description' => 'Under construction', 'theme' => 'clean-one'), $data['site']);
-        $this->assertSame(array(), $data['siteFiles']);
         $this->assertSame('<p>Welcome to my homepage</p>', $data['items'][0]['contents']);
-        $this->assertSame('', $data['items'][1]['contents']);
         $this->assertSame(array('files/guestbook.gif'), array_keys($data['files']));
         $staged = $data['files']['files/guestbook.gif'];
         $this->assertStringStartsWith($this->tmpBase . '/config/tmp/imports/', $staged);
         $this->assertSame('GIF89a-fake', file_get_contents($staged));
+        // the untouched boilerplate custom build carries nothing
+        $this->assertSame(array(), $data['siteFiles']);
+    }
+
+    public function testTheCustomBuildComesBackStagedInSiteFiles(): void
+    {
+        $response = $this->importZip($this->makeZip('', null, function ($zip) {
+            $zip->addFromString('custom/build/custom.es6.js', 'export class GeoTheme {}');
+        }));
+        $this->assertSame(200, $response['status']);
+        $staged = $response['data']['siteFiles']['custom/build/custom.es6.js'];
+        $this->assertStringStartsWith($this->tmpBase . '/config/tmp/imports/', $staged);
+        $this->assertSame('export class GeoTheme {}', file_get_contents($staged));
+    }
+
+    public function testSiteZipImportIsOffUnlessTheOperatorTurnsItOn(): void
+    {
+        putenv('HAXCMS_SITE_ZIP_IMPORT');
+        $response = $this->importZip($this->makeZip(''));
+        $this->assertSame(403, $response['status']);
+        $this->assertSame('DISABLED', $response['data']['reason']);
+        $this->assertSame('site-zip-import is disabled', $response['data']['error']);
+        // config security.siteZipImport turns it on too
+        $GLOBALS['HAXCMS']->config = new stdClass();
+        $GLOBALS['HAXCMS']->config->security = new stdClass();
+        $GLOBALS['HAXCMS']->config->security->siteZipImport = true;
+        $this->assertSame(200, $this->importZip($this->makeZip(''))['status']);
+    }
+
+    public function testAnUploadOverTheConversionCapIsRefusedBeforeItIsRead(): void
+    {
+        $GLOBALS['HAXCMS']->config = new stdClass();
+        $GLOBALS['HAXCMS']->config->security = new stdClass();
+        // a cap smaller than the zip
+        $GLOBALS['HAXCMS']->config->security->conversionMaxUploadMb = 0.0001;
+        $response = $this->importZip($this->makeZip(''));
+        $this->assertSame(400, $response['status']);
+        $this->assertSame('ZIP_BUDGET', $response['data']['reason']);
     }
 
     public function testAFileThatIsNotAZipIsRefused(): void
@@ -161,9 +206,28 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
         $this->assertSame('INVALID_SITE', $response['data']['reason']);
     }
 
-    public function testSiteJsonWithoutItemsIsRefused(): void
+    public static function provideNotASite(): array
     {
-        $response = $this->importZip($this->makeZip('', array('title' => 'x')));
+        return array(
+            'no items' => array(function (&$site) { unset($site['items']); }),
+            'no pages' => array(function (&$site) { $site['items'] = array(); }),
+            'a page outside pages/' => array(function (&$site) { $site['items'][0]['location'] = '../outside.html'; }),
+            'a page that is not .html' => array(function (&$site) { $site['items'][0]['location'] = 'pages/home/index.php'; }),
+            'a file outside files/' => array(function (&$site) { $site['items'][0]['metadata']['files'][] = array('url' => '../../etc/passwd'); }),
+            'a file given as an address' => array(function (&$site) { $site['items'][0]['metadata']['files'][] = array('url' => 'https://example.com/a.png'); }),
+            'two pages with one id' => array(function (&$site) { $site['items'][] = $site['items'][0]; }),
+            'an id with unsafe characters' => array(function (&$site) { $site['items'][0]['id'] = '../item'; }),
+            'a title that is not text' => array(function (&$site) { $site['items'][0]['title'] = array('a' => 1); }),
+        );
+    }
+
+    #[DataProvider('provideNotASite')]
+    public function testASiteJsonThatIsNotAHaxSiteIsRefusedWhole(callable $change): void
+    {
+        $site = self::SITE_JSON;
+        $change($site);
+        $this->assertFalse(HAXCMSSiteZip::isSiteOutline($site));
+        $response = $this->importZip($this->makeZip('', $site));
         $this->assertSame(400, $response['status']);
         $this->assertSame('INVALID_SITE', $response['data']['reason']);
     }

@@ -2636,9 +2636,14 @@ paths:
       description: >
         Reads a published HAXcms site from its address (repoUrl), or an
         uploaded HAXcms site zip (what Download site gives: site.json with
-        pages/ and files/, at the top of the zip or one folder down). A zip
-        import also returns site.title, site.description and site.theme; its
-        custom build is not carried over.
+        pages/ and files/, at the top of the zip or one folder down). Zip
+        import is off unless the operator turns it on (config
+        security.siteZipImport or HAXCMS_SITE_ZIP_IMPORT=true; 403 with
+        data.reason DISABLED otherwise), because the zip can carry the site's
+        own JavaScript. site.json must be a HAXcms site outline or the zip is
+        refused (400, data.reason INVALID_SITE). A zip import also returns
+        site.title, site.description and site.theme, and the site's custom
+        build in siteFiles as a staged file.
       security:
         - bearerAuth: []
           userTokenHeader: []

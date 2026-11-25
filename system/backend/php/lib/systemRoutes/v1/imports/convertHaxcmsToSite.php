@@ -160,11 +160,8 @@ if (!function_exists('haxcmsImportUploadedFile')) {
     // haxcms-nodejs's req.files[0]), or null
     function haxcmsImportUploadedFile()
     {
-        if (!isset($_FILES) || !is_array($_FILES)) {
-            return null;
-        }
         foreach ($_FILES as $file) {
-            if (is_array($file) && isset($file['tmp_name']) && is_string($file['tmp_name'])
+            if (isset($file['tmp_name']) && is_string($file['tmp_name'])
                 && $file['tmp_name'] !== '' && (!isset($file['error']) || $file['error'] === UPLOAD_ERR_OK)) {
                 return $file;
             }
@@ -176,13 +173,34 @@ if (!function_exists('haxcmsImportUploadedFile')) {
 if (!function_exists('haxcmsImportConvertHaxcmsZipToSite')) {
     /**
      * The same import from an uploaded HAXcms site zip. Returns the URL
-     * import's shape plus `site` (title, description, theme); the custom
-     * build is not carried (createSite only takes siteFiles from an address).
+     * import's shape plus `site` (title, description, theme); the site's
+     * custom build comes back in siteFiles as a staged file, which createSite
+     * writes only while site zip import is on.
      * Parity: haxcms-nodejs convertHaxcmsZipToSite.
      */
     function haxcmsImportConvertHaxcmsZipToSite($context, $file)
     {
         $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
+        // off unless the operator turns it on (HAXCMSSiteZip::enabled)
+        if (!HAXCMSSiteZip::enabled()) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 403, 'data' => array('error' => 'site-zip-import is disabled', 'reason' => 'DISABLED', 'items' => array(), 'filename' => null)),
+                array('statusCode' => 403, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
+        // Security (SEC-DOS): the conversion upload cap applies before the zip is read
+        $maxBytes = HAXCMSSiteZip::maxUploadBytes();
+        $size = @filesize($file['tmp_name']);
+        if ($size !== false && $size > $maxBytes) {
+            SiteRouteUtils::sendFormattedResponse(
+                array('status' => 400, 'data' => array('error' => 'File exceeds the maximum upload size of ' . round($maxBytes / (1024 * 1024)) . ' MB', 'reason' => 'ZIP_BUDGET', 'items' => array(), 'filename' => null)),
+                array('statusCode' => 400, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),
+                $context->routeSuffix, $apiBasePath
+            );
+            return;
+        }
         try {
             $read = HAXCMSSiteZip::read($file['tmp_name']);
         } catch (HAXCMSSiteZipException $e) {
@@ -205,7 +223,7 @@ if (!function_exists('haxcmsImportConvertHaxcmsZipToSite')) {
                 'items'     => $read['items'],
                 'filename'  => $read['filename'],
                 'files'     => (object) $read['files'],
-                'siteFiles' => new \stdClass(),
+                'siteFiles' => (object) $read['siteFiles'],
                 'site'      => $read['site'],
             )),
             array('statusCode' => 200, 'allowedFormats' => array('json'), 'defaultFormat' => 'json', 'envelope' => false),

@@ -650,6 +650,52 @@ class OperationsCreateSiteTest extends TestCase
         $this->assertFileDoesNotExist($this->siteDir() . '/custom/loop.css');
         $this->assertFileDoesNotExist($this->siteDir() . '/custom/page.html');
     }
+
+    public function testStagedCustomBuildIsWrittenOnlyWhileSiteZipImportIsOn(): void
+    {
+        $before = getenv('HAXCMS_SITE_ZIP_IMPORT');
+        try {
+            // off: the staged file is not written
+            putenv('HAXCMS_SITE_ZIP_IMPORT');
+            $off = haxcms_import_stage_bytes('export class GeoTheme {}', 'custom.es6.js');
+            $this->assertIsString($off);
+            $result = $this->runCreateSite(
+                array('name' => 'New Site', 'theme' => 'my-theme'),
+                array('structure' => 'course', 'type' => 'test', 'siteFiles' => array('custom/build/custom.es6.js' => $off))
+            );
+            $this->assertSame(200, $result['status']);
+            $written = $this->siteDir() . '/custom/build/custom.es6.js';
+            $this->assertFalse(is_file($written) && trim((string) file_get_contents($written)) === 'export class GeoTheme {}');
+        } finally {
+            putenv($before === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $before);
+        }
+    }
+
+    public function testStagedCustomBuildIsWrittenAndRemovedWhileSiteZipImportIsOn(): void
+    {
+        $before = getenv('HAXCMS_SITE_ZIP_IMPORT');
+        try {
+            putenv('HAXCMS_SITE_ZIP_IMPORT=true');
+            $staged = haxcms_import_stage_bytes('export class GeoTheme {}', 'custom.es6.js');
+            $this->assertIsString($staged);
+            $outside = $this->tmpRoot . '/not-staged.js';
+            file_put_contents($outside, 'nope');
+            $result = $this->runCreateSite(
+                array('name' => 'New Site', 'theme' => 'my-theme'),
+                array('structure' => 'course', 'type' => 'test', 'siteFiles' => array(
+                    'custom/build/custom.es6.js' => $staged,
+                    // a path outside the staging root is never read
+                    'custom/build/other.js' => $outside,
+                ))
+            );
+            $this->assertSame(200, $result['status']);
+            $this->assertSame('export class GeoTheme {}', file_get_contents($this->siteDir() . '/custom/build/custom.es6.js'));
+            $this->assertFileDoesNotExist($staged);
+            $this->assertFileDoesNotExist($this->siteDir() . '/custom/build/other.js');
+        } finally {
+            putenv($before === false ? 'HAXCMS_SITE_ZIP_IMPORT' : 'HAXCMS_SITE_ZIP_IMPORT=' . $before);
+        }
+    }
 }
 
 /**
