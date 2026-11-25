@@ -551,6 +551,34 @@ class HAXCMSSiteMetadataTest extends TestCase
         $this->assertArrayNotHasKey('sameAs', $this->graphNodeByType($plain, 'Organization'));
     }
 
+    public function testGetSiteMetadataJsonLdOrganizationDescriptionAndContactPoint(): void
+    {
+        // same behavior as haxcms-nodejs: the site's description, and its
+        // published Contact page (never the author's email) as contactPoint
+        $this->site->manifest->description = '  A site about units.  ';
+        $contact = $this->site->manifest->items[1];
+        $contact->slug = '/contact/';
+        $contact->metadata->published = true;
+        $org = $this->graphNodeByType($this->extractJsonLd($this->site->getSiteMetadata($this->homePage())), 'Organization');
+        $this->assertSame('A site about units.', $org['description']);
+        $this->assertSame(
+            array('@type' => 'ContactPoint', 'contactType' => 'customer support', 'url' => 'https://meta.example.com/contact'),
+            $org['contactPoint']
+        );
+        $this->assertDoesNotMatchRegularExpression('/mailto:|[\w.+-]+@[\w-]+\.[\w.]+/', json_encode($org));
+        // an unpublished Contact page is not offered
+        $contact->metadata->published = false;
+        $org = $this->graphNodeByType($this->extractJsonLd($this->site->getSiteMetadata($this->homePage())), 'Organization');
+        $this->assertArrayNotHasKey('contactPoint', $org);
+        // no description and no Contact page: neither key
+        $this->site->manifest->description = '';
+        $contact->slug = 'elsewhere';
+        $contact->metadata->published = true;
+        $org = $this->graphNodeByType($this->extractJsonLd($this->site->getSiteMetadata($this->homePage())), 'Organization');
+        $this->assertArrayNotHasKey('description', $org);
+        $this->assertArrayNotHasKey('contactPoint', $org);
+    }
+
     public function testGetSiteMetadataJsonLdOmitsPersonWithoutAuthor(): void
     {
         $this->site->manifest->author = '';
