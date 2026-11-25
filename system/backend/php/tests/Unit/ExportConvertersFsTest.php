@@ -523,13 +523,14 @@ class ExportConvertersFsTest extends TestCase
         $html = ExportConverters::buildSiteExportHtml($site);
         $this->assertStringContainsString('<!doctype html>', $html);
         $this->assertStringContainsString('<title>My Site</title>', $html);
-        $this->assertStringContainsString('<main data-haxcms-export="site"', $html);
+        $this->assertStringContainsString('<main data-haxcms-export="site" data-title="My Site" data-item-parents="{&quot;i2&quot;:&quot;i1&quot;}">', $html);
         $this->assertStringContainsString('data-title="My Site"', $html);
         $this->assertStringContainsString('<h1>My Site</h1>', $html);
-        $this->assertStringContainsString('<article data-item-id="i1" data-item-slug="page-1" data-item-parent="">', $html);
+        // the <article> markup Insights splits on stays as it was
+        $this->assertStringContainsString("<article data-item-id=\"i1\" data-item-slug=\"page-1\">\n<h2>Page One</h2>", $html);
         $this->assertStringContainsString('<h2>Page One</h2>', $html);
         $this->assertStringContainsString('<p>Content one</p>', $html);
-        $this->assertStringContainsString('<article data-item-id="i2" data-item-slug="page-2" data-item-parent="i1">', $html);
+        $this->assertStringContainsString('<article data-item-id="i2" data-item-slug="page-2">', $html);
         $this->assertStringContainsString('<h2>Page Two</h2>', $html);
         $this->assertStringContainsString('<p>Content two</p>', $html);
     }
@@ -547,14 +548,14 @@ class ExportConvertersFsTest extends TestCase
         $site->pageContentMap = array('i1' => '<p>Content one</p>');
 
         $html = ExportConverters::buildSiteExportHtml($site, '', '/cdn/');
-        $this->assertStringContainsString('<haxcms-print-theme>', $html);
+        $this->assertStringContainsString('<haxcms-print-theme data-item-parents="{}">', $html);
         $this->assertStringContainsString('</haxcms-print-theme>', $html);
         $this->assertStringContainsString('window.__appCDN="/cdn/"', $html);
         $this->assertStringContainsString('<link rel="preconnect" crossorigin href="/cdn/">', $html);
         $this->assertStringContainsString('href="/cdn/build.js"', $html);
         $this->assertStringContainsString('src="/cdn/build.js"', $html);
         // each page's title, then its content, inside the print theme
-        $this->assertStringContainsString("<h2>Page One</h2>\n<div data-jos-item-id=\"i1\" data-item-parent=\"\">", $html);
+        $this->assertStringContainsString("<h2>Page One</h2>\n<div data-jos-item-id=\"i1\">", $html);
         $this->assertStringContainsString('<p>Content one</p>', $html);
     }
 

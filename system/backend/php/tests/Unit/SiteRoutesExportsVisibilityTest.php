@@ -71,14 +71,14 @@ class SiteRoutesExportsVisibilityTest extends TestCase
         $_GET['magic'] = 'https://evil.example.com/';
         $result = $this->siteExport('html', false);
         $this->assertStringNotContainsString('evil.example.com', $result['raw']);
-        $this->assertStringNotContainsString('<haxcms-print-theme>', $result['raw']);
+        $this->assertStringNotContainsString('<haxcms-print-theme', $result['raw']);
     }
 
     public function testAuthenticatedMagicHtmlSiteExportWrapsWithCdn(): void
     {
         $_GET['magic'] = 'https://cdn.example.com/';
         $result = $this->siteExport('html', true);
-        $this->assertStringContainsString('<haxcms-print-theme>', $result['raw']);
+        $this->assertStringContainsString('<haxcms-print-theme data-item-parents=', $result['raw']);
         $this->assertStringContainsString('window.__appCDN="https://cdn.example.com/"', $result['raw']);
     }
 

@@ -141,15 +141,43 @@ if (!function_exists('haxcmsImportUnwrapLoneContainer')) {
 }
 
 /**
+ * The item id -> parent id map a site export carries in data-item-parents on
+ * its container, or array() when it's missing or not a JSON object of strings.
+ *
+ * @return array<string, string>
+ */
+if (!function_exists('haxcmsImportReadItemParents')) {
+    function haxcmsImportReadItemParents(?DOMElement $el): array
+    {
+        $raw = $el !== null ? $el->getAttribute('data-item-parents') : '';
+        if ($raw === '') {
+            return array();
+        }
+        $value = json_decode($raw);
+        if (!($value instanceof stdClass)) {
+            return array();
+        }
+        $parents = array();
+        foreach (get_object_vars($value) as $key => $parent) {
+            if (is_string($parent)) {
+                $parents[(string) $key] = $parent;
+            }
+        }
+        return $parents;
+    }
+}
+
+/**
  * Pages of a HAXcms site export, or null when the HTML isn't one.
  *
  * Two export shapes carry their pages as blocks: the document export
  * (main[data-haxcms-export="site"] > article[data-item-id], each article's
- * first heading its title) and the wrapped export (a heading followed by
- * div[data-jos-item-id]). Exports made since data-item-parent was added say
- * each page's parent, so the outline comes back as it was; older document
- * exports import flat in order. A div[data-jos-item-id] list without
- * data-item-parent (older wrapped exports, hand-made files) is left to the
+ * first heading its title) and the wrapped export (a container with
+ * data-item-parents around a heading followed by div[data-jos-item-id] for
+ * each page). The container's data-item-parents (exports made since it was
+ * added) says each page's parent, so the outline comes back as it was; older
+ * document exports import flat in order. div[data-jos-item-id] blocks without
+ * that container (older wrapped exports, hand-made files) are left to the
  * heading-based import. haxcms-nodejs readSiteExportBlocks keeps the same
  * rules.
  *
@@ -166,12 +194,19 @@ if (!function_exists('haxcmsImportSiteExportBlocks')) {
             return $node instanceof DOMElement && preg_match('/^h[1-6]$/i', $node->nodeName) === 1;
         };
         $blocks = array();
-        $articles = $xpath->query('//main[@data-haxcms-export="site"]/article[@data-item-id]');
-        if ($articles !== false && $articles->length > 0) {
-            foreach ($articles as $article) {
-                if (!($article instanceof DOMElement)) {
-                    continue;
+        $mains = $xpath->query('//main[@data-haxcms-export="site"]');
+        $main = ($mains !== false && $mains->length > 0) ? $mains->item(0) : null;
+        $articles = array();
+        if ($main instanceof DOMElement) {
+            foreach ($main->childNodes as $child) {
+                if ($child instanceof DOMElement && strtolower($child->nodeName) === 'article' && $child->hasAttribute('data-item-id')) {
+                    $articles[] = $child;
                 }
+            }
+        }
+        if (count($articles) > 0) {
+            $parents = haxcmsImportReadItemParents($main instanceof DOMElement ? $main : null);
+            foreach ($articles as $article) {
                 $title = '';
                 $contents = '';
                 foreach ($article->childNodes as $child) {
@@ -185,19 +220,26 @@ if (!function_exists('haxcmsImportSiteExportBlocks')) {
                         $contents .= $dom->saveHTML($child);
                     }
                 }
+                $id = (string) $article->getAttribute('data-item-id');
                 $blocks[] = array(
-                    'id' => (string) $article->getAttribute('data-item-id'),
-                    'parent' => (string) $article->getAttribute('data-item-parent'),
+                    'id' => $id,
+                    'parent' => isset($parents[$id]) ? $parents[$id] : '',
                     'title' => $title,
                     'contents' => $contents,
                 );
             }
             return $blocks;
         }
-        $divs = $xpath->query('//div[@data-jos-item-id]');
+        $containers = $xpath->query('//*[@data-item-parents]');
+        $container = ($containers !== false && $containers->length > 0) ? $containers->item(0) : null;
+        if (!($container instanceof DOMElement)) {
+            return null;
+        }
+        $divs = $xpath->query('.//div[@data-jos-item-id]', $container);
         if ($divs === false || $divs->length === 0) {
             return null;
         }
+        $parents = haxcmsImportReadItemParents($container);
         foreach ($divs as $div) {
             if (!($div instanceof DOMElement)) {
                 continue;
@@ -206,7 +248,7 @@ if (!function_exists('haxcmsImportSiteExportBlocks')) {
             while ($heading !== null && $heading->nodeType !== XML_ELEMENT_NODE) {
                 $heading = $heading->previousSibling;
             }
-            if (!$div->hasAttribute('data-item-parent') || !$isHeading($heading)) {
+            if (!$isHeading($heading)) {
                 return null;
             }
             $contents = '';
@@ -215,9 +257,10 @@ if (!function_exists('haxcmsImportSiteExportBlocks')) {
                     $contents .= $dom->saveHTML($child);
                 }
             }
+            $id = (string) $div->getAttribute('data-jos-item-id');
             $blocks[] = array(
-                'id' => (string) $div->getAttribute('data-jos-item-id'),
-                'parent' => (string) $div->getAttribute('data-item-parent'),
+                'id' => $id,
+                'parent' => isset($parents[$id]) ? $parents[$id] : '',
                 'title' => trim($heading->textContent),
                 'contents' => $contents,
             );

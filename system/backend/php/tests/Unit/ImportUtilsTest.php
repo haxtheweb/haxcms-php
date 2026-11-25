@@ -309,9 +309,9 @@ class ImportUtilsTest extends TestCase
 
     public function testHaxcmsImportHtmlToItemsReadsADocumentExportEvenWhenAChildComesFirst(): void
     {
-        $html = '<main data-haxcms-export="site" data-title="S"><h1>S</h1>'
-            . '<article data-item-id="c" data-item-slug="p/c" data-item-parent="p"><h2>Child</h2><p>c</p></article>'
-            . '<article data-item-id="p" data-item-slug="p" data-item-parent=""><h2>Parent</h2><p>p</p></article>'
+        $html = '<main data-haxcms-export="site" data-title="S" data-item-parents="{&quot;c&quot;:&quot;p&quot;}"><h1>S</h1>'
+            . '<article data-item-id="c" data-item-slug="p/c"><h2>Child</h2><p>c</p></article>'
+            . '<article data-item-id="p" data-item-slug="p"><h2>Parent</h2><p>p</p></article>'
             . '</main>';
 
         $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
@@ -342,9 +342,9 @@ class ImportUtilsTest extends TestCase
     public function testHaxcmsImportHtmlToItemsBreaksAParentLoop(): void
     {
         // the first page found in a loop becomes top level; the rest hang under it
-        $html = '<main data-haxcms-export="site"><h1>S</h1>'
-            . '<article data-item-id="a" data-item-parent="b"><h2>A</h2></article>'
-            . '<article data-item-id="b" data-item-parent="a"><h2>B</h2></article>'
+        $html = '<main data-haxcms-export="site" data-item-parents="{&quot;a&quot;:&quot;b&quot;,&quot;b&quot;:&quot;a&quot;}"><h1>S</h1>'
+            . '<article data-item-id="a"><h2>A</h2></article>'
+            . '<article data-item-id="b"><h2>B</h2></article>'
             . '</main>';
 
         $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
@@ -354,6 +354,30 @@ class ImportUtilsTest extends TestCase
         $this->assertSame(0, $items[0]['indent']);
         $this->assertSame($items[0]['id'], $items[1]['parent']);
         $this->assertSame(1, $items[1]['indent']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsReadsAWrappedExportOutlineFromItsContainer(): void
+    {
+        $html = '<haxcms-print-theme data-item-parents="{&quot;b&quot;:&quot;a&quot;}"><h1>S</h1>'
+            . '<h2>A</h2><div data-jos-item-id="a"><p>a</p></div>'
+            . '<h2>B</h2><div data-jos-item-id="b"><p>b</p><h2>Inside B</h2></div>'
+            . '</haxcms-print-theme>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame(['A', 'B'], array_column($items, 'title'));
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+        $this->assertStringContainsString('<h2>Inside B</h2>', $items[1]['contents']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsReadsABrokenParentMapFlat(): void
+    {
+        $html = '<main data-haxcms-export="site" data-item-parents="not json"><h1>S</h1>'
+            . '<article data-item-id="a"><h2>A</h2></article><article data-item-id="b"><h2>B</h2></article></main>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame([null, null], array_column($items, 'parent'));
     }
 
     public function testHaxcmsImportHtmlToItemsKeepsALoneWrapperWithoutHeadingsWhole(): void
