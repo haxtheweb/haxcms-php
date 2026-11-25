@@ -106,6 +106,21 @@ class SecurityAuditFixesTest extends TestCase
         $this->assertFalse(property_exists($manifest, 'version'), 'manifest.json is public: no HAXcms version');
     }
 
+    // `yarn release` (commit-and-tag-version) bumps manifest.json by default,
+    // which put the version back in the public manifest; .versionrc.json
+    // limits it to package.json
+    public function testReleaseToolBumpsOnlyPackageJson(): void
+    {
+        $config = json_decode((string) file_get_contents($this->repoRoot . '/.versionrc.json'), true);
+        $this->assertIsArray($config, '.versionrc.json must exist and parse');
+        foreach (array('bumpFiles', 'packageFiles') as $key) {
+            $files = array_map(function ($entry) {
+                return is_array($entry) ? $entry['filename'] : $entry;
+            }, $config[$key]);
+            $this->assertSame(array('package.json'), $files, $key . ' must list only package.json');
+        }
+    }
+
     public function testReleaseFilesThatStateTheVersionAreRefused(): void
     {
         $rule = 'RewriteRule "^(package\.json|CHANGELOG\.md|system/platform-manifest\.json)$" - [F]';
