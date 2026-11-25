@@ -303,7 +303,7 @@ class ImageFraming
         return $candidate;
     }
 
-    /** the image type a file's first bytes say it is: 'jpg', 'png', 'webp' or null */
+    /** the image type a file's first bytes say it is: 'jpg', 'png', 'webp', 'gif' or null */
     public static function sniffImage($file)
     {
         $handle = @fopen($file, 'rb');
@@ -323,6 +323,11 @@ class ImageFraming
         }
         if (strlen($head) >= 12 && substr($head, 0, 4) === 'RIFF' && substr($head, 8, 4) === 'WEBP') {
             return 'webp';
+        }
+        // simple-img variants may be cut from a gif's first frame; framing
+        // never asks for one, since gif is not in FORMATS
+        if (strlen($head) >= 6 && preg_match('/^GIF8[79]a$/', substr($head, 0, 6))) {
+            return 'gif';
         }
         return null;
     }
@@ -382,7 +387,7 @@ class ImageFraming
     }
 
     /** every index.html under pages/ in the site, or null when there are too many */
-    private static function framingPageFiles($siteDirectory)
+    public static function framingPageFiles($siteDirectory)
     {
         $out = array();
         $root = self::containedPath($siteDirectory, 'pages');

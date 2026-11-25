@@ -167,6 +167,7 @@ class SystemRoutesMap
                 'v1/actions/docx-to-html' => dirname(__FILE__) . '/v1/convertDocxToHtml.php',
                 // Group A: text/data conversions
                 'v1/actions/md-to-html' => dirname(__FILE__) . '/v1/convertMdToHtml.php',
+                'v1/actions/website-metadata' => dirname(__FILE__) . '/v1/websiteMetadata.php',
                 'v1/actions/html-to-md' => dirname(__FILE__) . '/v1/convertHtmlToMd.php',
                 'v1/actions/json-to-yaml' => dirname(__FILE__) . '/v1/convertJsonToYaml.php',
                 'v1/actions/yaml-to-json' => dirname(__FILE__) . '/v1/convertYamlToJson.php',

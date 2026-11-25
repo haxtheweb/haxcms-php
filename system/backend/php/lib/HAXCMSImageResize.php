@@ -31,4 +31,15 @@ final class HAXCMSImageResize extends ImageResize
         }
         return new self('data://application/octet-stream;base64,' . base64_encode($image_data));
     }
+
+    /**
+     * The decoded photo as GD holds it, EXIF orientation applied (gumlet
+     * turns JPEGs upright when it loads them), for work gumlet's own
+     * operations don't cover (simple-img variants: quarter turns, fits,
+     * watermarks).
+     */
+    public function getSourceImage(): \GdImage
+    {
+        return $this->source_image;
+    }
 }
