@@ -307,6 +307,79 @@ class ImportUtilsTest extends TestCase
         $this->assertStringContainsString('Child body', $items[1]['contents']);
     }
 
+    public function testHaxcmsImportHtmlToItemsReadsADocumentExportEvenWhenAChildComesFirst(): void
+    {
+        $html = '<main data-haxcms-export="site" data-title="S" data-item-parents="{&quot;c&quot;:&quot;p&quot;}"><h1>S</h1>'
+            . '<article data-item-id="c" data-item-slug="p/c"><h2>Child</h2><p>c</p></article>'
+            . '<article data-item-id="p" data-item-slug="p"><h2>Parent</h2><p>p</p></article>'
+            . '</main>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame(['Child', 'Parent'], array_column($items, 'title'));
+        $this->assertSame($items[1]['id'], $items[0]['parent']);
+        $this->assertSame('parent/child', $items[0]['slug']);
+        $this->assertSame(1, $items[0]['indent']);
+        $this->assertNull($items[1]['parent']);
+        $this->assertSame('<p>c</p>', $items[0]['contents']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsReadsAnOlderDocumentExportFlat(): void
+    {
+        // exports made before data-item-parent: one page per article, in order
+        $html = '<main data-haxcms-export="site" data-title="S"><h1>S</h1>'
+            . '<article data-item-id="a" data-item-slug="a"><h2>A</h2><p>a</p></article>'
+            . '<article data-item-id="b" data-item-slug="a/b"><h2>B</h2><p>b</p></article>'
+            . '</main>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site', 'parentId' => 'under']);
+
+        $this->assertSame(['A', 'B'], array_column($items, 'title'));
+        $this->assertSame(['under', 'under'], array_column($items, 'parent'));
+        $this->assertSame([0, 1], array_column($items, 'order'));
+    }
+
+    public function testHaxcmsImportHtmlToItemsBreaksAParentLoop(): void
+    {
+        // the first page found in a loop becomes top level; the rest hang under it
+        $html = '<main data-haxcms-export="site" data-item-parents="{&quot;a&quot;:&quot;b&quot;,&quot;b&quot;:&quot;a&quot;}"><h1>S</h1>'
+            . '<article data-item-id="a"><h2>A</h2></article>'
+            . '<article data-item-id="b"><h2>B</h2></article>'
+            . '</main>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertCount(2, $items);
+        $this->assertNull($items[0]['parent']);
+        $this->assertSame(0, $items[0]['indent']);
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+        $this->assertSame(1, $items[1]['indent']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsReadsAWrappedExportOutlineFromItsContainer(): void
+    {
+        $html = '<haxcms-print-theme data-item-parents="{&quot;b&quot;:&quot;a&quot;}"><h1>S</h1>'
+            . '<h2>A</h2><div data-jos-item-id="a"><p>a</p></div>'
+            . '<h2>B</h2><div data-jos-item-id="b"><p>b</p><h2>Inside B</h2></div>'
+            . '</haxcms-print-theme>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame(['A', 'B'], array_column($items, 'title'));
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+        $this->assertStringContainsString('<h2>Inside B</h2>', $items[1]['contents']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsReadsABrokenParentMapFlat(): void
+    {
+        $html = '<main data-haxcms-export="site" data-item-parents="not json"><h1>S</h1>'
+            . '<article data-item-id="a"><h2>A</h2></article><article data-item-id="b"><h2>B</h2></article></main>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame([null, null], array_column($items, 'parent'));
+    }
+
     public function testHaxcmsImportHtmlToItemsKeepsALoneWrapperWithoutHeadingsWhole(): void
     {
         $items = haxcmsImportHtmlToItems('<ul><li>One</li><li>Two</li></ul>', ['titleValue' => 'List', 'method' => 'site']);

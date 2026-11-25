@@ -515,7 +515,7 @@ class ExportConvertersFsTest extends TestCase
             'metadata' => (object)array('site' => (object)array('name' => 'mysite')),
             'items' => array(
                 (object)array('id' => 'i1', 'slug' => 'page-1', 'title' => 'Page One'),
-                (object)array('id' => 'i2', 'slug' => 'page-2', 'title' => 'Page Two'),
+                (object)array('id' => 'i2', 'slug' => 'page-2', 'title' => 'Page Two', 'parent' => 'i1'),
             ),
         );
         $site->pageContentMap = array('i1' => '<p>Content one</p>', 'i2' => '<p>Content two</p>');
@@ -523,10 +523,11 @@ class ExportConvertersFsTest extends TestCase
         $html = ExportConverters::buildSiteExportHtml($site);
         $this->assertStringContainsString('<!doctype html>', $html);
         $this->assertStringContainsString('<title>My Site</title>', $html);
-        $this->assertStringContainsString('<main data-haxcms-export="site"', $html);
+        $this->assertStringContainsString('<main data-haxcms-export="site" data-title="My Site" data-item-parents="{&quot;i2&quot;:&quot;i1&quot;}">', $html);
         $this->assertStringContainsString('data-title="My Site"', $html);
         $this->assertStringContainsString('<h1>My Site</h1>', $html);
-        $this->assertStringContainsString('<article data-item-id="i1" data-item-slug="page-1">', $html);
+        // the <article> markup Insights splits on stays as it was
+        $this->assertStringContainsString("<article data-item-id=\"i1\" data-item-slug=\"page-1\">\n<h2>Page One</h2>", $html);
         $this->assertStringContainsString('<h2>Page One</h2>', $html);
         $this->assertStringContainsString('<p>Content one</p>', $html);
         $this->assertStringContainsString('<article data-item-id="i2" data-item-slug="page-2">', $html);
@@ -547,14 +548,14 @@ class ExportConvertersFsTest extends TestCase
         $site->pageContentMap = array('i1' => '<p>Content one</p>');
 
         $html = ExportConverters::buildSiteExportHtml($site, '', '/cdn/');
-        $this->assertStringContainsString('<haxcms-print-theme>', $html);
+        $this->assertStringContainsString('<haxcms-print-theme data-item-parents="{}">', $html);
         $this->assertStringContainsString('</haxcms-print-theme>', $html);
         $this->assertStringContainsString('window.__appCDN="/cdn/"', $html);
         $this->assertStringContainsString('<link rel="preconnect" crossorigin href="/cdn/">', $html);
         $this->assertStringContainsString('href="/cdn/build.js"', $html);
         $this->assertStringContainsString('src="/cdn/build.js"', $html);
-        // content still rendered inside the print theme
-        $this->assertStringContainsString('<div data-jos-item-id="i1">', $html);
+        // each page's title, then its content, inside the print theme
+        $this->assertStringContainsString("<h2>Page One</h2>\n<div data-jos-item-id=\"i1\">", $html);
         $this->assertStringContainsString('<p>Content one</p>', $html);
     }
 
@@ -677,5 +678,64 @@ class ExportConvertersTestManifest
             }
         }
         return $out;
+    }
+
+    // ------------------------------------------------------------------
+    // export -> import round trip (parity with haxcms-nodejs)
+    // ------------------------------------------------------------------
+
+    private function roundTripSite(): ExportConvertersTestSite
+    {
+        $site = new ExportConvertersTestSite();
+        $site->manifest = (object)array(
+            'title' => 'My Site',
+            'metadata' => (object)array('site' => (object)array('name' => 'mysite')),
+            'items' => array(
+                (object)array('id' => 'i1', 'slug' => 'one', 'title' => 'One'),
+                (object)array('id' => 'i2', 'slug' => 'one/two', 'title' => 'Two', 'parent' => 'i1'),
+                (object)array('id' => 'i3', 'slug' => 'one/two/three', 'title' => 'Three', 'parent' => 'i2'),
+                (object)array('id' => 'i4', 'slug' => 'four', 'title' => 'Four'),
+            ),
+        );
+        $site->pageContentMap = array(
+            'i1' => '<p>one</p><h2>Inside one</h2><p>more</p>',
+            'i2' => '<p>two</p>',
+            'i3' => '<p>three</p>',
+            'i4' => '<p>four</p>',
+        );
+        return $site;
+    }
+
+    /** @return array<int, array{0: string, 1: ?string, 2: int, 3: string}> */
+    private function outlineOf(array $items): array
+    {
+        $titles = array();
+        foreach ($items as $item) {
+            $titles[$item['id']] = $item['title'];
+        }
+        $out = array();
+        foreach ($items as $item) {
+            $out[] = array($item['title'], $item['parent'] !== null ? $titles[$item['parent']] : null, $item['indent'], $item['slug']);
+        }
+        return $out;
+    }
+
+    public function testSiteExportsImportBackWithTheirOutline(): void
+    {
+        require_once __DIR__ . '/../../lib/systemRoutes/v1/imports/importUtils.php';
+        $want = array(
+            array('One', null, 0, 'one'),
+            array('Two', 'One', 1, 'one/two'),
+            array('Three', 'Two', 2, 'one/two/three'),
+            array('Four', null, 0, 'four'),
+        );
+        foreach (array('', 'https://cdn.example.com/') as $magic) {
+            $html = ExportConverters::buildSiteExportHtml($this->roundTripSite(), '', $magic);
+            $items = haxcmsImportHtmlToItems($html, array('method' => 'site', 'titleValue' => 't'));
+            $this->assertSame($want, $this->outlineOf($items), $magic === '' ? 'document export' : 'wrapped export');
+            // a page's own headings stay in its content
+            $this->assertStringContainsString('<h2>Inside one</h2>', $items[0]['contents']);
+            $this->assertStringContainsString('<p>three</p>', $items[2]['contents']);
+        }
     }
 }

@@ -74,6 +74,34 @@ class ExportConverters
         return 'Site export';
     }
 
+    /**
+     * The data-item-parents attribute a site export's container carries, so an
+     * import can rebuild the outline: a JSON object of item id to parent id
+     * for every exported page whose parent is in the same export (a branch's
+     * root, or a page whose parent was left out as not visible, is top level).
+     * On the container, not each page, because Insights splits the document
+     * export by its exact <article> markup. haxcms-nodejs
+     * exportItemParentsAttribute writes the same JSON.
+     *
+     * @param array<int, mixed> $items the exported items, in export order
+     */
+    public static function exportItemParentsAttribute(array $items): string
+    {
+        $ids = array();
+        foreach ($items as $item) {
+            if ($item && isset($item->id) && $item->id !== '') {
+                $ids[(string) $item->id] = true;
+            }
+        }
+        $parents = new stdClass();
+        foreach ($items as $item) {
+            if ($item && isset($item->id) && $item->id !== '' && isset($item->parent) && $item->parent !== '' && isset($ids[(string) $item->parent])) {
+                $parents->{(string) $item->id} = (string) $item->parent;
+            }
+        }
+        return ' data-item-parents="' . self::escapeHtmlValue(json_encode($parents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) . '"';
+    }
+
     public static function buildItemExportDocumentTitle($item)
     {
         if (isset($item) && isset($item->title) && $item->title != '') {
@@ -404,7 +432,7 @@ class ExportConverters
             $parts[] = '<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">';
             $parts[] = '</head>';
             $parts[] = '<body>';
-            $parts[] = '<haxcms-print-theme>';
+            $parts[] = '<haxcms-print-theme' . self::exportItemParentsAttribute($itemsToExport) . '>';
             $parts[] = $content;
             $parts[] = '</haxcms-print-theme>';
             $parts[] = '</body>';
@@ -422,7 +450,7 @@ class ExportConverters
         $parts[] = '<title>' . self::escapeHtmlValue($siteTitle) . '</title>';
         $parts[] = '</head>';
         $parts[] = '<body>';
-        $parts[] = '<main data-haxcms-export="site" data-title="' . self::escapeHtmlValue($siteTitle) . '">';
+        $parts[] = '<main data-haxcms-export="site" data-title="' . self::escapeHtmlValue($siteTitle) . '"' . self::exportItemParentsAttribute($itemsToExport) . '>';
         $parts[] = '<h1>' . self::escapeHtmlValue($siteTitle) . '</h1>';
         foreach ($itemsToExport as $item) {
             if (!$item) {
@@ -480,6 +508,8 @@ class ExportConverters
                 continue;
             }
             $itemContent = SiteRouteUtils::getItemContent($site, $item);
+            // each page's title before its content, as in the document export
+            $parts[] = '<h2>' . self::escapeHtmlValue(self::buildItemExportDocumentTitle($item)) . '</h2>';
             $parts[] = '<div data-jos-item-id="' . self::escapeHtmlValue(isset($item->id) ? (string) $item->id : '') . '">';
             $parts[] = (string) $itemContent;
             $parts[] = '</div>';

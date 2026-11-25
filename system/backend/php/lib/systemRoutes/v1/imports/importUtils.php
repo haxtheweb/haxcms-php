@@ -141,6 +141,199 @@ if (!function_exists('haxcmsImportUnwrapLoneContainer')) {
 }
 
 /**
+ * The item id -> parent id map a site export carries in data-item-parents on
+ * its container, or array() when it's missing or not a JSON object of strings.
+ *
+ * @return array<string, string>
+ */
+if (!function_exists('haxcmsImportReadItemParents')) {
+    function haxcmsImportReadItemParents(?DOMElement $el): array
+    {
+        $raw = $el !== null ? $el->getAttribute('data-item-parents') : '';
+        if ($raw === '') {
+            return array();
+        }
+        $value = json_decode($raw);
+        if (!($value instanceof stdClass)) {
+            return array();
+        }
+        $parents = array();
+        foreach (get_object_vars($value) as $key => $parent) {
+            if (is_string($parent)) {
+                $parents[(string) $key] = $parent;
+            }
+        }
+        return $parents;
+    }
+}
+
+/**
+ * Pages of a HAXcms site export, or null when the HTML isn't one.
+ *
+ * Two export shapes carry their pages as blocks: the document export
+ * (main[data-haxcms-export="site"] > article[data-item-id], each article's
+ * first heading its title) and the wrapped export (a container with
+ * data-item-parents around a heading followed by div[data-jos-item-id] for
+ * each page). The container's data-item-parents (exports made since it was
+ * added) says each page's parent, so the outline comes back as it was; older
+ * document exports import flat in order. div[data-jos-item-id] blocks without
+ * that container (older wrapped exports, hand-made files) are left to the
+ * heading-based import. haxcms-nodejs readSiteExportBlocks keeps the same
+ * rules.
+ *
+ * @return array<int, array{id: string, parent: string, title: string, contents: string}>|null
+ */
+if (!function_exists('haxcmsImportSiteExportBlocks')) {
+    function haxcmsImportSiteExportBlocks($html)
+    {
+        $dom = new DOMDocument();
+        $dom->preserveWhiteSpace = false;
+        @$dom->loadHTML('<?xml encoding="UTF-8"?><div id="import-wrapper">' . $html . '</div>');
+        $xpath = new DOMXPath($dom);
+        $isHeading = function ($node) {
+            return $node instanceof DOMElement && preg_match('/^h[1-6]$/i', $node->nodeName) === 1;
+        };
+        $blocks = array();
+        $mains = $xpath->query('//main[@data-haxcms-export="site"]');
+        $main = ($mains !== false && $mains->length > 0) ? $mains->item(0) : null;
+        $articles = array();
+        if ($main instanceof DOMElement) {
+            foreach ($main->childNodes as $child) {
+                if ($child instanceof DOMElement && strtolower($child->nodeName) === 'article' && $child->hasAttribute('data-item-id')) {
+                    $articles[] = $child;
+                }
+            }
+        }
+        if (count($articles) > 0) {
+            $parents = haxcmsImportReadItemParents($main instanceof DOMElement ? $main : null);
+            foreach ($articles as $article) {
+                $title = '';
+                $contents = '';
+                foreach ($article->childNodes as $child) {
+                    if ($child->nodeType !== XML_ELEMENT_NODE) {
+                        continue;
+                    }
+                    if ($title === '' && $isHeading($child)) {
+                        $title = trim($child->textContent);
+                    }
+                    else {
+                        $contents .= $dom->saveHTML($child);
+                    }
+                }
+                $id = (string) $article->getAttribute('data-item-id');
+                $blocks[] = array(
+                    'id' => $id,
+                    'parent' => isset($parents[$id]) ? $parents[$id] : '',
+                    'title' => $title,
+                    'contents' => $contents,
+                );
+            }
+            return $blocks;
+        }
+        $containers = $xpath->query('//*[@data-item-parents]');
+        $container = ($containers !== false && $containers->length > 0) ? $containers->item(0) : null;
+        if (!($container instanceof DOMElement)) {
+            return null;
+        }
+        $divs = $xpath->query('.//div[@data-jos-item-id]', $container);
+        if ($divs === false || $divs->length === 0) {
+            return null;
+        }
+        $parents = haxcmsImportReadItemParents($container);
+        foreach ($divs as $div) {
+            if (!($div instanceof DOMElement)) {
+                continue;
+            }
+            $heading = $div->previousSibling;
+            while ($heading !== null && $heading->nodeType !== XML_ELEMENT_NODE) {
+                $heading = $heading->previousSibling;
+            }
+            if (!$isHeading($heading)) {
+                return null;
+            }
+            $contents = '';
+            foreach ($div->childNodes as $child) {
+                if ($child->nodeType === XML_ELEMENT_NODE) {
+                    $contents .= $dom->saveHTML($child);
+                }
+            }
+            $id = (string) $div->getAttribute('data-jos-item-id');
+            $blocks[] = array(
+                'id' => $id,
+                'parent' => isset($parents[$id]) ? $parents[$id] : '',
+                'title' => trim($heading->textContent),
+                'contents' => $contents,
+            );
+        }
+        return $blocks;
+    }
+}
+
+/**
+ * Pages for the blocks of a site export. An export lists pages in outline
+ * order, which can put a page before its parent, so every page is made first
+ * and parents are linked second. In a parent chain that loops back on itself
+ * the first page found becomes top level. Parity with haxcms-nodejs
+ * importSiteExportBlocks.
+ */
+if (!function_exists('haxcmsImportSiteExportItems')) {
+    function haxcmsImportSiteExportItems($blocks, $parentId, $type)
+    {
+        $count = count($blocks);
+        $titles = array();
+        $byExportId = array();
+        foreach ($blocks as $i => $block) {
+            $title = trim(preg_replace('/\s+/u', ' ', $block['title']));
+            $titles[$i] = $title !== '' ? $title : 'Untitled';
+            if ($block['id'] !== '' && !isset($byExportId[$block['id']])) {
+                $byExportId[$block['id']] = $i;
+            }
+        }
+        $parentOf = array();
+        foreach ($blocks as $i => $block) {
+            $p = ($block['parent'] !== '' && isset($byExportId[$block['parent']])) ? $byExportId[$block['parent']] : null;
+            $parentOf[$i] = ($p !== null && $p !== $i) ? $p : null;
+        }
+        $depthOf = function ($i) use (&$parentOf, $count) {
+            $depth = 0;
+            $at = $parentOf[$i];
+            while ($at !== null && $depth <= $count) {
+                $depth++;
+                $at = $parentOf[$at];
+            }
+            return $at !== null ? -1 : $depth;
+        };
+        foreach (array_keys($blocks) as $i) {
+            if ($depthOf($i) < 0) {
+                $parentOf[$i] = null;
+            }
+        }
+        $slugOf = function ($i) use (&$slugOf, &$parentOf, $titles) {
+            $p = $parentOf[$i];
+            return ($p !== null ? $slugOf($p) . '/' : '') . haxcmsImportCleanTitle($titles[$i]);
+        };
+        $items = array();
+        foreach ($blocks as $i => $block) {
+            $items[$i] = haxcmsImportBuildItem($titles[$i], '', 0, null, 0, $block['contents']);
+        }
+        $order = array();
+        foreach ($blocks as $i => $block) {
+            $p = $parentOf[$i];
+            $items[$i]['parent'] = $p !== null ? $items[$p]['id'] : $parentId;
+            $items[$i]['indent'] = $depthOf($i);
+            $items[$i]['slug'] = $slugOf($i);
+            $key = (string) $items[$i]['parent'];
+            $items[$i]['order'] = isset($order[$key]) ? $order[$key] : 0;
+            $order[$key] = $items[$i]['order'] + 1;
+            if ($items[$i]['contents'] === '') {
+                $items[$i]['contents'] = $p !== null ? '<p></p>' : haxcmsImportGetFallbackContent($type);
+            }
+        }
+        return array_values($items);
+    }
+}
+
+/**
  * Collect sibling elements until a heading of the specified tag names is encountered.
  */
 if (!function_exists('haxcmsImportCollectSiblingsUntil')) {
@@ -437,6 +630,11 @@ if (!function_exists('haxcmsImportHtmlToItems')) {
 
         switch ($method) {
             case 'site': {
+                $exportBlocks = haxcmsImportSiteExportBlocks($html);
+                if (is_array($exportBlocks) && count($exportBlocks) > 0) {
+                    $items = haxcmsImportSiteExportItems($exportBlocks, $parentId, $type);
+                    break;
+                }
                 $highestLevel = haxcmsImportGetHighestHeadingLevel($elements);
                 $rootTag      = $highestLevel ? 'H' . $highestLevel : null;
                 $childTag     = ($highestLevel && $highestLevel < 4) ? 'H' . ($highestLevel + 1) : null;
