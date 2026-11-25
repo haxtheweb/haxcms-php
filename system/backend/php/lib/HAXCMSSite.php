@@ -2744,6 +2744,26 @@ class HAXCMSSite
       return false;
     }
     /**
+     * The absolute URL of the site's Contact page for structured data: the
+     * published page whose slug is "contact", or '' when there is none.
+     * $toAbsolute turns a site-relative slug into an absolute URL.
+     */
+    private function getContactPageUrlForStructuredData($toAbsolute)
+    {
+      $items = isset($this->manifest->items) && is_array($this->manifest->items) ? $this->manifest->items : array();
+      foreach ($items as $item) {
+        if (!is_object($item) || !isset($item->slug) || !is_string($item->slug)) {
+          continue;
+        }
+        $slug = trim($item->slug, '/');
+        if (strtolower($slug) === 'contact' && SiteRouteUtils::isItemPublished($item)) {
+          return $toAbsolute($slug);
+        }
+      }
+      return '';
+    }
+
+    /**
      * Whether a page is published: what the shell and the page variants,
      * served without a login, may show (SiteRouteUtils::isItemPublished).
      */
@@ -3468,6 +3488,21 @@ class HAXCMSSite
         );
         if (count($siteSameAs) > 0) {
           $publisherNode['sameAs'] = $siteSameAs;
+        }
+        // what the site is, in its own words
+        $siteDescription = isset($this->manifest->description) ? trim((string) $this->manifest->description) : '';
+        if ($siteDescription != '') {
+          $publisherNode['description'] = $siteDescription;
+        }
+        // how to reach the site: its published Contact page (slug "contact"),
+        // never the author's email
+        $contactUrl = $this->getContactPageUrlForStructuredData($toAbsoluteStructuredDataUrl);
+        if ($contactUrl != '') {
+          $publisherNode['contactPoint'] = array(
+            '@type' => 'ContactPoint',
+            'contactType' => 'customer support',
+            'url' => $contactUrl,
+          );
         }
         if ($authorNode !== null) {
           $publisherNode['founder'] = array(
