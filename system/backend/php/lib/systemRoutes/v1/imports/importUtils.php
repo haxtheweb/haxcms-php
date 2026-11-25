@@ -73,6 +73,12 @@ if (!function_exists('haxcmsImportSimpleHtmlToElements')) {
         if (!$source) {
             return $elements;
         }
+        // A whole exported site arrives wrapped in one container
+        // (<haxcms-print-theme>, <main>, <article>...) holding its headings.
+        // Step into a lone non-heading wrapper so those headings become pages,
+        // the way the Node backend finds them (parity with haxcms-nodejs
+        // importHtmlToItems).
+        $source = haxcmsImportUnwrapLoneContainer($source);
         foreach ($source->childNodes as $child) {
             if ($child->nodeType === XML_ELEMENT_NODE) {
                 $elements[] = array(
@@ -83,6 +89,54 @@ if (!function_exists('haxcmsImportSimpleHtmlToElements')) {
             }
         }
         return $elements;
+    }
+}
+
+/**
+ * Whether an element holds an h1-h6 anywhere inside it.
+ */
+if (!function_exists('haxcmsImportHasHeading')) {
+    function haxcmsImportHasHeading(DOMElement $el): bool
+    {
+        for ($level = 1; $level <= 6; $level++) {
+            if ($el->getElementsByTagName('h' . $level)->length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+/**
+ * Follow a chain of lone container elements down to the one holding the content.
+ * A node whose only element child is a non-heading element with headings
+ * inside it is a wrapper; text beside it keeps the node as the source.
+ */
+if (!function_exists('haxcmsImportUnwrapLoneContainer')) {
+    function haxcmsImportUnwrapLoneContainer(DOMNode $source): DOMNode
+    {
+        while (true) {
+            $only = null;
+            $count = 0;
+            foreach ($source->childNodes as $child) {
+                if ($child->nodeType === XML_ELEMENT_NODE) {
+                    $only = $child;
+                    $count++;
+                }
+                elseif ($child->nodeType === XML_TEXT_NODE && trim($child->textContent) !== '') {
+                    return $source;
+                }
+            }
+            if ($count !== 1 || preg_match('/^h[1-6]$/i', $only->nodeName)) {
+                return $source;
+            }
+            // only a wrapper around headings: a lone list, table or plain div
+            // without headings stays whole
+            if (!($only instanceof DOMElement) || !haxcmsImportHasHeading($only)) {
+                return $source;
+            }
+            $source = $only;
+        }
     }
 }
 
@@ -425,6 +479,11 @@ if (!function_exists('haxcmsImportHtmlToItems')) {
                             $childOrder    = 0;
                             $currentChildIdx = $childStartIdx - 1;
                             while ($currentChildIdx < count($elements)) {
+                                // the next top-level heading starts the next page: its child
+                                // headings belong to it (parity with haxcms-nodejs)
+                                if ($elements[$currentChildIdx]['tagName'] === $rootTag) {
+                                    break;
+                                }
                                 if ($elements[$currentChildIdx]['tagName'] !== $childTag) {
                                     $currentChildIdx++;
                                     continue;

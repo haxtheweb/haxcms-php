@@ -190,9 +190,10 @@ class ImportUtilsTest extends TestCase
 
     public function testHaxcmsImportLoadDocxMediaMapAndConvertEmitsInlineImagesFromExampleDocx(): void
     {
-        $docx = '/home/bto108a/Documents/git/haxtheweb/praw/hax-imports/import-example.docx';
-        if (!is_file($docx) || !class_exists('ZipArchive')) {
-            $this->markTestSkipped('import-example.docx or ZipArchive unavailable');
+        // a copy of https://github.com/haxtheweb/praw/blob/main/hax-imports/import-example.docx
+        $docx = __DIR__ . '/../fixtures/import/import-example.docx';
+        if (!class_exists('ZipArchive')) {
+            $this->markTestSkipped('ZipArchive unavailable');
         }
         $zip = new ZipArchive();
         $this->assertTrue($zip->open($docx) === true);
@@ -271,6 +272,48 @@ class ImportUtilsTest extends TestCase
         $this->assertNull($items[2]['parent']);
         $this->assertSame(0, $items[2]['indent']);
         $this->assertSame('<p>Intro B</p>', $items[2]['contents']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsSiteMethodKeepsChildrenWithTheirRoot(): void
+    {
+        // each root's child headings stop at the next root (parity with haxcms-nodejs)
+        $html = '<h1>Root A</h1><p>A</p><h2>A1</h2><p>a1</p><h1>Root B</h1><p>B</p><h2>B1</h2><p>b1</p><h2>B2</h2><p>b2</p>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame(['Root A', 'A1', 'Root B', 'B1', 'B2'], array_column($items, 'title'));
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+        $this->assertSame($items[2]['id'], $items[3]['parent']);
+        $this->assertSame($items[2]['id'], $items[4]['parent']);
+        $this->assertSame([0, 1], [$items[3]['order'], $items[4]['order']]);
+    }
+
+    public function testHaxcmsImportHtmlToItemsSiteMethodReadsAWrappedSiteExport(): void
+    {
+        // a whole site export: one wrapper around the page headings, each page's
+        // content in a div after its heading (hax-imports/import-example.html shape)
+        $html = '<!DOCTYPE html><html><head><title>x</title></head><body><haxcms-print-theme>'
+            . '<h1>Start</h1><div data-jos-item-id="a"><p>Start body</p><h3>Inside</h3></div>'
+            . '<h2>Child</h2><div data-jos-item-id="b"><p>Child body</p></div>'
+            . '<h1>Next</h1><div data-jos-item-id="c"><p>Next body</p></div>'
+            . '</haxcms-print-theme></body></html>';
+
+        $items = haxcmsImportHtmlToItems($html, ['titleValue' => 't', 'method' => 'site']);
+
+        $this->assertSame(['Start', 'Child', 'Next'], array_column($items, 'title'));
+        $this->assertSame($items[0]['id'], $items[1]['parent']);
+        $this->assertStringContainsString('Start body', $items[0]['contents']);
+        $this->assertStringContainsString('<h3>Inside</h3>', $items[0]['contents']);
+        $this->assertStringContainsString('Child body', $items[1]['contents']);
+    }
+
+    public function testHaxcmsImportHtmlToItemsKeepsALoneWrapperWithoutHeadingsWhole(): void
+    {
+        $items = haxcmsImportHtmlToItems('<ul><li>One</li><li>Two</li></ul>', ['titleValue' => 'List', 'method' => 'site']);
+
+        $this->assertCount(1, $items);
+        $this->assertSame('List', $items[0]['title']);
+        $this->assertStringStartsWith('<ul>', $items[0]['contents']);
     }
 
     public function testHaxcmsImportHtmlToItemsSiteMethodUsesParentIdForRoots(): void
