@@ -74,6 +74,39 @@ class ExportConverters
         return 'Site export';
     }
 
+    /**
+     * The data-item-parent attribute an exported page carries, so an import
+     * can rebuild the outline: the parent's id when the parent is in the same
+     * export, empty for a top-level page of the export (a branch's root, or a
+     * page whose parent was left out as not visible). Parity with
+     * haxcms-nodejs exportItemParentAttribute.
+     *
+     * @param array<string, bool> $exportedIds
+     */
+    public static function exportItemParentAttribute($item, array $exportedIds): string
+    {
+        $parent = '';
+        if (isset($item->parent) && $item->parent !== '' && isset($exportedIds[(string) $item->parent])) {
+            $parent = (string) $item->parent;
+        }
+        return ' data-item-parent="' . self::escapeHtmlValue($parent) . '"';
+    }
+
+    /**
+     * @param array<int, mixed> $items
+     * @return array<string, bool>
+     */
+    public static function exportedItemIds(array $items): array
+    {
+        $ids = array();
+        foreach ($items as $item) {
+            if ($item && isset($item->id) && $item->id !== '') {
+                $ids[(string) $item->id] = true;
+            }
+        }
+        return $ids;
+    }
+
     public static function buildItemExportDocumentTitle($item)
     {
         if (isset($item) && isset($item->title) && $item->title != '') {
@@ -424,13 +457,14 @@ class ExportConverters
         $parts[] = '<body>';
         $parts[] = '<main data-haxcms-export="site" data-title="' . self::escapeHtmlValue($siteTitle) . '">';
         $parts[] = '<h1>' . self::escapeHtmlValue($siteTitle) . '</h1>';
+        $exportedIds = self::exportedItemIds($itemsToExport);
         foreach ($itemsToExport as $item) {
             if (!$item) {
                 continue;
             }
             $itemTitle = self::buildItemExportDocumentTitle($item);
             $itemContent = SiteRouteUtils::getItemContent($site, $item);
-            $parts[] = '<article data-item-id="' . self::escapeHtmlValue(isset($item->id) ? (string) $item->id : '') . '" data-item-slug="' . self::escapeHtmlValue(isset($item->slug) ? (string) $item->slug : '') . '">';
+            $parts[] = '<article data-item-id="' . self::escapeHtmlValue(isset($item->id) ? (string) $item->id : '') . '" data-item-slug="' . self::escapeHtmlValue(isset($item->slug) ? (string) $item->slug : '') . '"' . self::exportItemParentAttribute($item, $exportedIds) . '>';
             $parts[] = '<h2>' . self::escapeHtmlValue($itemTitle) . '</h2>';
             $parts[] = (string) $itemContent;
             $parts[] = '</article>';
@@ -475,12 +509,15 @@ class ExportConverters
         if ($visibleOnly) {
             $itemsToExport = self::filterItemsVisibleToAnonymous($itemsToExport);
         }
+        $exportedIds = self::exportedItemIds($itemsToExport);
         foreach ($itemsToExport as $item) {
             if (!$item) {
                 continue;
             }
             $itemContent = SiteRouteUtils::getItemContent($site, $item);
-            $parts[] = '<div data-jos-item-id="' . self::escapeHtmlValue(isset($item->id) ? (string) $item->id : '') . '">';
+            // each page's title before its content, as in the document export
+            $parts[] = '<h2>' . self::escapeHtmlValue(self::buildItemExportDocumentTitle($item)) . '</h2>';
+            $parts[] = '<div data-jos-item-id="' . self::escapeHtmlValue(isset($item->id) ? (string) $item->id : '') . '"' . self::exportItemParentAttribute($item, $exportedIds) . '>';
             $parts[] = (string) $itemContent;
             $parts[] = '</div>';
         }
