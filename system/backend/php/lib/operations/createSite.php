@@ -1,6 +1,7 @@
 <?php
 include_once dirname(__FILE__) . '/../SsrfGuard.php';
 include_once dirname(__FILE__) . '/../stageRemoteFile.php';
+include_once dirname(__FILE__) . '/../SiteZip.php';
 include_once dirname(__FILE__) . '/../EntityRegistry.php';
 include_once dirname(__FILE__) . '/../FileStorage.php';
 include_once dirname(__FILE__) . '/../FileEntity.php';
@@ -453,6 +454,24 @@ trait OperationsRouteCreateSite {
             continue;
           }
           if (!is_string($downloadUrl) || $downloadUrl === '') {
+            continue;
+          }
+          // a file staged by a site zip import (haxtheweb/issues#3405): written
+          // only while site zip import is on, only from the bulk-import
+          // staging root, and removed from there once used
+          if (!preg_match('/^https?:\/\//i', $downloadUrl)) {
+            if (HAXCMSSiteZip::enabled() && HAXCMSFile::isValidBulkImportTmpPath($downloadUrl)) {
+              $content = @file_get_contents($downloadUrl);
+              if (is_string($content)) {
+                $targetPath = $site->directory . '/' . $site->manifest->metadata->site->name . '/' . $normalizedPath;
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                  mkdir($targetDir, 0755, true);
+                }
+                file_put_contents($targetPath, $content);
+              }
+              haxcms_import_unlink_staged_files(array($downloadUrl));
+            }
             continue;
           }
           // SSRF guard: reject private/loopback/link-local/metadata targets

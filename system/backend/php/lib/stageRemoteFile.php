@@ -127,10 +127,21 @@ if (!function_exists('haxcms_import_stage_remote_file')) {
         } catch (\Exception $e) {
             return false;
         }
-        if ($body === '') {
+        return haxcms_import_stage_bytes($body, $relPath);
+    }
+}
+
+// Stage bytes that are already in hand (a file read out of an uploaded site
+// zip) the same way: same root, same naming, same exclusive 0600 create.
+// Returns the absolute staged path, or false for an empty body or a failed
+// write. Mirrors haxcms-nodejs stageFileBuffer.
+if (!function_exists('haxcms_import_stage_bytes')) {
+    function haxcms_import_stage_bytes($body, $relPath) {
+        $root = haxcms_import_get_staging_root();
+        if ($root === false || !is_string($body) || $body === '') {
             return false;
         }
-        // Security (SEC-SSRF): the extension comes from the remote-supplied
+        // Security (SEC-SSRF): the extension comes from a caller-supplied
         // path, so only an allowlisted extension is kept.
         $ext      = haxcms_import_staged_extension($relPath);
         $extPart  = ($ext !== '') ? '.' . $ext : '';

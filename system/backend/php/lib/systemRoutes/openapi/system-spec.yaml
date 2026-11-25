@@ -2633,12 +2633,31 @@ paths:
         - actions
       operationId: haxcmsToSite
       summary: Import a HAXcms site as a new site
+      description: >
+        Reads a published HAXcms site from its address (repoUrl), or an
+        uploaded HAXcms site zip (what Download site gives: site.json with
+        pages/ and files/, at the top of the zip or one folder down). Zip
+        import is off unless the operator turns it on (config
+        security.siteZipImport or HAXCMS_SITE_ZIP_IMPORT=true; 403 with
+        data.reason DISABLED otherwise), because the zip can carry the site's
+        own JavaScript. site.json must be a HAXcms site outline or the zip is
+        refused (400, data.reason INVALID_SITE). A zip import also returns
+        site.title, site.description and site.theme, and the site's custom
+        build in siteFiles as a staged file.
       security:
         - bearerAuth: []
           userTokenHeader: []
       requestBody:
         required: true
         content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Uploaded HAXcms site zip
           application/json:
             schema:
               type: object
@@ -4154,6 +4173,18 @@ components:
               description: >
                 License code from the HAXcms license list (for example by-sa,
                 cc0, mit), or null when the source states none HAX can apply.
+            title:
+              type: string
+              description: Site title (haxcmsToSite from an uploaded zip)
+            description:
+              type: string
+              description: Site description (haxcmsToSite from an uploaded zip)
+            theme:
+              type: string
+              nullable: true
+              description: >
+                Theme element the site used (haxcmsToSite from an uploaded
+                zip), or null when site.json names none
           additionalProperties: true
         warnings:
           type: array
