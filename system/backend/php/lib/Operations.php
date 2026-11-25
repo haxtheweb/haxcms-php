@@ -440,6 +440,52 @@ class Operations {
     return $normalized;
   }
   /**
+   * A site's own theme lives in its custom build. A theme the registry does
+   * not have is accepted only when the request carries that build in
+   * build.siteFiles, and it stays selected only if the build is written; it
+   * is stored the way `hax site --theme <custom-theme>` stores it. Same rule
+   * as createSite in haxcms-nodejs.
+   *
+   * The build.siteFiles key that carries the site's custom build, or null.
+   */
+  private function findCustomThemeBuildKey($siteFiles) {
+    if (!is_array($siteFiles)) {
+      return null;
+    }
+    foreach ($siteFiles as $relativePath => $source) {
+      if (
+        $this->normalizeSiteFilePath($relativePath) === 'custom/build/custom.es6.js' &&
+        is_string($source) &&
+        $source !== ''
+      ) {
+        return $relativePath;
+      }
+    }
+    return null;
+  }
+  /**
+   * The theme entry for a custom theme (element in the site's custom build),
+   * or null when the element is not a valid custom element name.
+   */
+  private function customThemeEntry($element) {
+    if (
+      !is_string($element) ||
+      strlen($element) > 100 ||
+      preg_match('/^[a-z][a-z0-9_.]*-[a-z0-9_.-]*$/', $element) !== 1
+    ) {
+      return null;
+    }
+    // name: the CLI's dashToCamel (custom-geo-theme -> CustomGeoTheme)
+    $camel = preg_replace_callback('/-([a-z0-9])/', function ($m) {
+      return strtoupper($m[1]);
+    }, $element);
+    $entry = new stdClass();
+    $entry->element = $element;
+    $entry->path = './custom/build/custom.es6.js';
+    $entry->name = ucfirst($camel);
+    return $entry;
+  }
+  /**
    * Verify fetched siteFile content has a MIME consistent with its target
    * extension (CWE-434). Mirrors the Node.js siteFileContentTypeAcceptable.
    * Absent finfo returns true (the SSRF IP validation in safeFileGetContents

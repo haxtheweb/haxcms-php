@@ -264,8 +264,16 @@ trait OperationsRouteCreateSite {
           $schema->metadata->theme = $this->toObject($trustedTheme);
         }
       }
+      // set when the theme is the site's own (custom build in build.siteFiles)
+      $customThemeBuildKey = null;
       // look for a match so we can set the correct data
       if (!is_object($schema->metadata->theme) || count((array)$schema->metadata->theme) === 0) {
+        $requestSiteFiles = (isset($this->params['build']['siteFiles']) && is_array($this->params['build']['siteFiles']))
+          ? $this->params['build']['siteFiles']
+          : null;
+        $requestedCustomTheme = (!$useTrustedSkeleton && $this->findCustomThemeBuildKey($requestSiteFiles) !== null)
+          ? $this->customThemeEntry($theme)
+          : null;
         $themes = $GLOBALS['HAXCMS']->getThemes();
         if (is_object($themes)) {
           $themes = (array)$themes;
@@ -274,6 +282,11 @@ trait OperationsRouteCreateSite {
           $schema->metadata->theme = is_object($themes[$theme])
             ? json_decode(json_encode($themes[$theme]))
             : $this->toObject($themes[$theme]);
+        }
+        else if ($requestedCustomTheme !== null) {
+          // checked again once siteFiles are written (below)
+          $schema->metadata->theme = $requestedCustomTheme;
+          $customThemeBuildKey = $this->findCustomThemeBuildKey($requestSiteFiles);
         }
         else {
           return array(
@@ -447,6 +460,8 @@ trait OperationsRouteCreateSite {
         }
       }
       // download user-customized theme and custom files (imported from another instance)
+      // the custom theme stays selected only if its build was written
+      $customThemeBuildWritten = false;
       if (isset($this->params['build']['siteFiles']) && is_array($this->params['build']['siteFiles'])) {
         foreach ($this->params['build']['siteFiles'] as $relativePath => $downloadUrl) {
           $normalizedPath = $this->normalizeSiteFilePath($relativePath);
@@ -468,7 +483,9 @@ trait OperationsRouteCreateSite {
                 if (!is_dir($targetDir)) {
                   mkdir($targetDir, 0755, true);
                 }
-                file_put_contents($targetPath, $content);
+                if (file_put_contents($targetPath, $content) !== false && $relativePath === $customThemeBuildKey) {
+                  $customThemeBuildWritten = true;
+                }
               }
               haxcms_import_unlink_staged_files(array($downloadUrl));
             }
@@ -491,10 +508,32 @@ trait OperationsRouteCreateSite {
               if (!is_dir($targetDir)) {
                 mkdir($targetDir, 0755, true);
               }
-              file_put_contents($targetPath, $content);
+              if (file_put_contents($targetPath, $content) !== false && $relativePath === $customThemeBuildKey) {
+                $customThemeBuildWritten = true;
+              }
             }
           }
         }
+      }
+      if ($customThemeBuildKey !== null && !$customThemeBuildWritten) {
+        // the build did not land (refused, unreachable, or site zip import
+        // off): the site gets the default theme instead of one that can't load
+        $themes = $GLOBALS['HAXCMS']->getThemes();
+        if (is_object($themes)) {
+          $themes = (array)$themes;
+        }
+        $defaultTheme = (is_array($themes) && isset($themes[HAXCMS_DEFAULT_THEME]))
+          ? json_decode(json_encode($themes[HAXCMS_DEFAULT_THEME]))
+          : new stdClass();
+        // the theme's own variables, the create defaults filling any gaps
+        $variables = (array)$schema->metadata->theme->variables;
+        if (isset($defaultTheme->variables) && (is_object($defaultTheme->variables) || is_array($defaultTheme->variables))) {
+          $variables = array_merge($variables, (array)$defaultTheme->variables);
+        }
+        $defaultTheme->variables = (object)$variables;
+        $schema->metadata->theme = $defaultTheme;
+        $site->manifest->metadata->theme = $defaultTheme;
+        $site->manifest->save(false);
       }
       // main site schema doesn't care about publishing settings
       unset($schema->metadata->site->git);

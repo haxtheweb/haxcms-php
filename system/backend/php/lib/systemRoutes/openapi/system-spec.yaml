@@ -3620,7 +3620,7 @@ components:
               description: Human-readable description shown in the site listing.
             theme:
               type: string
-              description: Theme element machine name (e.g. clean-one, learn-two-theme).
+              description: "Theme element machine name (e.g. clean-one, learn-two-theme). A theme the registry does not have answers 400, unless build.siteFiles carries the site's custom build (custom/build/custom.es6.js) and the theme is a valid custom element name: then it is the site's own theme, stored as { element, path: ./custom/build/custom.es6.js, name } like `hax site --theme`, and kept only if that build is written (otherwise the site gets the default theme)."
             license:
               type: string
               description: Optional license code from the HAXcms license list (Creative Commons, public domain and software licenses). The list is licenses.json, shared by both backends and the client; an unrecognized value is ignored.
