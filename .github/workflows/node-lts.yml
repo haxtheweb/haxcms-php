@@ -1,0 +1,34 @@
+name: Node.js latest LTS
+# Blocking: the Node.js version this repo runs by default is the current LTS
+# (praw RULES.md 92dfb3b2-1c32-42dc-89c3-0f4ae66f7227). scripts/node-lts-check.mjs
+# (standard library only, the same file in haxcms-nodejs, haxcms-php and
+# create) fails when package.json engines.node does not allow the LTS, an
+# .nvmrc names another version, a workflow node-version names one other
+# version, or a node-version matrix (the supported range) leaves the LTS out.
+# Dockerfile base images that are not the LTS are listed without failing:
+# moving a pinned image needs its new digest. Raise NODE_LTS in the script
+# when a new LTS line starts.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  node-lts:
+    name: Node.js latest LTS
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Self-test
+        run: node scripts/node-lts-check.mjs --self-test
+      - name: Check
+        run: node scripts/node-lts-check.mjs
