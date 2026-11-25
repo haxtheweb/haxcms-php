@@ -2298,6 +2298,46 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /system/api/v1/actions/website-metadata:
+    post:
+      tags:
+        - actions
+      operationId: websiteMetadata
+      summary: Read a web page's title and metadata
+      description: >-
+        Fetches the page at `q` (http or https, public addresses only) and
+        returns its title, meta tags keyed by name or property, any JSON-LD
+        block as `ld+json`, and the `url` asked for. Used for link previews
+        and inserting a link by URL in the editor. A page that cannot be
+        reached answers with just the `url`.
+      security:
+        - bearerAuth: []
+          userTokenHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - q
+              properties:
+                q:
+                  type: string
+                  description: URL of the page to read
+      responses:
+        "200":
+          description: The page's metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiEnvelope"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /system/api/v1/actions/html-to-md:
     post:
       tags:

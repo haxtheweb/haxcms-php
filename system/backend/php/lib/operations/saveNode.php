@@ -2,6 +2,7 @@
 include_once dirname(__FILE__) . '/../FileContentScanner.php';
 include_once dirname(__FILE__) . '/../OutlineUpkeep.php';
 include_once dirname(__FILE__) . '/../ImageFraming.php';
+include_once dirname(__FILE__) . '/../SimpleImgVariants.php';
 trait OperationsRouteSaveNode {
   public function saveNode() {
     if (isset($this->params['site_token']) && $GLOBALS['HAXCMS']->validateRequestToken($this->params['site_token'], $this->getSiteTokenUserName() . ':' . $this->params['site']['name'])) {
@@ -143,6 +144,16 @@ trait OperationsRouteSaveNode {
                   );
                 } catch (\Throwable $e) {
                   // never fail a save over a cut
+                }
+                // simple-img shows the sized copy of its photo made here; a
+                // photo that can't be copied shows as the original
+                try {
+                  SimpleImgVariants::cut(
+                    HAXCMS_ROOT . '/' . $GLOBALS['HAXCMS']->sitesDirectory . '/' . $site->manifest->metadata->site->name,
+                    $sanitizedContent
+                  );
+                } catch (\Throwable $e) {
+                  // never fail a save over a variant
                 }
                 // sanity check
                 if (!isset($page->metadata)) {
