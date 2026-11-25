@@ -1312,8 +1312,13 @@ class HAXCMSSite
       $xml = array();
       $xml[] = '<?xml version="1.0" encoding="UTF-8"?>';
       $xml[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+      include_once dirname(__FILE__) . '/siteRoutes/SiteRouteUtils.php';
       foreach ($this->manifest->items as $item) {
         if (!isset($item->slug) || $item->slug == '') {
+          continue;
+        }
+        // only pages an anonymous visitor can open are listed
+        if (!SiteRouteUtils::isItemPublished($item)) {
           continue;
         }
         $loc = rtrim($base, '/') . '/' . ltrim($item->slug, '/');
