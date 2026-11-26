@@ -69,4 +69,15 @@ class BoilerplateShellPreloadsTest extends TestCase
         $this->assertStringContainsString('body:has(> #loading[aria-busy="true"]) haxcms-site-builder {', $html);
         $this->assertMatchesRegularExpression('/<noscript>[\s\S]*#loading \{\s*display: none !important;[\s\S]*visibility: visible !important;[\s\S]*<\/noscript>/', $html);
     }
+
+    // haxtheweb/issues#3429: site:build-static replaces the marked check
+    // with the place it knows build/ comes from
+    public function testBuildCheckIsMarkedForStaticBuilds(): void
+    {
+        $html = $this->shell();
+        $this->assertSame(1, substr_count($html, '<script data-haxcms-cdn-check>'));
+        $check = strpos($html, '<script data-haxcms-cdn-check>');
+        $this->assertGreaterThan($check, strpos($html, "xhr.open('HEAD'"));
+        $this->assertGreaterThan($check, strpos($html, 'importmap.type = "importmap"'));
+    }
 }

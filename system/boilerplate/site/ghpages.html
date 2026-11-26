@@ -29,7 +29,9 @@
       seoTag.setAttribute('content', document.location.href);
     }
   </script>
-  <script>
+  <script data-haxcms-cdn-check>
+    // decides where build/ comes from; site:build-static replaces this with
+    // its own answer when it knows it (haxtheweb/issues#3429)
     (function() {
       var cdn = "./";
       try {
