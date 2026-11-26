@@ -66,7 +66,9 @@ class BoilerplateShellPreloadsTest extends TestCase
     public function testRenderedPageHiddenWhileLoadingAndShownWithoutJs(): void
     {
         $html = $this->shell();
-        $this->assertStringContainsString('body:has(> #loading[aria-busy="true"]) haxcms-site-builder {', $html);
+        // the theme is named too (haxtheweb/issues#3431): themes reveal
+        // themselves with their own :host visibility
+        $this->assertStringContainsString("body:has(> #loading[aria-busy=\"true\"]) haxcms-site-builder,\n    body:has(> #loading[aria-busy=\"true\"]) haxcms-site-builder > .haxcms-theme-element {", $html);
         $this->assertMatchesRegularExpression('/<noscript>[\s\S]*#loading \{\s*display: none !important;[\s\S]*visibility: visible !important;[\s\S]*<\/noscript>/', $html);
     }
 

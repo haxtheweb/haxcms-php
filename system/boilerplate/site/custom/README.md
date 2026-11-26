@@ -18,3 +18,24 @@ best practices. A watch is happening that will automatically build it for ES6 / 
 ## Building to ship
 
 To build to ship to all browsers that HAXcms supports, run `yarn run build`. Now you're good to go!
+
+## Keep the first render light
+
+Everything `src/custom.js` imports statically is downloaded before your theme
+is defined, and a visitor sees nothing until then. Import statically only what
+the theme draws on every page. Load the rest when it is needed, with a dynamic
+`import()`:
+
+```js
+// only pages with a video use the player
+willUpdate(changed) {
+  if (changed.has("page") && this.page && this.page.video) {
+    import("@haxtheweb/video-player/video-player.js");
+  }
+}
+```
+
+Elements used in page content don't need importing at all: the autoloader
+defines registered tags when a page uses them. In the webcomponents repo,
+`node scripts/theme-first-render-report.mjs <theme-tag>` lists what a core
+theme loads before its first render.

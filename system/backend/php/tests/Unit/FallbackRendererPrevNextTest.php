@@ -88,6 +88,18 @@ class FallbackRendererPrevNextTest extends TestCase
         return $out;
     }
 
+    // haxtheweb/issues#3431: the fallback renderer starts the builder while
+    // the page parses, like HAXCMSSite::getSiteMetadata
+    public function testFallbackStartsTheBuilderWhileThePageParses(): void
+    {
+        $html = $this->metadataFor(0);
+        $this->assertStringContainsString('[END]', $html);
+        $this->assertStringContainsString(
+            '<script data-haxcms-boot>(function(){var c=(globalThis.__appCDN||"./")+"build/es6/node_modules/";["@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js"]',
+            $html
+        );
+    }
+
     public function testMiddlePageRendersWithPrevAndNextLinks(): void
     {
         $html = $this->metadataFor(1);
