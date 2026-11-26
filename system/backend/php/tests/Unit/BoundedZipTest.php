@@ -131,6 +131,28 @@ class BoundedZipTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    /**
+     * haxtheweb/issues#3426: an empty file (.nojekyll, a placeholder) is an
+     * ordinary entry, stored or deflated. Parity: haxcms-nodejs boundedZip
+     * "empty files (STORE and DEFLATE) come back as empty files".
+     */
+    public function testEmptyFilesPass()
+    {
+        foreach (array(ZipArchive::CM_STORE, ZipArchive::CM_DEFLATE) as $method) {
+            $path = $this->tmpPath();
+            $zip = new ZipArchive();
+            $zip->open($path, ZipArchive::CREATE);
+            $zip->addFromString('site.json', '{}');
+            $zip->addFromString('empty.txt', '');
+            $zip->addFromString('.nojekyll', '');
+            $zip->setCompressionName('empty.txt', $method);
+            $zip->setCompressionName('.nojekyll', $method);
+            $zip->close();
+            BoundedZip::assertWithinLimits($path, 'zip');
+            $this->addToAssertionCount(1);
+        }
+    }
+
     public function testALyingHeaderStopsAtItsClaim()
     {
         $path = $this->buildZip(array(), 'content.xml', self::BOMB_BYTES, 100);
