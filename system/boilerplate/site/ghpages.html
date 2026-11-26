@@ -179,12 +179,17 @@
     (function () {
       var cdn = globalThis.__appCDN || "./";
       var links = document.querySelectorAll("link[data-haxcms-cdn-href]");
+      // only the shell's own files (build/ modules, styles and fonts, and
+      // wc-registry.json) are given an address: never a URL with a scheme
+      var shellFile = /^(?:build\/[\w@.\/-]+|wc-registry\.json)$/;
       for (var i = 0; i < links.length; i++) {
-        var path = links[i].getAttribute("data-haxcms-cdn-href");
+        var path = links[i].getAttribute("data-haxcms-cdn-href") || "";
         if (path.indexOf("./") === 0) {
           path = path.substring(2);
         }
-        links[i].setAttribute("href", cdn + path);
+        if (shellFile.test(path) && path.indexOf("..") === -1) {
+          links[i].setAttribute("href", cdn + path);
+        }
       }
     })();
   </script>
