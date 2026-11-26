@@ -4,6 +4,7 @@ include_once dirname(__FILE__) . '/imports/importUtils.php';
 include_once dirname(__FILE__) . '/../../DocxToHtml.php';
 include_once dirname(__FILE__) . '/../../BoundedZip.php';
 include_once dirname(__FILE__) . '/../../SafeXml.php';
+include_once dirname(__FILE__) . '/../../MaterializeInlineImages.php';
 
 /**
  * Convert DOCX word/document.xml into a simplified HTML string using DOMDocument.
@@ -243,6 +244,32 @@ function haxcmsSystemProcessDocxHtml($html)
     return $content !== '' ? $content : $html;
 }
 
+/**
+ * The page the document is going into, when the request names one: both
+ * siteName and itemId form fields, a site that loads and an item in its
+ * outline (haxtheweb/issues#3058). Anything else is no page, and the
+ * conversion answers as it always has. Mirrors haxcms-nodejs
+ * pageContextFromRequest().
+ */
+function haxcmsSystemDocxPageContext($body)
+{
+    if (!is_array($body)) {
+        return null;
+    }
+    $siteName = isset($body['siteName']) && is_string($body['siteName']) ? $body['siteName'] : '';
+    $itemId = isset($body['itemId']) && is_string($body['itemId']) ? $body['itemId'] : '';
+    if ($siteName === '' || $itemId === '' || !isset($GLOBALS['HAXCMS'])) {
+        return null;
+    }
+    try {
+        $site = $GLOBALS['HAXCMS']->loadSite($siteName);
+        $item = $site ? $site->loadNode($itemId) : false;
+        return $item ? array('site' => $site, 'item' => $item) : null;
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
 return function ($context) {
     $apiBasePath = isset($context->apiBasePath) ? $context->apiBasePath : '/system/api';
 
@@ -326,6 +353,24 @@ return function ($context) {
                 // Same converter and clean-up as haxcms-nodejs (mammoth port).
                 try {
                     $html = DocxToHtml::convertFile($tmpPath);
+                    // only a document with inline images needs the page
+                    // (materialize replaces just img elements whose src is
+                    // a data: URI)
+                    if (stripos($html, 'data:') !== false) {
+                        $page = haxcmsSystemDocxPageContext(isset($context->body) ? $context->body : null);
+                        if ($page !== null) {
+                            // a save that fails leaves the images inline,
+                            // as with no page; the conversion still answers
+                            try {
+                                $materialized = MaterializeInlineImages::materialize($html, $page['site'], array(
+                                    'pageTitle' => isset($page['item']->title) ? $page['item']->title : '',
+                                ));
+                                $html = $materialized['html'];
+                            } catch (\Throwable $e) {
+                                error_log('docxToHtml: inline images left inline: ' . $e->getMessage());
+                            }
+                        }
+                    }
                 } catch (\Throwable $e) {
                     $error = 'Error converting DOCX: ' . $e->getMessage();
                 }
