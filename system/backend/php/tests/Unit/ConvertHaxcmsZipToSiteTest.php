@@ -173,6 +173,17 @@ class ConvertHaxcmsZipToSiteTest extends TestCase
         $this->assertSame('ZIP_BUDGET', $response['data']['reason']);
     }
 
+    /** haxtheweb/issues#3426. Parity: haxcms-nodejs "a site zip with empty files imports". */
+    public function testASiteZipWithEmptyFilesImports(): void
+    {
+        $result = $this->importZip($this->makeZip('', null, function ($zip) {
+            $zip->addFromString('.nojekyll', '');
+            $zip->addFromString('files/placeholder.txt', '');
+        }));
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('<p>Welcome to my homepage</p>', $result['data']['items'][0]['contents']);
+    }
+
     public function testAFileThatIsNotAZipIsRefused(): void
     {
         $path = $this->tmpBase . '/not-a-zip.zip';
