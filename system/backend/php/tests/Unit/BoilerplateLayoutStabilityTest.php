@@ -28,7 +28,13 @@ class BoilerplateLayoutStabilityTest extends TestCase
         $this->assertNotFalse($html, $file . ' exists');
         preg_match_all('/haxcms-site-builder \{[^}]*\}/', $html, $rules);
         $this->assertNotEmpty($rules[0], 'haxcms-site-builder rule found');
-        foreach ($rules[0] as $rule) {
+        // rules that only toggle visibility (hidden under the loading screen,
+        // shown without JS, haxtheweb/issues#3428) don't set display
+        $displayRules = array_filter($rules[0], function ($rule) {
+            return strpos($rule, 'display') !== false;
+        });
+        $this->assertNotEmpty($displayRules, 'haxcms-site-builder display rule found');
+        foreach ($displayRules as $rule) {
             $this->assertStringContainsString('display: flow-root', $rule);
             $this->assertStringNotContainsString('display: block', $rule);
         }

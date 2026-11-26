@@ -41,43 +41,24 @@
         }
       } catch (e) {}
       globalThis.__appCDN = cdn;
-      if (cdn !== "./") {
-        var cdns = [
-          'https://cdn.hax.cloud/cdn/',
-          'https://cdn.webcomponents.psu.edu/cdn/'
-        ];
-        // The shell's preload hints are given their address after the
-        // managed head (see data-haxcms-cdn-preloads below), haxtheweb/issues#3428.
-        var importmap = document.querySelector('script[type="importmap"]');
-        if (importmap) {
-          try {
-            var map = JSON.parse(importmap.textContent);
-            if (map.scopes) {
-              Object.keys(map.scopes).forEach(function(scope) {
-                Object.keys(map.scopes[scope]).forEach(function(key) {
-                  var val = map.scopes[scope][key];
-                  cdns.forEach(function(oldCdn) {
-                    if (val.indexOf(oldCdn) === 0) {
-                      map.scopes[scope][key] = cdn + val.substring(oldCdn.length);
-                    }
-                  });
-                });
-              });
-            }
-            importmap.textContent = JSON.stringify(map);
-          } catch (e) {}
+      // haxtheweb/issues#3428: the import map is written here, once the
+      // check above knows where build/ comes from, so a custom theme in
+      // custom/build/ imports @haxtheweb/* from that same place. A fixed map
+      // in the markup always pointed at the CDN, so a site that ships its own
+      // build/ ran core from ./build/ and the custom theme from the CDN: two
+      // copies of every element it imported. An import map added by a script
+      // counts as long as no module has started loading, and nothing has yet.
+      var importmap = document.createElement("script");
+      importmap.type = "importmap";
+      importmap.textContent = JSON.stringify({
+        scopes: {
+          "./custom/build/": {
+            "@haxtheweb/": cdn + "build/es6/node_modules/@haxtheweb/"
+          }
         }
-      }
+      });
+      document.currentScript.after(importmap);
     })();
-  </script>
-  <script type="importmap">
-    {
-      "scopes": {
-        "./custom/build/": {
-          "@haxtheweb/": "https://cdn.hax.cloud/cdn/build/es6/node_modules/@haxtheweb/"
-        }
-      }
-    }
   </script>
   <link rel="llms" href="llms.txt" title="LLM Content Map">
   <link rel="alternate" type="text/markdown" href="llms.txt" title="Markdown Summary">
@@ -194,6 +175,14 @@
     })();
   </script>
   <style id="loadingstyles">
+    /* haxtheweb/issues#3428: the page the server rendered sits under the
+       opaque loading screen until the site is ready. Hidden there, the
+       theme taking it over is not a layout shift (nobody could see it, but
+       CLS counted the whole viewport moving). It shows again the moment the
+       loading screen starts to dissolve (aria-busy="false"). */
+    body:has(> #loading[aria-busy="true"]) haxcms-site-builder {
+      visibility: hidden;
+    }
     haxcms-site-builder {
       display: flow-root;
     }
@@ -374,6 +363,18 @@
       }
     }
   </style>
+  <noscript>
+    <!-- without JavaScript the site never finishes loading, so drop the
+         loading screen and show the page the server rendered -->
+    <style>
+      #loading {
+        display: none !important;
+      }
+      haxcms-site-builder {
+        visibility: visible !important;
+      }
+    </style>
+  </noscript>
   <script id="loadingscript">
     globalThis.dataLayer = globalThis.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
