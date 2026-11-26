@@ -46,17 +46,8 @@
           'https://cdn.hax.cloud/cdn/',
           'https://cdn.webcomponents.psu.edu/cdn/'
         ];
-        var preloads = document.querySelectorAll('link[rel="modulepreload"]');
-        for (var i = 0; i < preloads.length; i++) {
-          var href = preloads[i].getAttribute('href');
-          if (href && href.indexOf('./build/') === 0) {
-            preloads[i].setAttribute('href', cdn + href.substring(2));
-          }
-        }
-        var baseCss = document.querySelector('link[rel="preload"][as="style"]');
-        if (baseCss && baseCss.getAttribute('href') && baseCss.getAttribute('href').indexOf('./build/') === 0) {
-          baseCss.setAttribute('href', cdn + baseCss.getAttribute('href').substring(2));
-        }
+        // The shell's preload hints are given their address after the
+        // managed head (see data-haxcms-cdn-preloads below), haxtheweb/issues#3428.
         var importmap = document.querySelector('script[type="importmap"]');
         if (importmap) {
           try {
@@ -101,21 +92,24 @@
   <meta name="og:url" property="og:url" content="/" data-managed-seo />
   <meta name="twitter:site" property="twitter:site" content="/" data-managed-seo />
   <!-- build.js and build-haxcms.js are loaded via script at the end of body; removing redundant preload -->
-  <link rel="preload" href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
+  <link rel="preload" data-haxcms-cdn-href="./wc-registry.json" as="fetch" crossorigin="anonymous" fetchpriority="high" />
   <!-- Static fallback shell modulepreload set (see the matching comment in
        boilerplate/site/index.html). The dynamic publish/render path replaces
        this with a graph-driven, capped set from wc-registry-graph.json via
        HAXCMS.buildShellModulepreloadPaths; the ./build/ prefix shape is
-       preserved so the CDN-fallback rewriter below keeps working. -->
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-router.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSThemeWiring.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js" crossorigin="anonymous" />
-  <link rel="modulepreload" href="./build/es6/node_modules/@haxtheweb/utils/utils.js" crossorigin="anonymous" />
-  <link rel="preload" href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
+       preserved so the CDN-fallback rewriter below keeps working. The paths
+       are in data-haxcms-cdn-href, not href, so nothing is requested until
+       data-haxcms-cdn-preloads below points them at this site or the CDN
+       (haxtheweb/issues#3428). -->
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/dynamic-import-registry/dynamic-import-registry.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-store.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/haxcms-site-router.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSThemeWiring.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/core/HAXCMSLitElementTheme.js" crossorigin="anonymous" />
+  <link rel="modulepreload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/utils/utils.js" crossorigin="anonymous" />
+  <link rel="preload" data-haxcms-cdn-href="./build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
   <meta name="generator" content="HAXcms">
   <link rel="manifest" href="manifest.json">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
@@ -174,6 +168,26 @@
     }
 
   </style>
+  <script data-haxcms-cdn-preloads>
+    // haxtheweb/issues#3428: the shell's preload hints carry their path in
+    // data-haxcms-cdn-href instead of href. With an href in the markup the
+    // browser fetched ./build/ as soon as it saw the link, before the check
+    // at the top of <head> had chosen where build/ is served from, so hosts
+    // without build/ answered every hint with a 404 and the CDN copy was
+    // only requested later by build.js. This runs after the managed head and
+    // points each hint at the place that check chose.
+    (function () {
+      var cdn = globalThis.__appCDN || "./";
+      var links = document.querySelectorAll("link[data-haxcms-cdn-href]");
+      for (var i = 0; i < links.length; i++) {
+        var path = links[i].getAttribute("data-haxcms-cdn-href");
+        if (path.indexOf("./") === 0) {
+          path = path.substring(2);
+        }
+        links[i].setAttribute("href", cdn + path);
+      }
+    })();
+  </script>
   <style id="loadingstyles">
     haxcms-site-builder {
       display: flow-root;
