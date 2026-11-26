@@ -1790,6 +1790,12 @@ paths:
                   type: string
                   format: binary
                   description: Word document (.docx or .doc) to convert
+                siteName:
+                  type: string
+                  description: Optional. With itemId, names the page the document goes into; images in it are then saved as files of this site, named after the page, and the HTML points at them. Without both (or when they do not resolve to a page) images stay inline data URIs.
+                itemId:
+                  type: string
+                  description: Optional. The id of the page (in siteName) the document goes into.
       responses:
         "200":
           description: Converted HTML content
