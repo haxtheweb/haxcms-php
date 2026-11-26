@@ -376,7 +376,64 @@ if (!isset($GLOBALS['HAXCMS'])) {
      * @return string an html chunk of tags for the head section
      * @todo move this to a render function / section / engine
      */
+    /**
+     * haxtheweb/issues#3431: start the site builder and the active theme
+     * loading while the page is still being parsed. Mirrors
+     * HAXCMSSite::bootImportsMarkup and haxcms-nodejs src/lib/bootImports.js,
+     * and emits the same markup.
+     *
+     * A modulepreload fetches only the file it names; the builder and the
+     * theme each sit on a chain of imports the browser only discovers once
+     * something imports them, which used to wait for the autoloader and then
+     * for the builder. These are the same module URLs the autoloader and
+     * build-haxcms.js resolve, so nothing loads twice, and a failure here is
+     * ignored: the normal boot (with its CDN fallback) still runs.
+     *
+     * Invariants:
+     * - Only a registry path (@scope/package/file.js) or a site's own
+     *   ./custom/build/ file is imported; anything else from site.json is
+     *   dropped. Neither can contain a quote, backslash, "<" or "..".
+     * - Registry modules come from globalThis.__appCDN, else from the base
+     *   the page's loader uses. A base that is not "./" or a plain http(s)
+     *   URL ending in "/" means no script at all: a guess would load a
+     *   second copy of every module.
+     * - The custom build is skipped when globalThis.__appCustomEnv is set.
+     */
+    public static function bootImportPaths($themePath = '') {
+      $registry = array('@haxtheweb/haxcms-elements/lib/core/haxcms-site-builder.js');
+      $custom = '';
+      $theme = str_replace('@lrnwebcomponents/', '@haxtheweb/', (string) $themePath);
+      if (strpos($theme, '..') === FALSE) {
+        if (preg_match('/^@[a-z0-9][a-z0-9._-]*\/[a-z0-9._-]+(?:\/[a-z0-9._-]+)*\.js$/i', $theme) && !in_array($theme, $registry, TRUE)) {
+          $registry[] = $theme;
+        }
+        else if (preg_match('/^\.\/custom\/build\/[a-z0-9._-]+(?:\/[a-z0-9._-]+)*\.js$/i', $theme)) {
+          $custom = $theme;
+        }
+      }
+      return array('registry' => $registry, 'custom' => $custom);
+    }
+    public static function bootImportsMarkup($base = './', $themePath = '') {
+      $base = (string) $base;
+      if (!preg_match('/^(?:\.\/|https?:\/\/[a-z0-9.-]+(?::[0-9]+)?\/(?:[a-z0-9._~%-]+\/)*)$/i', $base)) {
+        return '';
+      }
+      $paths = self::bootImportPaths($themePath);
+      // every value matched an allow-list above, so plain JSON quoting gives
+      // the same "..." strings JSON.stringify does in haxcms-nodejs
+      $flags = JSON_UNESCAPED_SLASHES;
+      $js = '(function(){var c=(globalThis.__appCDN||' . json_encode($base, $flags) . ')+"build/es6/node_modules/";' .
+        json_encode($paths['registry'], $flags) .
+        '.forEach(function(p){import(c+p).catch(function(){});});';
+      if ($paths['custom'] !== '') {
+        $js .= 'if(!globalThis.__appCustomEnv){import(' . json_encode($paths['custom'], $flags) . ').catch(function(){});}';
+      }
+      $js .= '})();';
+      return '  <script data-haxcms-boot>' . $js . '</script>';
+    }
     public function getSiteMetadata($page = NULL, $domain = NULL, $cdn = '') {
+      // the caller's own $cdn, kept before the global CDN setting is applied
+      $requestedCdn = (string) $cdn;
       $preloadTags = array();
       $content = $this->getPageContent($page);
       preg_match_all("/<(?:\"-[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+>/", $content, $matches);
@@ -483,6 +540,7 @@ if (!isset($GLOBALS['HAXCMS'])) {
           <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" as="script" crossorigin="anonymous" />
           <link rel="modulepreload" href="' . $base . 'build/es6/node_modules/@haxtheweb/wc-autoload/wc-autoload.js" />
         ' . $themePreload . $contentPreload . '
+        ' . self::bootImportsMarkup($requestedCdn == '' ? $this->getCDNForDynamic() : $base, isset($this->manifest->metadata->theme->path) ? (string) $this->manifest->metadata->theme->path : '') . '
           <link rel="preload" href="' . $base . 'build/es6/node_modules/@haxtheweb/haxcms-elements/lib/base.css" as="style" />
           <meta name="generator" content="HAXcms" />
         ' . $canonical . $prevResource . $nextResource . '  <link rel="manifest" href="manifest.json" />

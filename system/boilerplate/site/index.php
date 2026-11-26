@@ -64,6 +64,19 @@ else {
 
   </style>
   <style id="loadingstyles">
+    /* haxtheweb/issues#3428: the page the server rendered sits under the
+       opaque loading screen until the site is ready. Hidden there, the
+       theme taking it over is not a layout shift (nobody could see it, but
+       CLS counted the whole viewport moving). It shows again the moment the
+       loading screen starts to dissolve (aria-busy="false").
+       haxtheweb/issues#3431: the theme is named too. Themes reveal
+       themselves with their own :host visibility once they have rendered,
+       which overrode the hidden they inherit here, so a theme still settling
+       under the loading screen counted as layout shift. */
+    body:has(> #loading[aria-busy="true"]) haxcms-site-builder,
+    body:has(> #loading[aria-busy="true"]) haxcms-site-builder > .haxcms-theme-element {
+      visibility: hidden;
+    }
     haxcms-site-builder {
       display: flow-root;
     }
@@ -244,6 +257,18 @@ else {
       }
     }
   </style>
+  <noscript>
+    <!-- without JavaScript the site never finishes loading, so drop the
+         loading screen and show the page the server rendered -->
+    <style>
+      #loading {
+        display: none !important;
+      }
+      haxcms-site-builder {
+        visibility: visible !important;
+      }
+    </style>
+  </noscript>
   <script id="loadingscript">
     (function () {
       var loadingDismissed = false;
@@ -265,6 +290,25 @@ else {
         // build animation to finish first kept rendered content hidden for up
         // to ~900ms more on slow devices.
         dissolveLoading(loadingEl, true);
+      }
+      // haxtheweb/issues#3431: a safety net for a page that never announces
+      // its body. It used to lift 2.5 s after haxcms-ready whatever the theme
+      // held, which showed an empty theme whenever the theme took longer to
+      // load. Now it waits until the theme holds something and is no longer
+      // busy (page content, a 404 or an internal route all count), and gives
+      // up 10 s after haxcms-ready.
+      function hideWhenSettled(delay) {
+        var waited = delay;
+        function check() {
+          var theme = document.querySelector('haxcms-site-builder > .haxcms-theme-element');
+          if ((theme && theme.childNodes.length > 0 && !theme.hasAttribute('aria-busy')) || waited >= 10000) {
+            hideLoading();
+            return;
+          }
+          waited += 250;
+          setTimeout(check, 250);
+        }
+        setTimeout(check, delay);
       }
       function hideLoading() {
         if (loadingDismissed) {
@@ -291,9 +335,7 @@ else {
       globalThis.addEventListener(
         'haxcms-ready',
         function () {
-          setTimeout(function () {
-            hideLoading();
-          }, 2500);
+          hideWhenSettled(2500);
         },
         { once: true }
       );
